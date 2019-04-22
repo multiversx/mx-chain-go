@@ -5,9 +5,8 @@ import (
 	"math"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
@@ -52,6 +51,7 @@ func NewBasicForkDetector(rounder consensus.Rounder,
 	bfd.fork.lastCheckpointRound = -1
 	bfd.fork.lastBlockRound = -1
 	bfd.headers = make(map[uint64][]*headerInfo)
+
 	return bfd, nil
 }
 
@@ -179,6 +179,7 @@ func (bfd *basicForkDetector) computeProbableHighestNonce() uint64 {
 		probableHighestNonce = nonce
 	}
 	bfd.mutHeaders.RUnlock()
+
 	return probableHighestNonce
 }
 
@@ -285,10 +286,16 @@ func (bfd *basicForkDetector) GetHighestFinalBlockNonce() uint64 {
 
 // ProbableHighestNonce gets the probable highest nonce
 func (bfd *basicForkDetector) ProbableHighestNonce() uint64 {
-	bfd.mutFork.Lock()
 	// TODO: This fallback mechanism should be improved
+	// This mechanism is necessary to manage the case when the node will act as synchronized because no new block,
+	// higher than its checkpoint, would be received anymore (this could be the case when during an epoch, the number of
+	// validators in one shard decrease under the size of 2/3 + 1 of the consensus group. In this case no new block would
+	// be proposed anymore and any node which would try to boostrap, would be stuck at the genesis block. This case could
+	// be solved, if the proposed blocks received from leaders would also call the AddHeader method of this class).
+
 	// If after maxRoundsToWait nothing is received, the probableHighestNonce will be set to checkpoint,
 	// so the node will act as synchronized
+	bfd.mutFork.Lock()
 	roundsWithoutReceivedBlock := bfd.rounder.Index() - bfd.fork.lastBlockRound
 	if roundsWithoutReceivedBlock > maxRoundsToWait {
 		if bfd.fork.probableHighestNonce > bfd.fork.checkpointNonce {

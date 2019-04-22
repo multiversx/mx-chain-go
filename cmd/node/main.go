@@ -493,7 +493,6 @@ func createNode(
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(genesisConfig.RoundDuration),
 		syncer)
-
 	if err != nil {
 		return nil, err
 	}

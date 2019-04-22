@@ -8,10 +8,9 @@ import (
 	gosync "sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"

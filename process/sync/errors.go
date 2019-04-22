@@ -14,8 +14,7 @@ var ErrNilHash = errors.New("nil hash")
 // ErrLowerNonceInBlock signals that the nonce in block is lower than the last check point nonce
 var ErrLowerNonceInBlock = errors.New("lower nonce in block")
 
-// ErrHigherNonceInBlock signals that the nonce in block is higher than possible taking in consideration the checkpoint
-// info (round and nonce)
+// ErrHigherNonceInBlock signals that the nonce in block is higher than what could exist in the current round
 var ErrHigherNonceInBlock = errors.New("higher nonce in block")
 
 // ErrLowerRoundInBlock signals that the round index in block is lower than the checkpoint round
