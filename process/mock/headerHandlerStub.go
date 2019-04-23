@@ -96,6 +96,6 @@ func (hhs *HeaderHandlerStub) GetMiniBlockProcessed(hash []byte) bool {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetMiniBlockProcessed(hash []byte) {
+func (hhs *HeaderHandlerStub) SetMiniBlockProcessed(hash []byte, processed bool) {
 	panic("implement me")
 }

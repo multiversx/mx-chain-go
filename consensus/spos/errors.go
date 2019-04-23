@@ -40,6 +40,9 @@ var ErrNilMultiSigner = errors.New("multiSigner is nil")
 // ErrNilConsensusState is raised when a valid consensus is expected but nil used
 var ErrNilConsensusState = errors.New("consensus state is nil")
 
+// ErrNilConsensusCore is raised when a valid ConsensusCore is expected but nil used
+var ErrNilConsensusCore = errors.New("consensusCore is nil")
+
 // ErrNilBlockChain is raised when a valid blockchain is expected but nil used
 var ErrNilBlockChain = errors.New("blockchain is nil")
 
@@ -99,3 +102,15 @@ var ErrNilBroadcastBlockFunction = errors.New("broadcast block function is nil")
 
 // ErrNilChannel is raised when a valid channel is expected but nil used
 var ErrNilChannel = errors.New("channel is nil")
+
+// ErrRoundCanceled is raised when round is canceled
+var ErrRoundCanceled = errors.New("round is canceled")
+
+// ErrSenderNotOk is raised when sender is invalid
+var ErrSenderNotOk = errors.New("sender is invalid")
+
+// ErrMessageForPastRound is raised when message is for past round
+var ErrMessageForPastRound = errors.New("message is for past round")
+
+// ErrInvalidSignature is raised when signature is invalid
+var ErrInvalidSignature = errors.New("signature is invalid")

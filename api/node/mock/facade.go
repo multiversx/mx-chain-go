@@ -2,6 +2,8 @@ package mock
 
 import (
 	"errors"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 )
 
 // Facade is the mock implementation of a node router handler
@@ -22,6 +24,11 @@ func (f *Facade) StartNode() error {
 	if f.ShouldErrorStart {
 		return errors.New("error")
 	}
+	return nil
+}
+
+// TpsBenchmark is the mock implementation for retreiving the TpsBenchmark
+func (f *Facade) TpsBenchmark() *statistics.TpsBenchmark {
 	return nil
 }
 

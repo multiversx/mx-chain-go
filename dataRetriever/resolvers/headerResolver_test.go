@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
@@ -70,7 +69,7 @@ func TestNewHeaderResolver_NilHeadersNoncesPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createDataPool()
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		return nil
 	}
 
@@ -327,7 +326,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 	requestedNonce := uint64(67)
 
 	pools := createDataPool()
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		headersNonces := &mock.Uint64CacherStub{}
 		headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
 			return nil, false
@@ -383,7 +382,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 		return headers
 	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		headersNonces := &mock.Uint64CacherStub{}
 		headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
 			if u == requestedNonce {
@@ -439,7 +438,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 		return headers
 	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		headersNonces := &mock.Uint64CacherStub{}
 		headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
 			if u == requestedNonce {
@@ -504,7 +503,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 		return headers
 	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		headersNonces := &mock.Uint64CacherStub{}
 		headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
 			if u == requestedNonce {

@@ -3,6 +3,7 @@ package node_test
 import (
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -679,16 +680,23 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 			if topic == identifier {
 				//handler to capture sent data
-				tx := transaction.Transaction{}
+				txsBuff := make([][]byte, 0)
 
-				err := marshalizer.Unmarshal(&tx, buff)
+				err := marshalizer.Unmarshal(&txsBuff, buff)
 				if err != nil {
 					assert.Fail(t, err.Error())
 				}
+				for _, txBuff := range txsBuff {
+					tx := transaction.Transaction{}
+					err := marshalizer.Unmarshal(&tx, txBuff)
+					if err != nil {
+						assert.Fail(t, err.Error())
+					}
 
-				mutRecoveredTransactions.Lock()
-				recoveredTransactions[tx.Nonce] = &tx
-				mutRecoveredTransactions.Unlock()
+					mutRecoveredTransactions.Lock()
+					recoveredTransactions[tx.Nonce] = &tx
+					mutRecoveredTransactions.Unlock()
+				}
 			}
 		},
 	}
@@ -815,7 +823,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	dataPool := &mock.PoolsHolderStub{}
-	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
+	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
 	dataPool.HeadersCalled = func() storage.Cacher {
@@ -842,7 +850,7 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	dataPool := &mock.PoolsHolderStub{}
-	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
+	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
 	dataPool.HeadersCalled = func() storage.Cacher {
@@ -878,7 +886,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 		txShardedStores = append(txShardedStores, cacherId)
 	}
 	headerShardedData := &mock.CacherStub{}
-	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
+	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txShardedData
 	}
 	dataPool.HeadersCalled = func() storage.Cacher {

@@ -134,6 +134,9 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	headerStatistics.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		return false, false
 	}
+	headerStatistics.PutCalled = func(key []byte, value interface{}) (evicted bool) {
+		return false
+	}
 
 	multisigner := mock.NewMultiSigner()
 	headersNonces := &mock.Uint64CacherStub{}
@@ -198,6 +201,9 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 
 	headers := &mock.CacherStub{}
 	headerStatistics := &mock.CacherStub{}
+	headerStatistics.PutCalled = func(key []byte, value interface{}) (evicted bool) {
+		return false
+	}
 	multisigner := mock.NewMultiSigner()
 
 	headersNonces := &mock.Uint64CacherStub{}

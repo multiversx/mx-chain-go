@@ -173,7 +173,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 					block.Body(n.miniblocks),
 					func() time.Duration {
 						// time 5 seconds as they have to request from leader the TXs
-						return time.Second * 2
+						return time.Second * 5
 					},
 				)
 

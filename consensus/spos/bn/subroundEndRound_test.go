@@ -11,19 +11,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/stretchr/testify/assert"
 )
 
-func initSubroundEndRound() bn.SubroundEndRound {
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
-
+func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bn.SubroundEndRound {
 	ch := make(chan bool, 1)
+
+	consensusState := initConsensusState()
 
 	sr, _ := bn.NewSubround(
 		int(bn.SrSignature),
@@ -32,17 +26,13 @@ func initSubroundEndRound() bn.SubroundEndRound {
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
 		"(END_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
 
 	srEndRound, _ := bn.NewSubroundEndRound(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		broadcastBlock,
 		extend,
 	)
@@ -50,41 +40,29 @@ func initSubroundEndRound() bn.SubroundEndRound {
 	return srEndRound
 }
 
+func initSubroundEndRound() bn.SubroundEndRound {
+	container := mock.InitConsensusCore()
+	return initSubroundEndRoundWithContainer(container)
+}
+
 func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
-
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
-
 	srEndRound, err := bn.NewSubroundEndRound(
 		nil,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		broadcastBlock,
 		extend,
 	)
 
 	assert.Nil(t, srEndRound)
-	assert.Equal(t, err, spos.ErrNilSubround)
+	assert.Equal(t, spos.ErrNilSubround, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitConsensusCore()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -94,34 +72,27 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
 		"(END_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
-
+	container.SetBlockchain(nil)
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		nil,
-		blockProcessorMock,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		broadcastBlock,
 		extend,
 	)
 
 	assert.Nil(t, srEndRound)
-	assert.Equal(t, err, spos.ErrNilBlockChain)
+	assert.Equal(t, spos.ErrNilBlockChain, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitConsensusCore()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -131,34 +102,26 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
 		"(END_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
-
+	container.SetBlockProcessor(nil)
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		&blockChain,
-		nil,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		broadcastBlock,
 		extend,
 	)
 
 	assert.Nil(t, srEndRound)
-	assert.Equal(t, err, spos.ErrNilBlockProcessor)
+	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
-	multiSignerMock := initMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
-
+	container := mock.InitConsensusCore()
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -168,34 +131,28 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
 		"(END_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
 
+	sr.ConsensusState = nil
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		nil,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		broadcastBlock,
 		extend,
 	)
 
 	assert.Nil(t, srEndRound)
-	assert.Equal(t, err, spos.ErrNilConsensusState)
+	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitConsensusCore()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -205,34 +162,27 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
 		"(END_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
-
+	container.SetMultiSigner(nil)
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		nil,
-		rounderMock,
-		syncTimerMock,
 		broadcastBlock,
 		extend,
 	)
 
 	assert.Nil(t, srEndRound)
-	assert.Equal(t, err, spos.ErrNilMultiSigner)
+	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitConsensusCore()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -242,34 +192,27 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
 		"(END_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
-
+	container.SetRounder(nil)
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		multiSignerMock,
-		nil,
-		syncTimerMock,
 		broadcastBlock,
 		extend,
 	)
 
 	assert.Nil(t, srEndRound)
-	assert.Equal(t, err, spos.ErrNilRounder)
+	assert.Equal(t, spos.ErrNilRounder, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
-	rounderMock := initRounderMock()
+	container := mock.InitConsensusCore()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -279,35 +222,27 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
 		"(END_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
-
+	container.SetSyncTimer(nil)
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		nil,
 		broadcastBlock,
 		extend,
 	)
 
 	assert.Nil(t, srEndRound)
-	assert.Equal(t, err, spos.ErrNilSyncTimer)
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastBlockFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitConsensusCore()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -317,35 +252,27 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastBlockFunctionShouldFail
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
 		"(END_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
 
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		nil,
 		extend,
 	)
 
 	assert.Nil(t, srEndRound)
-	assert.Equal(t, err, spos.ErrNilBroadcastBlockFunction)
+	assert.Equal(t, spos.ErrNilBroadcastBlockFunction, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitConsensusCore()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -355,17 +282,13 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
 		"(END_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
 
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		broadcastBlock,
 		extend,
 	)
@@ -376,17 +299,17 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 
 func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T) {
 	t.Parallel()
+	container := mock.InitConsensusCore()
+	sr := *initSubroundEndRoundWithContainer(container)
 
-	sr := *initSubroundEndRound()
-
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 
 	multiSignerMock.AggregateSigsMock = func(bitmap []byte) ([]byte, error) {
 		return nil, crypto.ErrNilHasher
 	}
 
-	sr.SetMultiSigner(multiSignerMock)
-	sr.ConsensusState().Header = &block.Header{}
+	container.SetMultiSigner(multiSignerMock)
+	sr.Header = &block.Header{}
 
 	r := sr.DoEndRoundJob()
 	assert.False(t, r)
@@ -395,9 +318,10 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundEndRound()
+	container := mock.InitConsensusCore()
+	sr := *initSubroundEndRoundWithContainer(container)
 
-	blProcMock := initBlockProcessorMock()
+	blProcMock := mock.InitBlockProcessorMock()
 
 	blProcMock.CommitBlockCalled = func(
 		blockChain data.ChainHandler,
@@ -407,29 +331,11 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 		return blockchain.ErrHeaderUnitNil
 	}
 
-	sr.SetBlockProcessor(blProcMock)
-	sr.ConsensusState().Header = &block.Header{}
+	container.SetBlockProcessor(blProcMock)
+	sr.Header = &block.Header{}
 
 	r := sr.DoEndRoundJob()
 	assert.False(t, r)
-}
-
-func TestSubroundEndRound_DoEndRoundJobErrRemBlockTxOK(t *testing.T) {
-	t.Parallel()
-
-	sr := *initSubroundEndRound()
-
-	blProcMock := initBlockProcessorMock()
-
-	blProcMock.RemoveBlockInfoFromPoolCalled = func(body data.BodyHandler) error {
-		return process.ErrNilBlockBodyPool
-	}
-
-	sr.SetBlockProcessor(blProcMock)
-	sr.ConsensusState().Header = &block.Header{}
-
-	r := sr.DoEndRoundJob()
-	assert.True(t, r)
 }
 
 func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
@@ -441,7 +347,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 		return spos.ErrNilBroadcastBlockFunction
 	})
 
-	sr.ConsensusState().Header = &block.Header{}
+	sr.Header = &block.Header{}
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
@@ -452,7 +358,7 @@ func TestSubroundEndRound_DoEndRoundJobAllOK(t *testing.T) {
 
 	sr := *initSubroundEndRound()
 
-	sr.ConsensusState().Header = &block.Header{}
+	sr.Header = &block.Header{}
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
@@ -463,7 +369,7 @@ func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnFalseWhenRoundIsCa
 
 	sr := *initSubroundEndRound()
 
-	sr.ConsensusState().RoundCanceled = true
+	sr.RoundCanceled = true
 
 	ok := sr.DoEndRoundConsensusCheck()
 	assert.False(t, ok)
@@ -474,7 +380,7 @@ func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnTrueWhenRoundIsFin
 
 	sr := *initSubroundEndRound()
 
-	sr.ConsensusState().SetStatus(bn.SrEndRound, spos.SsFinished)
+	sr.SetStatus(bn.SrEndRound, spos.SsFinished)
 
 	ok := sr.DoEndRoundConsensusCheck()
 	assert.True(t, ok)
@@ -501,18 +407,19 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrNilSignature(t *testin
 func TestSubroundEndRound_CheckSignaturesValidityShouldErrIndexOutOfBounds(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundEndRound()
+	container := mock.InitConsensusCore()
+	sr := *initSubroundEndRoundWithContainer(container)
 
 	_, _ = sr.MultiSigner().Create(nil, 0)
 
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrSignature, true)
+	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrSignature, true)
 
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	multiSignerMock.SignatureShareMock = func(index uint16) ([]byte, error) {
 		return nil, crypto.ErrIndexOutOfBounds
 	}
 
-	sr.SetMultiSigner(multiSignerMock)
+	container.SetMultiSigner(multiSignerMock)
 
 	err := sr.CheckSignaturesValidity([]byte(string(1)))
 	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
@@ -520,19 +427,19 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrIndexOutOfBounds(t *te
 
 func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidSignatureShare(t *testing.T) {
 	t.Parallel()
+	container := mock.InitConsensusCore()
+	sr := *initSubroundEndRoundWithContainer(container)
 
-	sr := *initSubroundEndRound()
-
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 
 	err := errors.New("invalid signature share")
 	multiSignerMock.VerifySignatureShareMock = func(index uint16, sig []byte, bitmap []byte) error {
 		return err
 	}
 
-	sr.SetMultiSigner(multiSignerMock)
+	container.SetMultiSigner(multiSignerMock)
 
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrSignature, true)
+	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrSignature, true)
 
 	err2 := sr.CheckSignaturesValidity([]byte(string(1)))
 	assert.Equal(t, err, err2)
@@ -543,7 +450,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldRetunNil(t *testing.T) {
 
 	sr := *initSubroundEndRound()
 
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrSignature, true)
+	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrSignature, true)
 
 	err := sr.CheckSignaturesValidity([]byte(string(1)))
 	assert.Equal(t, nil, err)

@@ -2,8 +2,8 @@ package dataPool
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
@@ -22,11 +22,11 @@ func NewNonceToHashCacher(
 	nonceConverter typeConverters.Uint64ByteSliceConverter) (*NonceToHashCacher, error) {
 
 	if cacher == nil {
-		return nil, data.ErrNilCacher
+		return nil, dataRetriever.ErrNilCacher
 	}
 
 	if nonceConverter == nil {
-		return nil, data.ErrNilNonceConverter
+		return nil, dataRetriever.ErrNilNonceConverter
 	}
 
 	return &NonceToHashCacher{
