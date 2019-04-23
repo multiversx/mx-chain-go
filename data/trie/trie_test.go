@@ -645,6 +645,92 @@ func deleteString(trie *trie.Trie, k string) {
 	trie.Delete([]byte(k))
 }
 
+func testTrie() *trie.Trie {
+	db, _ := trie.NewDBWriteCache(mock.NewMemoryStorerMock())
+	tr, _ := trie.NewTrie(encoding.Hash{}.Bytes(), db, testHasher)
+
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	return tr
+}
+
+func testTrie2(nr int) (*trie.Trie, [][]byte) {
+	db, _ := trie.NewDBWriteCache(mock.NewMemoryStorerMock())
+	tr, _ := trie.NewTrie(encoding.Hash{}.Bytes(), db, testHasher)
+
+	var values [][]byte
+	hsh := keccak.Keccak{}
+
+	for i := 0; i < nr; i++ {
+		values = append(values, hsh.Compute(string(i)))
+		tr.Update(values[i], values[i])
+	}
+
+	return tr, values
+}
+
+func TestPatriciaMerkleTree_Prove(t *testing.T) {
+	tr := testTrie()
+	root := tr.Root()
+
+	proof, err := tr.Prove([]byte("dog"), 0)
+	assert.Nil(t, err)
+	assert.NotNil(t, proof)
+	val, _, err := trie.VerifyProof(root, []byte("dog"), proof)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+}
+
+func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
+	tr := testTrie()
+	root := tr.Root()
+	tr.Commit(nil)
+
+	proof, err := tr.Prove([]byte("dog"), 0)
+	assert.Nil(t, err)
+	assert.NotNil(t, proof)
+	val, _, err := trie.VerifyProof(root, []byte("dog"), proof)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+}
+
+func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
+	tr, val := testTrie2(50)
+	root := tr.Root()
+
+	for i := range val {
+		proof, _ := tr.Prove(val[i], 0)
+
+		val, _, err := trie.VerifyProof(root, val[i], proof)
+		assert.Nil(t, err)
+		assert.NotNil(t, val)
+
+		val, _, err = trie.VerifyProof(root, []byte("dog"+strconv.Itoa(i)), proof)
+		assert.Nil(t, err)
+		assert.Nil(t, val)
+	}
+}
+
+func TestPatriciaMerkleTree_VerifyProofCollapsedTrie(t *testing.T) {
+	tr, val := testTrie2(50)
+	root := tr.Root()
+	tr.Commit(nil)
+
+	for i := range val {
+		proof, _ := tr.Prove(val[i], 0)
+
+		val, _, err := trie.VerifyProof(root, val[i], proof)
+		assert.Nil(t, err)
+		assert.NotNil(t, val)
+
+		val, _, err = trie.VerifyProof(root, []byte("dog"+strconv.Itoa(i)), proof)
+		assert.Nil(t, err)
+		assert.Nil(t, val)
+	}
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
