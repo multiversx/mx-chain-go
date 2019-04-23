@@ -184,6 +184,7 @@ func (adb *AccountsDB) HasAccount(addressContainer AddressContainer) (bool, erro
 
 func (adb *AccountsDB) getAccount(addressContainer AddressContainer) (AccountWrapper, error) {
 	addrBytes := addressContainer.Bytes()
+
 	val, err := adb.mainTrie.Get(addrBytes)
 	if err != nil {
 		return nil, err
@@ -194,6 +195,7 @@ func (adb *AccountsDB) getAccount(addressContainer AddressContainer) (AccountWra
 
 	acnt := adb.accountFactory.CreateAccount(addressContainer, adb)
 	err = adb.marshalizer.Unmarshal(acnt, val)
+
 	return acnt, err
 }
 
