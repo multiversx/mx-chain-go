@@ -19,6 +19,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
@@ -496,7 +497,19 @@ func createNode(
 		return nil, err
 	}
 
-	forkDetector := processSync.NewBasicForkDetector()
+	rounder, err := round.NewRound(
+		time.Unix(genesisConfig.StartTime, 0),
+		syncer.CurrentTime(),
+		time.Millisecond*time.Duration(genesisConfig.RoundDuration),
+		syncer)
+	if err != nil {
+		return nil, err
+	}
+
+	forkDetector, err := processSync.NewBasicForkDetector(rounder)
+	if err != nil {
+		return nil, err
+	}
 
 	blockProcessor, err := block.NewBlockProcessor(
 		datapool,
@@ -530,7 +543,7 @@ func createNode(
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
-		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
+		node.WithRounder(rounder),
 		node.WithDataPool(datapool),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
