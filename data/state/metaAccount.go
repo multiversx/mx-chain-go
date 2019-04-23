@@ -162,7 +162,7 @@ func (a *MetaAccount) SetDataTrie(trie trie.PatriciaMerkelTree) {
 	if trie == nil {
 		a.dataTrieTracker = nil
 	} else {
-		a.dataTrieTracker = NewTrackableDataAccountWrap(trie)
+		a.dataTrieTracker = NewTrackableDataTrie(trie)
 	}
 	a.dataTrie = trie
 }

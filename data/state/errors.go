@@ -74,12 +74,6 @@ var ErrEmptyAddress = errors.New("empty Address")
 // ErrNilAccount defines the error when trying to work with a nil account
 var ErrNilAccount = errors.New("nil Account")
 
-// ErrNilSimpleAccountWrapper defines the error when trying to work with a nil account wrapper
-var ErrNilSimpleAccountWrapper = errors.New("nil SimpleAccountWrapper")
-
-// ErrNilJurnalizingAccountWrapper defines the error when trying to work with a nil account wrapper
-var ErrNilJurnalizingAccountWrapper = errors.New("nil JurnalizingAccountWrapper")
-
 // ErrNilDataTrie defines the error when trying to search a data key on an uninitialized trie
 var ErrNilDataTrie = errors.New("nil data trie for account or data trie not loaded")
 
@@ -118,3 +112,9 @@ var ErrNilOrEmptyKey = errors.New("key is empty or nil")
 
 // ErrNilShardCoordinator signals that nil shard coordinator was provided
 var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
+
+// ErrWrongTypeAssertion signals that a wrong type assertion occurred
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilTrackableDataTrie signals that a nil trackable data trie has been provided
+var ErrNilTrackableDataTrie = errors.New("nil trackable data trie")

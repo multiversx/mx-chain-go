@@ -26,8 +26,8 @@ func NewBaseJournalEntryCreation(key []byte, updater Updater) (*BaseJournalEntry
 }
 
 // Revert applies undo operation
-func (jec *BaseJournalEntryCreation) Revert() (AccountWrapper, error) {
-	return nil, jec.updater.Update(jec.key, nil)
+func (bjec *BaseJournalEntryCreation) Revert() (AccountWrapper, error) {
+	return nil, bjec.updater.Update(bjec.key, nil)
 }
 
 //------- BaseJournalEntryCodeHash
@@ -51,10 +51,10 @@ func NewBaseJournalEntryCodeHash(account AccountWrapper, oldCodeHash []byte) (*B
 }
 
 // Revert applies undo operation
-func (jech *BaseJournalEntryCodeHash) Revert() (AccountWrapper, error) {
-	jech.account.SetCodeHash(jech.oldCodeHash)
+func (bjech *BaseJournalEntryCodeHash) Revert() (AccountWrapper, error) {
+	bjech.account.SetCodeHash(bjech.oldCodeHash)
 
-	return jech.account, nil
+	return bjech.account, nil
 }
 
 //------- BaseJournalEntryRoot
@@ -70,9 +70,6 @@ func NewBaseJournalEntryRootHash(account AccountWrapper, oldRootHash []byte) (*B
 	if account == nil {
 		return nil, ErrNilAccountWrapper
 	}
-	if account.AddressContainer() == nil {
-		return nil, ErrNilAddressContainer
-	}
 
 	return &BaseJournalEntryRootHash{
 		account:     account,
@@ -81,14 +78,10 @@ func NewBaseJournalEntryRootHash(account AccountWrapper, oldRootHash []byte) (*B
 }
 
 // Revert applies undo operation
-func (jer *BaseJournalEntryRootHash) Revert() (AccountWrapper, error) {
-	jer.account.SetRootHash(jer.oldRootHash)
-	//TODO(jls) fix this
-	//err := jer.accountTracker.LoadDataTrie(jer.account)
-	//if err != nil {
-	//	return nil, err
-	//}
-	return jer.account, nil
+func (bjer *BaseJournalEntryRootHash) Revert() (AccountWrapper, error) {
+	bjer.account.SetRootHash(bjer.oldRootHash)
+
+	return bjer.account, nil
 }
 
 //------- BaseJournalEntryData
@@ -113,9 +106,11 @@ func NewBaseJournalEntryData(account AccountWrapper, trie trie.PatriciaMerkelTre
 }
 
 // Revert will empty the dirtyData map from AccountState
-func (jed *BaseJournalEntryData) Revert() (AccountWrapper, error) {
-	//TODO(jls) call clear cache here from TrackableDataTrie
-	//jed.account.ClearDataCaches()
+func (bjed *BaseJournalEntryData) Revert() (AccountWrapper, error) {
+	dataTrieTracker := bjed.account.DataTrieTracker()
+	if dataTrieTracker != nil {
+		bjed.account.DataTrieTracker().ClearDataCaches()
+	}
 
 	return nil, nil
 }

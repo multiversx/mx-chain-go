@@ -6,25 +6,24 @@ import (
 )
 
 type AccountWrapMock struct {
-	dataTrie trie.PatriciaMerkelTree
-	code     []byte
-	codeHash []byte
-	rootHash []byte
-	Address  state.AddressContainer
-	Tracker  state.AccountTracker
+	MockValue         int
+	dataTrie          trie.PatriciaMerkelTree
+	code              []byte
+	codeHash          []byte
+	rootHash          []byte
+	address           state.AddressContainer
+	tracker           state.AccountTracker
+	trackableDataTrie state.DataTrieTracker
 
-	SetCodeHashWithJournalCalled func(codeHash []byte) error
-	SetRootHashWithJournalCalled func([]byte) error
-}
-
-func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
-	panic("implement me")
+	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
+	SetRootHashWithJournalCalled func([]byte) error          `json:"-"`
 }
 
 func NewAccountWrapMock(adr state.AddressContainer, tracker state.AccountTracker) *AccountWrapMock {
 	return &AccountWrapMock{
-		Address: adr,
-		Tracker: tracker,
+		address:           adr,
+		tracker:           tracker,
+		trackableDataTrie: state.NewTrackableDataTrie(nil),
 	}
 }
 
@@ -57,7 +56,7 @@ func (awm *AccountWrapMock) SetRootHashWithJournal(rootHash []byte) error {
 }
 
 func (awm *AccountWrapMock) AddressContainer() state.AddressContainer {
-	return awm.Address
+	return awm.address
 }
 
 func (awm *AccountWrapMock) SetCode(code []byte) {
@@ -70,4 +69,13 @@ func (awm *AccountWrapMock) DataTrie() trie.PatriciaMerkelTree {
 
 func (awm *AccountWrapMock) SetDataTrie(trie trie.PatriciaMerkelTree) {
 	awm.dataTrie = trie
+	awm.trackableDataTrie.SetDataTrie(trie)
+}
+
+func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
+	return awm.trackableDataTrie
+}
+
+func (awm *AccountWrapMock) SetDataTrieTracker(tracker state.DataTrieTracker) {
+	awm.trackableDataTrie = tracker
 }

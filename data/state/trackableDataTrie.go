@@ -9,8 +9,8 @@ type TrackableDataTrie struct {
 	tr           trie.PatriciaMerkelTree
 }
 
-// NewTrackableDataAccountWrap returns an instance of DataTrieTracker
-func NewTrackableDataAccountWrap(tr trie.PatriciaMerkelTree) *TrackableDataTrie {
+// NewTrackableDataTrie returns an instance of DataTrieTracker
+func NewTrackableDataTrie(tr trie.PatriciaMerkelTree) *TrackableDataTrie {
 	return &TrackableDataTrie{
 		tr:           tr,
 		originalData: make(map[string][]byte),
@@ -70,4 +70,8 @@ func (tdaw *TrackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
 // It does not care if the data is really dirty as calling this check here will be sub-optimal
 func (tdaw *TrackableDataTrie) SaveKeyValue(key []byte, value []byte) {
 	tdaw.dirtyData[string(key)] = value
+}
+
+func (tdaw *TrackableDataTrie) SetDataTrie(tr trie.PatriciaMerkelTree) {
+	tdaw.tr = tr
 }

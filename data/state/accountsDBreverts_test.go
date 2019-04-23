@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -96,7 +97,7 @@ func adbrPrintAccount(journalizedAccountWrap state.AccountWrapper, tag string) {
 	fmt.Printf("     Root hash: %v\n\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.GetRootHash()))
 }
 
-func TestAccountsDBRevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
+func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr1 := mock.NewAddressMock()
@@ -153,7 +154,7 @@ func TestAccountsDBRevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	fmt.Printf("State root - reverted last 2 nonces set: %v\n", hrFinal)
 }
 
-func TestAccountsDBRevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
+func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr1 := mock.NewAddressMock()
@@ -210,7 +211,7 @@ func TestAccountsDBRevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	fmt.Printf("State root - reverted last 2 balance set: %v\n", hrFinal)
 }
 
-func TestAccountsDBRevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
+func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	//adr1 puts code hash + code inside trie. adr2 has the same code hash
@@ -266,282 +267,282 @@ func TestAccountsDBRevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	fmt.Printf("State root - reverted first account: %v\n", hrCrt)
 }
 
-//func TestAccountsDBRevertDataStepByStepAccountDataShouldWork(t *testing.T) {
-//	t.Parallel()
-//
-//	//adr1 puts data inside trie. adr2 puts the same data
-//	//revert should work
-//
-//	adr1 := mock.NewAddressMock()
-//	adr2 := mock.NewAddressMock()
-//
-//	//Step 1. create accounts objects
-//	adb := accountsDBRevertCreateAccountsDB()
-//	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	fmt.Printf("State root - empty: %v\n", hrEmpty)
-//
-//	//Step 2. create 2 new accounts
-//	state1, err := adb.GetAccountWithJournal(adr1)
-//	assert.Nil(t, err)
-//	state1.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-//	err = adb.SaveData(state1)
-//	assert.Nil(t, err)
-//	snapshotCreated1 := adb.JournalLen()
-//	hrCreated1 := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	hrRoot1 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
-//
-//	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
-//	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
-//
-//	state2, err := adb.GetJournalizedAccount(adr2)
-//	assert.Nil(t, err)
-//	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-//	err = adb.SaveData(state2)
-//	assert.Nil(t, err)
-//	snapshotCreated2 := adb.JournalLen()
-//	hrCreated2 := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	hrRoot2 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
-//
-//	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
-//	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
-//
-//	//Test 2.1. test that hashes and snapshots ID are different
-//	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
-//	assert.NotEqual(t, hrCreated1, hrCreated2)
-//
-//	//Test 2.2 test whether the datatrie roots match
-//	assert.Equal(t, hrRoot1, hrRoot2)
-//
-//	//Step 3. Revert 2-nd account ant test roots
-//	err = adb.RevertToSnapshot(snapshotCreated1)
-//	assert.Nil(t, err)
-//	hrCreated2Rev := base64.StdEncoding.EncodeToString(adb.RootHash())
-//
-//	assert.Equal(t, hrCreated1, hrCreated2Rev)
-//
-//	//Step 4. Revert 1-st account ant test roots
-//	err = adb.RevertToSnapshot(0)
-//	assert.Nil(t, err)
-//	hrCreated1Rev := base64.StdEncoding.EncodeToString(adb.RootHash())
-//
-//	assert.Equal(t, hrEmpty, hrCreated1Rev)
-//}
-//
-//func TestAccountsDBRevertDataStepByStepWithCommitsAccountDataShouldWork(t *testing.T) {
-//	t.Parallel()
-//
-//	//adr1 puts data inside trie. adr2 puts the same data
-//	//revert should work
-//
-//	adr1 := mock.NewAddressMock()
-//	adr2 := mock.NewAddressMock()
-//
-//	//Step 1. create accounts objects
-//	adb := accountsDBRevertCreateAccountsDB()
-//	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	fmt.Printf("State root - empty: %v\n", hrEmpty)
-//
-//	//Step 2. create 2 new accounts
-//	state1, err := adb.GetJournalizedAccount(adr1)
-//	assert.Nil(t, err)
-//	state1.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-//	err = adb.SaveData(state1)
-//	assert.Nil(t, err)
-//	snapshotCreated1 := adb.JournalLen()
-//	hrCreated1 := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	hrRoot1 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
-//
-//	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
-//	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
-//
-//	state2, err := adb.GetJournalizedAccount(adr2)
-//	assert.Nil(t, err)
-//	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-//	err = adb.SaveData(state2)
-//	assert.Nil(t, err)
-//	snapshotCreated2 := adb.JournalLen()
-//	hrCreated2 := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	hrRoot2 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
-//
-//	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
-//	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
-//
-//	//Test 2.1. test that hashes and snapshots ID are different
-//	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
-//	assert.NotEqual(t, hrCreated1, hrCreated2)
-//
-//	//Test 2.2 test whether the datatrie roots match
-//	assert.Equal(t, hrRoot1, hrRoot2)
-//
-//	//Step 3. Commit
-//	rootCommit, err := adb.Commit()
-//	hrCommit := base64.StdEncoding.EncodeToString(rootCommit)
-//	fmt.Printf("State root - committed: %v\n", hrCommit)
-//
-//	//Step 4. 2-nd account changes its data
-//	snapshotMod := adb.JournalLen()
-//	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 35})
-//	err = adb.SaveData(state2)
-//	assert.Nil(t, err)
-//	hrCreated2p1 := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	hrRoot2p1 := base64.StdEncoding.EncodeToString(state2.DataTrie().Root())
-//
-//	fmt.Printf("State root - modified 2-nd account: %v\n", hrCreated2p1)
-//	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2p1)
-//
-//	//Test 4.1 test that hashes are different
-//	assert.NotEqual(t, hrCreated2p1, hrCreated2)
-//
-//	//Test 4.2 test whether the datatrie roots match/mismatch
-//	assert.Equal(t, hrRoot1, hrRoot2)
-//	assert.NotEqual(t, hrRoot2, hrRoot2p1)
-//
-//	//Step 5. Revert 2-nd account modification
-//	err = adb.RevertToSnapshot(snapshotMod)
-//	assert.Nil(t, err)
-//	hrCreated2Rev := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	hrRoot2Rev := base64.StdEncoding.EncodeToString(state2.DataTrie().Root())
-//	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
-//	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2Rev)
-//	assert.Equal(t, hrCommit, hrCreated2Rev)
-//	assert.Equal(t, hrRoot2, hrRoot2Rev)
-//}
-//
-//func TestAccountsDBExecBalanceTxExecution(t *testing.T) {
-//	t.Parallel()
-//
-//	adrSrc := mock.NewAddressMock()
-//	adrDest := mock.NewAddressMock()
-//
-//	//Step 1. create accounts objects
-//	adb := accountsDBRevertCreateAccountsDB()
-//
-//	acntSrc, err := adb.GetJournalizedAccount(adrSrc)
-//	assert.Nil(t, err)
-//	acntDest, err := adb.GetJournalizedAccount(adrDest)
-//	assert.Nil(t, err)
-//
-//	//Set a high balance to src's account
-//	err = acntSrc.SetBalanceWithJournal(big.NewInt(1000))
-//	assert.Nil(t, err)
-//
-//	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	fmt.Printf("Original root hash: %s\n", hrOriginal)
-//
-//	adbrPrintAccount(acntSrc, "Source")
-//	adbrPrintAccount(acntDest, "Destination")
-//
-//	fmt.Println("Executing OK transaction...")
-//	adbrEmulateBalanceTxSafeExecution(acntSrc, acntDest, adb, big.NewInt(64))
-//
-//	hrOK := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	fmt.Printf("After executing an OK tx root hash: %s\n", hrOK)
-//
-//	adbrPrintAccount(acntSrc, "Source")
-//	adbrPrintAccount(acntDest, "Destination")
-//
-//	fmt.Println("Executing NOK transaction...")
-//	adbrEmulateBalanceTxSafeExecution(acntSrc, acntDest, adb, big.NewInt(10000))
-//
-//	hrNok := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	fmt.Printf("After executing a NOK tx root hash: %s\n", hrNok)
-//
-//	adbrPrintAccount(acntSrc, "Source")
-//	adbrPrintAccount(acntDest, "Destination")
-//
-//	assert.NotEqual(t, hrOriginal, hrOK)
-//	assert.Equal(t, hrOK, hrNok)
-//
-//}
-//
-//func TestAccountsDBExecALotOfBalanceTxOK(t *testing.T) {
-//	t.Parallel()
-//
-//	adrSrc := mock.NewAddressMock()
-//	adrDest := mock.NewAddressMock()
-//
-//	//Step 1. create accounts objects
-//	adb := accountsDBRevertCreateAccountsDB()
-//
-//	acntSrc, err := adb.GetJournalizedAccount(adrSrc)
-//	assert.Nil(t, err)
-//	acntDest, err := adb.GetJournalizedAccount(adrDest)
-//	assert.Nil(t, err)
-//
-//	//Set a high balance to src's account
-//	err = acntSrc.SetBalanceWithJournal(big.NewInt(10000000))
-//	assert.Nil(t, err)
-//
-//	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	fmt.Printf("Original root hash: %s\n", hrOriginal)
-//
-//	for i := 1; i <= 1000; i++ {
-//		err := accountsDBRevertEmulateBalanceTxExecution(acntSrc, acntDest, big.NewInt(int64(i)))
-//
-//		assert.Nil(t, err)
-//	}
-//
-//	adbrPrintAccount(acntSrc, "Source")
-//	adbrPrintAccount(acntDest, "Destination")
-//}
-//
-//func TestAccountsDBExecALotOfBalanceTxOKorNOK(t *testing.T) {
-//	t.Parallel()
-//
-//	adrSrc := mock.NewAddressMock()
-//	adrDest := mock.NewAddressMock()
-//
-//	//Step 1. create accounts objects
-//	adb := accountsDBRevertCreateAccountsDB()
-//
-//	acntSrc, err := adb.GetJournalizedAccount(adrSrc)
-//	assert.Nil(t, err)
-//	acntDest, err := adb.GetJournalizedAccount(adrDest)
-//	assert.Nil(t, err)
-//
-//	//Set a high balance to src's account
-//	err = acntSrc.SetBalanceWithJournal(big.NewInt(10000000))
-//	assert.Nil(t, err)
-//
-//	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
-//	fmt.Printf("Original root hash: %s\n", hrOriginal)
-//
-//	st := time.Now()
-//	for i := 1; i <= 1000; i++ {
-//		err := accountsDBRevertEmulateBalanceTxExecution(acntSrc, acntDest, big.NewInt(int64(i)))
-//
-//		assert.Nil(t, err)
-//
-//		err = accountsDBRevertEmulateBalanceTxExecution(acntDest, acntSrc, big.NewInt(int64(1000000)))
-//
-//		assert.NotNil(t, err)
-//	}
-//
-//	fmt.Printf("Done in %v\n", time.Now().Sub(st))
-//
-//	adbrPrintAccount(acntSrc, "Source")
-//	adbrPrintAccount(acntDest, "Destination")
-//}
-//
-//func BenchmarkTxExecution(b *testing.B) {
-//	adrSrc := mock.NewAddressMock()
-//	adrDest := mock.NewAddressMock()
-//
-//	//Step 1. create accounts objects
-//	adb := accountsDBRevertCreateAccountsDB()
-//
-//	acntSrc, err := adb.GetJournalizedAccount(adrSrc)
-//	assert.Nil(b, err)
-//	acntDest, err := adb.GetJournalizedAccount(adrDest)
-//	assert.Nil(b, err)
-//
-//	//Set a high balance to src's account
-//	err = acntSrc.SetBalanceWithJournal(big.NewInt(10000000))
-//	assert.Nil(b, err)
-//
-//	b.ResetTimer()
-//
-//	for i := 0; i < b.N; i++ {
-//		adbrEmulateBalanceTxSafeExecution(acntSrc, acntDest, adb, big.NewInt(1))
-//	}
-//}
+func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
+	t.Parallel()
+
+	//adr1 puts data inside trie. adr2 puts the same data
+	//revert should work
+
+	adr1 := mock.NewAddressMock()
+	adr2 := mock.NewAddressMock()
+
+	//Step 1. create accounts objects
+	adb := accountsDBRevertCreateAccountsDB()
+	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
+	fmt.Printf("State root - empty: %v\n", hrEmpty)
+
+	//Step 2. create 2 new accounts
+	state1, err := adb.GetAccountWithJournal(adr1)
+	assert.Nil(t, err)
+	state1.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	err = adb.SaveDataTrie(state1)
+	assert.Nil(t, err)
+	snapshotCreated1 := adb.JournalLen()
+	hrCreated1 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	hrRoot1 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
+
+	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
+	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
+
+	state2, err := adb.GetAccountWithJournal(adr2)
+	assert.Nil(t, err)
+	state2.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	err = adb.SaveDataTrie(state2)
+	assert.Nil(t, err)
+	snapshotCreated2 := adb.JournalLen()
+	hrCreated2 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	hrRoot2 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
+
+	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
+	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
+
+	//Test 2.1. test that hashes and snapshots ID are different
+	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
+	assert.NotEqual(t, hrCreated1, hrCreated2)
+
+	//Test 2.2 test whether the datatrie roots match
+	assert.Equal(t, hrRoot1, hrRoot2)
+
+	//Step 3. Revert 2-nd account ant test roots
+	err = adb.RevertToSnapshot(snapshotCreated1)
+	assert.Nil(t, err)
+	hrCreated2Rev := base64.StdEncoding.EncodeToString(adb.RootHash())
+
+	assert.Equal(t, hrCreated1, hrCreated2Rev)
+
+	//Step 4. Revert 1-st account ant test roots
+	err = adb.RevertToSnapshot(0)
+	assert.Nil(t, err)
+	hrCreated1Rev := base64.StdEncoding.EncodeToString(adb.RootHash())
+
+	assert.Equal(t, hrEmpty, hrCreated1Rev)
+}
+
+func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *testing.T) {
+	t.Parallel()
+
+	//adr1 puts data inside trie. adr2 puts the same data
+	//revert should work
+
+	adr1 := mock.NewAddressMock()
+	adr2 := mock.NewAddressMock()
+
+	//Step 1. create accounts objects
+	adb := accountsDBRevertCreateAccountsDB()
+	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
+	fmt.Printf("State root - empty: %v\n", hrEmpty)
+
+	//Step 2. create 2 new accounts
+	state1, err := adb.GetAccountWithJournal(adr1)
+	assert.Nil(t, err)
+	state1.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	err = adb.SaveDataTrie(state1)
+	assert.Nil(t, err)
+	snapshotCreated1 := adb.JournalLen()
+	hrCreated1 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	hrRoot1 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
+
+	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
+	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
+
+	state2, err := adb.GetAccountWithJournal(adr2)
+	assert.Nil(t, err)
+	state2.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	err = adb.SaveDataTrie(state2)
+	assert.Nil(t, err)
+	snapshotCreated2 := adb.JournalLen()
+	hrCreated2 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	hrRoot2 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
+
+	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
+	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
+
+	//Test 2.1. test that hashes and snapshots ID are different
+	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
+	assert.NotEqual(t, hrCreated1, hrCreated2)
+
+	//Test 2.2 test whether the datatrie roots match
+	assert.Equal(t, hrRoot1, hrRoot2)
+
+	//Step 3. Commit
+	rootCommit, err := adb.Commit()
+	hrCommit := base64.StdEncoding.EncodeToString(rootCommit)
+	fmt.Printf("State root - committed: %v\n", hrCommit)
+
+	//Step 4. 2-nd account changes its data
+	snapshotMod := adb.JournalLen()
+	state2.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 35})
+	err = adb.SaveDataTrie(state2)
+	assert.Nil(t, err)
+	hrCreated2p1 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	hrRoot2p1 := base64.StdEncoding.EncodeToString(state2.DataTrie().Root())
+
+	fmt.Printf("State root - modified 2-nd account: %v\n", hrCreated2p1)
+	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2p1)
+
+	//Test 4.1 test that hashes are different
+	assert.NotEqual(t, hrCreated2p1, hrCreated2)
+
+	//Test 4.2 test whether the datatrie roots match/mismatch
+	assert.Equal(t, hrRoot1, hrRoot2)
+	assert.NotEqual(t, hrRoot2, hrRoot2p1)
+
+	//Step 5. Revert 2-nd account modification
+	err = adb.RevertToSnapshot(snapshotMod)
+	assert.Nil(t, err)
+	hrCreated2Rev := base64.StdEncoding.EncodeToString(adb.RootHash())
+	hrRoot2Rev := base64.StdEncoding.EncodeToString(state2.DataTrie().Root())
+	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
+	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2Rev)
+	assert.Equal(t, hrCommit, hrCreated2Rev)
+	assert.Equal(t, hrRoot2, hrRoot2Rev)
+}
+
+func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
+	t.Parallel()
+
+	adrSrc := mock.NewAddressMock()
+	adrDest := mock.NewAddressMock()
+
+	//Step 1. create accounts objects
+	adb := accountsDBRevertCreateAccountsDB()
+
+	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
+	assert.Nil(t, err)
+	acntDest, err := adb.GetAccountWithJournal(adrDest)
+	assert.Nil(t, err)
+
+	//Set a high balance to src's account
+	err = acntSrc.(*state.Account).SetBalanceWithJournal(big.NewInt(1000))
+	assert.Nil(t, err)
+
+	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
+	fmt.Printf("Original root hash: %s\n", hrOriginal)
+
+	adbrPrintAccount(acntSrc, "Source")
+	adbrPrintAccount(acntDest, "Destination")
+
+	fmt.Println("Executing OK transaction...")
+	adbrEmulateBalanceTxSafeExecution(acntSrc, acntDest, adb, big.NewInt(64))
+
+	hrOK := base64.StdEncoding.EncodeToString(adb.RootHash())
+	fmt.Printf("After executing an OK tx root hash: %s\n", hrOK)
+
+	adbrPrintAccount(acntSrc, "Source")
+	adbrPrintAccount(acntDest, "Destination")
+
+	fmt.Println("Executing NOK transaction...")
+	adbrEmulateBalanceTxSafeExecution(acntSrc, acntDest, adb, big.NewInt(10000))
+
+	hrNok := base64.StdEncoding.EncodeToString(adb.RootHash())
+	fmt.Printf("After executing a NOK tx root hash: %s\n", hrNok)
+
+	adbrPrintAccount(acntSrc, "Source")
+	adbrPrintAccount(acntDest, "Destination")
+
+	assert.NotEqual(t, hrOriginal, hrOK)
+	assert.Equal(t, hrOK, hrNok)
+
+}
+
+func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
+	t.Parallel()
+
+	adrSrc := mock.NewAddressMock()
+	adrDest := mock.NewAddressMock()
+
+	//Step 1. create accounts objects
+	adb := accountsDBRevertCreateAccountsDB()
+
+	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
+	assert.Nil(t, err)
+	acntDest, err := adb.GetAccountWithJournal(adrDest)
+	assert.Nil(t, err)
+
+	//Set a high balance to src's account
+	err = acntSrc.(*state.Account).SetBalanceWithJournal(big.NewInt(10000000))
+	assert.Nil(t, err)
+
+	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
+	fmt.Printf("Original root hash: %s\n", hrOriginal)
+
+	for i := 1; i <= 1000; i++ {
+		err := accountsDBRevertEmulateBalanceTxExecution(acntSrc, acntDest, big.NewInt(int64(i)))
+
+		assert.Nil(t, err)
+	}
+
+	adbrPrintAccount(acntSrc, "Source")
+	adbrPrintAccount(acntDest, "Destination")
+}
+
+func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
+	t.Parallel()
+
+	adrSrc := mock.NewAddressMock()
+	adrDest := mock.NewAddressMock()
+
+	//Step 1. create accounts objects
+	adb := accountsDBRevertCreateAccountsDB()
+
+	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
+	assert.Nil(t, err)
+	acntDest, err := adb.GetAccountWithJournal(adrDest)
+	assert.Nil(t, err)
+
+	//Set a high balance to src's account
+	err = acntSrc.(*state.Account).SetBalanceWithJournal(big.NewInt(10000000))
+	assert.Nil(t, err)
+
+	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
+	fmt.Printf("Original root hash: %s\n", hrOriginal)
+
+	st := time.Now()
+	for i := 1; i <= 1000; i++ {
+		err := accountsDBRevertEmulateBalanceTxExecution(acntSrc, acntDest, big.NewInt(int64(i)))
+
+		assert.Nil(t, err)
+
+		err = accountsDBRevertEmulateBalanceTxExecution(acntDest, acntSrc, big.NewInt(int64(1000000)))
+
+		assert.NotNil(t, err)
+	}
+
+	fmt.Printf("Done in %v\n", time.Now().Sub(st))
+
+	adbrPrintAccount(acntSrc, "Source")
+	adbrPrintAccount(acntDest, "Destination")
+}
+
+func BenchmarkTxExecution(b *testing.B) {
+	adrSrc := mock.NewAddressMock()
+	adrDest := mock.NewAddressMock()
+
+	//Step 1. create accounts objects
+	adb := accountsDBRevertCreateAccountsDB()
+
+	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
+	assert.Nil(b, err)
+	acntDest, err := adb.GetAccountWithJournal(adrDest)
+	assert.Nil(b, err)
+
+	//Set a high balance to src's account
+	err = acntSrc.(*state.Account).SetBalanceWithJournal(big.NewInt(10000000))
+	assert.Nil(b, err)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		adbrEmulateBalanceTxSafeExecution(acntSrc, acntDest, adb, big.NewInt(1))
+	}
+}
