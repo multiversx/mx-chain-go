@@ -36,72 +36,67 @@ func (bp *baseProcessor) RevertAccountState() {
 	}
 }
 
-// CheckBlockValidity method checks if the given block is valid
-func (bp *baseProcessor) CheckBlockValidity(
+// checkBlockValidity method checks if the given block is valid
+func (bp *baseProcessor) checkBlockValidity(
 	chainHandler data.ChainHandler,
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
-) bool {
+) error {
 	if headerHandler == nil {
-		log.Info(process.ErrNilBlockHeader.Error())
-		return false
+		return process.ErrNilBlockHeader
 	}
-
 	if chainHandler == nil {
-		log.Info(process.ErrNilBlockChain.Error())
-		return false
+		return process.ErrNilBlockChain
 	}
 
 	if chainHandler.GetCurrentBlockHeader() == nil {
 		if headerHandler.GetNonce() == 1 { // first block after genesis
 			if bytes.Equal(headerHandler.GetPrevHash(), chainHandler.GetGenesisHeaderHash()) {
 				// TODO add genesis block verification
-				return true
+				return nil
 			}
 
 			log.Info(fmt.Sprintf("hash not match: local block hash is empty and node received block with previous hash %s\n",
 				toB64(headerHandler.GetPrevHash())))
 
-			return false
+			return process.ErrInvalidBlockHash
 		}
 
 		log.Info(fmt.Sprintf("nonce not match: local block nonce is 0 and node received block with nonce %d\n",
 			headerHandler.GetNonce()))
 
-		return false
+		return process.ErrWrongNonceInBlock
 	}
 
 	if headerHandler.GetNonce() != chainHandler.GetCurrentBlockHeader().GetNonce()+1 {
 		log.Info(fmt.Sprintf("nonce not match: local block nonce is %d and node received block with nonce %d\n",
 			chainHandler.GetCurrentBlockHeader().GetNonce(), headerHandler.GetNonce()))
 
-		return false
+		return process.ErrWrongNonceInBlock
 	}
 
 	header, ok := chainHandler.GetCurrentBlockHeader().(*block.Header)
 	if !ok {
-		log.Error(process.ErrWrongTypeAssertion.Error())
-		return false
+		return process.ErrWrongTypeAssertion
 	}
 
 	prevHeaderHash, err := bp.computeHeaderHash(header)
 	if err != nil {
-		log.Info(err.Error())
-		return false
+		return err
 	}
 
 	if !bytes.Equal(headerHandler.GetPrevHash(), prevHeaderHash) {
 		log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
 			toB64(prevHeaderHash), toB64(headerHandler.GetPrevHash())))
 
-		return false
+		return process.ErrInvalidBlockHash
 	}
 
 	if bodyHandler != nil {
 		// TODO add bodyHandler verification here
 	}
 
-	return true
+	return nil
 }
 
 // verifyStateRoot verifies the state root hash given as parameter against the
@@ -113,41 +108,6 @@ func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
 // getRootHash returns the accounts merkle tree root hash
 func (bp *baseProcessor) getRootHash() []byte {
 	return bp.accounts.RootHash()
-}
-
-func (bp *baseProcessor) validateHeader(chainHandler data.ChainHandler, headerHandler data.HeaderHandler) error {
-	// basic validation was already done on interceptor
-	if chainHandler.GetCurrentBlockHeader() == nil {
-		if !bp.isFirstBlockInEpoch(headerHandler) {
-			return process.ErrWrongNonceInBlock
-		}
-	} else {
-		if bp.isCorrectNonce(chainHandler.GetCurrentBlockHeader().GetNonce(), headerHandler.GetNonce()) {
-			return process.ErrWrongNonceInBlock
-		}
-
-		if !bytes.Equal(headerHandler.GetPrevHash(), chainHandler.GetCurrentBlockHeaderHash()) {
-
-			log.Info(fmt.Sprintf(
-				"header.Nonce = %d has header.PrevHash = %s and blockChain.CurrentBlockHeader.Nonce = %d has blockChain.CurrentBlockHeaderHash = %s\n",
-				headerHandler.GetNonce(),
-				toB64(headerHandler.GetPrevHash()),
-				chainHandler.GetCurrentBlockHeader().GetNonce(),
-				toB64(chainHandler.GetCurrentBlockHeaderHash())))
-
-			return process.ErrInvalidBlockHash
-		}
-	}
-
-	return nil
-}
-
-func (bp *baseProcessor) isCorrectNonce(currentBlockNonce, receivedBlockNonce uint64) bool {
-	return currentBlockNonce+1 != receivedBlockNonce
-}
-
-func (bp *baseProcessor) isFirstBlockInEpoch(headerHandler data.HeaderHandler) bool {
-	return headerHandler.GetRound() == 0
 }
 
 func (bp *baseProcessor) computeHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {

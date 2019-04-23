@@ -9,7 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
@@ -137,11 +136,6 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	blockChain, ok := chainHandler.(*blockchain.BlockChain)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -156,7 +150,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
-	err = sp.validateHeader(blockChain, header)
+	err = sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
@@ -1068,7 +1062,7 @@ func (sp *shardProcessor) createMiniBlocks(
 }
 
 // CreateBlockHeader creates a miniblock header list given a block body
-func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler) (data.HeaderHandler, error) {
+func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error) {
 	header := &block.Header{MiniBlockHeaders: make([]block.MiniBlockHeader, 0)}
 	header.RootHash = sp.getRootHash()
 	header.ShardId = sp.shardCoordinator.SelfId()

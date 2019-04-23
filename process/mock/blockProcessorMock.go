@@ -14,11 +14,9 @@ type BlockProcessorMock struct {
 	CreateGenesisBlockCalled           func(balances map[string]*big.Int) (rootHash []byte, err error)
 	CreateBlockCalled                  func(round int32, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled        func(header data.HeaderHandler, body data.BodyHandler) error
-	GetRootHashCalled                  func() []byte
 	noShards                           uint32
 	SetOnRequestTransactionCalled      func(f func(destShardID uint32, txHash []byte))
-	CheckBlockValidityCalled           func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
-	CreateBlockHeaderCalled            func(body data.BodyHandler) (data.HeaderHandler, error)
+	CreateBlockHeaderCalled            func(body data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error)
 	MarshalizedDataForCrossShardCalled func(body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
 }
 
@@ -46,16 +44,8 @@ func (blProcMock BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHan
 	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
 }
 
-func (blProcMock BlockProcessorMock) GetRootHash() []byte {
-	return blProcMock.GetRootHashCalled()
-}
-
-func (blProcMock BlockProcessorMock) CheckBlockValidity(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool {
-	return blProcMock.CheckBlockValidityCalled(blockChain, header, nil)
-}
-
-func (blProcMock BlockProcessorMock) CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error) {
-	return blProcMock.CreateBlockHeaderCalled(body)
+func (blProcMock BlockProcessorMock) CreateBlockHeader(body data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error) {
+	return blProcMock.CreateBlockHeaderCalled(body, round, haveTime)
 }
 
 func (blProcMock BlockProcessorMock) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {

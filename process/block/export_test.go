@@ -3,6 +3,7 @@ package block
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -14,6 +15,14 @@ func (bp *baseProcessor) ComputeHeaderHash(hdr *block.Header) ([]byte, error) {
 
 func (bp *baseProcessor) VerifyStateRoot(rootHash []byte) bool {
 	return bp.verifyStateRoot(rootHash)
+}
+
+func (bp *baseProcessor) CheckBlockValidity(
+	chainHandler data.ChainHandler,
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+) error {
+	return bp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 }
 
 func (sp *shardProcessor) GetTransactionFromPool(senderShardID, destShardID uint32, txHash []byte) *transaction.Transaction {

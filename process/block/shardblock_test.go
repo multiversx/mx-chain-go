@@ -469,7 +469,7 @@ func TestBlockProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	revToSnapshot := func(snapshot int) error { return nil }
 	blkc := &blockchain.BlockChain{}
 	hdr := block.Header{
-		Nonce:         0,
+		Nonce:         1,
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
@@ -509,7 +509,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
 	blkc := &blockchain.BlockChain{}
 	hdr := block.Header{
-		Nonce:         0,
+		Nonce:         1,
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte("00110"),
@@ -1828,16 +1828,16 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = 0
 	hdr.PrevHash = []byte("X")
-	r := bp.CheckBlockValidity(blkc, hdr, nil)
-	assert.False(t, r)
+	err := bp.CheckBlockValidity(blkc, hdr, nil)
+	assert.Equal(t, process.ErrInvalidBlockHash, err)
 
 	hdr.PrevHash = []byte("")
-	r = bp.CheckBlockValidity(blkc, hdr, nil)
-	assert.True(t, r)
+	err = bp.CheckBlockValidity(blkc, hdr, nil)
+	assert.Nil(t, err)
 
 	hdr.Nonce = 2
-	r = bp.CheckBlockValidity(blkc, hdr, nil)
-	assert.False(t, r)
+	err = bp.CheckBlockValidity(blkc, hdr, nil)
+	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 1
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -1846,26 +1846,26 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	hdr = &block.Header{}
 	hdr.Nonce = 1
 	hdr.TimeStamp = 0
-	r = bp.CheckBlockValidity(blkc, hdr, nil)
-	assert.False(t, r)
+	err = bp.CheckBlockValidity(blkc, hdr, nil)
+	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 2
 	hdr.PrevHash = []byte("X")
-	r = bp.CheckBlockValidity(blkc, hdr, nil)
-	assert.False(t, r)
+	err = bp.CheckBlockValidity(blkc, hdr, nil)
+	assert.Equal(t, process.ErrInvalidBlockHash, err)
 
 	hdr.Nonce = 3
 	hdr.PrevHash = []byte("")
-	r = bp.CheckBlockValidity(blkc, hdr, nil)
-	assert.False(t, r)
+	err = bp.CheckBlockValidity(blkc, hdr, nil)
+	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 2
 	marshalizerMock := mock.MarshalizerMock{}
 	hasherMock := mock.HasherMock{}
 	prevHeader, _ := marshalizerMock.Marshal(blkc.GetCurrentBlockHeader())
 	hdr.PrevHash = hasherMock.Compute(string(prevHeader))
-	r = bp.CheckBlockValidity(blkc, hdr, nil)
-	assert.True(t, r)
+	err = bp.CheckBlockValidity(blkc, hdr, nil)
+	assert.Nil(t, err)
 }
 
 func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
@@ -1883,7 +1883,9 @@ func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
-	mbHeaders, err := bp.CreateBlockHeader(nil)
+	mbHeaders, err := bp.CreateBlockHeader(nil, 0, func() bool {
+		return true
+	})
 	assert.Nil(t, err)
 	assert.NotNil(t, mbHeaders)
 	assert.Equal(t, 0, len(mbHeaders.(*block.Header).MiniBlockHeaders))
@@ -1921,7 +1923,9 @@ func TestBlockProcessor_CreateBlockHeaderShouldErrWhenMarshalizerErrors(t *testi
 			TxHashes:        make([][]byte, 0),
 		},
 	}
-	mbHeaders, err := bp.CreateBlockHeader(body)
+	mbHeaders, err := bp.CreateBlockHeader(body, 0, func() bool {
+		return true
+	})
 	assert.NotNil(t, err)
 	assert.Nil(t, mbHeaders)
 }
@@ -1958,7 +1962,9 @@ func TestBlockProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
 			TxHashes:        make([][]byte, 0),
 		},
 	}
-	mbHeaders, err := bp.CreateBlockHeader(body)
+	mbHeaders, err := bp.CreateBlockHeader(body, 0, func() bool {
+		return true
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, len(body), len(mbHeaders.(*block.Header).MiniBlockHeaders))
 }
