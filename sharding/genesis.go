@@ -28,7 +28,6 @@ type Genesis struct {
 	RoundDuration      uint64         `json:"roundDuration"`
 	ConsensusGroupSize uint32         `json:"consensusGroupSize"`
 	MinNodesPerShard   uint32         `json:"minNodesPerShard"`
-	ElasticSubrounds   bool           `json:"elasticSubrounds"`
 	InitialNodes       []*InitialNode `json:"initialNodes"`
 	nrOfShards         uint32
 	nrOfNodes          uint32

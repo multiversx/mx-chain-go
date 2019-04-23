@@ -1,18 +1,18 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 type PoolsHolderFake struct {
-	transactions      data.ShardedDataCacherNotifier
+	transactions      dataRetriever.ShardedDataCacherNotifier
 	headers           storage.Cacher
 	metaBlocks        storage.Cacher
-	hdrNonces         data.Uint64Cacher
+	hdrNonces         dataRetriever.Uint64Cacher
 	miniBlocks        storage.Cacher
 	peerChangesBlocks storage.Cacher
 }
@@ -32,7 +32,7 @@ func NewPoolsHolderFake() *PoolsHolderFake {
 	return phf
 }
 
-func (phf *PoolsHolderFake) Transactions() data.ShardedDataCacherNotifier {
+func (phf *PoolsHolderFake) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	return phf.transactions
 }
 
@@ -40,7 +40,7 @@ func (phf *PoolsHolderFake) Headers() storage.Cacher {
 	return phf.headers
 }
 
-func (phf *PoolsHolderFake) HeadersNonces() data.Uint64Cacher {
+func (phf *PoolsHolderFake) HeadersNonces() dataRetriever.Uint64Cacher {
 	return phf.hdrNonces
 }
 

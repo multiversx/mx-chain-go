@@ -22,6 +22,9 @@ var ErrNilAddressConverter = errors.New("trying to set nil address converter")
 // ErrNilBlockchain signals that a nil blockchain structure has been provided
 var ErrNilBlockchain = errors.New("nil blockchain")
 
+// ErrNilStore signals that a nil store has been provided
+var ErrNilStore = errors.New("nil data store")
+
 // ErrNilPrivateKey signals that a nil private key has been provided
 var ErrNilPrivateKey = errors.New("trying to set nil private key")
 
@@ -39,6 +42,9 @@ var ErrNegativeOrZeroConsensusGroupSize = errors.New("group size should be a str
 
 // ErrNilSyncTimer signals that a nil sync timer has been provided
 var ErrNilSyncTimer = errors.New("trying to set nil sync timer")
+
+// ErrNilRounder signals that a nil rounder has been provided
+var ErrNilRounder = errors.New("trying to set nil rounder")
 
 // ErrNilBlockProcessor signals that a nil block processor has been provided
 var ErrNilBlockProcessor = errors.New("trying to set nil block processor")
@@ -78,3 +84,6 @@ var ErrNilBlockHeader = errors.New("block header is nil")
 
 // ErrNilTxBlockBody is raised when a valid tx block body is expected but nil was used
 var ErrNilTxBlockBody = errors.New("tx block body is nil")
+
+// ErrNilMetaBlockHeader is raised when a valid metablock is expected but nil was provided
+var ErrNilMetaBlockHeader = errors.New("meta block header is nil")

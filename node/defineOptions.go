@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -83,6 +84,17 @@ func WithBlockChain(blkc data.ChainHandler) Option {
 	}
 }
 
+// WithDataStore sets up the storage options for the Node
+func WithDataStore(store dataRetriever.StorageService) Option {
+	return func(n *Node) error {
+		if store == nil {
+			return ErrNilStore
+		}
+		n.store = store
+		return nil
+	}
+}
+
 // WithPrivateKey sets up the private key option for the Node
 func WithPrivateKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
@@ -158,6 +170,17 @@ func WithSyncer(syncer ntp.SyncTimer) Option {
 	}
 }
 
+// WithRounder sets up the rounder option for the Node
+func WithRounder(rounder consensus.Rounder) Option {
+	return func(n *Node) error {
+		if rounder == nil {
+			return ErrNilRounder
+		}
+		n.rounder = rounder
+		return nil
+	}
+}
+
 // WithBlockProcessor sets up the block processor option for the Node
 func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	return func(n *Node) error {
@@ -177,21 +200,24 @@ func WithGenesisTime(genesisTime time.Time) Option {
 	}
 }
 
-// WithElasticSubrounds sets up the elastic subround option for the Node
-func WithElasticSubrounds(elasticSubrounds bool) Option {
-	return func(n *Node) error {
-		n.elasticSubrounds = elasticSubrounds
-		return nil
-	}
-}
-
 // WithDataPool sets up the data pools option for the Node
-func WithDataPool(dataPool data.PoolsHolder) Option {
+func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 	return func(n *Node) error {
 		if dataPool == nil {
 			return ErrNilDataPool
 		}
 		n.dataPool = dataPool
+		return nil
+	}
+}
+
+// WithMetaDataPool sets up the data pools option for the Node
+func WithMetaDataPool(dataPool dataRetriever.MetaPoolsHolder) Option {
+	return func(n *Node) error {
+		if dataPool == nil {
+			return ErrNilDataPool
+		}
+		n.metaDataPool = dataPool
 		return nil
 	}
 }

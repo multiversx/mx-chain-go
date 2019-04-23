@@ -25,17 +25,14 @@ const DirectSendID = protocol.ID("/directsend/1.0.0")
 var log = logger.DefaultLogger()
 
 type networkMessenger struct {
-	ctxProvider *Libp2pContext
-
-	pb *pubsub.PubSub
-	ds p2p.DirectSender
-
+	ctxProvider    *Libp2pContext
+	pb             *pubsub.PubSub
+	ds             p2p.DirectSender
+	connMonitor    *libp2pConnectionMonitor
 	peerDiscoverer p2p.PeerDiscoverer
-
-	mutTopics sync.RWMutex
-	topics    map[string]p2p.MessageProcessor
-
-	outgoingPLB p2p.ChannelLoadBalancer
+	mutTopics      sync.RWMutex
+	topics         map[string]p2p.MessageProcessor
+	outgoingPLB    p2p.ChannelLoadBalancer
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -115,13 +112,17 @@ func createMessenger(
 		return nil, err
 	}
 
+	reconnecter, _ := peerDiscoverer.(p2p.Reconnecter)
+
 	netMes := networkMessenger{
 		ctxProvider:    lctx,
 		pb:             pb,
 		topics:         make(map[string]p2p.MessageProcessor),
 		outgoingPLB:    outgoingPLB,
 		peerDiscoverer: peerDiscoverer,
+		connMonitor:    newLibp2pConnectionMonitor(reconnecter),
 	}
+	lctx.connHost.Network().Notify(netMes.connMonitor)
 
 	netMes.ds, err = NewDirectSender(lctx.Context(), lctx.Host(), netMes.directMessageHandler)
 	if err != nil {
@@ -368,8 +369,14 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	}
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		err := handler.ProcessReceivedMessage(NewMessage(message))
+		broadcastCallbackHandler, ok := handler.(p2p.BroadcastCallbackHandler)
+		if ok {
+			broadcastCallbackHandler.SetBroadcastCallback(func(buffToSend []byte) {
+				netMes.Broadcast(topic, buffToSend)
+			})
+		}
 
+		err := handler.ProcessReceivedMessage(NewMessage(message))
 		if err != nil {
 			log.Debug(err.Error())
 		}

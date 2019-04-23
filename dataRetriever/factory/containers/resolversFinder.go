@@ -35,6 +35,12 @@ func (rf *resolversFinder) IntraShardResolver(baseTopic string) (dataRetriever.R
 	return rf.Get(topic)
 }
 
+// MetaChainResolver fetches the metachain Resolver starting from a baseTopic
+// baseTopic will be one of the constants defined in factory.go: metaHeaderTopic, MetaPeerChangeTopic and so on
+func (rf *resolversFinder) MetaChainResolver(baseTopic string) (dataRetriever.Resolver, error) {
+	return rf.Get(baseTopic)
+}
+
 // CrossShardResolver fetches the cross shard Resolver starting from a baseTopic and a cross shard id
 // baseTopic will be one of the constants defined in factory.go: TransactionTopic, HeadersTopic and so on
 func (rf *resolversFinder) CrossShardResolver(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {

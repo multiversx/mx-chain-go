@@ -81,14 +81,16 @@ func TestKeyGenerator_GeneratePairNilSuiteShouldPanic(t *testing.T) {
 func TestKeyGenerator_GeneratePairGeneratorOK(t *testing.T) {
 	t.Parallel()
 
-	createKey := func(stream cipher.Stream) crypto.Scalar {
-		return createScalar()
+	createKeyPair := func(stream cipher.Stream) (crypto.Scalar, crypto.Point) {
+		scalar := createScalar()
+		point, _ := createPoint().Mul(scalar)
+		return scalar, point
 	}
 
 	suite := &mock.GeneratorSuite{
-		CreateKeyStub: createKey,
+		CreateKeyStub: createKeyPair,
 		SuiteMock: mock.SuiteMock{
-			CreatePointStub: createPoint,
+			CreateScalarStub: createScalar,
 		},
 	}
 
@@ -98,9 +100,9 @@ func TestKeyGenerator_GeneratePairGeneratorOK(t *testing.T) {
 	sc, _ := privKey.Scalar().(*mock.ScalarMock)
 	po, _ := pubKey.Point().(*mock.PointMock)
 
-	assert.Equal(t, sc.X, 10)
-	assert.Equal(t, po.X, 20)
-	assert.Equal(t, po.Y, 30)
+	assert.Equal(t, 10, sc.X)
+	assert.Equal(t, 20, po.X)
+	assert.Equal(t, 30, po.Y)
 }
 
 func TestKeyGenerator_GeneratePairNonGeneratorOK(t *testing.T) {
@@ -117,9 +119,9 @@ func TestKeyGenerator_GeneratePairNonGeneratorOK(t *testing.T) {
 	sc, _ := privKey.Scalar().(*mock.ScalarMock)
 	po, _ := pubKey.Point().(*mock.PointMock)
 
-	assert.Equal(t, sc.X, 20)
-	assert.Equal(t, po.X, 40)
-	assert.Equal(t, po.Y, 60)
+	assert.Equal(t, 20, sc.X)
+	assert.Equal(t, 40, po.X)
+	assert.Equal(t, 60, po.Y)
 }
 
 func TestKeyGenerator_PrivateKeyFromByteArrayNilArrayShouldErr(t *testing.T) {

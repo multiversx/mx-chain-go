@@ -1,28 +1,38 @@
 package sync
 
 import (
-	"time"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
 
-func (boot *Bootstrap) RequestHeader(nonce uint64) {
+func (boot *ShardBootstrap) RequestHeader(nonce uint64) {
 	boot.requestHeader(nonce)
 }
 
-func (boot *Bootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
+func (boot *ShardBootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
 	return boot.getHeaderFromPoolHavingNonce(nonce)
 }
 
-func (boot *Bootstrap) GetMiniBlocks(hashes [][]byte) interface{} {
+func (boot *MetaBootstrap) GetHeaderFromPool(nonce uint64) *block.MetaBlock {
+	return boot.getHeaderFromPoolHavingNonce(nonce)
+}
+
+func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) interface{} {
 	return boot.miniBlockResolver.GetMiniBlocks(hashes)
 }
 
-func (boot *Bootstrap) ReceivedHeaders(key []byte) {
+func (boot *MetaBootstrap) ReceivedHeaders(key []byte) {
+	boot.receivedHeader(key)
+}
+
+func (boot *ShardBootstrap) ReceivedHeaders(key []byte) {
 	boot.receivedHeaders(key)
 }
 
-func (boot *Bootstrap) ForkChoice() error {
+func (boot *ShardBootstrap) ForkChoice() error {
+	return boot.forkChoice()
+}
+
+func (boot *MetaBootstrap) ForkChoice() error {
 	return boot.forkChoice()
 }
 
@@ -42,24 +52,36 @@ func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	return newHeaders
 }
 
-func (bfd *basicForkDetector) SetCheckpointNonce(checkpointNonce uint64) {
-	bfd.checkpointNonce = checkpointNonce
-}
-
 func (bfd *basicForkDetector) CheckpointNonce() uint64 {
-	return bfd.checkpointNonce
+	return bfd.fork.checkpointNonce
 }
 
-func (bfd *basicForkDetector) Append(hdrInfo *headerInfo) {
-	bfd.append(hdrInfo)
+func (bfd *basicForkDetector) SetLastCheckpointNonce(nonce uint64) {
+	bfd.fork.lastCheckpointNonce = nonce
 }
 
-func (bfd *basicForkDetector) RemovePastHeaders(nonce uint64) {
-	bfd.removePastHeaders(nonce)
+func (bfd *basicForkDetector) CheckpointRound() int32 {
+	return bfd.fork.checkpointRound
 }
 
-func (hi *headerInfo) Header() *block.Header {
-	return hi.header
+func (bfd *basicForkDetector) SetLastCheckpointRound(round int32) {
+	bfd.fork.lastCheckpointRound = round
+}
+
+func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header) error {
+	return bfd.checkBlockValidity(header)
+}
+
+func (bfd *basicForkDetector) RemovePastHeaders() {
+	bfd.removePastHeaders()
+}
+
+func (bfd *basicForkDetector) RemoveInvalidHeaders() {
+	bfd.removeInvalidHeaders()
+}
+
+func (bfd *basicForkDetector) ComputeProbableHighestNonce() uint64 {
+	return bfd.computeProbableHighestNonce()
 }
 
 func (hi *headerInfo) Hash() []byte {
@@ -70,46 +92,26 @@ func (hi *headerInfo) IsProcessed() bool {
 	return hi.isProcessed
 }
 
-func (boot *Bootstrap) NotifySyncStateListeners() {
+func (boot *ShardBootstrap) NotifySyncStateListeners() {
 	boot.notifySyncStateListeners()
 }
 
-func (boot *Bootstrap) SyncStateListeners() []func(bool) {
+func (boot *MetaBootstrap) NotifySyncStateListeners() {
+	boot.notifySyncStateListeners()
+}
+
+func (boot *ShardBootstrap) SyncStateListeners() []func(bool) {
 	return boot.syncStateListeners
 }
 
-func (boot *Bootstrap) HighestNonceReceived() uint64 {
-	return boot.highestNonceReceived
+func (boot *MetaBootstrap) SyncStateListeners() []func(bool) {
+	return boot.syncStateListeners
 }
 
-func (boot *Bootstrap) SetHighestNonceReceived(highestNonceReceived uint64) {
-	boot.highestNonceReceived = highestNonceReceived
+func (boot *ShardBootstrap) SetForkNonce(nonce uint64) {
+	boot.forkNonce = nonce
 }
 
-func (boot *Bootstrap) SetIsForkDetected(isForkDetected bool) {
-	boot.isForkDetected = isForkDetected
-}
-
-func (boot *Bootstrap) GetTimeStampForRound(roundIndex uint32) time.Time {
-	return boot.getTimeStampForRound(roundIndex)
-}
-
-func (boot *Bootstrap) ShouldCreateEmptyBlock(nonce uint64) bool {
-	return boot.shouldCreateEmptyBlock(nonce)
-}
-
-func (boot *Bootstrap) CreateAndBroadcastEmptyBlock() error {
-	return boot.createAndBroadcastEmptyBlock()
-}
-
-func (boot *Bootstrap) BroadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
-	return boot.broadcastEmptyBlock(txBlockBody, header)
-}
-
-func (boot *Bootstrap) SetIsNodeSynchronized(isNodeSyncronized bool) {
-	boot.isNodeSynchronized = isNodeSyncronized
-}
-
-func (boot *Bootstrap) SetRoundIndex(roundIndex int32) {
-	boot.roundIndex = roundIndex
+func (boot *MetaBootstrap) SetForkNonce(nonce uint64) {
+	boot.forkNonce = nonce
 }

@@ -140,15 +140,12 @@ func (sv *syncValidators) processUnregisterRequests(regData *state.RegistrationD
 // GetEligibleList method returns a list containing nodes from eligible list after a refresh action
 func (sv *syncValidators) GetEligibleList() map[string]*validatorData {
 	log.LogIfError(sv.refresh())
-
 	eligibleList := make(map[string]*validatorData, 0)
 
 	sv.mut.RLock()
-
 	for k, v := range sv.eligibleList {
 		eligibleList[k] = &validatorData{RoundIndex: v.RoundIndex, Stake: big.NewInt(0).Set(v.Stake)}
 	}
-
 	sv.mut.RUnlock()
 
 	return eligibleList
