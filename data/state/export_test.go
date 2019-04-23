@@ -15,17 +15,17 @@ package state
 //	journal *Journal) AccountsDB {
 //	return AccountsDB{trie, hasher, marshalizer, journal}
 //}
-//
-//func (adb *AccountsDB) LoadCode(journalizedAccountWrapper JournalizedAccountWrapper) error {
-//	return adb.loadCode(journalizedAccountWrapper)
-//}
-//
+
+func (adb *AccountsDB) LoadCode(accountWrapper AccountWrapper) error {
+	return adb.loadCode(accountWrapper)
+}
+
 //func (adb *AccountsDB) LoadJournalizedAccountWrapper(account *Account,
 //	addressContainer AddressContainer) (JournalizedAccountWrapper, error) {
 //
 //	return adb.loadJournalizedAccountWrapper(account, addressContainer)
 //}
-//
-//func (adb *AccountsDB) GetAccount(addressContainer AddressContainer) (*Account, error) {
-//	return adb.getAccount(addressContainer)
-//}
+
+func (adb *AccountsDB) GetAccount(addressContainer AddressContainer) (AccountWrapper, error) {
+	return adb.getAccount(addressContainer)
+}

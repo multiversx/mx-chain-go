@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"errors"
 	"strconv"
 	"sync"
@@ -57,7 +58,7 @@ func (adb *AccountsDB) PutCode(accountWrapper AccountWrapper, code []byte) error
 		return nil
 	}
 	if accountWrapper == nil {
-		return ErrNilJurnalizingAccountWrapper
+		return ErrNilAccountWrapper
 	}
 
 	codeHash := adb.hasher.Compute(string(code))
@@ -136,20 +137,23 @@ func (adb *AccountsDB) SaveDataTrie(accountWrapper AccountWrapper) error {
 		accountWrapper.SetDataTrie(dataTrie)
 	}
 
-	//TODO(jls) manage dirty data through TrackableDataTrie
-	//for k, v := range accountWrapper.DirtyData() {
-	//	originalValue := accountWrapper.OriginalValue([]byte(k))
-	//
-	//	if !bytes.Equal(v, originalValue) {
-	//		flagHasDirtyData = true
-	//
-	//		err := accountWrapper.DataTrie().Update([]byte(k), v)
-	//
-	//		if err != nil {
-	//			return err
-	//		}
-	//	}
-	//}
+	trackableDataTrie := accountWrapper.DataTrieTracker()
+	if trackableDataTrie == nil {
+		return ErrNilTrackableDataTrie
+	}
+	for k, v := range trackableDataTrie.DirtyData() {
+		originalValue := trackableDataTrie.OriginalValue([]byte(k))
+
+		if !bytes.Equal(v, originalValue) {
+			flagHasDirtyData = true
+
+			err := accountWrapper.DataTrie().Update([]byte(k), v)
+
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	if !flagHasDirtyData {
 		//do not need to save, return
@@ -161,13 +165,15 @@ func (adb *AccountsDB) SaveDataTrie(accountWrapper AccountWrapper) error {
 	if err != nil {
 		return err
 	}
+
 	adb.Journalize(entry)
 	err = accountWrapper.SetRootHashWithJournal(accountWrapper.DataTrie().Root())
 	if err != nil {
 		return err
 	}
-	//TODO(jls) call clear cache here from TrackableDataTrie
-	//accountWrapper.ClearDataCaches()
+
+	trackableDataTrie.ClearDataCaches()
+
 	return adb.SaveAccount(accountWrapper)
 }
 
@@ -306,6 +312,14 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 		if err != nil {
 			return err
 		}
+
+		_, ok := adb.entries[i].(*JournalEntryRootHash)
+		if ok {
+			err := adb.LoadDataTrie(account)
+			if err != nil {
+				return err
+			}
+		}
 		if account != nil {
 			err = adb.SaveAccount(account)
 		}
@@ -329,7 +343,7 @@ func (adb *AccountsDB) JournalLen() int {
 // Commit will persist all data inside the trie
 func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.mutEntries.RLock()
-	jEntries := make([]JournalEntry, 0)
+	jEntries := make([]JournalEntry, len(adb.entries))
 	copy(jEntries, adb.entries)
 	adb.mutEntries.RUnlock()
 

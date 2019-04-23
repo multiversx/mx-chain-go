@@ -7,9 +7,6 @@ import (
 // HashLength defines how many bytes are used in a hash
 const HashLength = 32
 
-// RegistrationAddress holds the defined registration address
-var RegistrationAddress = NewAddress(make([]byte, 32))
-
 // AddressConverter is used to convert to/from AddressContainer
 type AddressConverter interface {
 	CreateAddressFromPublicKeyBytes(pubKey []byte) (AddressContainer, error)
@@ -31,7 +28,6 @@ type AccountFactory interface {
 type AccountTracker interface {
 	SaveAccount(accountWrapper AccountWrapper) error
 	Journalize(entry JournalEntry)
-	LoadDataTrie(accountWrapper AccountWrapper) error
 }
 
 type Updater interface {
@@ -64,6 +60,7 @@ type DataTrieTracker interface {
 	OriginalValue(key []byte) []byte
 	RetrieveValue(key []byte) ([]byte, error)
 	SaveKeyValue(key []byte, value []byte)
+	SetDataTrie(tr trie.PatriciaMerkelTree)
 }
 
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
@@ -80,6 +77,7 @@ type AccountsAdapter interface {
 	RecreateTrie(rootHash []byte) error
 	PutCode(accountWrapper AccountWrapper, code []byte) error
 	RemoveCode(codeHash []byte) error
+	LoadDataTrie(accountWrapper AccountWrapper) error
 	SaveDataTrie(accountWrapper AccountWrapper) error
 }
 

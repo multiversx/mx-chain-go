@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/pkg/errors"
 )
 
 // JournalEntryCreation is used to revert an account creation
@@ -15,13 +14,13 @@ type JournalEntryCreation struct {
 
 // JournalEntryNonce is used to revert a nonce change
 type JournalEntryNonce struct {
-	account  *Account
+	account  AccountWrapper
 	oldNonce uint64
 }
 
 // JournalEntryBalance is used to revert a balance change
 type JournalEntryBalance struct {
-	account    *Account
+	account    AccountWrapper
 	oldBalance *big.Int
 }
 
@@ -42,11 +41,6 @@ type JournalEntryData struct {
 	trie    trie.PatriciaMerkelTree
 	account AccountWrapper
 }
-
-//TODO(jls) move
-var ErrNilUpdater = errors.New("")
-var ErrNilAccountWrapper = errors.New("")
-var ErrNilOrEmptyKey = errors.New("")
 
 //------- JournalEntryCreation
 
@@ -73,7 +67,7 @@ func (jec *JournalEntryCreation) Revert() (AccountWrapper, error) {
 //------- JournalEntryNonce
 
 // NewJournalEntryNonce outputs a new JournalEntry implementation used to revert a nonce change
-func NewJournalEntryNonce(account *Account, oldNonce uint64) (*JournalEntryNonce, error) {
+func NewJournalEntryNonce(account AccountWrapper, oldNonce uint64) (*JournalEntryNonce, error) {
 	if account == nil {
 		return nil, ErrNilAccount
 	}
@@ -86,7 +80,12 @@ func NewJournalEntryNonce(account *Account, oldNonce uint64) (*JournalEntryNonce
 
 // Revert applies undo operation
 func (jen *JournalEntryNonce) Revert() (AccountWrapper, error) {
-	jen.account.Nonce = jen.oldNonce
+	acnt, ok := jen.account.(*Account)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	acnt.Nonce = jen.oldNonce
 
 	return jen.account, nil
 }
@@ -94,7 +93,7 @@ func (jen *JournalEntryNonce) Revert() (AccountWrapper, error) {
 //------- JournalEntryBalance
 
 // NewJournalEntryBalance outputs a new JournalEntry implementation used to revert a balance change
-func NewJournalEntryBalance(account *Account, oldBalance *big.Int) (*JournalEntryBalance, error) {
+func NewJournalEntryBalance(account AccountWrapper, oldBalance *big.Int) (*JournalEntryBalance, error) {
 	if account == nil {
 		return nil, ErrNilAccount
 	}
@@ -107,7 +106,12 @@ func NewJournalEntryBalance(account *Account, oldBalance *big.Int) (*JournalEntr
 
 // Revert applies undo operation
 func (jeb *JournalEntryBalance) Revert() (AccountWrapper, error) {
-	jeb.account.Balance = jeb.oldBalance
+	acnt, ok := jeb.account.(*Account)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	acnt.Balance = jeb.oldBalance
 
 	return jeb.account, nil
 }
@@ -153,11 +157,7 @@ func NewJournalEntryRootHash(account AccountWrapper, oldRootHash []byte) (*Journ
 // Revert applies undo operation
 func (jer *JournalEntryRootHash) Revert() (AccountWrapper, error) {
 	jer.account.SetRootHash(jer.oldRootHash)
-	//TODO(jls) fix this
-	//err := jer.accountTracker.LoadDataTrie(jer.account)
-	//if err != nil {
-	//	return nil, err
-	//}
+
 	return jer.account, nil
 }
 
@@ -178,8 +178,10 @@ func NewJournalEntryData(account AccountWrapper, trie trie.PatriciaMerkelTree) (
 
 // Revert will empty the dirtyData map from AccountState
 func (jed *JournalEntryData) Revert() (AccountWrapper, error) {
-	//TODO(jls) call clear cache here from TrackableDataTrie
-	//jed.account.ClearDataCaches()
+	dataTrieTracker := jed.account.DataTrieTracker()
+	if dataTrieTracker != nil {
+		jed.account.DataTrieTracker().ClearDataCaches()
+	}
 
 	return nil, nil
 }

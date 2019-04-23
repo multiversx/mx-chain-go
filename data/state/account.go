@@ -33,6 +33,7 @@ func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Acc
 		Balance:          big.NewInt(0),
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
+		dataTrieTracker:  NewTrackableDataTrie(nil),
 	}, nil
 }
 
@@ -134,12 +135,8 @@ func (a *Account) DataTrie() trie.PatriciaMerkelTree {
 
 // SetDataTrie sets the trie that holds the current account's data
 func (a *Account) SetDataTrie(trie trie.PatriciaMerkelTree) {
-	if trie == nil {
-		a.dataTrieTracker = nil
-	} else {
-		a.dataTrieTracker = NewTrackableDataAccountWrap(trie)
-	}
 	a.dataTrie = trie
+	a.dataTrieTracker.SetDataTrie(trie)
 }
 
 // DataTrieTracker returns the trie wrapper used in managing the SC data
