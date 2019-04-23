@@ -3,7 +3,6 @@
   "roundDuration": 4000,
   "consensusGroupSize": 21,
   "minNodesPerShard": 21,
-  "elasticSubrounds": true,
   "initialNodes": [
     {
       "pubkey": "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419",

@@ -1,16 +1,10 @@
 package sync
 
 import (
-	"time"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
 
 func (boot *ShardBootstrap) RequestHeader(nonce uint64) {
-	boot.requestHeader(nonce)
-}
-
-func (boot *MetaBootstrap) RequestHeader(nonce uint64) {
 	boot.requestHeader(nonce)
 }
 
@@ -58,28 +52,36 @@ func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	return newHeaders
 }
 
-func (bfd *basicForkDetector) SetCheckpointNonce(nonce uint64) {
-	bfd.checkpointNonce = nonce
+func (bfd *basicForkDetector) CheckpointNonce() uint64 {
+	return bfd.fork.checkpointNonce
 }
 
 func (bfd *basicForkDetector) SetLastCheckpointNonce(nonce uint64) {
-	bfd.lastCheckpointNonce = nonce
+	bfd.fork.lastCheckpointNonce = nonce
 }
 
-func (bfd *basicForkDetector) CheckpointNonce() uint64 {
-	return bfd.checkpointNonce
+func (bfd *basicForkDetector) CheckpointRound() int32 {
+	return bfd.fork.checkpointRound
 }
 
-func (bfd *basicForkDetector) Append(hdrInfo *headerInfo) {
-	bfd.append(hdrInfo)
+func (bfd *basicForkDetector) SetLastCheckpointRound(round int32) {
+	bfd.fork.lastCheckpointRound = round
 }
 
-func (bfd *basicForkDetector) RemovePastHeaders(nonce uint64) {
-	bfd.removePastHeaders(nonce)
+func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header) error {
+	return bfd.checkBlockValidity(header)
 }
 
-func (hi *headerInfo) Nonce() uint64 {
-	return hi.nonce
+func (bfd *basicForkDetector) RemovePastHeaders() {
+	bfd.removePastHeaders()
+}
+
+func (bfd *basicForkDetector) RemoveInvalidHeaders() {
+	bfd.removeInvalidHeaders()
+}
+
+func (bfd *basicForkDetector) ComputeProbableHighestNonce() uint64 {
+	return bfd.computeProbableHighestNonce()
 }
 
 func (hi *headerInfo) Hash() []byte {
@@ -88,10 +90,6 @@ func (hi *headerInfo) Hash() []byte {
 
 func (hi *headerInfo) IsProcessed() bool {
 	return hi.isProcessed
-}
-
-func (hi *headerInfo) IsSigned() bool {
-	return hi.isSigned
 }
 
 func (boot *ShardBootstrap) NotifySyncStateListeners() {
@@ -108,78 +106,6 @@ func (boot *ShardBootstrap) SyncStateListeners() []func(bool) {
 
 func (boot *MetaBootstrap) SyncStateListeners() []func(bool) {
 	return boot.syncStateListeners
-}
-
-func (boot *MetaBootstrap) HighestNonceReceived() uint64 {
-	return boot.rcvHdrInfo.highestNonce
-}
-
-func (boot *ShardBootstrap) HighestNonceReceived() uint64 {
-	return boot.rcvHdrInfo.highestNonce
-}
-
-func (boot *ShardBootstrap) SetHighestNonceReceived(highestNonceReceived uint64) {
-	boot.rcvHdrInfo.highestNonce = highestNonceReceived
-}
-
-func (boot *MetaBootstrap) SetHighestNonceReceived(highestNonceReceived uint64) {
-	boot.rcvHdrInfo.highestNonce = highestNonceReceived
-}
-
-func (boot *ShardBootstrap) SetIsForkDetected(isForkDetected bool) {
-	boot.isForkDetected = isForkDetected
-}
-
-func (boot *MetaBootstrap) SetIsForkDetected(isForkDetected bool) {
-	boot.isForkDetected = isForkDetected
-}
-
-func (boot *ShardBootstrap) GetTimeStampForRound(roundIndex uint32) time.Time {
-	return boot.getTimeStampForRound(roundIndex)
-}
-
-func (boot *MetaBootstrap) GetTimeStampForRound(roundIndex uint32) time.Time {
-	return boot.getTimeStampForRound(roundIndex)
-}
-
-func (boot *ShardBootstrap) ShouldCreateEmptyBlock(nonce uint64) bool {
-	return boot.shouldCreateEmptyBlock(nonce)
-}
-
-func (boot *MetaBootstrap) ShouldCreateEmptyBlock(nonce uint64) bool {
-	return boot.shouldCreateEmptyBlock(nonce)
-}
-
-func (boot *ShardBootstrap) CreateAndBroadcastEmptyBlock() error {
-	return boot.createAndBroadcastEmptyBlock()
-}
-
-func (boot *MetaBootstrap) CreateAndBroadcastEmptyBlock() error {
-	return boot.createAndBroadcastEmptyBlock()
-}
-
-func (boot *ShardBootstrap) BroadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
-	return boot.broadcastEmptyBlock(txBlockBody, header)
-}
-
-func (boot *MetaBootstrap) BroadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
-	return boot.broadcastEmptyBlock(txBlockBody, header)
-}
-
-func (boot *ShardBootstrap) SetIsNodeSynchronized(isNodeSyncronized bool) {
-	boot.isNodeSynchronized = isNodeSyncronized
-}
-
-func (boot *MetaBootstrap) SetIsNodeSynchronized(isNodeSyncronized bool) {
-	boot.isNodeSynchronized = isNodeSyncronized
-}
-
-func (boot *ShardBootstrap) SetRoundIndex(roundIndex int32) {
-	boot.roundIndex = roundIndex
-}
-
-func (boot *MetaBootstrap) SetRoundIndex(roundIndex int32) {
-	boot.roundIndex = roundIndex
 }
 
 func (boot *ShardBootstrap) SetForkNonce(nonce uint64) {

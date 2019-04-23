@@ -43,6 +43,9 @@ var ErrNegativeOrZeroConsensusGroupSize = errors.New("group size should be a str
 // ErrNilSyncTimer signals that a nil sync timer has been provided
 var ErrNilSyncTimer = errors.New("trying to set nil sync timer")
 
+// ErrNilRounder signals that a nil rounder has been provided
+var ErrNilRounder = errors.New("trying to set nil rounder")
+
 // ErrNilBlockProcessor signals that a nil block processor has been provided
 var ErrNilBlockProcessor = errors.New("trying to set nil block processor")
 

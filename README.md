@@ -79,7 +79,6 @@ $ go test ./...
 ```
 # Start n instances in a group of <consensusGroupSize> (genesis.json) from a total of <initialNodes> (genesis.json) validators,<br />
 # each of them having maximum -max-allowed-peers (flag) peers, with round duration of <roundDuration> (genesis.json) miliseconds<br />
-# in sync mode at the subround level <elasticSubrounds> = false (genesis.json) (with <elasticSubrounds> = true time of solving the consensus will decrease)
 
 # Private keys:
 
