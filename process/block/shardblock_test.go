@@ -2810,28 +2810,6 @@ func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHas
 	return metaBlock
 }
 
-func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockChain(t *testing.T) {
-	t.Parallel()
-	tdp := initDataPool()
-
-	be, _ := blproc.NewShardProcessor(
-		tdp,
-		initStore(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {
-		},
-		func(destShardID uint32, txHash []byte) {},
-	)
-	err := be.RestoreBlockIntoPools(nil, nil)
-	assert.NotNil(t, err)
-	assert.Equal(t, err, process.ErrNilBlockChain)
-}
-
 func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
@@ -2849,9 +2827,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.
 		func(destShardID uint32, txHash []byte) {},
 	)
 
-	blkc := &mock.BlockChainMock{}
-
-	err := be.RestoreBlockIntoPools(blkc, nil)
+	err := be.RestoreBlockIntoPools(nil, nil)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilTxBlockBody)
 }
@@ -2904,8 +2880,6 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		return miniblockHash
 	}
 
-	blkc := &mock.BlockChainMock{}
-
 	metablockHash := []byte("meta block hash 1")
 	metablockHeader := createDummyMetaBlock(0, 1, miniblockHash)
 	metablockHeader.SetMiniBlockProcessed(metablockHash, true)
@@ -2914,7 +2888,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		metablockHeader,
 	)
 
-	err := be.RestoreBlockIntoPools(blkc, body)
+	err := be.RestoreBlockIntoPools(nil, body)
 
 	miniblockFromPool, _ := dataPool.MiniBlocks().Get(miniblockHash)
 	txFromPool, _ := dataPool.Transactions().SearchFirstData(txHash)

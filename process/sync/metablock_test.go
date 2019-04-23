@@ -1738,7 +1738,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
-		RestoreBlockIntoPoolsCalled: func(blockChain data.ChainHandler, body data.BodyHandler) error {
+		RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
 	}
@@ -1893,7 +1893,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 	}
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
-		RestoreBlockIntoPoolsCalled: func(blockChain data.ChainHandler, body data.BodyHandler) error {
+		RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
 	}

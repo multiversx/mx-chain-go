@@ -37,64 +37,68 @@ func (bp *baseProcessor) RevertAccountState() {
 }
 
 // CheckBlockValidity method checks if the given block is valid
-func (bp *baseProcessor) CheckBlockValidity(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool {
-	if header == nil {
+func (bp *baseProcessor) CheckBlockValidity(
+	chainHandler data.ChainHandler,
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+) bool {
+	if headerHandler == nil {
 		log.Info(process.ErrNilBlockHeader.Error())
 		return false
 	}
 
-	if blockChain == nil {
+	if chainHandler == nil {
 		log.Info(process.ErrNilBlockChain.Error())
 		return false
 	}
 
-	if blockChain.GetCurrentBlockHeader() == nil {
-		if header.GetNonce() == 1 { // first block after genesis
-			if bytes.Equal(header.GetPrevHash(), blockChain.GetGenesisHeaderHash()) {
+	if chainHandler.GetCurrentBlockHeader() == nil {
+		if headerHandler.GetNonce() == 1 { // first block after genesis
+			if bytes.Equal(headerHandler.GetPrevHash(), chainHandler.GetGenesisHeaderHash()) {
 				// TODO add genesis block verification
 				return true
 			}
 
 			log.Info(fmt.Sprintf("hash not match: local block hash is empty and node received block with previous hash %s\n",
-				toB64(header.GetPrevHash())))
+				toB64(headerHandler.GetPrevHash())))
 
 			return false
 		}
 
 		log.Info(fmt.Sprintf("nonce not match: local block nonce is 0 and node received block with nonce %d\n",
-			header.GetNonce()))
+			headerHandler.GetNonce()))
 
 		return false
 	}
 
-	if header.GetNonce() != blockChain.GetCurrentBlockHeader().GetNonce()+1 {
+	if headerHandler.GetNonce() != chainHandler.GetCurrentBlockHeader().GetNonce()+1 {
 		log.Info(fmt.Sprintf("nonce not match: local block nonce is %d and node received block with nonce %d\n",
-			blockChain.GetCurrentBlockHeader().GetNonce(), header.GetNonce()))
+			chainHandler.GetCurrentBlockHeader().GetNonce(), headerHandler.GetNonce()))
 
 		return false
 	}
 
-	blockHeader, ok := blockChain.GetCurrentBlockHeader().(*block.Header)
+	header, ok := chainHandler.GetCurrentBlockHeader().(*block.Header)
 	if !ok {
 		log.Error(process.ErrWrongTypeAssertion.Error())
 		return false
 	}
 
-	prevHeaderHash, err := bp.computeHeaderHash(blockHeader)
+	prevHeaderHash, err := bp.computeHeaderHash(header)
 	if err != nil {
 		log.Info(err.Error())
 		return false
 	}
 
-	if !bytes.Equal(header.GetPrevHash(), prevHeaderHash) {
+	if !bytes.Equal(headerHandler.GetPrevHash(), prevHeaderHash) {
 		log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
-			toB64(prevHeaderHash), toB64(header.GetPrevHash())))
+			toB64(prevHeaderHash), toB64(headerHandler.GetPrevHash())))
 
 		return false
 	}
 
-	if body != nil {
-		// TODO add body verification here
+	if bodyHandler != nil {
+		// TODO add bodyHandler verification here
 	}
 
 	return true
@@ -146,8 +150,8 @@ func (bp *baseProcessor) isFirstBlockInEpoch(headerHandler data.HeaderHandler) b
 	return headerHandler.GetRound() == 0
 }
 
-func (bp *baseProcessor) computeHeaderHash(header data.HeaderHandler) ([]byte, error) {
-	headerMarsh, err := bp.marshalizer.Marshal(header)
+func (bp *baseProcessor) computeHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
+	headerMarsh, err := bp.marshalizer.Marshal(headerHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -217,14 +221,18 @@ func toB64(buff []byte) string {
 	return base64.StdEncoding.EncodeToString(buff)
 }
 
-func checkForNils(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
-	if blockChain == nil {
+func checkForNils(
+	chainHandler data.ChainHandler,
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+) error {
+	if chainHandler == nil {
 		return process.ErrNilBlockChain
 	}
-	if header == nil {
+	if headerHandler == nil {
 		return process.ErrNilBlockHeader
 	}
-	if body == nil {
+	if bodyHandler == nil {
 		return process.ErrNilMiniBlocks
 	}
 	return nil

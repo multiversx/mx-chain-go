@@ -14,7 +14,7 @@ type BlockProcessorMock struct {
 	RevertAccountStateCalled           func()
 	CreateGenesisBlockCalled           func(balances map[string]*big.Int) (rootHash []byte, err error)
 	CreateBlockCalled                  func(round int32, haveTime func() bool) (data.BodyHandler, error)
-	RestoreBlockIntoPoolsCalled        func(blockChain data.ChainHandler, body data.BodyHandler) error
+	RestoreBlockIntoPoolsCalled        func(header data.HeaderHandler, body data.BodyHandler) error
 	GetRootHashCalled                  func() []byte
 	SetOnRequestTransactionCalled      func(f func(destShardID uint32, txHash []byte))
 	CheckBlockValidityCalled           func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
@@ -52,8 +52,8 @@ func (blProcMock *BlockProcessorMock) CreateBlockBody(round int32, haveTime func
 	return blProcMock.CreateBlockCalled(round, haveTime)
 }
 
-func (blProcMock *BlockProcessorMock) RestoreBlockIntoPools(blockChain data.ChainHandler, body data.BodyHandler) error {
-	return blProcMock.RestoreBlockIntoPoolsCalled(blockChain, body)
+func (blProcMock *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
+	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
 }
 
 // GetRootHash mocks getting root hash

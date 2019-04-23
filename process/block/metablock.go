@@ -94,7 +94,12 @@ func (mp *metaProcessor) RevertAccountState() {
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
-func (mp *metaProcessor) ProcessBlock(chainHandler data.ChainHandler, headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
+func (mp *metaProcessor) ProcessBlock(
+	chainHandler data.ChainHandler,
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+	haveTime func() time.Duration,
+) error {
 	err := checkForNils(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
@@ -105,7 +110,7 @@ func (mp *metaProcessor) ProcessBlock(chainHandler data.ChainHandler, headerHand
 		return process.ErrWrongTypeAssertion
 	}
 
-	blockHeader, ok := headerHandler.(*block.MetaBlock)
+	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -114,12 +119,12 @@ func (mp *metaProcessor) ProcessBlock(chainHandler data.ChainHandler, headerHand
 		return process.ErrNilHaveTimeHandler
 	}
 
-	err = mp.validateHeader(blockChain, blockHeader)
+	err = mp.validateHeader(blockChain, header)
 	if err != nil {
 		return err
 	}
 
-	requestedBlockHeaders := mp.requestBlockHeaders(blockHeader)
+	requestedBlockHeaders := mp.requestBlockHeaders(header)
 
 	if haveTime() < 0 {
 		return process.ErrTimeIsOut
@@ -144,12 +149,12 @@ func (mp *metaProcessor) ProcessBlock(chainHandler data.ChainHandler, headerHand
 		}
 	}()
 
-	err = mp.processBlockHeaders(blockHeader, int32(blockHeader.Round), haveTime)
+	err = mp.processBlockHeaders(header, int32(header.Round), haveTime)
 	if err != nil {
 		return err
 	}
 
-	if !mp.verifyStateRoot(blockHeader.GetRootHash()) {
+	if !mp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateMissmatch
 		return err
 	}
@@ -158,12 +163,15 @@ func (mp *metaProcessor) ProcessBlock(chainHandler data.ChainHandler, headerHand
 }
 
 // RestoreBlockIntoPools restores the block into associated pools
-func (mp *metaProcessor) RestoreBlockIntoPools(blockChain data.ChainHandler, body data.BodyHandler) error {
+func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
+	if headerHandler == nil {
+		return process.ErrNilMetaBlockHeader
+	}
 	return nil
 }
 
-// RemoveBlockInfoFromPool removes the block info from associated pools
-func (mp *metaProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
+// removeBlockInfoFromPool removes the block info from associated pools
+func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error {
 	return nil
 }
 
@@ -200,7 +208,11 @@ func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int3
 }
 
 // CommitBlock commits the block in the blockchain if everything was checked successfully
-func (mp *metaProcessor) CommitBlock(chainHandler data.ChainHandler, headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
+func (mp *metaProcessor) CommitBlock(
+	chainHandler data.ChainHandler,
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+) error {
 	var err error
 	defer func() {
 		if err != nil {
@@ -275,7 +287,7 @@ func (mp *metaProcessor) CommitBlock(chainHandler data.ChainHandler, headerHandl
 		return err
 	}
 
-	errNotCritical := mp.RemoveBlockInfoFromPool(bodyHandler)
+	errNotCritical := mp.removeBlockInfoFromPool(header)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
@@ -322,10 +334,10 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 	mp.mutRequestedHeadersHahses.Unlock()
 }
 
-func (mp *metaProcessor) requestBlockHeaders(metablock *block.MetaBlock) int {
+func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
 	mp.mutRequestedHeadersHahses.Lock()
 	requestedHeaders := 0
-	missingHeaderHashes := mp.computeMissingHeaders(metablock)
+	missingHeaderHashes := mp.computeMissingHeaders(header)
 	mp.requestedHeadersHashes = make(map[string]bool)
 	if mp.OnRequestHeader != nil {
 		for shardId, headerHash := range missingHeaderHashes {
@@ -338,10 +350,10 @@ func (mp *metaProcessor) requestBlockHeaders(metablock *block.MetaBlock) int {
 	return requestedHeaders
 }
 
-func (mp *metaProcessor) computeMissingHeaders(metablock *block.MetaBlock) map[uint32][]byte {
+func (mp *metaProcessor) computeMissingHeaders(header *block.MetaBlock) map[uint32][]byte {
 	missingHeaders := make(map[uint32][]byte)
-	for i := 0; i < len(metablock.ShardInfo); i++ {
-		shardData := metablock.ShardInfo[i]
+	for i := 0; i < len(header.ShardInfo); i++ {
+		shardData := header.ShardInfo[i]
 		header := mp.getHeaderFromPool(shardData.ShardId, shardData.HeaderHash)
 		if header == nil {
 			missingHeaders[shardData.ShardId] = shardData.HeaderHash
@@ -501,7 +513,7 @@ func (mp *metaProcessor) getHeaderFromPool(shardID uint32, headerHash []byte) *b
 //}
 
 // CreateBlockHeader creates a miniblock header list given a block body
-func (mp *metaProcessor) CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error) {
+func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler) (data.HeaderHandler, error) {
 	header := &block.MetaBlock{}
 	header.RootHash = mp.getRootHash()
 
@@ -550,7 +562,9 @@ func (mp *metaProcessor) getHeadersInPool() int {
 }
 
 // MarshalizedDataForCrossShard prepares underlying data into a marshalized object according to destination
-func (mp *metaProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
+func (mp *metaProcessor) MarshalizedDataForCrossShard(
+	bodyHandler data.BodyHandler,
+) (map[uint32][]byte, map[uint32][][]byte, error) {
 	mrsData := make(map[uint32][]byte)
 	mrsTxs := make(map[uint32][][]byte)
 	return mrsData, mrsTxs, nil
