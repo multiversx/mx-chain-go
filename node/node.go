@@ -293,16 +293,21 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 	if err != nil {
 		return nil, errors.New("invalid address, could not decode from hex: " + err.Error())
 	}
-	account, err := n.accounts.GetExistingAccount(address)
+	accWrp, err := n.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
-	if account == nil {
+	if accWrp == nil {
 		return big.NewInt(0), nil
 	}
 
-	return account.BaseAccount().Balance, nil
+	account, ok := accWrp.(*state.Account)
+	if !ok {
+		return big.NewInt(0), nil
+	}
+
+	return account.Balance, nil
 }
 
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
@@ -311,13 +316,20 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	if noOfTx == 0 {
 		return errors.New("can not generate and broadcast 0 transactions")
 	}
-
 	if n.publicKey == nil {
 		return ErrNilPublicKey
 	}
-
 	if n.singlesig == nil {
 		return ErrNilSingleSig
+	}
+	if n.addrConverter == nil {
+		return ErrNilAddressConverter
+	}
+	if n.shardCoordinator == nil {
+		return ErrNilShardCoordinator
+	}
+	if n.accounts == nil {
+		return ErrNilAccountsAdapter
 	}
 
 	senderAddressBytes, err := n.publicKey.ToByteArray()
@@ -325,17 +337,11 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return err
 	}
 
-	if n.addrConverter == nil {
-		return ErrNilAddressConverter
-	}
 	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddressBytes)
 	if err != nil {
 		return err
 	}
 
-	if n.shardCoordinator == nil {
-		return ErrNilShardCoordinator
-	}
 	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
 	fmt.Printf("Sender shard Id: %d\n", senderShardId)
 
@@ -344,16 +350,19 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return errors.New("could not create receiver address from provided param: " + err.Error())
 	}
 
-	if n.accounts == nil {
-		return ErrNilAccountsAdapter
-	}
-	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
+	senderAccWrp, err := n.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
 		return errors.New("could not fetch sender account from provided param: " + err.Error())
 	}
+
+	senderAccount, ok := senderAccWrp.(*state.Account)
+	if !ok {
+		return errors.New("wrong type assertion, this is not an account with a balance and nonce")
+	}
+
 	newNonce := uint64(0)
 	if senderAccount != nil {
-		newNonce = senderAccount.BaseAccount().Nonce
+		newNonce = senderAccount.Nonce
 	}
 
 	wg := gosync.WaitGroup{}
@@ -637,7 +646,6 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
-
 	if n.privateKey == nil {
 		return nil, errors.New("initialize PrivateKey first")
 	}
@@ -646,17 +654,25 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	if err != nil {
 		return nil, errors.New("could not create receiver address from provided param")
 	}
+
 	senderAddress, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}
-	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
+
+	senderAccWrp, err := n.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param")
 	}
+
+	senderAccount, ok := senderAccWrp.(*state.Account)
+	if !ok {
+		return nil, errors.New("account does not have balance and nonce")
+	}
+
 	newNonce := uint64(0)
 	if senderAccount != nil {
-		newNonce = senderAccount.BaseAccount().Nonce
+		newNonce = senderAccount.Nonce
 	}
 
 	tx, _, err := n.generateAndSignTx(
@@ -678,18 +694,20 @@ func (n *Node) SendTransaction(
 	transactionData string,
 	signature []byte) (*transaction.Transaction, error) {
 
+	if n.shardCoordinator == nil {
+		return nil, ErrNilShardCoordinator
+	}
+
 	sender, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {
 		return nil, err
 	}
+
 	receiver, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
 		return nil, err
 	}
 
-	if n.shardCoordinator == nil {
-		return nil, ErrNilShardCoordinator
-	}
 	senderShardId := n.shardCoordinator.ComputeId(sender)
 
 	tx := transaction.Transaction{
@@ -700,6 +718,7 @@ func (n *Node) SendTransaction(
 		Data:      []byte(transactionData),
 		Signature: signature,
 	}
+
 	txBuff, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, err
@@ -746,11 +765,18 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 	if err != nil {
 		return nil, errors.New("could not create address object from provided string")
 	}
-	account, err := n.accounts.GetExistingAccount(addr)
+
+	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param")
 	}
-	return account.BaseAccount(), nil
+
+	account, ok := accWrp.(*state.Account)
+	if !ok {
+		return nil, errors.New("account is not of type with balance and nonce")
+	}
+
+	return account, nil
 }
 
 func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
