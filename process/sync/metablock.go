@@ -180,7 +180,6 @@ func (boot *MetaBootstrap) syncBlocks() {
 			return
 		default:
 			err := boot.SyncBlock()
-
 			if err != nil {
 				log.Info(err.Error())
 			}
@@ -210,13 +209,6 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 	hdr, err := boot.getHeaderRequestingIfMissing(nonce)
 	if err != nil {
-		if err == process.ErrMissingHeader {
-			if boot.shouldCreateEmptyBlock(nonce) {
-				log.Info(err.Error())
-				err = boot.createAndBroadcastEmptyBlock()
-			}
-		}
-
 		return err
 	}
 
@@ -243,20 +235,6 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 	log.Info(fmt.Sprintf("block with nonce %d was synced successfully\n", hdr.Nonce))
 	return nil
-}
-
-func (boot *MetaBootstrap) createAndBroadcastEmptyBlock() error {
-	txBlockBody, header, err := boot.CreateAndCommitEmptyBlock(boot.shardCoordinator.SelfId())
-
-	if err == nil {
-		log.Info(fmt.Sprintf("body and header with root hash %s and nonce %d were created and commited through the recovery mechanism\n",
-			toB64(header.GetRootHash()),
-			header.GetNonce()))
-
-		err = boot.broadcastEmptyBlock(txBlockBody.(block.Body), header.(*block.MetaBlock))
-	}
-
-	return err
 }
 
 // getHeaderFromPoolHavingNonce method returns the block header from a given nonce
@@ -410,62 +388,6 @@ func (boot *MetaBootstrap) getPrevHeader(headerStore storage.Storer, header *blo
 	}
 
 	return newHeader, nil
-}
-
-func (boot *MetaBootstrap) createHeader() (data.HeaderHandler, error) {
-	var prevHeaderHash []byte
-	hdr := &block.MetaBlock{}
-
-	if boot.blkc.GetCurrentBlockHeader() == nil {
-		hdr.Nonce = 1
-		hdr.Round = 0
-		prevHeaderHash = boot.blkc.GetGenesisHeaderHash()
-		hdr.PrevRandSeed = boot.blkc.GetGenesisHeader().GetSignature()
-	} else {
-		hdr.Nonce = boot.blkc.GetCurrentBlockHeader().GetNonce() + 1
-		hdr.Round = boot.blkc.GetCurrentBlockHeader().GetRound() + 1
-		prevHeaderHash = boot.blkc.GetCurrentBlockHeaderHash()
-		hdr.PrevRandSeed = boot.blkc.GetCurrentBlockHeader().GetSignature()
-	}
-
-	hdr.RandSeed = []byte{0}
-	hdr.TimeStamp = uint64(boot.getTimeStampForRound(hdr.Round).Unix())
-	hdr.SetPrevHash(prevHeaderHash)
-	hdr.SetRootHash(boot.accounts.RootHash())
-	hdr.PubKeysBitmap = make([]byte, 0)
-
-	return hdr, nil
-}
-
-// CreateAndCommitEmptyBlock creates and commits an empty block
-func (boot *MetaBootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
-	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
-
-	blk := make(block.Body, 0)
-
-	hdr, err := boot.createHeader()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// TODO: decide the signature for the empty block
-	headerStr, err := boot.marshalizer.Marshal(hdr)
-	if err != nil {
-		return nil, nil, err
-	}
-	hdrHash := boot.hasher.Compute(string(headerStr))
-	hdr.SetSignature(hdrHash)
-
-	// Commit the block (commits also the account state)
-	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	msg := fmt.Sprintf("Added empty block with nonce  %d  in blockchain", hdr.GetNonce())
-	log.Info(log.Headline(msg, "", "*"))
-
-	return blk, hdr, nil
 }
 
 func (boot *MetaBootstrap) getCurrentHeader() (*block.MetaBlock, error) {

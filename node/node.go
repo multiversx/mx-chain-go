@@ -4,14 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"math/big"
 	gosync "sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
@@ -60,9 +59,9 @@ type Node struct {
 	consensusGroupSize       int
 	messenger                p2p.Messenger
 	syncer                   ntp.SyncTimer
+	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
 	genesisTime              time.Time
-	elasticSubrounds         bool
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
@@ -203,17 +202,12 @@ func (n *Node) StartConsensus() error {
 
 	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
 
-	rounder, err := n.createRounder()
+	chronologyHandler, err := n.createChronologyHandler(n.rounder)
 	if err != nil {
 		return err
 	}
 
-	chronologyHandler, err := n.createChronologyHandler(rounder)
-	if err != nil {
-		return err
-	}
-
-	bootstraper, err := n.createShardBootstraper(rounder)
+	bootstraper, err := n.createShardBootstraper(n.rounder)
 	if err != nil {
 		return err
 	}
@@ -230,7 +224,7 @@ func (n *Node) StartConsensus() error {
 		n.singleSignKeyGen,
 		n.marshalizer,
 		n.privateKey,
-		rounder,
+		n.rounder,
 		n.shardCoordinator,
 		n.singlesig,
 	)
@@ -260,7 +254,7 @@ func (n *Node) StartConsensus() error {
 		n.hasher,
 		n.marshalizer,
 		n.multisig,
-		rounder,
+		n.rounder,
 		n.shardCoordinator,
 		n.syncer,
 		validatorGroupSelector)
@@ -423,17 +417,6 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	return nil
-}
-
-// createRounder method creates a round object
-func (n *Node) createRounder() (consensus.Rounder, error) {
-	rnd, err := round.NewRound(
-		n.genesisTime,
-		n.syncer.CurrentTime(),
-		time.Millisecond*time.Duration(n.roundDuration),
-		n.syncer)
-
-	return rnd, err
 }
 
 // createChronologyHandler method creates a chronology object
