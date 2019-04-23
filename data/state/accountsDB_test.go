@@ -742,7 +742,7 @@ func TestAccountsDB_CommitWithSomeValuesShouldWork(t *testing.T) {
 	}
 	adb := generateAccountDBFromTrie(&trieStub)
 
-	entry, _ := state.NewJournalEntryData(account, &trieStub)
+	entry, _ := state.NewBaseJournalEntryData(account, &trieStub)
 	adb.Journalize(entry)
 
 	_, err := adb.Commit()

@@ -37,19 +37,15 @@ func NewTxProcessor(
 	if accounts == nil {
 		return nil, process.ErrNilAccountsAdapter
 	}
-
 	if hasher == nil {
 		return nil, process.ErrNilHasher
 	}
-
 	if addressConv == nil {
 		return nil, process.ErrNilAddressConverter
 	}
-
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
 	}
-
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
@@ -165,13 +161,12 @@ func (txProc *txProcessor) SetBalancesToTrie(accBalance map[string]*big.Int) (ro
 	}
 
 	rootHash, err = txProc.accounts.Commit()
-
 	if err != nil {
-		err2 := txProc.accounts.RevertToSnapshot(0)
-
-		if err2 != nil {
-			log.Error(err2.Error())
+		errToLog := txProc.accounts.RevertToSnapshot(0)
+		if errToLog != nil {
+			log.Error(errToLog.Error())
 		}
+
 		return nil, err
 	}
 
@@ -196,9 +191,7 @@ func (txProc *txProcessor) setBalanceToTrie(addr []byte, balance *big.Int) error
 		return err
 	}
 
-	account.Balance = balance
-
-	return txProc.accounts.SaveJurnalized(account)
+	return account.SetBalanceWithJournal(balance)
 }
 
 func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {

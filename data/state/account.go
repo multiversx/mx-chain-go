@@ -82,7 +82,7 @@ func (a *Account) SetCodeHash(roothash []byte) {
 
 // SetCodeHashWithJournal sets the account's code hash, saving the old code hash before changing
 func (a *Account) SetCodeHashWithJournal(codeHash []byte) error {
-	entry, err := NewJournalEntryCodeHash(a, a.CodeHash)
+	entry, err := NewBaseJournalEntryCodeHash(a, a.CodeHash)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (a *Account) SetRootHash(roothash []byte) {
 
 // SetRootHashWithJournal sets the account's root hash, saving the old root hash before changing
 func (a *Account) SetRootHashWithJournal(rootHash []byte) error {
-	entry, err := NewJournalEntryRootHash(a, a.RootHash)
+	entry, err := NewBaseJournalEntryRootHash(a, a.RootHash)
 	if err != nil {
 		return err
 	}

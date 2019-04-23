@@ -75,3 +75,7 @@ func (awm *AccountWrapMock) SetDataTrie(trie trie.PatriciaMerkelTree) {
 func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 	return awm.trackableDataTrie
 }
+
+func (awm *AccountWrapMock) SetDataTrieTracker(tracker state.DataTrieTracker) {
+	awm.trackableDataTrie = tracker
+}

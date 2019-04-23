@@ -101,17 +101,17 @@ var ErrNilAccountFactory = errors.New("account factory is nil")
 // ErrNilAccountTracker signals that a nil account tracker has been provided
 var ErrNilAccountTracker = errors.New("nil account tracker provided")
 
-// ErrNilUpdater signals that a nil Updater has been provided
-var ErrNilUpdater = errors.New("nil Updater")
+// ErrNilUpdater signals that a nil updater has been provided
+var ErrNilUpdater = errors.New("updater is nil")
 
-// ErrNilAccountWrapper signals that a nil AccountWrapper has been provided
-var ErrNilAccountWrapper = errors.New("nil AccountWrapper")
+// ErrNilAccountWrapper signals that a nil account wrapper was provided
+var ErrNilAccountWrapper = errors.New("account wrapper is nil")
 
-// ErrNilOrEmptyKey signals that a nil or empty key has been provided
-var ErrNilOrEmptyKey = errors.New("nil or empty key")
+// ErrNilOrEmptyKey signals that key empty key was provided
+var ErrNilOrEmptyKey = errors.New("key is empty or nil")
+
+// ErrWrongTypeAssertion signals that a wrong type assertion occurred
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrNilTrackableDataTrie signals that a nil trackable data trie has been provided
-var ErrNilTrackableDataTrie = errors.New("nil trackable data trie instance")
-
-// ErrWrongTypeAssertion signals that an type assertion failed
-var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+var ErrNilTrackableDataTrie = errors.New("nil trackable data trie")
