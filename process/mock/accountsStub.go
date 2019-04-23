@@ -5,83 +5,83 @@ import (
 )
 
 type AccountsStub struct {
-	AddJournalEntryCalled        func(je state.JournalEntry)
-	CommitCalled                 func() ([]byte, error)
-	GetJournalizedAccountCalled  func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error)
-	GetExistingAccountCalled     func(addressContainer state.AddressContainer) (state.AccountWrapper, error)
-	HasAccountCalled             func(addressContainer state.AddressContainer) (bool, error)
-	JournalLenCalled             func() int
-	PutCodeCalled                func(journalizedAccountWrapper state.JournalizedAccountWrapper, code []byte) error
-	RemoveAccountCalled          func(addressContainer state.AddressContainer) error
-	RemoveCodeCalled             func(codeHash []byte) error
-	LoadDataTrieCalled           func(accountWrapper state.AccountWrapper) error
-	RevertToSnapshotCalled       func(snapshot int) error
-	SaveJournalizedAccountCalled func(journalizedAccountWrapper state.JournalizedAccountWrapper) error
-	SaveDataCalled               func(journalizedAccountWrapper state.JournalizedAccountWrapper) error
-	RootHashCalled               func() []byte
-	RecreateTrieCalled           func(rootHash []byte) error
+	AddJournalEntryCalled       func(je state.JournalEntry)
+	CommitCalled                func() ([]byte, error)
+	GetAccountWithJournalCalled func(addressContainer state.AddressContainer) (state.AccountWrapper, error)
+	GetExistingAccountCalled    func(addressContainer state.AddressContainer) (state.AccountWrapper, error)
+	HasAccountStateCalled       func(addressContainer state.AddressContainer) (bool, error)
+	JournalLenCalled            func() int
+	PutCodeCalled               func(accountWrapper state.AccountWrapper, code []byte) error
+	RemoveAccountCalled         func(addressContainer state.AddressContainer) error
+	RemoveCodeCalled            func(codeHash []byte) error
+	RetrieveDataTrieCalled      func(acountWrapper state.AccountWrapper) error
+	RevertToSnapshotCalled      func(snapshot int) error
+	SaveAccountStateCalled      func(acountWrapper state.AccountWrapper) error
+	SaveDataTrieCalled          func(acountWrapper state.AccountWrapper) error
+	RootHashCalled              func() []byte
+	RecreateTrieCalled          func(rootHash []byte) error
 }
 
-func (as *AccountsStub) AddJournalEntry(je state.JournalEntry) {
-	as.AddJournalEntryCalled(je)
+func NewAccountsStub() *AccountsStub {
+	return &AccountsStub{}
 }
 
-func (as *AccountsStub) Commit() ([]byte, error) {
-	return as.CommitCalled()
+func (aam *AccountsStub) AddJournalEntry(je state.JournalEntry) {
+	aam.AddJournalEntryCalled(je)
 }
 
-func (as *AccountsStub) GetJournalizedAccount(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-	return as.GetJournalizedAccountCalled(addressContainer)
+func (aam *AccountsStub) Commit() ([]byte, error) {
+	return aam.CommitCalled()
 }
 
-func (as *AccountsStub) HasAccount(addressContainer state.AddressContainer) (bool, error) {
-	return as.HasAccountCalled(addressContainer)
+func (aam *AccountsStub) GetAccountWithJournal(addressContainer state.AddressContainer) (state.AccountWrapper, error) {
+	return aam.GetAccountWithJournalCalled(addressContainer)
 }
 
-func (as *AccountsStub) JournalLen() int {
-	return as.JournalLenCalled()
+func (aam *AccountsStub) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountWrapper, error) {
+	return aam.GetExistingAccountCalled(addressContainer)
 }
 
-func (as *AccountsStub) PutCode(journalizedAccountWrapper state.JournalizedAccountWrapper, code []byte) error {
-	return as.PutCodeCalled(journalizedAccountWrapper, code)
+func (aam *AccountsStub) HasAccount(addressContainer state.AddressContainer) (bool, error) {
+	return aam.HasAccountStateCalled(addressContainer)
 }
 
-func (as *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) error {
-	return as.RemoveAccountCalled(addressContainer)
+func (aam *AccountsStub) JournalLen() int {
+	return aam.JournalLenCalled()
 }
 
-func (as *AccountsStub) RemoveCode(codeHash []byte) error {
-	return as.RemoveCodeCalled(codeHash)
+func (aam *AccountsStub) PutCode(accountWrapper state.AccountWrapper, code []byte) error {
+	return aam.PutCodeCalled(accountWrapper, code)
 }
 
-func (as *AccountsStub) LoadDataTrie(accountWrapper state.AccountWrapper) error {
-	return as.LoadDataTrieCalled(accountWrapper)
+func (aam *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) error {
+	return aam.RemoveAccountCalled(addressContainer)
 }
 
-func (as *AccountsStub) RevertToSnapshot(snapshot int) error {
-	return as.RevertToSnapshotCalled(snapshot)
+func (aam *AccountsStub) RemoveCode(codeHash []byte) error {
+	return aam.RemoveCodeCalled(codeHash)
 }
 
-func (as *AccountsStub) SaveJournalizedAccount(journalizedAccountWrapper state.JournalizedAccountWrapper) error {
-	return as.SaveJournalizedAccountCalled(journalizedAccountWrapper)
+func (aam *AccountsStub) LoadDataTrie(accountWrapper state.AccountWrapper) error {
+	return aam.RetrieveDataTrieCalled(accountWrapper)
 }
 
-func (as *AccountsStub) SaveData(journalizedAccountWrapper state.JournalizedAccountWrapper) error {
-	return as.SaveDataCalled(journalizedAccountWrapper)
+func (aam *AccountsStub) RevertToSnapshot(snapshot int) error {
+	return aam.RevertToSnapshotCalled(snapshot)
 }
 
-func (as *AccountsStub) RootHash() []byte {
-	if as.RootHashCalled != nil {
-		return as.RootHashCalled()
-	}
-
-	return nil
+func (aam *AccountsStub) SaveJournalizedAccount(journalizedAccountWrapper state.AccountWrapper) error {
+	return aam.SaveAccountStateCalled(journalizedAccountWrapper)
 }
 
-func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
-	return as.RecreateTrieCalled(rootHash)
+func (aam *AccountsStub) SaveDataTrie(journalizedAccountWrapper state.AccountWrapper) error {
+	return aam.SaveDataTrieCalled(journalizedAccountWrapper)
 }
 
-func (as *AccountsStub) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountWrapper, error) {
-	return as.GetExistingAccountCalled(addressContainer)
+func (aam *AccountsStub) RootHash() []byte {
+	return aam.RootHashCalled()
+}
+
+func (aam *AccountsStub) RecreateTrie(rootHash []byte) error {
+	return aam.RecreateTrieCalled(rootHash)
 }

@@ -87,13 +87,6 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return err
 	}
 
-	if bytes.Equal(adrDst.Bytes(), state.RegistrationAddress.Bytes()) {
-		_, err := txProc.accounts.GetAccountWithJournal(state.RegistrationAddress)
-		if err != nil {
-			return err
-		}
-	}
-
 	value := tx.Value
 
 	// is sender address in node shard
