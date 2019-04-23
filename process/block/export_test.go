@@ -3,7 +3,6 @@ package block
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -79,8 +78,8 @@ func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, ro
 	return sp.createMiniBlocks(noShards, maxTxInBlock, round, haveTime)
 }
 
-func (sp *shardProcessor) RemoveMetaBlockFromPool(blockBody block.Body, blockChain data.ChainHandler) error {
-	return sp.removeMetaBlockFromPool(blockBody, blockChain)
+func (sp *shardProcessor) RemoveMetaBlockFromPool(body block.Body) error {
+	return sp.removeMetaBlockFromPool(body)
 }
 
 func (sp *shardProcessor) RemoveTxBlockFromPools(blockBody block.Body) error {

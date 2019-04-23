@@ -2724,7 +2724,6 @@ func TestBlockProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
 
 	wasCalledPut := false
 
-	blkc := &mock.BlockChainMock{}
 	store := &mock.ChainStorerMock{
 		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
 			if bytes.Equal(key, mb1Hash) {
@@ -2759,7 +2758,7 @@ func TestBlockProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
 	//create block body with first 3 miniblocks from miniblocks var
 	blockBody := block.Body{miniblocks[0], miniblocks[1], miniblocks[2]}
 
-	err := bp.RemoveMetaBlockFromPool(blockBody, blkc)
+	err := bp.RemoveMetaBlockFromPool(blockBody)
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalledPut)
