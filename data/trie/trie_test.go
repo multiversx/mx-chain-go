@@ -645,7 +645,7 @@ func deleteString(trie *trie.Trie, k string) {
 	trie.Delete([]byte(k))
 }
 
-func testTrie() *trie.Trie {
+func initTrie() *trie.Trie {
 	db, _ := trie.NewDBWriteCache(mock.NewMemoryStorerMock())
 	tr, _ := trie.NewTrie(encoding.Hash{}.Bytes(), db, testHasher)
 
@@ -656,7 +656,7 @@ func testTrie() *trie.Trie {
 	return tr
 }
 
-func testTrie2(nr int) (*trie.Trie, [][]byte) {
+func initTrieMultipleValues(nr int) (*trie.Trie, [][]byte) {
 	db, _ := trie.NewDBWriteCache(mock.NewMemoryStorerMock())
 	tr, _ := trie.NewTrie(encoding.Hash{}.Bytes(), db, testHasher)
 
@@ -672,7 +672,7 @@ func testTrie2(nr int) (*trie.Trie, [][]byte) {
 }
 
 func TestPatriciaMerkleTree_Prove(t *testing.T) {
-	tr := testTrie()
+	tr := initTrie()
 	root := tr.Root()
 
 	proof, err := tr.Prove([]byte("dog"), 0)
@@ -684,7 +684,7 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
-	tr := testTrie()
+	tr := initTrie()
 	root := tr.Root()
 	tr.Commit(nil)
 
@@ -697,7 +697,7 @@ func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
-	tr, val := testTrie2(50)
+	tr, val := initTrieMultipleValues(50)
 	root := tr.Root()
 
 	for i := range val {
@@ -714,7 +714,7 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_VerifyProofCollapsedTrie(t *testing.T) {
-	tr, val := testTrie2(50)
+	tr, val := initTrieMultipleValues(50)
 	root := tr.Root()
 	tr.Commit(nil)
 
