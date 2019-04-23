@@ -481,8 +481,8 @@ func (n *Node) createMetaChainBootstraper(rounder consensus.Rounder) (process.Bo
 	// TODO make sure metachain blockprocessor is used here in constructor
 	// TODO make sure metachain is used here as blockchain
 	// TODO make sure metachain store is used here as store
-	// TODO make sure accounts merkle tree is for metachain state
 
+	// accounts are good, as it is initialized at main with account factory according to shard coordinator
 	bootstrap, err := sync.NewMetaBootstrap(
 		n.metaDataPool,
 		n.store,

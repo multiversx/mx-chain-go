@@ -25,7 +25,7 @@ type AddressContainer interface {
 
 // AccountFactory creates an account of different types
 type AccountFactory interface {
-	CreateAccount(address AddressContainer, tracker AccountTracker) AccountWrapper
+	CreateAccount(address AddressContainer, tracker AccountTracker) (AccountWrapper, error)
 }
 
 type AccountTracker interface {

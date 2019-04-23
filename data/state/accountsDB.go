@@ -193,10 +193,17 @@ func (adb *AccountsDB) getAccount(addressContainer AddressContainer) (AccountWra
 		return nil, nil
 	}
 
-	acnt := adb.accountFactory.CreateAccount(addressContainer, adb)
-	err = adb.marshalizer.Unmarshal(acnt, val)
+	acnt, err := adb.accountFactory.CreateAccount(addressContainer, adb)
+	if err != nil {
+		return nil, err
+	}
 
-	return acnt, err
+	err = adb.marshalizer.Unmarshal(acnt, val)
+	if err != nil {
+		return nil, err
+	}
+
+	return acnt, nil
 }
 
 // SaveAccount saves the account WITHOUT data trie inside main trie. Errors if something went wrong
@@ -275,7 +282,11 @@ func (adb *AccountsDB) loadCodeAndDataIntoAccountWrapper(accountWrapper AccountW
 }
 
 func (adb *AccountsDB) newAccountWrapper(address AddressContainer) (AccountWrapper, error) {
-	acnt := adb.accountFactory.CreateAccount(address, adb)
+	acnt, err := adb.accountFactory.CreateAccount(address, adb)
+	if err != nil {
+		return nil, err
+	}
+
 	entry, err := NewBaseJournalEntryCreation(address.Bytes(), adb.mainTrie)
 	if err != nil {
 		return nil, err

@@ -115,3 +115,6 @@ var ErrNilAccountWrapper = errors.New("account wrapper is nil")
 
 // ErrNilOrEmptyKey signals that key empty key was provided
 var ErrNilOrEmptyKey = errors.New("key is empty or nil")
+
+// ErrNilShardCoordinator signals that nil shard coordinator was provided
+var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
