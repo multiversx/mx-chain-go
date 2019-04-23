@@ -26,7 +26,10 @@ Even though standard BLS allows aggregation as well, it is susceptible to rogue 
 This is where the modified BLS scheme comes into play and prevents this attacks by using this extra hashing function.
 */
 
+const hasherOutputSize = 16
+
 type blsMultiSigData struct {
+	grSize  uint16
 	message []byte
 	pubKeys []crypto.PublicKey
 	privKey crypto.PrivateKey
@@ -40,7 +43,7 @@ type blsMultiSigner struct {
 	data       *blsMultiSigData
 	mutSigData sync.RWMutex
 	suite      crypto.Suite
-	hasher     hashing.Hasher
+	hasher     hashing.Hasher // 16bytes output hasher!
 	keyGen     crypto.KeyGenerator
 }
 
@@ -54,6 +57,10 @@ func NewBLSMultisig(
 
 	if hasher == nil {
 		return nil, crypto.ErrNilHasher
+	}
+
+	if hasher.Size() != hasherOutputSize {
+		return nil, crypto.ErrWrongSizeHasher
 	}
 
 	if privKey == nil {
@@ -76,7 +83,7 @@ func NewBLSMultisig(
 		return nil, crypto.ErrIndexOutOfBounds
 	}
 
-	sizeConsensus := len(pubKeys)
+	sizeConsensus := uint16(len(pubKeys))
 	sigShares := make([][]byte, sizeConsensus)
 	pk, err := convertStringsToPubKeys(pubKeys, keyGen)
 
@@ -85,6 +92,7 @@ func NewBLSMultisig(
 	}
 
 	data := &blsMultiSigData{
+		grSize:    sizeConsensus,
 		pubKeys:   pk,
 		privKey:   privKey,
 		ownIndex:  ownIndex,
@@ -103,6 +111,10 @@ func NewBLSMultisig(
 
 // Reset resets the multiSigData inside the multiSigner
 func (bms *blsMultiSigner) Reset(pubKeys []string, index uint16) error {
+	if pubKeys == nil {
+		return crypto.ErrNilPublicKeys
+	}
+
 	if index >= uint16(len(pubKeys)) {
 		return crypto.ErrIndexOutOfBounds
 	}
@@ -133,12 +145,12 @@ func (bms *blsMultiSigner) Reset(pubKeys []string, index uint16) error {
 }
 
 // Create generates a multiSigner and initializes corresponding fields with the given params
-func (bms *blsMultiSigner) Create(pubKeys []string, index uint16) (crypto.MultiSigner, error) {
+func (bms *blsMultiSigner) Create(pubKeys []string, index uint16) (crypto.MultiSignerBLS, error) {
 	bms.mutSigData.RLock()
 	privKey := bms.data.privKey
 	bms.mutSigData.RUnlock()
 
-	return NewBelNevMultisig(bms.hasher, pubKeys, privKey, bms.keyGen, index)
+	return NewBLSMultisig(bms.hasher, pubKeys, privKey, bms.keyGen, index)
 }
 
 // SetMessage sets the message to be multi-signed upon
@@ -160,21 +172,11 @@ func (bms *blsMultiSigner) SetMessage(msg []byte) error {
 
 // CreateSignatureShare returns a BLS single signature over the message previously configured with a previous call of
 // SetMessage
-func (bms *blsMultiSigner) CreateSignatureShare(bitmap []byte) ([]byte, error) {
-	if bitmap == nil {
-		return nil, crypto.ErrNilBitmap
-	}
-
+func (bms *blsMultiSigner) CreateSignatureShare() ([]byte, error) {
 	bms.mutSigData.Lock()
 	defer bms.mutSigData.Unlock()
 
-	maxFlags := len(bitmap) * 8
 	data := bms.data
-	flagsMismatch := maxFlags < len(data.pubKeys)
-	if flagsMismatch {
-		return nil, crypto.ErrBitmapMismatch
-	}
-
 	blsSingleSigner := &singlesig.BlsSingleSigner{}
 	sigShareBytes, err := blsSingleSigner.Sign(data.privKey, data.message)
 	if err != nil {
@@ -188,7 +190,7 @@ func (bms *blsMultiSigner) CreateSignatureShare(bitmap []byte) ([]byte, error) {
 
 // not concurrent safe, should be used under RLock mutex
 func (bms *blsMultiSigner) isValidIndex(index uint16, bitmap []byte) error {
-	indexOutOfBounds := index >= uint16(len(bms.data.pubKeys))
+	indexOutOfBounds := index >= bms.data.grSize
 	if indexOutOfBounds {
 		return crypto.ErrIndexOutOfBounds
 	}
@@ -201,23 +203,19 @@ func (bms *blsMultiSigner) isValidIndex(index uint16, bitmap []byte) error {
 	return nil
 }
 
-// VerifySignatureShare verifies the single signature share of the signer with specified position in bitmap
+// VerifySignatureShare verifies the single signature share of the signer with specified position
 // Signature is verified over a message configured with a previous call of SetMessage
-func (bms *blsMultiSigner) VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error {
+func (bms *blsMultiSigner) VerifySignatureShare(index uint16, sig []byte) error {
 	if sig == nil {
 		return crypto.ErrNilSignature
-	}
-
-	if bitmap == nil {
-		return crypto.ErrNilBitmap
 	}
 
 	bms.mutSigData.RLock()
 	defer bms.mutSigData.RUnlock()
 
-	err := bms.isValidIndex(index, bitmap)
-	if err != nil {
-		return err
+	indexOutOfBounds := index >= bms.data.grSize
+	if indexOutOfBounds {
+		return crypto.ErrIndexOutOfBounds
 	}
 
 	pubKey := bms.data.pubKeys[index]
@@ -230,6 +228,17 @@ func (bms *blsMultiSigner) VerifySignatureShare(index uint16, sig []byte, bitmap
 func (bms *blsMultiSigner) StoreSignatureShare(index uint16, sig []byte) error {
 	if sig == nil {
 		return crypto.ErrNilSignature
+	}
+
+	kSuite, ok := bms.suite.GetUnderlyingSuite().(pairing.Suite)
+	if !ok {
+		return crypto.ErrInvalidSuite
+	}
+
+	sigKPoint := kSuite.G1().Point()
+	err := sigKPoint.UnmarshalBinary(sig)
+	if err != nil {
+		return err
 	}
 
 	bms.mutSigData.Lock()
@@ -276,7 +285,6 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 	}
 
 	prepSigs := make([][]byte, 0)
-
 	// for the modified BLS scheme, aggregation is done not between sigs but between H1(pubKey_i)*sig_i
 	for i := range bms.data.sigShares {
 		err := bms.isValidIndex(uint16(i), bitmap)
@@ -284,18 +292,22 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 			continue
 		}
 
-		hScalar, err := hashPublicKeyPointToScalar(bms.suite, bms.hasher, bms.data.pubKeys[i].Point())
+		hPk, err := hashPublicKeyPoint(bms.hasher, bms.data.pubKeys[i].Point())
 		if err != nil {
 			return nil, err
 		}
 
 		// H1(pubKey_i)*sig_i
-		s, err := scalarMulSig(bms.suite, hScalar, bms.data.sigShares[i])
+		s, err := scalarMulSig(bms.suite, hPk, bms.data.sigShares[i])
 		if err != nil {
 			return nil, err
 		}
 
 		prepSigs = append(prepSigs, s)
+	}
+
+	if len(prepSigs) == 0 {
+		return nil, crypto.ErrNilSignaturesList
 	}
 
 	aggSigs, err := aggregateSignatures(bms.suite, prepSigs...)
@@ -312,6 +324,17 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 func (bms *blsMultiSigner) SetAggregatedSig(aggSig []byte) error {
 	if aggSig == nil {
 		return crypto.ErrNilSignature
+	}
+
+	kSuite, ok := bms.suite.GetUnderlyingSuite().(pairing.Suite)
+	if !ok {
+		return crypto.ErrInvalidSuite
+	}
+
+	sigKPoint := kSuite.G1().Point()
+	err := sigKPoint.UnmarshalBinary(aggSig)
+	if err != nil {
+		return err
 	}
 
 	bms.mutSigData.Lock()
@@ -337,7 +360,7 @@ func (bms *blsMultiSigner) Verify(bitmap []byte) error {
 		return crypto.ErrBitmapMismatch
 	}
 
-	prepPubKeysPoints := make([]crypto.Point, 0)
+	prepPubKeysPoints := make([]kyber.Point, 0)
 
 	for i := range bms.data.pubKeys {
 		err := bms.isValidIndex(uint16(i), bitmap)
@@ -348,13 +371,13 @@ func (bms *blsMultiSigner) Verify(bitmap []byte) error {
 		pubKeyPoint := bms.data.pubKeys[i].Point()
 
 		// t_i = H(pubKey_i)
-		hScalar, err := hashPublicKeyPointToScalar(bms.suite, bms.hasher, pubKeyPoint)
+		hPk, err := hashPublicKeyPoint(bms.hasher, pubKeyPoint)
 		if err != nil {
 			return err
 		}
 
 		// t_i*pubKey_i
-		prepPoint, err := pubKeyPoint.Mul(hScalar)
+		prepPoint, err := scalarMulPk(bms.suite, hPk, pubKeyPoint)
 		if err != nil {
 			return err
 		}
@@ -388,6 +411,7 @@ func aggregateSignatures(suite crypto.Suite, sigs ...[]byte) ([]byte, error) {
 	return bls.AggregateSignatures(kSuite, sigs...)
 }
 
+// verifyAggregatedSig verifies if a BLS aggregated signature is valid
 func verifyAggregatedSig(suite crypto.Suite, aggPointsBytes []byte, aggSigBytes []byte, msg []byte) error {
 	if suite == nil {
 		return crypto.ErrNilSuite
@@ -407,13 +431,13 @@ func verifyAggregatedSig(suite crypto.Suite, aggPointsBytes []byte, aggSigBytes 
 	return bls.Verify(kSuite, aggKPoint, msg, aggSigBytes)
 }
 
-// aggregatePublicKeys produces an aggregation of BLS public keys
-func aggregatePublicKeys(suite crypto.Suite, pubKeys ...crypto.Point) ([]byte, error) {
+// aggregatePublicKeys produces an aggregation of BLS public keys (points)
+func aggregatePublicKeys(suite crypto.Suite, pubKeys ...kyber.Point) ([]byte, error) {
 	if pubKeys == nil {
 		return nil, crypto.ErrNilPublicKeys
 	}
 
-	kSuite, ok := suite.(pairing.Suite)
+	kSuite, ok := suite.GetUnderlyingSuite().(pairing.Suite)
 	if !ok {
 		return nil, crypto.ErrInvalidSuite
 	}
@@ -424,10 +448,7 @@ func aggregatePublicKeys(suite crypto.Suite, pubKeys ...crypto.Point) ([]byte, e
 			return nil, crypto.ErrNilPublicKeyPoint
 		}
 
-		kyberPoints[i], ok = pubKey.GetUnderlyingObj().(kyber.Point)
-		if !ok {
-			return nil, crypto.ErrInvalidPublicKey
-		}
+		kyberPoints[i] = pubKey
 	}
 
 	kyberAggPubKey := bls.AggregatePublicKeys(kSuite, kyberPoints...)
@@ -435,25 +456,50 @@ func aggregatePublicKeys(suite crypto.Suite, pubKeys ...crypto.Point) ([]byte, e
 	return kyberAggPubKey.MarshalBinary()
 }
 
-// scalarMulSig returns the result of multiplying a BLS scalar with a BLS single signature
-func scalarMulSig(suite crypto.Suite, scalar crypto.Scalar, sig []byte) ([]byte, error) {
+// scalarMulPk returns the result of multiplying a scalar given as a bytes array, with a BLS public key (point)
+func scalarMulPk(suite crypto.Suite, scalarBytes []byte, pk crypto.Point) (kyber.Point, error) {
+	if pk == nil {
+		return nil, crypto.ErrNilParam
+	}
+
+	kScalar, err := createScalar(suite, scalarBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	pkKPoint, ok := pk.GetUnderlyingObj().(kyber.Point)
+	if !ok {
+		return nil, crypto.ErrInvalidPublicKey
+	}
+
+	resKPoint := pkKPoint.Mul(kScalar, pkKPoint)
+
+	return resKPoint, nil
+}
+
+// scalarMulSig returns the result of multiplying a scalar given as a bytes array, with a BLS single signature
+func scalarMulSig(suite crypto.Suite, scalarBytes []byte, sig []byte) ([]byte, error) {
 	kSuite, ok := suite.GetUnderlyingSuite().(pairing.Suite)
 	if !ok {
 		return nil, crypto.ErrInvalidSuite
 	}
 
-	kscalar, ok := scalar.GetUnderlyingObj().(kyber.Scalar)
-	if !ok {
-		return nil, crypto.ErrInvalidScalar
+	if sig == nil {
+		return nil, crypto.ErrNilParam
 	}
 
-	sigKPoint := kSuite.G1().Point()
-	err := sigKPoint.UnmarshalBinary(sig)
+	kScalar, err := createScalar(suite, scalarBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	resPoint := sigKPoint.Mul(kscalar, nil)
+	sigKPoint := kSuite.G1().Point()
+	err = sigKPoint.UnmarshalBinary(sig)
+	if err != nil {
+		return nil, err
+	}
+
+	resPoint := sigKPoint.Mul(kScalar, sigKPoint)
 	resBytes, err := resPoint.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -462,12 +508,8 @@ func scalarMulSig(suite crypto.Suite, scalar crypto.Scalar, sig []byte) ([]byte,
 	return resBytes, nil
 }
 
-// hashPublicKeyPointToScalar
-func hashPublicKeyPointToScalar(
-	suite crypto.Suite,
-	hasher hashing.Hasher,
-	pubKeyPoint crypto.Point,
-) (crypto.Scalar, error) {
+// hashPublicKeyPoint hashes a BLS public key (point) into a byte array (32 bytes length)
+func hashPublicKeyPoint(hasher hashing.Hasher, pubKeyPoint crypto.Point) ([]byte, error) {
 	if hasher == nil {
 		return nil, crypto.ErrNilHasher
 	}
@@ -483,11 +525,29 @@ func hashPublicKeyPointToScalar(
 
 	// H1(pubkey_i)
 	h := hasher.Compute(string(pointBytes))
-	hScalar := suite.CreateScalar()
-	err = hScalar.UnmarshalBinary(h)
+	// accepted length 32, copy the hasherOutputSize bytes and have rest 0
+	h32 := make([]byte, 32)
+	copy(h32[hasherOutputSize:], h)
+
+	return h32, nil
+}
+
+// createScalar creates kyber.Scalar from a byte array
+func createScalar(suite crypto.Suite, scalarBytes []byte) (kyber.Scalar, error) {
+	if suite == nil {
+		return nil, crypto.ErrNilSuite
+	}
+
+	scalar := suite.CreateScalar()
+	err := scalar.UnmarshalBinary(scalarBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return hScalar, nil
+	kScalar, ok := scalar.GetUnderlyingObj().(kyber.Scalar)
+	if !ok {
+		return nil, crypto.ErrInvalidScalar
+	}
+
+	return kScalar, nil
 }

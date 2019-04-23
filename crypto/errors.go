@@ -37,6 +37,9 @@ var ErrInvalidPublicKeyString = errors.New("invalid public key string")
 // ErrNilHasher is raised when a valid hasher is expected but used nil
 var ErrNilHasher = errors.New("marshalizer is nil")
 
+// ErrWrongSizeHasher is raised when a hasher with a wrong output size is used
+var ErrWrongSizeHasher = errors.New("wrong size hasher")
+
 // ErrIndexOutOfBounds is raised when an out of bound index is used
 var ErrIndexOutOfBounds = errors.New("index is out of bounds")
 

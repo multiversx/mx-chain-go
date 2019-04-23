@@ -109,12 +109,8 @@ type Random interface {
 type Suite interface {
 	Group
 	Random
-	GetUnderlyingSuite() interface{}
-}
-
-// Generator generates a (Scalar, Point) key pair
-type Generator interface {
 	CreateKeyPair(cipher.Stream) (Scalar, Point)
+	GetUnderlyingSuite() interface{}
 }
 
 // KeyGenerator is an interface for generating different types of cryptographic keys
@@ -191,6 +187,37 @@ type MultiSigner interface {
 type MultiSigVerifier interface {
 	// Create resets the multisigner and initializes to the new params
 	Create(pubKeys []string, index uint16) (MultiSigner, error)
+	// SetMessage sets the message to be multi-signed upon
+	SetMessage(msg []byte) error
+	// SetAggregatedSig sets the aggregated signature
+	SetAggregatedSig([]byte) error
+	// Verify verifies the aggregated signature
+	Verify(bitmap []byte) error
+}
+
+// MultiSignerBLS provides functionality for multi-signing a message and ferifying a multi-signed message
+// TODO: refactor BN to use this same multiSigner, and then remove the MultiSigner - EN-1774
+type MultiSignerBLS interface {
+	// MultiSigVerifierBLS Provides functionality for verifying a multi-signature
+	MultiSigVerifierBLS
+	// Reset resets the data holder inside the multiSigner
+	Reset(pubKeys []string, index uint16) error
+	// CreateSignatureShare creates a partial signature
+	CreateSignatureShare() ([]byte, error)
+	// StoreSignatureShare adds the partial signature of the signer with specified position
+	StoreSignatureShare(index uint16, sig []byte) error
+	// SignatureShare returns the partial signature set for given index
+	SignatureShare(index uint16) ([]byte, error)
+	// VerifySignatureShare verifies the partial signature of the signer with specified position
+	VerifySignatureShare(index uint16, sig []byte) error
+	// AggregateSigs aggregates all collected partial signatures
+	AggregateSigs(bitmap []byte) ([]byte, error)
+}
+
+// MultiSigVerifier Provides functionality for verifying a multi-signature
+type MultiSigVerifierBLS interface {
+	// Create resets the multisigner and initializes to the new params
+	Create(pubKeys []string, index uint16) (MultiSignerBLS, error)
 	// SetMessage sets the message to be multi-signed upon
 	SetMessage(msg []byte) error
 	// SetAggregatedSig sets the aggregated signature
