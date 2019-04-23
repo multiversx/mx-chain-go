@@ -17,8 +17,8 @@ import (
 
 func generateAccountDBFromTrie(trie trie.PatriciaMerkelTree) *state.AccountsDB {
 	accnt, _ := state.NewAccountsDB(trie, mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) state.AccountWrapper {
-			return mock.NewAccountWrapMock(address, tracker)
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+			return mock.NewAccountWrapMock(address, tracker), nil
 		},
 	})
 	return accnt
@@ -41,8 +41,8 @@ func generateAddressAccountAccountsDB() (state.AddressContainer, *mock.AccountWr
 func accountsDBCreateAccountsDB() *state.AccountsDB {
 	marshalizer := mock.MarshalizerMock{}
 	adb, _ := state.NewAccountsDB(mock.NewMockTrie(), mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) state.AccountWrapper {
-			return mock.NewAccountWrapMock(address, tracker)
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+			return mock.NewAccountWrapMock(address, tracker), nil
 		},
 	})
 
@@ -350,8 +350,8 @@ func TestAccountsDB_SaveJournalizedAccountMalfunctionMarshalizerShouldErr(t *tes
 	mockTrie := mock.NewMockTrie()
 	marshalizer := &mock.MarshalizerMock{}
 	adb, _ := state.NewAccountsDB(mockTrie, mock.HasherMock{}, marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) state.AccountWrapper {
-			return mock.NewAccountWrapMock(address, tracker)
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+			return mock.NewAccountWrapMock(address, tracker), nil
 		},
 	})
 
@@ -559,8 +559,8 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 	}
 
 	adb, _ = state.NewAccountsDB(&trieMock, mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) state.AccountWrapper {
-			return mock.NewAccountWrapMock(address, tracker)
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+			return mock.NewAccountWrapMock(address, tracker), nil
 		},
 	})
 
@@ -614,8 +614,8 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 	}
 	marshalizer := mock.MarshalizerMock{}
 	adb, _ = state.NewAccountsDB(&trieStub, mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) state.AccountWrapper {
-			return mock.NewAccountWrapMock(address, tracker)
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+			return mock.NewAccountWrapMock(address, tracker), nil
 		},
 	})
 
@@ -827,9 +827,9 @@ func TestAccountsDBTestCreateModifyComitSaveGet(t *testing.T) {
 	trieMock := mock.NewMockTrie()
 	adr := mock.NewAddressMock()
 	adb, _ := state.NewAccountsDB(trieMock, mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) state.AccountWrapper {
-			accnt, _ := state.NewAccount(address, tracker)
-			return accnt
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+			accnt, err := state.NewAccount(address, tracker)
+			return accnt, err
 		},
 	})
 

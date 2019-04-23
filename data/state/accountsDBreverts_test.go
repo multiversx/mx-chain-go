@@ -17,9 +17,9 @@ import (
 func accountsDBRevertCreateAccountsDB() *state.AccountsDB {
 	marsh := mock.MarshalizerMock{}
 	adb, _ := state.NewAccountsDB(mock.NewMockTrie(), mock.HasherMock{}, &marsh, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) state.AccountWrapper {
-			accnt, _ := state.NewAccount(address, tracker)
-			return accnt
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+			accnt, err := state.NewAccount(address, tracker)
+			return accnt, err
 		},
 	})
 
