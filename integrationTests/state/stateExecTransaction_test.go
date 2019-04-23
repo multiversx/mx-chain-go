@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -27,7 +28,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator)
 
@@ -69,7 +70,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator)
 
@@ -109,7 +110,7 @@ func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 	initialBalance := int64(100000)
 	balance := big.NewInt(initialBalance)
 
-	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	pubKeyBuff := createDummyHexAddress(64)
 	sender, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
@@ -138,7 +139,7 @@ func testExecTransactionsMoreTxWithRevert(
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator)
 
@@ -200,7 +201,7 @@ func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *t
 	initialBalance := int64(100000)
 	balance := big.NewInt(initialBalance)
 
-	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	pubKeyBuff := createDummyHexAddress(64)
 	sender, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 

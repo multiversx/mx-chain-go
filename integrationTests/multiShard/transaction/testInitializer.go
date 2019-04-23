@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
@@ -189,7 +190,7 @@ func createNetNode(
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 	messenger := createMessengerWithKadDht(context.Background(), port, initialAddr)
-	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	suite := kyber.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)

@@ -2,25 +2,20 @@ package state
 
 import "github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 
-// TrackableDataAccountWrap wraps SimpleAccountWrap adding modifying data capabilities
+// TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type TrackableDataTrie struct {
 	originalData map[string][]byte
 	dirtyData    map[string][]byte
 	tr           trie.PatriciaMerkelTree
 }
 
-// NewTrackableDataAccountWrap returns a ModifyindDataAccountWrap that wraps AccountWrap
-// adding modifying data capabilities
-func NewTrackableDataAccountWrap(tr trie.PatriciaMerkelTree) (*TrackableDataTrie, error) {
-	if tr == nil {
-		return nil, ErrNilSimpleAccountWrapper
-	}
-
+// NewTrackableDataAccountWrap returns an instance of DataTrieTracker
+func NewTrackableDataAccountWrap(tr trie.PatriciaMerkelTree) *TrackableDataTrie {
 	return &TrackableDataTrie{
 		tr:           tr,
 		originalData: make(map[string][]byte),
 		dirtyData:    make(map[string][]byte),
-	}, nil
+	}
 }
 
 // ClearDataCaches empties the dirtyData map and original map
@@ -58,6 +53,9 @@ func (tdaw *TrackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
 	}
 
 	//ok, not in cache, retrieve from trie
+	if tdaw.tr == nil {
+		return nil, ErrNilTrie
+	}
 	data, err := tdaw.tr.Get(key)
 	if err != nil {
 		return nil, err

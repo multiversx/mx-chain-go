@@ -21,6 +21,7 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
@@ -52,7 +53,7 @@ import (
 var r *rand.Rand
 var testHasher = sha256.Sha256{}
 var testMarshalizer = &marshal.JsonMarshalizer{}
-var testAddressConverter, _ = state.NewPlainAddressConverter(32, "0x")
+var testAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 var testMultiSig = mock.NewMultiSigner()
 
 func init() {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
@@ -60,7 +61,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	txToSend := 100
 
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 5)
-	generateAddrConverter, _ := state.NewPlainAddressConverter(32, "0x")
+	generateAddrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	fmt.Println("Generating and broadcasting transactions...")
 	addrInShardFive := createDummyHexAddressInShard(generateCoordinator, generateAddrConverter)
@@ -133,7 +134,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	txToSend := 100
 
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 5)
-	generateAddrConverter, _ := state.NewPlainAddressConverter(32, "0x")
+	generateAddrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	addrInShardFive := createDummyHexAddressInShard(generateCoordinator, generateAddrConverter)
 
@@ -219,7 +220,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	randomShard := uint32(2)
 
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), shardRequestor)
-	generateAddrConverter, _ := state.NewPlainAddressConverter(32, "0x")
+	generateAddrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	addrInShardFive := createDummyHexAddressInShard(generateCoordinator, generateAddrConverter)
 

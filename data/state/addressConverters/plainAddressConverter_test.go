@@ -1,4 +1,4 @@
-package state_test
+package addressConverters_test
 
 import (
 	"encoding/hex"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,14 +18,14 @@ import (
 func TestNewPlainAddressConverter_NegativeSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := state.NewPlainAddressConverter(-1, "")
+	_, err := addressConverters.NewPlainAddressConverter(-1, "")
 	assert.Equal(t, state.ErrNegativeValue, err)
 }
 
 func TestNewPlainAddressConverter_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	_, err := state.NewPlainAddressConverter(32, "")
+	_, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
 }
 
@@ -33,7 +34,7 @@ func TestNewPlainAddressConverter_OkValsShouldWork(t *testing.T) {
 func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesNilBytesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
 	_, err = ac.CreateAddressFromPublicKeyBytes(nil)
 	assert.Equal(t, state.ErrNilPubKeysBytes, err)
@@ -42,7 +43,7 @@ func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesNilBytesShouldErr(
 func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesLenLowerAddrlenShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
 
 	for i := 0; i < 32; i++ {
@@ -55,7 +56,7 @@ func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesLenLowerAddrlenSho
 func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
 
 	//generating a random byte slice with len > AdrLen
@@ -72,7 +73,7 @@ func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesOkValsShouldWork(t
 func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesOkValsTrimShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
 
 	//generating a random byte slice with len > AdrLen
@@ -91,7 +92,7 @@ func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesOkValsTrimShouldWo
 func TestPlainAddressConverter_ConvertToHexNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
 
 	_, err = ac.ConvertToHex(nil)
@@ -101,7 +102,7 @@ func TestPlainAddressConverter_ConvertToHexNilAddressShouldErr(t *testing.T) {
 func TestPlainAddressConverter_ConvertToHexOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "0x")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
 
 	adr := mock.NewAddressDummy([]byte{255}, []byte{255})
@@ -116,7 +117,7 @@ func TestPlainAddressConverter_ConvertToHexOkValsShouldWork(t *testing.T) {
 func TestPlainAddressConverter_CreateAddressFromHexEmptyHexAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
 
 	_, err = ac.CreateAddressFromHex("")
@@ -126,7 +127,7 @@ func TestPlainAddressConverter_CreateAddressFromHexEmptyHexAddressShouldErr(t *t
 func TestPlainAddressConverter_CreateAddressFromHexEmptyBadLengthShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
 
 	_, err = ac.CreateAddressFromHex("A")
@@ -136,7 +137,7 @@ func TestPlainAddressConverter_CreateAddressFromHexEmptyBadLengthShouldErr(t *te
 func TestPlainAddressConverter_CreateAddressFromHexEmptyBadStringShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "")
 	assert.Nil(t, err)
 
 	adr := ""
@@ -151,7 +152,7 @@ func TestPlainAddressConverter_CreateAddressFromHexEmptyBadStringShouldErr(t *te
 func TestPlainAddressConverter_FromHexAddressValidDataWithPrefixShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "0x")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
 
 	//generating a random byte slice
@@ -171,7 +172,7 @@ func TestPlainAddressConverter_FromHexAddressValidDataWithPrefixShouldWork(t *te
 func TestPlainAddressConverter_PrepareAddressBytesNilAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "0x")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
 
 	_, err = ac.PrepareAddressBytes(nil)
@@ -181,7 +182,7 @@ func TestPlainAddressConverter_PrepareAddressBytesNilAddrShouldErr(t *testing.T)
 func TestPlainAddressConverter_PrepareAddressBytesEmptyAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "0x")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
 
 	_, err = ac.PrepareAddressBytes(make([]byte, 0))
@@ -191,7 +192,7 @@ func TestPlainAddressConverter_PrepareAddressBytesEmptyAddrShouldErr(t *testing.
 func TestPlainAddressConverter_PrepareAddressBytesWrongSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "0x")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
 
 	_, err = ac.PrepareAddressBytes(make([]byte, 31))
@@ -201,7 +202,7 @@ func TestPlainAddressConverter_PrepareAddressBytesWrongSizeShouldErr(t *testing.
 func TestPlainAddressConverter_PrepareAddressBytesOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ac, err := state.NewPlainAddressConverter(32, "0x")
+	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
 	assert.Nil(t, err)
 
 	//generating a random byte slice

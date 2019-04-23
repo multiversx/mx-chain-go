@@ -77,9 +77,6 @@ var ErrNilAccount = errors.New("nil Account")
 // ErrNilSimpleAccountWrapper defines the error when trying to work with a nil account wrapper
 var ErrNilSimpleAccountWrapper = errors.New("nil SimpleAccountWrapper")
 
-// ErrNilTrackableAccountWrapper defines the error when trying to work with a nil account wrapper
-var ErrNilTrackableAccountWrapper = errors.New("nil TrackableAccountWrapper")
-
 // ErrNilJurnalizingAccountWrapper defines the error when trying to work with a nil account wrapper
 var ErrNilJurnalizingAccountWrapper = errors.New("nil JurnalizingAccountWrapper")
 
@@ -87,7 +84,7 @@ var ErrNilJurnalizingAccountWrapper = errors.New("nil JurnalizingAccountWrapper"
 var ErrNilDataTrie = errors.New("nil data trie for account or data trie not loaded")
 
 // ErrNilTrie signals that a trie is nil and no operation can be made
-var ErrNilTrie = errors.New("attempt to search on a nil trie")
+var ErrNilTrie = errors.New("trie is nil")
 
 // ErrNilValue signals that an operation has been attempted to or with a nil value
 var ErrNilValue = errors.New("nil value")
@@ -104,11 +101,8 @@ var ErrNilMarshalizer = errors.New("nil marshalizer")
 // ErrNegativeValue signals that an operation has been attempted with a negative value
 var ErrNegativeValue = errors.New("negative values are not permited")
 
-// ErrNotSupportedAccountsRegistration signals an operation not supported on simple, non registration account
-var ErrNotSupportedAccountsRegistration = errors.New("operation not supported on a non registration account")
-
-// ErrTrimOperationNotSupported signals an invalid trim operation on an empty slice
-var ErrTrimOperationNotSupported = errors.New("trim operation not supported on an empty slice")
-
 // ErrNilAccountFactory signals that a nil account factory was provided
-var ErrNilAccountFactory = errors.New("Account factory is nil")
+var ErrNilAccountFactory = errors.New("account factory is nil")
+
+// ErrNilAccountTracker signals that a nil account tracker has been provided
+var ErrNilAccountTracker = errors.New("nil account tracker provided")

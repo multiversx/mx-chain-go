@@ -5,18 +5,13 @@ import (
 )
 
 type JournalEntryMock struct {
-	RevertCalled         func(accountsAdapter state.AccountsAdapter) error
-	DirtiedAddressCalled func() state.AddressContainer
+	RevertCalled func() (state.AccountWrapper, error)
 }
 
 func NewJournalEntryMock() *JournalEntryMock {
 	return &JournalEntryMock{}
 }
 
-func (jem *JournalEntryMock) Revert(accountsAdapter state.AccountsAdapter) error {
-	return jem.RevertCalled(accountsAdapter)
-}
-
-func (jem *JournalEntryMock) DirtiedAddress() state.AddressContainer {
-	return jem.DirtiedAddressCalled()
+func (jem *JournalEntryMock) Revert() (state.AccountWrapper, error) {
+	return jem.RevertCalled()
 }

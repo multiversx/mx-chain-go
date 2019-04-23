@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -24,7 +25,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	startingNonce := uint64(6)
 
-	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	accntAdapter := createAccountsDB()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}

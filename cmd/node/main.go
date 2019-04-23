@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
@@ -332,7 +333,7 @@ func createNode(
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	addressConverter, err := state.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
+	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
 	}

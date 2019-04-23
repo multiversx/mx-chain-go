@@ -1,315 +1,190 @@
 package state
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/pkg/errors"
 )
 
 // JournalEntryCreation is used to revert an account creation
 type JournalEntryCreation struct {
-	addressContainer AddressContainer
+	key     []byte
+	updater Updater
 }
 
 // JournalEntryNonce is used to revert a nonce change
 type JournalEntryNonce struct {
-	jurnalizedAccount JournalizedAccountWrapper
-	oldNonce          uint64
+	account  *Account
+	oldNonce uint64
 }
 
 // JournalEntryBalance is used to revert a balance change
 type JournalEntryBalance struct {
-	jurnalizedAccount JournalizedAccountWrapper
-	oldBalance        *big.Int
+	account    *Account
+	oldBalance *big.Int
 }
 
 // JournalEntryCodeHash is used to revert a code hash change
 type JournalEntryCodeHash struct {
-	jurnalizedAccount JournalizedAccountWrapper
-	oldCodeHash       []byte
-}
-
-// JournalEntryCode is used to revert a code addition to the trie
-type JournalEntryCode struct {
-	codeHash []byte
+	account     AccountWrapper
+	oldCodeHash []byte
 }
 
 // JournalEntryRootHash is used to revert an account's root hash change
 type JournalEntryRootHash struct {
-	jurnalizedAccount JournalizedAccountWrapper
-	oldRootHash       []byte
+	account     AccountWrapper
+	oldRootHash []byte
 }
 
 // JournalEntryData is used to mark an account's data change
 type JournalEntryData struct {
-	trie              trie.PatriciaMerkelTree
-	jurnalizedAccount JournalizedAccountWrapper
+	trie    trie.PatriciaMerkelTree
+	account AccountWrapper
 }
 
-// JournalEntryAppendRegistration is used to mark collection change for registration peers inside an account
-type JournalEntryAppendRegistration struct {
-	jurnalizedAccount JournalizedAccountWrapper
-}
+//TODO(jls) move
+var ErrNilUpdater = errors.New("")
+var ErrNilAccountWrapper = errors.New("")
+var ErrNilOrEmptyKey = errors.New("")
 
 //------- JournalEntryCreation
 
 // NewJournalEntryCreation outputs a new JournalEntry implementation used to revert an account creation
-func NewJournalEntryCreation(addressContainer AddressContainer) *JournalEntryCreation {
-	return &JournalEntryCreation{
-		addressContainer: addressContainer,
+func NewJournalEntryCreation(key []byte, updater Updater) (*JournalEntryCreation, error) {
+	if updater == nil {
+		return nil, ErrNilUpdater
 	}
+	if len(key) == 0 {
+		return nil, ErrNilOrEmptyKey
+	}
+
+	return &JournalEntryCreation{
+		key:     key,
+		updater: updater,
+	}, nil
 }
 
 // Revert applies undo operation
-func (jec *JournalEntryCreation) Revert(accountsAdapter AccountsAdapter) error {
-	if accountsAdapter == nil {
-		return ErrNilAccountsAdapter
-	}
-
-	if jec.addressContainer == nil {
-		return ErrNilAddressContainer
-	}
-
-	return accountsAdapter.RemoveAccount(jec.addressContainer)
-}
-
-// DirtiedAddress returns the address on which this JournalEntry will apply
-func (jec *JournalEntryCreation) DirtiedAddress() AddressContainer {
-	return jec.addressContainer
+func (jec *JournalEntryCreation) Revert() (AccountWrapper, error) {
+	return nil, jec.updater.Update(jec.key, nil)
 }
 
 //------- JournalEntryNonce
 
 // NewJournalEntryNonce outputs a new JournalEntry implementation used to revert a nonce change
-func NewJournalEntryNonce(jurnalizedAccount JournalizedAccountWrapper, oldNonce uint64) (*JournalEntryNonce, error) {
-	_, ok := jurnalizedAccount.(*JournalizedAccountWrap)
-	if !ok {
-		return nil, data.ErrWrongTypeAssertion
+func NewJournalEntryNonce(account *Account, oldNonce uint64) (*JournalEntryNonce, error) {
+	if account == nil {
+		return nil, ErrNilAccount
 	}
 
 	return &JournalEntryNonce{
-		jurnalizedAccount: jurnalizedAccount,
-		oldNonce:          oldNonce,
+		account:  account,
+		oldNonce: oldNonce,
 	}, nil
 }
 
 // Revert applies undo operation
-func (jen *JournalEntryNonce) Revert(accountsAdapter AccountsAdapter) error {
-	if accountsAdapter == nil {
-		return ErrNilAccountsAdapter
-	}
-	if jen.jurnalizedAccount == nil {
-		return ErrNilJurnalizingAccountWrapper
-	}
-	if jen.jurnalizedAccount.AddressContainer() == nil {
-		return ErrNilAddressContainer
-	}
+func (jen *JournalEntryNonce) Revert() (AccountWrapper, error) {
+	jen.account.Nonce = jen.oldNonce
 
-	account, ok := jen.jurnalizedAccount.BaseAccount().(*Account)
-	if !ok {
-		return data.ErrWrongTypeAssertion
-	}
-
-	account.Nonce = jen.oldNonce
-
-	return accountsAdapter.SaveJournalizedAccount(jen.jurnalizedAccount)
-}
-
-// DirtiedAddress returns the address on which this JournalEntry will apply
-func (jen *JournalEntryNonce) DirtiedAddress() AddressContainer {
-	return jen.jurnalizedAccount.AddressContainer()
+	return jen.account, nil
 }
 
 //------- JournalEntryBalance
 
 // NewJournalEntryBalance outputs a new JournalEntry implementation used to revert a balance change
-func NewJournalEntryBalance(jurnalizedAccount JournalizedAccountWrapper, oldBalance *big.Int) (*JournalEntryBalance, error) {
-	_, ok := jurnalizedAccount.(*JournalizedAccountWrap)
-	if !ok {
-		return nil, data.ErrWrongTypeAssertion
+func NewJournalEntryBalance(account *Account, oldBalance *big.Int) (*JournalEntryBalance, error) {
+	if account == nil {
+		return nil, ErrNilAccount
 	}
 
 	return &JournalEntryBalance{
-		jurnalizedAccount: jurnalizedAccount,
-		oldBalance:        oldBalance,
+		account:    account,
+		oldBalance: oldBalance,
 	}, nil
 }
 
 // Revert applies undo operation
-func (jeb *JournalEntryBalance) Revert(accountsAdapter AccountsAdapter) error {
-	if accountsAdapter == nil {
-		return ErrNilAccountsAdapter
-	}
+func (jeb *JournalEntryBalance) Revert() (AccountWrapper, error) {
+	jeb.account.Balance = jeb.oldBalance
 
-	if jeb.jurnalizedAccount == nil {
-		return ErrNilJurnalizingAccountWrapper
-	}
-
-	if jeb.jurnalizedAccount.AddressContainer() == nil {
-		return ErrNilAddressContainer
-	}
-
-	//save balance through implicit func as to not re-register the modification
-	jeb.jurnalizedAccount.BaseAccount().Balance = jeb.oldBalance
-	return accountsAdapter.SaveJournalizedAccount(jeb.jurnalizedAccount)
-}
-
-// DirtiedAddress returns the address on which this JournalEntry will apply
-func (jeb *JournalEntryBalance) DirtiedAddress() AddressContainer {
-	return jeb.jurnalizedAccount.AddressContainer()
+	return jeb.account, nil
 }
 
 //------- JournalEntryCodeHash
 
 // NewJournalEntryCodeHash outputs a new JournalEntry implementation used to revert a code hash change
-func NewJournalEntryCodeHash(jurnalizedAccount JournalizedAccountWrapper, oldCodeHash []byte) *JournalEntryCodeHash {
+func NewJournalEntryCodeHash(account AccountWrapper, oldCodeHash []byte) (*JournalEntryCodeHash, error) {
+	if account == nil {
+		return nil, ErrNilAccountWrapper
+	}
+
 	return &JournalEntryCodeHash{
-		jurnalizedAccount: jurnalizedAccount,
-		oldCodeHash:       oldCodeHash,
-	}
+		account:     account,
+		oldCodeHash: oldCodeHash,
+	}, nil
 }
 
 // Revert applies undo operation
-func (jech *JournalEntryCodeHash) Revert(accountsAdapter AccountsAdapter) error {
-	if accountsAdapter == nil {
-		return ErrNilAccountsAdapter
-	}
+func (jech *JournalEntryCodeHash) Revert() (AccountWrapper, error) {
+	jech.account.SetCodeHash(jech.oldCodeHash)
 
-	if jech.jurnalizedAccount == nil {
-		return ErrNilJurnalizingAccountWrapper
-	}
-
-	if jech.jurnalizedAccount.AddressContainer() == nil {
-		return ErrNilAddressContainer
-	}
-
-	//access code hash through implicit func as to not re-register the modification
-	jech.jurnalizedAccount.BaseAccount().CodeHash = jech.oldCodeHash
-	return accountsAdapter.SaveJournalizedAccount(jech.jurnalizedAccount)
-}
-
-// DirtiedAddress returns the address on which this JournalEntry will apply
-func (jech *JournalEntryCodeHash) DirtiedAddress() AddressContainer {
-	return jech.jurnalizedAccount.AddressContainer()
-}
-
-//------- JournalEntryCode
-
-// NewJournalEntryCode outputs a new JournalEntry implementation used to revert a code addition to the trie
-func NewJournalEntryCode(codeHash []byte) *JournalEntryCode {
-	return &JournalEntryCode{
-		codeHash: codeHash,
-	}
-}
-
-// Revert applies undo operation
-func (jec *JournalEntryCode) Revert(accountsAdapter AccountsAdapter) error {
-	if accountsAdapter == nil {
-		return ErrNilAccountsAdapter
-	}
-
-	if jec.codeHash == nil {
-		return ErrNilValue
-	}
-
-	return accountsAdapter.RemoveCode(jec.codeHash)
-}
-
-// DirtiedAddress will return nil as there is no address involved in code saving in a trie
-func (jec *JournalEntryCode) DirtiedAddress() AddressContainer {
-	return nil
+	return jech.account, nil
 }
 
 //------- JournalEntryRoot
 
 // NewJournalEntryRootHash outputs a new JournalEntry implementation used to revert an account's root hash change
-func NewJournalEntryRootHash(jurnalizedAccount JournalizedAccountWrapper, oldRootHash []byte) *JournalEntryRootHash {
-	return &JournalEntryRootHash{
-		jurnalizedAccount: jurnalizedAccount,
-		oldRootHash:       oldRootHash,
+func NewJournalEntryRootHash(account AccountWrapper, oldRootHash []byte) (*JournalEntryRootHash, error) {
+	if account == nil {
+		return nil, ErrNilAccountWrapper
 	}
+	if account.AddressContainer() == nil {
+		return nil, ErrNilAddressContainer
+	}
+
+	return &JournalEntryRootHash{
+		account:     account,
+		oldRootHash: oldRootHash,
+	}, nil
 }
 
 // Revert applies undo operation
-func (jer *JournalEntryRootHash) Revert(accountsAdapter AccountsAdapter) error {
-	if accountsAdapter == nil {
-		return ErrNilAccountsAdapter
-	}
-
-	if jer.jurnalizedAccount == nil {
-		return ErrNilJurnalizingAccountWrapper
-	}
-
-	if jer.jurnalizedAccount.AddressContainer() == nil {
-		return ErrNilAddressContainer
-	}
-
-	//access code hash through implicit func as to not re-register the modification
-	jer.jurnalizedAccount.BaseAccount().RootHash = jer.oldRootHash
-	err := accountsAdapter.LoadDataTrie(jer.jurnalizedAccount)
-	if err != nil {
-		return err
-	}
-	return accountsAdapter.SaveJournalizedAccount(jer.jurnalizedAccount)
-}
-
-// DirtiedAddress returns the address on which this JournalEntry will apply
-func (jer *JournalEntryRootHash) DirtiedAddress() AddressContainer {
-	return jer.jurnalizedAccount.AddressContainer()
+func (jer *JournalEntryRootHash) Revert() (AccountWrapper, error) {
+	jer.account.SetRootHash(jer.oldRootHash)
+	//TODO(jls) fix this
+	//err := jer.accountTracker.LoadDataTrie(jer.account)
+	//if err != nil {
+	//	return nil, err
+	//}
+	return jer.account, nil
 }
 
 //------- JournalEntryData
 
 // NewJournalEntryData outputs a new JournalEntry implementation used to keep track of data change.
 // The revert will practically empty the dirty data map
-func NewJournalEntryData(jurnalizedAccount JournalizedAccountWrapper, trie trie.PatriciaMerkelTree) *JournalEntryData {
-	return &JournalEntryData{
-		jurnalizedAccount: jurnalizedAccount,
-		trie:              trie,
+func NewJournalEntryData(account AccountWrapper, trie trie.PatriciaMerkelTree) (*JournalEntryData, error) {
+	if account == nil {
+		return nil, ErrNilAccountWrapper
 	}
+
+	return &JournalEntryData{
+		account: account,
+		trie:    trie,
+	}, nil
 }
 
 // Revert will empty the dirtyData map from AccountState
-func (jed *JournalEntryData) Revert(accountsAdapter AccountsAdapter) error {
-	if jed.jurnalizedAccount == nil {
-		return ErrNilJurnalizingAccountWrapper
-	}
+func (jed *JournalEntryData) Revert() (AccountWrapper, error) {
+	//TODO(jls) call clear cache here from TrackableDataTrie
+	//jed.account.ClearDataCaches()
 
-	jed.jurnalizedAccount.ClearDataCaches()
-	return nil
-}
-
-// DirtiedAddress will return nil as there is no address involved in saving data
-func (jed *JournalEntryData) DirtiedAddress() AddressContainer {
-	return nil
+	return nil, nil
 }
 
 // Trie returns the referenced PatriciaMerkelTree for committing the changes
 func (jed *JournalEntryData) Trie() trie.PatriciaMerkelTree {
 	return jed.trie
-}
-
-//------- JournalEntryAppendRegistration
-
-// NewJournalEntryAppendRegistration outputs a new JournalEntry implementation used to keep track
-// nodes registrations
-func NewJournalEntryAppendRegistration(jurnalizedAccount JournalizedAccountWrapper) *JournalEntryAppendRegistration {
-	return &JournalEntryAppendRegistration{
-		jurnalizedAccount: jurnalizedAccount,
-	}
-}
-
-// Revert will empty the dirtyData map from AccountState
-func (jear *JournalEntryAppendRegistration) Revert(accountsAdapter AccountsAdapter) error {
-	if jear.jurnalizedAccount == nil {
-		return ErrNilJurnalizingAccountWrapper
-	}
-
-	return jear.jurnalizedAccount.TrimLastRegistrationData()
-}
-
-// DirtiedAddress returns the address involved in keeping the slice of nodes registrations
-func (jear *JournalEntryAppendRegistration) DirtiedAddress() AddressContainer {
-	return jear.jurnalizedAccount.AddressContainer()
 }
