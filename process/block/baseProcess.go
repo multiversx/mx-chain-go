@@ -126,10 +126,6 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
-		"Nonce",
-		fmt.Sprintf("%d", headerHandler.GetNonce())}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
 		"Epoch",
 		fmt.Sprintf("%d", headerHandler.GetEpoch())}))
 	lines = append(lines, display.NewLineData(false, []string{
@@ -140,6 +136,10 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		"",
 		"TimeStamp",
 		fmt.Sprintf("%d", headerHandler.GetTimeStamp())}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Nonce",
+		fmt.Sprintf("%d", headerHandler.GetNonce())}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Prev hash",
