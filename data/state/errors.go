@@ -106,3 +106,12 @@ var ErrNilAccountFactory = errors.New("account factory is nil")
 
 // ErrNilAccountTracker signals that a nil account tracker has been provided
 var ErrNilAccountTracker = errors.New("nil account tracker provided")
+
+// ErrNilUpdater signals that a nil updater has been provided
+var ErrNilUpdater = errors.New("updater is nil")
+
+// ErrNilAccountWrapper signals that a nil account wrapper was provided
+var ErrNilAccountWrapper = errors.New("account wrapper is nil")
+
+// ErrNilOrEmptyKey signals that key empty key was provided
+var ErrNilOrEmptyKey = errors.New("key is empty or nil")

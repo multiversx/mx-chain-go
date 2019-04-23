@@ -83,7 +83,7 @@ func (adb *AccountsDB) addCodeToTrieIfMissing(codeHash []byte, code []byte) erro
 	}
 	if val == nil {
 		//append a journal entry as the code needs to be inserted in the trie
-		entry, err := NewJournalEntryCreation(codeHash, adb.mainTrie)
+		entry, err := NewBaseJournalEntryCreation(codeHash, adb.mainTrie)
 		if err != nil {
 			return err
 		}
@@ -157,7 +157,7 @@ func (adb *AccountsDB) SaveDataTrie(accountWrapper AccountWrapper) error {
 	}
 
 	//append a journal entry as the data needs to be updated in its trie
-	entry, err := NewJournalEntryData(accountWrapper, accountWrapper.DataTrie())
+	entry, err := NewBaseJournalEntryData(accountWrapper, accountWrapper.DataTrie())
 	if err != nil {
 		return err
 	}
@@ -274,7 +274,7 @@ func (adb *AccountsDB) loadCodeAndDataIntoAccountWrapper(accountWrapper AccountW
 
 func (adb *AccountsDB) newAccountWrapper(address AddressContainer) (AccountWrapper, error) {
 	acnt := adb.accountFactory.CreateAccount(address, adb)
-	entry, err := NewJournalEntryCreation(address.Bytes(), adb.mainTrie)
+	entry, err := NewBaseJournalEntryCreation(address.Bytes(), adb.mainTrie)
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +335,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 
 	//Step 1. iterate through journal entries and commit the data tries accordingly
 	for i := 0; i < len(jEntries); i++ {
-		jed, found := jEntries[i].(*JournalEntryData)
+		jed, found := jEntries[i].(*BaseJournalEntryData)
 
 		if found {
 			_, err := jed.Trie().Commit(nil)
