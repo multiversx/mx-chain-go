@@ -1273,13 +1273,13 @@ func (sp *shardProcessor) displayShardBlock(header *block.Header, body block.Bod
 
 	shardLines := make([]*display.LineData, 0)
 	shardLines = append(shardLines, display.NewLineData(false, []string{
+		"Header",
+		"Block type",
+		"TxBlock"}))
+	shardLines = append(shardLines, display.NewLineData(false, []string{
 		"",
 		"Shard",
 		fmt.Sprintf("%d", header.ShardId)}))
-	shardLines = append(shardLines, display.NewLineData(false, []string{
-		"",
-		"Body type",
-		header.BlockBodyType.String()}))
 	shardLines = append(shardLines, dispLines...)
 
 	if header.BlockBodyType == block.TxBlock {

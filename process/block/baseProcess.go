@@ -165,7 +165,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	lines := make([]*display.LineData, 0)
 
 	lines = append(lines, display.NewLineData(false, []string{
-		"Header",
+		"",
 		"Nonce",
 		fmt.Sprintf("%d", headerHandler.GetNonce())}))
 	lines = append(lines, display.NewLineData(false, []string{

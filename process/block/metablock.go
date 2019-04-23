@@ -584,9 +584,16 @@ func (mp *metaProcessor) displayMetaBlock(header *block.MetaBlock) {
 	dispHeader := []string{"Part", "Parameter", "Value"}
 	dispLines := displayHeader(header)
 
-	dispLines = displayShardInfo(dispLines, header)
+	metaLines := make([]*display.LineData, 0)
+	metaLines = append(metaLines, display.NewLineData(false, []string{
+		"Header",
+		"Block type",
+		"MetaBlock"}))
+	metaLines = append(metaLines, dispLines...)
 
-	tblString, err := display.CreateTableString(dispHeader, dispLines)
+	metaLines = displayShardInfo(metaLines, header)
+
+	tblString, err := display.CreateTableString(dispHeader, metaLines)
 	if err != nil {
 		log.Error(err.Error())
 		return
