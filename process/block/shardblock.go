@@ -1271,23 +1271,24 @@ func (sp *shardProcessor) displayShardBlock(header *block.Header, body block.Bod
 	dispHeader := []string{"Part", "Parameter", "Value"}
 	dispLines := displayHeader(header)
 
-	dispLines = append(dispLines, display.NewLineData(false, []string{
+	shardLines := make([]*display.LineData, 0)
+	shardLines = append(shardLines, display.NewLineData(false, []string{
 		"",
 		"Shard",
 		fmt.Sprintf("%d", header.ShardId)}))
-
-	dispLines = append(dispLines, display.NewLineData(false, []string{
+	shardLines = append(shardLines, display.NewLineData(false, []string{
 		"",
 		"Body type",
 		header.BlockBodyType.String()}))
+	shardLines = append(shardLines, dispLines...)
 
 	if header.BlockBodyType == block.TxBlock {
-		dispLines = displayTxBlockBody(dispLines, body)
+		shardLines = displayTxBlockBody(shardLines, body)
 	} else {
-		dispLines = append(dispLines, display.NewLineData(false, []string{"Unknown", "", ""}))
+		shardLines = append(shardLines, display.NewLineData(false, []string{"Unknown", "", ""}))
 	}
 
-	tblString, err := display.CreateTableString(dispHeader, dispLines)
+	tblString, err := display.CreateTableString(dispHeader, shardLines)
 	if err != nil {
 		log.Error(err.Error())
 		return
