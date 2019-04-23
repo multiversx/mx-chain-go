@@ -97,7 +97,7 @@ func TestCCache_PutConcurrent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %v", err)
 
-	ch := make(chan int)
+	ch := make(chan int, iterations)
 	var arr [iterations]int
 
 	// Using go routines insert 5000 ints into our map.
@@ -152,7 +152,7 @@ func TestCCache_PutConcurrentWaitGroup(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %v", err)
 
-	ch := make(chan int)
+	ch := make(chan int, iterations)
 	done := make(chan bool)
 	var arr [iterations]int
 
@@ -430,12 +430,12 @@ func TestCCache_RemovePresent(t *testing.T) {
 func TestCCache_PutRemoveConcurrent(t *testing.T) {
 	t.Parallel()
 
-	size := 1000
+	size := 100
 	c, err := ccache.NewCCache(size)
 
 	assert.Nil(t, err, "no error expected, but got %v", err)
 
-	var ch = make(chan int)
+	var ch = make(chan int, size)
 
 	// Insert cache value concurrently
 	go func() {
@@ -443,7 +443,6 @@ func TestCCache_PutRemoveConcurrent(t *testing.T) {
 			c.Put([]byte(strconv.Itoa(i)), i)
 
 			val, _ := c.Get([]byte(strconv.Itoa(i)))
-
 			ch <- val.(int)
 		}
 		close(ch) // close the channel
