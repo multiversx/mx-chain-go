@@ -86,6 +86,10 @@ func (ln *leafNode) isCollapsed() bool {
 	return false
 }
 
+func (ln *leafNode) isPosCollapsed(pos int) bool {
+	return false
+}
+
 func (ln *leafNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
@@ -95,6 +99,17 @@ func (ln *leafNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Mar
 		return ln.Value, nil
 	}
 	return nil, ErrNodeNotFound
+}
+
+func (ln *leafNode) getNext(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return nil, nil, err
+	}
+	if bytes.Equal(key, ln.Key) {
+		return nil, nil, nil
+	}
+	return nil, nil, ErrNodeNotFound
 }
 
 func (ln *leafNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
@@ -137,10 +152,6 @@ func (ln *leafNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.Mar
 func (ln *leafNode) reduceNode(pos int) node {
 	k := append([]byte{byte(pos)}, ln.Key...)
 	return newLeafNode(k, ln.Value)
-}
-
-func (ln *leafNode) nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool) {
-	return previousState, path, false
 }
 
 func (ln *leafNode) isEmptyOrNil() error {

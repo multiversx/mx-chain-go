@@ -150,6 +150,10 @@ func (en *extensionNode) isCollapsed() bool {
 	return false
 }
 
+func (en *extensionNode) isPosCollapsed(pos int) bool {
+	return en.isCollapsed()
+}
+
 func (en *extensionNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
 	err = en.isEmptyOrNil()
 	if err != nil {
@@ -170,6 +174,28 @@ func (en *extensionNode) tryGet(key []byte, db DBWriteCacher, marshalizer marsha
 	}
 	value, err = en.child.tryGet(key, db, marshalizer)
 	return value, err
+}
+
+func (en *extensionNode) getNext(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return nil, nil, err
+	}
+	keyTooShort := len(key) < len(en.Key)
+	if keyTooShort {
+		return nil, nil, ErrNodeNotFound
+	}
+	keysDontMatch := !bytes.Equal(en.Key, key[:len(en.Key)])
+	if keysDontMatch {
+		return nil, nil, ErrNodeNotFound
+	}
+	err = resolveIfCollapsed(en, 0, db, marshalizer)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	key = key[len(en.Key):]
+	return en.child, key, nil
 }
 
 func (en *extensionNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
@@ -202,6 +228,9 @@ func (en *extensionNode) insert(n *leafNode, db DBWriteCacher, marshalizer marsh
 		return false, nil, ErrChildPosOutOfRange
 	}
 	branch.children[oldChildPos] = newExtensionNode(en.Key[keyMatchLen+1:], en.child)
+	if len(en.Key) == 1 {
+		branch.children[oldChildPos] = en.child
+	}
 	n.Key = n.Key[keyMatchLen+1:]
 	branch.children[newChildPos] = n
 
@@ -221,7 +250,7 @@ func (en *extensionNode) delete(key []byte, db DBWriteCacher, marshalizer marsha
 	}
 	keyMatchLen := prefixLen(key, en.Key)
 	if keyMatchLen < len(en.Key) {
-		return false, en, nil // don't replace n on mismatch
+		return false, en, nil
 	}
 	err = resolveIfCollapsed(en, 0, db, marshalizer)
 	if err != nil {
@@ -246,16 +275,6 @@ func (en *extensionNode) delete(key []byte, db DBWriteCacher, marshalizer marsha
 func (en *extensionNode) reduceNode(pos int) node {
 	k := append([]byte{byte(pos)}, en.Key...)
 	return newExtensionNode(k, en.child)
-}
-
-func (en *extensionNode) nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool) {
-	if previousState.index < 0 {
-		hash := en.child.getHash()
-		state := newIteratorState(hash, en.child, previousState.hash, len(path))
-		newPath := append(path, en.Key...)
-		return state, newPath, true
-	}
-	return previousState, path, false
 }
 
 func (en *extensionNode) clone() *extensionNode {
