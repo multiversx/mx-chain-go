@@ -755,7 +755,8 @@ func (sp *shardProcessor) processAndRemoveBadTransaction(
 	}
 
 	err := sp.txProcessor.ProcessTransaction(transaction, round)
-	if err == process.ErrLowerNonceInTransaction {
+	if err == process.ErrLowerNonceInTransaction ||
+		err == process.ErrInsufficientFunds {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 		txPool.RemoveData(transactionHash, strCache)
 	}

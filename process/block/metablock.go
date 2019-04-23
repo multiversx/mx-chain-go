@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 var shardMBHeaderCounterMutex = sync.RWMutex{}
@@ -186,6 +187,8 @@ func (mp *metaProcessor) CreateGenesisBlock(balances map[string]*big.Int) (rootH
 }
 
 func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int32, haveTime func() time.Duration) error {
+	hdrPool := mp.dataPool.Headers()
+
 	msg := "The following miniblock hashes weere successfully processed: "
 
 	for i := 0; i < len(header.ShardInfo); i++ {
@@ -195,15 +198,39 @@ func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int3
 				return process.ErrTimeIsOut
 			}
 
-			shardMiniBlockHeader := shardData.ShardMiniBlockHeaders[j]
-			miniBlockHash := shardMiniBlockHeader.Hash
-			// TODO: Here should be add miniblocks processing mechanism which should change the state of metachain
-			msg = fmt.Sprintf("%s\n%s", msg, toB64(miniBlockHash))
+			shardMiniBlockHeader := &shardData.ShardMiniBlockHeaders[j]
+			shardMiniBlockHeaderHash := shardMiniBlockHeader.Hash
+			err := mp.processAndRemoveBadShardMiniBlockHeader(
+				shardMiniBlockHeaderHash,
+				shardMiniBlockHeader,
+				hdrPool,
+				round,
+				shardData.ShardId,
+			)
+			if err != nil {
+				return err
+			}
+
+			msg = fmt.Sprintf("%s\n%s", msg, toB64(shardMiniBlockHeaderHash))
 		}
 	}
 
 	log.Info(fmt.Sprintf("%s\n", msg))
 
+	return nil
+}
+
+func (mp *metaProcessor) processAndRemoveBadShardMiniBlockHeader(
+	shardMiniBlockHeadrHash []byte,
+	shardMiniBlockHeader *block.ShardMiniBlockHeader,
+	hdrPool storage.Cacher,
+	round int32,
+	shardId uint32,
+) error {
+	if hdrPool == nil {
+		return process.ErrNilHeadersDataPool
+	}
+	// TODO: Here should be add shard miniblocks processing mechanism which should change the state of metachain
 	return nil
 }
 
@@ -383,163 +410,146 @@ func (mp *metaProcessor) getHeaderFromPool(shardID uint32, headerHash []byte) *b
 	return header
 }
 
-//func (bp *metaProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
-//	miniBlocks := make(block.Body, 0)
-//	bp.mutCrossTxsForBlock.Lock()
-//	bp.crossTxsForBlock = make(map[string]*transaction.Transaction)
-//	bp.mutCrossTxsForBlock.Unlock()
-//
-//	if bp.accounts.JournalLen() != 0 {
-//		return nil, process.ErrAccountStateDirty
-//	}
-//
-//	if !haveTime() {
-//		log.Info(fmt.Sprintf("time is up after entered in createMiniBlocks method\n"))
-//		return miniBlocks, nil
-//	}
-//
-//	txPool := bp.dataPool.Transactions()
-//	if txPool == nil {
-//		return nil, process.ErrNilTransactionPool
-//	}
-//
-//	destMeMiniBlocks, txs, err := bp.createAndProcessCrossMiniBlocksDstMe(noShards, maxTxInBlock, round, haveTime)
-//	if err != nil {
-//		log.Info(err.Error())
-//	}
-//
-//	if len(destMeMiniBlocks) > 0 {
-//		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
-//	}
-//
-//	if !haveTime() {
-//		log.Info(fmt.Sprintf("time is up added %d transactions\n", txs))
-//		return miniBlocks, nil
-//	}
-//
-//	if txs > uint32(maxTxInBlock) {
-//		log.Info(fmt.Sprintf("block is full: added %d transactions\n", txs))
-//		return miniBlocks, nil
-//	}
-//
-//	for i := 0; i < int(noShards); i++ {
-//		strCache := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), uint32(i))
-//		txStore := txPool.ShardDataStore(strCache)
-//
-//		timeBefore := time.Now()
-//		orderedTxes, orderedTxHashes, err := getTxs(txStore)
-//		timeAfter := time.Now()
-//
-//		if !haveTime() {
-//			log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
-//			return miniBlocks, nil
-//		}
-//
-//		log.Info(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
-//
-//		if err != nil {
-//			log.Debug(fmt.Sprintf("when trying to order txs: %s", err.Error()))
-//			continue
-//		}
-//
-//		miniBlock := block.MiniBlock{}
-//		miniBlock.SenderShardID = bp.shardCoordinator.SelfId()
-//		miniBlock.ReceiverShardID = uint32(i)
-//		miniBlock.TxHashes = make([][]byte, 0)
-//		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ReceiverShardID))
-//
-//		for index := range orderedTxes {
-//			if !haveTime() {
-//				break
-//			}
-//
-//			snapshot := bp.accounts.JournalLen()
-//
-//			// execute transaction to change the trie root hash
-//			err := bp.processAndRemoveBadTransaction(
-//				orderedTxHashes[index],
-//				orderedTxes[index],
-//				txPool,
-//				round,
-//				miniBlock.SenderShardID,
-//				miniBlock.ReceiverShardID,
-//			)
-//
-//			if err != nil {
-//				log.Error(err.Error())
-//				err = bp.accounts.RevertToSnapshot(snapshot)
-//				if err != nil {
-//					log.Error(err.Error())
-//				}
-//				continue
-//			}
-//
-//			bp.mutCrossTxsForBlock.Lock()
-//			bp.crossTxsForBlock[string(orderedTxHashes[index])] = orderedTxes[index]
-//			bp.mutCrossTxsForBlock.Unlock()
-//			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
-//			txs++
-//
-//			if txs >= uint32(maxTxInBlock) { // max transactions count in one block was reached
-//				log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
-//
-//				if len(miniBlock.TxHashes) > 0 {
-//					miniBlocks = append(miniBlocks, &miniBlock)
-//				}
-//
-//				log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
-//				return miniBlocks, nil
-//			}
-//		}
-//
-//		if !haveTime() {
-//			log.Info(fmt.Sprintf("time is up: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
-//
-//			if len(miniBlock.TxHashes) > 0 {
-//				miniBlocks = append(miniBlocks, &miniBlock)
-//			}
-//
-//			log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
-//			return miniBlocks, nil
-//		}
-//
-//		if len(miniBlock.TxHashes) > 0 {
-//			miniBlocks = append(miniBlocks, &miniBlock)
-//		}
-//	}
-//
-//	log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
-//	return miniBlocks, nil
-//}
-
 // CreateBlockHeader creates a miniblock header list given a block body
 func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler) (data.HeaderHandler, error) {
 	header := &block.MetaBlock{}
 	header.RootHash = mp.getRootHash()
 
-	err := mp.createShardInfo(header)
+	shardInfo, err := mp.createShardInfo(0, maxTransactionsInBlock, 0, func() bool { return true })
 	if err != nil {
 		return nil, err
 	}
 
-	err = mp.createPeerInfo(header)
+	peerInfo, err := mp.createPeerInfo()
 	if err != nil {
 		return nil, err
 	}
+
+	header.ShardInfo = shardInfo
+	header.PeerInfo = peerInfo
 
 	return header, nil
 }
 
-func (mp *metaProcessor) createShardInfo(header *block.MetaBlock) error {
-	// TODO: to be implemented
-	header.ShardInfo = make([]block.ShardData, 0)
-	return nil
+func (mp *metaProcessor) createShardInfo(
+	noShards uint32,
+	maxTxInBlock int,
+	round int32,
+	haveTime func() bool,
+) ([]block.ShardData, error) {
+	shardInfo := make([]block.ShardData, 0)
+
+	if mp.accounts.JournalLen() != 0 {
+		return nil, process.ErrAccountStateDirty
+	}
+
+	if !haveTime() {
+		log.Info(fmt.Sprintf("time is up after entered in createShardInfo method\n"))
+		return shardInfo, nil
+	}
+
+	hdrPool := mp.dataPool.Headers()
+	if hdrPool == nil {
+		return nil, process.ErrNilHeadersDataPool
+	}
+
+	timeBefore := time.Now()
+	orderedHdrs, orderedHdrHashes, err := getHdrs(hdrPool)
+	timeAfter := time.Now()
+
+	if !haveTime() {
+		log.Info(fmt.Sprintf("time is up after ordered %d hdrs in %v sec\n", len(orderedHdrs), timeAfter.Sub(timeBefore).Seconds()))
+		return shardInfo, nil
+	}
+
+	log.Info(fmt.Sprintf("time elapsed to ordered %d hdrs: %v sec\n", len(orderedHdrs), timeAfter.Sub(timeBefore).Seconds()))
+
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlock := block.MiniBlock{}
+	miniBlock.SenderShardID = bp.shardCoordinator.SelfId()
+	miniBlock.ReceiverShardID = uint32(i)
+	miniBlock.TxHashes = make([][]byte, 0)
+	log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ReceiverShardID))
+
+	for index := range orderedHdrs {
+		if !haveTime() {
+			break
+		}
+
+		shardData := block.ShardData{}
+		shardData.ShardId = orderedHdrs[index].ShardId
+		shardData.TxCount = orderedHdrs[index].TxCount
+		shardData.HeaderHash = orderedHdrHashes[index]
+		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0)
+
+		for i := 0; i < len(orderedHdrs[index].MiniBlockHeaders); i++ {
+
+		}
+
+		snapshot := mp.accounts.JournalLen()
+
+		// execute shard miniblock to change the trie root hash
+		err := mp.processAndRemoveBadShardMiniBlockHeader(
+			orderedHdrHashes[index],
+			orderedHdrs[index],
+			hdrPool,
+			round,
+			shardData.ShardId,
+		)
+
+		if err != nil {
+			log.Error(err.Error())
+			err = bp.accounts.RevertToSnapshot(snapshot)
+			if err != nil {
+				log.Error(err.Error())
+			}
+			continue
+		}
+
+		bp.mutCrossTxsForBlock.Lock()
+		bp.crossTxsForBlock[string(orderedTxHashes[index])] = orderedTxes[index]
+		bp.mutCrossTxsForBlock.Unlock()
+		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
+		txs++
+
+		if txs >= uint32(maxTxInBlock) { // max transactions count in one block was reached
+			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
+
+			if len(miniBlock.TxHashes) > 0 {
+				miniBlocks = append(miniBlocks, &miniBlock)
+			}
+
+			log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
+			return miniBlocks, nil
+		}
+	}
+
+	if !haveTime() {
+		log.Info(fmt.Sprintf("time is up: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
+
+		if len(miniBlock.TxHashes) > 0 {
+			miniBlocks = append(miniBlocks, &miniBlock)
+		}
+
+		log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
+		return miniBlocks, nil
+	}
+
+	if len(miniBlock.TxHashes) > 0 {
+		miniBlocks = append(miniBlocks, &miniBlock)
+	}
+
+	log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
+	return shardInfo, nil
 }
 
-func (mp *metaProcessor) createPeerInfo(header *block.MetaBlock) error {
+func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 	// TODO: to be implemented
-	header.PeerInfo = make([]block.PeerData, 0)
-	return nil
+	peerInfo := make([]block.PeerData, 0)
+	return peerInfo, nil
 }
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
@@ -559,6 +569,32 @@ func (mp *metaProcessor) getHeadersInPool() int {
 	}
 
 	return headerPool.Len()
+}
+
+func getHdrs(hdrStore storage.Cacher) ([]*block.Header, [][]byte, error) {
+	if hdrStore == nil {
+		return nil, nil, process.ErrNilCacher
+	}
+
+	headers := make([]*block.Header, 0)
+	hdrHashes := make([][]byte, 0)
+
+	for _, key := range hdrStore.Keys() {
+		val, _ := hdrStore.Peek(key)
+		if val == nil {
+			continue
+		}
+
+		hdr, ok := val.(*block.Header)
+		if !ok {
+			continue
+		}
+
+		hdrHashes = append(hdrHashes, key)
+		headers = append(headers, hdr)
+	}
+
+	return headers, hdrHashes, nil
 }
 
 // MarshalizedDataForCrossShard prepares underlying data into a marshalized object according to destination
