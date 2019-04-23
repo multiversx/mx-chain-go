@@ -415,6 +415,33 @@ func TestExtensionNode_tryGetNilNode(t *testing.T) {
 	assert.Nil(t, val)
 }
 
+func TestExtensionNode_getNext(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	en, _ := getEnAndCollapsedEn()
+	marsh, _ := getTestMarshAndHasher()
+	nextNode, _ := getBnAndCollapsedBn()
+	key := []byte{100, 2, 100, 111, 103}
+
+	node, key, err := en.getNext(key, db, marsh)
+	assert.Equal(t, nextNode, node)
+	assert.Equal(t, []byte{2, 100, 111, 103}, key)
+	assert.Nil(t, err)
+}
+
+func TestExtensionNode_getNextWrongKey(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	en, _ := getEnAndCollapsedEn()
+	marsh, _ := getTestMarshAndHasher()
+	key := []byte{2, 100, 111, 103}
+
+	node, key, err := en.getNext(key, db, marsh)
+	assert.Nil(t, node)
+	assert.Nil(t, key)
+	assert.Equal(t, ErrNodeNotFound, err)
+}
+
 func TestExtensionNode_insert(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()
@@ -534,34 +561,6 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 	expected := &extensionNode{Key: []byte{2, 100, 111, 103}, dirty: true}
 	node := en.reduceNode(2)
 	assert.Equal(t, expected, node)
-}
-
-func TestExtensionNode_nextChild(t *testing.T) {
-	t.Parallel()
-	en, _ := getEnAndCollapsedEn()
-	marsh, hasher := getTestMarshAndHasher()
-	en.setHash(marsh, hasher)
-
-	state := &nodeIteratorState{
-		hash:    en.getHash(),
-		node:    en,
-		parent:  nil,
-		index:   -1,
-		pathlen: 0,
-	}
-	expectedState := &nodeIteratorState{
-		hash:    en.child.getHash(),
-		node:    en.child,
-		parent:  en.getHash(),
-		index:   -1,
-		pathlen: 0,
-	}
-	expectedPath := []byte("d")
-
-	newState, newPath, ok := en.nextChild(state, nil)
-	assert.Equal(t, expectedState, newState)
-	assert.Equal(t, expectedPath, newPath)
-	assert.True(t, ok)
 }
 
 func TestExtensionNode_clone(t *testing.T) {

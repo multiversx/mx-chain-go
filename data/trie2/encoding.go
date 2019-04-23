@@ -49,20 +49,3 @@ func prefixLen(a, b []byte) int {
 func hasTerm(s []byte) bool {
 	return len(s) > 0 && s[len(s)-1] == hexTerminator
 }
-
-// hexToKeyBytes transforms hex nibbles into key bytes.
-// This can only be used for keys of even length.
-func hexToKeyBytes(hex []byte) []byte {
-	if hasTerm(hex) {
-		hex = hex[:len(hex)-1]
-	}
-	if len(hex)&1 != 0 {
-		return nil
-	}
-	key := make([]byte, len(hex)/2)
-
-	for nibble := 0; nibble < len(hex); nibble = nibble + 2 {
-		key[nibble/2] = hex[nibble]<<4 | hex[nibble+1]
-	}
-	return key
-}
