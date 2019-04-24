@@ -3,7 +3,6 @@ package node_test
 import (
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -210,8 +210,8 @@ func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 
-	accAdapter := mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+	accAdapter := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
 			return nil, errors.New("error")
 		},
 	}
@@ -248,8 +248,8 @@ func createDummyHexAddress(chars int) string {
 
 func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 
-	accAdapter := mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+	accAdapter := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
 			return nil, nil
 		},
 	}
@@ -340,9 +340,9 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 
 func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 
-	accAdapter := mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
-			return nil, errors.New("error")
+	accAdapter := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+			return nil, nil
 		},
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
@@ -360,9 +360,9 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 
 func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
-	accAdapter := mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
-			return nil, nil
+	accAdapter := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+			return &state.Account{}, nil
 		},
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
@@ -467,18 +467,15 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 
 	nonce := uint64(7)
-	accAdapter := mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
-			return mock.AccountWrapperStub{
-				BaseAccountHandler: func() *state.Account {
-					return &state.Account{
-						Nonce:   nonce,
-						Balance: big.NewInt(0),
-					}
-				},
+	accAdapter := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+			return &state.Account{
+				Nonce:   nonce,
+				Balance: big.NewInt(0),
 			}, nil
 		},
 	}
+
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	singleSigner := &mock.SinglesignMock{}
@@ -631,12 +628,14 @@ func TestGenerateAndSendBulkTransactions_CreateAddressFromPublicKeyBytesErrorsSh
 	keyGen := &mock.KeyGenMock{}
 	sk, pk := keyGen.GeneratePair()
 	singleSigner := &mock.SinglesignMock{}
+	shardCoordinator := &mock.ShardCoordinatorMock{}
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
 		node.WithSinglesig(singleSigner),
+		node.WithShardCoordinator(shardCoordinator),
 	)
 
 	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
@@ -725,16 +724,12 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	mutRecoveredTransactions.RUnlock()
 }
 
-func getAccAdapter(balance *big.Int) mock.AccountsAdapterStub {
-	return mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
-			return mock.AccountWrapperStub{
-				BaseAccountHandler: func() *state.Account {
-					return &state.Account{
-						Nonce:   1,
-						Balance: balance,
-					}
-				},
+func getAccAdapter(balance *big.Int) *mock.AccountsStub {
+	return &mock.AccountsStub{
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+			return &state.Account{
+				Nonce:   1,
+				Balance: balance,
 			}, nil
 		},
 	}
