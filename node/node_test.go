@@ -67,7 +67,7 @@ func TestStart_CorrectParams(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	err := n.Start()
 	defer func() { _ = n.Stop() }()
@@ -84,7 +84,7 @@ func TestStart_CorrectParamsApplyingOptions(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 
 	logError(err)
@@ -160,7 +160,7 @@ func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
 	_, err := n.GetBalance("address")
@@ -291,7 +291,7 @@ func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
 	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
@@ -316,7 +316,7 @@ func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
 	assert.NotNil(t, err)
@@ -790,7 +790,7 @@ func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	err := n.Start()
 	logError(err)
@@ -809,7 +809,7 @@ func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	err := n.Start()
 	logError(err)
@@ -836,7 +836,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	err := n.Start()
 	logError(err)
@@ -863,7 +863,7 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	err := n.Start()
 	logError(err)
@@ -899,7 +899,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	err := n.Start()
 	logError(err)
