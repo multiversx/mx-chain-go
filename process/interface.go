@@ -122,3 +122,9 @@ type TopicMessageHandler interface {
 	MessageHandler
 	TopicHandler
 }
+
+// ChronologyValidator defines the functionality needed to validate a received header block (shard or metachain)
+// from chronology point of view
+type ChronologyValidator interface {
+	ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error
+}

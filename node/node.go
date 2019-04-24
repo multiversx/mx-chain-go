@@ -756,6 +756,8 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 		BlockBodyType: block.StateBlock,
 		Signature:     rootHash,
 		RootHash:      rootHash,
+		PrevRandSeed:  rootHash,
+		RandSeed:      rootHash,
 	}
 
 	marshalizedHeader, err := n.marshalizer.Marshal(header)
@@ -783,7 +785,6 @@ func (n *Node) sendMessage(cnsDta *consensus.Message) {
 
 // BroadcastBlock will send on intra shard topics the header and block body and on cross shard topics
 // the miniblocks. This func needs to be exported as it is tested in integrationTests package.
-// TODO make broadcastBlock to be able to work with metablocks as well.
 // TODO: investigate if the body block needs to be sent on intra shard topic as each miniblock is already sent on cross
 //  shard topics
 func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
@@ -823,7 +824,8 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 
 	//TODO - for now, on MetachainHeaderTopic we will broadcast shard headers
 	// Later, this call should be done by metachain nodes when they agree upon a metachain header
-	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+	msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
+	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
 
 	for k, v := range msgMapBlockBody {
 		go n.messenger.Broadcast(factory.MiniBlocksTopic+
@@ -845,6 +847,52 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 	}
 
 	return nil
+}
+
+// createMetaBlockFromBlockHeader func will be deleted when metachain will be fully implemented as its functionality
+// will be fdone by metachain nodes
+//TODO - delete this func when metachain is fully implemented
+func (n *Node) createMetaBlockFromBlockHeader(hdrHandler data.HeaderHandler, hdrBuff []byte) ([]byte, error) {
+	hdr, ok := hdrHandler.(*block.Header)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	hdrHash := n.hasher.Compute(string(hdrBuff))
+
+	metaBlock := &block.MetaBlock{
+		Epoch:         hdr.Epoch,
+		Nonce:         hdr.Nonce,
+		PeerInfo:      make([]block.PeerData, 0),
+		PreviousHash:  hdr.PrevHash,
+		PrevRandSeed:  hdr.PrevRandSeed,
+		PubKeysBitmap: hdr.PubKeysBitmap,
+		RandSeed:      hdr.RandSeed,
+		Round:         hdr.Round,
+		Signature:     hdr.Signature,
+		StateRootHash: hdr.RootHash,
+		TimeStamp:     hdr.TimeStamp,
+		TxCount:       hdr.TxCount,
+		ShardInfo: []block.ShardData{
+			{
+				TxCount:               hdr.TxCount,
+				HeaderHash:            hdrHash,
+				ShardId:               hdr.ShardId,
+				ShardMiniBlockHeaders: make([]block.ShardMiniBlockHeader, len(hdr.MiniBlockHeaders)),
+			},
+		},
+	}
+
+	for idx, miniblockHdr := range hdr.MiniBlockHeaders {
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx] = block.ShardMiniBlockHeader{
+			TxCount:         miniblockHdr.TxCount,
+			Hash:            miniblockHdr.Hash,
+			ReceiverShardId: miniblockHdr.ReceiverShardID,
+			SenderShardId:   miniblockHdr.SenderShardID,
+		}
+	}
+
+	return n.marshalizer.Marshal(metaBlock)
 }
 
 // BroadcastMetaBlock will send on meta shard topics the header and on meta-to-shard topics
