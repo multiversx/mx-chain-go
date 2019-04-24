@@ -34,6 +34,12 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 	return &accounts
 }
 
+func createAccountTrackerMock() *mock.AccountTrackerStub {
+	return &mock.AccountTrackerStub{JournalizeCalled: func(entry state.JournalEntry) {
+
+	}}
+}
+
 func createTxProcessor() txproc.TxProcessor {
 	txProc, _ := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
@@ -238,8 +244,8 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{67})
 
-	acnt1 := mock.NewAccountWrapMock(adr1, &mock.AccountTrackerStub{})
-	acnt2 := mock.NewAccountWrapMock(adr2, &mock.AccountTrackerStub{})
+	acnt1, _ := state.NewAccount(adr1, createAccountTrackerMock())
+	acnt2, _ := state.NewAccount(adr2, createAccountTrackerMock())
 
 	accounts.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (state.AccountWrapper, error) {
 		if addressContainer == adr1 {
@@ -284,8 +290,8 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{67})
 
-	acnt1 := mock.NewAccountWrapMock(adr1, &mock.AccountTrackerStub{})
-	acnt2 := mock.NewAccountWrapMock(adr2, &mock.AccountTrackerStub{})
+	acnt1, _ := state.NewAccount(adr1, createAccountTrackerMock())
+	acnt2, _ := state.NewAccount(adr2, createAccountTrackerMock())
 
 	accounts.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (state.AccountWrapper, error) {
 		if addressContainer == adr1 {
@@ -328,8 +334,8 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{67})
 
-	acnt1, _ := state.NewAccount(adr1, &mock.AccountTrackerStub{})
-	acnt2, _ := state.NewAccount(adr2, &mock.AccountTrackerStub{})
+	acnt1, _ := state.NewAccount(adr1, createAccountTrackerMock())
+	acnt2, _ := state.NewAccount(adr2, createAccountTrackerMock())
 
 	accounts := createAccountStub(adr1.Bytes(), adr2.Bytes(), acnt1, acnt2)
 
@@ -351,8 +357,8 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{65})
 
-	acnt1, _ := state.NewAccount(adr1, &mock.AccountTrackerStub{})
-	acnt2, _ := state.NewAccount(adr2, &mock.AccountTrackerStub{})
+	acnt1, _ := state.NewAccount(adr1, createAccountTrackerMock())
+	acnt2, _ := state.NewAccount(adr2, createAccountTrackerMock())
 
 	accounts := createAccountStub(adr1.Bytes(), adr2.Bytes(), acnt1, acnt2)
 
@@ -399,7 +405,7 @@ func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 	t.Skip()
 
 	adr1 := mock.NewAddressMock([]byte{65})
-	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
+	acnt1, err := state.NewAccount(adr1, createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -413,7 +419,7 @@ func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
 	t.Skip()
 	adr1 := mock.NewAddressMock([]byte{65})
-	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
+	acnt1, err := state.NewAccount(adr1, createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -426,7 +432,7 @@ func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
 
 func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 	adr1 := mock.NewAddressMock([]byte{65})
-	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
+	acnt1, err := state.NewAccount(adr1, createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -439,7 +445,7 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 
 func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 	adr1 := mock.NewAddressMock([]byte{65})
-	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
+	acnt1, err := state.NewAccount(adr1, createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -454,11 +460,11 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 
 //func TestTxProcessor_MoveBalancesFailureAcnt1ShouldErr(t *testing.T) {
 //	adrSrc := mock.NewAddressMock([]byte{65})
-//	acntSrc, err := state.NewAccount(adrSrc, &mock.AccountTrackerStub{})
+//	acntSrc, err := state.NewAccount(adrSrc, createAccountTrackerMock())
 //	assert.Nil(t, err)
 //
 //	adrDst := mock.NewAddressMock([]byte{67})
-//	acntDst, err := state.NewAccount(adrDst, &mock.AccountTrackerStub{})
+//	acntDst, err := state.NewAccount(adrDst, createAccountTrackerMock())
 //	assert.Nil(t, err)
 //
 //	execTx := *createTxProcessor()
@@ -471,11 +477,11 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 //
 //func TestTxProcessor_MoveBalancesFailureAcnt2ShouldErr(t *testing.T) {
 //	adrSrc := mock.NewAddressMock([]byte{65})
-//	acntSrc, err := state.NewAccount(adrSrc, &mock.AccountTrackerStub{})
+//	acntSrc, err := state.NewAccount(adrSrc, createAccountTrackerMock())
 //	assert.Nil(t, err)
 //
 //	adrDst := mock.NewAddressMock([]byte{67})
-//	acntDst, err := state.NewAccount(adrDst, &mock.AccountTrackerStub{})
+//	acntDst, err := state.NewAccount(adrDst, createAccountTrackerMock())
 //	assert.Nil(t, err)
 //
 //	execTx := *createTxProcessor()
@@ -488,7 +494,7 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 
 func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *testing.T) {
 	adrDst := mock.NewAddressMock([]byte{67})
-	acntDst, err := state.NewAccount(adrDst, &mock.AccountTrackerStub{})
+	acntDst, err := state.NewAccount(adrDst, createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -499,7 +505,7 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *tes
 
 func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntDstIsNotInNodeShard(t *testing.T) {
 	adrSrc := mock.NewAddressMock([]byte{65})
-	acntSrc, err := state.NewAccount(adrSrc, &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(adrSrc, createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -510,11 +516,11 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntDstIsNotInNodeShard(t *tes
 
 func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
 	adrSrc := mock.NewAddressMock([]byte{65})
-	acntSrc, err := state.NewAccount(adrSrc, &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(adrSrc, createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	adrDst := mock.NewAddressMock([]byte{67})
-	acntDst, err := state.NewAccount(adrDst, &mock.AccountTrackerStub{})
+	acntDst, err := state.NewAccount(adrDst, createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -531,7 +537,7 @@ func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
 
 func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
 	adrSrc := mock.NewAddressMock([]byte{65})
-	acntSrc, err := state.NewAccount(adrSrc, &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(adrSrc, createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	acntDst := acntSrc
@@ -550,7 +556,7 @@ func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
 
 func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 	adrSrc := mock.NewAddressMock([]byte{65})
-	acntSrc, err := state.NewAccount(adrSrc, &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(adrSrc, createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()
@@ -616,10 +622,10 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
 
-	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), &mock.AccountTrackerStub{})
+	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(45)
@@ -653,10 +659,10 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), &mock.AccountTrackerStub{})
+	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
 
@@ -696,10 +702,10 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		return 0
 	}
 
-	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), &mock.AccountTrackerStub{})
+	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
 
@@ -786,9 +792,9 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
-	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), &mock.AccountTrackerStub{})
+	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -822,9 +828,9 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 		return 0
 	}
 
-	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
-	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), &mock.AccountTrackerStub{})
+	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -848,9 +854,9 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
-	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
-	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), &mock.AccountTrackerStub{})
+	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -884,9 +890,9 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 		return 0
 	}
 
-	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
-	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), &mock.AccountTrackerStub{})
+	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -945,9 +951,9 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 		return 0
 	}
 
-	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
-	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), &mock.AccountTrackerStub{})
+	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -971,9 +977,9 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(61)
 
-	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
+	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
-	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), &mock.AccountTrackerStub{})
+	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), createAccountTrackerMock())
 	assert.Nil(t, err)
 
 	acntSrc.Nonce = 4
@@ -1051,8 +1057,8 @@ func TestTxProcessor_SetBalancesToTrieCommitFailsShouldRevert(t *testing.T) {
 	adr1 := []byte("accnt1")
 	adr2 := []byte("accnt2")
 
-	accnt1, _ := state.NewAccount(mock.NewAddressMock(adr1), &mock.AccountTrackerStub{})
-	accnt2, _ := state.NewAccount(mock.NewAddressMock(adr2), &mock.AccountTrackerStub{})
+	accnt1, _ := state.NewAccount(mock.NewAddressMock(adr1), createAccountTrackerMock())
+	accnt2, _ := state.NewAccount(mock.NewAddressMock(adr2), createAccountTrackerMock())
 
 	val1 := big.NewInt(10)
 	val2 := big.NewInt(20)
@@ -1100,8 +1106,8 @@ func TestTxProcessor_SetBalancesToTrieNilAddressShouldErr(t *testing.T) {
 	adr1 := []byte("accnt1")
 	adr2 := []byte("accnt2")
 
-	accnt1, _ := state.NewAccount(mock.NewAddressMock(adr1), &mock.AccountTrackerStub{})
-	accnt2, _ := state.NewAccount(mock.NewAddressMock(adr2), &mock.AccountTrackerStub{})
+	accnt1, _ := state.NewAccount(mock.NewAddressMock(adr1), createAccountTrackerMock())
+	accnt2, _ := state.NewAccount(mock.NewAddressMock(adr2), createAccountTrackerMock())
 
 	val1 := big.NewInt(10)
 	val2 := big.NewInt(20)
@@ -1188,8 +1194,8 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 	adr1 := []byte("accnt1")
 	adr2 := []byte("accnt2")
 
-	accnt1, _ := state.NewAccount(mock.NewAddressMock(adr1), &mock.AccountTrackerStub{})
-	accnt2, _ := state.NewAccount(mock.NewAddressMock(adr2), &mock.AccountTrackerStub{})
+	accnt1, _ := state.NewAccount(mock.NewAddressMock(adr1), createAccountTrackerMock())
+	accnt2, _ := state.NewAccount(mock.NewAddressMock(adr2), createAccountTrackerMock())
 
 	val1 := big.NewInt(10)
 	val2 := big.NewInt(20)

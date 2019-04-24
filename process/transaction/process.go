@@ -246,7 +246,7 @@ func (txProc *txProcessor) getAccounts(adrSrc, adrDst state.AddressContainer,
 		acntDst = account
 	}
 
-	return acntSrc, acntDst, nil
+	return
 }
 
 func (txProc *txProcessor) callSCHandler(tx *transaction.Transaction) error {
