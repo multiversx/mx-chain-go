@@ -76,8 +76,8 @@ func (a *Account) GetCodeHash() []byte {
 }
 
 // SetCodeHash sets the code hash associated with the account
-func (a *Account) SetCodeHash(roothash []byte) {
-	a.CodeHash = roothash
+func (a *Account) SetCodeHash(codeHash []byte) {
+	a.CodeHash = codeHash
 }
 
 // SetCodeHashWithJournal sets the account's code hash, saving the old code hash before changing

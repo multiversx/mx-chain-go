@@ -452,41 +452,6 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 }
 
 //------- moveBalances
-
-//func TestTxProcessor_MoveBalancesFailureAcnt1ShouldErr(t *testing.T) {
-//	adrSrc := mock.NewAddressMock([]byte{65})
-//	acntSrc, err := state.NewAccount(adrSrc, &mock.AccountTrackerStub{})
-//	assert.Nil(t, err)
-//
-//	adrDst := mock.NewAddressMock([]byte{67})
-//	acntDst, err := state.NewAccount(adrDst, &mock.AccountTrackerStub{})
-//	assert.Nil(t, err)
-//
-//	execTx := *createTxProcessor()
-//
-//	acntSrc.Fail = true
-//
-//	err = execTx.MoveBalances(acntSrc, acntDst, big.NewInt(0))
-//	assert.NotNil(t, err)
-//}
-//
-//func TestTxProcessor_MoveBalancesFailureAcnt2ShouldErr(t *testing.T) {
-//	adrSrc := mock.NewAddressMock([]byte{65})
-//	acntSrc, err := state.NewAccount(adrSrc, &mock.AccountTrackerStub{})
-//	assert.Nil(t, err)
-//
-//	adrDst := mock.NewAddressMock([]byte{67})
-//	acntDst, err := state.NewAccount(adrDst, &mock.AccountTrackerStub{})
-//	assert.Nil(t, err)
-//
-//	execTx := *createTxProcessor()
-//
-//	acntDst.Fail = true
-//
-//	err := execTx.MoveBalances(acntSrc, acntDst, big.NewInt(0))
-//	assert.NotNil(t, err)
-//}
-
 func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *testing.T) {
 	adrDst := mock.NewAddressMock([]byte{67})
 	journalizeCalled := false
