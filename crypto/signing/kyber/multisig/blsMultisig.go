@@ -42,7 +42,6 @@ type blsMultiSigData struct {
 type blsMultiSigner struct {
 	data       *blsMultiSigData
 	mutSigData sync.RWMutex
-	suite      crypto.Suite
 	hasher     hashing.Hasher // 16bytes output hasher!
 	keyGen     crypto.KeyGenerator
 }
@@ -65,10 +64,6 @@ func NewBLSMultisig(
 
 	if privKey == nil {
 		return nil, crypto.ErrNilPrivateKey
-	}
-
-	if pubKeys == nil {
-		return nil, crypto.ErrNilPublicKeys
 	}
 
 	if len(pubKeys) == 0 {
@@ -105,7 +100,6 @@ func NewBLSMultisig(
 		mutSigData: sync.RWMutex{},
 		hasher:     hasher,
 		keyGen:     keyGen,
-		suite:      keyGen.Suite(),
 	}, nil
 }
 
@@ -189,7 +183,7 @@ func (bms *blsMultiSigner) CreateSignatureShare() ([]byte, error) {
 }
 
 // not concurrent safe, should be used under RLock mutex
-func (bms *blsMultiSigner) isValidIndex(index uint16, bitmap []byte) error {
+func (bms *blsMultiSigner) isIndexInBitmap(index uint16, bitmap []byte) error {
 	indexOutOfBounds := index >= bms.data.grSize
 	if indexOutOfBounds {
 		return crypto.ErrIndexOutOfBounds
@@ -225,20 +219,10 @@ func (bms *blsMultiSigner) VerifySignatureShare(index uint16, sig []byte) error 
 }
 
 // StoreSignatureShare stores the partial signature of the signer with specified position
+// Function does not validate the signature, as it expects caller to have already called VerifySignatureShare
 func (bms *blsMultiSigner) StoreSignatureShare(index uint16, sig []byte) error {
 	if sig == nil {
 		return crypto.ErrNilSignature
-	}
-
-	kSuite, ok := bms.suite.GetUnderlyingSuite().(pairing.Suite)
-	if !ok {
-		return crypto.ErrInvalidSuite
-	}
-
-	sigKPoint := kSuite.G1().Point()
-	err := sigKPoint.UnmarshalBinary(sig)
-	if err != nil {
-		return err
 	}
 
 	bms.mutSigData.Lock()
@@ -287,7 +271,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 	prepSigs := make([][]byte, 0)
 	// for the modified BLS scheme, aggregation is done not between sigs but between H1(pubKey_i)*sig_i
 	for i := range bms.data.sigShares {
-		err := bms.isValidIndex(uint16(i), bitmap)
+		err := bms.isIndexInBitmap(uint16(i), bitmap)
 		if err != nil {
 			continue
 		}
@@ -298,7 +282,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		}
 
 		// H1(pubKey_i)*sig_i
-		s, err := scalarMulSig(bms.suite, hPk, bms.data.sigShares[i])
+		s, err := scalarMulSig(bms.keyGen.Suite(), hPk, bms.data.sigShares[i])
 		if err != nil {
 			return nil, err
 		}
@@ -310,7 +294,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		return nil, crypto.ErrNilSignaturesList
 	}
 
-	aggSigs, err := aggregateSignatures(bms.suite, prepSigs...)
+	aggSigs, err := aggregateSignatures(bms.keyGen.Suite(), prepSigs...)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +310,7 @@ func (bms *blsMultiSigner) SetAggregatedSig(aggSig []byte) error {
 		return crypto.ErrNilSignature
 	}
 
-	kSuite, ok := bms.suite.GetUnderlyingSuite().(pairing.Suite)
+	kSuite, ok := bms.keyGen.Suite().GetUnderlyingSuite().(pairing.Suite)
 	if !ok {
 		return crypto.ErrInvalidSuite
 	}
@@ -363,7 +347,7 @@ func (bms *blsMultiSigner) Verify(bitmap []byte) error {
 	prepPubKeysPoints := make([]kyber.Point, 0)
 
 	for i := range bms.data.pubKeys {
-		err := bms.isValidIndex(uint16(i), bitmap)
+		err := bms.isIndexInBitmap(uint16(i), bitmap)
 		if err != nil {
 			continue
 		}
@@ -377,7 +361,7 @@ func (bms *blsMultiSigner) Verify(bitmap []byte) error {
 		}
 
 		// t_i*pubKey_i
-		prepPoint, err := scalarMulPk(bms.suite, hPk, pubKeyPoint)
+		prepPoint, err := scalarMulPk(bms.keyGen.Suite(), hPk, pubKeyPoint)
 		if err != nil {
 			return err
 		}
@@ -385,12 +369,12 @@ func (bms *blsMultiSigner) Verify(bitmap []byte) error {
 		prepPubKeysPoints = append(prepPubKeysPoints, prepPoint)
 	}
 
-	aggPointsBytes, err := aggregatePublicKeys(bms.suite, prepPubKeysPoints...)
+	aggPointsBytes, err := aggregatePublicKeys(bms.keyGen.Suite(), prepPubKeysPoints...)
 	if err != nil {
 		return err
 	}
 
-	return verifyAggregatedSig(bms.suite, aggPointsBytes, bms.data.aggSig, bms.data.message)
+	return verifyAggregatedSig(bms.keyGen.Suite(), aggPointsBytes, bms.data.aggSig, bms.data.message)
 }
 
 // aggregateSignatures produces an aggregation of single BLS signatures
