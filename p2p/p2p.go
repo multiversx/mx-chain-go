@@ -51,6 +51,11 @@ type PeerDiscoverer interface {
 	ApplyContext(ctxProvider ContextProvider) error
 }
 
+// Reconnecter defines the behaviour of a network reconnection mechanism
+type Reconnecter interface {
+	ReconnectToNetwork() <-chan struct{}
+}
+
 // Messenger is the main struct used for communication with other peers
 type Messenger interface {
 	io.Closer
