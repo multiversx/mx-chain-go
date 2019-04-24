@@ -40,7 +40,6 @@ type blsMultiSigData struct {
 type blsMultiSigner struct {
 	data       *blsMultiSigData
 	mutSigData sync.RWMutex
-	suite      crypto.Suite
 	hasher     hashing.Hasher // 16bytes output hasher!
 	keyGen     crypto.KeyGenerator
 }
@@ -63,10 +62,6 @@ func NewBLSMultisig(
 
 	if privKey == nil {
 		return nil, crypto.ErrNilPrivateKey
-	}
-
-	if pubKeys == nil {
-		return nil, crypto.ErrNilPublicKeys
 	}
 
 	if len(pubKeys) == 0 {
@@ -103,7 +98,6 @@ func NewBLSMultisig(
 		mutSigData: sync.RWMutex{},
 		hasher:     hasher,
 		keyGen:     keyGen,
-		suite:      keyGen.Suite(),
 	}, nil
 }
 
@@ -187,7 +181,7 @@ func (bms *blsMultiSigner) CreateSignatureShare() ([]byte, error) {
 }
 
 // not concurrent safe, should be used under RLock mutex
-func (bms *blsMultiSigner) isValidIndex(index uint16, bitmap []byte) error {
+func (bms *blsMultiSigner) isIndexInBitmap(index uint16, bitmap []byte) error {
 	indexOutOfBounds := index >= bms.data.grSize
 	if indexOutOfBounds {
 		return crypto.ErrIndexOutOfBounds
@@ -223,8 +217,9 @@ func (bms *blsMultiSigner) VerifySignatureShare(index uint16, sig []byte) error 
 }
 
 // StoreSignatureShare stores the partial signature of the signer with specified position
+// Function does not validate the signature, as it expects caller to have already called VerifySignatureShare
 func (bms *blsMultiSigner) StoreSignatureShare(index uint16, sig []byte) error {
-	err := multisig.VerifySigBytesBLS(bms.suite, sig)
+	err := multisig.VerifySigBytesBLS(bms.keyGen.Suite(), sig)
 	if err != nil {
 		return err
 	}
@@ -275,7 +270,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 	prepSigs := make([][]byte, 0)
 	// for the modified BLS scheme, aggregation is done not between sigs but between H1(pubKey_i)*sig_i
 	for i := range bms.data.sigShares {
-		err := bms.isValidIndex(uint16(i), bitmap)
+		err := bms.isIndexInBitmap(uint16(i), bitmap)
 		if err != nil {
 			continue
 		}
@@ -286,7 +281,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		}
 
 		// H1(pubKey_i)*sig_i
-		s, err := scalarMulSig(bms.suite, hPk, bms.data.sigShares[i])
+		s, err := scalarMulSig(bms.keyGen.Suite(), hPk, bms.data.sigShares[i])
 		if err != nil {
 			return nil, err
 		}
@@ -298,7 +293,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		return nil, crypto.ErrNilSignaturesList
 	}
 
-	aggSigs, err := multisig.AggregateSignatures(bms.suite, prepSigs...)
+	aggSigs, err := multisig.AggregateSignatures(bms.keyGen.Suite(), prepSigs...)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +305,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 
 // SetAggregatedSig sets the aggregated signature
 func (bms *blsMultiSigner) SetAggregatedSig(aggSig []byte) error {
-	err := multisig.VerifySigBytesBLS(bms.suite, aggSig)
+	err := multisig.VerifySigBytesBLS(bms.keyGen.Suite(), aggSig)
 	if err != nil {
 		return err
 	}
@@ -341,7 +336,7 @@ func (bms *blsMultiSigner) Verify(bitmap []byte) error {
 	pubKeysPoints := make([]crypto.Point, 0)
 
 	for i := range bms.data.pubKeys {
-		err := bms.isValidIndex(uint16(i), bitmap)
+		err := bms.isIndexInBitmap(uint16(i), bitmap)
 		if err != nil {
 			continue
 		}
@@ -349,12 +344,12 @@ func (bms *blsMultiSigner) Verify(bitmap []byte) error {
 		pubKeysPoints = append(pubKeysPoints, bms.data.pubKeys[i].Point())
 	}
 
-	aggPointsBytes, err := aggregatePublicKeys(bms.suite, pubKeysPoints, bms.hasher)
+	aggPointsBytes, err := aggregatePublicKeys(bms.keyGen.Suite(), pubKeysPoints, bms.hasher)
 	if err != nil {
 		return err
 	}
 
-	return multisig.VerifyAggregatedSig(bms.suite, aggPointsBytes, bms.data.aggSig, bms.data.message)
+	return multisig.VerifyAggregatedSig(bms.keyGen.Suite(), aggPointsBytes, bms.data.aggSig, bms.data.message)
 }
 
 func aggregatePublicKeys(suite crypto.Suite, pubKeys []crypto.Point, hasher hashing.Hasher) ([]byte, error) {
@@ -381,30 +376,6 @@ func aggregatePublicKeys(suite crypto.Suite, pubKeys []crypto.Point, hasher hash
 	return aggPointsBytes, err
 }
 
-// hashPublicKeyPoint hashes a BLS public key (point) into a byte array (32 bytes length)
-func hashPublicKeyPoint(hasher hashing.Hasher, pubKeyPoint crypto.Point) ([]byte, error) {
-	if hasher == nil {
-		return nil, crypto.ErrNilHasher
-	}
-
-	if pubKeyPoint == nil {
-		return nil, crypto.ErrNilPublicKeyPoint
-	}
-
-	pointBytes, err := pubKeyPoint.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	// H1(pubkey_i)
-	h := hasher.Compute(string(pointBytes))
-	// accepted length 32, copy the hasherOutputSize bytes and have rest 0
-	h32 := make([]byte, 32)
-	copy(h32[hasherOutputSize:], h)
-
-	return h32, nil
-}
-
 // scalarMulPk returns the result of multiplying a scalar given as a bytes array, with a BLS public key (point)
 func scalarMulPk(suite crypto.Suite, scalarBytes []byte, pk crypto.Point) (crypto.Point, error) {
 	if pk == nil {
@@ -429,6 +400,30 @@ func scalarMulSig(suite crypto.Suite, scalarBytes []byte, sig []byte) ([]byte, e
 	}
 
 	return multisig.ScalarMulSigBLS(suite, scalar, sig)
+}
+
+// hashPublicKeyPoint hashes a BLS public key (point) into a byte array (32 bytes length)
+func hashPublicKeyPoint(hasher hashing.Hasher, pubKeyPoint crypto.Point) ([]byte, error) {
+	if hasher == nil {
+		return nil, crypto.ErrNilHasher
+	}
+
+	if pubKeyPoint == nil {
+		return nil, crypto.ErrNilPublicKeyPoint
+	}
+
+	pointBytes, err := pubKeyPoint.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	// H1(pubkey_i)
+	h := hasher.Compute(string(pointBytes))
+	// accepted length 32, copy the hasherOutputSize bytes and have rest 0
+	h32 := make([]byte, 32)
+	copy(h32[hasherOutputSize:], h)
+
+	return h32, nil
 }
 
 // createScalar creates kyber.Scalar from a byte array

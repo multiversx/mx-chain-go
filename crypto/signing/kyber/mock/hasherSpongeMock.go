@@ -6,13 +6,15 @@ import (
 
 var hasherSpongeEmptyHash []byte
 
-// HasherMock that will be used for testing
+const hashSize = 16
+
+// HasherSpongeMock that will be used for testing
 type HasherSpongeMock struct {
 }
 
 // Compute will output the SHA's equivalent of the input string
 func (sha HasherSpongeMock) Compute(s string) []byte {
-	h, _ := blake2b.New(16, nil)
+	h, _ := blake2b.New(hashSize, nil)
 	h.Write([]byte(s))
 	return h.Sum(nil)
 }
@@ -27,5 +29,5 @@ func (sha HasherSpongeMock) EmptyHash() []byte {
 
 // Size returns the required size in bytes
 func (HasherSpongeMock) Size() int {
-	return 16
+	return hashSize
 }

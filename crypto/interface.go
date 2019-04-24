@@ -214,7 +214,7 @@ type MultiSignerBLS interface {
 	AggregateSigs(bitmap []byte) ([]byte, error)
 }
 
-// MultiSigVerifier Provides functionality for verifying a multi-signature
+// MultiSigVerifierBLS Provides functionality for verifying a multi-signature
 type MultiSigVerifierBLS interface {
 	// Create resets the multisigner and initializes to the new params
 	Create(pubKeys []string, index uint16) (MultiSignerBLS, error)
