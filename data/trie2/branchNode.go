@@ -46,6 +46,9 @@ func (bn *branchNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Ha
 	if err != nil {
 		return err
 	}
+	if bn.getHash() != nil {
+		return nil
+	}
 	if bn.isCollapsed() {
 		hash, err := encodeNodeAndGetHash(bn, marshalizer, hasher)
 		if err != nil {
@@ -235,9 +238,14 @@ func (bn *branchNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.
 		}
 		bn.children[childPos] = newNode
 		bn.dirty = dirty
+		if dirty {
+			bn.hash = nil
+		}
 		return true, bn, nil
 	}
 	bn.children[childPos] = newLeafNode(n.Key, n.Value)
+	bn.dirty = true
+	bn.hash = nil
 	return true, bn, nil
 }
 

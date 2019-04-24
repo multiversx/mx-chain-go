@@ -54,6 +54,9 @@ func (en *extensionNode) setHash(marshalizer marshal.Marshalizer, hasher hashing
 	if err != nil {
 		return err
 	}
+	if en.getHash() != nil {
+		return nil
+	}
 	if en.isCollapsed() {
 		hash, err := encodeNodeAndGetHash(en, marshalizer, hasher)
 		if err != nil {

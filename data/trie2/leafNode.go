@@ -33,6 +33,9 @@ func (ln *leafNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Hash
 	if err != nil {
 		return err
 	}
+	if ln.getHash() != nil {
+		return nil
+	}
 	hash, err := hashChildrenAndNode(ln, marshalizer, hasher)
 	if err != nil {
 		return err
@@ -120,6 +123,7 @@ func (ln *leafNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Ma
 	if bytes.Equal(n.Key, ln.Key) {
 		ln.Value = n.Value
 		ln.dirty = true
+		ln.hash = nil
 		return true, ln, nil
 	}
 
