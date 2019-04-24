@@ -235,6 +235,10 @@ func (wrk *worker) SetConsensusStateChangedChannels(consensusStateChangedChannel
 	wrk.consensusStateChangedChannels = consensusStateChangedChannels
 }
 
+func (wrk *worker) CheckSelfState(cnsDta *consensus.Message) error {
+	return wrk.checkSelfState(cnsDta)
+}
+
 // subroundStartRound
 
 type SubroundStartRound *subroundStartRound
