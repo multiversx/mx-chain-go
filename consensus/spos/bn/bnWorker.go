@@ -215,10 +215,6 @@ func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	log.Debug(fmt.Sprintf("received %s from %s\n", getStringValue(spos.MessageType(cnsDta.MsgType)), hex.EncodeToString(cnsDta.PubKey)))
 
-	if wrk.consensusState.RoundCanceled && wrk.consensusState.RoundIndex == cnsDta.RoundIndex {
-		return spos.ErrRoundCanceled
-	}
-
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
 		return spos.ErrSenderNotOk
@@ -228,18 +224,31 @@ func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return spos.ErrMessageForPastRound
 	}
 
-	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) {
-		//in this case should return nil but do not process the message
-		//nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
-		return nil
-	}
-
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
 		return spos.ErrInvalidSignature
 	}
 
+	errNotCritical := wrk.checkSelfState(cnsDta)
+	if errNotCritical != nil {
+		//in this case should return nil but do not process the message
+		//nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
+		return nil
+	}
+
 	go wrk.executeReceivedMessages(cnsDta)
+	return nil
+}
+
+func (wrk *worker) checkSelfState(cnsDta *consensus.Message) error {
+	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) {
+		return spos.ErrMessageFromItself
+	}
+
+	if wrk.consensusState.RoundCanceled && wrk.consensusState.RoundIndex == cnsDta.RoundIndex {
+		return spos.ErrRoundCanceled
+	}
+
 	return nil
 }
 
