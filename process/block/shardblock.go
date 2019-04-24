@@ -589,7 +589,7 @@ func (sp *shardProcessor) getTransactionFromPool(
 	strCache := process.ShardCacherIdentifier(senderShardID, destShardID)
 	txStore := txPool.ShardDataStore(strCache)
 	if txStore == nil {
-		log.Error(process.ErrNilTxStorage.Error())
+		log.Error(process.ErrNilStorage.Error())
 		return nil
 	}
 

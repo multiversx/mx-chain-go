@@ -223,7 +223,7 @@ func checkProcessorNilParameters(
 		return process.ErrNilMarshalizer
 	}
 	if store == nil {
-		return process.ErrNilTxStorage
+		return process.ErrNilStorage
 	}
 
 	return nil

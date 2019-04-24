@@ -65,7 +65,7 @@ type MetaBlock struct {
 	PeerInfo      []PeerData  `capid:"5"`
 	Signature     []byte      `capid:"6"`
 	PubKeysBitmap []byte      `capid:"7"`
-	PreviousHash  []byte      `capid:"8"`
+	PrevHash      []byte      `capid:"8"`
 	PrevRandSeed  []byte      `capid:"9"`
 	RandSeed      []byte      `capid:"10"`
 	RootHash      []byte      `capid:"11"`
@@ -262,7 +262,7 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 
 	dest.SetSignature(src.Signature)
 	dest.SetPubKeysBitmap(src.PubKeysBitmap)
-	dest.SetPreviousHash(src.PreviousHash)
+	dest.SetPrevHash(src.PrevHash)
 	dest.SetPrevRandSeed(src.PrevRandSeed)
 	dest.SetRandSeed(src.RandSeed)
 	dest.SetRootHash(src.RootHash)
@@ -293,7 +293,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	}
 	dest.Signature = src.Signature()
 	dest.PubKeysBitmap = src.PubKeysBitmap()
-	dest.PreviousHash = src.PreviousHash()
+	dest.PrevHash = src.PrevHash()
 	dest.PrevRandSeed = src.PrevRandSeed()
 	dest.RandSeed = src.RandSeed()
 	dest.RootHash = src.RootHash()
@@ -329,7 +329,7 @@ func (m *MetaBlock) GetRootHash() []byte {
 
 // GetPrevHash returns previous block header hash
 func (m *MetaBlock) GetPrevHash() []byte {
-	return m.PreviousHash
+	return m.PrevHash
 }
 
 // GetPrevRandSeed gets the previous random seed
@@ -379,7 +379,7 @@ func (m *MetaBlock) SetRootHash(rHash []byte) {
 
 // SetPrevHash sets prev hash
 func (m *MetaBlock) SetPrevHash(pvHash []byte) {
-	m.PreviousHash = pvHash
+	m.PrevHash = pvHash
 }
 
 // SetPrevRandSeed sets the previous randomness seed

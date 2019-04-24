@@ -1752,7 +1752,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 	hdr := &block.MetaBlock{
 		Nonce: currentHdrNonce,
 		//empty bitmap
-		PreviousHash: prevHdrHash,
+		PrevHash: prevHdrHash,
 	}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return hdr
@@ -1907,7 +1907,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 	hdr := &block.MetaBlock{
 		Nonce: currentHdrNonce,
 		//empty bitmap
-		PreviousHash: prevHdrHash,
+		PrevHash: prevHdrHash,
 	}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return hdr

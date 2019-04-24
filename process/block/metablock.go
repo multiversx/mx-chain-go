@@ -27,11 +27,11 @@ const maxHeadersInBlock = 256
 type metaProcessor struct {
 	*baseProcessor
 
-	OnRequestHeader           func(shardId uint32, mbHash []byte)
-	requestedHeadersHashes    map[string]bool
-	mutRequestedHeadersHahses sync.RWMutex
+	OnRequestHeader          func(shardId uint32, mbHash []byte)
+	requestedHeaderHashes    map[string]bool
+	mutRequestedHeaderHahses sync.RWMutex
 
-	ChRcvAllHeaders chan bool
+	ChRcvAllHdrs chan bool
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -42,7 +42,7 @@ func NewMetaProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
-	requestHeaderHandler func(shardId uint32, txHash []byte),
+	requestHeaderHandler func(shardId uint32, hdrHash []byte),
 ) (*metaProcessor, error) {
 
 	if requestHeaderHandler == nil {
@@ -73,7 +73,7 @@ func NewMetaProcessor(
 		baseProcessor: base,
 	}
 
-	bp.requestedHeadersHashes = make(map[string]bool)
+	bp.requestedHeaderHashes = make(map[string]bool)
 
 	bp.OnRequestHeader = requestHeaderHandler
 	headerPool := bp.dataPool.Headers()
@@ -82,7 +82,7 @@ func NewMetaProcessor(
 	}
 	headerPool.RegisterHandler(bp.receivedHeader)
 
-	bp.ChRcvAllHeaders = make(chan bool)
+	bp.ChRcvAllHdrs = make(chan bool)
 
 	return &bp, nil
 }
@@ -130,7 +130,7 @@ func (mp *metaProcessor) ProcessBlock(
 	if requestedBlockHeaders > 0 {
 		log.Info(fmt.Sprintf("requested %d missing block headers\n", requestedBlockHeaders))
 		err = mp.waitForBlockHeaders(haveTime())
-		log.Info(fmt.Sprintf("received %d missing block headers\n", requestedBlockHeaders-len(mp.requestedHeadersHashes)))
+		log.Info(fmt.Sprintf("received %d missing block headers\n", requestedBlockHeaders-len(mp.requestedHeaderHashes)))
 		if err != nil {
 			return err
 		}
@@ -341,35 +341,35 @@ func (mp *metaProcessor) CommitBlock(
 // receivedHeader is a call back function which is called when a new header
 // is added in the headers pool
 func (mp *metaProcessor) receivedHeader(headerHash []byte) {
-	mp.mutRequestedHeadersHahses.Lock()
-	if len(mp.requestedHeadersHashes) > 0 {
-		if mp.requestedHeadersHashes[string(headerHash)] {
-			delete(mp.requestedHeadersHashes, string(headerHash))
+	mp.mutRequestedHeaderHahses.Lock()
+	if len(mp.requestedHeaderHashes) > 0 {
+		if mp.requestedHeaderHashes[string(headerHash)] {
+			delete(mp.requestedHeaderHashes, string(headerHash))
 		}
-		lenReqHeadersHashes := len(mp.requestedHeadersHashes)
-		mp.mutRequestedHeadersHahses.Unlock()
+		lenReqHeadersHashes := len(mp.requestedHeaderHashes)
+		mp.mutRequestedHeaderHahses.Unlock()
 
 		if lenReqHeadersHashes == 0 {
-			mp.ChRcvAllHeaders <- true
+			mp.ChRcvAllHdrs <- true
 		}
 		return
 	}
-	mp.mutRequestedHeadersHahses.Unlock()
+	mp.mutRequestedHeaderHahses.Unlock()
 }
 
 func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
-	mp.mutRequestedHeadersHahses.Lock()
+	mp.mutRequestedHeaderHahses.Lock()
 	requestedHeaders := 0
 	missingHeaderHashes := mp.computeMissingHeaders(header)
-	mp.requestedHeadersHashes = make(map[string]bool)
+	mp.requestedHeaderHashes = make(map[string]bool)
 	if mp.OnRequestHeader != nil {
 		for shardId, headerHash := range missingHeaderHashes {
 			requestedHeaders++
-			mp.requestedHeadersHashes[string(headerHash)] = true
+			mp.requestedHeaderHashes[string(headerHash)] = true
 			go mp.OnRequestHeader(shardId, headerHash)
 		}
 	}
-	mp.mutRequestedHeadersHahses.Unlock()
+	mp.mutRequestedHeaderHahses.Unlock()
 	return requestedHeaders
 }
 
@@ -549,7 +549,7 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 	select {
-	case <-mp.ChRcvAllHeaders:
+	case <-mp.ChRcvAllHdrs:
 		return nil
 	case <-time.After(waitTime):
 		return process.ErrTimeIsOut

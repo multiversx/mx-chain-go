@@ -81,7 +81,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		PeerInfo:      []block.PeerData{pd},
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte("pub keys"),
-		PreviousHash:  []byte("previous hash"),
+		PrevHash:      []byte("previous hash"),
 		PrevRandSeed:  []byte("previous random seed"),
 		RandSeed:      []byte("random seed"),
 		RootHash:      []byte("root hash"),
@@ -123,7 +123,7 @@ func TestMetaBlock_GetPrevHash(t *testing.T) {
 
 	prevHash := []byte("prev hash")
 	m := block.MetaBlock{
-		PreviousHash: prevHash,
+		PrevHash: prevHash,
 	}
 
 	assert.Equal(t, prevHash, m.GetPrevHash())

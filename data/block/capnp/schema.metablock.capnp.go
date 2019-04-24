@@ -738,8 +738,8 @@ func (s MetaBlockCapn) Signature() []byte               { return C.Struct(s).Get
 func (s MetaBlockCapn) SetSignature(v []byte)           { C.Struct(s).SetObject(2, s.Segment.NewData(v)) }
 func (s MetaBlockCapn) PubKeysBitmap() []byte           { return C.Struct(s).GetObject(3).ToData() }
 func (s MetaBlockCapn) SetPubKeysBitmap(v []byte)       { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
-func (s MetaBlockCapn) PreviousHash() []byte            { return C.Struct(s).GetObject(4).ToData() }
-func (s MetaBlockCapn) SetPreviousHash(v []byte)        { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
+func (s MetaBlockCapn) PrevHash() []byte                { return C.Struct(s).GetObject(4).ToData() }
+func (s MetaBlockCapn) SetPrevHash(v []byte)            { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
 func (s MetaBlockCapn) PrevRandSeed() []byte            { return C.Struct(s).GetObject(5).ToData() }
 func (s MetaBlockCapn) SetPrevRandSeed(v []byte)        { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
 func (s MetaBlockCapn) RandSeed() []byte                { return C.Struct(s).GetObject(6).ToData() }
@@ -937,12 +937,12 @@ func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("\"previousHash\":")
+	_, err = b.WriteString("\"prevHash\":")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.PreviousHash()
+		s := s.PrevHash()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -1229,12 +1229,12 @@ func (s MetaBlockCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("previousHash = ")
+	_, err = b.WriteString("prevHash = ")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.PreviousHash()
+		s := s.PrevHash()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err

@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
@@ -25,11 +26,15 @@ func (bp *baseProcessor) CheckBlockValidity(
 	return bp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 }
 
+func DisplayHeader(headerHandler data.HeaderHandler) []*display.LineData {
+	return displayHeader(headerHandler)
+}
+
 func (sp *shardProcessor) GetTransactionFromPool(senderShardID, destShardID uint32, txHash []byte) *transaction.Transaction {
 	return sp.getTransactionFromPool(senderShardID, destShardID, txHash)
 }
 
-func (sp *shardProcessor) RequestTransactionFromNetwork(body block.Body) int {
+func (sp *shardProcessor) RequestBlockTransactions(body block.Body) int {
 	return sp.requestBlockTransactions(body)
 }
 
@@ -93,4 +98,50 @@ func (sp *shardProcessor) RemoveMetaBlockFromPool(body block.Body) error {
 
 func (sp *shardProcessor) RemoveTxBlockFromPools(blockBody block.Body) error {
 	return sp.removeTxBlockFromPools(blockBody)
+}
+
+func (mp *metaProcessor) GetHeaderFromPool(shardID uint32, headerHash []byte) *block.Header {
+	return mp.getHeaderFromPool(shardID, headerHash)
+}
+
+func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) int {
+	return mp.requestBlockHeaders(header)
+}
+
+func (mp *metaProcessor) WaitForHdrHashes(waitTime time.Duration) {
+	mp.WaitForHdrHashes(waitTime)
+}
+
+func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error {
+	return mp.removeBlockInfoFromPool(header)
+}
+
+func (mp *metaProcessor) DisplayMetaBlock(header *block.MetaBlock) {
+	mp.displayMetaBlock(header)
+}
+
+func (mp *metaProcessor) ReceivedHeader(hdrHash []byte) {
+	mp.receivedHeader(hdrHash)
+}
+
+func (mp *metaProcessor) AddHdrHashToRequestedList(hdrHash []byte) {
+	mp.mutRequestedHeaderHahses.Lock()
+	defer mp.mutRequestedHeaderHahses.Unlock()
+
+	if mp.requestedHeaderHashes == nil {
+		mp.requestedHeaderHashes = make(map[string]bool)
+	}
+	mp.requestedHeaderHashes[string(hdrHash)] = true
+}
+
+func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
+	mp.mutRequestedHeaderHahses.Lock()
+	defer mp.mutRequestedHeaderHahses.Unlock()
+
+	_, found := mp.requestedHeaderHashes[string(hdrHash)]
+	return found
+}
+
+func (mp *metaProcessor) CreateShardInfo(maxHdrInBlock int, round int32, haveTime func() bool) ([]block.ShardData, error) {
+	return mp.createShardInfo(maxHdrInBlock, round, haveTime)
 }

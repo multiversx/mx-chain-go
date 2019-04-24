@@ -33,7 +33,7 @@ struct MetaBlockCapn {
     peerInfo      @5:  List(PeerDataCapn);
     signature     @6:  Data;
     pubKeysBitmap @7:  Data;
-    previousHash  @8:  Data;
+    prevHash      @8:  Data;
     prevRandSeed  @9:  Data;
     randSeed      @10: Data;
     rootHash      @11: Data;
