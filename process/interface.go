@@ -68,7 +68,6 @@ type InterceptedBlockBody interface {
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
-	CreateAndCommitEmptyBlock(uint32) (data.BodyHandler, data.HeaderHandler, error)
 	AddSyncStateListener(func(bool))
 	ShouldSync() bool
 }
@@ -79,8 +78,8 @@ type ForkDetector interface {
 	AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error
 	RemoveHeaders(nonce uint64)
 	CheckFork() (bool, uint64)
-	GetHighestSignedBlockNonce() uint64
 	GetHighestFinalBlockNonce() uint64
+	ProbableHighestNonce() uint64
 }
 
 // InterceptorsContainer defines an interceptors holder data type with basic functionality
@@ -122,4 +121,10 @@ type TopicHandler interface {
 type TopicMessageHandler interface {
 	MessageHandler
 	TopicHandler
+}
+
+// ChronologyValidator defines the functionality needed to validate a received header block (shard or metachain)
+// from chronology point of view
+type ChronologyValidator interface {
+	ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error
 }

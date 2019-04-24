@@ -10,7 +10,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
@@ -60,9 +59,9 @@ type Node struct {
 	consensusGroupSize       int
 	messenger                p2p.Messenger
 	syncer                   ntp.SyncTimer
+	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
 	genesisTime              time.Time
-	elasticSubrounds         bool
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
@@ -203,17 +202,12 @@ func (n *Node) StartConsensus() error {
 
 	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
 
-	rounder, err := n.createRounder()
+	chronologyHandler, err := n.createChronologyHandler(n.rounder)
 	if err != nil {
 		return err
 	}
 
-	chronologyHandler, err := n.createChronologyHandler(rounder)
-	if err != nil {
-		return err
-	}
-
-	bootstraper, err := n.createShardBootstraper(rounder)
+	bootstraper, err := n.createShardBootstraper(n.rounder)
 	if err != nil {
 		return err
 	}
@@ -230,7 +224,7 @@ func (n *Node) StartConsensus() error {
 		n.singleSignKeyGen,
 		n.marshalizer,
 		n.privateKey,
-		rounder,
+		n.rounder,
 		n.shardCoordinator,
 		n.singlesig,
 	)
@@ -252,19 +246,26 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := bn.NewFactory(
+	consensusDataContainer, err := spos.NewConsensusCore(
 		n.blkc,
 		n.blockProcessor,
 		bootstraper,
 		chronologyHandler,
-		consensusState,
 		n.hasher,
 		n.marshalizer,
 		n.multisig,
-		rounder,
+		n.rounder,
 		n.shardCoordinator,
 		n.syncer,
-		validatorGroupSelector,
+		validatorGroupSelector)
+
+	if err != nil {
+		return err
+	}
+
+	fct, err := bn.NewFactory(
+		consensusDataContainer,
+		consensusState,
 		worker,
 	)
 
@@ -425,17 +426,6 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	return nil
-}
-
-// createRounder method creates a round object
-func (n *Node) createRounder() (consensus.Rounder, error) {
-	rnd, err := round.NewRound(
-		n.genesisTime,
-		n.syncer.CurrentTime(),
-		time.Millisecond*time.Duration(n.roundDuration),
-		n.syncer)
-
-	return rnd, err
 }
 
 // createChronologyHandler method creates a chronology object
@@ -792,6 +782,8 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 		BlockBodyType: block.StateBlock,
 		Signature:     rootHash,
 		RootHash:      rootHash,
+		PrevRandSeed:  rootHash,
+		RandSeed:      rootHash,
 	}
 
 	marshalizedHeader, err := n.marshalizer.Marshal(header)
@@ -805,7 +797,7 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 	return header, blockHeaderHash, nil
 }
 
-func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
+func (n *Node) sendMessage(cnsDta *consensus.Message) {
 	cnsDtaBuff, err := n.marshalizer.Marshal(cnsDta)
 	if err != nil {
 		log.Debug(err.Error())
@@ -819,7 +811,6 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
 
 // BroadcastBlock will send on intra shard topics the header and block body and on cross shard topics
 // the miniblocks. This func needs to be exported as it is tested in integrationTests package.
-// TODO make broadcastBlock to be able to work with metablocks as well.
 // TODO: investigate if the body block needs to be sent on intra shard topic as each miniblock is already sent on cross
 //  shard topics
 func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
@@ -859,7 +850,8 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 
 	//TODO - for now, on MetachainHeaderTopic we will broadcast shard headers
 	// Later, this call should be done by metachain nodes when they agree upon a metachain header
-	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+	msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
+	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
 
 	for k, v := range msgMapBlockBody {
 		go n.messenger.Broadcast(factory.MiniBlocksTopic+
@@ -881,6 +873,52 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 	}
 
 	return nil
+}
+
+// createMetaBlockFromBlockHeader func will be deleted when metachain will be fully implemented as its functionality
+// will be fdone by metachain nodes
+//TODO - delete this func when metachain is fully implemented
+func (n *Node) createMetaBlockFromBlockHeader(hdrHandler data.HeaderHandler, hdrBuff []byte) ([]byte, error) {
+	hdr, ok := hdrHandler.(*block.Header)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	hdrHash := n.hasher.Compute(string(hdrBuff))
+
+	metaBlock := &block.MetaBlock{
+		Epoch:         hdr.Epoch,
+		Nonce:         hdr.Nonce,
+		PeerInfo:      make([]block.PeerData, 0),
+		PreviousHash:  hdr.PrevHash,
+		PrevRandSeed:  hdr.PrevRandSeed,
+		PubKeysBitmap: hdr.PubKeysBitmap,
+		RandSeed:      hdr.RandSeed,
+		Round:         hdr.Round,
+		Signature:     hdr.Signature,
+		StateRootHash: hdr.RootHash,
+		TimeStamp:     hdr.TimeStamp,
+		TxCount:       hdr.TxCount,
+		ShardInfo: []block.ShardData{
+			{
+				TxCount:               hdr.TxCount,
+				HeaderHash:            hdrHash,
+				ShardId:               hdr.ShardId,
+				ShardMiniBlockHeaders: make([]block.ShardMiniBlockHeader, len(hdr.MiniBlockHeaders)),
+			},
+		},
+	}
+
+	for idx, miniblockHdr := range hdr.MiniBlockHeaders {
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx] = block.ShardMiniBlockHeader{
+			TxCount:         miniblockHdr.TxCount,
+			Hash:            miniblockHdr.Hash,
+			ReceiverShardId: miniblockHdr.ReceiverShardID,
+			SenderShardId:   miniblockHdr.SenderShardID,
+		}
+	}
+
+	return n.marshalizer.Marshal(metaBlock)
 }
 
 // BroadcastMetaBlock will send on meta shard topics the header and on meta-to-shard topics

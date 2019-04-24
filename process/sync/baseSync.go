@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -27,12 +26,7 @@ const sleepTime = time.Duration(5 * time.Millisecond)
 
 // maxRoundsToWait defines the maximum rounds to wait, when bootstrapping, after which the node will add an empty
 // block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
-const maxRoundsToWait = 3
-
-type receivedHeaderInfo struct {
-	highestNonce uint64
-	roundIndex   int32
-}
+const maxRoundsToWait = 5
 
 type baseBootstrap struct {
 	headers       storage.Cacher
@@ -62,7 +56,6 @@ type baseBootstrap struct {
 	hasLastBlock       bool
 	roundIndex         int32
 
-	rcvHdrInfo     receivedHeaderInfo
 	isForkDetected bool
 	forkNonce      uint64
 
@@ -93,14 +86,9 @@ func (boot *baseBootstrap) processReceivedHeader(header data.HeaderHandler, head
 		return
 	}
 
-	boot.mutRcvHdrInfo.Lock()
-	if header.GetNonce() > boot.rcvHdrInfo.highestNonce {
-		log.Info(fmt.Sprintf("receivedHeaders: received header with nonce %d from network, which is the highest nonce received until now\n", header.GetNonce()))
-		boot.rcvHdrInfo.highestNonce = header.GetNonce()
-		boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
-	}
-	boot.mutRcvHdrInfo.Unlock()
-	log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.GetNonce(), toB64(headerHash)))
+	log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n",
+		header.GetNonce(),
+		toB64(headerHash)))
 
 	err := boot.forkDetector.AddHeader(header, headerHash, false)
 	if err != nil {
@@ -111,19 +99,11 @@ func (boot *baseBootstrap) processReceivedHeader(header data.HeaderHandler, head
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64) {
-	//TODO: make sure that header validation done on interceptors do not add headers with wrong nonces/round numbers
-	boot.mutRcvHdrInfo.Lock()
-	if nonce > boot.rcvHdrInfo.highestNonce {
-		log.Info(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d from network, which is the highest nonce received until now\n", nonce))
-		boot.rcvHdrInfo.highestNonce = nonce
-		boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
-	}
-	boot.mutRcvHdrInfo.Unlock()
-
 	headerHash, _ := boot.headersNonces.Get(nonce)
-	if headerHash != nil {
-		log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n", nonce, toB64(headerHash)))
-	}
+
+	log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n",
+		nonce,
+		toB64(headerHash)))
 
 	n := boot.requestedHeaderNonce()
 	if n == nil {
@@ -131,28 +111,12 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 
 	if *n == nonce {
-		log.Info(fmt.Sprintf("received requested header with nonce %d from network\n", nonce))
+		log.Info(fmt.Sprintf("received requested header with nonce %d from network and probable highest nonce is %d\n",
+			nonce,
+			boot.forkDetector.ProbableHighestNonce()))
 		boot.setRequestedHeaderNonce(nil)
 		boot.chRcvHdr <- true
 	}
-}
-
-func (boot *baseBootstrap) shouldCreateEmptyBlock(nonce uint64) bool {
-	if boot.isForkDetected {
-		return false
-	}
-
-	boot.mutRcvHdrInfo.RLock()
-	if nonce <= boot.rcvHdrInfo.highestNonce {
-		roundsWithoutReceivedHeader := boot.rounder.Index() - boot.rcvHdrInfo.roundIndex
-		if roundsWithoutReceivedHeader <= maxRoundsToWait {
-			boot.mutRcvHdrInfo.RUnlock()
-			return false
-		}
-	}
-	boot.mutRcvHdrInfo.RUnlock()
-
-	return true
 }
 
 // AddSyncStateListener adds a syncStateListener that get notified each time the sync status of the node changes
@@ -162,25 +126,11 @@ func (boot *baseBootstrap) AddSyncStateListener(syncStateListener func(bool)) {
 	boot.mutSyncStateListeners.Unlock()
 }
 
-func (boot *baseBootstrap) broadcastEmptyBlock(txBlockBody block.Body, header data.HeaderHandler) error {
-	log.Info(fmt.Sprintf("broadcasting an empty block\n"))
-
-	// broadcast block body and header
-	err := boot.BroadcastBlock(txBlockBody, header)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (boot *baseBootstrap) notifySyncStateListeners() {
 	boot.mutSyncStateListeners.RLock()
-
 	for i := 0; i < len(boot.syncStateListeners); i++ {
 		go boot.syncStateListeners[i](boot.isNodeSynchronized)
 	}
-
 	boot.mutSyncStateListeners.RUnlock()
 }
 
@@ -190,7 +140,6 @@ func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
 	if boot.blkc != nil && boot.blkc.GetCurrentBlockHeader() != nil {
 		nonce = boot.blkc.GetCurrentBlockHeader().GetNonce() + 1
 	}
-
 	return nonce
 }
 
@@ -216,9 +165,9 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	boot.isForkDetected, boot.forkNonce = boot.forkDetector.CheckFork()
 
 	if boot.blkc.GetCurrentBlockHeader() == nil {
-		boot.hasLastBlock = boot.rounder.Index() <= 0
+		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= 0
 	} else {
-		boot.hasLastBlock = boot.blkc.GetCurrentBlockHeader().GetRound()+1 >= uint32(boot.rounder.Index())
+		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.blkc.GetCurrentBlockHeader().GetNonce()
 	}
 
 	isNodeSynchronized := !boot.isForkDetected && boot.hasLastBlock
@@ -233,29 +182,17 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	return !isNodeSynchronized
 }
 
-func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) {
-	hash, _ := boot.headersNonces.Get(header.GetNonce())
+func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) (hash []byte) {
+	hash, _ = boot.headersNonces.Get(header.GetNonce())
 	boot.headersNonces.Remove(header.GetNonce())
 	boot.headers.Remove(hash)
+	return
 }
 
 func (boot *baseBootstrap) cleanCachesOnRollback(header data.HeaderHandler, headerStore storage.Storer) {
-	hash, _ := boot.headersNonces.Get(header.GetNonce())
-	boot.headersNonces.Remove(header.GetNonce())
-	boot.headers.Remove(hash)
+	hash := boot.removeHeaderFromPools(header)
 	boot.forkDetector.RemoveHeaders(header.GetNonce())
 	_ = headerStore.Remove(hash)
-}
-
-func (boot *baseBootstrap) getTimeStampForRound(roundIndex uint32) time.Time {
-	currentRoundIndex := boot.rounder.Index()
-	currentRoundTimeStamp := boot.rounder.TimeStamp()
-	roundDuration := boot.rounder.TimeDuration()
-
-	diff := int32(roundIndex) - currentRoundIndex
-	roundTimeStamp := currentRoundTimeStamp.Add(roundDuration * time.Duration(diff))
-
-	return roundTimeStamp
 }
 
 // checkBootstrapNilParameters will check the imput parameters for nil values

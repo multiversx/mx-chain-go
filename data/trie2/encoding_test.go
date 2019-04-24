@@ -46,16 +46,3 @@ func TestHasTerm(t *testing.T) {
 	assert.True(t, hasTerm([]byte{6, 4, 6, 3, 2, 1, 16}))
 	assert.False(t, hasTerm([]byte{6, 4, 6, 3, 2, 1}))
 }
-func TestHexToKeyBytes(t *testing.T) {
-	t.Parallel()
-	var test = []struct {
-		key, hex []byte
-	}{
-		{[]byte("doe"), []byte{6, 4, 6, 15, 6, 5, 16}},
-		{[]byte("dog"), []byte{6, 4, 6, 15, 6, 7, 16}},
-	}
-
-	for i := range test {
-		assert.Equal(t, test[i].key, hexToKeyBytes(test[i].hex))
-	}
-}
