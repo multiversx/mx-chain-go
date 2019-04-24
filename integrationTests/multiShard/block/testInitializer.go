@@ -146,7 +146,11 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 func createAccountsDB() *state.AccountsDB {
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer)
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer, &mock.AccountsFactoryStub{
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountWrapper, e error) {
+			return state.NewAccount(address, tracker)
+		},
+	})
 	return adb
 }
 

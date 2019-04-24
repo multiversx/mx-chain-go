@@ -356,13 +356,13 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return errors.New("could not fetch sender account from provided param: " + err.Error())
 	}
 
-	senderAccount, ok := senderAccWrp.(*state.Account)
-	if !ok {
-		return errors.New("wrong type assertion, this is not an account with a balance and nonce")
-	}
-
 	newNonce := uint64(0)
-	if senderAccount != nil {
+	if senderAccWrp != nil {
+		senderAccount, ok := senderAccWrp.(*state.Account)
+		if !ok {
+			return errors.New("wrong type assertion, this is not an account with a balance and nonce")
+		}
+
 		newNonce = senderAccount.Nonce
 	}
 

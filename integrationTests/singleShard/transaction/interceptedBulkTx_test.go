@@ -42,8 +42,8 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	//set the account's nonce to startingNonce
 	nodePubKeyBytes, _ := sk.GeneratePublic().ToByteArray()
 	nodeAddress, _ := addrConverter.CreateAddressFromPublicKeyBytes(nodePubKeyBytes)
-	nodeAccount, _ := accntAdapter.GetJournalizedAccount(nodeAddress)
-	nodeAccount.SetNonceWithJournal(startingNonce)
+	nodeAccount, _ := accntAdapter.GetAccountWithJournal(nodeAddress)
+	nodeAccount.(*state.Account).SetNonceWithJournal(startingNonce)
 	accntAdapter.Commit()
 
 	noOfTx := 8000

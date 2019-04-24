@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"

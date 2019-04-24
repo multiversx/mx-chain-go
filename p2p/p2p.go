@@ -9,6 +9,7 @@ import (
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
+// If the function returns a non nil value, the received message will not be propagated to its connected peers
 type MessageProcessor interface {
 	ProcessReceivedMessage(message MessageP2P) error
 }
