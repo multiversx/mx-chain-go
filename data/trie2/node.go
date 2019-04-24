@@ -7,6 +7,7 @@ import (
 
 const nrOfChildren = 17
 const firstByte = 0
+const maxTrieLevelAfterCommit = 5
 
 type node interface {
 	getHash() []byte
@@ -16,7 +17,7 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode(marshal.Marshalizer) ([]byte, error)
-	commit(dbw DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
+	commit(level byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
 	resolveCollapsed(pos byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) error
 	hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error)
 	hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error

@@ -30,10 +30,10 @@ func (en *extensionNode) getCollapsed(marshalizer marshal.Marshalizer, hasher ha
 	if err != nil {
 		return nil, err
 	}
-	collapsed := en.clone()
 	if en.isCollapsed() {
-		return collapsed, nil
+		return en, nil
 	}
+	collapsed := en.clone()
 	ok, err := hasValidHash(en.child)
 	if err != nil {
 		return nil, err
@@ -102,22 +102,37 @@ func (en *extensionNode) hashNode(marshalizer marshal.Marshalizer, hasher hashin
 	return encodeNodeAndGetHash(en, marshalizer, hasher)
 }
 
-func (en *extensionNode) commit(db DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (en *extensionNode) commit(level byte, db DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+	level++
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return err
 	}
+	if !en.dirty {
+		return nil
+	}
 	if en.child != nil {
-		err = en.child.commit(db, marshalizer, hasher)
+		err = en.child.commit(level, db, marshalizer, hasher)
 		if err != nil {
 			return err
 		}
 	}
-	if !en.dirty {
-		return nil
-	}
+
 	en.dirty = false
-	return encodeNodeAndCommitToDB(en, db, marshalizer, hasher)
+	err = encodeNodeAndCommitToDB(en, db, marshalizer, hasher)
+	if err != nil {
+		return err
+	}
+	if level == maxTrieLevelAfterCommit {
+		collapsed, err := en.getCollapsed(marshalizer, hasher)
+		if err != nil {
+			return err
+		}
+		if n, ok := collapsed.(*extensionNode); ok {
+			*en = *n
+		}
+	}
+	return nil
 }
 
 func (en *extensionNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte, error) {

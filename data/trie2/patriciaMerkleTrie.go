@@ -180,14 +180,9 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if err != nil {
 		return err
 	}
-	err = tr.root.commit(tr.db, tr.marshalizer, tr.hasher)
+	err = tr.root.commit(0, tr.db, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
 	}
-	newRoot, err := tr.root.getCollapsed(tr.marshalizer, tr.hasher)
-	if err != nil {
-		return err
-	}
-	tr.root = newRoot
 	return nil
 }

@@ -127,7 +127,7 @@ func TestLeafNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(ln, marsh, hasher)
 	ln.setHash(marsh, hasher)
 
-	err := ln.commit(db, marsh, hasher)
+	err := ln.commit(0, db, marsh, hasher)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -143,7 +143,7 @@ func TestLeafNode_commitEmptyNode(t *testing.T) {
 	db, _ := memorydb.New()
 	marsh, hasher := getTestMarshAndHasher()
 
-	err := ln.commit(db, marsh, hasher)
+	err := ln.commit(0, db, marsh, hasher)
 	assert.Equal(t, ErrEmptyNode, err)
 }
 
@@ -153,7 +153,7 @@ func TestLeafNode_commitNilNode(t *testing.T) {
 	db, _ := memorydb.New()
 	marsh, hasher := getTestMarshAndHasher()
 
-	err := ln.commit(db, marsh, hasher)
+	err := ln.commit(0, db, marsh, hasher)
 	assert.Equal(t, ErrNilNode, err)
 }
 

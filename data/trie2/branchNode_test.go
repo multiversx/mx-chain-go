@@ -224,7 +224,7 @@ func TestBranchNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(collapsedBn, marsh, hasher)
 	bn.setHash(marsh, hasher)
 
-	err := bn.commit(db, marsh, hasher)
+	err := bn.commit(0, db, marsh, hasher)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -238,7 +238,7 @@ func TestBranchNode_commitEmptyNode(t *testing.T) {
 	db, _ := memorydb.New()
 	marsh, hasher := getTestMarshAndHasher()
 
-	err := bn.commit(db, marsh, hasher)
+	err := bn.commit(0, db, marsh, hasher)
 	assert.Equal(t, ErrEmptyNode, err)
 }
 
@@ -248,7 +248,7 @@ func TestBranchNode_commitNilNode(t *testing.T) {
 	db, _ := memorydb.New()
 	marsh, hasher := getTestMarshAndHasher()
 
-	err := bn.commit(db, marsh, hasher)
+	err := bn.commit(0, db, marsh, hasher)
 	assert.Equal(t, ErrNilNode, err)
 }
 
@@ -292,7 +292,7 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 
 	bn.setHash(marsh, hasher)
-	bn.commit(db, marsh, hasher)
+	bn.commit(0, db, marsh, hasher)
 	resolved := &leafNode{Key: []byte("dog"), Value: []byte("dog")}
 
 	err := collapsedBn.resolveCollapsed(2, db, marsh)
@@ -395,7 +395,7 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 	bn.setHash(marsh, hasher)
-	bn.commit(db, marsh, hasher)
+	bn.commit(0, db, marsh, hasher)
 
 	key := []byte{2, 100, 111, 103}
 	val, err := collapsedBn.tryGet(key, db, marsh)
@@ -514,7 +514,7 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	node := &leafNode{Key: []byte{2, 100, 111, 103}, Value: []byte("dogs")}
 	marsh, hasher := getTestMarshAndHasher()
 	bn.setHash(marsh, hasher)
-	bn.commit(db, marsh, hasher)
+	bn.commit(0, db, marsh, hasher)
 
 	dirty, newBn, err := collapsedBn.insert(node, db, marsh)
 	assert.True(t, dirty)
@@ -595,7 +595,7 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 	bn.setHash(marsh, hasher)
-	bn.commit(db, marsh, hasher)
+	bn.commit(0, db, marsh, hasher)
 
 	dirty, newBn, err := collapsedBn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.True(t, dirty)

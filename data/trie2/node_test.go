@@ -139,7 +139,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	db, _ := memorydb.New()
 	marsh, hasher := getTestMarshAndHasher()
 	bn, collapsedBn := getBnAndCollapsedBn()
-	bn.commit(db, marsh, hasher)
+	bn.commit(0, db, marsh, hasher)
 
 	encNode, _ := marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
@@ -155,7 +155,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	db, _ := memorydb.New()
 	marsh, hasher := getTestMarshAndHasher()
 	en, collapsedEn := getEnAndCollapsedEn()
-	en.commit(db, marsh, hasher)
+	en.commit(0, db, marsh, hasher)
 
 	encNode, _ := marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
@@ -171,7 +171,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	db, _ := memorydb.New()
 	marsh, hasher := getTestMarshAndHasher()
 	ln := getLn()
-	ln.commit(db, marsh, hasher)
+	ln.commit(0, db, marsh, hasher)
 
 	encNode, _ := marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
@@ -190,7 +190,7 @@ func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 	bn, collapsedBn := getBnAndCollapsedBn()
 
-	bn.commit(db, marsh, hasher)
+	bn.commit(0, db, marsh, hasher)
 
 	err := resolveIfCollapsed(collapsedBn, 2, db, marsh)
 	assert.Nil(t, err)
@@ -203,7 +203,7 @@ func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 	en, collapsedEn := getEnAndCollapsedEn()
 
-	en.commit(db, marsh, hasher)
+	en.commit(0, db, marsh, hasher)
 
 	err := resolveIfCollapsed(collapsedEn, 0, db, marsh)
 	assert.Nil(t, err)
@@ -216,7 +216,7 @@ func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 	ln := getLn()
 
-	ln.commit(db, marsh, hasher)
+	ln.commit(0, db, marsh, hasher)
 
 	err := resolveIfCollapsed(ln, 0, db, marsh)
 	assert.Nil(t, err)
