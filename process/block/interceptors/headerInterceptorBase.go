@@ -90,10 +90,10 @@ func (hib *HeaderInterceptorBase) ParseReceivedMessage(message p2p.MessageP2P) (
 		return nil, err
 	}
 
-	isHeaderInStorage, _ := hib.storer.Has(hashWithSig)
-	if isHeaderInStorage {
-		return nil, process.ErrHeaderIsInStorage
-	}
-
 	return hdrIntercepted, nil
+}
+
+// CheckHeaderForCurrentShard checks if the header is for current shard
+func (hib *HeaderInterceptorBase) CheckHeaderForCurrentShard(header *block.InterceptedHeader) bool {
+	return hib.shardCoordinator.SelfId() == header.GetHeader().ShardId
 }

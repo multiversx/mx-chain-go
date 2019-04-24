@@ -419,6 +419,85 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	return nil
 }
 
+// GenerateAndSendBulkTransactionsOneByOne is a method for generating and propagating a set
+// of transactions to be processed. It is mainly used for demo purposes
+func (n *Node) GenerateAndSendBulkTransactionsOneByOne(receiverHex string, value *big.Int, noOfTx uint64) error {
+	if noOfTx == 0 {
+		return errors.New("can not generate and broadcast 0 transactions")
+	}
+	if n.publicKey == nil {
+		return ErrNilPublicKey
+	}
+	if n.singlesig == nil {
+		return ErrNilSingleSig
+	}
+
+	senderAddressBytes, err := n.publicKey.ToByteArray()
+	if err != nil {
+		return err
+	}
+
+	if n.addrConverter == nil {
+		return ErrNilAddressConverter
+	}
+	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddressBytes)
+	if err != nil {
+		return err
+	}
+
+	if n.shardCoordinator == nil {
+		return ErrNilShardCoordinator
+	}
+	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
+	fmt.Printf("Sender shard Id: %d\n", senderShardId)
+
+	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
+	if err != nil {
+		return errors.New("could not create receiver address from provided param: " + err.Error())
+	}
+
+	if n.accounts == nil {
+		return ErrNilAccountsAdapter
+	}
+	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
+	if err != nil {
+		return errors.New("could not fetch sender account from provided param: " + err.Error())
+	}
+	newNonce := uint64(0)
+	if senderAccount != nil {
+		newNonce = senderAccount.BaseAccount().Nonce
+	}
+
+	generated := 0
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
+	for nonce := newNonce; nonce < newNonce+noOfTx; nonce++ {
+		_, signedTxBuff, err := n.generateAndSignTx(
+			nonce,
+			value,
+			receiverAddress.Bytes(),
+			senderAddressBytes,
+			nil,
+		)
+		if err != nil {
+			return err
+		}
+
+		generated++
+
+		n.messenger.BroadcastOnChannel(
+			SendTransactionsPipe,
+			identifier,
+			signedTxBuff,
+		)
+	}
+
+	if generated != int(noOfTx) {
+		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", generated, noOfTx))
+	}
+
+	return nil
+}
+
 // createChronologyHandler method creates a chronology object
 func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.ChronologyHandler, error) {
 	chr, err := chronology.NewChronology(

@@ -263,7 +263,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifier string) (process.Interceptor, error) {
 	txBlockBodyStorer := icf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
-	interceptor, err := interceptors.NewMiniBlocksInterceptor(
+	interceptor, err := interceptors.NewTxBlockBodyInterceptor(
 		icf.marshalizer,
 		icf.dataPool.MiniBlocks(),
 		txBlockBodyStorer,

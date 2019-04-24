@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"testing"
+	"time"
 
 	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -12,15 +13,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//------- NewMiniBlocksInterceptor
+//------- NewTxBlockBodyInterceptor
 
-func TestNewTxBlockBodyInterceptor_WithNilParameterShouldErr(t *testing.T) {
+func TestNewTxBlockBodyInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{}
 
-	tbbi, err := interceptors.NewMiniBlocksInterceptor(
+	tbbi, err := interceptors.NewTxBlockBodyInterceptor(
 		nil,
 		cache,
 		storer,
@@ -31,13 +32,79 @@ func TestNewTxBlockBodyInterceptor_WithNilParameterShouldErr(t *testing.T) {
 	assert.Nil(t, tbbi)
 }
 
+func TestNewTxBlockBodyInterceptor_NilPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	storer := &mock.StorerStub{}
+
+	tbbi, err := interceptors.NewTxBlockBodyInterceptor(
+		&mock.MarshalizerMock{},
+		nil,
+		storer,
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock())
+
+	assert.Equal(t, process.ErrNilCacher, err)
+	assert.Nil(t, tbbi)
+}
+
+func TestNewTxBlockBodyInterceptor_NilStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	cache := &mock.CacherStub{}
+
+	tbbi, err := interceptors.NewTxBlockBodyInterceptor(
+		&mock.MarshalizerMock{},
+		cache,
+		nil,
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock())
+
+	assert.Equal(t, process.ErrNilBlockBodyStorage, err)
+	assert.Nil(t, tbbi)
+}
+
+func TestNewTxBlockBodyInterceptor_NilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	cache := &mock.CacherStub{}
+	storer := &mock.StorerStub{}
+
+	tbbi, err := interceptors.NewTxBlockBodyInterceptor(
+		&mock.MarshalizerMock{},
+		cache,
+		storer,
+		nil,
+		mock.NewOneShardCoordinatorMock())
+
+	assert.Equal(t, process.ErrNilHasher, err)
+	assert.Nil(t, tbbi)
+}
+
+func TestNewTxBlockBodyInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	cache := &mock.CacherStub{}
+	storer := &mock.StorerStub{}
+
+	tbbi, err := interceptors.NewTxBlockBodyInterceptor(
+		&mock.MarshalizerMock{},
+		cache,
+		storer,
+		mock.HasherMock{},
+		nil)
+
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
+	assert.Nil(t, tbbi)
+}
+
 func TestNewTxBlockBodyInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{}
 
-	tbbi, err := interceptors.NewMiniBlocksInterceptor(
+	tbbi, err := interceptors.NewTxBlockBodyInterceptor(
 		&mock.MarshalizerMock{},
 		cache,
 		storer,
@@ -56,7 +123,7 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *tes
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{}
 
-	tbbi, _ := interceptors.NewMiniBlocksInterceptor(
+	tbbi, _ := interceptors.NewTxBlockBodyInterceptor(
 		&mock.MarshalizerMock{},
 		cache,
 		storer,
@@ -72,7 +139,7 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageNilMessageDataShouldErr(t 
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{}
 
-	tbbi, _ := interceptors.NewMiniBlocksInterceptor(
+	tbbi, _ := interceptors.NewTxBlockBodyInterceptor(
 		&mock.MarshalizerMock{},
 		cache,
 		storer,
@@ -92,7 +159,7 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnmarsh
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{}
 
-	tbbi, _ := interceptors.NewMiniBlocksInterceptor(
+	tbbi, _ := interceptors.NewTxBlockBodyInterceptor(
 		&mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return errMarshalizer
@@ -122,7 +189,7 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing
 		},
 	}
 
-	tbbi, _ := interceptors.NewMiniBlocksInterceptor(
+	tbbi, _ := interceptors.NewTxBlockBodyInterceptor(
 		marshalizer,
 		cache,
 		storer,
@@ -143,15 +210,19 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing
 		DataField: buff,
 	}
 
-	putInCacheWasCalled := false
+	chanDone := make(chan struct{}, 10)
 	cache.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		if bytes.Equal(key, mock.HasherMock{}.Compute(string(miniBlockBuff))) {
-			putInCacheWasCalled = true
+			chanDone <- struct{}{}
 		}
 
 		return false, false
 	}
 
 	assert.Nil(t, tbbi.ProcessReceivedMessage(msg))
-	assert.True(t, putInCacheWasCalled)
+	select {
+	case <-chanDone:
+	case <-time.After(durTimeout):
+		assert.Fail(t, "timeout while waiting for block to be inserted in the pool")
+	}
 }
