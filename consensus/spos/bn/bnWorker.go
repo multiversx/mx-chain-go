@@ -216,7 +216,9 @@ func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	log.Debug(fmt.Sprintf("received %s from %s\n", getStringValue(spos.MessageType(cnsDta.MsgType)), hex.EncodeToString(cnsDta.PubKey)))
 
 	if wrk.consensusState.RoundCanceled && wrk.consensusState.RoundIndex == cnsDta.RoundIndex {
-		return spos.ErrRoundCanceled
+		//in this case should return nil but do not process the message
+		//nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
+		return nil
 	}
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
