@@ -13,7 +13,7 @@ type MetaJournalEntryRound struct {
 // NewMetaJournalEntryRound outputs a new JournalEntry implementation used to revert a round change
 func NewMetaJournalEntryRound(account *MetaAccount, oldRound uint64) (*MetaJournalEntryRound, error) {
 	if account == nil {
-		return nil, ErrNilAccount
+		return nil, ErrNilAccountWrapper
 	}
 
 	return &MetaJournalEntryRound{
@@ -40,7 +40,7 @@ type MetaJournalEntryTxCount struct {
 // NewMetaJournalEntryTxCount outputs a new JournalEntry implementation used to revert a TxCount change
 func NewMetaJournalEntryTxCount(account *MetaAccount, oldTxCount *big.Int) (*MetaJournalEntryTxCount, error) {
 	if account == nil {
-		return nil, ErrNilAccount
+		return nil, ErrNilAccountWrapper
 	}
 
 	return &MetaJournalEntryTxCount{
@@ -67,7 +67,7 @@ type MetaJournalEntryMiniBlocksData struct {
 // NewMetaJournalEntryRound outputs a new JournalEntry implementation used to revert a MiniBlocksData change
 func NewMetaJournalEntryMiniBlocksData(account *MetaAccount, oldMiniBlocksData []*MiniBlockData) (*MetaJournalEntryMiniBlocksData, error) {
 	if account == nil {
-		return nil, ErrNilAccount
+		return nil, ErrNilAccountWrapper
 	}
 
 	return &MetaJournalEntryMiniBlocksData{

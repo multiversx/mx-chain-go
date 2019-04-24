@@ -23,20 +23,11 @@ func TestNewJournalEntryNonce_NilAccountShouldErr(t *testing.T) {
 func TestNewJournalEntryNonce_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryNonce(mock.NewAccountWrapMock(nil, nil), 0)
+	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, err := state.NewJournalEntryNonce(accnt, 0)
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-}
-
-func TestJournalEntryNonce_WrongAccountTypeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	accnt := mock.NewAccountWrapMock(nil, nil)
-	entry, _ := state.NewJournalEntryNonce(accnt, 0)
-	_, err := entry.Revert()
-
-	assert.Equal(t, state.ErrWrongTypeAssertion, err)
 }
 
 func TestJournalEntryNonce_RevertOkValsShouldWork(t *testing.T) {
@@ -65,20 +56,11 @@ func TestNewJournalEntryBalance_NilAccountShouldErr(t *testing.T) {
 func TestNewJournalEntryBalance_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryBalance(mock.NewAccountWrapMock(nil, nil), nil)
+	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, err := state.NewJournalEntryBalance(accnt, nil)
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
-}
-
-func TestNewJournalEntryBalance_WrongAccountTypeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	accnt := mock.NewAccountWrapMock(nil, nil)
-	entry, _ := state.NewJournalEntryBalance(accnt, nil)
-	_, err := entry.Revert()
-
-	assert.Equal(t, state.ErrWrongTypeAssertion, err)
 }
 
 func TestNewJournalEntryBalance_RevertOkValsShouldWork(t *testing.T) {
