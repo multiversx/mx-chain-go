@@ -168,6 +168,13 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+type nullChronologyValidator struct {
+}
+
+func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+	return nil
+}
+
 func main() {
 	log := logger.DefaultLogger()
 	log.SetLevel(logger.LogInfo)
@@ -444,6 +451,7 @@ func createNode(
 		return nil, err
 	}
 
+	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		netMessenger,
@@ -455,6 +463,7 @@ func createNode(
 		multisigner,
 		datapool,
 		addressConverter,
+		&nullChronologyValidator{},
 	)
 	if err != nil {
 		return nil, err

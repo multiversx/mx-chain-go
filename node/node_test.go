@@ -1096,6 +1096,7 @@ func TestNode_BroadcastBlockShouldWorkWithOneShard(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithBlockProcessor(bp),
+		node.WithHasher(mock.HasherFake{}),
 	)
 
 	txHash0 := []byte("txHash0")
@@ -1123,6 +1124,7 @@ func TestNode_BroadcastBlockShouldWorkMultiShard(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithBlockProcessor(bp),
+		node.WithHasher(mock.HasherFake{}),
 	)
 
 	txHash0 := []byte("txHash0")
