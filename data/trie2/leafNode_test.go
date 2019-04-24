@@ -253,6 +253,45 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 	assert.Nil(t, val)
 }
 
+func TestLeafNode_getNext(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	ln := getLn()
+	marsh, _ := getTestMarshAndHasher()
+	key := []byte{100, 111, 103}
+
+	node, key, err := ln.getNext(key, db, marsh)
+	assert.Nil(t, node)
+	assert.Nil(t, key)
+	assert.Nil(t, err)
+}
+
+func TestLeafNode_getNextWrongKey(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	ln := getLn()
+	marsh, _ := getTestMarshAndHasher()
+	key := []byte{2, 100, 111, 103}
+
+	node, key, err := ln.getNext(key, db, marsh)
+	assert.Nil(t, node)
+	assert.Nil(t, key)
+	assert.Equal(t, ErrNodeNotFound, err)
+}
+
+func TestLeafNode_getNextNilNode(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	var ln *leafNode
+	marsh, _ := getTestMarshAndHasher()
+	key := []byte{2, 100, 111, 103}
+
+	node, key, err := ln.getNext(key, db, marsh)
+	assert.Nil(t, node)
+	assert.Nil(t, key)
+	assert.Equal(t, ErrNilNode, err)
+}
+
 func TestLeafNode_insertAtSameKey(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()
@@ -326,26 +365,6 @@ func TestLeafNode_reduceNode(t *testing.T) {
 	expected := &leafNode{Key: []byte{2, 100, 111, 103}, dirty: true}
 	node := ln.reduceNode(2)
 	assert.Equal(t, expected, node)
-}
-
-func TestLeafNode_nextChild(t *testing.T) {
-	t.Parallel()
-	ln := getLn()
-	marsh, hasher := getTestMarshAndHasher()
-	ln.setHash(marsh, hasher)
-
-	state := &nodeIteratorState{
-		hash:    ln.getHash(),
-		node:    ln,
-		parent:  nil,
-		index:   -1,
-		pathlen: 0,
-	}
-
-	newState, newPath, ok := ln.nextChild(state, nil)
-	assert.Equal(t, state, newState)
-	assert.Nil(t, newPath)
-	assert.False(t, ok)
 }
 
 func TestLeafNode_isEmptyOrNil(t *testing.T) {

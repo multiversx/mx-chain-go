@@ -155,6 +155,13 @@ func (bn *branchNode) isCollapsed() bool {
 	return true
 }
 
+func (bn *branchNode) isPosCollapsed(pos int) bool {
+	if bn.children[pos] == nil && bn.EncodedChildren[pos] != nil {
+		return true
+	}
+	return false
+}
+
 func (bn *branchNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
 	err = bn.isEmptyOrNil()
 	if err != nil {
@@ -177,6 +184,30 @@ func (bn *branchNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.M
 	}
 	value, err = bn.children[childPos].tryGet(key, db, marshalizer)
 	return value, err
+}
+
+func (bn *branchNode) getNext(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(key) == 0 {
+		return nil, nil, ErrValueTooShort
+	}
+	childPos := key[firstByte]
+	if childPosOutOfRange(childPos) {
+		return nil, nil, ErrChildPosOutOfRange
+	}
+	key = key[1:]
+	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if bn.children[childPos] == nil {
+		return nil, nil, ErrNodeNotFound
+	}
+	return bn.children[childPos], key, nil
 }
 
 func (bn *branchNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
@@ -227,6 +258,7 @@ func (bn *branchNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.M
 	if err != nil {
 		return false, nil, err
 	}
+
 	dirty, newNode, err := bn.children[childPos].delete(key, db, marshalizer)
 	if !dirty || err != nil {
 		return false, nil, err
@@ -246,7 +278,7 @@ func (bn *branchNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.M
 			return false, nil, err
 		}
 		if childPos != 16 {
-			newNode := bn.children[pos].reduceNode(pos)
+			newNode := bn.reduceNode(pos)
 			return true, newNode, nil
 		}
 		child := bn.children[pos]
@@ -261,24 +293,10 @@ func (bn *branchNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.M
 }
 
 func (bn *branchNode) reduceNode(pos int) node {
-	return newExtensionNode([]byte{byte(pos)}, bn.children[pos])
-}
-
-func (bn *branchNode) nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool) {
-	for i := previousState.index + 1; i < len(bn.children); i++ {
-		child := bn.children[i]
-		if child != nil {
-			hash := child.getHash()
-			state := newIteratorState(hash, child, previousState.hash, len(path))
-			newPath := append(path, byte(i))
-			if child, ok := child.(*leafNode); ok {
-				newPath = append(newPath, child.Key...)
-			}
-			previousState.index = i - 1
-			return state, newPath, true
-		}
+	if child, ok := bn.children[pos].(*leafNode); ok {
+		return newLeafNode(concat([]byte{byte(pos)}, child.Key...), child.Value)
 	}
-	return previousState, path, false
+	return newExtensionNode([]byte{byte(pos)}, bn.children[pos])
 }
 
 func getChildPosition(n *branchNode) (nrOfChildren int, childPos int) {

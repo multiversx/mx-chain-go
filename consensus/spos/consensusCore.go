@@ -62,56 +62,56 @@ func NewConsensusCore(
 }
 
 //Blockchain gets the ChainHandler stored in the ConsensusCore
-func (cdc *ConsensusCore) Blockchain() data.ChainHandler {
-	return cdc.blockChain
+func (cc *ConsensusCore) Blockchain() data.ChainHandler {
+	return cc.blockChain
 }
 
 //BlockProcessor gets the BlockProcessor stored in the ConsensusCore
-func (cdc *ConsensusCore) BlockProcessor() process.BlockProcessor {
-	return cdc.blockProcessor
+func (cc *ConsensusCore) BlockProcessor() process.BlockProcessor {
+	return cc.blockProcessor
 }
 
 //BootStrapper gets the Bootstrapper stored in the ConsensusCore
-func (cdc *ConsensusCore) BootStrapper() process.Bootstrapper {
-	return cdc.bootstraper
+func (cc *ConsensusCore) BootStrapper() process.Bootstrapper {
+	return cc.bootstraper
 }
 
 //Chronology gets the ChronologyHandler stored in the ConsensusCore
-func (cdc *ConsensusCore) Chronology() consensus.ChronologyHandler {
-	return cdc.chronologyHandler
+func (cc *ConsensusCore) Chronology() consensus.ChronologyHandler {
+	return cc.chronologyHandler
 }
 
 //Hasher gets the Hasher stored in the ConsensusCore
-func (cdc *ConsensusCore) Hasher() hashing.Hasher {
-	return cdc.hasher
+func (cc *ConsensusCore) Hasher() hashing.Hasher {
+	return cc.hasher
 }
 
 //Marshalizer gets the Marshalizer stored in the ConsensusCore
-func (cdc *ConsensusCore) Marshalizer() marshal.Marshalizer {
-	return cdc.marshalizer
+func (cc *ConsensusCore) Marshalizer() marshal.Marshalizer {
+	return cc.marshalizer
 }
 
 //MultiSigner gets the MultiSigner stored in the ConsensusCore
-func (cdc *ConsensusCore) MultiSigner() crypto.MultiSigner {
-	return cdc.multiSigner
+func (cc *ConsensusCore) MultiSigner() crypto.MultiSigner {
+	return cc.multiSigner
 }
 
 //Rounder gets the Rounder stored in the ConsensusCore
-func (cdc *ConsensusCore) Rounder() consensus.Rounder {
-	return cdc.rounder
+func (cc *ConsensusCore) Rounder() consensus.Rounder {
+	return cc.rounder
 }
 
 //ShardCoordinator gets the Coordinator stored in the ConsensusCore
-func (cdc *ConsensusCore) ShardCoordinator() sharding.Coordinator {
-	return cdc.shardCoordinator
+func (cc *ConsensusCore) ShardCoordinator() sharding.Coordinator {
+	return cc.shardCoordinator
 }
 
 //SyncTimer gets the SyncTimer stored in the ConsensusCore
-func (cdc *ConsensusCore) SyncTimer() ntp.SyncTimer {
-	return cdc.syncTimer
+func (cc *ConsensusCore) SyncTimer() ntp.SyncTimer {
+	return cc.syncTimer
 }
 
 //ValidatorGroupSelector gets the ValidatorGroupSelector stored in the ConsensusCore
-func (cdc *ConsensusCore) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
-	return cdc.validatorGroupSelector
+func (cc *ConsensusCore) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
+	return cc.validatorGroupSelector
 }

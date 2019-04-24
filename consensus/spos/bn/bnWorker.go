@@ -403,26 +403,6 @@ func (wrk *worker) extend(subroundId int) {
 	}
 
 	wrk.blockProcessor.RevertAccountState()
-
-	if wrk.consensusState.RoundCanceled {
-		return
-	}
-
-	blk, hdr, err := wrk.bootstraper.CreateAndCommitEmptyBlock(wrk.shardCoordinator.SelfId())
-	if err != nil {
-		log.Info(err.Error())
-		return
-	}
-
-	log.Info("broadcasting an empty block\n")
-
-	// broadcast block body and header
-	err = wrk.BroadcastBlock(blk, hdr)
-	if err != nil {
-		log.Info(err.Error())
-	}
-
-	return
 }
 
 // getSubroundName returns the name of each subround from a given subround ID

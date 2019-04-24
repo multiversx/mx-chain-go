@@ -115,6 +115,14 @@ func (sr *subround) SetCheckFunction(check func() bool) {
 
 type Worker *worker
 
+func (wrk *worker) BlockProcessor() process.BlockProcessor {
+	return wrk.blockProcessor
+}
+
+func (wrk *worker) SetBlockProcessor(blockProcessor process.BlockProcessor) {
+	wrk.blockProcessor = blockProcessor
+}
+
 func (wrk *worker) Bootstraper() process.Bootstrapper {
 	return wrk.bootstraper
 }

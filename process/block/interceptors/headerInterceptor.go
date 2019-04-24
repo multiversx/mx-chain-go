@@ -31,6 +31,7 @@ func NewHeaderInterceptor(
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
+	chronologyValidator process.ChronologyValidator,
 ) (*HeaderInterceptor, error) {
 
 	if headersNonces == nil {
@@ -46,6 +47,7 @@ func NewHeaderInterceptor(
 		multiSigVerifier,
 		hasher,
 		shardCoordinator,
+		chronologyValidator,
 	)
 	if err != nil {
 		return nil, err
