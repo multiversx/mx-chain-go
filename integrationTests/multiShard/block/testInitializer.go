@@ -128,6 +128,8 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
 	dPool, _ := dataPool.NewShardedDataPool(
@@ -137,6 +139,7 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
+		metaHdrNonces,
 	)
 
 	return dPool

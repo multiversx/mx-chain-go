@@ -8,20 +8,21 @@ import (
 )
 
 type NodeMock struct {
-	AddressHandler                         func() (string, error)
-	StartHandler                           func() error
-	StopHandler                            func() error
-	P2PBootstrapHandler                    func() error
-	IsRunningHandler                       func() bool
-	ConnectToAddressesHandler              func([]string) error
-	StartConsensusHandler                  func() error
-	GetBalanceHandler                      func(address string) (*big.Int, error)
-	GenerateTransactionHandler             func(sender string, receiver string, amount *big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionHandler                  func(hash string) (*transaction.Transaction, error)
-	SendTransactionHandler                 func(nonce uint64, sender string, receiver string, amount *big.Int, code string, signature []byte) (*transaction.Transaction, error)
-	GetAccountHandler                      func(address string) (*state.Account, error)
-	GetCurrentPublicKeyHandler             func() string
-	GenerateAndSendBulkTransactionsHandler func(destination string, value *big.Int, nrTransactions uint64) error
+	AddressHandler                                 func() (string, error)
+	StartHandler                                   func() error
+	StopHandler                                    func() error
+	P2PBootstrapHandler                            func() error
+	IsRunningHandler                               func() bool
+	ConnectToAddressesHandler                      func([]string) error
+	StartConsensusHandler                          func() error
+	GetBalanceHandler                              func(address string) (*big.Int, error)
+	GenerateTransactionHandler                     func(sender string, receiver string, amount *big.Int, code string) (*transaction.Transaction, error)
+	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
+	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, amount *big.Int, code string, signature []byte) (*transaction.Transaction, error)
+	GetAccountHandler                              func(address string) (*state.Account, error)
+	GetCurrentPublicKeyHandler                     func() string
+	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
+	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 }
 
 func (nm *NodeMock) Address() (string, error) {
@@ -74,6 +75,10 @@ func (nm *NodeMock) GetCurrentPublicKey() string {
 
 func (nm *NodeMock) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTx uint64) error {
 	return nm.GenerateAndSendBulkTransactionsHandler(receiverHex, value, noOfTx)
+}
+
+func (nm *NodeMock) GenerateAndSendBulkTransactionsOneByOne(receiverHex string, value *big.Int, noOfTx uint64) error {
+	return nm.GenerateAndSendBulkTransactionsOneByOneHandler(receiverHex, value, noOfTx)
 }
 
 func (nm *NodeMock) GetAccount(address string) (*state.Account, error) {

@@ -108,6 +108,15 @@ func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer
 		return nil, err
 	}
 
+	keys, resolverSlice, err = rcf.generateMetablockHeaderResolver()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, resolverSlice)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
@@ -197,7 +206,8 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 	}
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
-		rcf.dataPools,
+		rcf.dataPools.Headers(),
+		rcf.dataPools.HeadersNonces(),
 		hdrStorer,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
@@ -325,11 +335,51 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 	if err != nil {
 		return nil, nil, err
 	}
-	resolver, err := resolvers.NewShardHeaderResolver(
+	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.Headers(),
+		rcf.dataPools.HeadersNonces(),
 		hdrStorer,
 		rcf.marshalizer,
+		rcf.uint64ByteSliceConverter,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	//add on the request topic
+	_, err = rcf.createTopicAndAssignHandler(
+		identifierHdr+resolverSender.TopicRequestSuffix(),
+		resolver,
+		false)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []string{identifierHdr}, []dataRetriever.Resolver{resolver}, nil
+}
+
+//------- MetaBlockHeaderResolvers
+
+func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]string, []dataRetriever.Resolver, error) {
+	//only one metachain header block topic
+	//this is: metachainBlocks
+	identifierHdr := factory.MetachainBlocksTopic
+	hdrStorer := rcf.store.GetStorer(dataRetriever.MetaBlockUnit)
+	resolverSender, err := topicResolverSender.NewTopicResolverSender(
+		rcf.messenger,
+		identifierHdr,
+		rcf.marshalizer,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	resolver, err := resolvers.NewHeaderResolver(
+		resolverSender,
+		rcf.dataPools.MetaBlocks(),
+		rcf.dataPools.MetaHeadersNonces(),
+		hdrStorer,
+		rcf.marshalizer,
+		rcf.uint64ByteSliceConverter,
 	)
 	if err != nil {
 		return nil, nil, err

@@ -806,6 +806,16 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
+	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
+	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, err
+	}
+
 	return dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
@@ -813,6 +823,7 @@ func createShardDataPoolFromConfig(
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlockBody,
+		metaBlockNonces,
 	)
 }
 

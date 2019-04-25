@@ -314,6 +314,7 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.MetaBlocks(),
+		icf.dataPool.MetaHeadersNonces(),
 		metachainHeaderStorer,
 		icf.multiSigner,
 		icf.hasher,
