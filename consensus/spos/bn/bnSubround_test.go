@@ -11,26 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
+func TestSubround_NewSubroundNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	sr, err := bn.NewSubround(
-		int(-1),
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		nil,
-	)
-
-	assert.Equal(t, spos.ErrNilChannel, err)
-	assert.Nil(t, sr)
-}
-
-func TestSubround_NewSubroundShouldWork(t *testing.T) {
-	t.Parallel()
-
+	container := mock.InitConsensusCore()
 	ch := make(chan bool, 1)
 
 	sr, err := bn.NewSubround(
@@ -40,7 +24,339 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		nil,
 		ch,
+		container,
+	)
+
+	assert.Equal(t, spos.ErrNilConsensusState, err)
+	assert.Nil(t, sr)
+}
+
+func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		nil,
+		container,
+	)
+
+	assert.Equal(t, spos.ErrNilChannel, err)
+	assert.Nil(t, sr)
+}
+
+func TestSubround_NewSubroundNilContainerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		nil,
+	)
+
+	assert.Equal(t, spos.ErrNilConsensusCore, err)
+	assert.Nil(t, sr)
+}
+
+func TestSubround_NilContainerBlockchainShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+	container.SetBlockchain(nil)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		container,
+	)
+
+	assert.Nil(t, sr)
+	assert.Equal(t, spos.ErrNilBlockChain, err)
+}
+
+func TestSubround_NilContainerBlockprocessorShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+	container.SetBlockProcessor(nil)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		container,
+	)
+
+	assert.Nil(t, sr)
+	assert.Equal(t, spos.ErrNilBlockProcessor, err)
+}
+
+func TestSubround_NilContainerBootstrapperShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+	container.SetBootStrapper(nil)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		container,
+	)
+
+	assert.Nil(t, sr)
+	assert.Equal(t, spos.ErrNilBlootstraper, err)
+}
+
+func TestSubround_NilContainerChronologyShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+	container.SetChronology(nil)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		container,
+	)
+
+	assert.Nil(t, sr)
+	assert.Equal(t, spos.ErrNilChronologyHandler, err)
+}
+
+func TestSubround_NilContainerHasherShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+	container.SetHasher(nil)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		container,
+	)
+
+	assert.Nil(t, sr)
+	assert.Equal(t, spos.ErrNilHasher, err)
+}
+
+func TestSubround_NilContainerMarshalizerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+	container.SetMarshalizer(nil)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		container,
+	)
+
+	assert.Nil(t, sr)
+	assert.Equal(t, spos.ErrNilMarshalizer, err)
+}
+
+func TestSubround_NilContainerMultisignerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+	container.SetMultiSigner(nil)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		container,
+	)
+
+	assert.Nil(t, sr)
+	assert.Equal(t, spos.ErrNilMultiSigner, err)
+}
+
+func TestSubround_NilContainerRounderShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+	container.SetRounder(nil)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		container,
+	)
+
+	assert.Nil(t, sr)
+	assert.Equal(t, spos.ErrNilRounder, err)
+}
+
+func TestSubround_NilContainerShardCoordinatorShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+	container.SetShardCoordinator(nil)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		container,
+	)
+
+	assert.Nil(t, sr)
+	assert.Equal(t, spos.ErrNilShardCoordinator, err)
+}
+
+func TestSubround_NilContainerSyncTimerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+	container.SetSyncTimer(nil)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		container,
+	)
+
+	assert.Nil(t, sr)
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
+}
+
+func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+	container.SetValidatorGroupSelector(nil)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		container,
+	)
+
+	assert.Nil(t, sr)
+	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
+}
+
+func TestSubround_NewSubroundShouldWork(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		container,
 	)
 
 	assert.Nil(t, err)
@@ -58,7 +374,9 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(-1),
@@ -67,29 +385,32 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
-
 	sr.SetJobFunction(nil)
 	sr.SetCheckFunction(func() bool {
 		return true
 	})
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
 	}
 
 	r := sr.DoWork(rounderMock)
+
 	assert.False(t, r)
 }
 
 func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(-1),
@@ -98,16 +419,16 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
 	sr.SetCheckFunction(nil)
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
@@ -120,7 +441,9 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(-1),
@@ -129,9 +452,10 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -140,7 +464,6 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 	})
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
@@ -153,7 +476,9 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		-1,
@@ -162,19 +487,18 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
-
 	sr.SetCheckFunction(func() bool {
 		return true
 	})
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
@@ -187,7 +511,9 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhile(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		-1,
@@ -196,11 +522,12 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
+		container,
 	)
 
 	var mut sync.RWMutex
-
 	mut.Lock()
 	checkSuccess := false
 	mut.Unlock()
@@ -208,7 +535,6 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 	sr.SetJobFunction(func() bool {
 		return true
 	})
-
 	sr.SetCheckFunction(func() bool {
 		mut.RLock()
 		defer mut.RUnlock()
@@ -216,7 +542,6 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 	})
 
 	maxTime := time.Now().Add(2000 * time.Millisecond)
-
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
@@ -240,7 +565,9 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 func TestSubround_Previous(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -249,9 +576,10 @@ func TestSubround_Previous(t *testing.T) {
 		int64(5*roundTimeDuration/100),
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
+		consensusState,
 		ch,
+		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -265,7 +593,9 @@ func TestSubround_Previous(t *testing.T) {
 func TestSubround_Current(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -274,9 +604,10 @@ func TestSubround_Current(t *testing.T) {
 		int64(5*roundTimeDuration/100),
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
+		consensusState,
 		ch,
+		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -290,7 +621,9 @@ func TestSubround_Current(t *testing.T) {
 func TestSubround_Next(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -299,9 +632,10 @@ func TestSubround_Next(t *testing.T) {
 		int64(5*roundTimeDuration/100),
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
+		consensusState,
 		ch,
+		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -315,8 +649,10 @@ func TestSubround_Next(t *testing.T) {
 func TestSubround_StartTime(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-
+	container := mock.InitConsensusCore()
+	container.SetRounder(initRounderMock())
 	sr, _ := bn.NewSubround(
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -324,9 +660,10 @@ func TestSubround_StartTime(t *testing.T) {
 		int64(25*roundTimeDuration/100),
 		int64(40*roundTimeDuration/100),
 		"(COMMITMENT_HASH)",
+		consensusState,
 		ch,
+		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -340,8 +677,10 @@ func TestSubround_StartTime(t *testing.T) {
 func TestSubround_EndTime(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-
+	container := mock.InitConsensusCore()
+	container.SetRounder(initRounderMock())
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
@@ -349,9 +688,10 @@ func TestSubround_EndTime(t *testing.T) {
 		int64(5*roundTimeDuration/100),
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
+		consensusState,
 		ch,
+		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -366,7 +706,9 @@ func TestSubround_EndTime(t *testing.T) {
 func TestSubround_Name(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -375,9 +717,10 @@ func TestSubround_Name(t *testing.T) {
 		int64(5*roundTimeDuration/100),
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
+		consensusState,
 		ch,
+		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})

@@ -1123,9 +1123,14 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 
 // CreateBlockHeader creates a miniblock header list given a block body
 func (bp *blockProcessor) CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error) {
-	header := &block.Header{MiniBlockHeaders: make([]block.MiniBlockHeader, 0)}
-	header.RootHash = bp.getRootHash()
-	header.ShardId = bp.shardCoordinator.SelfId()
+	//TODO add PrevRandSeed and RandSeed when BLS signing is completed
+	header := &block.Header{
+		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
+		RootHash:         bp.getRootHash(),
+		ShardId:          bp.shardCoordinator.SelfId(),
+		PrevRandSeed:     make([]byte, 0),
+		RandSeed:         make([]byte, 0),
+	}
 
 	if body == nil {
 		return header, nil

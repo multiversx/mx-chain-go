@@ -28,7 +28,9 @@ func TestNewHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, hi)
@@ -47,7 +49,9 @@ func TestNewHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
 	assert.Nil(t, hi)
@@ -66,7 +70,9 @@ func TestNewHeaderInterceptor_NilHeadersNoncesShouldErr(t *testing.T) {
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilHeadersNoncesDataPool, err)
 	assert.Nil(t, hi)
@@ -86,7 +92,9 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, hi)
@@ -108,7 +116,9 @@ func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilMessage, hi.ProcessReceivedMessage(nil))
 }
@@ -116,11 +126,16 @@ func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.
 func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
 	wasCalled := 0
 	testedNonce := uint64(67)
+	marshalizer := &mock.MarshalizerMock{}
 	headers := &mock.CacherStub{}
 	multisigner := mock.NewMultiSigner()
+	chronologyValidator := &mock.ChronologyValidatorStub{
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+			return nil
+		},
+	}
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
 		if u == testedNonce {
@@ -141,9 +156,11 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 		storer,
 		multisigner,
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		chronologyValidator,
+	)
 
-	hdr := block.NewInterceptedHeader(multisigner)
+	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
@@ -152,6 +169,8 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	hdr.Signature = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
 	hdr.RootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 	hdr.MiniBlockHeaders = make([]dataBlock.MiniBlockHeader, 0)
 
 	buff, _ := marshalizer.Marshal(hdr)
@@ -174,15 +193,16 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
-
 	wasCalled := 0
-
 	testedNonce := uint64(67)
-
+	marshalizer := &mock.MarshalizerMock{}
 	headers := &mock.CacherStub{}
 	multisigner := mock.NewMultiSigner()
-
+	chronologyValidator := &mock.ChronologyValidatorStub{
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+			return nil
+		},
+	}
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
 		if u == testedNonce {
@@ -204,9 +224,11 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 		storer,
 		multisigner,
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		chronologyValidator,
+	)
 
-	hdr := block.NewInterceptedHeader(multisigner)
+	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
@@ -215,6 +237,8 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 	hdr.Signature = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 	hdr.MiniBlockHeaders = make([]dataBlock.MiniBlockHeader, 0)
 
 	buff, _ := marshalizer.Marshal(hdr)
@@ -237,15 +261,16 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
-
 	wasCalled := 0
-
 	testedNonce := uint64(67)
-
+	marshalizer := &mock.MarshalizerMock{}
 	headers := &mock.CacherStub{}
 	multisigner := mock.NewMultiSigner()
-
+	chronologyValidator := &mock.ChronologyValidatorStub{
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+			return nil
+		},
+	}
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
 		if u == testedNonce {
@@ -269,9 +294,11 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 		storer,
 		multisigner,
 		mock.HasherMock{},
-		shardCoordinator)
+		shardCoordinator,
+		chronologyValidator,
+	)
 
-	hdr := block.NewInterceptedHeader(multisigner)
+	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
@@ -280,6 +307,8 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 	hdr.Signature = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 	hdr.MiniBlockHeaders = make([]dataBlock.MiniBlockHeader, 0)
 
 	buff, _ := marshalizer.Marshal(hdr)

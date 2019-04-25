@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
@@ -27,7 +26,8 @@ import (
 	"github.com/urfave/cli"
 )
 
-var seedNodeHelpTemplate = `NAME:
+var (
+	seedNodeHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
 USAGE:
    {{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}
@@ -42,14 +42,28 @@ VERSION:
    {{.Version}}
    {{end}}
 `
-var p2pConfigurationFile = "./config/p2p.toml"
+	// port defines a flag for setting the port on which the node will listen for connections
+	port = cli.IntFlag{
+		Name:  "port",
+		Usage: "Port number on which the application will start",
+		Value: 10000,
+	}
+	// p2pSeed defines a flag to be used as a seed when generating P2P credentials. Useful for seed nodes.
+	p2pSeed = cli.StringFlag{
+		Name:  "p2p-seed",
+		Usage: "P2P seed will be used when generating credentials for p2p component. Can be any string.",
+		Value: "seed",
+	}
 
-var errNilSeed = errors.New("nil seed")
-var errEmotySeed = errors.New("empty seed")
-var errNilBuffer = errors.New("nil buffer")
-var errEmptyBuffer = errors.New("empty buffer")
-var errInvalidPort = errors.New("cannot start node on port <= 0")
-var errPeerDiscoveryShouldBeKadDht = errors.New("kad-dht peer discovery should have been enabled")
+	p2pConfigurationFile = "./config/p2p.toml"
+
+	errNilSeed                     = errors.New("nil seed")
+	errEmotySeed                   = errors.New("empty seed")
+	errNilBuffer                   = errors.New("nil buffer")
+	errEmptyBuffer                 = errors.New("empty buffer")
+	errInvalidPort                 = errors.New("cannot start node on port <= 0")
+	errPeerDiscoveryShouldBeKadDht = errors.New("kad-dht peer discovery should have been enabled")
+)
 
 type seedRandReader struct {
 	index int
@@ -88,7 +102,7 @@ func main() {
 	cli.AppHelpTemplate = seedNodeHelpTemplate
 	app.Name = "SeedNode CLI App"
 	app.Usage = "This is the entry point for starting a new seed node - the app will help bootnodes connect to the network"
-	app.Flags = []cli.Flag{flags.Port, flags.P2PSeed}
+	app.Flags = []cli.Flag{port, p2pSeed}
 	app.Version = "v0.0.1"
 	app.Authors = []cli.Author{
 		{
@@ -120,11 +134,11 @@ func startNode(ctx *cli.Context) error {
 		return err
 	}
 	fmt.Printf("Initialized with p2p config from: %s\n", p2pConfigurationFile)
-	if ctx.IsSet(flags.Port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalInt(flags.Port.Name)
+	if ctx.IsSet(port.Name) {
+		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
 	}
-	if ctx.IsSet(flags.P2PSeed.Name) {
-		p2pConfig.Node.Seed = ctx.GlobalString(flags.P2PSeed.Name)
+	if ctx.IsSet(p2pSeed.Name) {
+		p2pConfig.Node.Seed = ctx.GlobalString(p2pSeed.Name)
 	}
 
 	fmt.Println("Seed node....")

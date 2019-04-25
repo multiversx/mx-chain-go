@@ -1,7 +1,7 @@
-package spos
+package consensus
 
-// ConsensusMessage defines the data needed by spos to communicate between nodes over network in all subrounds
-type ConsensusMessage struct {
+// Message defines the data needed by spos to communicate between nodes over network in all subrounds
+type Message struct {
 	BlockHeaderHash []byte
 	SubRoundData    []byte
 	PubKey          []byte
@@ -11,7 +11,7 @@ type ConsensusMessage struct {
 	RoundIndex      int32
 }
 
-// NewConsensusMessage creates a new ConsensusMessage object
+// NewConsensusMessage creates a new Message object
 func NewConsensusMessage(
 	blHeaderHash []byte,
 	subRoundData []byte,
@@ -20,9 +20,9 @@ func NewConsensusMessage(
 	msg int,
 	tms uint64,
 	roundIndex int32,
-) *ConsensusMessage {
+) *Message {
 
-	return &ConsensusMessage{
+	return &Message{
 		BlockHeaderHash: blHeaderHash,
 		SubRoundData:    subRoundData,
 		PubKey:          pubKey,

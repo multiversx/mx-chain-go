@@ -11,22 +11,22 @@ Building the repository requires Go (version 1.12 or later)
 ### Installation and running
 
 Run in  %project_folder%/cmd/seednode folder the following command to build a seednode (first node in the network
- used for bootstrapping the bootnodes):
+ used for bootstrapping the nodes):
  
  ```
  $ go build
  $ ./seednode
  ```
  
-Run in  %project_folder%/cmd/bootnode folder the following command to build a bootnode:
+Run in  %project_folder%/cmd/node folder the following command to build a node:
 
 ```
 $ go build
-$ ./bootnode -port 23000 -private-key "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f"
+$ ./node -port 23000 -private-key "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f"
 ```
 
 For the network customization please take a look in the p2p.toml<br />
-For the consensus group customization please take a look in the /cmd/bootnode/genesis.json<br />
+For the consensus group customization please take a look in the /cmd/node/genesis.json<br />
 To run multiple nodes take a look at the end of this document.
 
 ### Running the tests
@@ -79,7 +79,6 @@ $ go test ./...
 ```
 # Start n instances in a group of <consensusGroupSize> (genesis.json) from a total of <initialNodes> (genesis.json) validators,<br />
 # each of them having maximum -max-allowed-peers (flag) peers, with round duration of <roundDuration> (genesis.json) miliseconds<br />
-# in sync mode at the subround level <elasticSubrounds> = false (genesis.json) (with <elasticSubrounds> = true time of solving the consensus will decrease)
 
 # Private keys:
 
@@ -130,7 +129,7 @@ $ go test ./...
 # 21: 0098f7634d7327139848a0f6ad926051596e5a0f692adfb671ab02092b77181d
 
 
-gnome-terminal -- ./bootnode -port 23000 -private-key "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f"
-gnome-terminal -- ./bootnode -port 23001 -private-key "8c7e9c79206f2bf7425050dc14d9b220596cee91c09bcbdd1579297572b63109"
-gnome-terminal -- ./bootnode -port 23002 -private-key "52964f3887b72ea0bd385ee3b60d2321034256d17cb4eec8333d4a4ce1692b08"
+gnome-terminal -- ./node -port 23000 -private-key "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f"
+gnome-terminal -- ./node -port 23001 -private-key "8c7e9c79206f2bf7425050dc14d9b220596cee91c09bcbdd1579297572b63109"
+gnome-terminal -- ./node -port 23002 -private-key "52964f3887b72ea0bd385ee3b60d2321034256d17cb4eec8333d4a4ce1692b08"
 ```

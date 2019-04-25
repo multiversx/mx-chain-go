@@ -14,12 +14,13 @@ import (
 // MetachainHeaderInterceptor represents an interceptor used for metachain block headers
 type MetachainHeaderInterceptor struct {
 	*messageChecker
-	marshalizer      marshal.Marshalizer
-	metachainHeaders storage.Cacher
-	storer           storage.Storer
-	multiSigVerifier crypto.MultiSigVerifier
-	hasher           hashing.Hasher
-	shardCoordinator sharding.Coordinator
+	marshalizer         marshal.Marshalizer
+	metachainHeaders    storage.Cacher
+	storer              storage.Storer
+	multiSigVerifier    crypto.MultiSigVerifier
+	hasher              hashing.Hasher
+	shardCoordinator    sharding.Coordinator
+	chronologyValidator process.ChronologyValidator
 }
 
 // NewMetachainHeaderInterceptor hooks a new interceptor for metachain block headers
@@ -31,6 +32,7 @@ func NewMetachainHeaderInterceptor(
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
+	chronologyValidator process.ChronologyValidator,
 ) (*MetachainHeaderInterceptor, error) {
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
@@ -50,15 +52,19 @@ func NewMetachainHeaderInterceptor(
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if chronologyValidator == nil {
+		return nil, process.ErrNilChronologyValidator
+	}
 
 	return &MetachainHeaderInterceptor{
-		messageChecker:   &messageChecker{},
-		marshalizer:      marshalizer,
-		metachainHeaders: metachainHeaders,
-		storer:           storer,
-		multiSigVerifier: multiSigVerifier,
-		hasher:           hasher,
-		shardCoordinator: shardCoordinator,
+		messageChecker:      &messageChecker{},
+		marshalizer:         marshalizer,
+		metachainHeaders:    metachainHeaders,
+		storer:              storer,
+		multiSigVerifier:    multiSigVerifier,
+		hasher:              hasher,
+		shardCoordinator:    shardCoordinator,
+		chronologyValidator: chronologyValidator,
 	}, nil
 }
 
@@ -70,32 +76,31 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 		return err
 	}
 
-	//TODO: modify this to actually fetch metachain blocks. For now, we place shard headers on this topic
-	hdrIntercepted := block.NewInterceptedHeader(mhi.multiSigVerifier)
-	err = mhi.marshalizer.Unmarshal(hdrIntercepted, message.Data())
+	metaHdrIntercepted := block.NewInterceptedMetaHeader(mhi.multiSigVerifier, mhi.chronologyValidator)
+	err = mhi.marshalizer.Unmarshal(metaHdrIntercepted, message.Data())
 	if err != nil {
 		return err
 	}
 
 	hashWithSig := mhi.hasher.Compute(string(message.Data()))
-	hdrIntercepted.SetHash(hashWithSig)
+	metaHdrIntercepted.SetHash(hashWithSig)
 
-	err = hdrIntercepted.IntegrityAndValidity(mhi.shardCoordinator)
+	err = metaHdrIntercepted.IntegrityAndValidity(mhi.shardCoordinator)
 	if err != nil {
 		return err
 	}
 
-	err = hdrIntercepted.VerifySig()
+	err = metaHdrIntercepted.VerifySig()
 	if err != nil {
 		return err
 	}
 
 	isHeaderInStorage, _ := mhi.storer.Has(hashWithSig)
 	if isHeaderInStorage {
-		log.Debug("intercepted block header already processed")
+		log.Debug("intercepted meta block header already processed")
 		return nil
 	}
 
-	mhi.metachainHeaders.HasOrAdd(hashWithSig, hdrIntercepted.GetHeader())
+	mhi.metachainHeaders.HasOrAdd(hashWithSig, metaHdrIntercepted.GetMetaHeader())
 	return nil
 }
