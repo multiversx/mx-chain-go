@@ -39,7 +39,6 @@ func NewShardHeaderInterceptor(
 	hdrBaseInterceptor, err := interceptors.NewHeaderInterceptorBase(
 		marshalizer,
 		storer,
-		nil,
 		multiSigVerifier,
 		hasher,
 		shardCoordinator,

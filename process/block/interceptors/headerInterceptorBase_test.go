@@ -21,7 +21,6 @@ func TestNewHeaderInterceptorBase_NilMarshalizerShouldErr(t *testing.T) {
 	hi, err := interceptors.NewHeaderInterceptorBase(
 		nil,
 		storer,
-		nil,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -37,7 +36,6 @@ func TestNewHeaderInterceptorBase_NilStorerShouldErr(t *testing.T) {
 
 	hi, err := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
-		nil,
 		nil,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -57,7 +55,6 @@ func TestNewHeaderInterceptorBase_NilMultiSignerShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		storer,
 		nil,
-		nil,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ChronologyValidatorStub{},
@@ -74,7 +71,6 @@ func TestNewHeaderInterceptorBase_NilHasherShouldErr(t *testing.T) {
 	hi, err := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
 		storer,
-		nil,
 		mock.NewMultiSigner(),
 		nil,
 		mock.NewOneShardCoordinatorMock(),
@@ -92,7 +88,6 @@ func TestNewHeaderInterceptorBase_NilShardCoordinatorShouldErr(t *testing.T) {
 	hi, err := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
 		storer,
-		nil,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		nil,
@@ -110,7 +105,6 @@ func TestNewHeaderInterceptorBase_OkValsShouldWork(t *testing.T) {
 	hib, err := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
 		storer,
-		nil,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -130,7 +124,6 @@ func TestHeaderInterceptorBase_ParseReceivedMessageNilMessageShouldErr(t *testin
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
 		storer,
-		nil,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -150,7 +143,6 @@ func TestHeaderInterceptorBase_ParseReceivedMessageNilDataToProcessShouldErr(t *
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
 		storer,
-		nil,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -177,7 +169,6 @@ func TestHeaderInterceptorBase_ParseReceivedMessageMarshalizerErrorsAtUnmarshali
 			},
 		},
 		storer,
-		nil,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -207,7 +198,6 @@ func TestHeaderInterceptorBase_ParseReceivedMessageSanityCheckFailedShouldErr(t 
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		marshalizer,
 		storer,
-		nil,
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -243,7 +233,6 @@ func TestHeaderInterceptorBase_ParseReceivedMessageValsOkShouldWork(t *testing.T
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		marshalizer,
 		storer,
-		nil,
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -296,7 +285,6 @@ func TestHeaderInterceptorBase_ParseReceivedMessageFoundInStorageShouldErr(t *te
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		marshalizer,
 		storer,
-		nil,
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),

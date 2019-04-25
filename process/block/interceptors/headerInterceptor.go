@@ -25,7 +25,6 @@ type HeaderInterceptor struct {
 func NewHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	headers storage.Cacher,
-	headerStatistics storage.Cacher,
 	headersNonces dataRetriever.Uint64Cacher,
 	storer storage.Storer,
 	multiSigVerifier crypto.MultiSigVerifier,
@@ -43,7 +42,6 @@ func NewHeaderInterceptor(
 	hdrBaseInterceptor, err := NewHeaderInterceptorBase(
 		marshalizer,
 		storer,
-		headerStatistics,
 		multiSigVerifier,
 		hasher,
 		shardCoordinator,

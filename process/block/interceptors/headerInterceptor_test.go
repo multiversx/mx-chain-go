@@ -18,14 +18,12 @@ func TestNewHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	headerStatistics := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
 		nil,
 		headers,
-		headerStatistics,
 		headersNonces,
 		storer,
 		mock.NewMultiSigner(),
@@ -43,12 +41,10 @@ func TestNewHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
-	headerStatistics := &mock.CacherStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		nil,
-		headerStatistics,
 		headersNonces,
 		storer,
 		mock.NewMultiSigner(),
@@ -65,13 +61,11 @@ func TestNewHeaderInterceptor_NilHeadersNoncesShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	headerStatistics := &mock.CacherStub{}
 	storer := &mock.StorerStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
-		headerStatistics,
 		nil,
 		storer,
 		mock.NewMultiSigner(),
@@ -88,14 +82,12 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	headerStatistics := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
-		headerStatistics,
 		headersNonces,
 		storer,
 		mock.NewMultiSigner(),
@@ -114,14 +106,12 @@ func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	headerStatistics := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
-		headerStatistics,
 		headersNonces,
 		storer,
 		mock.NewMultiSigner(),
@@ -140,13 +130,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	testedNonce := uint64(67)
 	marshalizer := &mock.MarshalizerMock{}
 	headers := &mock.CacherStub{}
-	headerStatistics := &mock.CacherStub{}
-	headerStatistics.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
-		return false, false
-	}
-	headerStatistics.PutCalled = func(key []byte, value interface{}) (evicted bool) {
-		return false
-	}
 
 	multisigner := mock.NewMultiSigner()
 	chronologyValidator := &mock.ChronologyValidatorStub{
@@ -170,7 +153,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
 		headers,
-		headerStatistics,
 		headersNonces,
 		storer,
 		multisigner,
@@ -216,10 +198,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 	testedNonce := uint64(67)
 	marshalizer := &mock.MarshalizerMock{}
 	headers := &mock.CacherStub{}
-	headerStatistics := &mock.CacherStub{}
-	headerStatistics.PutCalled = func(key []byte, value interface{}) (evicted bool) {
-		return false
-	}
+
 	multisigner := mock.NewMultiSigner()
 	chronologyValidator := &mock.ChronologyValidatorStub{
 		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
@@ -243,7 +222,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
 		headers,
-		headerStatistics,
 		headersNonces,
 		storer,
 		multisigner,
@@ -289,13 +267,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 	testedNonce := uint64(67)
 	marshalizer := &mock.MarshalizerMock{}
 	headers := &mock.CacherStub{}
-	headerStatistics := &mock.CacherStub{}
-	headerStatistics.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
-		return false, false
-	}
-	headerStatistics.PutCalled = func(key []byte, value interface{}) (evicted bool) {
-		return false
-	}
 
 	multisigner := mock.NewMultiSigner()
 	chronologyValidator := &mock.ChronologyValidatorStub{
@@ -322,7 +293,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
 		headers,
-		headerStatistics,
 		headersNonces,
 		storer,
 		multisigner,
