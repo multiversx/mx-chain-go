@@ -13,6 +13,9 @@ var ErrInvalidPrivateKey = errors.New("private key is invalid")
 // ErrNilPrivateKeyScalar is raised when a private key with nil scalar is used
 var ErrNilPrivateKeyScalar = errors.New("private key holds a nil scalar")
 
+// ErrInvalidScalar is raised when an invalid scalar is used
+var ErrInvalidScalar = errors.New("scalar is invalid")
+
 // ErrNilPublicKeys is raised when public keys are expected but received nil
 var ErrNilPublicKeys = errors.New("public keys are nil")
 
@@ -33,6 +36,9 @@ var ErrInvalidPublicKeyString = errors.New("invalid public key string")
 
 // ErrNilHasher is raised when a valid hasher is expected but used nil
 var ErrNilHasher = errors.New("marshalizer is nil")
+
+// ErrWrongSizeHasher is raised when a hasher with a wrong output size is used
+var ErrWrongSizeHasher = errors.New("wrong size hasher")
 
 // ErrIndexOutOfBounds is raised when an out of bound index is used
 var ErrIndexOutOfBounds = errors.New("index is out of bounds")
@@ -60,6 +66,9 @@ var ErrInvalidSuite = errors.New("crypto suite is invalid")
 
 // ErrNilSignature is raised for a nil signature
 var ErrNilSignature = errors.New("signature is nil")
+
+// ErrNilSignaturesList is raised when a nil list of signatures is provided
+var ErrNilSignaturesList = errors.New("signature list is nil")
 
 // ErrNilMessage is raised when trying to verify a nil signed message or trying to sign a nil message
 var ErrNilMessage = errors.New("message to be signed or to be verified is nil")

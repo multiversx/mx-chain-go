@@ -13,12 +13,8 @@ type SuiteMock struct {
 	PointLenStub           func() int
 	CreatePointStub        func() crypto.Point
 	RandomStreamStub       func() cipher.Stream
+	CreateKeyPairStub      func(cipher.Stream) (crypto.Scalar, crypto.Point)
 	GetUnderlyingSuiteStub func() interface{}
-}
-
-type GeneratorSuite struct {
-	SuiteMock
-	CreateKeyStub func(cipher.Stream) (crypto.Scalar, crypto.Point)
 }
 
 func (s *SuiteMock) String() string {
@@ -50,6 +46,6 @@ func (s *SuiteMock) GetUnderlyingSuite() interface{} {
 	return s.GetUnderlyingSuiteStub()
 }
 
-func (gs *GeneratorSuite) CreateKeyPair(c cipher.Stream) (crypto.Scalar, crypto.Point) {
-	return gs.CreateKeyStub(c)
+func (s *SuiteMock) CreateKeyPair(c cipher.Stream) (crypto.Scalar, crypto.Point) {
+	return s.CreateKeyPairStub(c)
 }
