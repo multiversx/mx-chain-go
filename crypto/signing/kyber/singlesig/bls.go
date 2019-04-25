@@ -17,6 +17,10 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 		return nil, crypto.ErrNilPrivateKey
 	}
 
+	if msg == nil {
+		return nil, crypto.ErrNilMessage
+	}
+
 	scalar := private.Scalar()
 	if scalar == nil {
 		return nil, crypto.ErrNilPrivateKeyScalar
