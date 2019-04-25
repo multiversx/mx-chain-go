@@ -55,7 +55,7 @@ func generateTestUnit() storage.Storer {
 }
 
 func initDataPool() *mock.PoolsHolderStub {
-	tdp := &mock.PoolsHolderStub{
+	sdp := &mock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
 				RegisterHandlerCalled: func(i func(key []byte)) {},
@@ -143,7 +143,66 @@ func initDataPool() *mock.PoolsHolderStub {
 			return cs
 		},
 	}
-	return tdp
+	return sdp
+}
+
+func initMetaDataPool() *mock.MetaPoolsHolderStub {
+	mdp := &mock.MetaPoolsHolderStub{
+		MetaBlockNoncesCalled: func() dataRetriever.Uint64Cacher {
+			return &mock.Uint64CacherStub{
+				PutCalled: func(u uint64, i []byte) bool {
+					return true
+				},
+			}
+		},
+		MetaChainBlocksCalled: func() storage.Cacher {
+			return &mock.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+				KeysCalled: func() [][]byte {
+					return nil
+				},
+				LenCalled: func() int {
+					return 0
+				},
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+			}
+		},
+		MiniBlockHashesCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			sdc := &mock.ShardedDataStub{}
+			sdc.RegisterHandlerCalled = func(i func(key []byte)) {
+			}
+			sdc.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal([]byte("bbb"), key) {
+					return make(block.MiniBlockSlice, 0), true
+				}
+
+				return nil, false
+			}
+			sdc.RegisterHandlerCalled = func(i func(key []byte)) {}
+			sdc.RemoveDataCalled = func(key []byte, cacheId string) {
+
+			}
+			return sdc
+		},
+		ShardHeadersCalled: func() storage.Cacher {
+			cs := &mock.CacherStub{}
+			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			}
+			return cs
+		},
+	}
+	return mdp
 }
 
 func initStore() *dataRetriever.ChainStorer {

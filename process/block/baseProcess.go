@@ -21,11 +21,28 @@ var log = logger.DefaultLogger()
 
 type baseProcessor struct {
 	accounts     state.AccountsAdapter
-	dataPool     dataRetriever.PoolsHolder
 	forkDetector process.ForkDetector
 	hasher       hashing.Hasher
 	marshalizer  marshal.Marshalizer
 	store        dataRetriever.StorageService
+}
+
+func checkForNils(
+	chainHandler data.ChainHandler,
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+) error {
+
+	if chainHandler == nil {
+		return process.ErrNilBlockChain
+	}
+	if headerHandler == nil {
+		return process.ErrNilBlockHeader
+	}
+	if bodyHandler == nil {
+		return process.ErrNilMiniBlocks
+	}
+	return nil
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
@@ -42,6 +59,7 @@ func (bp *baseProcessor) checkBlockValidity(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
+
 	if headerHandler == nil {
 		return process.ErrNilBlockHeader
 	}
@@ -181,37 +199,17 @@ func toB64(buff []byte) string {
 	return base64.StdEncoding.EncodeToString(buff)
 }
 
-func checkForNils(
-	chainHandler data.ChainHandler,
-	headerHandler data.HeaderHandler,
-	bodyHandler data.BodyHandler,
-) error {
-	if chainHandler == nil {
-		return process.ErrNilBlockChain
-	}
-	if headerHandler == nil {
-		return process.ErrNilBlockHeader
-	}
-	if bodyHandler == nil {
-		return process.ErrNilMiniBlocks
-	}
-	return nil
-}
-
 // checkProcessorNilParameters will check the imput parameters for nil values
 func checkProcessorNilParameters(
 	accounts state.AccountsAdapter,
-	dataPool dataRetriever.PoolsHolder,
 	forkDetector process.ForkDetector,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
 ) error {
+
 	if accounts == nil {
 		return process.ErrNilAccountsAdapter
-	}
-	if dataPool == nil {
-		return process.ErrNilDataPoolHolder
 	}
 	if forkDetector == nil {
 		return process.ErrNilForkDetector

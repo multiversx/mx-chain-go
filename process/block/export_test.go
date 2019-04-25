@@ -125,20 +125,22 @@ func (mp *metaProcessor) ReceivedHeader(hdrHash []byte) {
 }
 
 func (mp *metaProcessor) AddHdrHashToRequestedList(hdrHash []byte) {
-	mp.mutRequestedHeaderHahses.Lock()
-	defer mp.mutRequestedHeaderHahses.Unlock()
+	mp.mutRequestedShardHeaderHahses.Lock()
+	defer mp.mutRequestedShardHeaderHahses.Unlock()
 
-	if mp.requestedHeaderHashes == nil {
-		mp.requestedHeaderHashes = make(map[string]bool)
+	if mp.requestedShardHeaderHashes == nil {
+		mp.requestedShardHeaderHashes = make(map[string]bool)
 	}
-	mp.requestedHeaderHashes[string(hdrHash)] = true
+
+	mp.requestedShardHeaderHashes[string(hdrHash)] = true
 }
 
 func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
-	mp.mutRequestedHeaderHahses.Lock()
-	defer mp.mutRequestedHeaderHahses.Unlock()
+	mp.mutRequestedShardHeaderHahses.Lock()
+	defer mp.mutRequestedShardHeaderHahses.Unlock()
 
-	_, found := mp.requestedHeaderHashes[string(hdrHash)]
+	_, found := mp.requestedShardHeaderHashes[string(hdrHash)]
+
 	return found
 }
 

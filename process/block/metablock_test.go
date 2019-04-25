@@ -13,10 +13,10 @@ import (
 
 func TestNewMetaProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		nil,
-		tdp,
+		mdp,
 		&mock.ForkDetectorMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
@@ -44,10 +44,10 @@ func TestNewMetaProcessor_NilDataPoolShouldErr(t *testing.T) {
 
 func TestNewMetaProcessor_NilForkDetectorShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
-		tdp,
+		mdp,
 		nil,
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
@@ -60,10 +60,10 @@ func TestNewMetaProcessor_NilForkDetectorShouldErr(t *testing.T) {
 
 func TestNewMetaProcessor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
-		tdp,
+		mdp,
 		&mock.ForkDetectorMock{},
 		nil,
 		&mock.MarshalizerMock{},
@@ -76,10 +76,10 @@ func TestNewMetaProcessor_NilHasherShouldErr(t *testing.T) {
 
 func TestNewMetaProcessor_NilMarshalizerShouldWork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
-		tdp,
+		mdp,
 		&mock.ForkDetectorMock{},
 		&mock.HasherStub{},
 		nil,
@@ -92,10 +92,10 @@ func TestNewMetaProcessor_NilMarshalizerShouldWork(t *testing.T) {
 
 func TestNewMetaProcessor_NilChainStorerShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
-		tdp,
+		mdp,
 		&mock.ForkDetectorMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
@@ -108,10 +108,10 @@ func TestNewMetaProcessor_NilChainStorerShouldErr(t *testing.T) {
 
 func TestNewMetaProcessor_NilrequestHeaderHandlerShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
-		tdp,
+		mdp,
 		&mock.ForkDetectorMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
@@ -124,10 +124,10 @@ func TestNewMetaProcessor_NilrequestHeaderHandlerShouldErr(t *testing.T) {
 
 func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	mdp := initMetaDataPool()
 	mp, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
-		tdp,
+		mdp,
 		&mock.ForkDetectorMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
@@ -142,10 +142,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -159,10 +159,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -176,10 +176,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -192,10 +192,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -209,7 +209,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	// set accounts dirty
 //	journalLen := func() int { return 3 }
 //	revToSnapshot := func(snapshot int) error { return nil }
@@ -227,7 +227,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //			JournalLenCalled:       journalLen,
 //			RevertToSnapshotCalled: revToSnapshot,
 //		},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -242,7 +242,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	txHash := []byte("tx_hash1")
 //	blkc := &blockchain.BlockChain{}
 //	hdr := block.Header{
@@ -274,7 +274,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //			RevertToSnapshotCalled: revertToSnapshot,
 //			RootHashCalled:         rootHashCalled,
 //		},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -291,10 +291,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -317,10 +317,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -343,10 +343,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -373,7 +373,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldRevertState(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	txHash := []byte("tx_hash1")
 //	err := errors.New("process block transaction error")
 //	blkc := &blockchain.BlockChain{
@@ -414,7 +414,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //			RevertToSnapshotCalled: revertToSnapshot,
 //			RootHashCalled:         rootHashCalled,
 //		},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -432,7 +432,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	txHash := []byte("tx_hash1")
 //	blkc := &blockchain.BlockChain{
 //		CurrentBlockHeader: &block.Header{
@@ -472,7 +472,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //			RevertToSnapshotCalled: revertToSnapshot,
 //			RootHashCalled:         rootHashCalled,
 //		},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -492,14 +492,14 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	accounts := &mock.AccountsStub{}
 //	accounts.RevertToSnapshotCalled = func(snapshot int) error {
 //		return nil
 //	}
 //	mp, _ := blproc.NewMetaProcessor(
 //		accounts,
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -513,7 +513,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	rootHash := []byte("root hash to be tested")
 //	accounts := &mock.AccountsStub{
 //		RootHashCalled: func() []byte {
@@ -544,7 +544,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //	}
 //	mp, _ := blproc.NewMetaProcessor(
 //		accounts,
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		marshalizer,
@@ -558,7 +558,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	errPersister := errors.New("failure")
 //	rootHash := []byte("root hash to be tested")
 //	accounts := &mock.AccountsStub{
@@ -588,7 +588,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //	mp, _ := blproc.NewMetaProcessor(
 //		accounts,
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -605,7 +605,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	errPersister := errors.New("failure")
 //	rootHash := []byte("root hash to be tested")
 //	accounts := &mock.AccountsStub{
@@ -641,7 +641,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //	mp, _ := blproc.NewMetaProcessor(
 //		accounts,
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{
 //			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
 //				return nil
@@ -662,7 +662,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	rootHash := []byte("root hash to be tested")
 //	accounts := &mock.AccountsStub{
 //		RootHashCalled: func() []byte {
@@ -685,14 +685,14 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //	mp, _ := blproc.NewMetaProcessor(
 //		accounts,
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
 //		store,
 //		func(shardID uint32, hdrHash []byte) {},
 //	)
-//	tdp.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
+//	mdp.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 //		return nil
 //	}
 //	blkc := createTestBlockchain()
@@ -703,7 +703,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	txHash := []byte("txHash")
 //	rootHash := []byte("root hash")
 //	hdrHash := []byte("header hash")
@@ -743,7 +743,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //	mp, _ := blproc.NewMetaProcessor(
 //		accounts,
-//		tdp,
+//		mdp,
 //		fd,
 //		hasher,
 //		&mock.MarshalizerMock{},
@@ -759,7 +759,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //			return 0
 //		},
 //	}
-//	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+//	mdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 //		return &mock.ShardedDataStub{
 //			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 //				return txCache
@@ -783,7 +783,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	txHash := []byte("txHash")
 //	tx := &transaction.Transaction{}
 //	rootHash := []byte("root hash")
@@ -827,7 +827,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //	mp, _ := blproc.NewMetaProcessor(
 //		accounts,
-//		tdp,
+//		mdp,
 //		fd,
 //		hasher,
 //		&mock.MarshalizerMock{},
@@ -846,7 +846,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //		},
 //	}
 //	removeTxWasCalled := false
-//	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+//	mdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 //		return &mock.ShardedDataStub{
 //			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 //				return txCache
@@ -885,10 +885,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_GetTransactionFromPool(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -903,10 +903,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -930,7 +930,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	journalLen := func() int { return 3 }
 //	revToSnapshot := func(snapshot int) error { return nil }
 //	mp, _ := blproc.NewMetaProcessor(
@@ -938,7 +938,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //			JournalLenCalled:       journalLen,
 //			RevertToSnapshotCalled: revToSnapshot,
 //		},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -955,7 +955,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	journalLen := func() int { return 0 }
 //	rootHashfunc := func() []byte { return []byte("roothash") }
 //	revToSnapshot := func(snapshot int) error { return nil }
@@ -965,7 +965,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //			RootHashCalled:         rootHashfunc,
 //			RevertToSnapshotCalled: revToSnapshot,
 //		},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -985,7 +985,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_CreateTxBlockBodyOK(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	journalLen := func() int { return 0 }
 //	rootHashfunc := func() []byte { return []byte("roothash") }
 //	haveTime := func() bool {
@@ -996,7 +996,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //			JournalLenCalled: journalLen,
 //			RootHashCalled:   rootHashfunc,
 //		},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -1010,10 +1010,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -1026,10 +1026,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -1044,10 +1044,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -1061,10 +1061,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -1136,12 +1136,12 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_DisplayLogInfo(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	hasher := mock.HasherMock{}
 //	hdr := createTestMetaHdr()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -1156,7 +1156,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //	t.Parallel()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		initDataPool(),
+//		initMetaDataPool(),
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -1175,7 +1175,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //	t.Parallel()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		initDataPool(),
+//		initMetaDataPool(),
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -1193,7 +1193,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //	t.Parallel()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		initDataPool(),
+//		initMetaDataPool(),
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -1225,7 +1225,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //		&mock.AccountsStub{
 //			RevertToSnapshotCalled: revToSnapshot,
 //		},
-//		initDataPool(),
+//		initMetaDataPool(),
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
@@ -1239,7 +1239,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	txHash0 := []byte("txHash0")
 //	mb0 := block.MiniBlock{
 //		ReceiverShardID: 0,
@@ -1262,7 +1262,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //	}
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		marshalizer,
@@ -1287,13 +1287,13 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_MarshalizedDataWrongType(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	marshalizer := &mock.MarshalizerMock{
 //		Fail: false,
 //	}
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		marshalizer,
@@ -1310,13 +1310,13 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_MarshalizedDataNilInput(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	marshalizer := &mock.MarshalizerMock{
 //		Fail: false,
 //	}
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		marshalizer,
@@ -1331,7 +1331,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	txHash0 := []byte("txHash0")
 //	mb0 := block.MiniBlock{
 //		ReceiverShardID: 1,
@@ -1347,7 +1347,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //	}
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		marshalizer,
@@ -1477,10 +1477,10 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 //
 //func TestMetaProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.T) {
 //	t.Parallel()
-//	tdp := initDataPool()
+//	mdp := initMetaDataPool()
 //	mp, _ := blproc.NewMetaProcessor(
 //		&mock.AccountsStub{},
-//		tdp,
+//		mdp,
 //		&mock.ForkDetectorMock{},
 //		&mock.HasherStub{},
 //		&mock.MarshalizerMock{},
