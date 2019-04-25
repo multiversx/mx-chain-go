@@ -516,3 +516,58 @@ func BenchmarkPatriciaMerkleTree_Commit(b *testing.B) {
 		tr.Commit()
 	}
 }
+
+func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000Nodes(b *testing.B) {
+	tr := emptyTrie()
+	hsh := keccak.Keccak{}
+
+	nrValuesInTrie := 2000000
+	values := make([][]byte, nrValuesInTrie)
+	nrOfValuesToModify := 30000
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		key := hsh.Compute(strconv.Itoa(i))
+		value := append(key, []byte(strconv.Itoa(i))...)
+
+		tr.Update(key, value)
+		values[i] = key
+	}
+	tr.Commit()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for j := 0; j < nrOfValuesToModify; j++ {
+			tr.Update(values[j], values[j])
+		}
+		tr.Root()
+	}
+}
+
+func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging200Nodes(b *testing.B) {
+	tr := emptyTrie()
+	hsh := keccak.Keccak{}
+
+	nrValuesInTrie := 2000000
+	values := make([][]byte, nrValuesInTrie)
+	nrOfValuesToModify := 30000
+	nrOfValuesToCommit := 200
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		key := hsh.Compute(strconv.Itoa(i))
+		value := append(key, []byte(strconv.Itoa(i))...)
+
+		tr.Update(key, value)
+		values[i] = key
+	}
+	tr.Commit()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for j := 0; j < nrOfValuesToModify; j++ {
+			tr.Update(values[j], values[j])
+			if j%nrOfValuesToCommit == 0 {
+				tr.Root()
+			}
+		}
+	}
+}

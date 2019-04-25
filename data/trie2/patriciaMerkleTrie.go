@@ -94,7 +94,7 @@ func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 		return nil, ErrNilNode
 	}
 	hash := tr.root.getHash()
-	if !tr.root.isDirty() && hash != nil {
+	if hash != nil {
 		return hash, nil
 	}
 	err := tr.root.setHash(tr.marshalizer, tr.hasher)
