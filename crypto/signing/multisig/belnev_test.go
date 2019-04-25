@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/stretchr/testify/assert"
@@ -341,6 +341,73 @@ func TestBelNevSigner_CreateOK(t *testing.T) {
 
 	_, err = multiSigCreated.Commitment(ownIndex)
 	assert.Equal(t, crypto.ErrNilElement, err)
+}
+
+func TestBelNevSigner_ResetOutOfBoundsIndexShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ownIndex := uint16(3)
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
+	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+
+	err := multiSig.Reset(pubKeys, 10)
+	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
+}
+
+func TestBelNevSigner_ResetNilPubKeysShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ownIndex := uint16(3)
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
+
+	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	err := multiSig.Reset(nil, ownIndex)
+
+	assert.Equal(t, crypto.ErrNilPublicKeys, err)
+}
+
+func TestBelNevSigner_ResetInvalidPubKeyInListShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ownIndex := uint16(3)
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
+
+	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+
+	pubKeys[1] = "invalid"
+	err := multiSig.Reset(pubKeys, ownIndex)
+
+	assert.Equal(t, crypto.ErrInvalidPublicKeyString, err)
+}
+
+func TestBelNevSigner_ResetEmptyPubKeyInListShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ownIndex := uint16(3)
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
+
+	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+
+	pubKeys[1] = ""
+	err := multiSig.Reset(pubKeys, ownIndex)
+
+	assert.Equal(t, crypto.ErrEmptyPubKeyString, err)
+}
+
+func TestBelNevSigner_ResetOK(t *testing.T) {
+	t.Parallel()
+
+	ownIndex := uint16(3)
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
+	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+
+	err := multiSig.Reset(pubKeys, ownIndex)
+	assert.Nil(t, err)
 }
 
 func TestBelNevSigner_SetNilMessageShouldErr(t *testing.T) {

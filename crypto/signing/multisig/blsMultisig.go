@@ -4,8 +4,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 )
 
@@ -42,10 +40,12 @@ type blsMultiSigner struct {
 	mutSigData sync.RWMutex
 	hasher     hashing.Hasher // 16bytes output hasher!
 	keyGen     crypto.KeyGenerator
+	llSigner   crypto.LowLevelSignerBLS
 }
 
 // NewBLSMultisig creates a new BLS multi-signer
 func NewBLSMultisig(
+	llSigner crypto.LowLevelSignerBLS,
 	hasher hashing.Hasher,
 	pubKeys []string,
 	privKey crypto.PrivateKey,
@@ -98,6 +98,7 @@ func NewBLSMultisig(
 		mutSigData: sync.RWMutex{},
 		hasher:     hasher,
 		keyGen:     keyGen,
+		llSigner:   llSigner,
 	}, nil
 }
 
@@ -142,7 +143,7 @@ func (bms *blsMultiSigner) Create(pubKeys []string, index uint16) (crypto.MultiS
 	privKey := bms.data.privKey
 	bms.mutSigData.RUnlock()
 
-	return NewBLSMultisig(bms.hasher, pubKeys, privKey, bms.keyGen, index)
+	return NewBLSMultisig(bms.llSigner, bms.hasher, pubKeys, privKey, bms.keyGen, index)
 }
 
 // SetMessage sets the message to be multi-signed upon
@@ -169,8 +170,7 @@ func (bms *blsMultiSigner) CreateSignatureShare() ([]byte, error) {
 	defer bms.mutSigData.Unlock()
 
 	data := bms.data
-	blsSingleSigner := &singlesig.BlsSingleSigner{}
-	sigShareBytes, err := blsSingleSigner.Sign(data.privKey, data.message)
+	sigShareBytes, err := bms.llSigner.SignShare(data.privKey, data.message)
 	if err != nil {
 		return nil, err
 	}
@@ -211,15 +211,14 @@ func (bms *blsMultiSigner) VerifySignatureShare(index uint16, sig []byte) error 
 	}
 
 	pubKey := bms.data.pubKeys[index]
-	blsSingleSigner := &singlesig.BlsSingleSigner{}
 
-	return blsSingleSigner.Verify(pubKey, bms.data.message, sig)
+	return bms.llSigner.VerifySigShare(pubKey, bms.data.message, sig)
 }
 
 // StoreSignatureShare stores the partial signature of the signer with specified position
 // Function does not validate the signature, as it expects caller to have already called VerifySignatureShare
 func (bms *blsMultiSigner) StoreSignatureShare(index uint16, sig []byte) error {
-	err := multisig.VerifySigBytesBLS(bms.keyGen.Suite(), sig)
+	err := bms.llSigner.VerifySigBytes(bms.keyGen.Suite(), sig)
 	if err != nil {
 		return err
 	}
@@ -281,7 +280,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		}
 
 		// H1(pubKey_i)*sig_i
-		s, err := scalarMulSig(bms.keyGen.Suite(), hPk, bms.data.sigShares[i])
+		s, err := scalarMulSig(bms.llSigner, bms.keyGen.Suite(), hPk, bms.data.sigShares[i])
 		if err != nil {
 			return nil, err
 		}
@@ -293,7 +292,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		return nil, crypto.ErrNilSignaturesList
 	}
 
-	aggSigs, err := multisig.AggregateSignatures(bms.keyGen.Suite(), prepSigs...)
+	aggSigs, err := bms.llSigner.AggregateSignatures(bms.keyGen.Suite(), prepSigs...)
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +304,7 @@ func (bms *blsMultiSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 
 // SetAggregatedSig sets the aggregated signature
 func (bms *blsMultiSigner) SetAggregatedSig(aggSig []byte) error {
-	err := multisig.VerifySigBytesBLS(bms.keyGen.Suite(), aggSig)
+	err := bms.llSigner.VerifySigBytes(bms.keyGen.Suite(), aggSig)
 	if err != nil {
 		return err
 	}
@@ -344,15 +343,20 @@ func (bms *blsMultiSigner) Verify(bitmap []byte) error {
 		pubKeysPoints = append(pubKeysPoints, bms.data.pubKeys[i].Point())
 	}
 
-	aggPointsBytes, err := aggregatePublicKeys(bms.keyGen.Suite(), pubKeysPoints, bms.hasher)
+	aggPointsBytes, err := aggregatePublicKeys(bms.llSigner, bms.keyGen.Suite(), pubKeysPoints, bms.hasher)
 	if err != nil {
 		return err
 	}
 
-	return multisig.VerifyAggregatedSig(bms.keyGen.Suite(), aggPointsBytes, bms.data.aggSig, bms.data.message)
+	return bms.llSigner.VerifyAggregatedSig(bms.keyGen.Suite(), aggPointsBytes, bms.data.aggSig, bms.data.message)
 }
 
-func aggregatePublicKeys(suite crypto.Suite, pubKeys []crypto.Point, hasher hashing.Hasher) ([]byte, error) {
+func aggregatePublicKeys(
+	lls crypto.LowLevelSignerBLS,
+	suite crypto.Suite,
+	pubKeys []crypto.Point,
+	hasher hashing.Hasher,
+) ([]byte, error) {
 	prepPubKeysPoints := make([]crypto.Point, 0)
 
 	for i := range pubKeys {
@@ -371,7 +375,7 @@ func aggregatePublicKeys(suite crypto.Suite, pubKeys []crypto.Point, hasher hash
 		prepPubKeysPoints = append(prepPubKeysPoints, prepPoint)
 	}
 
-	aggPointsBytes, err := multisig.AggregateKyberPublicKeys(suite, prepPubKeysPoints...)
+	aggPointsBytes, err := lls.AggregatePublicKeys(suite, prepPubKeysPoints...)
 
 	return aggPointsBytes, err
 }
@@ -393,13 +397,13 @@ func scalarMulPk(suite crypto.Suite, scalarBytes []byte, pk crypto.Point) (crypt
 }
 
 // scalarMulSig returns the result of multiplying a scalar given as a bytes array, with a BLS single signature
-func scalarMulSig(suite crypto.Suite, scalarBytes []byte, sig []byte) ([]byte, error) {
+func scalarMulSig(lls crypto.LowLevelSignerBLS, suite crypto.Suite, scalarBytes []byte, sig []byte) ([]byte, error) {
 	scalar, err := createScalar(suite, scalarBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return multisig.ScalarMulSigBLS(suite, scalar, sig)
+	return lls.ScalarMulSig(suite, scalar, sig)
 }
 
 // hashPublicKeyPoint hashes a BLS public key (point) into a byte array (32 bytes length)

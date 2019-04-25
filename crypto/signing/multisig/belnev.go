@@ -135,6 +135,10 @@ func NewBelNevMultisig(
 
 // Reset resets the multiSigData inside the multiSigner
 func (bn *belNevSigner) Reset(pubKeys []string, index uint16) error {
+	if pubKeys == nil {
+		return crypto.ErrNilPublicKeys
+	}
+
 	if index >= uint16(len(pubKeys)) {
 		return crypto.ErrIndexOutOfBounds
 	}

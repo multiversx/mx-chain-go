@@ -2,12 +2,28 @@ package multisig
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing"
 	"go.dedis.ch/kyber/v3/sign/bls"
 )
 
-func VerifySigBytesBLS(suite crypto.Suite, sig []byte) error {
+type KyberMultiSignerBLS struct {
+}
+
+func (kms *KyberMultiSignerBLS) VerifySigShare(pubKey crypto.PublicKey, message []byte, sig []byte) error {
+	blsSingleSigner := &singlesig.BlsSingleSigner{}
+
+	return blsSingleSigner.Verify(pubKey, message, sig)
+}
+
+func (kms *KyberMultiSignerBLS) SignShare(privKey crypto.PrivateKey, message []byte) ([]byte, error) {
+	blsSingleSigner := &singlesig.BlsSingleSigner{}
+
+	return blsSingleSigner.Sign(privKey, message)
+}
+
+func (kms *KyberMultiSignerBLS) VerifySigBytes(suite crypto.Suite, sig []byte) error {
 	if suite == nil {
 		return crypto.ErrNilSuite
 	}
@@ -16,37 +32,13 @@ func VerifySigBytesBLS(suite crypto.Suite, sig []byte) error {
 		return crypto.ErrNilSignature
 	}
 
-	_, err := kyberSigPointBLS(suite, sig)
+	_, err := kms.kyberSigPoint(suite, sig)
 
 	return err
 }
 
-func ScalarMulSigBLS(suite crypto.Suite, scalar crypto.Scalar, sig []byte) ([]byte, error) {
-	if sig == nil {
-		return nil, crypto.ErrNilParam
-	}
-
-	kScalar, ok := scalar.GetUnderlyingObj().(kyber.Scalar)
-	if !ok {
-		return nil, crypto.ErrInvalidScalar
-	}
-
-	sigKPoint, err := kyberSigPointBLS(suite, sig)
-	if err != nil {
-		return nil, err
-	}
-
-	resPoint := sigKPoint.Mul(kScalar, sigKPoint)
-	resBytes, err := resPoint.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	return resBytes, nil
-}
-
 // AggregateSignatures produces an aggregation of single BLS signatures
-func AggregateSignatures(suite crypto.Suite, sigs ...[]byte) ([]byte, error) {
+func (kms *KyberMultiSignerBLS) AggregateSignatures(suite crypto.Suite, sigs ...[]byte) ([]byte, error) {
 	if suite == nil {
 		return nil, crypto.ErrNilSuite
 	}
@@ -64,7 +56,7 @@ func AggregateSignatures(suite crypto.Suite, sigs ...[]byte) ([]byte, error) {
 }
 
 // VerifyAggregatedSig verifies if a BLS aggregated signature is valid
-func VerifyAggregatedSig(suite crypto.Suite, aggPointsBytes []byte, aggSigBytes []byte, msg []byte) error {
+func (kms *KyberMultiSignerBLS) VerifyAggregatedSig(suite crypto.Suite, aggPointsBytes []byte, aggSigBytes []byte, msg []byte) error {
 	if suite == nil {
 		return crypto.ErrNilSuite
 	}
@@ -84,7 +76,7 @@ func VerifyAggregatedSig(suite crypto.Suite, aggPointsBytes []byte, aggSigBytes 
 }
 
 // AggregateKyberPublicKeys produces an aggregation of BLS public keys (points)
-func AggregateKyberPublicKeys(suite crypto.Suite, pubKeys ...crypto.Point) ([]byte, error) {
+func (kms *KyberMultiSignerBLS) AggregatePublicKeys(suite crypto.Suite, pubKeys ...crypto.Point) ([]byte, error) {
 	if pubKeys == nil {
 		return nil, crypto.ErrNilPublicKeys
 	}
@@ -111,7 +103,31 @@ func AggregateKyberPublicKeys(suite crypto.Suite, pubKeys ...crypto.Point) ([]by
 	return kyberAggPubKey.MarshalBinary()
 }
 
-func kyberSigPointBLS(suite crypto.Suite, sig []byte) (kyber.Point, error) {
+func (kms *KyberMultiSignerBLS) ScalarMulSig(suite crypto.Suite, scalar crypto.Scalar, sig []byte) ([]byte, error) {
+	if sig == nil {
+		return nil, crypto.ErrNilParam
+	}
+
+	kScalar, ok := scalar.GetUnderlyingObj().(kyber.Scalar)
+	if !ok {
+		return nil, crypto.ErrInvalidScalar
+	}
+
+	sigKPoint, err := kms.kyberSigPoint(suite, sig)
+	if err != nil {
+		return nil, err
+	}
+
+	resPoint := sigKPoint.Mul(kScalar, sigKPoint)
+	resBytes, err := resPoint.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	return resBytes, nil
+}
+
+func (kms *KyberMultiSignerBLS) kyberSigPoint(suite crypto.Suite, sig []byte) (kyber.Point, error) {
 	kSuite, ok := suite.GetUnderlyingSuite().(pairing.Suite)
 	if !ok {
 		return nil, crypto.ErrInvalidSuite

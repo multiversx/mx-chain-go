@@ -225,3 +225,13 @@ type MultiSigVerifierBLS interface {
 	// Verify verifies the aggregated signature
 	Verify(bitmap []byte) error
 }
+
+type LowLevelSignerBLS interface {
+	VerifySigShare(pubKey PublicKey, message []byte, sig []byte) error
+	SignShare(privKey PrivateKey, message []byte) ([]byte, error)
+	VerifySigBytes(suite Suite, sig []byte) error
+	AggregateSignatures(suite Suite, sigs ...[]byte) ([]byte, error)
+	VerifyAggregatedSig(suite Suite, aggPointsBytes []byte, aggSigBytes []byte, msg []byte) error
+	AggregatePublicKeys(suite Suite, pubKeys ...Point) ([]byte, error)
+	ScalarMulSig(suite Suite, scalar Scalar, sig []byte) ([]byte, error)
+}
