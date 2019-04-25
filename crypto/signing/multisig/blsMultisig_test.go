@@ -636,7 +636,7 @@ func TestBLSMultiSigner_AggregateSigsMissingSigShareShouldErr(t *testing.T) {
 	aggSig, err := multiSigner.AggregateSigs(bitmap)
 
 	assert.Nil(t, aggSig)
-	assert.Equal(t, crypto.ErrNilParam, err)
+	assert.Equal(t, crypto.ErrNilSignature, err)
 }
 
 func TestBLSMultiSigner_AggregateSigsZeroSelectionBitmapShouldErr(t *testing.T) {
