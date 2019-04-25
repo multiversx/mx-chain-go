@@ -225,7 +225,7 @@ func (mp *metaProcessor) CreateBlockBody(round int32, haveTime func() bool) (dat
 
 // CreateGenesisBlock creates the genesis block body from map of account balances
 func (mp *metaProcessor) CreateGenesisBlock(balances map[string]*big.Int) (rootHash []byte, err error) {
-	// TODO: we have to think what do we add here, something like initial peer list. staked accounts.
+	// TODO: add here, something like initial peer list. staked accounts
 	return []byte("metachain genesis block root hash"), nil
 }
 
@@ -392,7 +392,7 @@ func (mp *metaProcessor) CommitBlock(
 }
 
 // getHeaderFromPool gets the header from a given shard id and a given header hash
-func (mp *metaProcessor) getHeaderFromPool(shardID uint32, headerHash []byte) *block.Header {
+func (mp *metaProcessor) getHeaderFromPool(shardID uint32, headerHash []byte) data.HeaderHandler {
 	headerPool := mp.dataPool.ShardHeaders()
 	if headerPool == nil {
 		log.Error(process.ErrNilHeadersDataPool.Error())
@@ -480,7 +480,7 @@ func (mp *metaProcessor) processAndRemoveBadShardMiniBlockHeader(
 	if hdrPool == nil {
 		return process.ErrNilHeadersDataPool
 	}
-	// TODO: Real processing has to be done here, using metachain state.
+	// TODO: real processing has to be done here, using metachain state
 	return nil
 }
 
@@ -609,7 +609,13 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 
 // CreateBlockHeader creates a miniblock header list given a block body
 func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error) {
-	header := &block.MetaBlock{}
+	// TODO: add PrevRandSeed and RandSeed when BLS signing is completed
+	header := &block.MetaBlock{
+		ShardInfo:    make([]block.ShardData, 0),
+		PeerInfo:     make([]block.PeerData, 0),
+		PrevRandSeed: make([]byte, 0),
+		RandSeed:     make([]byte, 0),
+	}
 
 	shardInfo, err := mp.createShardInfo(maxHeadersInBlock, round, haveTime)
 	if err != nil {
@@ -772,7 +778,7 @@ func getHdrs(hdrStore storage.Cacher) ([]*block.Header, [][]byte, error) {
 		headers = append(headers, hdr)
 	}
 
-	// TODO: It is mandatory to have sorting by round per shard. shard headers has to be processed in order.
+	// TODO: it is mandatory to have sorting by round per shard. shard headers has to be processed in order
 	return headers, hdrHashes, nil
 }
 

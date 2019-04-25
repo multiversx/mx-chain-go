@@ -560,7 +560,7 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 			}
 		}
 
-		// TODO: The final block should be given by metachain
+		// TODO: the final block should be given by metachain
 		blockIsFinal := hdr.GetNonce() <= sp.forkDetector.GetHighestFinalBlockNonce()
 		if processedAll && blockIsFinal {
 			// metablock was processed adn finalized
@@ -660,9 +660,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		return
 	}
 
-	// TODO validate the metaheader, through metaprocessor
-	// TODO save only headers with nonce higher than current
-
+	// TODO: validate the metaheader, through metaprocessor and save only headers with nonce higher than current
 	crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 	for key, senderShardId := range crossMiniBlockHashes {
 		miniVal, _ := miniBlockCache.Peek([]byte(key))
@@ -847,7 +845,7 @@ func (sp *shardProcessor) processMiniBlockComplete(
 		log.Error(err.Error())
 		errAccountState := sp.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
-			//TODO evaluate if reloading the trie from disk will might solve the problem
+			// TODO: evaluate if reloading the trie from disk will might solve the problem
 			log.Error(errAccountState.Error())
 		}
 	}
@@ -1082,9 +1080,14 @@ func (sp *shardProcessor) createMiniBlocks(
 
 // CreateBlockHeader creates a miniblock header list given a block body
 func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error) {
-	header := &block.Header{MiniBlockHeaders: make([]block.MiniBlockHeader, 0)}
-	header.RootHash = sp.getRootHash()
-	header.ShardId = sp.shardCoordinator.SelfId()
+	// TODO: add PrevRandSeed and RandSeed when BLS signing is completed
+	header := &block.Header{
+		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
+		RootHash:         sp.getRootHash(),
+		ShardId:          sp.shardCoordinator.SelfId(),
+		PrevRandSeed:     make([]byte, 0),
+		RandSeed:         make([]byte, 0),
+	}
 
 	if bodyHandler == nil {
 		return header, nil
@@ -1192,7 +1195,7 @@ func createDisplayableShardHeaderAndBlockBody(
 		return tableHeader, shardLines
 	}
 
-	//TODO: implement the other block bodies
+	// TODO: implement the other block bodies
 
 	shardLines = append(shardLines, display.NewLineData(false, []string{"Unknown", "", ""}))
 	return tableHeader, shardLines

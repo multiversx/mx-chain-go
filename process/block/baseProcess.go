@@ -70,7 +70,7 @@ func (bp *baseProcessor) checkBlockValidity(
 	if chainHandler.GetCurrentBlockHeader() == nil {
 		if headerHandler.GetNonce() == 1 { // first block after genesis
 			if bytes.Equal(headerHandler.GetPrevHash(), chainHandler.GetGenesisHeaderHash()) {
-				// TODO add genesis block verification
+				// TODO: add genesis block verification
 				return nil
 			}
 
@@ -111,9 +111,10 @@ func (bp *baseProcessor) checkBlockValidity(
 	}
 
 	if bodyHandler != nil {
-		// TODO add bodyHandler verification here
+		// TODO: add bodyHandler verification here
 	}
 
+	// TODO: add signature validation as well, with randomness source and all
 	return nil
 }
 
