@@ -100,7 +100,7 @@ func (sp *shardProcessor) RemoveTxBlockFromPools(blockBody block.Body) error {
 	return sp.removeTxBlockFromPools(blockBody)
 }
 
-func (mp *metaProcessor) GetHeaderFromPool(shardID uint32, headerHash []byte) *block.Header {
+func (mp *metaProcessor) GetHeaderFromPool(shardID uint32, headerHash []byte) data.HeaderHandler {
 	return mp.getHeaderFromPool(shardID, headerHash)
 }
 
