@@ -26,7 +26,6 @@ const hasherOutputSize = 16
 
 type blsMultiSigData struct {
 	grSize  uint16
-	message []byte
 	pubKeys []crypto.PublicKey
 	privKey crypto.PrivateKey
 	// signatures in BLS are points on curve G1
@@ -146,31 +145,14 @@ func (bms *blsMultiSigner) Create(pubKeys []string, index uint16) (crypto.MultiS
 	return NewBLSMultisig(bms.llSigner, bms.hasher, pubKeys, privKey, bms.keyGen, index)
 }
 
-// SetMessage sets the message to be multi-signed upon
-func (bms *blsMultiSigner) SetMessage(msg []byte) error {
-	if msg == nil {
-		return crypto.ErrNilMessage
-	}
-
-	if len(msg) == 0 {
-		return crypto.ErrInvalidParam
-	}
-
-	bms.mutSigData.Lock()
-	bms.data.message = msg
-	bms.mutSigData.Unlock()
-
-	return nil
-}
-
 // CreateSignatureShare returns a BLS single signature over the message previously configured with a previous call of
 // SetMessage
-func (bms *blsMultiSigner) CreateSignatureShare() ([]byte, error) {
+func (bms *blsMultiSigner) CreateSignatureShare(message []byte) ([]byte, error) {
 	bms.mutSigData.Lock()
 	defer bms.mutSigData.Unlock()
 
 	data := bms.data
-	sigShareBytes, err := bms.llSigner.SignShare(data.privKey, data.message)
+	sigShareBytes, err := bms.llSigner.SignShare(data.privKey, message)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +179,7 @@ func (bms *blsMultiSigner) isIndexInBitmap(index uint16, bitmap []byte) error {
 
 // VerifySignatureShare verifies the single signature share of the signer with specified position
 // Signature is verified over a message configured with a previous call of SetMessage
-func (bms *blsMultiSigner) VerifySignatureShare(index uint16, sig []byte) error {
+func (bms *blsMultiSigner) VerifySignatureShare(index uint16, sig []byte, message []byte) error {
 	if sig == nil {
 		return crypto.ErrNilSignature
 	}
@@ -212,7 +194,7 @@ func (bms *blsMultiSigner) VerifySignatureShare(index uint16, sig []byte) error 
 
 	pubKey := bms.data.pubKeys[index]
 
-	return bms.llSigner.VerifySigShare(pubKey, bms.data.message, sig)
+	return bms.llSigner.VerifySigShare(pubKey, message, sig)
 }
 
 // StoreSignatureShare stores the partial signature of the signer with specified position
@@ -318,7 +300,7 @@ func (bms *blsMultiSigner) SetAggregatedSig(aggSig []byte) error {
 
 // Verify verifies the aggregated signature by checking that aggregated signature is valid with respect
 // to aggregated public keys.
-func (bms *blsMultiSigner) Verify(bitmap []byte) error {
+func (bms *blsMultiSigner) Verify(bitmap []byte, message []byte) error {
 	if bitmap == nil {
 		return crypto.ErrNilBitmap
 	}

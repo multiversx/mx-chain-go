@@ -21,7 +21,7 @@ func (sha HasherSpongeMock) Compute(s string) []byte {
 
 // EmptyHash will return the equivalent of empty string SHA's
 func (sha HasherSpongeMock) EmptyHash() []byte {
-	if len(sha256EmptyHash) == 0 {
+	if len(hasherSpongeEmptyHash) == 0 {
 		hasherSpongeEmptyHash = sha.Compute("")
 	}
 	return hasherSpongeEmptyHash

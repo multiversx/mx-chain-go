@@ -258,3 +258,12 @@ var ErrNoTransactionInMessage = errors.New("no transaction found in received mes
 
 // ErrNilBuffer signals that a provided byte buffer is nil
 var ErrNilBuffer = errors.New("provided byte buffer is nil")
+
+// ErrNilChronologyValidator signals that a nil chronology validator has been provided
+var ErrNilChronologyValidator = errors.New("provided chronology validator object is nil")
+
+// ErrNilRandSeed signals that a nil rand seed has been provided
+var ErrNilRandSeed = errors.New("provided rand seed is nil")
+
+// ErrNilPrevRandSeed signals that a nil previous rand seed has been provided
+var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")

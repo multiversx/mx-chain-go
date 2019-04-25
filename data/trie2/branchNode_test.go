@@ -427,6 +427,46 @@ func TestBranchNode_tryGetNilNode(t *testing.T) {
 	assert.Nil(t, val)
 }
 
+func TestBranchNode_getNext(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, _ := getTestMarshAndHasher()
+	nextNode := &leafNode{Key: []byte("dog"), Value: []byte("dog"), dirty: true}
+	key := []byte{2, 100, 111, 103}
+
+	node, key, err := bn.getNext(key, db, marsh)
+	assert.Equal(t, nextNode, node)
+	assert.Equal(t, []byte{100, 111, 103}, key)
+	assert.Nil(t, err)
+}
+
+func TestBranchNode_getNextWrongKey(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, _ := getTestMarshAndHasher()
+	key := []byte{100, 111, 103}
+
+	node, key, err := bn.getNext(key, db, marsh)
+	assert.Nil(t, node)
+	assert.Nil(t, key)
+	assert.Equal(t, ErrChildPosOutOfRange, err)
+}
+
+func TestBranchNode_getNextNilChild(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, _ := getTestMarshAndHasher()
+	key := []byte{4, 100, 111, 103}
+
+	node, key, err := bn.getNext(key, db, marsh)
+	assert.Nil(t, node)
+	assert.Nil(t, key)
+	assert.Equal(t, ErrNodeNotFound, err)
+}
+
 func TestBranchNode_insert(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()
@@ -586,37 +626,9 @@ func TestBranchNode_reduceNode(t *testing.T) {
 	var children [nrOfChildren]node
 	children[2] = &leafNode{Key: []byte("dog"), Value: []byte("dog"), dirty: true}
 	bn := &branchNode{children: children, dirty: true}
-	en := &extensionNode{Key: []byte{2}, child: children[2], dirty: true}
+	ln := &leafNode{Key: []byte{2, 100, 111, 103}, Value: []byte("dog"), dirty: true}
 	node := bn.reduceNode(2)
-	assert.Equal(t, en, node)
-}
-
-func TestBranchNode_nextChild(t *testing.T) {
-	t.Parallel()
-	bn, _ := getBnAndCollapsedBn()
-	marsh, hasher := getTestMarshAndHasher()
-	bn.setHash(marsh, hasher)
-
-	state := &nodeIteratorState{
-		hash:    bn.getHash(),
-		node:    bn,
-		parent:  nil,
-		index:   -1,
-		pathlen: 0,
-	}
-	expectedState := &nodeIteratorState{
-		hash:    bn.children[2].getHash(),
-		node:    bn.children[2],
-		parent:  bn.getHash(),
-		index:   -1,
-		pathlen: 0,
-	}
-	expectedPath := []byte{2, 100, 111, 103}
-
-	newState, newPath, ok := bn.nextChild(state, nil)
-	assert.Equal(t, expectedState, newState)
-	assert.Equal(t, expectedPath, newPath)
-	assert.True(t, ok)
+	assert.Equal(t, ln, node)
 }
 
 func TestBranchNode_getChildPosition(t *testing.T) {

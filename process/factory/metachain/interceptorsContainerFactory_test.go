@@ -84,6 +84,7 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -101,6 +102,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -118,6 +120,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -135,6 +138,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -152,6 +156,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		nil,
 		mock.NewMultiSigner(),
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -169,6 +174,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		nil,
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -186,6 +192,7 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
 		nil,
+		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -203,6 +210,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.NotNil(t, icf)
@@ -222,6 +230,7 @@ func TestInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t *tes
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	container, err := icf.Create()
@@ -241,6 +250,7 @@ func TestInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFailsSh
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	container, err := icf.Create()
@@ -260,6 +270,7 @@ func TestInterceptorsContainerFactory_CreateRegisterForMetablocksFailsShouldErr(
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	container, err := icf.Create()
@@ -279,6 +290,7 @@ func TestInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachainFail
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	container, err := icf.Create()
@@ -305,6 +317,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	container, err := icf.Create()
@@ -337,6 +350,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
+		&mock.ChronologyValidatorStub{},
 	)
 
 	container, _ := icf.Create()

@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -169,6 +170,17 @@ func WithSyncer(syncer ntp.SyncTimer) Option {
 	}
 }
 
+// WithRounder sets up the rounder option for the Node
+func WithRounder(rounder consensus.Rounder) Option {
+	return func(n *Node) error {
+		if rounder == nil {
+			return ErrNilRounder
+		}
+		n.rounder = rounder
+		return nil
+	}
+}
+
 // WithBlockProcessor sets up the block processor option for the Node
 func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	return func(n *Node) error {
@@ -188,14 +200,6 @@ func WithGenesisTime(genesisTime time.Time) Option {
 	}
 }
 
-// WithElasticSubrounds sets up the elastic subround option for the Node
-func WithElasticSubrounds(elasticSubrounds bool) Option {
-	return func(n *Node) error {
-		n.elasticSubrounds = elasticSubrounds
-		return nil
-	}
-}
-
 // WithDataPool sets up the data pools option for the Node
 func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 	return func(n *Node) error {
@@ -203,6 +207,17 @@ func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 			return ErrNilDataPool
 		}
 		n.dataPool = dataPool
+		return nil
+	}
+}
+
+// WithMetaDataPool sets up the data pools option for the Node
+func WithMetaDataPool(dataPool dataRetriever.MetaPoolsHolder) Option {
+	return func(n *Node) error {
+		if dataPool == nil {
+			return ErrNilDataPool
+		}
+		n.metaDataPool = dataPool
 		return nil
 	}
 }

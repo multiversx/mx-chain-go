@@ -49,6 +49,7 @@ type ResolversContainer interface {
 type ResolversFinder interface {
 	ResolversContainer
 	IntraShardResolver(baseTopic string) (Resolver, error)
+	MetaChainResolver(baseTopic string) (Resolver, error)
 	CrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
 }
 

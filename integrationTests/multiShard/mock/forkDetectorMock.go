@@ -1,33 +1,39 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 )
 
+// ForkDetectorMock is a mock implementation for the ForkDetector interface
 type ForkDetectorMock struct {
-	AddHeaderCalled                  func(header *block.Header, hash []byte, isReceived bool) error
-	RemoveHeadersCalled              func(nonce uint64)
-	CheckForkCalled                  func() (bool, uint64)
-	GetHighestSignedBlockNonceCalled func() uint64
-	GetHighestFinalBlockNonceCalled  func() uint64
+	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, isProcessed bool) error
+	RemoveHeadersCalled             func(nonce uint64)
+	CheckForkCalled                 func() (bool, uint64)
+	GetHighestFinalBlockNonceCalled func() uint64
+	ProbableHighestNonceCalled      func() uint64
 }
 
-func (fdm *ForkDetectorMock) AddHeader(header *block.Header, hash []byte, isReceived bool) error {
-	return fdm.AddHeaderCalled(header, hash, isReceived)
+// AddHeader is a mock implementation for AddHeader
+func (f *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+	return f.AddHeaderCalled(header, hash, isProcessed)
 }
 
-func (fdm *ForkDetectorMock) RemoveHeaders(nonce uint64) {
-	fdm.RemoveHeadersCalled(nonce)
+// RemoveHeaders is a mock implementation for RemoveHeaders
+func (f *ForkDetectorMock) RemoveHeaders(nonce uint64) {
+	f.RemoveHeadersCalled(nonce)
 }
 
-func (fdm *ForkDetectorMock) CheckFork() (bool, uint64) {
-	return fdm.CheckForkCalled()
+// CheckFork is a mock implementation for CheckFork
+func (f *ForkDetectorMock) CheckFork() (bool, uint64) {
+	return f.CheckForkCalled()
 }
 
-func (fdm *ForkDetectorMock) GetHighestSignedBlockNonce() uint64 {
-	return fdm.GetHighestSignedBlockNonceCalled()
+// GetHighestFinalBlockNonce is a mock implementation for GetHighestFinalBlockNonce
+func (f *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
+	return f.GetHighestFinalBlockNonceCalled()
 }
 
-func (fdm *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
-	return fdm.GetHighestFinalBlockNonceCalled()
+// GetProbableHighestNonce is a mock implementation for GetProbableHighestNonce
+func (f *ForkDetectorMock) ProbableHighestNonce() uint64 {
+	return f.ProbableHighestNonceCalled()
 }

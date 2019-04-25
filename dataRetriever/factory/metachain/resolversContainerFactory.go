@@ -72,6 +72,12 @@ func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer
 		return nil, err
 	}
 
+	metaKeys, metaInterceptorSlice, err := rcf.generateMetaChainHeaderResolvers()
+	err = container.AddMultiple(metaKeys, metaInterceptorSlice)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
@@ -127,6 +133,47 @@ func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier st
 	resolver, err := resolvers.NewShardHeaderResolver(
 		resolverSender,
 		rcf.dataPools.ShardHeaders(),
+		hdrStorer,
+		rcf.marshalizer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	//add on the request topic
+	return rcf.createTopicAndAssignHandler(
+		identifier+resolverSender.TopicRequestSuffix(),
+		resolver,
+		false)
+}
+
+//------- Meta header resolvers
+
+func (rcf *resolversContainerFactory) generateMetaChainHeaderResolvers() ([]string, []dataRetriever.Resolver, error) {
+	identifierHeader := factory.MetachainBlocksTopic
+	resolver, err := rcf.createMetaChainHeaderResolver(identifierHeader)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []string{identifierHeader}, []dataRetriever.Resolver{resolver}, nil
+}
+
+func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier string) (dataRetriever.Resolver, error) {
+	hdrStorer := rcf.store.GetStorer(dataRetriever.MetaBlockUnit)
+
+	resolverSender, err := topicResolverSender.NewTopicResolverSender(
+		rcf.messenger,
+		identifier,
+		rcf.marshalizer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resolver, err := resolvers.NewShardHeaderResolver(
+		resolverSender,
+		rcf.dataPools.MetaChainBlocks(),
 		hdrStorer,
 		rcf.marshalizer,
 	)

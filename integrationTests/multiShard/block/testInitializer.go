@@ -197,6 +197,7 @@ func createNetNode(
 		testMultiSig,
 		dPool,
 		testAddressConverter,
+		&mock.ChronologyValidatorMock{},
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -230,7 +231,7 @@ func createNetNode(
 		accntAdapter,
 		shardCoordinator,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header *dataBlock.Header, hash []byte, isProcessed bool) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {

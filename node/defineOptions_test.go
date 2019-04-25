@@ -380,6 +380,25 @@ func TestWithSyncer_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestWithRounder_NilRounderShouldErr(t *testing.T) {
+	t.Parallel()
+	node, _ := NewNode()
+	opt := WithRounder(nil)
+	err := opt(node)
+	assert.Nil(t, node.rounder)
+	assert.Equal(t, ErrNilRounder, err)
+}
+
+func TestWithRounder_ShouldWork(t *testing.T) {
+	t.Parallel()
+	node, _ := NewNode()
+	rnd := &mock.RounderMock{}
+	opt := WithRounder(rnd)
+	err := opt(node)
+	assert.True(t, node.rounder == rnd)
+	assert.Nil(t, err)
+}
+
 func TestWithBlockProcessor_NilProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -420,30 +439,6 @@ func TestWithGenesisTime(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithElasticSubrounds_TrueShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithElasticSubrounds(true)
-	err := opt(node)
-
-	assert.True(t, node.elasticSubrounds)
-	assert.Nil(t, err)
-}
-
-func TestWithElasticSubrounds_FalseShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithElasticSubrounds(false)
-	err := opt(node)
-
-	assert.False(t, node.elasticSubrounds)
-	assert.Nil(t, err)
-}
-
 func TestWithDataPool_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -467,6 +462,32 @@ func TestWithDataPool_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.dataPool == dataPool)
+	assert.Nil(t, err)
+}
+
+func TestWithMetaDataPool_NilDataPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithMetaDataPool(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.dataPool)
+	assert.Equal(t, ErrNilDataPool, err)
+}
+
+func TestWithMetaDataPool_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	dataPool := &mock.MetaPoolsHolderStub{}
+
+	opt := WithMetaDataPool(dataPool)
+	err := opt(node)
+
+	assert.True(t, node.metaDataPool == dataPool)
 	assert.Nil(t, err)
 }
 

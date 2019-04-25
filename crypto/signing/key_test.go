@@ -70,6 +70,16 @@ func createKeyPair(stream cipher.Stream) (crypto.Scalar, crypto.Point) {
 	return scalar, point
 }
 
+func createMockSuite() crypto.Suite {
+	suite := &mock.SuiteMock{
+		CreateKeyPairStub: createKeyPair,
+		CreateScalarStub:  createScalar,
+		CreatePointStub:   createPoint,
+	}
+
+	return suite
+}
+
 func TestNewKeyGenerator(t *testing.T) {
 	t.Parallel()
 
@@ -92,11 +102,7 @@ func TestKeyGenerator_GeneratePairNilSuiteShouldPanic(t *testing.T) {
 func TestKeyGenerator_GeneratePairGeneratorOK(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, pubKey := kg.GeneratePair()
 
@@ -111,12 +117,7 @@ func TestKeyGenerator_GeneratePairGeneratorOK(t *testing.T) {
 func TestKeyGenerator_GeneratePairNonGeneratorOK(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, pubKey := kg.GeneratePair()
 
@@ -131,12 +132,7 @@ func TestKeyGenerator_GeneratePairNonGeneratorOK(t *testing.T) {
 func TestKeyGenerator_PrivateKeyFromByteArrayNilArrayShouldErr(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, err := kg.PrivateKeyFromByteArray(nil)
 
@@ -147,12 +143,7 @@ func TestKeyGenerator_PrivateKeyFromByteArrayNilArrayShouldErr(t *testing.T) {
 func TestKeyGenerator_PrivateKeyFromByteArrayInvalidArrayShouldErr(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	privKeyBytes := invalidStr
 	privKey, err := kg.PrivateKeyFromByteArray(privKeyBytes)
@@ -164,12 +155,7 @@ func TestKeyGenerator_PrivateKeyFromByteArrayInvalidArrayShouldErr(t *testing.T)
 func TestKeyGenerator_PrivateKeyFromByteArrayOK(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	privKeyBytes := []byte("valid key")
 	privKey, err := kg.PrivateKeyFromByteArray(privKeyBytes)
@@ -184,12 +170,7 @@ func TestKeyGenerator_PrivateKeyFromByteArrayOK(t *testing.T) {
 func TestKeyGenerator_PublicKeyFromByteArrayNilArrayShouldErr(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	pubKey, err := kg.PublicKeyFromByteArray(nil)
 
@@ -200,12 +181,7 @@ func TestKeyGenerator_PublicKeyFromByteArrayNilArrayShouldErr(t *testing.T) {
 func TestKeyGenerator_PublicKeyFromByteArrayInvalidArrayShouldErr(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	pubKeyBytes := invalidStr
 	pubKey, err := kg.PublicKeyFromByteArray(pubKeyBytes)
@@ -217,12 +193,7 @@ func TestKeyGenerator_PublicKeyFromByteArrayInvalidArrayShouldErr(t *testing.T) 
 func TestKeyGenerator_PublicKeyFromByteArrayOK(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	pubKeyBytes := []byte("valid key")
 	pubKey, err := kg.PublicKeyFromByteArray(pubKeyBytes)
@@ -238,12 +209,7 @@ func TestKeyGenerator_PublicKeyFromByteArrayOK(t *testing.T) {
 func TestKeyGenerator_SuiteOK(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	s1 := kg.Suite()
 
@@ -253,12 +219,7 @@ func TestKeyGenerator_SuiteOK(t *testing.T) {
 func TestPrivateKey_ToByteArrayOK(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 	privKeyBytes, err := privKey.ToByteArray()
@@ -270,12 +231,7 @@ func TestPrivateKey_ToByteArrayOK(t *testing.T) {
 func TestPrivateKey_GeneratePublicOK(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()    // privkey = scalar*basePoint.X; basePoint.X = 1, basePoint.Y = 1
 	pubkey := privKey.GeneratePublic() // pubKey = privKey * BasePoint.Y
@@ -287,12 +243,7 @@ func TestPrivateKey_GeneratePublicOK(t *testing.T) {
 func TestPrivateKey_SuiteOK(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 
@@ -304,12 +255,7 @@ func TestPrivateKey_SuiteOK(t *testing.T) {
 func TestPrivateKey_Scalar(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 	sc := privKey.Scalar()
@@ -321,12 +267,7 @@ func TestPrivateKey_Scalar(t *testing.T) {
 func TestPublicKey_ToByteArrayOK(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	_, pubKey := kg.GeneratePair()
 	pubKeyBytes, err := pubKey.ToByteArray()
@@ -338,12 +279,7 @@ func TestPublicKey_ToByteArrayOK(t *testing.T) {
 func TestPublicKey_SuiteOK(t *testing.T) {
 	t.Parallel()
 
-	suite := &mock.SuiteMock{
-		CreateKeyPairStub: createKeyPair,
-		CreateScalarStub:  createScalar,
-		CreatePointStub:   createPoint,
-	}
-
+	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	_, pubKey := kg.GeneratePair()
 	s2 := pubKey.Suite()
