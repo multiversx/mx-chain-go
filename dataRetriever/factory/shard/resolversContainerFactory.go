@@ -335,6 +335,7 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 	if err != nil {
 		return nil, nil, err
 	}
+
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.Headers(),
@@ -346,6 +347,7 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 	if err != nil {
 		return nil, nil, err
 	}
+
 	//add on the request topic
 	_, err = rcf.createTopicAndAssignHandler(
 		identifierHdr+resolverSender.TopicRequestSuffix(),
@@ -365,6 +367,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 	//this is: metachainBlocks
 	identifierHdr := factory.MetachainBlocksTopic
 	hdrStorer := rcf.store.GetStorer(dataRetriever.MetaBlockUnit)
+
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierHdr,
@@ -373,6 +376,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 	if err != nil {
 		return nil, nil, err
 	}
+
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.MetaBlocks(),
@@ -384,6 +388,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 	if err != nil {
 		return nil, nil, err
 	}
+
 	//add on the request topic
 	_, err = rcf.createTopicAndAssignHandler(
 		identifierHdr+resolverSender.TopicRequestSuffix(),
