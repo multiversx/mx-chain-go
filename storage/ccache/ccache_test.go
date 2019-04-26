@@ -131,14 +131,14 @@ func TestCCache_PutConcurrent(t *testing.T) {
 		}
 	}
 
-	// Sorts array, will make is simpler to verify all inserted values we're returned.
+	// Sorts array, will make is simpler to verify all inserted values are returned.
 	sort.Ints(arr[0:iterations])
 
 	// Make sure map contains 5000 elements.
 	l := c.Len()
 	assert.Equal(t, l, iterations, "expected map size: %d, got %d", iterations, l)
 
-	// Make sure all inserted values we're fetched from map.
+	// Make sure all inserted values are fetched from map.
 	for i := 0; i < iterations; i++ {
 		assert.Equal(t, i, arr[i], "the value %v is missing from the map", i)
 	}
@@ -193,14 +193,14 @@ func TestCCache_PutConcurrentWaitGroup(t *testing.T) {
 		idx++
 	}
 
-	// Sorts array, will make is simpler to verify all inserted values we're returned.
+	// Sorts array, will make is simpler to verify all inserted values are returned.
 	sort.Ints(arr[:iterations])
 
 	// Make sure map contains 5000 elements.
 	l := c.Len()
 	assert.Equal(t, l, iterations, "expected map size: %d, got %d", iterations, l)
 
-	// Make sure all inserted values we're fetched from map.
+	// Make sure all inserted values are fetched from map.
 	for i := 0; i < iterations; i++ {
 		assert.Equal(t, i, arr[i], "the value %v is missing from the map", i)
 	}
@@ -379,13 +379,13 @@ func TestCCache_HasOrAddPresentConcurrent(t *testing.T) {
 	}
 	wg.Wait()
 
-	// Sorts array, will make is simpler to verify all inserted values we're returned.
+	// Sorts array, will make is simpler to verify all inserted values are returned.
 	sort.Ints(arr[:iterations])
 
 	l := c.Len()
 	assert.Equal(t, l, iterations, "expected map size: %d, got %d", iterations, l)
 
-	// Make sure all inserted values we're fetched from map.
+	// Make sure all inserted values are fetched from map.
 	for i := 0; i < iterations; i++ {
 		// The array values should contains the values inserted in the first loop.
 		assert.NotEqual(t, i, arr[i]+iterations, "the value %v is missing from the map")
@@ -445,7 +445,6 @@ func TestCCache_RemoveKey(t *testing.T) {
 	found := c.Has([]byte(key))
 	assert.False(t, found, "not expected to find a key %s", key)
 }
-
 
 func TestCCache_PutRemoveConcurrent(t *testing.T) {
 	t.Parallel()
@@ -558,11 +557,9 @@ func TestCCache_RemoveOldestMaxSizeExceeded(t *testing.T) {
 		key, val := []byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("value%d", i))
 		c.Put(key, val)
 	}
-	
+
 	oldestItem := c.FindOldest()
 	c.RemoveOldest()
-
-	assert.Equal(t, 10, c.Len(), "expected map size: 10, got %d", c.Len())
 
 	found := c.Has(oldestItem)
 
