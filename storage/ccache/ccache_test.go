@@ -427,6 +427,26 @@ func TestCCache_RemovePresent(t *testing.T) {
 	assert.False(t, found, "not expected to find a key %s", key)
 }
 
+func TestCCache_RemoveKey(t *testing.T) {
+	c, err := ccache.NewCCache(10)
+
+	assert.Nil(t, err, "no error expected, but got %v", err)
+
+	for i := 0; i < 10; i++ {
+		key, val := []byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("value%d", i))
+		c.Put(key, val)
+	}
+
+	key := "key6"
+	c.Remove([]byte(key))
+
+	assert.Equal(t, 9, c.Len(), "expected map size: 9, got %d", c.Len())
+
+	found := c.Has([]byte(key))
+	assert.False(t, found, "not expected to find a key %s", key)
+}
+
+
 func TestCCache_PutRemoveConcurrent(t *testing.T) {
 	t.Parallel()
 
@@ -538,7 +558,7 @@ func TestCCache_RemoveOldestMaxSizeExceeded(t *testing.T) {
 		key, val := []byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("value%d", i))
 		c.Put(key, val)
 	}
-
+	
 	oldestItem := c.FindOldest()
 	c.RemoveOldest()
 
