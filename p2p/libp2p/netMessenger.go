@@ -15,6 +15,8 @@ import (
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-protocol"
 	"github.com/libp2p/go-libp2p-pubsub"
+	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
+	"github.com/libp2p/go-tcp-transport"
 )
 
 const durationBetweenSends = time.Duration(time.Microsecond * 10)
@@ -69,10 +71,14 @@ func NewNetworkMessenger(
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port)),
 		libp2p.Identity(p2pPrivKey),
-		libp2p.DefaultTransports,
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
 		libp2p.ConnectionManager(conMgr),
+		libp2p.Transport(func(u *tptu.Upgrader) *tcp.TcpTransport {
+			tpt := tcp.NewTCPTransport(u)
+			tpt.DisableReuseport = true
+			return tpt
+		}),
 	}
 
 	h, err := libp2p.New(ctx, opts...)

@@ -30,7 +30,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	}
 
 	numOfShards := 6
-	startingPort := 35000
+	startingPort := 20000
 	nodesPerShard := 3
 
 	advertiser := createMessengerWithKadDht(context.Background(), startingPort, "")
@@ -101,7 +101,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	}
 
 	numOfShards := 6
-	startingPort := 35100
+	startingPort := 20000
 	nodesPerShard := 3
 
 	firstSkInShard := uint32(4)
@@ -184,7 +184,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	}
 
 	numOfShards := 6
-	startingPort := 35200
+	startingPort := 20000
 	nodesPerShard := 3
 
 	firstSkInShard := uint32(4)

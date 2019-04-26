@@ -369,6 +369,105 @@ func TestNewNetworkMessenger_PeerDiscovererFailsWhenApplyingContextShouldErr(t *
 	assert.Equal(t, errExpected, err)
 }
 
+func TestNewNetworkMessenger_UsedPortShouldErr(t *testing.T) {
+	port := 1
+
+	_, sk := createLibP2PCredentialsMessenger()
+
+	mes, err := libp2p.NewNetworkMessenger(
+		context.Background(),
+		port,
+		sk,
+		nil,
+		&mock.ChannelLoadBalancerStub{
+			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+				time.Sleep(time.Millisecond * 100)
+				return nil
+			},
+		},
+		discovery.NewNullDiscoverer(),
+	)
+
+	assert.Nil(t, mes)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "failed to listen on any addresses")
+
+	if err == nil {
+		mes.Close()
+	}
+}
+
+func TestNewNetworkMessengerWithPortSweep_ShouldFindFreePort(t *testing.T) {
+	port := 1
+	_, sk := createLibP2PCredentialsMessenger()
+
+	mes, foundPort, err := libp2p.NewNetworkMessengerWithPortSweep(
+		context.Background(),
+		port,
+		sk,
+		nil,
+		&mock.ChannelLoadBalancerStub{
+			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+				time.Sleep(time.Millisecond * 100)
+				return nil
+			},
+		},
+		discovery.NewNullDiscoverer(),
+	)
+
+	assert.NotNil(t, mes)
+	assert.Nil(t, err)
+	assert.True(t, foundPort > port)
+
+	mes.Close()
+}
+
+func TestNewNetworkMessengerWithPortSweep_WithTwoMessengersShouldNotConnectToTheSamePort(t *testing.T) {
+	port := 4000
+
+	_, sk1 := createLibP2PCredentialsMessenger()
+	_, sk2 := createLibP2PCredentialsMessenger()
+
+	mes1, foundPort1, err := libp2p.NewNetworkMessengerWithPortSweep(
+		context.Background(),
+		port,
+		sk1,
+		nil,
+		&mock.ChannelLoadBalancerStub{
+			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+				time.Sleep(time.Millisecond * 100)
+				return nil
+			},
+		},
+		discovery.NewNullDiscoverer(),
+	)
+	assert.Nil(t, err)
+
+	mes2, foundPort2, err := libp2p.NewNetworkMessengerWithPortSweep(
+		context.Background(),
+		foundPort1,
+		sk2,
+		nil,
+		&mock.ChannelLoadBalancerStub{
+			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+				time.Sleep(time.Millisecond * 100)
+				return nil
+			},
+		},
+		discovery.NewNullDiscoverer(),
+	)
+	assert.Nil(t, err)
+	assert.NotEqual(t, foundPort1, foundPort2)
+
+	if mes1 != nil {
+		mes1.Close()
+	}
+	if mes2 != nil {
+		mes2.Close()
+	}
+
+}
+
 //------- Messenger functionality
 
 func TestLibp2pMessenger_ConnectToPeerShoulsCallUpgradedHost(t *testing.T) {
