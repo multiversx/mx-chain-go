@@ -28,11 +28,8 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
-	blockProcessorMock.GetRootHashCalled = func() []byte {
-		return []byte{}
-	}
-	blockProcessorMock.CreateBlockHeaderCalled = func(body data.BodyHandler) (header data.HeaderHandler, e error) {
-		return &block.Header{RootHash: blockProcessorMock.GetRootHashCalled()}, nil
+	blockProcessorMock.CreateBlockHeaderCalled = func(body data.BodyHandler, round int32, haveTime func() bool) (header data.HeaderHandler, e error) {
+		return &block.Header{RootHash: []byte{}}, nil
 	}
 	return blockProcessorMock
 }
