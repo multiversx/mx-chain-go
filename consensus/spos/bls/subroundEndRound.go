@@ -82,6 +82,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		return false
 	}
 
+	sr.Header.SetPubKeysBitmap(bitmap) // (new add)
 	sr.Header.SetSignature(sig)
 
 	// Commit the block (commits also the account state)
@@ -99,7 +100,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		log.Error(err.Error())
 	}
 
-	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been commited and broadcasted \n", sr.SyncTimer().FormattedCurrentTime()))
+	log.Info(fmt.Sprintf("%sStep 3: TxBlockBody and Header has been commited and broadcasted \n", sr.SyncTimer().FormattedCurrentTime()))
 
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))

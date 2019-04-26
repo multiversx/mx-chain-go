@@ -65,12 +65,6 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	//	return false
 	//}
 
-	// Start (new add)
-	if !sr.IsSelfJobDone(SrBlock) {
-		return false
-	}
-	// End (new add)
-
 	if !sr.CanDoSubroundJob(SrSignature) {
 		return false
 	}
@@ -117,7 +111,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	//	return false
 	//}
 	//
-	//log.Info(fmt.Sprintf("%sStep 5: signature has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
+	//log.Info(fmt.Sprintf("%sStep 2: signature has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
 
 	// Start (new add)
 	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
@@ -125,7 +119,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 			return false
 		}
 
-		log.Info(fmt.Sprintf("%sStep 5: signature has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
+		log.Info(fmt.Sprintf("%sStep 2: signature has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
 
 		sr.RoundCanceled = true
 	}
@@ -238,11 +232,13 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	threshold := sr.Threshold(SrSignature)
-	if sr.signaturesCollected(threshold) {
-		n := sr.ComputeSize(SrSignature)
-		log.Info(fmt.Sprintf("%sStep 5: received %d from %d signatures\n",
-			sr.SyncTimer().FormattedCurrentTime(), n, len(sr.ConsensusGroup())))
+	if sr.IsSelfLeaderInCurrentRound() { // (new add)
+		threshold := sr.Threshold(SrSignature)
+		if sr.signaturesCollected(threshold) {
+			n := sr.ComputeSize(SrSignature)
+			log.Info(fmt.Sprintf("%sStep 2: received %d from %d signatures\n",
+				sr.SyncTimer().FormattedCurrentTime(), n, len(sr.ConsensusGroup())))
+		}
 	}
 
 	return true
@@ -260,7 +256,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 
 	threshold := sr.Threshold(SrSignature)
 	if sr.signaturesCollected(threshold) {
-		log.Info(fmt.Sprintf("%sStep 5: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
+		log.Info(fmt.Sprintf("%sStep 2: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
 		sr.SetStatus(SrSignature, spos.SsFinished)
 		return true
 	}
