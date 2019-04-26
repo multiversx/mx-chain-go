@@ -369,34 +369,6 @@ func TestNewNetworkMessenger_PeerDiscovererFailsWhenApplyingContextShouldErr(t *
 	assert.Equal(t, errExpected, err)
 }
 
-func TestNewNetworkMessenger_UsedPortShouldErr(t *testing.T) {
-	port := 1
-
-	_, sk := createLibP2PCredentialsMessenger()
-
-	mes, err := libp2p.NewNetworkMessenger(
-		context.Background(),
-		port,
-		sk,
-		nil,
-		&mock.ChannelLoadBalancerStub{
-			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
-				time.Sleep(time.Millisecond * 100)
-				return nil
-			},
-		},
-		discovery.NewNullDiscoverer(),
-	)
-
-	assert.Nil(t, mes)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "failed to listen on any addresses")
-
-	if err == nil {
-		mes.Close()
-	}
-}
-
 func TestNewNetworkMessengerWithPortSweep_ShouldFindFreePort(t *testing.T) {
 	port := 1
 	_, sk := createLibP2PCredentialsMessenger()
@@ -417,7 +389,7 @@ func TestNewNetworkMessengerWithPortSweep_ShouldFindFreePort(t *testing.T) {
 
 	assert.NotNil(t, mes)
 	assert.Nil(t, err)
-	assert.True(t, foundPort > port)
+	assert.True(t, foundPort >= port)
 
 	mes.Close()
 }
