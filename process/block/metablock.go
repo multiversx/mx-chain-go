@@ -243,7 +243,7 @@ func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int3
 
 			headerHash := shardData.HeaderHash
 			shardMiniBlockHeader := &shardData.ShardMiniBlockHeaders[j]
-			err := mp.processAndRemoveBadShardMiniBlockHeader(
+			err := mp.checkAndProcessShardMiniBlockHeader(
 				headerHash,
 				shardMiniBlockHeader,
 				hdrPool,
@@ -469,7 +469,7 @@ func (mp *metaProcessor) computeMissingHeaders(header *block.MetaBlock) map[uint
 	return missingHeaders
 }
 
-func (mp *metaProcessor) processAndRemoveBadShardMiniBlockHeader(
+func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
 	headerHash []byte,
 	shardMiniBlockHeader *block.ShardMiniBlockHeader,
 	hdrPool storage.Cacher,
@@ -526,14 +526,16 @@ func (mp *metaProcessor) createShardInfo(
 	log.Info(fmt.Sprintf("creating shard info has been started: have %d hdrs in pool\n", len(orderedHdrs)))
 
 	for index := range orderedHdrs {
-		// TODO: ShardHeaders has to be executed in order. so we have to take count what round each shard head in the
-		// previously signed metablock. Furthermore, we can include ShardHeader with round N only if ShardHeader with
-		// round N+1 is signed and correct
+		//TODO: ShardHeaders have to be executed in order(take into account what round each shard head in the previously
+		//signed metablock. Furthermore, we can include ShardHeader with round N only if ShardHeader with round N+1 is
+		//signed and correct
 		shardData := block.ShardData{}
 		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0)
 		shardData.TxCount = orderedHdrs[index].TxCount
 		shardData.ShardId = orderedHdrs[index].ShardId
 		shardData.HeaderHash = orderedHdrHashes[index]
+
+		snapshot := mp.accounts.JournalLen()
 
 		for i := 0; i < len(orderedHdrs[index].MiniBlockHeaders); i++ {
 			if !haveTime() {
@@ -546,10 +548,8 @@ func (mp *metaProcessor) createShardInfo(
 			shardMiniBlockHeader.Hash = orderedHdrs[index].MiniBlockHeaders[i].Hash
 			shardMiniBlockHeader.TxCount = orderedHdrs[index].MiniBlockHeaders[i].TxCount
 
-			snapshot := mp.accounts.JournalLen()
-
 			// execute shard miniblock to change the trie root hash
-			err := mp.processAndRemoveBadShardMiniBlockHeader(
+			err := mp.checkAndProcessShardMiniBlockHeader(
 				orderedHdrHashes[index],
 				&shardMiniBlockHeader,
 				hdrPool,
@@ -569,7 +569,7 @@ func (mp *metaProcessor) createShardInfo(
 			shardData.ShardMiniBlockHeaders = append(shardData.ShardMiniBlockHeaders, shardMiniBlockHeader)
 			hdrs++
 
-			if hdrs >= uint32(maxHdrInBlock) { // max transactions count in one block was reached
+			if hdrs >= uint32(maxHdrInBlock) { // max mini blocks count in one block was reached
 				log.Info(fmt.Sprintf("max hdrs accepted in one block is reached: added %d hdrs from %d hdrs\n", hdrs, len(orderedHdrs)))
 
 				if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
@@ -778,7 +778,8 @@ func getHdrs(hdrStore storage.Cacher) ([]*block.Header, [][]byte, error) {
 		headers = append(headers, hdr)
 	}
 
-	// TODO: it is mandatory to have sorting by round per shard. shard headers has to be processed in order
+	//TODO: it is mandatory to have sorting by round per shard. shard headers has to be processed in order and not forget
+	//about "k" parameter: not fetching headers newer than metachain round - k
 	return headers, hdrHashes, nil
 }
 

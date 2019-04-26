@@ -199,6 +199,20 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 			cs := &mock.CacherStub{}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
 			}
+			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal([]byte("hdr_hash1"), key) {
+					return &block.Header{Nonce: 1}, true
+				}
+				return nil, false
+			}
+			cs.LenCalled = func() int {
+				return 0
+			}
+			cs.RemoveCalled = func(key []byte) {
+			}
+			cs.KeysCalled = func() [][]byte {
+				return nil
+			}
 			return cs
 		},
 	}

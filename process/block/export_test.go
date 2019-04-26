@@ -108,8 +108,8 @@ func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) int {
 	return mp.requestBlockHeaders(header)
 }
 
-func (mp *metaProcessor) WaitForHdrHashes(waitTime time.Duration) {
-	mp.WaitForHdrHashes(waitTime)
+func (mp *metaProcessor) WaitForBlockHeaders(waitTime time.Duration) {
+	mp.waitForBlockHeaders(waitTime)
 }
 
 func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error {

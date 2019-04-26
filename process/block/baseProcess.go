@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
@@ -93,12 +92,7 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrWrongNonceInBlock
 	}
 
-	header, ok := chainHandler.GetCurrentBlockHeader().(*block.Header)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	prevHeaderHash, err := bp.computeHeaderHash(header)
+	prevHeaderHash, err := bp.computeHeaderHash(chainHandler.GetCurrentBlockHeader())
 	if err != nil {
 		return err
 	}
