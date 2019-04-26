@@ -181,6 +181,9 @@ var ErrNilPoolsHolder = errors.New("nil pools holder")
 // ErrNilTxStorage signals that a nil transaction storage has been provided
 var ErrNilTxStorage = errors.New("nil transaction storage")
 
+// ErrNilStorage signals that a nil storage has been provided
+var ErrNilStorage = errors.New("nil storage")
+
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
 
@@ -270,3 +273,9 @@ var ErrNilRandSeed = errors.New("provided rand seed is nil")
 
 // ErrNilPrevRandSeed signals that a nil previous rand seed has been provided
 var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
+
+// ErrNilRequestHeaderHandler signals that a nil header request handler func was provided
+var ErrNilRequestHeaderHandler = errors.New("nil request header handler")
+
+// ErrNilRequestMiniblockHeaderHandler signals that a nil miniblock header request handler func was provided
+var ErrNilRequestMiniblockHeaderHandler = errors.New("nil request miniblock header handler")

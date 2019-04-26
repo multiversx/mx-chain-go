@@ -65,13 +65,13 @@ func (imh *InterceptedMetaHeader) Integrity(coordinator sharding.Coordinator) er
 	if imh.PubKeysBitmap == nil {
 		return process.ErrNilPubKeysBitmap
 	}
-	if imh.PreviousHash == nil {
+	if imh.PrevHash == nil {
 		return process.ErrNilPreviousBlockHash
 	}
 	if imh.Signature == nil {
 		return process.ErrNilSignature
 	}
-	if imh.StateRootHash == nil {
+	if imh.RootHash == nil {
 		return process.ErrNilRootHash
 	}
 	if imh.RandSeed == nil {

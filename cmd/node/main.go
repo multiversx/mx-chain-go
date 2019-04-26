@@ -511,7 +511,7 @@ func createNode(
 		return nil, err
 	}
 
-	blockProcessor, err := block.NewBlockProcessor(
+	blockProcessor, err := block.NewShardProcessor(
 		datapool,
 		store,
 		hasher,

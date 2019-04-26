@@ -318,11 +318,11 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 
 	hdr := block.NewInterceptedMetaHeader(multisigner, chronologyValidator)
 	hdr.Nonce = testedNonce
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 
@@ -394,10 +394,10 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 
 	hdr := block.NewInterceptedMetaHeader(multisigner, chronologyValidator)
 	hdr.Nonce = testedNonce
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)

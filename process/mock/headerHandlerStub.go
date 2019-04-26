@@ -16,6 +16,10 @@ func (hhs *HeaderHandlerStub) GetRound() uint32 {
 	panic("implement me")
 }
 
+func (hhs *HeaderHandlerStub) GetTimeStamp() uint64 {
+	panic("implement me")
+}
+
 func (hhs *HeaderHandlerStub) GetRootHash() []byte {
 	panic("implement me")
 }
