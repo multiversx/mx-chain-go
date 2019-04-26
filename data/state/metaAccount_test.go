@@ -277,3 +277,30 @@ func TestMetaAccount_SetMiniBlocksDataWithJournal(t *testing.T) {
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }
+
+func TestMetaAccount_SetShardRootHashWithJournal(t *testing.T) {
+	t.Parallel()
+
+	journalizeCalled := 0
+	saveAccountCalled := 0
+	tracker := &mock.AccountTrackerStub{
+		JournalizeCalled: func(entry state.JournalEntry) {
+			journalizeCalled++
+		},
+		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+			saveAccountCalled++
+			return nil
+		},
+	}
+
+	acc, err := state.NewMetaAccount(&mock.AddressMock{}, tracker)
+
+	shardRootHash := []byte("shardroothash")
+	err = acc.SetShardRootHashWithJournal(shardRootHash)
+
+	assert.NotNil(t, acc)
+	assert.Nil(t, err)
+	assert.Equal(t, shardRootHash, acc.ShardRootHash)
+	assert.Equal(t, 1, journalizeCalled)
+	assert.Equal(t, 1, saveAccountCalled)
+}

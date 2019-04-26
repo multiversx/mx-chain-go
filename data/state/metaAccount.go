@@ -16,12 +16,13 @@ type MiniBlockData struct {
 
 // Account is the struct used in serialization/deserialization
 type MetaAccount struct {
-	Round        uint64
-	TxCount      *big.Int
-	CodeHash     []byte
-	RootHash     []byte
-	MiniBlocks   []*MiniBlockData
-	PubKeyLeader []byte
+	Round         uint64
+	TxCount       *big.Int
+	CodeHash      []byte
+	RootHash      []byte
+	MiniBlocks    []*MiniBlockData
+	PubKeyLeader  []byte
+	ShardRootHash []byte
 
 	addressContainer AddressContainer
 	code             []byte
@@ -86,8 +87,20 @@ func (a *MetaAccount) SetMiniBlocksDataWithJournal(miniBlocksData []*MiniBlockDa
 	}
 
 	a.accountTracker.Journalize(entry)
-	// TODO do deep copy
 	a.MiniBlocks = miniBlocksData
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// SetShardRootHashWithJournal sets the account's nonce, saving the old nonce before changing
+func (a *MetaAccount) SetShardRootHashWithJournal(shardRootHash []byte) error {
+	entry, err := NewMetaJournalEntryShardRootHash(a, a.ShardRootHash)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.ShardRootHash = shardRootHash
 
 	return a.accountTracker.SaveAccount(a)
 }

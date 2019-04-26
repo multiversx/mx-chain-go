@@ -105,3 +105,35 @@ func TestNewMetaJournalEntryTxCount_RevertOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, txCount, accnt.TxCount)
 }
+
+//------- MetaJournalEntryShardRootHash
+
+func TestNewetaJournalEntryShardRootHash_NilAccountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewMetaJournalEntryShardRootHash(nil, nil)
+
+	assert.Nil(t, entry)
+	assert.Equal(t, state.ErrNilAccountWrapper, err)
+}
+
+func TestNewMetaJournalEntryShardRootHash_ShouldWork(t *testing.T) {
+	t.Parallel()
+	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, err := state.NewMetaJournalEntryShardRootHash(accnt, []byte("shardroothash"))
+
+	assert.NotNil(t, entry)
+	assert.Nil(t, err)
+}
+
+func TestNewMetaJournalEntryShardRootHash_RevertOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	shardRootHash := []byte("shardroothash")
+	accnt, _ := state.NewMetaAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, _ := state.NewMetaJournalEntryShardRootHash(accnt, shardRootHash)
+	_, err := entry.Revert()
+
+	assert.Nil(t, err)
+	assert.Equal(t, shardRootHash, accnt.ShardRootHash)
+}
