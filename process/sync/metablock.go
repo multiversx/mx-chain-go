@@ -369,7 +369,7 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 	}
 
 	boot.cleanCachesOnRollback(header, headerStore)
-	errNotCritical := boot.blkExecutor.RestoreBlockIntoPools(boot.blkc, nil)
+	errNotCritical := boot.blkExecutor.RestoreBlockIntoPools(header, nil)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
