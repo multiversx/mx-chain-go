@@ -11,7 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bls/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
@@ -217,7 +218,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	worker, err := bn.NewWorker(
+	worker, err := bls.NewWorker(
 		n.blockProcessor,
 		bootstraper,
 		consensusState,
@@ -253,7 +254,7 @@ func (n *Node) StartConsensus() error {
 		chronologyHandler,
 		n.hasher,
 		n.marshalizer,
-		n.multisig,
+		&mock.MultiSignerMock{},
 		n.rounder,
 		n.shardCoordinator,
 		n.syncer,
@@ -263,7 +264,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := bn.NewFactory(
+	fct, err := bls.NewFactory(
 		consensusDataContainer,
 		consensusState,
 		worker,
