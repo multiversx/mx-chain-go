@@ -44,11 +44,11 @@ func (c *CCache) Clear() {
 // Put inserts a new element into the cache.
 // It also removes the oldest entry in case the cache size exeeds the maximum size.
 func (c *CCache) Put(key []byte, value interface{}) (evicted bool) {
+	c.cache.Set(string(key), value)
 	// Remove the oldest values in case the cache size exceeds the maximum allowed size
 	if c.cache.Count() > c.maxSize {
 		c.RemoveOldest()
 	}
-	c.cache.Set(string(key), value)
 	c.callAddedDataHandlers(key)
 
 	return false
