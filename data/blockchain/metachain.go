@@ -85,7 +85,9 @@ func (mc *MetaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	if !ok {
 		return ErrWrongTypeInSet
 	}
+
 	mc.CurrentBlock = currHead
+
 	return nil
 }
 

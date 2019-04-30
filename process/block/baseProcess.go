@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -19,11 +20,12 @@ import (
 var log = logger.DefaultLogger()
 
 type baseProcessor struct {
-	accounts     state.AccountsAdapter
-	forkDetector process.ForkDetector
-	hasher       hashing.Hasher
-	marshalizer  marshal.Marshalizer
-	store        dataRetriever.StorageService
+	shardCoordinator sharding.Coordinator
+	accounts         state.AccountsAdapter
+	forkDetector     process.ForkDetector
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	store            dataRetriever.StorageService
 }
 
 func checkForNils(

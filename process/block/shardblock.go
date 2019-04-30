@@ -35,7 +35,6 @@ type shardProcessor struct {
 	OnRequestTransaction func(shardID uint32, txHash []byte)
 	mutRequestedTxHashes sync.RWMutex
 	requestedTxHashes    map[string]bool
-	shardCoordinator     sharding.Coordinator
 	mutCrossTxsForBlock  sync.RWMutex
 	crossTxsForBlock     map[string]*transaction.Transaction
 	OnRequestMiniBlock   func(shardId uint32, mbHash []byte)
@@ -82,18 +81,18 @@ func NewShardProcessor(
 	}
 
 	base := &baseProcessor{
-		accounts:     accounts,
-		forkDetector: forkDetector,
-		hasher:       hasher,
-		marshalizer:  marshalizer,
-		store:        store,
+		accounts:         accounts,
+		forkDetector:     forkDetector,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		store:            store,
+		shardCoordinator: shardCoordinator,
 	}
 
 	bp := shardProcessor{
-		baseProcessor:    base,
-		dataPool:         dataPool,
-		txProcessor:      txProcessor,
-		shardCoordinator: shardCoordinator,
+		baseProcessor: base,
+		dataPool:      dataPool,
+		txProcessor:   txProcessor,
 	}
 
 	bp.ChRcvAllTxs = make(chan bool)
