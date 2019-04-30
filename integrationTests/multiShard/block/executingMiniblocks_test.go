@@ -100,8 +100,8 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	fmt.Println(makeDisplayTable(nodes))
 	for _, n := range nodes {
 		isNodeInSenderShardAndNotProposer := n.shardId == senderShard && n != proposerNode
-
 		if isNodeInSenderShardAndNotProposer {
+			n.blkc.SetGenesisHeaderHash(n.headers[0].GetPrevHash())
 			err := n.blkProcessor.ProcessBlock(
 				n.blkc,
 				n.headers[0],
@@ -167,6 +167,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 		if isNodeInReceiverShardAndNotProposer {
 			if len(n.headers) > 0 {
+				n.blkc.SetGenesisHeaderHash(n.headers[0].GetPrevHash())
 				err := n.blkProcessor.ProcessBlock(
 					n.blkc,
 					n.headers[0],
@@ -295,8 +296,11 @@ func proposeBlock(t *testing.T, proposer *testNode) (data.BodyHandler, data.Head
 		return true
 	})
 	assert.Nil(t, err)
-	blockHeader, err := proposer.blkProcessor.CreateBlockHeader(blockBody)
+	blockHeader, err := proposer.blkProcessor.CreateBlockHeader(blockBody, 0, func() bool {
+		return true
+	})
 	assert.Nil(t, err)
+	blockHeader.SetNonce(1)
 	blockHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := testMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)

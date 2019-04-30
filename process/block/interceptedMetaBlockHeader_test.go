@@ -52,10 +52,10 @@ func TestInterceptedMetaHeader_IntegrityNilShardCoordinatorShouldErr(t *testing.
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 
@@ -66,10 +66,10 @@ func TestInterceptedMetaHeader_IntegrityNilPubKeysBitmapShouldErr(t *testing.T) 
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = nil
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 
@@ -80,10 +80,10 @@ func TestInterceptedMetaHeader_IntegrityNilPrevHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = nil
+	hdr.PrevHash = nil
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 
@@ -94,10 +94,10 @@ func TestInterceptedMetaHeader_IntegrityNilSignatureShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = nil
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 
@@ -108,10 +108,10 @@ func TestInterceptedMetaHeader_IntegrityNilRootHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = nil
+	hdr.RootHash = nil
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 
@@ -122,10 +122,10 @@ func TestInterceptedMetaHeader_IntegrityNilPrevRandHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = nil
 	hdr.RandSeed = make([]byte, 0)
 
@@ -136,10 +136,10 @@ func TestInterceptedMetaHeader_IntegrityNilRandHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = nil
 
@@ -150,10 +150,10 @@ func TestInterceptedMetaHeader_IntegrityNilInvalidShardIdOnShardedDataShouldErr(
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 	hdr.ShardInfo = []block2.ShardData{
@@ -175,10 +175,10 @@ func TestInterceptedMetaHeader_IntegrityNilInvalidRecvShardIdOnShardedDataShould
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 	hdr.ShardInfo = []block2.ShardData{
@@ -200,10 +200,10 @@ func TestInterceptedMetaHeader_IntegrityNilInvalidSenderShardIdOnShardedDataShou
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 	hdr.ShardInfo = []block2.ShardData{
@@ -233,10 +233,10 @@ func TestInterceptedMetaHeader_IntegrityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 	hdr.ShardInfo = []block2.ShardData{
@@ -258,10 +258,10 @@ func TestInterceptedMetaHeader_IntegrityOkValsWithEmptyShardDataShouldWork(t *te
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 
@@ -273,10 +273,10 @@ func TestInterceptedMetaHeader_IntegrityAndValidityIntegrityDoesNotPassShouldErr
 
 	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
 
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = nil
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 
@@ -290,10 +290,10 @@ func TestInterceptedMetaHeader_IntegrityAndValidityNilChronologyValidatorShouldE
 		mock.NewMultiSigner(),
 		nil,
 	)
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 
@@ -304,10 +304,10 @@ func TestInterceptedMetaHeader_IntegrityAndValidityOkValsShouldWork(t *testing.T
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 
@@ -318,10 +318,10 @@ func TestInterceptedMetaHeader_VerifySigOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hdr := createTestInterceptedMetaHeader()
-	hdr.PreviousHash = make([]byte, 0)
+	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
-	hdr.StateRootHash = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)
 	hdr.RandSeed = make([]byte, 0)
 

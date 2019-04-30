@@ -65,10 +65,10 @@ type MetaBlock struct {
 	PeerInfo      []PeerData  `capid:"5"`
 	Signature     []byte      `capid:"6"`
 	PubKeysBitmap []byte      `capid:"7"`
-	PreviousHash  []byte      `capid:"8"`
+	PrevHash      []byte      `capid:"8"`
 	PrevRandSeed  []byte      `capid:"9"`
 	RandSeed      []byte      `capid:"10"`
-	StateRootHash []byte      `capid:"11"`
+	RootHash      []byte      `capid:"11"`
 	TxCount       uint32      `capid:"12"`
 	processedMBs  map[string]bool
 }
@@ -262,10 +262,10 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 
 	dest.SetSignature(src.Signature)
 	dest.SetPubKeysBitmap(src.PubKeysBitmap)
-	dest.SetPreviousHash(src.PreviousHash)
+	dest.SetPrevHash(src.PrevHash)
 	dest.SetPrevRandSeed(src.PrevRandSeed)
 	dest.SetRandSeed(src.RandSeed)
-	dest.SetStateRootHash(src.StateRootHash)
+	dest.SetRootHash(src.RootHash)
 	dest.SetTxCount(src.TxCount)
 
 	return dest
@@ -293,10 +293,10 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	}
 	dest.Signature = src.Signature()
 	dest.PubKeysBitmap = src.PubKeysBitmap()
-	dest.PreviousHash = src.PreviousHash()
+	dest.PrevHash = src.PrevHash()
 	dest.PrevRandSeed = src.PrevRandSeed()
 	dest.RandSeed = src.RandSeed()
-	dest.StateRootHash = src.StateRootHash()
+	dest.RootHash = src.RootHash()
 	dest.TxCount = src.TxCount()
 
 	return dest
@@ -317,19 +317,19 @@ func (m *MetaBlock) GetRound() uint32 {
 	return m.Round
 }
 
-// GetTimestamp returns the time stamp
-func (m *MetaBlock) GetTimestamp() uint64 {
+// GetTimeStamp returns the time stamp
+func (m *MetaBlock) GetTimeStamp() uint64 {
 	return m.TimeStamp
 }
 
 // GetRootHash returns the roothash from header
 func (m *MetaBlock) GetRootHash() []byte {
-	return m.StateRootHash
+	return m.RootHash
 }
 
 // GetPrevHash returns previous block header hash
 func (m *MetaBlock) GetPrevHash() []byte {
-	return m.PreviousHash
+	return m.PrevHash
 }
 
 // GetPrevRandSeed gets the previous random seed
@@ -374,12 +374,12 @@ func (m *MetaBlock) SetRound(r uint32) {
 
 // SetRootHash sets root hash
 func (m *MetaBlock) SetRootHash(rHash []byte) {
-	m.StateRootHash = rHash
+	m.RootHash = rHash
 }
 
 // SetPrevHash sets prev hash
 func (m *MetaBlock) SetPrevHash(pvHash []byte) {
-	m.PreviousHash = pvHash
+	m.PrevHash = pvHash
 }
 
 // SetPrevRandSeed sets the previous randomness seed
