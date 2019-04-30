@@ -14,7 +14,7 @@ type MiniBlockData struct {
 	TxCount         uint32
 }
 
-// Account is the struct used in serialization/deserialization
+// MetaAccount is the struct used in serialization/deserialization
 type MetaAccount struct {
 	Round         uint64
 	TxCount       *big.Int
@@ -31,7 +31,7 @@ type MetaAccount struct {
 	dataTrieTracker  DataTrieTracker
 }
 
-// NewAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
+// NewMetaAccount creates new simple meta account for an AccountContainer (that has just been initialized)
 func NewMetaAccount(addressContainer AddressContainer, tracker AccountTracker) (*MetaAccount, error) {
 	if addressContainer == nil {
 		return nil, ErrNilAddressContainer
@@ -52,7 +52,7 @@ func (a *MetaAccount) AddressContainer() AddressContainer {
 	return a.addressContainer
 }
 
-// SetRoundWithJournal sets the account's nonce, saving the old nonce before changing
+// SetRoundWithJournal sets the account's round, saving the old round before changing
 func (a *MetaAccount) SetRoundWithJournal(round uint64) error {
 	entry, err := NewMetaJournalEntryRound(a, a.Round)
 	if err != nil {
@@ -78,7 +78,7 @@ func (a *MetaAccount) SetTxCountWithJournal(txCount *big.Int) error {
 	return a.accountTracker.SaveAccount(a)
 }
 
-// SetMiniBlocksData sets the current final mini blocks header data,
+// SetMiniBlocksDataWithJournal sets the current final mini blocks header data,
 // saving the old mini blocks header data before changing
 func (a *MetaAccount) SetMiniBlocksDataWithJournal(miniBlocksData []*MiniBlockData) error {
 	entry, err := NewMetaJournalEntryMiniBlocksData(a, a.MiniBlocks)
@@ -92,7 +92,7 @@ func (a *MetaAccount) SetMiniBlocksDataWithJournal(miniBlocksData []*MiniBlockDa
 	return a.accountTracker.SaveAccount(a)
 }
 
-// SetShardRootHashWithJournal sets the account's nonce, saving the old nonce before changing
+// SetShardRootHashWithJournal sets the account's root hash, saving the old root hash before changing
 func (a *MetaAccount) SetShardRootHashWithJournal(shardRootHash []byte) error {
 	entry, err := NewMetaJournalEntryShardRootHash(a, a.ShardRootHash)
 	if err != nil {
@@ -130,7 +130,7 @@ func (a *MetaAccount) SetCodeHashWithJournal(codeHash []byte) error {
 	return a.accountTracker.SaveAccount(a)
 }
 
-// Code gets the actual code that needs to be run in the VM
+// GetCode gets the actual code that needs to be run in the VM
 func (a *MetaAccount) GetCode() []byte {
 	return a.code
 }
@@ -172,12 +172,8 @@ func (a *MetaAccount) DataTrie() trie.PatriciaMerkelTree {
 
 // SetDataTrie sets the trie that holds the current account's data
 func (a *MetaAccount) SetDataTrie(trie trie.PatriciaMerkelTree) {
-	if trie == nil {
-		a.dataTrieTracker = nil
-	} else {
-		a.dataTrieTracker = NewTrackableDataTrie(trie)
-	}
 	a.dataTrie = trie
+	a.dataTrieTracker.SetDataTrie(trie)
 }
 
 // DataTrieTracker returns the trie wrapper used in managing the SC data

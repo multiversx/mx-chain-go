@@ -13,7 +13,7 @@ type MetaJournalEntryRound struct {
 // NewMetaJournalEntryRound outputs a new JournalEntry implementation used to revert a round change
 func NewMetaJournalEntryRound(account *MetaAccount, oldRound uint64) (*MetaJournalEntryRound, error) {
 	if account == nil {
-		return nil, ErrNilAccountWrapper
+		return nil, ErrNilAccountHandler
 	}
 
 	return &MetaJournalEntryRound{
@@ -23,7 +23,7 @@ func NewMetaJournalEntryRound(account *MetaAccount, oldRound uint64) (*MetaJourn
 }
 
 // Revert applies undo operation
-func (jen *MetaJournalEntryRound) Revert() (AccountWrapper, error) {
+func (jen *MetaJournalEntryRound) Revert() (AccountHandler, error) {
 	jen.account.Round = jen.oldRound
 
 	return jen.account, nil
@@ -40,7 +40,7 @@ type MetaJournalEntryTxCount struct {
 // NewMetaJournalEntryTxCount outputs a new JournalEntry implementation used to revert a TxCount change
 func NewMetaJournalEntryTxCount(account *MetaAccount, oldTxCount *big.Int) (*MetaJournalEntryTxCount, error) {
 	if account == nil {
-		return nil, ErrNilAccountWrapper
+		return nil, ErrNilAccountHandler
 	}
 
 	return &MetaJournalEntryTxCount{
@@ -50,7 +50,7 @@ func NewMetaJournalEntryTxCount(account *MetaAccount, oldTxCount *big.Int) (*Met
 }
 
 // Revert applies undo operation
-func (jen *MetaJournalEntryTxCount) Revert() (AccountWrapper, error) {
+func (jen *MetaJournalEntryTxCount) Revert() (AccountHandler, error) {
 	jen.account.TxCount = jen.oldTxCount
 
 	return jen.account, nil
@@ -67,7 +67,7 @@ type MetaJournalEntryMiniBlocksData struct {
 // NewMetaJournalEntryMiniBlocksData outputs a new JournalEntry implementation used to revert a MiniBlocksData change
 func NewMetaJournalEntryMiniBlocksData(account *MetaAccount, oldMiniBlocksData []*MiniBlockData) (*MetaJournalEntryMiniBlocksData, error) {
 	if account == nil {
-		return nil, ErrNilAccountWrapper
+		return nil, ErrNilAccountHandler
 	}
 
 	return &MetaJournalEntryMiniBlocksData{
@@ -77,7 +77,7 @@ func NewMetaJournalEntryMiniBlocksData(account *MetaAccount, oldMiniBlocksData [
 }
 
 // Revert applies undo operation
-func (jen *MetaJournalEntryMiniBlocksData) Revert() (AccountWrapper, error) {
+func (jen *MetaJournalEntryMiniBlocksData) Revert() (AccountHandler, error) {
 	jen.account.MiniBlocks = jen.oldMiniBlocksData
 
 	return jen.account, nil
@@ -94,7 +94,7 @@ type MetaJournalEntryShardRootHash struct {
 // NewMetaJournalEntryShardRootHash outputs a new JournalEntry implementation used to revert a ShardRootHash change
 func NewMetaJournalEntryShardRootHash(account *MetaAccount, oldShardRootHash []byte) (*MetaJournalEntryShardRootHash, error) {
 	if account == nil {
-		return nil, ErrNilAccountWrapper
+		return nil, ErrNilAccountHandler
 	}
 
 	return &MetaJournalEntryShardRootHash{
@@ -104,7 +104,7 @@ func NewMetaJournalEntryShardRootHash(account *MetaAccount, oldShardRootHash []b
 }
 
 // Revert applies undo operation
-func (jen *MetaJournalEntryShardRootHash) Revert() (AccountWrapper, error) {
+func (jen *MetaJournalEntryShardRootHash) Revert() (AccountHandler, error) {
 	jen.account.ShardRootHash = jen.oldShardRootHash
 
 	return jen.account, nil

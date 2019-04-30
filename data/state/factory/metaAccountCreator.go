@@ -2,16 +2,17 @@ package factory
 
 import "github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 
+// MetaAccountCreator has a method to create a new meta accound
 type MetaAccountCreator struct {
 }
 
-// NewAccountCreator creates an account creator
+// NewMetaAccountCreator creates a meta account creator
 func NewMetaAccountCreator() (state.AccountFactory, error) {
 	return &MetaAccountCreator{}, nil
 }
 
 // CreateAccount calls the new Account creator and returns the result
-func (c *MetaAccountCreator) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+func (c *MetaAccountCreator) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 	account, err := state.NewMetaAccount(address, tracker)
 	if err != nil {
 		return nil, err

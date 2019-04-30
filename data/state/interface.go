@@ -22,21 +22,23 @@ type AddressContainer interface {
 
 // AccountFactory creates an account of different types
 type AccountFactory interface {
-	CreateAccount(address AddressContainer, tracker AccountTracker) (AccountWrapper, error)
+	CreateAccount(address AddressContainer, tracker AccountTracker) (AccountHandler, error)
 }
 
+// AccountTracker saves an account state and journalizes new entries
 type AccountTracker interface {
-	SaveAccount(accountWrapper AccountWrapper) error
+	SaveAccount(accountHandler AccountHandler) error
 	Journalize(entry JournalEntry)
 }
 
+// Updater set a new value for a key, implemented by trie
 type Updater interface {
 	Update(key, value []byte) error
 }
 
-// AccountWrapper models what an AccountWrap struct should do
+// AccountHandler models a state account, which can journalize and revert
 // It knows about code and data, as data structures not hashes
-type AccountWrapper interface {
+type AccountHandler interface {
 	AddressContainer() AddressContainer
 
 	GetCodeHash() []byte
@@ -66,8 +68,8 @@ type DataTrieTracker interface {
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
 // implementation
 type AccountsAdapter interface {
-	GetAccountWithJournal(addressContainer AddressContainer) (AccountWrapper, error) // will create if it not exist
-	GetExistingAccount(addressContainer AddressContainer) (AccountWrapper, error)
+	GetAccountWithJournal(addressContainer AddressContainer) (AccountHandler, error) // will create if it not exist
+	GetExistingAccount(addressContainer AddressContainer) (AccountHandler, error)
 	HasAccount(addressContainer AddressContainer) (bool, error)
 	RemoveAccount(addressContainer AddressContainer) error
 	Commit() ([]byte, error)
@@ -75,13 +77,13 @@ type AccountsAdapter interface {
 	RevertToSnapshot(snapshot int) error
 	RootHash() []byte
 	RecreateTrie(rootHash []byte) error
-	PutCode(accountWrapper AccountWrapper, code []byte) error
+	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error
-	LoadDataTrie(accountWrapper AccountWrapper) error
-	SaveDataTrie(accountWrapper AccountWrapper) error
+	LoadDataTrie(accountHandler AccountHandler) error
+	SaveDataTrie(accountHandler AccountHandler) error
 }
 
 // JournalEntry will be used to implement different state changes to be able to easily revert them
 type JournalEntry interface {
-	Revert() (AccountWrapper, error)
+	Revert() (AccountHandler, error)
 }

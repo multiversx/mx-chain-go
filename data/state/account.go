@@ -93,7 +93,7 @@ func (a *Account) SetCodeHashWithJournal(codeHash []byte) error {
 	return a.accountTracker.SaveAccount(a)
 }
 
-// Code gets the actual code that needs to be run in the VM
+// GetCode gets the actual code that needs to be run in the VM
 func (a *Account) GetCode() []byte {
 	return a.code
 }

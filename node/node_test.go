@@ -211,7 +211,7 @@ func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
 			return nil, errors.New("error")
 		},
 	}
@@ -249,7 +249,7 @@ func createDummyHexAddress(chars int) string {
 func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
 			return nil, nil
 		},
 	}
@@ -341,7 +341,7 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
 			return nil, nil
 		},
 	}
@@ -361,7 +361,7 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
 			return &state.Account{}, nil
 		},
 	}
@@ -468,7 +468,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 
 	nonce := uint64(7)
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
 			return &state.Account{
 				Nonce:   nonce,
 				Balance: big.NewInt(0),
@@ -726,7 +726,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 func getAccAdapter(balance *big.Int) *mock.AccountsStub {
 	return &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
 			return &state.Account{
 				Nonce:   1,
 				Balance: balance,

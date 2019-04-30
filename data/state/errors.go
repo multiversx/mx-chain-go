@@ -104,8 +104,8 @@ var ErrNilAccountTracker = errors.New("nil account tracker provided")
 // ErrNilUpdater signals that a nil updater has been provided
 var ErrNilUpdater = errors.New("updater is nil")
 
-// ErrNilAccountWrapper signals that a nil account wrapper was provided
-var ErrNilAccountWrapper = errors.New("account wrapper is nil")
+// ErrNilAccountHandler signals that a nil account wrapper was provided
+var ErrNilAccountHandler = errors.New("account wrapper is nil")
 
 // ErrNilOrEmptyKey signals that key empty key was provided
 var ErrNilOrEmptyKey = errors.New("key is empty or nil")
@@ -118,3 +118,6 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrNilTrackableDataTrie signals that a nil trackable data trie has been provided
 var ErrNilTrackableDataTrie = errors.New("nil trackable data trie")
+
+// ErrNilCode signals that a nil code was provided
+var ErrNilCode = errors.New("nil smart contract code")

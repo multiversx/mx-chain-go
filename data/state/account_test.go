@@ -155,7 +155,7 @@ func TestAccount_SetNonceWithJournal(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -182,7 +182,7 @@ func TestAccount_SetBalanceWithJournal(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -209,7 +209,7 @@ func TestAccount_SetCodeHashWithJournal(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -236,7 +236,7 @@ func TestAccount_SetRootHashWithJournal(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},

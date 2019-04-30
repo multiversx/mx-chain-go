@@ -5,13 +5,13 @@ import (
 )
 
 type JournalEntryMock struct {
-	RevertCalled func() (state.AccountWrapper, error)
+	RevertCalled func() (state.AccountHandler, error)
 }
 
 func NewJournalEntryMock() *JournalEntryMock {
 	return &JournalEntryMock{}
 }
 
-func (jem *JournalEntryMock) Revert() (state.AccountWrapper, error) {
+func (jem *JournalEntryMock) Revert() (state.AccountHandler, error) {
 	return jem.RevertCalled()
 }

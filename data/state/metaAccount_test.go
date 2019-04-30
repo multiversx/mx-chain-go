@@ -152,7 +152,7 @@ func TestMetaAccount_SetRoundWithJournal(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -179,7 +179,7 @@ func TestMetaAccount_SetTxCountWithJournal(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -206,7 +206,7 @@ func TestMetaAccount_SetCodeHashWithJournal(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -233,7 +233,7 @@ func TestMetaAccount_SetRootHashWithJournal(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -260,7 +260,7 @@ func TestMetaAccount_SetMiniBlocksDataWithJournal(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -287,7 +287,7 @@ func TestMetaAccount_SetShardRootHashWithJournal(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},

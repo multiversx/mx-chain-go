@@ -7,17 +7,17 @@ import (
 type AccountsAdapterMock struct {
 	AddJournalEntryCalled       func(je state.JournalEntry)
 	CommitCalled                func() ([]byte, error)
-	GetAccountWithJournalCalled func(addressContainer state.AddressContainer) (state.AccountWrapper, error)
-	GetExistingAccountCalled    func(addressContainer state.AddressContainer) (state.AccountWrapper, error)
+	GetAccountWithJournalCalled func(addressContainer state.AddressContainer) (state.AccountHandler, error)
+	GetExistingAccountCalled    func(addressContainer state.AddressContainer) (state.AccountHandler, error)
 	HasAccountStateCalled       func(addressContainer state.AddressContainer) (bool, error)
 	JournalLenCalled            func() int
-	PutCodeCalled               func(accountWrapper state.AccountWrapper, code []byte) error
+	PutCodeCalled               func(accountHandler state.AccountHandler, code []byte) error
 	RemoveAccountCalled         func(addressContainer state.AddressContainer) error
 	RemoveCodeCalled            func(codeHash []byte) error
-	RetrieveDataTrieCalled      func(acountWrapper state.AccountWrapper) error
+	RetrieveDataTrieCalled      func(acountWrapper state.AccountHandler) error
 	RevertToSnapshotCalled      func(snapshot int) error
-	SaveAccountStateCalled      func(acountWrapper state.AccountWrapper) error
-	SaveDataTrieCalled          func(acountWrapper state.AccountWrapper) error
+	SaveAccountStateCalled      func(acountWrapper state.AccountHandler) error
+	SaveDataTrieCalled          func(acountWrapper state.AccountHandler) error
 	RootHashCalled              func() []byte
 	RecreateTrieCalled          func(rootHash []byte) error
 }
@@ -34,11 +34,11 @@ func (aam *AccountsAdapterMock) Commit() ([]byte, error) {
 	return aam.CommitCalled()
 }
 
-func (aam *AccountsAdapterMock) GetAccountWithJournal(addressContainer state.AddressContainer) (state.AccountWrapper, error) {
+func (aam *AccountsAdapterMock) GetAccountWithJournal(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 	return aam.GetAccountWithJournalCalled(addressContainer)
 }
 
-func (aam *AccountsAdapterMock) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountWrapper, error) {
+func (aam *AccountsAdapterMock) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 	return aam.GetExistingAccountCalled(addressContainer)
 }
 
@@ -50,8 +50,8 @@ func (aam *AccountsAdapterMock) JournalLen() int {
 	return aam.JournalLenCalled()
 }
 
-func (aam *AccountsAdapterMock) PutCode(accountWrapper state.AccountWrapper, code []byte) error {
-	return aam.PutCodeCalled(accountWrapper, code)
+func (aam *AccountsAdapterMock) PutCode(accountHandler state.AccountHandler, code []byte) error {
+	return aam.PutCodeCalled(accountHandler, code)
 }
 
 func (aam *AccountsAdapterMock) RemoveAccount(addressContainer state.AddressContainer) error {
@@ -62,20 +62,20 @@ func (aam *AccountsAdapterMock) RemoveCode(codeHash []byte) error {
 	return aam.RemoveCodeCalled(codeHash)
 }
 
-func (aam *AccountsAdapterMock) LoadDataTrie(accountWrapper state.AccountWrapper) error {
-	return aam.RetrieveDataTrieCalled(accountWrapper)
+func (aam *AccountsAdapterMock) LoadDataTrie(accountHandler state.AccountHandler) error {
+	return aam.RetrieveDataTrieCalled(accountHandler)
 }
 
 func (aam *AccountsAdapterMock) RevertToSnapshot(snapshot int) error {
 	return aam.RevertToSnapshotCalled(snapshot)
 }
 
-func (aam *AccountsAdapterMock) SaveJournalizedAccount(journalizedAccountWrapper state.AccountWrapper) error {
-	return aam.SaveAccountStateCalled(journalizedAccountWrapper)
+func (aam *AccountsAdapterMock) SaveJournalizedAccount(journalizedAccountHandler state.AccountHandler) error {
+	return aam.SaveAccountStateCalled(journalizedAccountHandler)
 }
 
-func (aam *AccountsAdapterMock) SaveDataTrie(journalizedAccountWrapper state.AccountWrapper) error {
-	return aam.SaveDataTrieCalled(journalizedAccountWrapper)
+func (aam *AccountsAdapterMock) SaveDataTrie(journalizedAccountHandler state.AccountHandler) error {
+	return aam.SaveDataTrieCalled(journalizedAccountHandler)
 }
 
 func (aam *AccountsAdapterMock) RootHash() []byte {

@@ -2,11 +2,11 @@ package state
 
 import "github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 
-func (adb *AccountsDB) LoadCode(accountWrapper AccountWrapper) error {
-	return adb.loadCode(accountWrapper)
+func (adb *AccountsDB) LoadCode(accountHandler AccountHandler) error {
+	return adb.loadCode(accountHandler)
 }
 
-func (adb *AccountsDB) GetAccount(addressContainer AddressContainer) (AccountWrapper, error) {
+func (adb *AccountsDB) GetAccount(addressContainer AddressContainer) (AccountHandler, error) {
 	return adb.getAccount(addressContainer)
 }
 

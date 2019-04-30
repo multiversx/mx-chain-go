@@ -17,7 +17,7 @@ func TestNewJournalEntryNonce_NilAccountShouldErr(t *testing.T) {
 	entry, err := state.NewJournalEntryNonce(nil, 0)
 
 	assert.Nil(t, entry)
-	assert.Equal(t, state.ErrNilAccountWrapper, err)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
 }
 
 func TestNewJournalEntryNonce_ShouldWork(t *testing.T) {
@@ -50,7 +50,7 @@ func TestNewJournalEntryBalance_NilAccountShouldErr(t *testing.T) {
 	entry, err := state.NewJournalEntryBalance(nil, nil)
 
 	assert.Nil(t, entry)
-	assert.Equal(t, state.ErrNilAccountWrapper, err)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
 }
 
 func TestNewJournalEntryBalance_ShouldWork(t *testing.T) {

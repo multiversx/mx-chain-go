@@ -17,7 +17,7 @@ import (
 
 func generateAccountDBFromTrie(trie trie.PatriciaMerkelTree) *state.AccountsDB {
 	accnt, _ := state.NewAccountsDB(trie, mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address, tracker), nil
 		},
 	})
@@ -41,7 +41,7 @@ func generateAddressAccountAccountsDB() (state.AddressContainer, *mock.AccountWr
 func accountsDBCreateAccountsDB() *state.AccountsDB {
 	marshalizer := mock.MarshalizerMock{}
 	adb, _ := state.NewAccountsDB(mock.NewMockTrie(), mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address, tracker), nil
 		},
 	})
@@ -129,9 +129,7 @@ func TestAccountsDB_PutCodeNilCodeHashShouldRetNil(t *testing.T) {
 	_, account, adb := generateAddressAccountAccountsDB()
 
 	err := adb.PutCode(account, nil)
-	assert.Nil(t, err)
-	assert.Nil(t, account.GetCodeHash())
-	assert.Nil(t, account.GetCode())
+	assert.Equal(t, state.ErrNilCode, err)
 }
 
 func TestAccountsDB_PutCodeEmptyCodeHashShouldRetNil(t *testing.T) {
@@ -350,7 +348,7 @@ func TestAccountsDB_SaveJournalizedAccountMalfunctionMarshalizerShouldErr(t *tes
 	mockTrie := mock.NewMockTrie()
 	marshalizer := &mock.MarshalizerMock{}
 	adb, _ := state.NewAccountsDB(mockTrie, mock.HasherMock{}, marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address, tracker), nil
 		},
 	})
@@ -559,7 +557,7 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 	}
 
 	adb, _ = state.NewAccountsDB(&trieMock, mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address, tracker), nil
 		},
 	})
@@ -614,7 +612,7 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 	}
 	marshalizer := mock.MarshalizerMock{}
 	adb, _ = state.NewAccountsDB(&trieStub, mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address, tracker), nil
 		},
 	})
@@ -827,16 +825,16 @@ func TestAccountsDBTestCreateModifyComitSaveGet(t *testing.T) {
 	trieMock := mock.NewMockTrie()
 	adr := mock.NewAddressMock()
 	adb, _ := state.NewAccountsDB(trieMock, mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			accnt, err := state.NewAccount(address, tracker)
 			return accnt, err
 		},
 	})
 
 	//Step 1. get a fresh new account
-	accountWrapper, err := adb.GetAccountWithJournal(adr)
+	accountHandler, err := adb.GetAccountWithJournal(adr)
 	assert.Nil(t, err)
-	account := accountWrapper.(*state.Account)
+	account := accountHandler.(*state.Account)
 	err = account.SetNonceWithJournal(34)
 	assert.Nil(t, err)
 	err = account.SetBalanceWithJournal(big.NewInt(45))

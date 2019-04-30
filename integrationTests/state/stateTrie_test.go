@@ -19,7 +19,7 @@ import (
 type accountFactory struct {
 }
 
-func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountWrapper, error) {
+func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 	return state.NewAccount(address, tracker)
 }
 
@@ -35,7 +35,7 @@ func adbCreateAccountsDB() *state.AccountsDB {
 	return adb
 }
 
-func generateAddressJurnalAccountAccountsDB() (state.AddressContainer, state.AccountWrapper, *state.AccountsDB) {
+func generateAddressJurnalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
 	adr := createDummyAddress()
 	adb := adbCreateAccountsDB()
 
@@ -198,17 +198,17 @@ func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testin
 	t.Parallel()
 
 	balance := big.NewInt(40)
-	adr, accountWrapper, adb := generateAddressJurnalAccountAccountsDB()
-	account := accountWrapper.(*state.Account)
+	adr, accountHandler, adb := generateAddressJurnalAccountAccountsDB()
+	account := accountHandler.(*state.Account)
 	err := account.SetBalanceWithJournal(balance)
 	assert.Nil(t, err)
 
 	err = adb.SaveAccount(account)
 	assert.Nil(t, err)
 
-	accountWrapperRecovered, err := adb.GetAccountWithJournal(adr)
+	accountHandlerRecovered, err := adb.GetAccountWithJournal(adr)
 	assert.Nil(t, err)
-	accountRecovered := accountWrapperRecovered.(*state.Account)
+	accountRecovered := accountHandlerRecovered.(*state.Account)
 	assert.NotNil(t, accountRecovered)
 	assert.Equal(t, accountRecovered.Balance, balance)
 }
@@ -220,9 +220,9 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 	adr, _, adb := generateAddressJurnalAccountAccountsDB()
 
 	//same address of the unsaved account
-	accountWrapperRecovered, err := adb.GetAccountWithJournal(adr)
+	accountHandlerRecovered, err := adb.GetAccountWithJournal(adr)
 	assert.Nil(t, err)
-	accountRecovered := accountWrapperRecovered.(*state.Account)
+	accountRecovered := accountHandlerRecovered.(*state.Account)
 	assert.NotNil(t, accountRecovered)
 	assert.Equal(t, accountRecovered.Balance, big.NewInt(0))
 }

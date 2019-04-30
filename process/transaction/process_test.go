@@ -19,7 +19,7 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 ) *mock.AccountsStub {
 	accounts := mock.AccountsStub{}
 
-	accounts.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (state.AccountWrapper, error) {
+	accounts.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 		if bytes.Equal(addressContainer.Bytes(), sndAddr) {
 			return acntSrc, nil
 		}
@@ -241,7 +241,7 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 	acnt1, _ := state.NewAccount(adr1, &mock.AccountTrackerStub{})
 	acnt2, _ := state.NewAccount(adr2, &mock.AccountTrackerStub{})
 
-	accounts.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (state.AccountWrapper, error) {
+	accounts.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 		if addressContainer == adr1 {
 			return acnt1, nil
 		}
@@ -288,7 +288,7 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 	acnt1, _ := state.NewAccount(adr1, &mock.AccountTrackerStub{})
 	acnt2, _ := state.NewAccount(adr2, &mock.AccountTrackerStub{})
 
-	accounts.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (state.AccountWrapper, error) {
+	accounts.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
 		if addressContainer == adr1 {
 			return nil, errors.New("failure on source")
 		}
@@ -460,7 +460,7 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *tes
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled = true
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled = true
 			return nil
 		},
@@ -481,7 +481,7 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntDstIsNotInNodeShard(t *tes
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled = true
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled = true
 			return nil
 		},
@@ -501,7 +501,7 @@ func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -535,7 +535,7 @@ func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -568,7 +568,7 @@ func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -643,7 +643,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -694,7 +694,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -743,7 +743,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -828,7 +828,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -878,7 +878,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -918,7 +918,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -968,7 +968,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -1018,7 +1018,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 		JournalizeCalled: func(entry state.JournalEntry) {
 			journalizeCalled++
 		},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
 			return nil
 		},
@@ -1111,7 +1111,7 @@ func TestTxProcessor_SetBalancesToTrieCommitFailsShouldRevert(t *testing.T) {
 
 	tracker := &mock.AccountTrackerStub{
 		JournalizeCalled: func(entry state.JournalEntry) {},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			return nil
 		},
 	}
@@ -1167,7 +1167,7 @@ func TestTxProcessor_SetBalancesToTrieNilAddressShouldErr(t *testing.T) {
 
 	tracker := &mock.AccountTrackerStub{
 		JournalizeCalled: func(entry state.JournalEntry) {},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			return nil
 		},
 	}
@@ -1230,7 +1230,7 @@ func TestTxProcessor_SetBalancesToTrieAccountsFailShouldErr(t *testing.T) {
 		JournalLenCalled: func() int {
 			return 0
 		},
-		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (wrapper state.AccountWrapper, e error) {
+		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (wrapper state.AccountHandler, e error) {
 
 			return nil, errAccounts
 		},
@@ -1262,7 +1262,7 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 
 	tracker := &mock.AccountTrackerStub{
 		JournalizeCalled: func(entry state.JournalEntry) {},
-		SaveAccountCalled: func(accountWrapper state.AccountWrapper) error {
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			return nil
 		},
 	}

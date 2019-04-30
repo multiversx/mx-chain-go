@@ -64,7 +64,7 @@ func TestNewBaseJournalEntryCodeHash_NilAccountShouldErr(t *testing.T) {
 	entry, err := state.NewBaseJournalEntryCodeHash(nil, nil)
 
 	assert.Nil(t, entry)
-	assert.Equal(t, state.ErrNilAccountWrapper, err)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
 }
 
 func TestNewBaseJournalEntryCodeHash_ShouldWork(t *testing.T) {
@@ -97,7 +97,7 @@ func TestNewBaseJournalEntryRootHash_NilAccountShouldErr(t *testing.T) {
 	entry, err := state.NewBaseJournalEntryRootHash(nil, nil)
 
 	assert.Nil(t, entry)
-	assert.Equal(t, state.ErrNilAccountWrapper, err)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
 }
 
 func TestNewBaseJournalEntryRootHash_ShouldWork(t *testing.T) {
@@ -130,7 +130,7 @@ func TestNewBaseJournalEntryData_NilAccountShouldErr(t *testing.T) {
 	entry, err := state.NewBaseJournalEntryData(nil, nil)
 
 	assert.Nil(t, entry)
-	assert.Equal(t, state.ErrNilAccountWrapper, err)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
 }
 
 func TestNewBaseJournalEntryData_ShouldWork(t *testing.T) {

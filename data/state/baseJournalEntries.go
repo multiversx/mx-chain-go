@@ -4,7 +4,8 @@ import "github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 
 //------- BaseJournalEntryCreation
 
-// BaseJournalEntryCreation is used to revert an account creation
+// BaseJournalEntryCreation creates a new account entry in the state trie
+// through updater it can revert the created changes.
 type BaseJournalEntryCreation struct {
 	key     []byte
 	updater Updater
@@ -26,22 +27,22 @@ func NewBaseJournalEntryCreation(key []byte, updater Updater) (*BaseJournalEntry
 }
 
 // Revert applies undo operation
-func (bjec *BaseJournalEntryCreation) Revert() (AccountWrapper, error) {
+func (bjec *BaseJournalEntryCreation) Revert() (AccountHandler, error) {
 	return nil, bjec.updater.Update(bjec.key, nil)
 }
 
 //------- BaseJournalEntryCodeHash
 
-// BaseJournalEntryCodeHash is used to revert a code hash change
+// BaseJournalEntryCodeHash creates a code hash change in account
 type BaseJournalEntryCodeHash struct {
-	account     AccountWrapper
+	account     AccountHandler
 	oldCodeHash []byte
 }
 
-// NewBaseJournalEntryCodeHash outputs a new BaseJournalEntry implementation used to revert a code hash change
-func NewBaseJournalEntryCodeHash(account AccountWrapper, oldCodeHash []byte) (*BaseJournalEntryCodeHash, error) {
+// NewBaseJournalEntryCodeHash outputs a new BaseJournalEntry implementation used to save and revert a code hash change
+func NewBaseJournalEntryCodeHash(account AccountHandler, oldCodeHash []byte) (*BaseJournalEntryCodeHash, error) {
 	if account == nil {
-		return nil, ErrNilAccountWrapper
+		return nil, ErrNilAccountHandler
 	}
 
 	return &BaseJournalEntryCodeHash{
@@ -51,7 +52,7 @@ func NewBaseJournalEntryCodeHash(account AccountWrapper, oldCodeHash []byte) (*B
 }
 
 // Revert applies undo operation
-func (bjech *BaseJournalEntryCodeHash) Revert() (AccountWrapper, error) {
+func (bjech *BaseJournalEntryCodeHash) Revert() (AccountHandler, error) {
 	bjech.account.SetCodeHash(bjech.oldCodeHash)
 
 	return bjech.account, nil
@@ -59,16 +60,16 @@ func (bjech *BaseJournalEntryCodeHash) Revert() (AccountWrapper, error) {
 
 //------- BaseJournalEntryRoot
 
-// BaseJournalEntryRootHash is used to revert an account's root hash change
+// BaseJournalEntryRootHash creates an account's root hash change
 type BaseJournalEntryRootHash struct {
-	account     AccountWrapper
+	account     AccountHandler
 	oldRootHash []byte
 }
 
-// NewBaseJournalEntryRootHash outputs a new BaseJournalEntry implementation used to revert an account's root hash change
-func NewBaseJournalEntryRootHash(account AccountWrapper, oldRootHash []byte) (*BaseJournalEntryRootHash, error) {
+// NewBaseJournalEntryRootHash outputs a new BaseJournalEntry used to save and revert an account's root hash change
+func NewBaseJournalEntryRootHash(account AccountHandler, oldRootHash []byte) (*BaseJournalEntryRootHash, error) {
 	if account == nil {
-		return nil, ErrNilAccountWrapper
+		return nil, ErrNilAccountHandler
 	}
 
 	return &BaseJournalEntryRootHash{
@@ -78,7 +79,7 @@ func NewBaseJournalEntryRootHash(account AccountWrapper, oldRootHash []byte) (*B
 }
 
 // Revert applies undo operation
-func (bjer *BaseJournalEntryRootHash) Revert() (AccountWrapper, error) {
+func (bjer *BaseJournalEntryRootHash) Revert() (AccountHandler, error) {
 	bjer.account.SetRootHash(bjer.oldRootHash)
 
 	return bjer.account, nil
@@ -89,14 +90,14 @@ func (bjer *BaseJournalEntryRootHash) Revert() (AccountWrapper, error) {
 // BaseJournalEntryData is used to mark an account's data change
 type BaseJournalEntryData struct {
 	trie    trie.PatriciaMerkelTree
-	account AccountWrapper
+	account AccountHandler
 }
 
 // NewBaseJournalEntryData outputs a new BaseJournalEntry implementation used to keep track of data change.
 // The revert will practically empty the dirty data map
-func NewBaseJournalEntryData(account AccountWrapper, trie trie.PatriciaMerkelTree) (*BaseJournalEntryData, error) {
+func NewBaseJournalEntryData(account AccountHandler, trie trie.PatriciaMerkelTree) (*BaseJournalEntryData, error) {
 	if account == nil {
-		return nil, ErrNilAccountWrapper
+		return nil, ErrNilAccountHandler
 	}
 
 	return &BaseJournalEntryData{
@@ -106,7 +107,7 @@ func NewBaseJournalEntryData(account AccountWrapper, trie trie.PatriciaMerkelTre
 }
 
 // Revert will empty the dirtyData map from AccountState
-func (bjed *BaseJournalEntryData) Revert() (AccountWrapper, error) {
+func (bjed *BaseJournalEntryData) Revert() (AccountHandler, error) {
 	dataTrieTracker := bjed.account.DataTrieTracker()
 	if dataTrieTracker != nil {
 		bjed.account.DataTrieTracker().ClearDataCaches()
@@ -116,6 +117,6 @@ func (bjed *BaseJournalEntryData) Revert() (AccountWrapper, error) {
 }
 
 // Trie returns the referenced PatriciaMerkelTree for committing the changes
-func (jed *BaseJournalEntryData) Trie() trie.PatriciaMerkelTree {
-	return jed.trie
+func (bjed *BaseJournalEntryData) Trie() trie.PatriciaMerkelTree {
+	return bjed.trie
 }

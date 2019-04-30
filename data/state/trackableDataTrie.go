@@ -72,6 +72,7 @@ func (tdaw *TrackableDataTrie) SaveKeyValue(key []byte, value []byte) {
 	tdaw.dirtyData[string(key)] = value
 }
 
+// SetDataTrie sets the internal data trie
 func (tdaw *TrackableDataTrie) SetDataTrie(tr trie.PatriciaMerkelTree) {
 	tdaw.tr = tr
 }

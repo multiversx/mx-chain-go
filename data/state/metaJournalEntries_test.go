@@ -17,7 +17,7 @@ func TestNewetaJournalEntryRound_NilAccountShouldErr(t *testing.T) {
 	entry, err := state.NewMetaJournalEntryRound(nil, 0)
 
 	assert.Nil(t, entry)
-	assert.Equal(t, state.ErrNilAccountWrapper, err)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
 }
 
 func TestNewetaJournalEntryRound_ShouldWork(t *testing.T) {
@@ -49,7 +49,7 @@ func TestNewetaJournalEntryMiniBlocksData_NilAccountShouldErr(t *testing.T) {
 	entry, err := state.NewMetaJournalEntryMiniBlocksData(nil, nil)
 
 	assert.Nil(t, entry)
-	assert.Equal(t, state.ErrNilAccountWrapper, err)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
 }
 
 func TestNewetaJournalEntryMiniBlocksData_ShouldWork(t *testing.T) {
@@ -82,7 +82,7 @@ func TestNewetaJournalEntryTxCount_NilAccountShouldErr(t *testing.T) {
 	entry, err := state.NewMetaJournalEntryTxCount(nil, nil)
 
 	assert.Nil(t, entry)
-	assert.Equal(t, state.ErrNilAccountWrapper, err)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
 }
 
 func TestNewetaJournalEntryTxCount_ShouldWork(t *testing.T) {
@@ -114,7 +114,7 @@ func TestNewetaJournalEntryShardRootHash_NilAccountShouldErr(t *testing.T) {
 	entry, err := state.NewMetaJournalEntryShardRootHash(nil, nil)
 
 	assert.Nil(t, entry)
-	assert.Equal(t, state.ErrNilAccountWrapper, err)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
 }
 
 func TestNewMetaJournalEntryShardRootHash_ShouldWork(t *testing.T) {
