@@ -330,7 +330,7 @@ func (bms *blsMultiSigner) Verify(bitmap []byte, message []byte) error {
 		return err
 	}
 
-	return bms.llSigner.VerifyAggregatedSig(bms.keyGen.Suite(), aggPointsBytes, bms.data.aggSig, bms.data.message)
+	return bms.llSigner.VerifyAggregatedSig(bms.keyGen.Suite(), aggPointsBytes, bms.data.aggSig, message)
 }
 
 func aggregatePublicKeys(

@@ -61,7 +61,12 @@ func (kms *KyberMultiSignerBLS) AggregateSignatures(suite crypto.Suite, sigs ...
 }
 
 // VerifyAggregatedSig verifies if a BLS aggregated signature is valid over a given message
-func (kms *KyberMultiSignerBLS) VerifyAggregatedSig(suite crypto.Suite, aggPointsBytes []byte, aggSigBytes []byte, msg []byte) error {
+func (kms *KyberMultiSignerBLS) VerifyAggregatedSig(
+	suite crypto.Suite,
+	aggPointsBytes []byte,
+	aggSigBytes []byte,
+	msg []byte,
+) error {
 	if suite == nil {
 		return crypto.ErrNilSuite
 	}
@@ -86,7 +91,7 @@ func (kms *KyberMultiSignerBLS) AggregatePublicKeys(suite crypto.Suite, pubKeys 
 		return nil, crypto.ErrNilSuite
 	}
 
-	if pubKeys == nil {
+	if len(pubKeys) == 0 {
 		return nil, crypto.ErrNilPublicKeys
 	}
 

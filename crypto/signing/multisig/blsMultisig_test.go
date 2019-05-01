@@ -6,9 +6,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+	llsig "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
-	llsig "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/stretchr/testify/assert"
 )
@@ -130,6 +130,18 @@ func TestNewBLSMultisig_NilHasherShouldErr(t *testing.T) {
 
 	assert.Nil(t, multiSig)
 	assert.Equal(t, crypto.ErrNilHasher, err)
+}
+
+func TestNewBLSMultisig_WrongHasherSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ownIndex := uint16(3)
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
+
+	assert.Nil(t, multiSig)
+	assert.Equal(t, crypto.ErrWrongSizeHasher, err)
 }
 
 func TestNewBLSMultisig_NilPrivKeyShouldErr(t *testing.T) {
@@ -392,7 +404,7 @@ func TestBLSMultiSigner_CreateSignatureShareOK(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg, llSigner:= genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 
 	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 	msg := []byte("message")
