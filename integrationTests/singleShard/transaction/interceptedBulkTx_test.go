@@ -29,7 +29,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
-	n, _, sk, _ := createNetNode(34000, dPool, accntAdapter, shardCoordinator)
+	n, _, sk, _ := createNetNode(20000, dPool, accntAdapter, shardCoordinator)
 
 	n.Start()
 	defer n.Stop()
