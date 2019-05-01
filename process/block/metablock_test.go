@@ -1022,7 +1022,7 @@ func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) 
 	assert.Equal(t, 0, journalEntries)
 }
 
-func TestMetaProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
+func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	t.Parallel()
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
@@ -1036,7 +1036,7 @@ func TestMetaProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 		func(shardID uint32, hdrHash []byte) {},
 	)
 
-	msh, mstx, err := mp.MarshalizedDataForCrossShard(&block.MetaBlockBody{})
+	msh, mstx, err := mp.MarshalizedDataToBroadcast(&block.MetaBlock{}, &block.MetaBlockBody{})
 	assert.Nil(t, err)
 	assert.NotNil(t, msh)
 	assert.NotNil(t, mstx)

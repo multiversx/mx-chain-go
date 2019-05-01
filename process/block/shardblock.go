@@ -1314,8 +1314,9 @@ func (sp *shardProcessor) getNrTxsWithDst(dstShardId uint32) int {
 	return sumTxs
 }
 
-// MarshalizedDataForCrossShard prepares underlying data into a marshalized object according to destination
-func (sp *shardProcessor) MarshalizedDataForCrossShard(
+// MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
+func (sp *shardProcessor) MarshalizedDataToBroadcast(
+	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[uint32][][]byte, error) {
 

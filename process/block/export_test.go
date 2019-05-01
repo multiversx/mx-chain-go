@@ -144,8 +144,8 @@ func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
 	return found
 }
 
-func (mp *metaProcessor) CreateShardInfo(maxHdrInBlock int, round int32, haveTime func() bool) ([]block.ShardData, error) {
-	return mp.createShardInfo(maxHdrInBlock, round, haveTime)
+func (mp *metaProcessor) CreateShardInfo(maxMiniBlocksInBlock uint32, round int32, haveTime func() bool) ([]block.ShardData, error) {
+	return mp.createShardInfo(maxMiniBlocksInBlock, round, haveTime)
 }
 
 func (mp *metaProcessor) LastNotedHdrs() map[uint32]*block.Header {

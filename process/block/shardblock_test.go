@@ -1702,7 +1702,7 @@ func TestShardProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T)
 	assert.Equal(t, 0, journalEntries)
 }
 
-func TestShardProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
+func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	txHash0 := []byte("txHash0")
@@ -1737,7 +1737,7 @@ func TestShardProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 		func(destShardID uint32, txHash []byte) {},
 		func(destShardID uint32, txHash []byte) {},
 	)
-	msh, mstx, err := sp.MarshalizedDataForCrossShard(body)
+	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, body)
 	assert.Nil(t, err)
 	assert.NotNil(t, msh)
 	assert.NotNil(t, mstx)
@@ -1772,7 +1772,7 @@ func TestShardProcessor_MarshalizedDataWrongType(t *testing.T) {
 		func(destShardID uint32, txHash []byte) {},
 	)
 	wr := wrongBody{}
-	msh, mstx, err := sp.MarshalizedDataForCrossShard(wr)
+	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, wr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	assert.Nil(t, msh)
 	assert.Nil(t, mstx)
@@ -1797,7 +1797,7 @@ func TestShardProcessor_MarshalizedDataNilInput(t *testing.T) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
-	msh, mstx, err := sp.MarshalizedDataForCrossShard(nil)
+	msh, mstx, err := sp.MarshalizedDataToBroadcast(nil, nil)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
 	assert.Nil(t, msh)
 	assert.Nil(t, mstx)
@@ -1832,7 +1832,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
-	msh, mstx, err := sp.MarshalizedDataForCrossShard(body)
+	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, body)
 	assert.Equal(t, process.ErrMarshalWithoutSuccess, err)
 	assert.Nil(t, msh)
 	assert.Nil(t, mstx)
