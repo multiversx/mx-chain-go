@@ -37,6 +37,7 @@ type metaProcessor struct {
 	mutRequestedShardHeaderHahses sync.RWMutex
 
 	lastNotedHdrs map[uint32]*block.Header
+	nextKValidity uint32
 
 	ChRcvAllHdrs chan bool
 }
@@ -74,11 +75,12 @@ func NewMetaProcessor(
 	}
 
 	base := &baseProcessor{
-		accounts:     accounts,
-		forkDetector: forkDetector,
-		hasher:       hasher,
-		marshalizer:  marshalizer,
-		store:        store,
+		accounts:         accounts,
+		forkDetector:     forkDetector,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		store:            store,
+		shardCoordinator: shardCoordinator,
 	}
 
 	mp := metaProcessor{
@@ -101,6 +103,8 @@ func NewMetaProcessor(
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
 		mp.lastNotedHdrs[i] = &block.Header{Round: 0, Nonce: 0}
 	}
+
+	mp.nextKValidity = blockFinality
 
 	return &mp, nil
 }
@@ -785,6 +789,7 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 
 	// verify if there are "K" block after current to make this one final
 	lastVerifiedHdr := currHdr
+	nextBlocksVerified := uint32(0)
 	for i := 0; i < len(sortedShardHdrs); i++ {
 		tmpHdr := sortedShardHdrs[i]
 
@@ -796,11 +801,12 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 			}
 
 			lastVerifiedHdr = tmpHdr
+			nextBlocksVerified += 1
 		}
+	}
 
-		if lastVerifiedHdr.GetRound()-currHdr.GetRound() > blockFinality {
-			return true
-		}
+	if nextBlocksVerified >= mp.nextKValidity {
+		return true
 	}
 
 	return false
@@ -989,7 +995,15 @@ func (mp *metaProcessor) getOrderedHdrs() ([]*block.Header, [][]byte, map[uint32
 		}
 
 		currShardId := hdr.ShardId
+		if mp.lastNotedHdrs[currShardId] == nil {
+			continue
+		}
+
 		if hdr.GetRound() <= mp.lastNotedHdrs[currShardId].GetRound() {
+			continue
+		}
+
+		if hdr.GetNonce() <= mp.lastNotedHdrs[currShardId].GetNonce() {
 			continue
 		}
 
@@ -1010,7 +1024,7 @@ func (mp *metaProcessor) getOrderedHdrs() ([]*block.Header, [][]byte, map[uint32
 		})
 
 		tmpHdrLen := len(hdrsForShard)
-		if maxHdrLen > tmpHdrLen {
+		if maxHdrLen < tmpHdrLen {
 			maxHdrLen = tmpHdrLen
 		}
 	}

@@ -147,3 +147,11 @@ func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
 func (mp *metaProcessor) CreateShardInfo(maxHdrInBlock int, round int32, haveTime func() bool) ([]block.ShardData, error) {
 	return mp.createShardInfo(maxHdrInBlock, round, haveTime)
 }
+
+func (mp *metaProcessor) LastNotedHdrs() map[uint32]*block.Header {
+	return mp.lastNotedHdrs
+}
+
+func (mp *metaProcessor) SetNextKValidity(val uint32) {
+	mp.nextKValidity = val
+}
