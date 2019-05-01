@@ -15,7 +15,6 @@ type Account struct {
 
 	addressContainer AddressContainer
 	code             []byte
-	dataTrie         trie.PatriciaMerkelTree
 	accountTracker   AccountTracker
 	dataTrieTracker  DataTrieTracker
 }
@@ -130,12 +129,11 @@ func (a *Account) SetRootHashWithJournal(rootHash []byte) error {
 
 // DataTrie returns the trie that holds the current account's data
 func (a *Account) DataTrie() trie.PatriciaMerkelTree {
-	return a.dataTrie
+	return a.dataTrieTracker.GetDataTrie()
 }
 
 // SetDataTrie sets the trie that holds the current account's data
 func (a *Account) SetDataTrie(trie trie.PatriciaMerkelTree) {
-	a.dataTrie = trie
 	a.dataTrieTracker.SetDataTrie(trie)
 }
 

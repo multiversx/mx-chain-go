@@ -76,3 +76,8 @@ func (tdaw *TrackableDataTrie) SaveKeyValue(key []byte, value []byte) {
 func (tdaw *TrackableDataTrie) SetDataTrie(tr trie.PatriciaMerkelTree) {
 	tdaw.tr = tr
 }
+
+// GetDataTrie sets the internal data trie
+func (tdaw *TrackableDataTrie) GetDataTrie() trie.PatriciaMerkelTree {
+	return tdaw.tr
+}
