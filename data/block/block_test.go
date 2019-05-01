@@ -311,7 +311,7 @@ func TestHeader_SetTimeStamp(t *testing.T) {
 	h := block.Header{}
 	h.SetTimeStamp(timeStamp)
 
-	assert.Equal(t, timeStamp, h.GetTimestamp())
+	assert.Equal(t, timeStamp, h.GetTimeStamp())
 }
 
 func TestHeader_SetTxCount(t *testing.T) {

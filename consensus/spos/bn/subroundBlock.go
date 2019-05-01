@@ -178,7 +178,17 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 }
 
 func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
-	hdr, err := sr.BlockProcessor().CreateBlockHeader(sr.BlockBody)
+	startTime := time.Time{}
+	startTime = sr.RoundTimeStamp
+	maxTime := time.Duration(sr.EndTime())
+	haveTimeInCurrentSubround := func() bool {
+		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
+	}
+
+	hdr, err := sr.BlockProcessor().CreateBlockHeader(
+		sr.BlockBody,
+		sr.Rounder().Index(),
+		haveTimeInCurrentSubround)
 	if err != nil {
 		return nil, err
 	}
@@ -281,13 +291,6 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 
 	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been received\n",
 		sr.SyncTimer().FormattedCurrentTime(), sr.Header.GetNonce(), toB64(cnsDta.BlockHeaderHash)))
-
-	if !sr.BlockProcessor().CheckBlockValidity(sr.Blockchain(), sr.Header, nil) {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, invalid block\n",
-			sr.Rounder().Index(), getSubroundName(SrBlock)))
-
-		return false
-	}
 
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 

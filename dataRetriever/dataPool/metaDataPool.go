@@ -33,7 +33,7 @@ func NewMetaDataPool(
 	}
 
 	if metaBlockNonces == nil {
-		return nil, dataRetriever.ErrNilMetaBlockNouncesPool
+		return nil, dataRetriever.ErrNilMetaBlockNoncesPool
 	}
 
 	return &metaDataPool{

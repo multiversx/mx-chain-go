@@ -13,11 +13,10 @@ type BlockProcessorStub struct {
 	CommitBlockCalled                  func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled           func()
 	CreateGenesisBlockCalled           func(balances map[string]*big.Int) (rootHash []byte, err error)
-	CreateBlockCalled                  func(round int32, haveTime func() bool) (data.BodyHandler, error)
-	RestoreBlockIntoPoolsCalled        func(blockChain data.ChainHandler, body data.BodyHandler) error
-	GetRootHashCalled                  func() []byte
+	CreateBlockBodyCalled              func(round int32, haveTime func() bool) (data.BodyHandler, error)
+	RestoreBlockIntoPoolsCalled        func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled      func(f func(destShardID uint32, txHash []byte))
-	CheckBlockValidityCalled           func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
+	CreateBlockHeaderCalled            func(body data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error)
 	MarshalizedDataForCrossShardCalled func(body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
 }
 
@@ -43,24 +42,15 @@ func (blProcMock *BlockProcessorStub) CreateGenesisBlock(balances map[string]*bi
 
 // CreateTxBlockBody mocks the creation of a transaction block body
 func (blProcMock *BlockProcessorStub) CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error) {
-	return blProcMock.CreateBlockCalled(round, haveTime)
+	return blProcMock.CreateBlockBodyCalled(round, haveTime)
 }
 
-func (blProcMock *BlockProcessorStub) RestoreBlockIntoPools(blockChain data.ChainHandler, body data.BodyHandler) error {
-	return blProcMock.RestoreBlockIntoPoolsCalled(blockChain, body)
+func (blProcMock *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
+	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
 }
 
-// GetRootHash mocks getting root hash
-func (blProcMock BlockProcessorStub) GetRootHash() []byte {
-	return blProcMock.GetRootHashCalled()
-}
-
-func (blProcMock BlockProcessorStub) CheckBlockValidity(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool {
-	return blProcMock.CheckBlockValidityCalled(blockChain, header, body)
-}
-
-func (bps BlockProcessorStub) CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error) {
-	panic("implement me")
+func (blProcMock BlockProcessorStub) CreateBlockHeader(body data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error) {
+	return blProcMock.CreateBlockHeaderCalled(body, round, haveTime)
 }
 
 func (blProcMock BlockProcessorStub) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {

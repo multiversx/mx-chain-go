@@ -27,9 +27,8 @@ type BlockProcessor interface {
 	RevertAccountState()
 	CreateGenesisBlock(balances map[string]*big.Int) ([]byte, error)
 	CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error)
-	RestoreBlockIntoPools(blockChain data.ChainHandler, body data.BodyHandler) error
-	CheckBlockValidity(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
-	CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error)
+	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
+	CreateBlockHeader(body data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error)
 	MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
 }
 

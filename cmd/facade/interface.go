@@ -44,6 +44,10 @@ type NodeWrapper interface {
 	//  for the receiver destination
 	GenerateAndSendBulkTransactions(string, *big.Int, uint64) error
 
+	// GenerateAndSendBulkTransactionsOneByOne generates a number of nrTransactions of amount value
+	//  for the receiver destination in a one-by-one fashion
+	GenerateAndSendBulkTransactionsOneByOne(string, *big.Int, uint64) error
+
 	// GetAccount returns an accountResponse containing information
 	//  about the account corelated with provided address
 	GetAccount(address string) (*state.Account, error)

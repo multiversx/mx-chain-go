@@ -129,6 +129,8 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
 	dPool, _ := dataPool.NewShardedDataPool(
@@ -138,6 +140,7 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
+		metaHdrNonces,
 	)
 
 	return dPool
@@ -227,7 +230,7 @@ func createNetNode(
 		shardCoordinator,
 	)
 
-	blockProcessor, _ := block.NewBlockProcessor(
+	blockProcessor, _ := block.NewShardProcessor(
 		dPool,
 		store,
 		testHasher,
@@ -301,7 +304,7 @@ func createMessengerWithKadDht(ctx context.Context, port int, initialAddr string
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, err := libp2p.NewNetworkMessenger(
+	libP2PMes, _, err := libp2p.NewNetworkMessengerWithPortSweep(
 		ctx,
 		port,
 		sk,

@@ -26,7 +26,7 @@ func CreateMessenger(ctx context.Context,
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, err := libp2p.NewNetworkMessenger(
+	libP2PMes, _, err := libp2p.NewNetworkMessengerWithPortSweep(
 		ctx,
 		port,
 		sk,

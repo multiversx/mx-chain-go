@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -18,6 +19,7 @@ var log = logger.DefaultLogger()
 type ShardHeaderInterceptor struct {
 	hdrInterceptorBase *interceptors.HeaderInterceptorBase
 	headers            storage.Cacher
+	storer             storage.Storer
 }
 
 // NewShardHeaderInterceptor hooks a new interceptor for shard block headers by metachain nodes
@@ -51,6 +53,7 @@ func NewShardHeaderInterceptor(
 	return &ShardHeaderInterceptor{
 		hdrInterceptorBase: hdrBaseInterceptor,
 		headers:            headers,
+		storer:             storer,
 	}, nil
 }
 
@@ -58,14 +61,24 @@ func NewShardHeaderInterceptor(
 // (for the topic this validator was registered to)
 func (shi *ShardHeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	hdrIntercepted, err := shi.hdrInterceptorBase.ParseReceivedMessage(message)
-	if err == process.ErrHeaderIsInStorage {
-		log.Debug("intercepted block header already processed")
-		return nil
-	}
 	if err != nil {
 		return err
 	}
 
-	_, _ = shi.headers.HasOrAdd(hdrIntercepted.Hash(), hdrIntercepted.GetHeader())
+	go shi.processHeader(hdrIntercepted)
+
 	return nil
+}
+
+func (shi *ShardHeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHeader) {
+	isHeaderInStorage, _ := shi.storer.Has(hdrIntercepted.Hash())
+	if isHeaderInStorage {
+		log.Debug("intercepted block header already processed")
+		return
+	}
+	if !shi.hdrInterceptorBase.CheckHeaderForCurrentShard(hdrIntercepted) {
+		return
+	}
+
+	shi.headers.HasOrAdd(hdrIntercepted.Hash(), hdrIntercepted.GetHeader())
 }
