@@ -425,3 +425,15 @@ func TestElrondNodeFacade_GenerateAndSendBulkTransactions(t *testing.T) {
 	ef.GenerateAndSendBulkTransactions("", big.NewInt(0), 0)
 	assert.Equal(t, called, 1)
 }
+
+func TestElrondNodeFacade_GenerateAndSendBulkTransactionsOneByOne(t *testing.T) {
+	called := 0
+	node := &mock.NodeMock{}
+	node.GenerateAndSendBulkTransactionsOneByOneHandler = func(destination string, value *big.Int, nrTransactions uint64) error {
+		called++
+		return nil
+	}
+	ef := facade.NewElrondNodeFacade(node)
+	ef.GenerateAndSendBulkTransactionsOneByOne("", big.NewInt(0), 0)
+	assert.Equal(t, called, 1)
+}

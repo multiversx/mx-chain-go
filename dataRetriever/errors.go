@@ -155,8 +155,8 @@ var ErrNilMiniBlockHashesPool = errors.New("nil meta block mini block hashes dat
 // ErrNilShardHeaderPool signals that a nil meta block data pool was provided
 var ErrNilShardHeaderPool = errors.New("nil meta block shard header data pool")
 
-// ErrNilMetaBlockNouncesPool signals that a nil meta block data pool was provided
-var ErrNilMetaBlockNouncesPool = errors.New("nil meta block nounces data pool")
+// ErrNilMetaBlockNoncesPool signals that a nil meta block data pool was provided
+var ErrNilMetaBlockNoncesPool = errors.New("nil meta block nonces data pool")
 
 // ErrNoSuchStorageUnit defines the error for using an invalid storage unit
 var ErrNoSuchStorageUnit = errors.New("no such unit type")

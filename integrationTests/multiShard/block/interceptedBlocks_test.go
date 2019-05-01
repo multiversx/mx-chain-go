@@ -25,7 +25,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	}
 
 	numOfShards := 6
-	startingPort := 36000
+	startingPort := 37000
 	nodesPerShard := 3
 
 	senderShard := uint32(0)
