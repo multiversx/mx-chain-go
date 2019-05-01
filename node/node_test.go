@@ -523,20 +523,19 @@ func getPrivateKey() *mock.PrivateKeyStub {
 }
 
 func TestSendTransaction_ShouldWork(t *testing.T) {
-	n, _ := node.NewNode(
-		node.WithMarshalizer(&mock.MarshalizerFake{}),
-		node.WithAddressConverter(mock.NewAddressConverterFake(32, "0x")),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-	)
-
 	txSent := false
-
 	mes := &mock.MessengerStub{
 		BroadcastOnChannelCalled: func(pipe string, topic string, buff []byte) {
 			txSent = true
 		},
 	}
-	n.SetMessenger(mes)
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(&mock.MarshalizerFake{}),
+		node.WithAddressConverter(mock.NewAddressConverterFake(32, "0x")),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithMessenger(mes),
+	)
 
 	nonce := uint64(50)
 	value := big.NewInt(567)

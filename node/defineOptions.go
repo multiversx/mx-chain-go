@@ -13,13 +13,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 // WithMessenger sets up the messenger option for the Node
-func WithMessenger(mes p2p.Messenger) Option {
+func WithMessenger(mes P2PMessenger) Option {
 	return func(n *Node) error {
 		if mes == nil {
 			return ErrNilMessenger

@@ -56,7 +56,7 @@ type Node struct {
 	initialNodesBalances     map[string]*big.Int
 	roundDuration            uint64
 	consensusGroupSize       int
-	messenger                p2p.Messenger
+	messenger                P2PMessenger
 	syncer                   ntp.SyncTimer
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
