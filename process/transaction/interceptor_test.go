@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -14,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/stretchr/testify/assert"
 )
+
+var durTimeout = time.Duration(time.Second)
 
 //------- NewTxInterceptor
 
@@ -535,11 +538,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-
-	wasAdded := 0
-
+	chanDone := make(chan struct{}, 10)
 	txPool := &mock.ShardedDataStub{}
-
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
@@ -589,27 +589,27 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 
 	txPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
 		if bytes.Equal(mock.HasherMock{}.Compute(string(txBuff)), key) {
-			wasAdded++
+			chanDone <- struct{}{}
 		}
 	}
 
 	err := txi.ProcessReceivedMessage(msg)
 
 	assert.Nil(t, err)
-	assert.Equal(t, 1, wasAdded)
+	select {
+	case <-chanDone:
+	case <-time.After(durTimeout):
+		assert.Fail(t, "timeout while waiting for tx to be inserted in the pool")
+	}
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-
-	wasAdded := 0
-
+	chanDone := make(chan struct{}, 10)
 	txPool := &mock.ShardedDataStub{}
-
 	addrConv := &mock.AddressConverterMock{}
-
 	pubKey := &mock.SingleSignPublicKey{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
@@ -657,26 +657,27 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 
 	txPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
 		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
-			wasAdded++
+			chanDone <- struct{}{}
 		}
 	}
 
 	err := txi.ProcessReceivedMessage(msg)
 
 	assert.Nil(t, err)
-	assert.Equal(t, 0, wasAdded)
+	select {
+	case <-chanDone:
+		assert.Fail(t, "should have not add tx in pool")
+	case <-time.After(durTimeout):
+	}
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-
-	wasAdded := 0
-
+	chanDone := make(chan struct{}, 10)
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
-
 	pubKey := &mock.SingleSignPublicKey{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
@@ -732,12 +733,16 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 
 	txPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
 		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
-			wasAdded++
+			chanDone <- struct{}{}
 		}
 	}
 
 	err := txi.ProcessReceivedMessage(msg)
 
 	assert.Nil(t, err)
-	assert.Equal(t, 0, wasAdded)
+	select {
+	case <-chanDone:
+		assert.Fail(t, "should have not add tx in pool")
+	case <-time.After(durTimeout):
+	}
 }

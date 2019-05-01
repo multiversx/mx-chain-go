@@ -127,3 +127,14 @@ func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactions(
 
 	return ef.node.GenerateAndSendBulkTransactions(destination, value, nrTransactions)
 }
+
+//GenerateAndSendBulkTransactions generates a number of nrTransactions of amount value
+//for the receiver destination in a one by one fashion
+func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactionsOneByOne(
+	destination string,
+	value *big.Int,
+	nrTransactions uint64,
+) error {
+
+	return ef.node.GenerateAndSendBulkTransactionsOneByOne(destination, value, nrTransactions)
+}

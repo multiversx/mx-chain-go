@@ -65,22 +65,25 @@ func NewHeaderInterceptor(
 // (for the topic this validator was registered to)
 func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	hdrIntercepted, err := hi.hdrInterceptorBase.ParseReceivedMessage(message)
-	if err == process.ErrHeaderIsInStorage {
-		log.Debug("intercepted block header already processed")
-		return nil
-	}
 	if err != nil {
 		return err
 	}
-	if !hi.checkHeaderForCurrentShard(hdrIntercepted) {
-		return nil
-	}
 
-	_, _ = hi.headers.HasOrAdd(hdrIntercepted.Hash(), hdrIntercepted.GetHeader())
-	_, _ = hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hdrIntercepted.Hash())
+	go hi.processHeader(hdrIntercepted)
+
 	return nil
 }
 
-func (hi *HeaderInterceptor) checkHeaderForCurrentShard(header *block.InterceptedHeader) bool {
-	return hi.shardCoordinator.SelfId() == header.GetHeader().ShardId
+func (hi *HeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHeader) {
+	isHeaderInStorage, _ := hi.hdrInterceptorBase.storer.Has(hdrIntercepted.Hash())
+	if isHeaderInStorage {
+		log.Debug("intercepted block header already processed")
+		return
+	}
+	if !hi.hdrInterceptorBase.CheckHeaderForCurrentShard(hdrIntercepted) {
+		return
+	}
+
+	hi.headers.HasOrAdd(hdrIntercepted.Hash(), hdrIntercepted.GetHeader())
+	hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hdrIntercepted.Hash())
 }

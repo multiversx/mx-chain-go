@@ -2,6 +2,7 @@ package interceptors
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -14,13 +15,14 @@ import (
 // MetachainHeaderInterceptor represents an interceptor used for metachain block headers
 type MetachainHeaderInterceptor struct {
 	*messageChecker
-	marshalizer         marshal.Marshalizer
-	metachainHeaders    storage.Cacher
-	storer              storage.Storer
-	multiSigVerifier    crypto.MultiSigVerifier
-	hasher              hashing.Hasher
-	shardCoordinator    sharding.Coordinator
-	chronologyValidator process.ChronologyValidator
+	marshalizer            marshal.Marshalizer
+	metachainHeaders       storage.Cacher
+	metachainHeadersNonces dataRetriever.Uint64Cacher
+	storer                 storage.Storer
+	multiSigVerifier       crypto.MultiSigVerifier
+	hasher                 hashing.Hasher
+	shardCoordinator       sharding.Coordinator
+	chronologyValidator    process.ChronologyValidator
 }
 
 // NewMetachainHeaderInterceptor hooks a new interceptor for metachain block headers
@@ -28,17 +30,22 @@ type MetachainHeaderInterceptor struct {
 func NewMetachainHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	metachainHeaders storage.Cacher,
+	metachainHeadersNonces dataRetriever.Uint64Cacher,
 	storer storage.Storer,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
 	chronologyValidator process.ChronologyValidator,
 ) (*MetachainHeaderInterceptor, error) {
+
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
 	}
 	if metachainHeaders == nil {
 		return nil, process.ErrNilMetachainHeadersDataPool
+	}
+	if metachainHeadersNonces == nil {
+		return nil, process.ErrNilMetachainHeadersNoncesDataPool
 	}
 	if storer == nil {
 		return nil, process.ErrNilMetachainHeadersStorage
@@ -57,14 +64,15 @@ func NewMetachainHeaderInterceptor(
 	}
 
 	return &MetachainHeaderInterceptor{
-		messageChecker:      &messageChecker{},
-		marshalizer:         marshalizer,
-		metachainHeaders:    metachainHeaders,
-		storer:              storer,
-		multiSigVerifier:    multiSigVerifier,
-		hasher:              hasher,
-		shardCoordinator:    shardCoordinator,
-		chronologyValidator: chronologyValidator,
+		messageChecker:         &messageChecker{},
+		marshalizer:            marshalizer,
+		metachainHeaders:       metachainHeaders,
+		storer:                 storer,
+		multiSigVerifier:       multiSigVerifier,
+		hasher:                 hasher,
+		shardCoordinator:       shardCoordinator,
+		chronologyValidator:    chronologyValidator,
+		metachainHeadersNonces: metachainHeadersNonces,
 	}, nil
 }
 
@@ -95,12 +103,18 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 		return err
 	}
 
-	isHeaderInStorage, _ := mhi.storer.Has(hashWithSig)
+	go mhi.processMetaHeader(metaHdrIntercepted)
+
+	return nil
+}
+
+func (mhi *MetachainHeaderInterceptor) processMetaHeader(metaHdrIntercepted *block.InterceptedMetaHeader) {
+	isHeaderInStorage, _ := mhi.storer.Has(metaHdrIntercepted.Hash())
 	if isHeaderInStorage {
 		log.Debug("intercepted meta block header already processed")
-		return nil
+		return
 	}
 
-	mhi.metachainHeaders.HasOrAdd(hashWithSig, metaHdrIntercepted.GetMetaHeader())
-	return nil
+	mhi.metachainHeaders.HasOrAdd(metaHdrIntercepted.Hash(), metaHdrIntercepted.GetMetaHeader())
+	mhi.metachainHeadersNonces.HasOrAdd(metaHdrIntercepted.Nonce, metaHdrIntercepted.Hash())
 }
