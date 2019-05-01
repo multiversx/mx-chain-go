@@ -3,6 +3,7 @@ package node
 import (
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"math/big"
 	"sync"
 
@@ -174,12 +175,16 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string) (uint64
 
 	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
-		return 0, nil, nil, 0, errors.New("could not fetch sender account from provided param: " + err.Error())
+		return 0, nil, nil, 0, errors.New("could not fetch sender account from provided param: ")
 	}
 
 	newNonce := uint64(0)
 	if senderAccount != nil {
-		newNonce = senderAccount.BaseAccount().Nonce
+		acc, ok := senderAccount.(*state.Account)
+		if !ok {
+			return 0, nil, nil, 0, errors.New("wrong account type")
+		}
+		newNonce = acc.Nonce
 	}
 
 	return newNonce, senderAddressBytes, receiverAddress.Bytes(), senderShardId, nil
@@ -237,7 +242,6 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
-
 	if n.privateKey == nil {
 		return nil, errors.New("initialize PrivateKey first")
 	}
@@ -251,13 +255,15 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 		return nil, errors.New("could not create sender address from provided param")
 	}
 	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
-	if err != nil {
+	if err != nil || senderAccount == nil {
 		return nil, errors.New("could not fetch sender address from provided param")
 	}
 	newNonce := uint64(0)
-	if senderAccount != nil {
-		newNonce = senderAccount.BaseAccount().Nonce
+	acc, ok := senderAccount.(*state.Account)
+	if !ok {
+		return nil, errors.New("wrong account type")
 	}
+	newNonce = acc.Nonce
 
 	tx, _, err := n.generateAndSignTx(
 		newNonce,

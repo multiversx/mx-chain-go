@@ -349,6 +349,7 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
+		node.WithSinglesig(&mock.SinglesignMock{}),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.NotNil(t, err)
@@ -509,19 +510,12 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func getAccAdapter(balance *big.Int) mock.AccountsAdapterStub {
-	return mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
-			return mock.AccountWrapperStub{
-				BaseAccountHandler: func() *state.Account {
-					return &state.Account{
-						Nonce:   1,
-						Balance: balance,
-					}
-				},
-			}, nil
-		},
+func getAccAdapter(balance *big.Int) *mock.AccountsStub {
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		return &state.Account{Nonce: 1, Balance: balance}, nil
 	}
+	return accDB
 }
 
 func getPrivateKey() *mock.PrivateKeyStub {
