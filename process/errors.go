@@ -274,11 +274,11 @@ var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 // ErrNilRequestHeaderHandler signals that a nil header request handler func was provided
 var ErrNilRequestHeaderHandler = errors.New("nil request header handler")
 
-// ErrNilRequestMiniblockHeaderHandler signals that a nil miniblock header request handler func was provided
-var ErrNilRequestMiniblockHeaderHandler = errors.New("nil request miniblock header handler")
-
 // ErrLowShardHeaderRound signals that shard header round is too low for processing
 var ErrLowShardHeaderRound = errors.New("shard header round is lower than last committed for this shard")
 
 // ErrRandSeedMismatch signals that random seeds are not equal
 var ErrRandSeedMismatch = errors.New("random seeds do not match")
+
+// ErrHeaderNotFinal signals that header is not final and it should be
+var ErrHeaderNotFinal = errors.New("header in metablock is not final")
