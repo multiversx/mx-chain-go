@@ -44,6 +44,7 @@ func NewMetaAccount(addressContainer AddressContainer, tracker AccountTracker) (
 		TxCount:          big.NewInt(0),
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
+		dataTrieTracker:  NewTrackableDataTrie(nil),
 	}, nil
 }
 

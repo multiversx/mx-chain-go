@@ -132,15 +132,22 @@ func TestAccountsDB_PutCodeNilCodeHashShouldRetNil(t *testing.T) {
 	assert.Equal(t, state.ErrNilCode, err)
 }
 
-func TestAccountsDB_PutCodeEmptyCodeHashShouldRetNil(t *testing.T) {
+func TestAccountsDB_PutCodeEmptyCodeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	_, account, adb := generateAddressAccountAccountsDB()
 
+	wasCalled := false
+	account.SetCodeHashWithJournalCalled = func(codeHash []byte) error {
+		wasCalled = true
+		account.SetCodeHash(codeHash)
+		return nil
+	}
+
 	err := adb.PutCode(account, make([]byte, 0))
 	assert.Nil(t, err)
-	assert.Nil(t, account.GetCodeHash())
-	assert.Nil(t, account.GetCode())
+	assert.Equal(t, []byte{}, account.GetCode())
+	assert.Equal(t, true, wasCalled)
 }
 
 func TestAccountsDB_PutCodeMalfunctionTrieShouldErr(t *testing.T) {
