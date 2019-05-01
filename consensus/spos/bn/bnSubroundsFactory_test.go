@@ -14,7 +14,7 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bn.Factory {
 	worker := initWorker()
 	consensusState := initConsensusState()
 
-	fct, _ := bn.NewFactory(
+	fct, _ := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -62,7 +62,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 	worker := initWorker()
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		nil,
 		consensusState,
 		worker,
@@ -78,7 +78,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 	container := mock.InitConsensusCore()
 	worker := initWorker()
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		nil,
 		worker,
@@ -95,7 +95,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetBlockchain(nil)
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -113,7 +113,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetBlockProcessor(nil)
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -131,7 +131,7 @@ func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetBootStrapper(nil)
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -149,7 +149,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetChronology(nil)
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -167,7 +167,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetHasher(nil)
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -185,7 +185,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetMarshalizer(nil)
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -203,7 +203,7 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetMultiSigner(nil)
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -221,7 +221,7 @@ func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetRounder(nil)
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -239,7 +239,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetShardCoordinator(nil)
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -257,7 +257,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetSyncTimer(nil)
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -275,7 +275,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetValidatorGroupSelector(nil)
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -291,7 +291,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		container,
 		consensusState,
 		nil,

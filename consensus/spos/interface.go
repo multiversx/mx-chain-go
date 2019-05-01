@@ -36,3 +36,11 @@ type ConsensusCoreHandler interface {
 	//ValidatorGroupSelector gets the ValidatorGroupSelector stored in the ConsensusCore
 	ValidatorGroupSelector() consensus.ValidatorGroupSelector
 }
+
+type ConsensusProcessor interface {
+	InitReceivedMessages() map[MessageType][]*consensus.Message
+	GetStringValue(MessageType) string
+	GetSubroundName(int) string
+	GetMessageRange() []MessageType
+	IsFinished(*ConsensusState, MessageType) bool
+}

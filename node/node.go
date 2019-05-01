@@ -262,7 +262,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		consensusDataContainer,
 		consensusState,
 		worker,

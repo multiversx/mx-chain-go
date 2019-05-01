@@ -43,6 +43,9 @@ var ErrNilConsensusState = errors.New("consensus state is nil")
 // ErrNilConsensusCore is raised when a valid ConsensusCore is expected but nil used
 var ErrNilConsensusCore = errors.New("consensus core is nil")
 
+// ErrNilConsensusProcessor is raised when a valid ConsensusProcessor is expected but nil used
+var ErrNilConsensusProcessor = errors.New("consensus processor is nil")
+
 // ErrNilBlockChain is raised when a valid blockchain is expected but nil used
 var ErrNilBlockChain = errors.New("blockchain is nil")
 
