@@ -18,47 +18,86 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+var hosts = make([]host.Host, 0)
+var pubsubs = make([]*pubsub.PubSub, 0)
+var startingPort = 10000
+var topic = "test"
+
 func main() {
-	hosts := make([]host.Host, 0)
-	startingPort := 10000
 	var err error
 
-	//Step 1. Create 5 nodes
-	for i := 0; i < 5; i++ {
-		h, err := createHost(startingPort + i)
-		if err != nil {
-			fmt.Printf("Error encountered: %v\n", err)
-			return
-		}
-
-		hosts = append(hosts, h)
-		fmt.Printf("Node %v is %s\n", i, getLocalhostAddress(h))
+	err = createNodes(5)
+	if err != nil {
+		return
 	}
 
 	defer func() {
 		for _, h := range hosts {
 			_ = h.Close()
 		}
+
+		if err != nil {
+			fmt.Printf("Error encountered: %v\n", err)
+		}
 	}()
 
-	//Step 2. Create pubsubs
-	pubsubs := make([]*pubsub.PubSub, len(hosts))
-	for i, h := range hosts {
-		pubsubs[i], err = applyPubSub(h)
-		if err != nil {
-			fmt.Printf("Error encountered: %v\n", err)
-			return
-		}
+	err = createPubsubs()
+	if err != nil {
+		return
 	}
 
-	//Step 3. Register to the topic and add topic validators
-	topic := "test"
+	err = topicRegistration()
+	if err != nil {
+		return
+	}
+
+	connectingNodes()
+	//wait so that subscriptions on topic will be done and all peers will "know" of all other peers
+	time.Sleep(time.Second * 2)
+
+	fmt.Println("Broadcasting a message on node 0...")
+
+	err = pubsubs[0].Publish(topic, []byte("a message"))
+	if err != nil {
+		fmt.Printf("Error encountered: %v\n", err)
+		return
+	}
+
+	time.Sleep(time.Second)
+}
+
+func createNodes(nrNodes int) error {
+	for i := 0; i < nrNodes; i++ {
+		h, err := createHost(startingPort + i)
+		if err != nil {
+			return err
+		}
+
+		hosts = append(hosts, h)
+		fmt.Printf("Node %v is %s\n", i, getLocalhostAddress(h))
+	}
+
+	return nil
+}
+
+func createPubsubs() error {
+	for _, h := range hosts {
+		ps, err := applyPubSub(h)
+		if err != nil {
+			return err
+		}
+
+		pubsubs = append(pubsubs, ps)
+	}
+	return nil
+}
+
+func topicRegistration() error {
 	for i := 0; i < len(pubsubs); i++ {
 		var subscr *pubsub.Subscription
-		subscr, err = pubsubs[i].Subscribe(topic)
+		subscr, err := pubsubs[i].Subscribe(topic)
 		if err != nil {
-			fmt.Printf("Error encountered: %v\n", err)
-			return
+			return err
 		}
 
 		//just a dummy func to consume messages received by the newly created topic
@@ -87,7 +126,11 @@ func main() {
 		})
 	}
 
-	//Step 4. Connect the nodes as following:
+	return nil
+}
+
+func connectingNodes() {
+	//connect the nodes as following:
 	//
 	// node0 --------- node1
 	//   |               |
@@ -102,19 +145,6 @@ func main() {
 	connectHostToPeer(hosts[3], getLocalhostAddress(hosts[2]))
 	connectHostToPeer(hosts[4], getLocalhostAddress(hosts[3]))
 	connectHostToPeer(hosts[4], getLocalhostAddress(hosts[0]))
-
-	//Step 5. Wait so that subscriptions on topic will be done and all peers will "know" of all other peers
-	time.Sleep(time.Second * 2)
-
-	fmt.Println("Broadcasting a message on node 0...")
-
-	err = pubsubs[0].Publish(topic, []byte("a message"))
-	if err != nil {
-		fmt.Printf("Error encountered: %v\n", err)
-		return
-	}
-
-	time.Sleep(time.Second)
 }
 
 func createHost(port int) (host.Host, error) {
