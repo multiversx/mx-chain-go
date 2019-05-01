@@ -1,9 +1,9 @@
 package interceptors_test
 
 import (
-	"bytes"
 	"errors"
 	"testing"
+	"time"
 
 	block2 "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -112,7 +112,6 @@ func TestPeerBlockBodyInterceptor_ValidateMarshalizerErrorsAtUnmarshalingShouldE
 }
 
 func TestPeerBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing.T) {
-	t.Skip("after interceptors are refactored and we figure out what to do with peer changes this should be fixed or removed")
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -142,14 +141,60 @@ func TestPeerBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testi
 		DataField: buff,
 	}
 
-	putInCacheWasCalled := false
-	cache.PutCalled = func(key []byte, value interface{}) (evicted bool) {
-		if bytes.Equal(key, mock.HasherMock{}.Compute(string(buff))) {
-			putInCacheWasCalled = true
-		}
-		return false
+	chanDone := make(chan struct{}, 10)
+	cache.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+		chanDone <- struct{}{}
+		return true, false
 	}
 
 	assert.Nil(t, pbbi.ProcessReceivedMessage(msg))
-	assert.True(t, putInCacheWasCalled)
+	select {
+	case <-chanDone:
+	case <-time.After(durTimeout):
+		assert.Fail(t, "timeout while waiting for block to be inserted in the pool")
+	}
+}
+
+func TestPeerBlockBodyInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	cache := &mock.CacherStub{}
+	storer := &mock.StorerStub{
+		HasCalled: func(key []byte) (b bool, e error) {
+			return true, nil
+		},
+	}
+
+	pbbi, _ := interceptors.NewPeerBlockBodyInterceptor(
+		marshalizer,
+		cache,
+		storer,
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock())
+
+	peerChangeBlock := block.NewInterceptedPeerBlockBody()
+	peerChangeBlock.PeerBlockBody = []*block2.PeerChange{
+		{PubKey: []byte("pub key"), ShardIdDest: uint32(0)},
+	}
+
+	buff, _ := marshalizer.Marshal(peerChangeBlock)
+
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+	}
+
+	chanDone := make(chan struct{}, 10)
+	cache.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+		chanDone <- struct{}{}
+		return true, false
+	}
+
+	assert.Nil(t, pbbi.ProcessReceivedMessage(msg))
+	select {
+	case <-chanDone:
+		assert.Fail(t, "should have not add block in pool")
+	case <-time.After(durTimeout):
+	}
 }

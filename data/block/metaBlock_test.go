@@ -81,10 +81,10 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		PeerInfo:      []block.PeerData{pd},
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte("pub keys"),
-		PreviousHash:  []byte("previous hash"),
+		PrevHash:      []byte("previous hash"),
 		PrevRandSeed:  []byte("previous random seed"),
 		RandSeed:      []byte("random seed"),
-		StateRootHash: []byte("state root hash"),
+		RootHash:      []byte("root hash"),
 		TxCount:       uint32(1),
 	}
 	var b bytes.Buffer
@@ -123,7 +123,7 @@ func TestMetaBlock_GetPrevHash(t *testing.T) {
 
 	prevHash := []byte("prev hash")
 	m := block.MetaBlock{
-		PreviousHash: prevHash,
+		PrevHash: prevHash,
 	}
 
 	assert.Equal(t, prevHash, m.GetPrevHash())
@@ -167,7 +167,7 @@ func TestMetaBlock_GetRootHash(t *testing.T) {
 
 	rootHash := []byte("root hash")
 	m := block.MetaBlock{
-		StateRootHash: rootHash,
+		RootHash: rootHash,
 	}
 
 	assert.Equal(t, rootHash, m.GetRootHash())
@@ -192,7 +192,7 @@ func TestMetaBlock_GetTimestamp(t *testing.T) {
 		TimeStamp: timestamp,
 	}
 
-	assert.Equal(t, timestamp, m.GetTimestamp())
+	assert.Equal(t, timestamp, m.GetTimeStamp())
 }
 
 func TestMetaBlock_GetSignature(t *testing.T) {
@@ -314,7 +314,7 @@ func TestMetaBlock_SetTimeStamp(t *testing.T) {
 	m := block.MetaBlock{}
 	m.SetTimeStamp(timestamp)
 
-	assert.Equal(t, timestamp, m.GetTimestamp())
+	assert.Equal(t, timestamp, m.GetTimeStamp())
 }
 
 func TestMetaBlock_SetTxCount(t *testing.T) {

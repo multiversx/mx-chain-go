@@ -3,6 +3,7 @@ package metablock_test
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -11,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/stretchr/testify/assert"
 )
+
+var durTimeout = time.Duration(time.Second)
 
 //------- NewShardHeaderInterceptor
 
@@ -94,7 +97,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	wasCalled := 0
+	chanDone := make(chan struct{}, 1)
 	testedNonce := uint64(67)
 	headers := &mock.CacherStub{}
 	multisigner := mock.NewMultiSigner()
@@ -138,20 +141,24 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 	headers.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
 		if bytes.Equal(aaaHash, key) {
-			wasCalled++
+			chanDone <- struct{}{}
 		}
 		return false, false
 	}
 
 	assert.Nil(t, hi.ProcessReceivedMessage(msg))
-	assert.Equal(t, 1, wasCalled)
+	select {
+	case <-chanDone:
+	case <-time.After(durTimeout):
+		assert.Fail(t, "timeout while waiting for block to be inserted in the pool")
+	}
 }
 
 func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	wasCalled := 0
+	chanDone := make(chan struct{}, 1)
 	testedNonce := uint64(67)
 	headers := &mock.CacherStub{}
 	multisigner := mock.NewMultiSigner()
@@ -195,11 +202,15 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t 
 	headers.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
 		if bytes.Equal(aaaHash, key) {
-			wasCalled++
+			chanDone <- struct{}{}
 		}
 		return false, false
 	}
 
 	assert.Nil(t, hi.ProcessReceivedMessage(msg))
-	assert.Equal(t, 0, wasCalled)
+	select {
+	case <-chanDone:
+		assert.Fail(t, "should have not add block in pool")
+	case <-time.After(durTimeout):
+	}
 }

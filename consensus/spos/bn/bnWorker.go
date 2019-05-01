@@ -231,6 +231,7 @@ func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	errNotCritical := wrk.checkSelfState(cnsDta)
 	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
 		//in this case should return nil but do not process the message
 		//nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
 		return nil

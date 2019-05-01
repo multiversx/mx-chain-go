@@ -174,6 +174,7 @@ type PoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 	MetaBlocks() storage.Cacher
+	MetaHeadersNonces() Uint64Cacher
 }
 
 // MetaPoolsHolder defines getter for data pools for metachain

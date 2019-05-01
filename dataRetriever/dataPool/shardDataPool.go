@@ -10,6 +10,7 @@ type shardedDataPool struct {
 	headers           storage.Cacher
 	metaBlocks        storage.Cacher
 	hdrNonces         dataRetriever.Uint64Cacher
+	metaHdrNonces     dataRetriever.Uint64Cacher
 	miniBlocks        storage.Cacher
 	peerChangesBlocks storage.Cacher
 }
@@ -22,6 +23,7 @@ func NewShardedDataPool(
 	miniBlocks storage.Cacher,
 	peerChangesBlocks storage.Cacher,
 	metaBlocks storage.Cacher,
+	metaHdrNonces dataRetriever.Uint64Cacher,
 ) (*shardedDataPool, error) {
 
 	if transactions == nil {
@@ -32,6 +34,9 @@ func NewShardedDataPool(
 	}
 	if hdrNonces == nil {
 		return nil, dataRetriever.ErrNilHeadersNoncesDataPool
+	}
+	if metaHdrNonces == nil {
+		return nil, dataRetriever.ErrNilMetaBlockNoncesPool
 	}
 	if miniBlocks == nil {
 		return nil, dataRetriever.ErrNilTxBlockDataPool
@@ -47,6 +52,7 @@ func NewShardedDataPool(
 		transactions:      transactions,
 		headers:           headers,
 		hdrNonces:         hdrNonces,
+		metaHdrNonces:     metaHdrNonces,
 		miniBlocks:        miniBlocks,
 		peerChangesBlocks: peerChangesBlocks,
 		metaBlocks:        metaBlocks,
@@ -81,4 +87,9 @@ func (tdp *shardedDataPool) PeerChangesBlocks() storage.Cacher {
 // MetaBlocks returns the holder for meta blocks
 func (tdp *shardedDataPool) MetaBlocks() storage.Cacher {
 	return tdp.metaBlocks
+}
+
+// MetaHeadersNonces returns the holder for (nonce, meta header hash) pairs
+func (tdp *shardedDataPool) MetaHeadersNonces() dataRetriever.Uint64Cacher {
+	return tdp.metaHdrNonces
 }

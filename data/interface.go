@@ -11,6 +11,7 @@ type HeaderHandler interface {
 	GetRandSeed() []byte
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
+	GetTimeStamp() uint64
 	GetTxCount() uint32
 
 	SetNonce(n uint64)
