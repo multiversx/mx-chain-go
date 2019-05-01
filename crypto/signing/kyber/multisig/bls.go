@@ -9,8 +9,7 @@ import (
 )
 
 // KyberMultiSignerBLS provides an implements of the crypto.LowLevelSignerBLS interface
-type KyberMultiSignerBLS struct {
-}
+type KyberMultiSignerBLS struct{}
 
 // SignShare produces a BLS signature share (single BLS signature) over a given message
 func (kms *KyberMultiSignerBLS) SignShare(privKey crypto.PrivateKey, message []byte) ([]byte, error) {
