@@ -869,7 +869,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := spos.MessageType(cnsMsg.MsgType)
+	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, nil)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -893,7 +893,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenMessageIsForOtherRound(t *tes
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		-1,
 	)
-	msgType := spos.MessageType(cnsMsg.MsgType)
+	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -917,7 +917,7 @@ func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinis
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := spos.MessageType(cnsMsg.MsgType)
+	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -941,7 +941,7 @@ func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFin
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := spos.MessageType(cnsMsg.MsgType)
+	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -965,7 +965,7 @@ func TestWorker_ExecuteCommitmentHashMessagesShouldNotExecuteWhenBlockIsNotFinis
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := spos.MessageType(cnsMsg.MsgType)
+	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -989,7 +989,7 @@ func TestWorker_ExecuteBitmapMessagesShouldNotExecuteWhenBlockIsNotFinished(t *t
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := spos.MessageType(cnsMsg.MsgType)
+	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -1013,7 +1013,7 @@ func TestWorker_ExecuteCommitmentMessagesShouldNotExecuteWhenBitmapIsNotFinished
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := spos.MessageType(cnsMsg.MsgType)
+	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -1037,7 +1037,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBitmapIsNotFinished(
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := spos.MessageType(cnsMsg.MsgType)
+	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -1061,7 +1061,7 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := spos.MessageType(cnsMsg.MsgType)
+	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)

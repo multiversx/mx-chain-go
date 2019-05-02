@@ -19,9 +19,9 @@ func NewConsensusService() (*worker, error) {
 	return &wrk, nil
 }
 
-func (wrk *worker) InitReceivedMessages() map[spos.MessageType][]*consensus.Message {
+func (wrk *worker) InitReceivedMessages() map[consensus.MessageType][]*consensus.Message {
 
-	receivedMessages := make(map[spos.MessageType][]*consensus.Message)
+	receivedMessages := make(map[consensus.MessageType][]*consensus.Message)
 	receivedMessages[MtBlockBody] = make([]*consensus.Message, 0)
 	receivedMessages[MtBlockHeader] = make([]*consensus.Message, 0)
 	receivedMessages[MtCommitmentHash] = make([]*consensus.Message, 0)
@@ -33,15 +33,15 @@ func (wrk *worker) InitReceivedMessages() map[spos.MessageType][]*consensus.Mess
 
 }
 
-func (wrk *worker) GetStringValue(messageType spos.MessageType) string {
+func (wrk *worker) GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
 }
 
 func (wrk *worker) GetSubroundName(subroundId int) string {
 	return getSubroundName(subroundId)
 }
-func (wrk *worker) GetMessageRange() []spos.MessageType {
-	v := []spos.MessageType{}
+func (wrk *worker) GetMessageRange() []consensus.MessageType {
+	v := []consensus.MessageType{}
 
 	for i := MtBlockBody; i <= MtSignature; i++ {
 		v = append(v, i)
@@ -50,8 +50,8 @@ func (wrk *worker) GetMessageRange() []spos.MessageType {
 	return v
 }
 
-func (wrk *worker) IsFinished(consensusState *spos.ConsensusState, msgType spos.MessageType) bool {
-	finished := true
+func (wrk *worker) IsFinished(consensusState *spos.ConsensusState, msgType consensus.MessageType) bool {
+	finished := false
 	switch msgType {
 	case MtBlockBody:
 		if consensusState.Status(SrStartRound) != spos.SsFinished {
@@ -78,5 +78,5 @@ func (wrk *worker) IsFinished(consensusState *spos.ConsensusState, msgType spos.
 			return finished
 		}
 	}
-	return false
+	return true
 }

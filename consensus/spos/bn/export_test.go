@@ -65,7 +65,7 @@ func (fct *factory) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
 	return fct.consensusCore.ValidatorGroupSelector()
 }
 
-func (fct *factory) Worker() *spos.Worker {
+func (fct *factory) Worker() spos.IWorker {
 	return fct.worker
 }
 
@@ -295,6 +295,6 @@ func (sr *subroundStartRound) InitCurrentRound() bool {
 	return sr.initCurrentRound()
 }
 
-func GetStringValue(messageType spos.MessageType) string {
+func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
 }

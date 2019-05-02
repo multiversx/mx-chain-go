@@ -13,7 +13,7 @@ func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 	bnService, _ := bn.NewConsensusService()
 	messages := bnService.InitReceivedMessages()
 
-	receivedMessages := make(map[spos.MessageType][]*consensus.Message)
+	receivedMessages := make(map[consensus.MessageType][]*consensus.Message)
 	receivedMessages[bn.MtBlockBody] = make([]*consensus.Message, 0)
 	receivedMessages[bn.MtBlockHeader] = make([]*consensus.Message, 0)
 	receivedMessages[bn.MtCommitmentHash] = make([]*consensus.Message, 0)
@@ -31,7 +31,7 @@ func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 }
 
 func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
-	v := []spos.MessageType{}
+	v := []consensus.MessageType{}
 	bnService, _ := bn.NewConsensusService()
 
 	messagesRange := bnService.GetMessageRange()

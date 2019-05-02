@@ -6,8 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
@@ -34,45 +32,20 @@ func extend(subroundId int) {
 	fmt.Println(subroundId)
 }
 
-func initWorker() *spos.Worker {
-	blockProcessor := &mock.BlockProcessorMock{
-		RevertAccountStateCalled: func() {
-		},
+func initWorker() spos.IWorker {
+	sposWorker := &mock.SposWorkerMock{}
+	sposWorker.GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return make(chan bool)
 	}
-	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	keyGeneratorMock, privateKeyMock, _ := mock.InitKeys()
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{
-		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-			return []byte("signed"), nil
-		},
-		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-			return nil
-		},
+	sposWorker.RemoveAllReceivedMessagesCallsCalled = func() {
+
 	}
 
-	bnConsensusProcessor, _ := bn.NewConsensusService()
+	sposWorker.AddReceivedMessageCallCalled = func(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool) {
 
-	wrk, _ := spos.NewWorker(
-		bnConsensusProcessor,
-		blockProcessor,
-		bootstraperMock,
-		consensusState,
-		keyGeneratorMock,
-		marshalizerMock,
-		privateKeyMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
+	}
 
-	wrk.BroadcastBlock = broadcastBlock
-	wrk.SendMessage = sendMessage
-
-	return wrk
+	return sposWorker
 }
 
 func initFactoryWithContainer(container *mock.ConsensusCoreMock) bn.Factory {
@@ -117,7 +90,7 @@ func TestFactory_GetMessageTypeName(t *testing.T) {
 	r = bn.GetStringValue(bn.MtUnknown)
 	assert.Equal(t, "(UNKNOWN)", r)
 
-	r = bn.GetStringValue(spos.MessageType(-1))
+	r = bn.GetStringValue(consensus.MessageType(-1))
 	assert.Equal(t, "Undefined message type", r)
 }
 
@@ -378,7 +351,9 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *test
 	t.Parallel()
 
 	fct := *initFactory()
-	fct.Worker().consensusStateChangedChannels(nil)
+	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return nil
+	}
 
 	err := fct.GenerateStartRoundSubround()
 
@@ -401,7 +376,9 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T
 	t.Parallel()
 
 	fct := *initFactory()
-	//fct.Worker().SetConsensusStateChangedChannels(nil)
+	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return nil
+	}
 
 	err := fct.GenerateBlockSubround()
 
@@ -424,7 +401,9 @@ func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundFail(t *
 	t.Parallel()
 
 	fct := *initFactory()
-	//fct.Worker().SetConsensusStateChangedChannels(nil)
+	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return nil
+	}
 
 	err := fct.GenerateCommitmentHashSubround()
 
@@ -447,7 +426,9 @@ func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundFail(t *testing.
 	t.Parallel()
 
 	fct := *initFactory()
-	//fct.Worker().SetConsensusStateChangedChannels(nil)
+	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return nil
+	}
 
 	err := fct.GenerateBitmapSubround()
 
@@ -470,7 +451,9 @@ func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundFail(t *test
 	t.Parallel()
 
 	fct := *initFactory()
-	//fct.Worker().SetConsensusStateChangedChannels(nil)
+	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return nil
+	}
 
 	err := fct.GenerateCommitmentSubround()
 
@@ -493,7 +476,9 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testi
 	t.Parallel()
 
 	fct := *initFactory()
-	//fct.Worker().SetConsensusStateChangedChannels(nil)
+	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return nil
+	}
 
 	err := fct.GenerateSignatureSubround()
 
@@ -516,7 +501,9 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testin
 	t.Parallel()
 
 	fct := *initFactory()
-	//fct.Worker().SetConsensusStateChangedChannels(nil)
+	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return nil
+	}
 
 	err := fct.GenerateEndRoundSubround()
 

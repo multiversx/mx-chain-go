@@ -75,14 +75,14 @@ func (wrk *Worker) ReceivedSyncState(isNodeSynchronized bool) {
 	wrk.receivedSyncState(isNodeSynchronized)
 }
 
-func (wrk *Worker) ReceivedMessages() map[MessageType][]*consensus.Message {
+func (wrk *Worker) ReceivedMessages() map[consensus.MessageType][]*consensus.Message {
 	wrk.mutReceivedMessages.RLock()
 	defer wrk.mutReceivedMessages.RUnlock()
 
 	return wrk.receivedMessages
 }
 
-func (wrk *Worker) SetReceivedMessages(messageType MessageType, cnsDta []*consensus.Message) {
+func (wrk *Worker) SetReceivedMessages(messageType consensus.MessageType, cnsDta []*consensus.Message) {
 	wrk.mutReceivedMessages.Lock()
 	wrk.receivedMessages[messageType] = cnsDta
 	wrk.mutReceivedMessages.Unlock()
@@ -94,14 +94,14 @@ func (wrk *Worker) NilReceivedMessages() {
 	wrk.mutReceivedMessages.Unlock()
 }
 
-func (wrk *Worker) ReceivedMessagesCalls() map[MessageType]func(*consensus.Message) bool {
+func (wrk *Worker) ReceivedMessagesCalls() map[consensus.MessageType]func(*consensus.Message) bool {
 	wrk.mutReceivedMessagesCalls.RLock()
 	defer wrk.mutReceivedMessagesCalls.RUnlock()
 
 	return wrk.receivedMessagesCalls
 }
 
-func (wrk *Worker) SetReceivedMessagesCalls(messageType MessageType, f func(*consensus.Message) bool) {
+func (wrk *Worker) SetReceivedMessagesCalls(messageType consensus.MessageType, f func(*consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
 	wrk.receivedMessagesCalls[messageType] = f
 	wrk.mutReceivedMessagesCalls.Unlock()

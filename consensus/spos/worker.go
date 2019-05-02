@@ -28,8 +28,8 @@ type Worker struct {
 	shardCoordinator sharding.Coordinator
 	singleSigner     crypto.SingleSigner
 
-	receivedMessages      map[MessageType][]*consensus.Message
-	receivedMessagesCalls map[MessageType]func(*consensus.Message) bool
+	receivedMessages      map[consensus.MessageType][]*consensus.Message
+	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
 
 	executeMessageChannel         chan *consensus.Message
 	consensusStateChangedChannels chan bool
@@ -84,7 +84,7 @@ func NewWorker(
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
-	wrk.receivedMessagesCalls = make(map[MessageType]func(*consensus.Message) bool)
+	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(*consensus.Message) bool)
 	wrk.consensusStateChangedChannels = make(chan bool, 1)
 	wrk.bootstraper.AddSyncStateListener(wrk.receivedSyncState)
 	wrk.initReceivedMessages()
@@ -165,7 +165,7 @@ func (wrk *Worker) initReceivedMessages() {
 }
 
 // AddReceivedMessageCall adds a new handler function for a received messege type
-func (wrk *Worker) AddReceivedMessageCall(messageType MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool) {
+func (wrk *Worker) AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
 	wrk.receivedMessagesCalls[messageType] = receivedMessageCall
 	wrk.mutReceivedMessagesCalls.Unlock()
@@ -174,7 +174,7 @@ func (wrk *Worker) AddReceivedMessageCall(messageType MessageType, receivedMessa
 // RemoveAllReceivedMessagesCalls removes all the functions handlers
 func (wrk *Worker) RemoveAllReceivedMessagesCalls() {
 	wrk.mutReceivedMessagesCalls.Lock()
-	wrk.receivedMessagesCalls = make(map[MessageType]func(*consensus.Message) bool)
+	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(*consensus.Message) bool)
 	wrk.mutReceivedMessagesCalls.Unlock()
 }
 
@@ -212,7 +212,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return err
 	}
 
-	log.Debug(fmt.Sprintf("received %s from %s\n", wrk.consensusService.GetStringValue(MessageType(cnsDta.
+	log.Debug(fmt.Sprintf("received %s from %s\n", wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.
 		MsgType)),
 		hex.EncodeToString(cnsDta.PubKey)))
 
@@ -287,7 +287,7 @@ func (wrk *Worker) checkSignature(cnsDta *consensus.Message) error {
 func (wrk *Worker) executeReceivedMessages(cnsDta *consensus.Message) {
 	wrk.mutReceivedMessages.Lock()
 
-	msgType := MessageType(cnsDta.MsgType)
+	msgType := consensus.MessageType(cnsDta.MsgType)
 	cnsDataList := wrk.receivedMessages[msgType]
 	cnsDataList = append(cnsDataList, cnsDta)
 	wrk.receivedMessages[msgType] = cnsDataList
@@ -316,7 +316,7 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 			continue
 		}
 
-		msgType := MessageType(cnsDta.MsgType)
+		msgType := consensus.MessageType(cnsDta.MsgType)
 		if wrk.consensusService.IsFinished(wrk.consensusState, msgType) {
 			continue
 		}
@@ -332,7 +332,7 @@ func (wrk *Worker) checkChannels() {
 	for {
 		select {
 		case rcvDta := <-wrk.executeMessageChannel:
-			msgType := MessageType(rcvDta.MsgType)
+			msgType := consensus.MessageType(rcvDta.MsgType)
 			if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 				if callReceivedMessage(rcvDta) {
 					if len(wrk.consensusStateChangedChannels) == 0 {
@@ -395,4 +395,8 @@ func (wrk *Worker) Extend(subroundId int) {
 
 func (wrk *Worker) GetConsensusStateChangedChannels() chan bool {
 	return wrk.consensusStateChangedChannels
+}
+
+func (wrk *Worker) GetBroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
+	return wrk.BroadcastBlock(body, header)
 }
