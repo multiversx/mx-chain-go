@@ -120,6 +120,11 @@ VERSION:
 		Usage: "PrivateKeyIndex defines a flag that specify the 0-th based index of the private key to be used from privkeys.pem file.",
 		Value: 0,
 	}
+	blsPrivateKeyIndex = cli.IntFlag{
+		Name:  "bls-private-key-index",
+		Usage: "BlsPrivateKeyIndex defines a flag that specify the 0-th based index of the bls private key to be used from blsPrivKeys.pem file.",
+		Value: 0,
+	}
 
 	configurationFile    = "./config/config.toml"
 	p2pConfigurationFile = "./config/p2p.toml"
@@ -185,7 +190,7 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, port, privateKey, profileMode, privateKeyIndex}
+	app.Flags = []cli.Flag{genesisFile, port, privateKey, profileMode, privateKeyIndex, blsPrivateKeyIndex}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -665,7 +670,7 @@ func getSk(ctx *cli.Context, log *logger.Logger) ([]byte, error) {
 }
 
 func getBlsSk(ctx *cli.Context, log *logger.Logger) ([]byte, error) {
-	privateKeyIndex := ctx.GlobalInt(privateKeyIndex.Name)
+	privateKeyIndex := ctx.GlobalInt(blsPrivateKeyIndex.Name)
 	encodedSk, err := core.LoadSkFromPemFile(blsPrivKeysPemFile, log, privateKeyIndex)
 	if err != nil {
 		return nil, err
