@@ -23,7 +23,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 	}
 
 	basePort := 20000
-	noOfPeers := 20
+	noOfPeers := 1
 
 	//Step 1. Create advertiser
 	advertiser := peerDiscovery.CreateMessenger(
@@ -67,6 +67,9 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 
 	//Step 3. Create a test topic, add receiving handlers
 	createTestTopicAndWaitForAnnouncements(t, peers)
+
+	printConnected(advertiser)
+	printConnected(peers[0])
 
 	//Step 4. run the test for a couple of times as peer discovering and topic announcing
 	// are not deterministic nor instant processes
@@ -198,4 +201,12 @@ func chooseNonCircuitAddress(addresses []string) string {
 	}
 
 	return ""
+}
+
+func printConnected(mes p2p.Messenger) {
+	fmt.Printf("%v is connected to:\n", mes.ID().Pretty())
+
+	for _, addr := range mes.ConnectedAddresses() {
+		fmt.Printf("  %v\n", addr)
+	}
 }
