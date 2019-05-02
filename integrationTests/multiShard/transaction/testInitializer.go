@@ -207,6 +207,8 @@ func createNetNode(
 		pkBytes, _ := pk.ToByteArray()
 		addr, _ := addrConverter.CreateAddressFromPublicKeyBytes(pkBytes)
 		if shardCoordinator.ComputeId(addr) == targetShardId {
+			_, _ = accntAdapter.GetAccountWithJournal(addr)
+			_, _ = accntAdapter.Commit()
 			break
 		}
 		sk, pk = keyGen.GeneratePair()

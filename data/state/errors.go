@@ -115,3 +115,6 @@ var ErrNilTrackableDataTrie = errors.New("nil trackable data trie")
 
 // ErrNilCode signals that a nil code was provided
 var ErrNilCode = errors.New("nil smart contract code")
+
+// ErrAccNotFound signals that account was not found in state trie
+var ErrAccNotFound = errors.New("account was not found")

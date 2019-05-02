@@ -165,12 +165,17 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string) (uint64
 		return 0, nil, nil, 0, err
 	}
 
-	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
-	fmt.Printf("Sender shard Id: %d\n", senderShardId)
-
 	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
 		return 0, nil, nil, 0, errors.New("could not create receiver address from provided param: " + err.Error())
+	}
+
+	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
+	fmt.Printf("Sender shard Id: %d\n", senderShardId)
+
+	newNonce := uint64(0)
+	if senderShardId != n.shardCoordinator.SelfId() {
+		return newNonce, senderAddressBytes, receiverAddress.Bytes(), senderShardId, nil
 	}
 
 	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
@@ -178,14 +183,11 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string) (uint64
 		return 0, nil, nil, 0, errors.New("could not fetch sender account from provided param: " + err.Error())
 	}
 
-	newNonce := uint64(0)
-	if senderAccount != nil {
-		acc, ok := senderAccount.(*state.Account)
-		if !ok {
-			return 0, nil, nil, 0, errors.New("wrong account type")
-		}
-		newNonce = acc.Nonce
+	acc, ok := senderAccount.(*state.Account)
+	if !ok {
+		return 0, nil, nil, 0, errors.New("wrong account type")
 	}
+	newNonce = acc.Nonce
 
 	return newNonce, senderAddressBytes, receiverAddress.Bytes(), senderShardId, nil
 }
@@ -255,7 +257,7 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 		return nil, errors.New("could not create sender address from provided param")
 	}
 	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
-	if err != nil || senderAccount == nil {
+	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param")
 	}
 

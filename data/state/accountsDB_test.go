@@ -453,7 +453,7 @@ func TestAccountsDB_GetExistingAccountNotFoundShouldRetNil(t *testing.T) {
 	adb := generateAccountDBFromTrie(trieMock)
 
 	account, err := adb.GetExistingAccount(adr)
-	assert.Nil(t, err)
+	assert.Equal(t, state.ErrAccNotFound, err)
 	assert.Nil(t, account)
 	//no journal entry shall be created
 	assert.Equal(t, 0, adb.JournalLen())
@@ -522,7 +522,7 @@ func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 		go func(idx int) {
 			accnt, err := adb.GetExistingAccount(addresses[idx*2])
 
-			assert.Nil(t, err)
+			assert.Equal(t, state.ErrAccNotFound, err)
 			assert.Nil(t, accnt)
 
 			wg.Done()

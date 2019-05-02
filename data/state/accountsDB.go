@@ -254,7 +254,7 @@ func (adb *AccountsDB) GetExistingAccount(addressContainer AddressContainer) (Ac
 		return nil, err
 	}
 	if acnt == nil {
-		return nil, nil
+		return nil, ErrAccNotFound
 	}
 
 	err = adb.loadCodeAndDataIntoAccountHandler(acnt)
