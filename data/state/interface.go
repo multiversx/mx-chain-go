@@ -63,7 +63,7 @@ type DataTrieTracker interface {
 	RetrieveValue(key []byte) ([]byte, error)
 	SaveKeyValue(key []byte, value []byte)
 	SetDataTrie(tr trie.PatriciaMerkelTree)
-	GetDataTrie() trie.PatriciaMerkelTree
+	DataTrie() trie.PatriciaMerkelTree
 }
 
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie

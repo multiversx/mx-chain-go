@@ -46,29 +46,5 @@ var ErrNilBlockBody = errors.New("nil block body")
 // ErrMiniBlockEmpty signals that mini block is empty
 var ErrMiniBlockEmpty = errors.New("mini block is empty")
 
-// ErrNilCodeHash signals code hash is nil
-var ErrNilCodeHash = errors.New("code hash is nil")
-
-// ErrNilRootHash signals root hash is nil
-var ErrNilRootHash = errors.New("root hash is nil")
-
-// ErrNilBalance signals balance is nil
-var ErrNilBalance = errors.New("balance is nil")
-
-// ErrNegativeBalance signals balance is negative
-var ErrNegativeBalance = errors.New("balance is negative")
-
-// ErrNilRegistrationData signals nil registration data
-var ErrNilRegistrationData = errors.New("registration data is nil")
-
-// ErrNilBalance signals balance is nil
-var ErrNilTxCount = errors.New("TxCount is nil")
-
-// ErrNegativeBalance signals balance is negative
-var ErrNegativeTxCount = errors.New("TxCount is negative")
-
-// ErrMiniBlockDataEmpty signals mini block data empty
-var ErrMiniBlockDataEmpty = errors.New("MiniBlock data is empty for shard account")
-
 // ErrWrongTypeAssertion signals that wrong type was provided
 var ErrWrongTypeAssertion = errors.New("Wrong type assertion")

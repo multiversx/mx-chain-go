@@ -133,7 +133,7 @@ func TestAccount_SetRootHash(t *testing.T) {
 	assert.Equal(t, root, acc.GetRootHash())
 }
 
-func TestAccount_GetDataTrie(t *testing.T) {
+func TestAccount_DataTrie(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})

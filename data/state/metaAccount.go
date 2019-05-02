@@ -167,7 +167,7 @@ func (a *MetaAccount) SetRootHashWithJournal(rootHash []byte) error {
 
 // DataTrie returns the trie that holds the current account's data
 func (a *MetaAccount) DataTrie() trie.PatriciaMerkelTree {
-	return a.dataTrieTracker.GetDataTrie()
+	return a.dataTrieTracker.DataTrie()
 }
 
 // SetDataTrie sets the trie that holds the current account's data

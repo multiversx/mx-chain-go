@@ -9,7 +9,7 @@ type DataTrieTrackerStub struct {
 	RetrieveValueCalled   func(key []byte) ([]byte, error)
 	SaveKeyValueCalled    func(key []byte, value []byte)
 	SetDataTrieCalled     func(tr trie.PatriciaMerkelTree)
-	GetDataTrieCalled     func() trie.PatriciaMerkelTree
+	DataTrieCalled        func() trie.PatriciaMerkelTree
 }
 
 func (dtts *DataTrieTrackerStub) ClearDataCaches() {
@@ -36,6 +36,6 @@ func (dtts *DataTrieTrackerStub) SetDataTrie(tr trie.PatriciaMerkelTree) {
 	dtts.SetDataTrieCalled(tr)
 }
 
-func (dtts *DataTrieTrackerStub) GetDataTrie() trie.PatriciaMerkelTree {
-	return dtts.GetDataTrieCalled()
+func (dtts *DataTrieTrackerStub) DataTrie() trie.PatriciaMerkelTree {
+	return dtts.DataTrieCalled()
 }

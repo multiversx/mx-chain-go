@@ -7,8 +7,8 @@ type MetaAccountCreator struct {
 }
 
 // NewMetaAccountCreator creates a meta account creator
-func NewMetaAccountCreator() (state.AccountFactory, error) {
-	return &MetaAccountCreator{}, nil
+func NewMetaAccountCreator() state.AccountFactory {
+	return &MetaAccountCreator{}
 }
 
 // CreateAccount calls the new Account creator and returns the result

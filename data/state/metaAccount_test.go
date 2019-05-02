@@ -14,11 +14,9 @@ func TestMetaAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
 
 	addr := &mock.AddressMock{}
 	addrTr := &mock.AccountTrackerStub{}
-
 	acnt, _ := state.NewMetaAccount(addr, addrTr)
 
 	marshalizer := mock.MarshalizerMock{}
-
 	buff, _ := marshalizer.Marshal(&acnt)
 
 	acntRecovered, _ := state.NewMetaAccount(addr, addrTr)
@@ -130,7 +128,7 @@ func TestMetaAccount_SetRootHash(t *testing.T) {
 	assert.Equal(t, root, acc.GetRootHash())
 }
 
-func TestMetaAccount_GetDataTrie(t *testing.T) {
+func TestMetaAccount_DataTrie(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})

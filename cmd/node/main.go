@@ -355,7 +355,7 @@ func createNode(
 		return nil, err
 	}
 
-	selfShardId, err := genesisConfig.GetShardIDFromPubKey(publickKey)
+	selfShardId, err := genesisConfig.GetShardIDForPubKey(publickKey)
 	if err != nil {
 		return nil, err
 	}

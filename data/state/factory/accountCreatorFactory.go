@@ -12,8 +12,8 @@ func NewAccountFactoryCreator(coordinator sharding.Coordinator) (state.AccountFa
 	}
 
 	if coordinator.SelfId() < coordinator.NumberOfShards() {
-		return NewAccountCreator()
+		return NewAccountCreator(), nil
 	}
 
-	return NewMetaAccountCreator()
+	return NewMetaAccountCreator(), nil
 }

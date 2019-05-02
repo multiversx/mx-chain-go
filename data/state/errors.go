@@ -71,12 +71,6 @@ var ErrNilAddressContainer = errors.New("nil AddressContainer")
 // ErrEmptyAddress defines the error when trying to work with an empty address
 var ErrEmptyAddress = errors.New("empty Address")
 
-// ErrNilAccount defines the error when trying to work with a nil account
-var ErrNilAccount = errors.New("nil Account")
-
-// ErrNilDataTrie defines the error when trying to search a data key on an uninitialized trie
-var ErrNilDataTrie = errors.New("nil data trie for account or data trie not loaded")
-
 // ErrNilTrie signals that a trie is nil and no operation can be made
 var ErrNilTrie = errors.New("trie is nil")
 

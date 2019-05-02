@@ -3,10 +3,10 @@ package node
 import (
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 )
@@ -175,7 +175,7 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string) (uint64
 
 	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
-		return 0, nil, nil, 0, errors.New("could not fetch sender account from provided param: ")
+		return 0, nil, nil, 0, errors.New("could not fetch sender account from provided param: " + err.Error())
 	}
 
 	newNonce := uint64(0)
@@ -258,6 +258,7 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	if err != nil || senderAccount == nil {
 		return nil, errors.New("could not fetch sender address from provided param")
 	}
+
 	newNonce := uint64(0)
 	acc, ok := senderAccount.(*state.Account)
 	if !ok {

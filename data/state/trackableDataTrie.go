@@ -77,7 +77,7 @@ func (tdaw *TrackableDataTrie) SetDataTrie(tr trie.PatriciaMerkelTree) {
 	tdaw.tr = tr
 }
 
-// GetDataTrie sets the internal data trie
-func (tdaw *TrackableDataTrie) GetDataTrie() trie.PatriciaMerkelTree {
+// DataTrie sets the internal data trie
+func (tdaw *TrackableDataTrie) DataTrie() trie.PatriciaMerkelTree {
 	return tdaw.tr
 }

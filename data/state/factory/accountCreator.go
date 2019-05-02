@@ -9,8 +9,8 @@ type AccountCreator struct {
 }
 
 // NewAccountCreator creates an account creator
-func NewAccountCreator() (state.AccountFactory, error) {
-	return &AccountCreator{}, nil
+func NewAccountCreator() state.AccountFactory {
+	return &AccountCreator{}
 }
 
 // CreateAccount calls the new Account creator and returns the result
