@@ -124,6 +124,7 @@ VERSION:
 	configurationFile    = "./config/config.toml"
 	p2pConfigurationFile = "./config/p2p.toml"
 	privKeysPemFile      = "./config/privkeys.pem"
+	blsPrivKeysPemFile   = "./config/blsPrivKeys.pem"
 
 	//TODO remove uniqueID
 	uniqueID = ""
@@ -355,6 +356,12 @@ func createNode(
 		return nil, err
 	}
 
+	// TODO: pass key generator and public key also when needed
+	_, blsPrivateKey, _, err := getBlsSigningParams(ctx, log)
+	if err != nil {
+		return nil, err
+	}
+
 	initialPubKeys := genesisConfig.InitialNodesPubKeys()
 
 	publickKey, err := pubKey.ToByteArray()
@@ -423,6 +430,7 @@ func createNode(
 	}
 
 	singlesigner := &singlesig.SchnorrSigner{}
+	singleBlsSigner := &singlesig.BlsSingleSigner{}
 
 	multisigHasher, err := getMultisigHasherFromConfig(config)
 	if err != nil {
@@ -548,10 +556,12 @@ func createNode(
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
 		node.WithSinglesig(singlesigner),
+		node.WithBlsSinglesig(singleBlsSigner),
 		node.WithMultisig(multisigner),
 		node.WithKeyGenerator(keyGen),
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
+		node.WithBlsPrivateKey(blsPrivateKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
@@ -654,6 +664,16 @@ func getSk(ctx *cli.Context, log *logger.Logger) ([]byte, error) {
 	return decodeAddress(string(encodedSk))
 }
 
+func getBlsSk(ctx *cli.Context, log *logger.Logger) ([]byte, error) {
+	privateKeyIndex := ctx.GlobalInt(privateKeyIndex.Name)
+	encodedSk, err := core.LoadSkFromPemFile(blsPrivKeysPemFile, log, privateKeyIndex)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodeAddress(string(encodedSk))
+}
+
 func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
@@ -680,6 +700,37 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 
 	pkEncoded := encodeAddress(pk)
 	log.Info("starting with public key: " + pkEncoded)
+
+	return keyGen, privKey, pubKey, err
+}
+
+func getBlsSigningParams(ctx *cli.Context, log *logger.Logger) (
+	keyGen crypto.KeyGenerator,
+	privKey crypto.PrivateKey,
+	pubKey crypto.PublicKey,
+	err error,
+) {
+	sk, err := getBlsSk(ctx, log)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	suite := kyber.NewSuitePairingBn256()
+	keyGen = signing.NewKeyGenerator(suite)
+
+	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	pubKey = privKey.GeneratePublic()
+	pk, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	pkEncoded := encodeAddress(pk)
+	log.Info("starting with bls public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
 }

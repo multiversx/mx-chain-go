@@ -220,6 +220,32 @@ func TestWithPrivateKey_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestWithPrivateKey_NilBlsPrivateKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithBlsPrivateKey(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.blsPrivateKey)
+	assert.Equal(t, ErrNilPrivateKey, err)
+}
+
+func TestWithBlsPrivateKey_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	sk := &mock.PrivateKeyStub{}
+
+	opt := WithBlsPrivateKey(sk)
+	err := opt(node)
+
+	assert.True(t, node.blsPrivateKey == sk)
+	assert.Nil(t, err)
+}
+
 func TestWithSingleSignKeyGenerator_NilPrivateKeyShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -595,6 +621,32 @@ func TestWithSinglesig_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.singlesig == singlesigner)
+	assert.Nil(t, err)
+}
+
+func TestWithBlsSinglesig_NilBlsSinglesigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithBlsSinglesig(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.blsSinglesig)
+	assert.Equal(t, ErrNilSingleSig, err)
+}
+
+func TestWithBlsSinglesig_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	singlesigner := &mock.SinglesignMock{}
+
+	opt := WithBlsSinglesig(singlesigner)
+	err := opt(node)
+
+	assert.True(t, node.blsSinglesig == singlesigner)
 	assert.Nil(t, err)
 }
 
