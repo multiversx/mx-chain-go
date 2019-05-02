@@ -23,7 +23,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 	}
 
 	basePort := 20000
-	noOfPeers := 1
+	noOfPeers := 20
 
 	//Step 1. Create advertiser
 	advertiser := peerDiscovery.CreateMessenger(
