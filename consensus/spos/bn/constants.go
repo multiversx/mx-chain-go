@@ -1,6 +1,8 @@
 package bn
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+)
 
 const (
 	// SrStartRound defines ID of subround "Start round"
@@ -21,7 +23,7 @@ const (
 
 const (
 	// MtUnknown defines ID of a message that has unknown Data inside
-	MtUnknown spos.MessageType = iota
+	MtUnknown consensus.MessageType = iota
 	// MtBlockBody defines ID of a message that has a block body inside
 	MtBlockBody
 	// MtBlockHeader defines ID of a message that has a block header inside
@@ -87,7 +89,7 @@ const srEndStartTime = 0.65
 // srEndEndTime specifies the end time, from the total time of the round, of subround End
 const srEndEndTime = 0.75
 
-func getStringValue(msgType spos.MessageType) string {
+func getStringValue(msgType consensus.MessageType) string {
 	switch msgType {
 	case MtBlockBody:
 		return "(BLOCK_BODY)"
