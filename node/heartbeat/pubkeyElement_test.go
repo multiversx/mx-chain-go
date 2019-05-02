@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding/heartbeat"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +23,7 @@ func TestPubkeyElement_HeartbeatArrivedFirstTimeForAddressShouldWork(t *testing.
 	expectedHeartBeat := heartbeat.PeerHeartbeat{
 		P2PAddress:      p2pAddr,
 		TimeStamp:       time.Unix(0, 1),
-		MaxInactiveTime: 0,
+		MaxInactiveTime: heartbeat.Duration{Duration: 0},
 		IsActive:        true,
 	}
 
@@ -51,7 +51,7 @@ func TestPubkeyElement_HeartbeatArrivedShouldUpdate(t *testing.T) {
 	expectedHeartBeat := heartbeat.PeerHeartbeat{
 		P2PAddress:      p2pAddr,
 		TimeStamp:       time.Unix(0, 2),
-		MaxInactiveTime: 1,
+		MaxInactiveTime: heartbeat.Duration{Duration: 1},
 		IsActive:        true,
 	}
 
@@ -78,7 +78,7 @@ func TestPubkeyElement_HeartbeatSweepShouldUpdate(t *testing.T) {
 	expectedHeartBeat := heartbeat.PeerHeartbeat{
 		P2PAddress:      p2pAddr,
 		TimeStamp:       time.Unix(0, 0),
-		MaxInactiveTime: 10,
+		MaxInactiveTime: heartbeat.Duration{Duration: 10},
 		IsActive:        false,
 	}
 

@@ -75,6 +75,7 @@ type Config struct {
 	Marshalizer    TypeConfig
 
 	ResourceStats ResourceStatsConfig
+	Heartbeat     HeartbeatConfig
 }
 
 // NodeConfig will hold basic p2p settings
@@ -109,4 +110,12 @@ type P2PConfig struct {
 type ResourceStatsConfig struct {
 	Enabled              bool
 	RefreshIntervalInSec int
+}
+
+// HeartbeatConfig will hold all heartbeat settings
+type HeartbeatConfig struct {
+	Enabled                             bool
+	MinTimeToWaitBetweenBroadcastsInSec int
+	MaxTimeToWaitBetweenBroadcastsInSec int
+	DurationInSecToConsiderUnresponsive int
 }

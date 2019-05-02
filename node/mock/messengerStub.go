@@ -13,6 +13,7 @@ type MessengerStub struct {
 	BroadcastCalled                func(topic string, buff []byte)
 	RegisterMessageProcessorCalled func(topic string, handler p2p.MessageProcessor) error
 	BootstrapCalled                func() error
+	PeerAddressCalled              func(pid p2p.PeerID) string
 }
 
 func (ms *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
@@ -45,4 +46,8 @@ func (ms *MessengerStub) BroadcastOnChannel(channel string, topic string, buff [
 
 func (ms *MessengerStub) Bootstrap() error {
 	return ms.BootstrapCalled()
+}
+
+func (ms *MessengerStub) PeerAddress(pid p2p.PeerID) string {
+	return ms.PeerAddressCalled(pid)
 }

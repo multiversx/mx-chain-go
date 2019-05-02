@@ -27,7 +27,7 @@ type KeyGenMock struct {
 //------- PublicKeyMock
 
 func (sspk *PublicKeyMock) ToByteArray() ([]byte, error) {
-	panic("implement me")
+	return []byte("pk"), nil
 }
 
 func (sspk *PublicKeyMock) Suite() crypto.Suite {

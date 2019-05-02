@@ -29,8 +29,8 @@ func (pe *PubkeyElement) sweep() {
 	for _, phb := range pe.m {
 		crtDuration := pe.timeGetter().Sub(phb.TimeStamp)
 		phb.IsActive = crtDuration < pe.maxDurationPeerUnresponsive
-		if phb.MaxInactiveTime < crtDuration {
-			phb.MaxInactiveTime = crtDuration
+		if phb.MaxInactiveTime.Duration < crtDuration {
+			phb.MaxInactiveTime.Duration = crtDuration
 		}
 	}
 }
@@ -45,7 +45,7 @@ func (pe *PubkeyElement) HeartbeatArrived(p2pAddress string) {
 		pe.m[p2pAddress] = &PeerHeartbeat{
 			P2PAddress:      p2pAddress,
 			TimeStamp:       crtTime,
-			MaxInactiveTime: 0,
+			MaxInactiveTime: Duration{Duration: 0},
 			IsActive:        true,
 		}
 		return
@@ -53,8 +53,8 @@ func (pe *PubkeyElement) HeartbeatArrived(p2pAddress string) {
 
 	phb.IsActive = true
 	crtDuration := crtTime.Sub(phb.TimeStamp)
-	if phb.MaxInactiveTime < crtDuration {
-		phb.MaxInactiveTime = crtDuration
+	if phb.MaxInactiveTime.Duration < crtDuration {
+		phb.MaxInactiveTime.Duration = crtDuration
 	}
 	phb.TimeStamp = crtTime
 }

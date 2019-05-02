@@ -2,6 +2,8 @@ package heartbeat
 
 import (
 	"encoding/hex"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -114,19 +116,24 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 }
 
 // GetHeartbeats returns the heartbeat status
-func (m *Monitor) GetHeartbeats() []HeartbeatStatus {
+func (m *Monitor) GetHeartbeats() []PubkeyHeartbeat {
 	m.mut.Lock()
 	defer m.mut.Unlock()
 
-	status := make([]HeartbeatStatus, len(m.m))
+	status := make([]PubkeyHeartbeat, len(m.m))
 
 	idx := 0
 	for k, v := range m.m {
-		status[idx] = HeartbeatStatus{
+		status[idx] = PubkeyHeartbeat{
 			HexPublicKey:   hex.EncodeToString([]byte(k)),
 			PeerHeartBeats: v.GetPeerHeartbeats(),
 		}
+		idx++
 	}
+
+	sort.Slice(status, func(i, j int) bool {
+		return strings.Compare(status[i].HexPublicKey, status[j].HexPublicKey) < 0
+	})
 
 	return status
 }

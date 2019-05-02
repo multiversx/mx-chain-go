@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
-// Sender periodically sends hearbeat messages on a pubsub topic
+// Sender periodically sends heartbeat messages on a pubsub topic
 type Sender struct {
 	p2pMessenger P2PMessenger
 	singleSigner crypto.SingleSigner

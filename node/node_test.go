@@ -1,6 +1,7 @@
 package node_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -8,21 +9,69 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/config"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 )
 
+type wrongBody struct {
+}
+
+func (wr wrongBody) IntegrityAndValidity() error {
+	return nil
+}
+
 func logError(err error) {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+}
+
+func getAccAdapter(balance *big.Int) *mock.AccountsStub {
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		return &state.Account{Nonce: 1, Balance: balance}, nil
+	}
+	return accDB
+}
+
+func getPrivateKey() *mock.PrivateKeyStub {
+	return &mock.PrivateKeyStub{}
+}
+
+func containString(search string, list []string) bool {
+	for _, str := range list {
+		if str == search {
+			return true
+		}
+	}
+
+	return false
+}
+
+func getMessenger() *mock.MessengerStub {
+	messenger := &mock.MessengerStub{
+		CloseCalled: func() error {
+			return nil
+		},
+		BootstrapCalled: func() error {
+			return nil
+		},
+		BroadcastCalled: func(topic string, buff []byte) {
+			return
+		},
+	}
+
+	return messenger
 }
 
 func TestNewNode(t *testing.T) {
@@ -510,18 +559,6 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func getAccAdapter(balance *big.Int) *mock.AccountsStub {
-	accDB := &mock.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return &state.Account{Nonce: 1, Balance: balance}, nil
-	}
-	return accDB
-}
-
-func getPrivateKey() *mock.PrivateKeyStub {
-	return &mock.PrivateKeyStub{}
-}
-
 func TestSendTransaction_ShouldWork(t *testing.T) {
 	txSent := false
 	mes := &mock.MessengerStub{
@@ -689,32 +726,6 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	assert.True(t, containString(process.ShardCacherIdentifier(1, 0), txShardedStores))
 }
 
-func containString(search string, list []string) bool {
-	for _, str := range list {
-		if str == search {
-			return true
-		}
-	}
-
-	return false
-}
-
-func getMessenger() *mock.MessengerStub {
-	messenger := &mock.MessengerStub{
-		CloseCalled: func() error {
-			return nil
-		},
-		BootstrapCalled: func() error {
-			return nil
-		},
-		BroadcastCalled: func(topic string, buff []byte) {
-			return
-		},
-	}
-
-	return messenger
-}
-
 func TestNode_BroadcastBlockShouldFailWhenTxBlockBodyNil(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
@@ -768,13 +779,6 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
 
 	err2 := n.BroadcastBlock(body, &block.Header{})
 	assert.Equal(t, err, err2)
-}
-
-type wrongBody struct {
-}
-
-func (wr wrongBody) IntegrityAndValidity() error {
-	return nil
 }
 
 func TestNode_BroadcastBlockShouldFailWhenBlockIsNotGoodType(t *testing.T) {
@@ -930,4 +934,325 @@ func TestNode_BroadcastBlockShouldWorkMultiShard(t *testing.T) {
 
 	err := n.BroadcastBlock(body, &block.Header{})
 	assert.Nil(t, err)
+}
+
+//------- StartHeartbeat
+
+func TestNode_StartHeartbeatDisabledShouldNotCreateObjects(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             false,
+	})
+
+	assert.Nil(t, err)
+	assert.Nil(t, n.HeartbeatMonitor())
+	assert.Nil(t, n.HeartbeatSender())
+	assert.Nil(t, n.GetHeartbeats())
+}
+
+func TestNode_StartHeartbeatInvalidMinTimeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: -1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+	})
+
+	assert.Equal(t, node.ErrNegativeMinTimeToWaitBetweenBroadcastsInSec, err)
+}
+
+func TestNode_StartHeartbeatInvalidMaxTimeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: -1,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+	})
+
+	assert.Equal(t, node.ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec, err)
+}
+
+func TestNode_StartHeartbeatInvalidDurationShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 1,
+		DurationInSecToConsiderUnresponsive: -1,
+		Enabled:                             true,
+	})
+
+	assert.Equal(t, node.ErrNegativeDurationInSecToConsiderUnresponsive, err)
+}
+
+func TestNode_StartHeartbeatInvalidMaxTimeMinTimeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 1,
+		DurationInSecToConsiderUnresponsive: 2,
+		Enabled:                             true,
+	})
+
+	assert.Equal(t, node.ErrWrongValues, err)
+}
+
+func TestNode_StartHeartbeatInvalidMaxTimeDurationShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 2,
+		Enabled:                             true,
+	})
+
+	assert.Equal(t, node.ErrWrongValues, err)
+}
+
+func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithSinglesig(&mock.SinglesignMock{}),
+		node.WithKeyGenerator(&mock.KeyGenMock{}),
+		node.WithMessenger(&mock.MessengerStub{}),
+		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
+		node.WithPrivateKey(&mock.PrivateKeyStub{}),
+	)
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+	})
+
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "marshalizer")
+}
+
+func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(&mock.MarshalizerMock{}),
+		node.WithSinglesig(&mock.SinglesignMock{}),
+		node.WithMessenger(&mock.MessengerStub{}),
+		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
+		node.WithPrivateKey(&mock.PrivateKeyStub{}),
+	)
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+	})
+
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "key generator")
+}
+
+func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(&mock.MarshalizerMock{}),
+		node.WithSinglesig(&mock.SinglesignMock{}),
+		node.WithKeyGenerator(&mock.KeyGenMock{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicValidatorCalled: func(name string) bool {
+				return true
+			},
+		}),
+		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
+		node.WithPrivateKey(&mock.PrivateKeyStub{}),
+	)
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+	})
+
+	assert.Equal(t, node.ErrValidatorAlreadySet, err)
+}
+
+func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("expected error")
+	n, _ := node.NewNode(
+		node.WithMarshalizer(&mock.MarshalizerMock{}),
+		node.WithSinglesig(&mock.SinglesignMock{}),
+		node.WithKeyGenerator(&mock.KeyGenMock{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicValidatorCalled: func(name string) bool {
+				return false
+			},
+			HasTopicCalled: func(name string) bool {
+				return false
+			},
+			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				return errExpected
+			},
+		}),
+		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
+		node.WithPrivateKey(&mock.PrivateKeyStub{}),
+	)
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+	})
+
+	assert.Equal(t, errExpected, err)
+}
+
+func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("expected error")
+	n, _ := node.NewNode(
+		node.WithMarshalizer(&mock.MarshalizerMock{}),
+		node.WithSinglesig(&mock.SinglesignMock{}),
+		node.WithKeyGenerator(&mock.KeyGenMock{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicValidatorCalled: func(name string) bool {
+				return false
+			},
+			HasTopicCalled: func(name string) bool {
+				return false
+			},
+			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				return nil
+			},
+			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+				return errExpected
+			},
+		}),
+		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
+		node.WithPrivateKey(&mock.PrivateKeyStub{}),
+	)
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+	})
+
+	assert.Equal(t, errExpected, err)
+}
+
+func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
+	t.Parallel()
+
+	wasBroadcast := false
+	buffData := []byte("buff data")
+	n, _ := node.NewNode(
+		node.WithMarshalizer(&mock.MarshalizerMock{
+			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
+				return buffData, nil
+			},
+		}),
+		node.WithSinglesig(&mock.SinglesignMock{}),
+		node.WithKeyGenerator(&mock.KeyGenMock{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicValidatorCalled: func(name string) bool {
+				return false
+			},
+			HasTopicCalled: func(name string) bool {
+				return false
+			},
+			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				return nil
+			},
+			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+				return nil
+			},
+			BroadcastCalled: func(topic string, buff []byte) {
+				if bytes.Equal(buffData, buff) {
+					wasBroadcast = true
+				}
+			},
+		}),
+		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
+		node.WithPrivateKey(&mock.PrivateKeyStub{
+			GeneratePublicHandler: func() crypto.PublicKey {
+				return &mock.PublicKeyMock{}
+			},
+		}),
+	)
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+	})
+
+	assert.Nil(t, err)
+	time.Sleep(time.Second * 3)
+	assert.True(t, wasBroadcast)
+}
+
+func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(&mock.MarshalizerMock{
+			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
+				return make([]byte, 0), nil
+			},
+		}),
+		node.WithSinglesig(&mock.SinglesignMock{}),
+		node.WithKeyGenerator(&mock.KeyGenMock{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicValidatorCalled: func(name string) bool {
+				return false
+			},
+			HasTopicCalled: func(name string) bool {
+				return false
+			},
+			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				return nil
+			},
+			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+				return nil
+			},
+			BroadcastCalled: func(topic string, buff []byte) {
+			},
+		}),
+		node.WithInitialNodesPubKeys([][]string{{"pk1", "pk2"}, {"pk3"}}),
+		node.WithPrivateKey(&mock.PrivateKeyStub{
+			GeneratePublicHandler: func() crypto.PublicKey {
+				return &mock.PublicKeyMock{}
+			},
+		}),
+	)
+
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+	})
+	assert.Nil(t, err)
+
+	elements := n.HeartbeatMonitor().GetHeartbeats()
+	assert.Equal(t, 3, len(elements))
 }

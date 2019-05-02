@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding/heartbeat"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding/heartbeat/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat/mock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
