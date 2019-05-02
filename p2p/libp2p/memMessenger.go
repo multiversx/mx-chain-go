@@ -70,11 +70,7 @@ func NewNetworkMessengerWithPortSweep(ctx context.Context,
 	peerDiscoverer p2p.PeerDiscoverer,
 ) (*networkMessenger, int, error) {
 
-	for {
-		if port >= maxPort {
-			return nil, port, p2p.ErrNoUsablePortsOnMachine
-		}
-
+	for ; port < maxPort; port++ {
 		if isTcpPortFree(port) {
 			mes, err := NewNetworkMessenger(
 				ctx,
@@ -87,18 +83,16 @@ func NewNetworkMessengerWithPortSweep(ctx context.Context,
 
 			return mes, port, err
 		}
-
-		port++
 	}
+
+	return nil, port, p2p.ErrNoUsablePortsOnMachine
 }
 
 func isTcpPortFree(port int) bool {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-	defer func() {
-		if ln != nil {
-			_ = ln.Close()
-		}
-	}()
+	if ln != nil {
+		_ = ln.Close()
+	}
 
 	return err == nil
 }
