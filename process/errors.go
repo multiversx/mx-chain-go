@@ -133,6 +133,9 @@ var ErrNilMetachainHeadersDataPool = errors.New("nil metachain headers data pool
 // ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
 var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
 
+//ErrNilMetachainHeadersNoncesDataPool signals a nil metachain header - nonce cache
+var ErrNilMetachainHeadersNoncesDataPool = errors.New("nil metachain headers nonces cache")
+
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
 

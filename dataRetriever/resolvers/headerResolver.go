@@ -24,7 +24,8 @@ type HeaderResolver struct {
 // NewHeaderResolver creates a new header resolver
 func NewHeaderResolver(
 	senderResolver dataRetriever.TopicResolverSender,
-	pools dataRetriever.PoolsHolder,
+	headers storage.Cacher,
+	headersNonces dataRetriever.Uint64Cacher,
 	hdrStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 	nonceConverter typeConverters.Uint64ByteSliceConverter,
@@ -33,14 +34,9 @@ func NewHeaderResolver(
 	if senderResolver == nil {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-	if pools == nil {
-		return nil, dataRetriever.ErrNilPoolsHolder
-	}
-	headers := pools.Headers()
 	if headers == nil {
 		return nil, dataRetriever.ErrNilHeadersDataPool
 	}
-	headersNonces := pools.HeadersNonces()
 	if headersNonces == nil {
 		return nil, dataRetriever.ErrNilHeadersNoncesDataPool
 	}
@@ -58,7 +54,7 @@ func NewHeaderResolver(
 	}
 
 	hdrResolver := &HeaderResolver{
-		hdrNonces:          pools.HeadersNonces(),
+		hdrNonces:          headersNonces,
 		headers:            headers,
 		nonceConverter:     nonceConverter,
 		HeaderResolverBase: hdrResolverBase,

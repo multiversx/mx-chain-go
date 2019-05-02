@@ -19,7 +19,7 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 	//TODO delete skip when mdns library is concurrent safe
 	t.Skip("mdns library is not concurrent safe (yet)")
 
-	basePort := 26000
+	basePort := 20000
 	noOfPeers := 20
 
 	//Step 1. Create noOfPeers instances of messenger type

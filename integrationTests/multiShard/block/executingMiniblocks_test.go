@@ -26,7 +26,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	fmt.Println("Step 1. Setup nodes...")
 	numOfShards := 6
-	startingPort := 36000
+	startingPort := 20000
 	nodesPerShard := 3
 
 	senderShard := uint32(0)

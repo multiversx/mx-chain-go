@@ -121,18 +121,7 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			continue
 		}
 
-		isTxInStorage, _ := txi.txStorer.Has(txIntercepted.Hash())
-		if isTxInStorage {
-			log.Debug("intercepted tx already processed")
-			continue
-		}
-
-		cacherIdentifier := process.ShardCacherIdentifier(txIntercepted.SndShard(), txIntercepted.RcvShard())
-		txi.txPool.AddData(
-			txIntercepted.Hash(),
-			txIntercepted.Transaction(),
-			cacherIdentifier,
-		)
+		go txi.processTransaction(txIntercepted)
 	}
 
 	var buffToSend []byte
@@ -154,4 +143,19 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 // SetBroadcastCallback sets the callback method to send filtered out message
 func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte)) {
 	txi.broadcastCallbackHandler = callback
+}
+
+func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
+	isTxInStorage, _ := txi.txStorer.Has(tx.Hash())
+	if isTxInStorage {
+		log.Debug("intercepted tx already processed")
+		return
+	}
+
+	cacherIdentifier := process.ShardCacherIdentifier(tx.SndShard(), tx.RcvShard())
+	txi.txPool.AddData(
+		tx.Hash(),
+		tx.Transaction(),
+		cacherIdentifier,
+	)
 }
