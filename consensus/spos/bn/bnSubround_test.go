@@ -11,6 +11,47 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const roundTimeDuration = time.Duration(100 * time.Millisecond)
+
+func initRounderMock() *mock.RounderMock {
+	return &mock.RounderMock{
+		RoundIndex:        0,
+		RoundTimeStamp:    time.Unix(0, 0),
+		RoundTimeDuration: roundTimeDuration,
+	}
+}
+
+func initConsensusState() *spos.ConsensusState {
+	eligibleList := []string{"1", "2", "3"}
+
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		3,
+		"2")
+
+	rcns.SetConsensusGroup(eligibleList)
+	rcns.ResetRoundState()
+
+	rthr := spos.NewRoundThreshold()
+
+	rthr.SetThreshold(bn.SrBlock, 1)
+	rthr.SetThreshold(bn.SrCommitmentHash, 3)
+	rthr.SetThreshold(bn.SrBitmap, 3)
+	rthr.SetThreshold(bn.SrCommitment, 3)
+	rthr.SetThreshold(bn.SrSignature, 3)
+
+	rstatus := spos.NewRoundStatus()
+	rstatus.ResetRoundStatus()
+
+	cns := spos.NewConsensusState(
+		rcns,
+		rthr,
+		rstatus,
+	)
+
+	return cns
+}
+
 func TestSubround_NewSubroundNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 

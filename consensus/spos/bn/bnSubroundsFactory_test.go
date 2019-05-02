@@ -1,7 +1,12 @@
 package bn_test
 
 import (
+	"fmt"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
@@ -9,6 +14,66 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/stretchr/testify/assert"
 )
+
+func sendMessage(cnsMsg *consensus.Message) {
+	fmt.Println(cnsMsg.Signature)
+}
+
+func sendConsensusMessage(cnsMsg *consensus.Message) bool {
+	fmt.Println(cnsMsg)
+	return true
+}
+
+func broadcastBlock(txBlockBody data.BodyHandler, header data.HeaderHandler) error {
+	fmt.Println(txBlockBody)
+	fmt.Println(header)
+	return nil
+}
+
+func extend(subroundId int) {
+	fmt.Println(subroundId)
+}
+
+func initWorker() *spos.Worker {
+	blockProcessor := &mock.BlockProcessorMock{
+		RevertAccountStateCalled: func() {
+		},
+	}
+	bootstraperMock := &mock.BootstraperMock{}
+	consensusState := initConsensusState()
+	keyGeneratorMock, privateKeyMock, _ := mock.InitKeys()
+	marshalizerMock := mock.MarshalizerMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return []byte("signed"), nil
+		},
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
+
+	bnConsensusProcessor, _ := bn.NewConsensusService()
+
+	wrk, _ := spos.NewWorker(
+		bnConsensusProcessor,
+		blockProcessor,
+		bootstraperMock,
+		consensusState,
+		keyGeneratorMock,
+		marshalizerMock,
+		privateKeyMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+	)
+
+	wrk.BroadcastBlock = broadcastBlock
+	wrk.SendMessage = sendMessage
+
+	return wrk
+}
 
 func initFactoryWithContainer(container *mock.ConsensusCoreMock) bn.Factory {
 	worker := initWorker()
@@ -313,7 +378,7 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *test
 	t.Parallel()
 
 	fct := *initFactory()
-	fct.Worker().SetConsensusStateChangedChannels(nil)
+	fct.Worker().consensusStateChangedChannels(nil)
 
 	err := fct.GenerateStartRoundSubround()
 
@@ -336,7 +401,7 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T
 	t.Parallel()
 
 	fct := *initFactory()
-	fct.Worker().SetConsensusStateChangedChannels(nil)
+	//fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateBlockSubround()
 
@@ -359,7 +424,7 @@ func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundFail(t *
 	t.Parallel()
 
 	fct := *initFactory()
-	fct.Worker().SetConsensusStateChangedChannels(nil)
+	//fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateCommitmentHashSubround()
 
@@ -382,7 +447,7 @@ func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundFail(t *testing.
 	t.Parallel()
 
 	fct := *initFactory()
-	fct.Worker().SetConsensusStateChangedChannels(nil)
+	//fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateBitmapSubround()
 
@@ -405,7 +470,7 @@ func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundFail(t *test
 	t.Parallel()
 
 	fct := *initFactory()
-	fct.Worker().SetConsensusStateChangedChannels(nil)
+	//fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateCommitmentSubround()
 
@@ -428,7 +493,7 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testi
 	t.Parallel()
 
 	fct := *initFactory()
-	fct.Worker().SetConsensusStateChangedChannels(nil)
+	//fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateSignatureSubround()
 
@@ -451,7 +516,7 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testin
 	t.Parallel()
 
 	fct := *initFactory()
-	fct.Worker().SetConsensusStateChangedChannels(nil)
+	//fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateEndRoundSubround()
 

@@ -37,7 +37,7 @@ type ConsensusCoreHandler interface {
 	ValidatorGroupSelector() consensus.ValidatorGroupSelector
 }
 
-type ConsensusProcessor interface {
+type ConsensusService interface {
 	InitReceivedMessages() map[MessageType][]*consensus.Message
 	GetStringValue(MessageType) string
 	GetSubroundName(int) string

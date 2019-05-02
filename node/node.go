@@ -216,7 +216,13 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	worker, err := bn.NewWorker(
+	bnService, err := bn.NewConsensusService()
+	if err != nil {
+		return err
+	}
+
+	worker, err := spos.NewWorker(
+		bnService,
 		n.blockProcessor,
 		bootstraper,
 		consensusState,
