@@ -442,6 +442,7 @@ func TestBLSMultiSigner_VerifySignatureShareInvalidSignatureShouldErr(t *testing
 
 	verifErr := multiSig.VerifySignatureShare(0, sigShare, msg)
 
+	assert.NotNil(t, verifErr)
 	assert.Contains(t, verifErr.Error(), "invalid signature")
 }
 
@@ -677,6 +678,7 @@ func TestBLSMultiSigner_SetAggregatedSigInvalidScalarShouldErr(t *testing.T) {
 	aggSig := []byte("invalid agg signature xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 	err := multiSigner.SetAggregatedSig(aggSig)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "malformed point")
 }
 
@@ -720,6 +722,7 @@ func TestBLSMultiSigner_VerifyAggSigNotSetShouldErr(t *testing.T) {
 	multiSigner, bitmap := createAndAddSignatureSharesBLS(msg)
 	err := multiSigner.Verify(bitmap, msg)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not enough data")
 }
 
@@ -742,7 +745,8 @@ func TestBLSMultiSigner_VerifySigInvalid(t *testing.T) {
 	// make sig invalid
 	aggSig[len(aggSig)-1] = aggSig[len(aggSig)-1] ^ 255
 	_ = multiSigner.SetAggregatedSig(aggSig)
-
 	err := multiSigner.Verify(bitmap, msg)
+
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "malformed point")
 }

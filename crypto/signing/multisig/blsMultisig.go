@@ -9,7 +9,7 @@ import (
 
 /*
 This implementation follows the modified BLS scheme presented here (curve notation changed in this file as compared to
-the link, so curves G0, G1 in link are refered to as G1, G2 in this file and in kyber library):
+the link, so curves G0, G1 in link are refered to as G1, G2 in this file):
 https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html
 
 In addition to the common BLS single signature, for aggregation of multiple signatures it requires another hashing
@@ -412,7 +412,7 @@ func hashPublicKeyPoint(hasher hashing.Hasher, pubKeyPoint crypto.Point) ([]byte
 	return h32, nil
 }
 
-// createScalar creates kyber.Scalar from a byte array
+// createScalar creates crypto.Scalar from a byte array
 func createScalar(suite crypto.Suite, scalarBytes []byte) (crypto.Scalar, error) {
 	if suite == nil {
 		return nil, crypto.ErrNilSuite

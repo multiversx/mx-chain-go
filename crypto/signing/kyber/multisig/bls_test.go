@@ -67,7 +67,7 @@ func createPoint() crypto.Point {
 	}
 }
 
-func createKeyPair(stream cipher.Stream) (crypto.Scalar, crypto.Point) {
+func createKeyPair(_ cipher.Stream) (crypto.Scalar, crypto.Point) {
 	scalar := createScalar()
 	point, _ := createPoint().Mul(scalar)
 	return scalar, point
@@ -239,6 +239,7 @@ func TestKyberMultiSignerBLS_VerifySigShareInvalidSigShouldErr(t *testing.T) {
 	msg2 := []byte("message2")
 	err := lls.VerifySigShare(pubKey, msg2, sig)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "invalid signature")
 }
 
@@ -272,6 +273,7 @@ func TestKyberMultiSignerBLS_VerifySigBytesInvalidSuiteShouldErr(t *testing.T) {
 	suite := createMockSuite("invalid suite")
 	err := lls.VerifySigBytes(suite, sig)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "suite is invalid")
 }
 
@@ -285,6 +287,7 @@ func TestKyberMultiSignerBLS_VerifySigBytesInvalidSigShouldErr(t *testing.T) {
 	sig[0] = sig[0] ^ 0xFF
 	err := lls.VerifySigBytes(pubKey.Suite(), sig)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "malformed point")
 }
 
@@ -330,6 +333,7 @@ func TestKyberMultiSignerBLS_AggregateSignaturesEmptySigsShouldErr(t *testing.T)
 	pubKeys, _ := createSigSharesBLS(20, msg)
 	_, err := llSig.AggregateSignatures(pubKeys[0].Suite(), []byte(""))
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not enough data")
 }
 
@@ -342,6 +346,7 @@ func TestKyberMultiSignerBLS_AggregateSignaturesInvalidSigsShouldErr(t *testing.
 	sigShares[0][0] = sigShares[0][0] ^ 0xFF
 	_, err := llSig.AggregateSignatures(pubKeys[0].Suite(), sigShares...)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "malformed point")
 }
 
@@ -398,6 +403,7 @@ func TestKyberMultiSignerBLS_VerifyAggregatedSigNilAggPKBytesShouldErr(t *testin
 	aggSig, _ := llSig.AggregateSignatures(pubKeys[0].Suite(), sigShares...)
 	err := llSig.VerifyAggregatedSig(pubKeys[0].Suite(), nil, aggSig, msg)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not enough data")
 }
 
@@ -414,6 +420,7 @@ func TestKyberMultiSignerBLS_VerifyAggregatedSigInvalidAggPKBytesShouldErr(t *te
 	aggPks[0] = aggPks[0] ^ 0xFF
 	err := llSig.VerifyAggregatedSig(pubKeys[0].Suite(), aggPks, aggSig, msg)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "malformed point")
 }
 
@@ -426,6 +433,7 @@ func TestKyberMultiSignerBLS_VerifyAggregatedSigNilAggSigBytesShouldErr(t *testi
 	aggPks, _ := llSig.AggregatePublicKeys(pubKeys[0].Suite(), pubKeysPoints...)
 	err := llSig.VerifyAggregatedSig(pubKeys[0].Suite(), aggPks, nil, msg)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not enough data")
 }
 
@@ -442,6 +450,7 @@ func TestKyberMultiSignerBLS_VerifyAggregatedSigInvalidAggSigBytesShouldErr(t *t
 	aggSig[0] = aggSig[0] ^ 0xFF
 	err := llSig.VerifyAggregatedSig(pubKeys[0].Suite(), aggPks, aggSig, msg)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "malformed point")
 }
 
@@ -456,6 +465,7 @@ func TestKyberMultiSignerBLS_VerifyAggregatedSigNilMsgShouldErr(t *testing.T) {
 	aggPks, _ := llSig.AggregatePublicKeys(pubKeys[0].Suite(), pubKeysPoints...)
 	err := llSig.VerifyAggregatedSig(pubKeys[0].Suite(), aggPks, aggSig, nil)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "invalid signature")
 }
 

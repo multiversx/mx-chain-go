@@ -201,7 +201,7 @@ type MultiSigVerifier interface {
 	Verify(bitmap []byte) error
 }
 
-// MultiSignerBLS provides functionality for multi-signing a message and ferifying a multi-signed message
+// MultiSignerBLS provides functionality for multi-signing a message and verifying a multi-signed message
 // TODO: refactor BN to use this same multiSigner, and then remove the MultiSigner - EN-1774
 type MultiSignerBLS interface {
 	// MultiSigVerifierBLS Provides functionality for verifying a multi-signature
