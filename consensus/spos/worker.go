@@ -317,7 +317,7 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 		}
 
 		msgType := consensus.MessageType(cnsDta.MsgType)
-		if wrk.consensusService.IsFinished(wrk.consensusState, msgType) {
+		if !wrk.consensusService.IsFinished(wrk.consensusState, msgType) {
 			continue
 		}
 

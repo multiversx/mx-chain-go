@@ -749,8 +749,8 @@ func TestSubroundBlock_IsBlockReceived(t *testing.T) {
 	ok := sr.IsBlockReceived(1)
 	assert.False(t, ok)
 
-	sr.SetJobDone("A", bn.SrBlock, true)
-	isJobDone, _ := sr.JobDone("A", bn.SrBlock)
+	sr.SetJobDone("1", bn.SrBlock, true)
+	isJobDone, _ := sr.JobDone("1", bn.SrBlock)
 	assert.True(t, isJobDone)
 
 	ok = sr.IsBlockReceived(1)

@@ -417,18 +417,18 @@ func TestSubroundCommitmentHash_IsCommitmentHashReceived(t *testing.T) {
 	ok := sr.IsCommitmentHashReceived(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("A", bn.SrCommitmentHash, true)
-	isJobDone, _ := sr.JobDone("A", bn.SrCommitmentHash)
+	sr.SetJobDone("1", bn.SrCommitmentHash, true)
+	isJobDone, _ := sr.JobDone("1", bn.SrCommitmentHash)
 	assert.True(t, isJobDone)
 
 	ok = sr.IsCommitmentHashReceived(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("B", bn.SrCommitmentHash, true)
+	sr.SetJobDone("2", bn.SrCommitmentHash, true)
 	ok = sr.IsCommitmentHashReceived(2)
 	assert.True(t, ok)
 
-	sr.SetJobDone("C", bn.SrCommitmentHash, true)
+	sr.SetJobDone("3", bn.SrCommitmentHash, true)
 	ok = sr.IsCommitmentHashReceived(2)
 	assert.True(t, ok)
 }
@@ -449,26 +449,26 @@ func TestSubroundCommitmentHash_CommitmentHashesCollected(t *testing.T) {
 	ok := sr.CommitmentHashesCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("A", bn.SrBitmap, true)
-	sr.SetJobDone("C", bn.SrBitmap, true)
+	sr.SetJobDone("1", bn.SrBitmap, true)
+	sr.SetJobDone("3", bn.SrBitmap, true)
 	isJobDone, _ := sr.JobDone("C", bn.SrBitmap)
 	assert.True(t, isJobDone)
 
 	ok = sr.CommitmentHashesCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("B", bn.SrCommitmentHash, true)
-	isJobDone, _ = sr.JobDone("B", bn.SrCommitmentHash)
+	sr.SetJobDone("2", bn.SrCommitmentHash, true)
+	isJobDone, _ = sr.JobDone("2", bn.SrCommitmentHash)
 	assert.True(t, isJobDone)
 
 	ok = sr.CommitmentHashesCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("C", bn.SrCommitmentHash, true)
+	sr.SetJobDone("3", bn.SrCommitmentHash, true)
 	ok = sr.CommitmentHashesCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("A", bn.SrCommitmentHash, true)
+	sr.SetJobDone("1", bn.SrCommitmentHash, true)
 	ok = sr.CommitmentHashesCollected(2)
 	assert.True(t, ok)
 }
