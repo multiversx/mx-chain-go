@@ -23,9 +23,10 @@ func NewMultiShardCoordinator(numberOfShards, selfId uint32) (*multiShardCoordin
 	if numberOfShards < 1 {
 		return nil, ErrInvalidNumberOfShards
 	}
-	if selfId >= numberOfShards {
+	if selfId >= numberOfShards && selfId != MetachainShardId {
 		return nil, ErrInvalidShardId
 	}
+
 	sr := &multiShardCoordinator{}
 	sr.selfId = selfId
 	sr.numberOfShards = numberOfShards
@@ -62,6 +63,7 @@ func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint
 	if shard > msc.numberOfShards-1 {
 		shard = addr & msc.maskLow
 	}
+
 	return shard
 }
 
