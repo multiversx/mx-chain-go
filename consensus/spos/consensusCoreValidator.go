@@ -49,5 +49,13 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 		return ErrNilValidatorGroupSelector
 	}
 
+	if container.BlsPrivateKey() == nil {
+		return ErrNilBlsPrivateKey
+	}
+
+	if container.BlsSingleSigner() == nil {
+		return ErrNilBlsSingleSigner
+	}
+
 	return nil
 }

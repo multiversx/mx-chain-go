@@ -254,6 +254,8 @@ func (n *Node) StartConsensus() error {
 		chronologyHandler,
 		n.hasher,
 		n.marshalizer,
+		n.blsPrivateKey,
+		n.blsSinglesig,
 		n.multisig,
 		n.rounder,
 		n.shardCoordinator,
