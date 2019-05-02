@@ -512,26 +512,26 @@ func TestSubroundSignature_SignaturesCollected(t *testing.T) {
 	ok := sr.SignaturesCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("1", bn.SrBitmap, true)
-	sr.SetJobDone("3", bn.SrBitmap, true)
+	sr.SetJobDone("A", bn.SrBitmap, true)
+	sr.SetJobDone("C", bn.SrBitmap, true)
 	isJobDone, _ := sr.JobDone("C", bn.SrBitmap)
 	assert.True(t, isJobDone)
 
 	ok = sr.SignaturesCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("2", bn.SrSignature, true)
+	sr.SetJobDone("B", bn.SrSignature, true)
 	isJobDone, _ = sr.JobDone("B", bn.SrSignature)
 	assert.True(t, isJobDone)
 
 	ok = sr.SignaturesCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("3", bn.SrSignature, true)
+	sr.SetJobDone("C", bn.SrSignature, true)
 	ok = sr.SignaturesCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("1", bn.SrSignature, true)
+	sr.SetJobDone("A", bn.SrSignature, true)
 	ok = sr.SignaturesCollected(2)
 	assert.True(t, ok)
 }

@@ -21,24 +21,34 @@ func initRounderMock() *mock.RounderMock {
 	}
 }
 
-func initConsensusState() *spos.ConsensusState {
-	eligibleList := []string{"1", "2", "3"}
+func createEligibleList(size int) []string {
+	eligibleList := make([]string, 0)
+	for i := 0; i < size; i++ {
+		eligibleList = append(eligibleList, string(i+65))
+	}
+	return eligibleList
+}
 
+func initConsensusState() *spos.ConsensusState {
+	consensusGroupSize := 9
+	eligibleList := createEligibleList(consensusGroupSize)
+	indexLeader := 1
 	rcns := spos.NewRoundConsensus(
 		eligibleList,
-		3,
-		"2")
+		consensusGroupSize,
+		eligibleList[indexLeader])
 
 	rcns.SetConsensusGroup(eligibleList)
 	rcns.ResetRoundState()
 
-	rthr := spos.NewRoundThreshold()
+	PBFTThreshold := consensusGroupSize*2/3 + 1
 
-	rthr.SetThreshold(bn.SrBlock, 1)
-	rthr.SetThreshold(bn.SrCommitmentHash, 3)
-	rthr.SetThreshold(bn.SrBitmap, 3)
-	rthr.SetThreshold(bn.SrCommitment, 3)
-	rthr.SetThreshold(bn.SrSignature, 3)
+	rthr := spos.NewRoundThreshold()
+	rthr.SetThreshold(1, 1)
+	rthr.SetThreshold(2, PBFTThreshold)
+	rthr.SetThreshold(3, PBFTThreshold)
+	rthr.SetThreshold(4, PBFTThreshold)
+	rthr.SetThreshold(5, PBFTThreshold)
 
 	rstatus := spos.NewRoundStatus()
 	rstatus.ResetRoundStatus()
@@ -49,6 +59,8 @@ func initConsensusState() *spos.ConsensusState {
 		rstatus,
 	)
 
+	cns.Data = []byte("X")
+	cns.RoundIndex = 0
 	return cns
 }
 

@@ -19,14 +19,6 @@ import (
 
 const roundTimeDuration = time.Duration(100 * time.Millisecond)
 
-func createEligibleList(size int) []string {
-	eligibleList := make([]string, 0)
-	for i := 0; i < size; i++ {
-		eligibleList = append(eligibleList, string(i+65))
-	}
-	return eligibleList
-}
-
 func sendMessage(cnsMsg *consensus.Message) {
 	fmt.Println(cnsMsg.Signature)
 }

@@ -400,18 +400,18 @@ func TestSubroundBitmap_IsBitmapReceived(t *testing.T) {
 	ok := sr.IsBitmapReceived(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("1", bn.SrBitmap, true)
-	isJobDone, _ := sr.JobDone("1", bn.SrBitmap)
+	sr.SetJobDone("A", bn.SrBitmap, true)
+	isJobDone, _ := sr.JobDone("A", bn.SrBitmap)
 	assert.True(t, isJobDone)
 
 	ok = sr.IsBitmapReceived(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("2", bn.SrBitmap, true)
+	sr.SetJobDone("B", bn.SrBitmap, true)
 	ok = sr.IsBitmapReceived(2)
 	assert.True(t, ok)
 
-	sr.SetJobDone("3", bn.SrBitmap, true)
+	sr.SetJobDone("C", bn.SrBitmap, true)
 	ok = sr.IsBitmapReceived(2)
 	assert.True(t, ok)
 }

@@ -360,26 +360,26 @@ func TestSubroundCommitment_CommitmentsCollected(t *testing.T) {
 	ok := sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("1", bn.SrBitmap, true)
-	sr.SetJobDone("3", bn.SrBitmap, true)
-	isJobDone, _ := sr.JobDone("3", bn.SrBitmap)
+	sr.SetJobDone("A", bn.SrBitmap, true)
+	sr.SetJobDone("C", bn.SrBitmap, true)
+	isJobDone, _ := sr.JobDone("C", bn.SrBitmap)
 	assert.True(t, isJobDone)
 
 	ok = sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("2", bn.SrCommitment, true)
-	isJobDone, _ = sr.JobDone("2", bn.SrCommitment)
+	sr.SetJobDone("B", bn.SrCommitment, true)
+	isJobDone, _ = sr.JobDone("B", bn.SrCommitment)
 	assert.True(t, isJobDone)
 
 	ok = sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("3", bn.SrCommitment, true)
+	sr.SetJobDone("C", bn.SrCommitment, true)
 	ok = sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
-	sr.SetJobDone("1", bn.SrCommitment, true)
+	sr.SetJobDone("A", bn.SrCommitment, true)
 	ok = sr.CommitmentsCollected(2)
 	assert.True(t, ok)
 }
