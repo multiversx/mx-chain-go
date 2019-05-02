@@ -21,21 +21,19 @@ func (s *SchnorrSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, err
 		return nil, crypto.ErrNilPrivateKeyScalar
 	}
 
-	kScalar, ok := scalar.GetUnderlyingObj().(kyber.Scalar)
-
-	if !ok {
-		return nil, crypto.ErrInvalidPrivateKey
-	}
-
 	suite := private.Suite()
 	if suite == nil {
 		return nil, crypto.ErrNilSuite
 	}
 
 	kSuite, ok := suite.GetUnderlyingSuite().(schnorr.Suite)
-
 	if !ok {
 		return nil, crypto.ErrInvalidSuite
+	}
+
+	kScalar, ok := scalar.GetUnderlyingObj().(kyber.Scalar)
+	if !ok {
+		return nil, crypto.ErrInvalidPrivateKey
 	}
 
 	return schnorr.Sign(kSuite, kScalar, msg)
@@ -60,19 +58,17 @@ func (s *SchnorrSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte) 
 		return crypto.ErrNilSuite
 	}
 
-	kSuite, ok := suite.GetUnderlyingSuite().(schnorr.Suite)
-
-	if !ok {
-		return crypto.ErrInvalidSuite
-	}
-
 	point := public.Point()
 	if point == nil {
 		return crypto.ErrNilPublicKeyPoint
 	}
 
-	kPoint, ok := point.GetUnderlyingObj().(kyber.Point)
+	kSuite, ok := suite.GetUnderlyingSuite().(schnorr.Suite)
+	if !ok {
+		return crypto.ErrInvalidSuite
+	}
 
+	kPoint, ok := point.GetUnderlyingObj().(kyber.Point)
 	if !ok {
 		return crypto.ErrInvalidPublicKey
 	}
