@@ -304,19 +304,20 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 		func(destShardID uint32, txHash []byte) {},
 	)
 	blkc := createTestBlockchain()
+	body := &block.Body{}
 	hdr := &block.Header{}
 	hdr.Nonce = 1
 	hdr.TimeStamp = 0
 	hdr.PrevHash = []byte("X")
-	err := bp.CheckBlockValidity(blkc, hdr, nil)
+	err := bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Equal(t, process.ErrInvalidBlockHash, err)
 
 	hdr.PrevHash = []byte("")
-	err = bp.CheckBlockValidity(blkc, hdr, nil)
+	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Nil(t, err)
 
 	hdr.Nonce = 2
-	err = bp.CheckBlockValidity(blkc, hdr, nil)
+	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 1
@@ -326,17 +327,17 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	hdr = &block.Header{}
 	hdr.Nonce = 1
 	hdr.TimeStamp = 0
-	err = bp.CheckBlockValidity(blkc, hdr, nil)
+	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 2
 	hdr.PrevHash = []byte("X")
-	err = bp.CheckBlockValidity(blkc, hdr, nil)
+	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Equal(t, process.ErrInvalidBlockHash, err)
 
 	hdr.Nonce = 3
 	hdr.PrevHash = []byte("")
-	err = bp.CheckBlockValidity(blkc, hdr, nil)
+	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 2
@@ -344,7 +345,8 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	hasherMock := mock.HasherMock{}
 	prevHeader, _ := marshalizerMock.Marshal(blkc.GetCurrentBlockHeader())
 	hdr.PrevHash = hasherMock.Compute(string(prevHeader))
-	err = bp.CheckBlockValidity(blkc, hdr, nil)
+
+	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Nil(t, err)
 }
 

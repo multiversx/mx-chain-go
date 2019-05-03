@@ -253,9 +253,6 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 // ErrWrongTypeAssertion signals that an type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
-// ErrHeaderIsInStorage signals that the header is already in storage
-var ErrHeaderIsInStorage = errors.New("header is already in storage")
-
 // ErrRollbackFromGenesis signals that a rollback from genesis is called
 var ErrRollbackFromGenesis = errors.New("roll back from genesis is not supported")
 
@@ -285,3 +282,6 @@ var ErrRandSeedMismatch = errors.New("random seeds do not match")
 
 // ErrHeaderNotFinal signals that header is not final and it should be
 var ErrHeaderNotFinal = errors.New("header in metablock is not final")
+
+// ErrShardIdMissmatch signals shard ID does not match expectations
+var ErrShardIdMissmatch = errors.New("shard ID missmatch")

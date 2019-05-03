@@ -61,11 +61,9 @@ func (bp *baseProcessor) checkBlockValidity(
 	bodyHandler data.BodyHandler,
 ) error {
 
-	if headerHandler == nil {
-		return process.ErrNilBlockHeader
-	}
-	if chainHandler == nil {
-		return process.ErrNilBlockChain
+	err := checkForNils(chainHandler, headerHandler, bodyHandler)
+	if err != nil {
+		return err
 	}
 
 	if chainHandler.GetCurrentBlockHeader() == nil {

@@ -431,8 +431,11 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	go func() {
 		mp.ChRcvAllHdrs <- true
 	}()
+
 	// should return err
+	mp.SetNextKValidity(0)
 	err := mp.ProcessBlock(blkc, hdr, body, haveTime)
+
 	assert.Equal(t, process.ErrRootStateMissmatch, err)
 	assert.True(t, wasCalled)
 }
@@ -1114,7 +1117,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	miniBlockHeaders3 := make([]block.MiniBlockHeader, 0)
 	miniBlockHeaders3 = append(miniBlockHeaders3, miniBlockHeader1)
 
-	//put the existing tx inside datapool
+	//put the existing headers inside datapool
 	dataPool.ShardHeaders().Put(hdrHash1, &block.Header{
 		Round:            1,
 		Nonce:            45,
@@ -1151,24 +1154,24 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	)
 
 	haveTime := func() bool { return true }
-
-	shardInfo, err := mp.CreateShardInfo(2, 0, haveTime)
+	round := int32(0)
+	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(3, 0, haveTime)
+	shardInfo, err = mp.CreateShardInfo(3, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(4, 0, haveTime)
+	shardInfo, err = mp.CreateShardInfo(4, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(5, 0, haveTime)
+	shardInfo, err = mp.CreateShardInfo(5, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(6, 0, haveTime)
+	shardInfo, err = mp.CreateShardInfo(6, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 }
@@ -1239,7 +1242,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		lastNodesHdrs[i] = lastHdr
 	}
 
-	//put the existing tx inside datapool
+	//put the existing headers inside datapool
 	prevHash, _ := mp.ComputeHeaderHash(lastNodesHdrs[0])
 	dataPool.ShardHeaders().Put(hdrHash1, &block.Header{
 		Round:            10,
@@ -1268,24 +1271,24 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		MiniBlockHeaders: miniBlockHeaders3})
 
 	mp.SetNextKValidity(0)
-
-	shardInfo, err := mp.CreateShardInfo(2, 0, haveTime)
+	round := int32(0)
+	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(3, 0, haveTime)
+	shardInfo, err = mp.CreateShardInfo(3, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(4, 0, haveTime)
+	shardInfo, err = mp.CreateShardInfo(4, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(5, 0, haveTime)
+	shardInfo, err = mp.CreateShardInfo(5, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(6, 0, haveTime)
+	shardInfo, err = mp.CreateShardInfo(6, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }
@@ -1437,24 +1440,24 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	dataPool.ShardHeaders().Put(hdrHash33, headers[5])
 
 	mp.SetNextKValidity(1)
-
-	shardInfo, err := mp.CreateShardInfo(2, 0, haveTime)
+	round := int32(0)
+	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(3, 0, haveTime)
+	shardInfo, err = mp.CreateShardInfo(3, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(4, 0, haveTime)
+	shardInfo, err = mp.CreateShardInfo(4, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(5, 0, haveTime)
+	shardInfo, err = mp.CreateShardInfo(5, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(6, 0, haveTime)
+	shardInfo, err = mp.CreateShardInfo(6, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }

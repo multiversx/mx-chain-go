@@ -131,7 +131,11 @@ func (sp *shardProcessor) ProcessBlock(
 	haveTime func() time.Duration,
 ) error {
 
-	err := checkForNils(chainHandler, headerHandler, bodyHandler)
+	if haveTime == nil {
+		return process.ErrNilHaveTimeHandler
+	}
+
+	err := sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
@@ -144,15 +148,6 @@ func (sp *shardProcessor) ProcessBlock(
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
-	}
-
-	if haveTime == nil {
-		return process.ErrNilHaveTimeHandler
-	}
-
-	err = sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
-	if err != nil {
-		return err
 	}
 
 	requestedTxs := sp.requestBlockTransactions(body)
