@@ -39,29 +39,68 @@ $ go test ./...
 - [x] Cryptography
   - [x] Schnorr Signature
   - [x] Belare-Neven Signature
+  - [x] BLS Signature
+  - [x] Modified BLS Multi-signature
 - [x] Datastructures
   - [x] Transaction
   - [x] Block
   - [x] Account
+  - [x] Trie
 - [x] Execution
   - [x] Transaction
   - [x] Block
   - [x] State update
+  - [x] Synchronization
+  - [x] Shard Fork choice
 - [x] Peer2Peer - libp2p
 - [x] Consensus - SPoS
+- [x] Sharding - fixed number
+  - [x] Transaction dispatcher 
+  - [x] Transaction
+  - [x] State
+- [x] MetaChain
+  - [x] Data Structures
+  - [x] Block Processor
+  - [x] Interceptors/Resolvers
+- [x] VM - K-Framework
+  - [x] K Framework go backend
+  - [x] IELE Core
+  - [x] IELE Core tests
+- [x] Smart Contracts on a Sharded Architecture
+  - [x] Concept reviewed
+- [x] Governance
+  - [x] Concept reviewed
+- [x] Testing 
+  - [x] Unit tests
+  - [x] Integration tests
+  - [x] TeamCity continuous integration
+  - [x] Manual testing
 
 ### In progress
 - [ ] Sharding - fixed number
-  - [x] Transaction
-  - [x] State
+  - [ ] Nodes dispatcher (shuffling)
   - [ ] Network
-- [ ] MetaChain
+- [ ] MetaChain Consensus
 - [ ] VM - K-Framework
+  - [ ] IELE Adapter
+  - [ ] EVM Core
+  - [ ] EVM Core tests
+  - [ ] EVM Adapter
 - [ ] Smart Contracts on a Sharded Architecture
+  - [ ] VM integration
+  - [ ] SC Deployment
+  - [ ] Dependency checker + SC migration
+  - [ ] Storage rent + SC backup & restore
+  - [ ] Request-response fallback
 - [ ] Fee structure
 - [ ] Governance
+  - [ ] SC for ERD IP
+  - [ ] Enforced Upgrade mechanism for voted ERD IP
+- [ ] Testing
+  - [ ] Automate tests with AWS 
+- [ ] Bugfixing
 
-### Future work
+### Backlog
 - [ ] Adaptive State Sharding
   - [ ] Splitting
   - [ ] Merging 
