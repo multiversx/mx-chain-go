@@ -224,8 +224,8 @@ func (g *Genesis) IsMetaChainActive() bool {
 	return g.MetaChainActive == 1
 }
 
-// GetShardIDFromPubKey returns the allocated shard ID from public key
-func (g *Genesis) GetShardIDFromPubKey(pubKey []byte) (uint32, error) {
+// GetShardIDForPubKey returns the allocated shard ID from publick key
+func (g *Genesis) GetShardIDForPubKey(pubKey []byte) (uint32, error) {
 	for _, in := range g.InitialNodes {
 		if in.pubKey != nil && bytes.Equal(pubKey, in.pubKey) {
 			return in.assignedShard, nil

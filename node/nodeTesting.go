@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 )
@@ -164,12 +165,17 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string) (uint64
 		return 0, nil, nil, 0, err
 	}
 
-	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
-	fmt.Printf("Sender shard Id: %d\n", senderShardId)
-
 	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
 		return 0, nil, nil, 0, errors.New("could not create receiver address from provided param: " + err.Error())
+	}
+
+	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
+	fmt.Printf("Sender shard Id: %d\n", senderShardId)
+
+	newNonce := uint64(0)
+	if senderShardId != n.shardCoordinator.SelfId() {
+		return newNonce, senderAddressBytes, receiverAddress.Bytes(), senderShardId, nil
 	}
 
 	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
@@ -177,10 +183,11 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string) (uint64
 		return 0, nil, nil, 0, errors.New("could not fetch sender account from provided param: " + err.Error())
 	}
 
-	newNonce := uint64(0)
-	if senderAccount != nil {
-		newNonce = senderAccount.BaseAccount().Nonce
+	acc, ok := senderAccount.(*state.Account)
+	if !ok {
+		return 0, nil, nil, 0, errors.New("wrong account type")
 	}
+	newNonce = acc.Nonce
 
 	return newNonce, senderAddressBytes, receiverAddress.Bytes(), senderShardId, nil
 }
@@ -237,7 +244,6 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
-
 	if n.privateKey == nil {
 		return nil, errors.New("initialize PrivateKey first")
 	}
@@ -254,10 +260,13 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param")
 	}
+
 	newNonce := uint64(0)
-	if senderAccount != nil {
-		newNonce = senderAccount.BaseAccount().Nonce
+	acc, ok := senderAccount.(*state.Account)
+	if !ok {
+		return nil, errors.New("wrong account type")
 	}
+	newNonce = acc.Nonce
 
 	tx, _, err := n.generateAndSignTx(
 		newNonce,

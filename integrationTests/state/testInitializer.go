@@ -43,10 +43,12 @@ func createDummyHexAddress(chars int) string {
 
 	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
 
+	mutex.Lock()
 	buff := make([]byte, chars)
 	for i := 0; i < chars; i++ {
 		buff[i] = characters[r.Int()%16]
 	}
+	mutex.Unlock()
 
 	return string(buff)
 }

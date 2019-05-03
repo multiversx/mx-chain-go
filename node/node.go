@@ -293,16 +293,21 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 	if err != nil {
 		return nil, errors.New("invalid address, could not decode from hex: " + err.Error())
 	}
-	account, err := n.accounts.GetExistingAccount(address)
+	accWrp, err := n.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
-	if account == nil {
+	if accWrp == nil {
 		return big.NewInt(0), nil
 	}
 
-	return account.BaseAccount().Balance, nil
+	account, ok := accWrp.(*state.Account)
+	if !ok {
+		return big.NewInt(0), nil
+	}
+
+	return account.Balance, nil
 }
 
 // createChronologyHandler method creates a chronology object
@@ -348,8 +353,8 @@ func (n *Node) createMetaChainBootstraper(rounder consensus.Rounder) (process.Bo
 	// TODO make sure metachain blockprocessor is used here in constructor
 	// TODO make sure metachain is used here as blockchain
 	// TODO make sure metachain store is used here as store
-	// TODO make sure accounts merkle tree is for metachain state
 
+	// accounts are good, as it is initialized at main with account factory according to shard coordinator
 	bootstrap, err := sync.NewMetaBootstrap(
 		n.metaDataPool,
 		n.store,
@@ -470,18 +475,20 @@ func (n *Node) SendTransaction(
 	transactionData string,
 	signature []byte) (*transaction.Transaction, error) {
 
+	if n.shardCoordinator == nil {
+		return nil, ErrNilShardCoordinator
+	}
+
 	sender, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {
 		return nil, err
 	}
+
 	receiver, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
 		return nil, err
 	}
 
-	if n.shardCoordinator == nil {
-		return nil, ErrNilShardCoordinator
-	}
 	senderShardId := n.shardCoordinator.ComputeId(sender)
 
 	tx := transaction.Transaction{
@@ -492,6 +499,7 @@ func (n *Node) SendTransaction(
 		Data:      []byte(transactionData),
 		Signature: signature,
 	}
+
 	txBuff, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, err
@@ -538,11 +546,18 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 	if err != nil {
 		return nil, errors.New("could not create address object from provided string")
 	}
-	account, err := n.accounts.GetExistingAccount(addr)
+
+	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param")
 	}
-	return account.BaseAccount(), nil
+
+	account, ok := accWrp.(*state.Account)
+	if !ok {
+		return nil, errors.New("account is not of type with balance and nonce")
+	}
+
+	return account, nil
 }
 
 func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {

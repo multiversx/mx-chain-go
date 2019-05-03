@@ -14,7 +14,7 @@ func (txProc *txProcessor) GetAddresses(tx *transaction.Transaction) (adrSrc, ad
 }
 
 func (txProc *txProcessor) GetAccounts(adrSrc, adrDst state.AddressContainer,
-) (acntSrc, acntDst state.JournalizedAccountWrapper, err error) {
+) (acntSrc, acntDst *state.Account, err error) {
 	return txProc.getAccounts(adrSrc, adrDst)
 }
 
@@ -22,14 +22,14 @@ func (txProc *txProcessor) CallSCHandler(tx *transaction.Transaction) error {
 	return txProc.callSCHandler(tx)
 }
 
-func (txProc *txProcessor) CheckTxValues(acntSrc state.JournalizedAccountWrapper, value *big.Int, nonce uint64) error {
+func (txProc *txProcessor) CheckTxValues(acntSrc *state.Account, value *big.Int, nonce uint64) error {
 	return txProc.checkTxValues(acntSrc, value, nonce)
 }
 
-func (txProc *txProcessor) MoveBalances(acntSrc, acntDst state.JournalizedAccountWrapper, value *big.Int) error {
+func (txProc *txProcessor) MoveBalances(acntSrc, acntDst *state.Account, value *big.Int) error {
 	return txProc.moveBalances(acntSrc, acntDst, value)
 }
 
-func (txProc *txProcessor) IncreaseNonce(acntSrc state.JournalizedAccountWrapper) error {
+func (txProc *txProcessor) IncreaseNonce(acntSrc *state.Account) error {
 	return txProc.increaseNonce(acntSrc)
 }
