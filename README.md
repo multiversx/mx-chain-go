@@ -93,14 +93,6 @@ $ go test ./...
   - [ ] Storage rent + SC backup & restore
   - [ ] Request-response fallback
 - [ ] Fee structure
-- [ ] Governance
-  - [ ] SC for ERD IP
-  - [ ] Enforced Upgrade mechanism for voted ERD IP
-- [ ] Testing
-  - [ ] Automate tests with AWS 
-- [ ] Bugfixing
-
-### Backlog
 - [ ] Adaptive State Sharding
   - [ ] Splitting
   - [ ] Merging 
@@ -112,6 +104,12 @@ $ go test ./...
   - [ ] Randomness
   - [ ] Consensus
   - [ ] Smart Contract 
+- [ ] Governance
+  - [ ] SC for ERD IP
+  - [ ] Enforced Upgrade mechanism for voted ERD IP
+- [ ] Testing
+  - [ ] Automate tests with AWS 
+- [ ] Bugfixing
 
 # Private/Public Keys for testing
 
