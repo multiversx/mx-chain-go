@@ -6,8 +6,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
+	llsig "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,11 +18,13 @@ func genMultiSigParamsBLS(cnGrSize int, ownIndex uint16) (
 	pubKey crypto.PublicKey,
 	pubKeys []string,
 	kg crypto.KeyGenerator,
+	llSigner crypto.LowLevelSignerBLS,
 ) {
 	suite := kyber.NewSuitePairingBn256()
 	kg = signing.NewKeyGenerator(suite)
 	var pubKeyBytes []byte
 	pubKeys = make([]string, 0)
+	llSigner = &llsig.KyberMultiSignerBLS{}
 
 	for i := 0; i < cnGrSize; i++ {
 		sk, pk := kg.GeneratePair()
@@ -34,7 +37,7 @@ func genMultiSigParamsBLS(cnGrSize int, ownIndex uint16) (
 		pubKeys = append(pubKeys, string(pubKeyBytes))
 	}
 
-	return privKey, pubKey, pubKeys, kg
+	return privKey, pubKey, pubKeys, kg, llSigner
 }
 
 func createSignerAndSigShareBLS(
@@ -45,8 +48,8 @@ func createSignerAndSigShareBLS(
 	ownIndex uint16,
 	message []byte,
 ) (sigShare []byte, multiSig crypto.MultiSignerBLS) {
-
-	multiSig, _ = multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	llSigner := &llsig.KyberMultiSignerBLS{}
+	multiSig, _ = multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 	sigShare, _ = multiSig.CreateSignatureShare(message)
 
 	return sigShare, multiSig
@@ -80,9 +83,10 @@ func createSigSharesBLS(
 
 	sigShares = make([][]byte, nbSigs)
 	multiSigners := make([]crypto.MultiSignerBLS, nbSigs)
+	llSigner := &llsig.KyberMultiSignerBLS{}
 
 	for i := uint16(0); i < nbSigs; i++ {
-		multiSigners[i], _ = multisig.NewBLSMultisig(hasher, pubKeysStr, privKeys[i], kg, i)
+		multiSigners[i], _ = multisig.NewBLSMultisig(llSigner, hasher, pubKeysStr, privKeys[i], kg, i)
 	}
 
 	for i := uint16(0); i < nbSigs; i++ {
@@ -121,11 +125,23 @@ func TestNewBLSMultisig_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ownIndex := uint16(3)
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
-	multiSig, err := multisig.NewBLSMultisig(nil, pubKeys, privKey, kg, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, err := multisig.NewBLSMultisig(llSigner, nil, pubKeys, privKey, kg, ownIndex)
 
 	assert.Nil(t, multiSig)
 	assert.Equal(t, crypto.ErrNilHasher, err)
+}
+
+func TestNewBLSMultisig_WrongHasherSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ownIndex := uint16(3)
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
+
+	assert.Nil(t, multiSig)
+	assert.Equal(t, crypto.ErrWrongSizeHasher, err)
 }
 
 func TestNewBLSMultisig_NilPrivKeyShouldErr(t *testing.T) {
@@ -133,8 +149,8 @@ func TestNewBLSMultisig_NilPrivKeyShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	_, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
-	multiSig, err := multisig.NewBLSMultisig(hasher, pubKeys, nil, kg, ownIndex)
+	_, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, nil, kg, ownIndex)
 
 	assert.Nil(t, multiSig)
 	assert.Equal(t, crypto.ErrNilPrivateKey, err)
@@ -145,8 +161,8 @@ func TestNewBLSMultisig_NilPubKeysShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, _, kg := genMultiSigParamsBLS(4, ownIndex)
-	multiSig, err := multisig.NewBLSMultisig(hasher, nil, privKey, kg, ownIndex)
+	privKey, _, _, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, err := multisig.NewBLSMultisig(llSigner, hasher, nil, privKey, kg, ownIndex)
 
 	assert.Nil(t, multiSig)
 	assert.Equal(t, crypto.ErrNoPublicKeySet, err)
@@ -157,10 +173,10 @@ func TestNewBLSMultisig_NoPubKeysSetShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, _, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, _, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 	pubKeys := make([]string, 0)
 
-	multiSig, err := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	assert.Nil(t, multiSig)
 	assert.Equal(t, crypto.ErrNoPublicKeySet, err)
@@ -171,8 +187,8 @@ func TestNewBLSMultisig_NilKeyGenShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, _ := genMultiSigParamsBLS(4, ownIndex)
-	multiSig, err := multisig.NewBLSMultisig(hasher, pubKeys, privKey, nil, ownIndex)
+	privKey, _, pubKeys, _, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, nil, ownIndex)
 
 	assert.Nil(t, multiSig)
 	assert.Equal(t, crypto.ErrNilKeyGenerator, err)
@@ -183,8 +199,8 @@ func TestNewBLSMultisig_InvalidOwnIndexShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
-	multiSig, err := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, 15)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, 15)
 
 	assert.Nil(t, multiSig)
 	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
@@ -195,8 +211,8 @@ func TestNewBLSMultisig_OutOfBoundsIndexShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
-	multiSig, err := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, 10)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, 10)
 
 	assert.Nil(t, multiSig)
 	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
@@ -207,10 +223,10 @@ func TestNewBLSMultisig_InvalidPubKeyInListShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 	pubKeys[1] = "invalid"
 
-	multiSig, err := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	assert.Nil(t, multiSig)
 	assert.Equal(t, crypto.ErrInvalidPublicKeyString, err)
@@ -221,10 +237,10 @@ func TestNewBLSMultisig_EmptyPubKeyInListShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 	pubKeys[1] = ""
 
-	multiSig, err := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	assert.Nil(t, multiSig)
 	assert.Equal(t, crypto.ErrEmptyPubKeyString, err)
@@ -235,9 +251,9 @@ func TestNewBLSMultisig_OK(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 
-	multiSig, err := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, multiSig)
@@ -248,9 +264,9 @@ func TestBLSMultiSigner_CreateNilPubKeysShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 	multiSigCreated, err := multiSig.Create(nil, ownIndex)
 
 	assert.Equal(t, crypto.ErrNoPublicKeySet, err)
@@ -262,9 +278,9 @@ func TestBLSMultiSigner_CreateInvalidPubKeyInListShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	pubKeys[1] = "invalid"
 	multiSigCreated, err := multiSig.Create(pubKeys, ownIndex)
@@ -278,9 +294,9 @@ func TestBLSMultiSigner_CreateEmptyPubKeyInListShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	pubKeys[1] = ""
 	multiSigCreated, err := multiSig.Create(pubKeys, ownIndex)
@@ -294,8 +310,8 @@ func TestBLSMultiSigner_CreateOK(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	multiSigCreated, err := multiSig.Create(pubKeys, ownIndex)
 	assert.Nil(t, err)
@@ -307,8 +323,8 @@ func TestBLSMultiSigner_ResetOutOfBoundsIndexShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	err := multiSig.Reset(pubKeys, 10)
 	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
@@ -319,9 +335,9 @@ func TestBLSMultiSigner_ResetNilPubKeysShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 	err := multiSig.Reset(nil, ownIndex)
 
 	assert.Equal(t, crypto.ErrNilPublicKeys, err)
@@ -332,9 +348,9 @@ func TestBLSMultiSigner_ResetInvalidPubKeyInListShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	pubKeys[1] = "invalid"
 	err := multiSig.Reset(pubKeys, ownIndex)
@@ -347,9 +363,9 @@ func TestBLSMultiSigner_ResetEmptyPubKeyInListShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	pubKeys[1] = ""
 	err := multiSig.Reset(pubKeys, ownIndex)
@@ -362,8 +378,8 @@ func TestBLSMultiSigner_ResetOK(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	err := multiSig.Reset(pubKeys, ownIndex)
 	assert.Nil(t, err)
@@ -374,9 +390,9 @@ func TestBLSMultiSigner_CreateSignatureShareNilMessageShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 	sigShare, err := multiSig.CreateSignatureShare(nil)
 
 	assert.Nil(t, sigShare)
@@ -388,9 +404,9 @@ func TestBLSMultiSigner_CreateSignatureShareOK(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 	msg := []byte("message")
 	sigShare, err := multiSig.CreateSignatureShare(msg)
 
@@ -406,7 +422,7 @@ func TestBLSMultiSigner_VerifySignatureShareNilSigShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, _ := genMultiSigParamsBLS(4, ownIndex)
 	msg := []byte("message")
 	_, multiSig := createSignerAndSigShareBLS(hasher, pubKeys, privKey, kg, ownIndex, msg)
 
@@ -420,12 +436,13 @@ func TestBLSMultiSigner_VerifySignatureShareInvalidSignatureShouldErr(t *testing
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, _ := genMultiSigParamsBLS(4, ownIndex)
 	msg := []byte("message")
 	sigShare, multiSig := createSignerAndSigShareBLS(hasher, pubKeys, privKey, kg, ownIndex, msg)
 
 	verifErr := multiSig.VerifySignatureShare(0, sigShare, msg)
 
+	assert.NotNil(t, verifErr)
 	assert.Contains(t, verifErr.Error(), "invalid signature")
 }
 
@@ -434,7 +451,7 @@ func TestBLSMultiSigner_VerifySignatureShareOK(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, _ := genMultiSigParamsBLS(4, ownIndex)
 	msg := []byte("message")
 	sigShare, multiSig := createSignerAndSigShareBLS(hasher, pubKeys, privKey, kg, ownIndex, msg)
 
@@ -448,8 +465,8 @@ func TestBLSMultiSigner_AddSignatureShareNilSigShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	err := multiSig.StoreSignatureShare(ownIndex, nil)
 
@@ -461,8 +478,8 @@ func TestBLSMultiSigner_AddSignatureShareIndexOutOfBoundsIndexShouldErr(t *testi
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
-	multiSig, _ := multisig.NewBLSMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
+	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
 	sigShare, _ := multiSig.CreateSignatureShare([]byte("message"))
 
@@ -476,7 +493,7 @@ func TestBLSMultiSigner_AddSignatureShareOK(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, _ := genMultiSigParamsBLS(4, ownIndex)
 	msg := []byte("message")
 	sigShare, multiSig := createSignerAndSigShareBLS(hasher, pubKeys, privKey, kg, ownIndex, msg)
 	err := multiSig.StoreSignatureShare(ownIndex, sigShare)
@@ -491,7 +508,7 @@ func TestBLSMultiSigner_SignatureShareOutOfBoundsIndexShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, _ := genMultiSigParamsBLS(4, ownIndex)
 	msg := []byte("message")
 	sigShare, multiSig := createSignerAndSigShareBLS(hasher, pubKeys, privKey, kg, ownIndex, msg)
 	_ = multiSig.StoreSignatureShare(ownIndex, sigShare)
@@ -506,7 +523,7 @@ func TestBLSMultiSigner_SignatureShareNotSetIndexShouldErr(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, _ := genMultiSigParamsBLS(4, ownIndex)
 	msg := []byte("message")
 	sigShare, multiSig := createSignerAndSigShareBLS(hasher, pubKeys, privKey, kg, ownIndex, msg)
 	_ = multiSig.StoreSignatureShare(ownIndex, sigShare)
@@ -521,7 +538,7 @@ func TestBLSMultiSigner_SignatureShareOK(t *testing.T) {
 
 	ownIndex := uint16(3)
 	hasher := &mock.HasherSpongeMock{}
-	privKey, _, pubKeys, kg := genMultiSigParamsBLS(4, ownIndex)
+	privKey, _, pubKeys, kg, _ := genMultiSigParamsBLS(4, ownIndex)
 	msg := []byte("message")
 	sigShare, multiSig := createSignerAndSigShareBLS(hasher, pubKeys, privKey, kg, ownIndex, msg)
 	_ = multiSig.StoreSignatureShare(ownIndex, sigShare)
@@ -597,7 +614,7 @@ func TestBLSMultiSigner_AggregateSigsMissingSigShareShouldErr(t *testing.T) {
 	aggSig, err := multiSigner.AggregateSigs(bitmap)
 
 	assert.Nil(t, aggSig)
-	assert.Equal(t, crypto.ErrNilParam, err)
+	assert.Equal(t, crypto.ErrNilSignature, err)
 }
 
 func TestBLSMultiSigner_AggregateSigsZeroSelectionBitmapShouldErr(t *testing.T) {
@@ -661,6 +678,7 @@ func TestBLSMultiSigner_SetAggregatedSigInvalidScalarShouldErr(t *testing.T) {
 	aggSig := []byte("invalid agg signature xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 	err := multiSigner.SetAggregatedSig(aggSig)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "malformed point")
 }
 
@@ -704,6 +722,7 @@ func TestBLSMultiSigner_VerifyAggSigNotSetShouldErr(t *testing.T) {
 	multiSigner, bitmap := createAndAddSignatureSharesBLS(msg)
 	err := multiSigner.Verify(bitmap, msg)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not enough data")
 }
 
@@ -726,7 +745,8 @@ func TestBLSMultiSigner_VerifySigInvalid(t *testing.T) {
 	// make sig invalid
 	aggSig[len(aggSig)-1] = aggSig[len(aggSig)-1] ^ 255
 	_ = multiSigner.SetAggregatedSig(aggSig)
-
 	err := multiSigner.Verify(bitmap, msg)
+
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "malformed point")
 }
