@@ -22,7 +22,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	basePort := 25000
+	basePort := 20000
 	noOfPeers := 20
 
 	//Step 1. Create advertiser
@@ -88,7 +88,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	basePort := 25100
+	basePort := 20000
 	noOfPeers := 20
 	noOfAdvertisers := 3
 

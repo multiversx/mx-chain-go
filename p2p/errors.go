@@ -78,3 +78,6 @@ var ErrNegativeOrZeroPeersRefreshInterval = errors.New("negative or zero peers r
 
 // ErrMessageTooLarge signals that the message provided is too large
 var ErrMessageTooLarge = errors.New("buffer too large")
+
+// ErrNoUsablePortsOnMachine appears when no free ports are found on the current machine
+var ErrNoUsablePortsOnMachine = errors.New("no usable free ports on this machine")
