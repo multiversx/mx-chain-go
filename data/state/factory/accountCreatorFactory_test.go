@@ -1,6 +1,7 @@
 package factory_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -40,7 +41,7 @@ func TestNewAccountFactoryCreator_MetaAccount(t *testing.T) {
 	t.Parallel()
 
 	shardC := mock.ShardCoordinatorMock{
-		SelfID:     1,
+		SelfID:     sharding.MetachainShardId,
 		NrOfShards: 1,
 	}
 	accF, err := factory.NewAccountFactoryCreator(shardC)
@@ -52,4 +53,16 @@ func TestNewAccountFactoryCreator_MetaAccount(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, accF)
+}
+
+func TestNewAccountFactoryCreator_BadShardID(t *testing.T) {
+	t.Parallel()
+
+	shardC := mock.ShardCoordinatorMock{
+		SelfID:     10,
+		NrOfShards: 5,
+	}
+	accF, err := factory.NewAccountFactoryCreator(shardC)
+	assert.Nil(t, accF)
+	assert.Equal(t, state.ErrUnknownShardId, err)
 }

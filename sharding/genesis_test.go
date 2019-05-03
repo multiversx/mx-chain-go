@@ -498,7 +498,7 @@ func TestGenesis_ShardPublicKeyGoodMeta(t *testing.T) {
 	genesis := createGenesisTwoShard6NodesMeta()
 	publicKey, err := hex.DecodeString("5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417")
 
-	selfId, err := genesis.GetShardIDFromPubKey(publicKey)
+	selfId, err := genesis.GetShardIDForPubKey(publicKey)
 
 	assert.NotNil(t, genesis)
 	assert.Nil(t, err)
@@ -510,7 +510,7 @@ func TestGenesis_MetaPublicKeyGoodMeta(t *testing.T) {
 	metaId := sharding.MetachainShardId
 	publicKey, err := hex.DecodeString("5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418")
 
-	selfId, err := genesis.GetShardIDFromPubKey(publicKey)
+	selfId, err := genesis.GetShardIDForPubKey(publicKey)
 
 	assert.NotNil(t, genesis)
 	assert.Nil(t, err)

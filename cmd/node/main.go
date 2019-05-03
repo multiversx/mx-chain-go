@@ -357,7 +357,7 @@ func createShardCoordinator(
 		return nil, err
 	}
 
-	selfShardId, err := genesisConfig.GetShardIDFromPubKey(publickKey)
+	selfShardId, err := genesisConfig.GetShardIDForPubKey(publickKey)
 	if err != nil {
 		return nil, err
 	}
@@ -397,12 +397,17 @@ func createShardNode(
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	addressConverter, err := state.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
+	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
 	}
 
-	accountsAdapter, err := state.NewAccountsDB(tr, hasher, marshalizer)
+	accountFactory, err := factoryState.NewAccountFactoryCreator(shardCoordinator)
+	if err != nil {
+		return nil, errors.New("could not create account factory: " + err.Error())
+	}
+
+	accountsAdapter, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
 	if err != nil {
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
@@ -418,36 +423,6 @@ func createShardNode(
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, err
-	}
-
-	selfShardId, err := genesisConfig.GetShardIDForPubKey(publickKey)
-	if err != nil {
-		return nil, err
-	}
-
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
-	if err != nil {
-		return nil, err
-	}
-
-	tr, err := getTrie(config.AccountsTrieStorage, hasher)
-	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
-	}
-
-	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
-	if err != nil {
-		return nil, errors.New("could not create address converter: " + err.Error())
-	}
-
-	accountFactory, err := factoryState.NewAccountFactoryCreator(shardCoordinator)
-	if err != nil {
-		return nil, errors.New("could not create account factory: " + err.Error())
-	}
-
-	accountsAdapter, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
-	if err != nil {
-		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
 	err = log.ApplyOptions(logger.WithFile(logFile))
@@ -664,13 +639,17 @@ func createMetaNode(
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	addressConverter, err := state.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
+	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
 	}
 
-	// TODO merge with metachain state to update meta accounts
-	accountsAdapter, err := state.NewAccountsDB(tr, hasher, marshalizer)
+	accountFactory, err := factoryState.NewAccountFactoryCreator(shardCoordinator)
+	if err != nil {
+		return nil, errors.New("could not create account factory: " + err.Error())
+	}
+
+	accountsAdapter, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
 	if err != nil {
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}

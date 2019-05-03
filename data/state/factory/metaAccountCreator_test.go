@@ -1,6 +1,7 @@
 package factory_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -13,7 +14,7 @@ func TestMetaAccountCreator_CreateAccountNilAddress(t *testing.T) {
 	t.Parallel()
 
 	shardC := mock.ShardCoordinatorMock{
-		SelfID:     1,
+		SelfID:     sharding.MetachainShardId,
 		NrOfShards: 1,
 	}
 	accF, err := factory.NewAccountFactoryCreator(shardC)
@@ -32,7 +33,7 @@ func TestMetaAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 	t.Parallel()
 
 	shardC := mock.ShardCoordinatorMock{
-		SelfID:     1,
+		SelfID:     sharding.MetachainShardId,
 		NrOfShards: 1,
 	}
 	accF, err := factory.NewAccountFactoryCreator(shardC)
@@ -51,7 +52,7 @@ func TestMetaAccountCreator_CreateAccountOk(t *testing.T) {
 	t.Parallel()
 
 	shardC := mock.ShardCoordinatorMock{
-		SelfID:     1,
+		SelfID:     sharding.MetachainShardId,
 		NrOfShards: 1,
 	}
 	accF, err := factory.NewAccountFactoryCreator(shardC)
