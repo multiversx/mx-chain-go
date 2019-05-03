@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 )
 
 type subroundStartRound struct {
@@ -146,9 +147,15 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error {
 
-	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-	if currentHeader == nil {
+	var currentHeader data.HeaderHandler
+	if sr.Blockchain().GetLocalHeight() < 1 {
 		currentHeader = sr.Blockchain().GetGenesisHeader()
+	} else {
+		currentHeader = sr.Blockchain().GetCurrentBlockHeader()
+	}
+
+	if currentHeader == nil {
+		return spos.ErrNilHeader
 	}
 
 	randomSource := fmt.Sprintf("%d-%s", roundIndex, toB64(currentHeader.GetRandSeed()))

@@ -196,21 +196,20 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	hdr.SetRound(uint32(sr.Rounder().Index()))
 	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 
-	var randSeed []byte
+	var prevRandSeed []byte
 	if sr.Blockchain().GetCurrentBlockHeader() == nil {
 		hdr.SetNonce(1)
 		hdr.SetPrevHash(sr.Blockchain().GetGenesisHeaderHash())
-		// Previous random seed is the rand seed of the genesis block
 		hdr.SetPrevRandSeed(sr.Blockchain().GetGenesisHeader().GetRandSeed())
-		randSeed, err = sr.BlsSingleSigner().Sign(sr.BlsPrivateKey(), sr.Blockchain().GetGenesisHeader().GetRandSeed())
+
+		prevRandSeed = sr.Blockchain().GetGenesisHeader().GetRandSeed()
 	} else {
 		hdr.SetNonce(sr.Blockchain().GetCurrentBlockHeader().GetNonce() + 1)
 		hdr.SetPrevHash(sr.Blockchain().GetCurrentBlockHeaderHash())
-		// Previous random seed is the rand seed of the previous block
-		hdr.SetPrevRandSeed(sr.Blockchain().GetCurrentBlockHeader().GetRandSeed())
-		randSeed, err = sr.BlsSingleSigner().Sign(sr.BlsPrivateKey(), sr.Blockchain().GetCurrentBlockHeader().GetRandSeed())
-	}
 
+		prevRandSeed = sr.Blockchain().GetCurrentBlockHeader().GetRandSeed()
+	}
+	randSeed, err := sr.BlsSingleSigner().Sign(sr.BlsPrivateKey(), prevRandSeed)
 	// Cannot propose block if unable to create random seed
 	if err != nil {
 		return nil, err
