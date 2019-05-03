@@ -1,9 +1,10 @@
-package state
+package addressConverters
 
 import (
 	"encoding/hex"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 )
 
@@ -17,11 +18,11 @@ type HashAddressConverter struct {
 // NewHashAddressConverter creates a new instance of HashAddressConverter
 func NewHashAddressConverter(hasher hashing.Hasher, addressLen int, prefix string) (*HashAddressConverter, error) {
 	if hasher == nil {
-		return nil, ErrNilHasher
+		return nil, state.ErrNilHasher
 	}
 
 	if addressLen < 0 {
-		return nil, ErrNegativeValue
+		return nil, state.ErrNegativeValue
 	}
 
 	return &HashAddressConverter{
@@ -33,13 +34,13 @@ func NewHashAddressConverter(hasher hashing.Hasher, addressLen int, prefix strin
 
 // CreateAddressFromPublicKeyBytes hashes the bytes received as parameters, trimming if necessary
 // and outputs a new AddressContainer obj
-func (hac *HashAddressConverter) CreateAddressFromPublicKeyBytes(pubKey []byte) (AddressContainer, error) {
+func (hac *HashAddressConverter) CreateAddressFromPublicKeyBytes(pubKey []byte) (state.AddressContainer, error) {
 	if pubKey == nil {
-		return nil, ErrNilPubKeysBytes
+		return nil, state.ErrNilPubKeysBytes
 	}
 
 	if len(pubKey) < hac.addressLen {
-		return nil, NewErrorWrongSize(hac.addressLen, len(pubKey))
+		return nil, state.NewErrorWrongSize(hac.addressLen, len(pubKey))
 	}
 
 	//compute hash
@@ -50,22 +51,22 @@ func (hac *HashAddressConverter) CreateAddressFromPublicKeyBytes(pubKey []byte) 
 		hash = hash[len(hash)-hac.addressLen:]
 	}
 
-	return NewAddress(hash), nil
+	return state.NewAddress(hash), nil
 }
 
 // ConvertToHex returns the hex string representation of the address.
-func (hac *HashAddressConverter) ConvertToHex(addressContainer AddressContainer) (string, error) {
+func (hac *HashAddressConverter) ConvertToHex(addressContainer state.AddressContainer) (string, error) {
 	if addressContainer == nil {
-		return "", ErrNilAddressContainer
+		return "", state.ErrNilAddressContainer
 	}
 
 	return hac.prefix + hex.EncodeToString(addressContainer.Bytes()), nil
 }
 
 // CreateAddressFromHex creates the address from hex string
-func (hac *HashAddressConverter) CreateAddressFromHex(hexAddress string) (AddressContainer, error) {
+func (hac *HashAddressConverter) CreateAddressFromHex(hexAddress string) (state.AddressContainer, error) {
 	if len(hexAddress) == 0 {
-		return nil, ErrEmptyAddress
+		return nil, state.ErrEmptyAddress
 	}
 
 	//to lower
@@ -78,7 +79,7 @@ func (hac *HashAddressConverter) CreateAddressFromHex(hexAddress string) (Addres
 
 	//check lengths
 	if len(hexAddress) != hac.addressLen*2 {
-		return nil, NewErrorWrongSize(hac.addressLen*2, len(hexAddress))
+		return nil, state.NewErrorWrongSize(hac.addressLen*2, len(hexAddress))
 	}
 
 	//decode hex
@@ -89,21 +90,21 @@ func (hac *HashAddressConverter) CreateAddressFromHex(hexAddress string) (Addres
 		return nil, err
 	}
 
-	return NewAddress(buff), nil
+	return state.NewAddress(buff), nil
 }
 
 // PrepareAddressBytes checks and returns the slice compatible to the address format
 func (hac *HashAddressConverter) PrepareAddressBytes(addressBytes []byte) ([]byte, error) {
 	if addressBytes == nil {
-		return nil, ErrNilAddressContainer
+		return nil, state.ErrNilAddressContainer
 	}
 
 	if len(addressBytes) == 0 {
-		return nil, ErrEmptyAddress
+		return nil, state.ErrEmptyAddress
 	}
 
 	if len(addressBytes) != hac.addressLen {
-		return nil, NewErrorWrongSize(hac.addressLen, len(addressBytes))
+		return nil, state.NewErrorWrongSize(hac.addressLen, len(addressBytes))
 	}
 
 	return addressBytes, nil

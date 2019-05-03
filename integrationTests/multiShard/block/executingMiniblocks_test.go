@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -276,8 +277,8 @@ func createMintingForSenders(
 		for _, sk := range sendersPrivateKeys {
 			pkBuff, _ := sk.GeneratePublic().ToByteArray()
 			adr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
-			account, _ := n.accntState.GetJournalizedAccount(adr)
-			account.SetBalanceWithJournal(value)
+			account, _ := n.accntState.GetAccountWithJournal(adr)
+			account.(*state.Account).SetBalanceWithJournal(value)
 		}
 
 		n.accntState.Commit()
@@ -288,7 +289,7 @@ func testPrivateKeyHasBalance(t *testing.T, n *testNode, sk crypto.PrivateKey, e
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
 	addr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 	account, _ := n.accntState.GetExistingAccount(addr)
-	assert.Equal(t, expectedBalance, account.BaseAccount().Balance)
+	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
 }
 
 func proposeBlock(t *testing.T, proposer *testNode) (data.BodyHandler, data.HeaderHandler) {
