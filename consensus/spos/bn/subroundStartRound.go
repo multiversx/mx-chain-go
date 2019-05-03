@@ -149,6 +149,9 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
 	if currentHeader == nil {
 		currentHeader = sr.Blockchain().GetGenesisHeader()
+		if currentHeader == nil {
+			return spos.ErrNilHeader
+		}
 	}
 
 	randomSource := fmt.Sprintf("%d-%s", roundIndex, toB64(currentHeader.GetRandSeed()))
