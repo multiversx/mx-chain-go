@@ -2,7 +2,8 @@ package libp2p
 
 import (
 	"context"
-	"strings"
+	"fmt"
+	"net"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
@@ -69,29 +70,29 @@ func NewNetworkMessengerWithPortSweep(ctx context.Context,
 	peerDiscoverer p2p.PeerDiscoverer,
 ) (*networkMessenger, int, error) {
 
-	for {
-		if port >= maxPort {
-			return nil, port, p2p.ErrNoUsablePortsOnMachine
-		}
+	for ; port < maxPort; port++ {
+		if isTcpPortFree(port) {
+			mes, err := NewNetworkMessenger(
+				ctx,
+				port,
+				p2pPrivKey,
+				conMgr,
+				outgoingPLB,
+				peerDiscoverer,
+			)
 
-		mes, err := NewNetworkMessenger(
-			ctx,
-			port,
-			p2pPrivKey,
-			conMgr,
-			outgoingPLB,
-			peerDiscoverer,
-		)
-		if err == nil {
-			return mes, port, nil
+			return mes, port, err
 		}
-
-		isPortOccupied := strings.Contains(err.Error(), "failed to listen on any addresses") ||
-			strings.Contains(err.Error(), "address already in use")
-		if !isPortOccupied {
-			return nil, port, err
-		}
-
-		port++
 	}
+
+	return nil, port, p2p.ErrNoUsablePortsOnMachine
+}
+
+func isTcpPortFree(port int) bool {
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if ln != nil {
+		_ = ln.Close()
+	}
+
+	return err == nil
 }
