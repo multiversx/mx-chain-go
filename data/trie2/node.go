@@ -1,6 +1,8 @@
 package trie2
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
@@ -12,6 +14,8 @@ const maxTrieLevelAfterCommit = 5
 type node interface {
 	getHash() []byte
 	setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
+	setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error)
+	setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
 	getCollapsed(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) // a collapsed node is a node that instead of the children holds the children hashes
 	isCollapsed() bool
 	isPosCollapsed(pos int) bool

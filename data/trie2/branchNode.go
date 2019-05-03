@@ -1,6 +1,8 @@
 package trie2
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
@@ -63,6 +65,81 @@ func (bn *branchNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Ha
 	}
 	bn.hash = hash
 	return nil
+}
+
+func (bn *branchNode) setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
+	if bn.getHash() != nil {
+		return nil
+	}
+	if bn.isCollapsed() {
+		hash, err := encodeNodeAndGetHash(bn, marshalizer, hasher)
+		if err != nil {
+			return err
+		}
+		bn.hash = hash
+		return nil
+	}
+
+	var wg sync.WaitGroup
+	errc := make(chan error, nrOfChildren)
+
+	for i := 0; i < nrOfChildren; i++ {
+		if bn.children[i] != nil {
+			wg.Add(1)
+			go bn.children[i].setHashConcurrent(marshalizer, hasher, &wg, errc)
+		}
+	}
+	wg.Wait()
+	if len(errc) != 0 {
+		for err := range errc {
+			return err
+		}
+	}
+
+	hashed, err := bn.hashNode(marshalizer, hasher)
+	if err != nil {
+		return err
+	}
+
+	bn.hash = hashed
+	return nil
+}
+
+func (bn *branchNode) setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error) {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		c <- err
+		wg.Done()
+		return
+	}
+	if bn.getHash() != nil {
+		wg.Done()
+		return
+	}
+	if bn.isCollapsed() {
+		hash, err := encodeNodeAndGetHash(bn, marshalizer, hasher)
+		if err != nil {
+			c <- err
+			wg.Done()
+			return
+		}
+		bn.hash = hash
+		wg.Done()
+		return
+	}
+	hash, err := hashChildrenAndNode(bn, marshalizer, hasher)
+	if err != nil {
+		c <- err
+		wg.Done()
+		return
+	}
+	bn.hash = hash
+	wg.Done()
+	return
 }
 
 func (bn *branchNode) hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {

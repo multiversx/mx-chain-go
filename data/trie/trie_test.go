@@ -798,7 +798,7 @@ func BenchmarkPatriciaMerkleTree_DeleteCollapsedTrie(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
 
-	nrValuesInTrie := 3000000
+	nrValuesInTrie := 2000000
 	values := make([][]byte, nrValuesInTrie)
 
 	for i := 0; i < nrValuesInTrie; i++ {
@@ -835,7 +835,7 @@ func BenchmarkPatriciaMerkleTree_GetCollapsedTrie(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
 
-	nrValuesInTrie := 3000000
+	nrValuesInTrie := 2000000
 	values := make([][]byte, nrValuesInTrie)
 
 	for i := 0; i < nrValuesInTrie; i++ {
@@ -976,9 +976,11 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000Nodes(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		b.StopTimer()
 		for j := 0; j < nrOfValuesToModify; j++ {
 			tr.Update(values[j], values[j])
 		}
+		b.StartTimer()
 		tr.Root()
 	}
 }
@@ -1004,8 +1006,10 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging200Nodes(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for j := 0; j < nrOfValuesToModify; j++ {
+			b.StopTimer()
 			tr.Update(values[j], values[j])
 			if j%nrOfValuesToCommit == 0 {
+				b.StartTimer()
 				tr.Root()
 			}
 		}

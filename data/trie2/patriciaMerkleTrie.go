@@ -97,7 +97,7 @@ func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 	if hash != nil {
 		return hash, nil
 	}
-	err := tr.root.setHash(tr.marshalizer, tr.hasher)
+	err := tr.root.setRootHash(tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
 	hexKey := keyBytesToHex(key)
 	node := tr.root
 
-	err := node.setHash(tr.marshalizer, tr.hasher)
+	err := node.setRootHash(tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if tr.root.isCollapsed() {
 		return nil
 	}
-	err := tr.root.setHash(tr.marshalizer, tr.hasher)
+	err := tr.root.setRootHash(tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
 	}

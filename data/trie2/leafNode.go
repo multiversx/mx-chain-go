@@ -2,6 +2,7 @@ package trie2
 
 import (
 	"bytes"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -44,6 +45,14 @@ func (ln *leafNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Hash
 	return nil
 }
 
+func (ln *leafNode) setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error) {
+	c <- ln.setHash(marshalizer, hasher)
+	wg.Done()
+}
+
+func (ln *leafNode) setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+	return ln.setHash(marshalizer, hasher)
+}
 func (ln *leafNode) hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
 	return nil
 }
