@@ -1154,7 +1154,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	)
 
 	haveTime := func() bool { return true }
-	round := int32(0)
+	round := int32(10)
 	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
@@ -1271,7 +1271,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		MiniBlockHeaders: miniBlockHeaders3})
 
 	mp.SetNextKValidity(0)
-	round := int32(0)
+	round := int32(40)
 	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
@@ -1440,7 +1440,176 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	dataPool.ShardHeaders().Put(hdrHash33, headers[5])
 
 	mp.SetNextKValidity(1)
-	round := int32(0)
+	round := int32(15)
+	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(shardInfo))
+
+	shardInfo, err = mp.CreateShardInfo(3, round, haveTime)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(shardInfo))
+
+	shardInfo, err = mp.CreateShardInfo(4, round, haveTime)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(shardInfo))
+
+	shardInfo, err = mp.CreateShardInfo(5, round, haveTime)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(shardInfo))
+
+	shardInfo, err = mp.CreateShardInfo(6, round, haveTime)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(shardInfo))
+}
+
+func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewMetaPoolsHolderFake()
+
+	//we will have a 3 hdrs in pool
+
+	hdrHash1 := []byte("hdr hash 1")
+	hdrHash2 := []byte("hdr hash 2")
+	hdrHash3 := []byte("hdr hash 3")
+
+	hdrHash11 := []byte("hdr hash 11")
+	hdrHash22 := []byte("hdr hash 22")
+	hdrHash33 := []byte("hdr hash 33")
+
+	mbHash1 := []byte("mb hash 1")
+	mbHash2 := []byte("mb hash 2")
+	mbHash3 := []byte("mb hash 3")
+
+	miniBlockHeader1 := block.MiniBlockHeader{Hash: mbHash1}
+	miniBlockHeader2 := block.MiniBlockHeader{Hash: mbHash2}
+	miniBlockHeader3 := block.MiniBlockHeader{Hash: mbHash3}
+
+	miniBlockHeaders1 := make([]block.MiniBlockHeader, 0)
+	miniBlockHeaders1 = append(miniBlockHeaders1, miniBlockHeader1)
+	miniBlockHeaders1 = append(miniBlockHeaders1, miniBlockHeader2)
+	miniBlockHeaders1 = append(miniBlockHeaders1, miniBlockHeader3)
+
+	miniBlockHeaders2 := make([]block.MiniBlockHeader, 0)
+	miniBlockHeaders2 = append(miniBlockHeaders2, miniBlockHeader1)
+	miniBlockHeaders2 = append(miniBlockHeaders2, miniBlockHeader2)
+
+	miniBlockHeaders3 := make([]block.MiniBlockHeader, 0)
+	miniBlockHeaders3 = append(miniBlockHeaders3, miniBlockHeader1)
+
+	shardNr := uint32(5)
+	mp, _ := blproc.NewMetaProcessor(
+		&mock.AccountsStub{
+			RevertToSnapshotCalled: func(snapshot int) error {
+				assert.Fail(t, "revert should have not been called")
+				return nil
+			},
+			JournalLenCalled: func() int {
+				return 0
+			},
+		},
+		dataPool,
+		&mock.ForkDetectorMock{},
+		mock.NewMultiShardsCoordinatorMock(shardNr),
+		hasher,
+		marshalizer,
+		initStore(),
+		func(shardID uint32, hdrHash []byte) {},
+	)
+
+	haveTime := func() bool { return true }
+
+	prevRandSeed := []byte("prevrand")
+	currRandSeed := []byte("currrand")
+	lastNodesHdrs := mp.LastNotedHdrs()
+	for i := uint32(0); i < shardNr; i++ {
+		lastHdr := &block.Header{Round: 9,
+			Nonce:    44,
+			RandSeed: prevRandSeed,
+			ShardId:  i}
+		lastNodesHdrs[i] = lastHdr
+	}
+
+	headers := make([]*block.Header, 0)
+
+	//put the existing headers inside datapool
+
+	//header shard 0
+	prevHash, _ := mp.ComputeHeaderHash(lastNodesHdrs[0])
+	headers = append(headers, &block.Header{
+		Round:            10,
+		Nonce:            45,
+		ShardId:          0,
+		PrevRandSeed:     prevRandSeed,
+		RandSeed:         currRandSeed,
+		PrevHash:         prevHash,
+		MiniBlockHeaders: miniBlockHeaders1})
+
+	prevHash, _ = mp.ComputeHeaderHash(headers[0])
+	headers = append(headers, &block.Header{
+		Round:            11,
+		Nonce:            46,
+		ShardId:          0,
+		PrevRandSeed:     currRandSeed,
+		RandSeed:         []byte("nextrand"),
+		PrevHash:         prevHash,
+		MiniBlockHeaders: miniBlockHeaders1})
+
+	dataPool.ShardHeaders().Put(hdrHash1, headers[0])
+	dataPool.ShardHeaders().Put(hdrHash11, headers[1])
+
+	// header shard 1
+	prevHash, _ = mp.ComputeHeaderHash(lastNodesHdrs[1])
+	headers = append(headers, &block.Header{
+		Round:            10,
+		Nonce:            45,
+		ShardId:          1,
+		PrevRandSeed:     prevRandSeed,
+		RandSeed:         currRandSeed,
+		PrevHash:         prevHash,
+		MiniBlockHeaders: miniBlockHeaders2})
+
+	prevHash, _ = mp.ComputeHeaderHash(headers[2])
+	headers = append(headers, &block.Header{
+		Round:            11,
+		Nonce:            46,
+		ShardId:          1,
+		PrevRandSeed:     currRandSeed,
+		RandSeed:         []byte("nextrand"),
+		PrevHash:         prevHash,
+		MiniBlockHeaders: miniBlockHeaders2})
+
+	dataPool.ShardHeaders().Put(hdrHash2, headers[2])
+	dataPool.ShardHeaders().Put(hdrHash22, headers[3])
+
+	// header shard 2
+	prevHash, _ = mp.ComputeHeaderHash(lastNodesHdrs[2])
+	headers = append(headers, &block.Header{
+		Round:            10,
+		Nonce:            45,
+		ShardId:          2,
+		PrevRandSeed:     prevRandSeed,
+		RandSeed:         currRandSeed,
+		PrevHash:         prevHash,
+		MiniBlockHeaders: miniBlockHeaders3})
+
+	prevHash, _ = mp.ComputeHeaderHash(headers[4])
+	headers = append(headers, &block.Header{
+		Round:            11,
+		Nonce:            46,
+		ShardId:          2,
+		PrevRandSeed:     currRandSeed,
+		RandSeed:         []byte("nextrand"),
+		PrevHash:         prevHash,
+		MiniBlockHeaders: miniBlockHeaders3})
+
+	dataPool.ShardHeaders().Put(hdrHash3, headers[4])
+	dataPool.ShardHeaders().Put(hdrHash33, headers[5])
+
+	mp.SetNextKValidity(1)
+	round := int32(9)
 	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
@@ -1517,4 +1686,20 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	hdrFromPool, _ := dataPool.ShardHeaders().Get(hdrHash)
 	assert.Nil(t, err)
 	assert.Equal(t, &hdr, hdrFromPool)
+}
+
+func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
+
+}
+
+func TestMetaProcessor_GetSortedShardHdrsFromMetablock(t *testing.T) {
+
+}
+
+func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
+
+}
+
+func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
+
 }

@@ -545,7 +545,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 	}
 
 	//TODO: change this to look at the pool where values are saved by prevHash. can be done after resolver is done
-	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs()
+	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(header.GetRound())
 	if err != nil {
 		return err
 	}
@@ -749,7 +749,7 @@ func (mp *metaProcessor) createShardInfo(
 	mbHdrs := uint32(0)
 
 	timeBefore := time.Now()
-	orderedHdrs, orderedHdrHashes, sortedHdrPerShard, err := mp.getOrderedHdrs()
+	orderedHdrs, orderedHdrHashes, sortedHdrPerShard, err := mp.getOrderedHdrs(uint32(round))
 	timeAfter := time.Now()
 
 	if !haveTime() {
@@ -1068,7 +1068,7 @@ type hashAndBlock struct {
 	hash []byte
 }
 
-func (mp *metaProcessor) getOrderedHdrs() ([]*block.Header, [][]byte, map[uint32][]*block.Header, error) {
+func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte, map[uint32][]*block.Header, error) {
 	hdrStore := mp.dataPool.ShardHeaders()
 	if hdrStore == nil {
 		return nil, nil, nil, process.ErrNilCacher
@@ -1079,6 +1079,8 @@ func (mp *metaProcessor) getOrderedHdrs() ([]*block.Header, [][]byte, map[uint32
 	headers := make([]*block.Header, 0)
 	hdrHashes := make([][]byte, 0)
 
+	maxRoundToSort := round + mp.nextKValidity + 1
+
 	// get keys and arrange them into shards
 	for _, key := range hdrStore.Keys() {
 		val, _ := hdrStore.Peek(key)
@@ -1088,6 +1090,10 @@ func (mp *metaProcessor) getOrderedHdrs() ([]*block.Header, [][]byte, map[uint32
 
 		hdr, ok := val.(*block.Header)
 		if !ok {
+			continue
+		}
+
+		if hdr.GetRound() > maxRoundToSort {
 			continue
 		}
 

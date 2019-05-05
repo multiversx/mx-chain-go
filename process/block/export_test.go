@@ -155,3 +155,19 @@ func (mp *metaProcessor) LastNotedHdrs() map[uint32]*block.Header {
 func (mp *metaProcessor) SetNextKValidity(val uint32) {
 	mp.nextKValidity = val
 }
+
+func (mp *metaProcessor) CreateLastNotarizedHdrs(header *block.MetaBlock) {
+	mp.createLastNotarizedHdrs(header)
+}
+
+func (mp *metaProcessor) GetSortedShardHdrsFromMetablock(header *block.MetaBlock) (map[uint32][]*block.Header, error) {
+	return mp.getSortedShardHdrsFromMetablock(header)
+}
+
+func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (mapShardLastHeaders, error) {
+	return mp.checkShardHeadersValidity(header)
+}
+
+func (mp *metaProcessor) CheckShardHeadersFinality(header *block.MetaBlock, highestNonceHdrs mapShardLastHeaders) error {
+	return mp.checkShardHeadersFinality(header, highestNonceHdrs)
+}
