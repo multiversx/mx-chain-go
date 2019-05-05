@@ -24,7 +24,7 @@ func createGenesisOneShardOneNode() *sharding.Genesis {
 		return nil
 	}
 
-	if g.MetaChainActive == 1 {
+	if g.MetaChainActive {
 		g.ProcessMetaChainAssigment()
 	}
 
@@ -59,7 +59,7 @@ func createGenesisTwoShardTwoNodes() *sharding.Genesis {
 		return nil
 	}
 
-	if g.MetaChainActive == 1 {
+	if g.MetaChainActive {
 		g.ProcessMetaChainAssigment()
 	}
 
@@ -97,7 +97,7 @@ func createGenesisTwoShard5Nodes() *sharding.Genesis {
 		return nil
 	}
 
-	if g.MetaChainActive == 1 {
+	if g.MetaChainActive {
 		g.ProcessMetaChainAssigment()
 	}
 
@@ -111,7 +111,7 @@ func createGenesisTwoShard6NodesMeta() *sharding.Genesis {
 	g := &sharding.Genesis{}
 	g.ConsensusGroupSize = 1
 	g.MinNodesPerShard = 2
-	g.MetaChainActive = 1
+	g.MetaChainActive = true
 	g.MetaChainMinNodes = 2
 	g.MetaChainConsensusGroupSize = 2
 	g.InitialNodes = make([]*sharding.InitialNode, 6)
@@ -141,7 +141,7 @@ func createGenesisTwoShard6NodesMeta() *sharding.Genesis {
 		return nil
 	}
 
-	if g.MetaChainActive == 1 {
+	if g.MetaChainActive {
 		g.ProcessMetaChainAssigment()
 	}
 
@@ -206,7 +206,7 @@ func TestGenesis_ProcessConfigInvalidMetaConsensusGroupSizeShouldErr(t *testing.
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 0,
 		MetaChainMinNodes:           0,
-		MetaChainActive:             1,
+		MetaChainActive:             true,
 	}
 
 	g.InitialNodes = make([]*sharding.InitialNode, 2)
@@ -247,7 +247,7 @@ func TestGenesis_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNodesS
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 1,
 		MetaChainMinNodes:           0,
-		MetaChainActive:             1,
+		MetaChainActive:             true,
 	}
 
 	g.InitialNodes = make([]*sharding.InitialNode, 2)
@@ -288,7 +288,7 @@ func TestGenesis_ProcessConfigInvalidMetaMinNodesPerShardShouldErr(t *testing.T)
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 1,
 		MetaChainMinNodes:           0,
-		MetaChainActive:             1,
+		MetaChainActive:             true,
 	}
 
 	g.InitialNodes = make([]*sharding.InitialNode, 2)
@@ -327,7 +327,7 @@ func TestGenesis_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShardSh
 	g := sharding.Genesis{
 		ConsensusGroupSize:          1,
 		MinNodesPerShard:            1,
-		MetaChainActive:             1,
+		MetaChainActive:             true,
 		MetaChainConsensusGroupSize: 2,
 		MetaChainMinNodes:           3,
 	}

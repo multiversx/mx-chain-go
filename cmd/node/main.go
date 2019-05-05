@@ -352,12 +352,12 @@ func createShardCoordinator(
 		return nil, errors.New("nil public key, could not create shard coordinator")
 	}
 
-	publickKey, err := pubKey.ToByteArray()
+	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return nil, err
 	}
 
-	selfShardId, err := genesisConfig.GetShardIDForPubKey(publickKey)
+	selfShardId, err := genesisConfig.GetShardIDForPubKey(publicKey)
 	if err != nil {
 		return nil, err
 	}
@@ -414,12 +414,12 @@ func createShardNode(
 
 	initialPubKeys := genesisConfig.InitialNodesPubKeys()
 
-	publickKey, err := pubKey.ToByteArray()
+	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return nil, err
 	}
 
-	hexPublicKey := hex.EncodeToString(publickKey)
+	hexPublicKey := hex.EncodeToString(publicKey)
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, err
@@ -656,12 +656,12 @@ func createMetaNode(
 
 	initialPubKeys := genesisConfig.InitialNodesPubKeys()
 
-	publickKey, err := pubKey.ToByteArray()
+	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return nil, err
 	}
 
-	hexPublicKey := hex.EncodeToString(publickKey)
+	hexPublicKey := hex.EncodeToString(publicKey)
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, err
