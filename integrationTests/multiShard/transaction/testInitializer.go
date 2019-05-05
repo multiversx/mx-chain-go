@@ -14,10 +14,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
@@ -106,7 +107,8 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
 	dPool, _ := dataPool.NewShardedDataPool(
@@ -116,6 +118,7 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
+		metaHdrNonces,
 	)
 
 	return dPool
@@ -154,7 +157,11 @@ func createAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh)
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &mock.AccountsFactoryStub{
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
+			return state.NewAccount(address, tracker)
+		},
+	})
 
 	return adb
 }
@@ -190,7 +197,7 @@ func createNetNode(
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 	messenger := createMessengerWithKadDht(context.Background(), port, initialAddr)
-	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	suite := kyber.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
@@ -200,6 +207,8 @@ func createNetNode(
 		pkBytes, _ := pk.ToByteArray()
 		addr, _ := addrConverter.CreateAddressFromPublicKeyBytes(pkBytes)
 		if shardCoordinator.ComputeId(addr) == targetShardId {
+			_, _ = accntAdapter.GetAccountWithJournal(addr)
+			_, _ = accntAdapter.Commit()
 			break
 		}
 		sk, pk = keyGen.GeneratePair()
@@ -266,7 +275,7 @@ func createMessengerWithKadDht(ctx context.Context, port int, initialAddr string
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, err := libp2p.NewNetworkMessenger(
+	libP2PMes, _, err := libp2p.NewNetworkMessengerWithPortSweep(
 		ctx,
 		port,
 		sk,

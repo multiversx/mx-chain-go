@@ -35,7 +35,7 @@ var ErrNoPublicKeySet = errors.New("no public key was set")
 var ErrInvalidPublicKeyString = errors.New("invalid public key string")
 
 // ErrNilHasher is raised when a valid hasher is expected but used nil
-var ErrNilHasher = errors.New("marshalizer is nil")
+var ErrNilHasher = errors.New("hasher is nil")
 
 // ErrWrongSizeHasher is raised when a hasher with a wrong output size is used
 var ErrWrongSizeHasher = errors.New("wrong size hasher")

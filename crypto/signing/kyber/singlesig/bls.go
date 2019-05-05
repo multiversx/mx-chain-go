@@ -63,14 +63,14 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 		return crypto.ErrNilSuite
 	}
 
-	kSuite, ok := suite.GetUnderlyingSuite().(pairing.Suite)
-	if !ok {
-		return crypto.ErrInvalidSuite
-	}
-
 	point := public.Point()
 	if point == nil {
 		return crypto.ErrNilPublicKeyPoint
+	}
+
+	kSuite, ok := suite.GetUnderlyingSuite().(pairing.Suite)
+	if !ok {
+		return crypto.ErrInvalidSuite
 	}
 
 	kPoint, ok := point.GetUnderlyingObj().(kyber.Point)

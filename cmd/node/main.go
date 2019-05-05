@@ -26,11 +26,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
+	factoryState "github.com/ElrondNetwork/elrond-go-sandbox/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
@@ -335,21 +337,6 @@ func createNode(
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	tr, err := getTrie(config.AccountsTrieStorage, hasher)
-	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
-	}
-
-	addressConverter, err := state.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
-	if err != nil {
-		return nil, errors.New("could not create address converter: " + err.Error())
-	}
-
-	accountsAdapter, err := state.NewAccountsDB(tr, hasher, marshalizer)
-	if err != nil {
-		return nil, errors.New("could not create accounts adapter: " + err.Error())
-	}
-
 	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
 	if err != nil {
 		return nil, err
@@ -368,6 +355,36 @@ func createNode(
 		return nil, err
 	}
 
+	selfShardId, err := genesisConfig.GetShardIDForPubKey(publickKey)
+	if err != nil {
+		return nil, err
+	}
+
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
+	if err != nil {
+		return nil, err
+	}
+
+	tr, err := getTrie(config.AccountsTrieStorage, hasher)
+	if err != nil {
+		return nil, errors.New("error creating node: " + err.Error())
+	}
+
+	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
+	if err != nil {
+		return nil, errors.New("could not create address converter: " + err.Error())
+	}
+
+	accountFactory, err := factoryState.NewAccountFactoryCreator(shardCoordinator)
+	if err != nil {
+		return nil, errors.New("could not create account factory: " + err.Error())
+	}
+
+	accountsAdapter, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
+	if err != nil {
+		return nil, errors.New("could not create accounts adapter: " + err.Error())
+	}
+
 	err = log.ApplyOptions(logger.WithFile(logFile))
 	if err != nil {
 		return nil, err
@@ -378,16 +395,6 @@ func createNode(
 		return nil, err
 	}
 	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
-	if err != nil {
-		return nil, err
-	}
-
-	selfShardId, err := genesisConfig.GetShardIDFromPubKey(publickKey)
-	if err != nil {
-		return nil, err
-	}
-
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -806,6 +813,16 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
+	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
+	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, err
+	}
+
 	return dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
@@ -813,6 +830,7 @@ func createShardDataPoolFromConfig(
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlockBody,
+		metaBlockNonces,
 	)
 }
 

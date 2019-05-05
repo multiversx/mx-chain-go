@@ -932,6 +932,9 @@ func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
 			JournalLenCalled: func() int {
 				return 0
 			},
+			RootHashCalled: func() []byte {
+				return []byte("root")
+			},
 		},
 		initMetaDataPool(),
 		&mock.ForkDetectorMock{},
