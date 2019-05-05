@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
@@ -35,4 +36,21 @@ type ConsensusCoreHandler interface {
 	SyncTimer() ntp.SyncTimer
 	//ValidatorGroupSelector gets the ValidatorGroupSelector stored in the ConsensusCore
 	ValidatorGroupSelector() consensus.ValidatorGroupSelector
+}
+
+type ConsensusService interface {
+	InitReceivedMessages() map[consensus.MessageType][]*consensus.Message
+	GetStringValue(consensus.MessageType) string
+	GetSubroundName(int) string
+	GetMessageRange() []consensus.MessageType
+	IsFinished(*ConsensusState, consensus.MessageType) bool
+}
+type IWorker interface {
+	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
+	RemoveAllReceivedMessagesCalls()
+	ProcessReceivedMessage(message p2p.MessageP2P) error
+	SendConsensusMessage(cnsDta *consensus.Message) bool
+	Extend(subroundId int)
+	GetConsensusStateChangedChannels() chan bool
+	GetBroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error
 }

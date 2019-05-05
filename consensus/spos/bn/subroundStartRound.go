@@ -9,7 +9,7 @@ import (
 )
 
 type subroundStartRound struct {
-	*subround
+	*spos.Subround
 }
 
 // NewSubroundStartRound creates a SubroundStartRound object

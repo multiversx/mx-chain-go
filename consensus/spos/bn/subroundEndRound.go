@@ -8,14 +8,14 @@ import (
 )
 
 type subroundEndRound struct {
-	*subround
+	*spos.Subround
 
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
-	subround *subround,
+	subround *spos.Subround,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 	extend func(subroundId int),
 ) (*subroundEndRound, error) {
@@ -31,15 +31,15 @@ func NewSubroundEndRound(
 		subround,
 		broadcastBlock,
 	}
-	srEndRound.job = srEndRound.doEndRoundJob
-	srEndRound.check = srEndRound.doEndRoundConsensusCheck
-	srEndRound.extend = extend
+	srEndRound.Job = srEndRound.doEndRoundJob
+	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
+	srEndRound.Extend = extend
 
 	return &srEndRound, nil
 }
 
 func checkNewSubroundEndRoundParams(
-	subround *subround,
+	subround *spos.Subround,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 ) error {
 	if subround == nil {

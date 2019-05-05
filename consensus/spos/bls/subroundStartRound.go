@@ -9,12 +9,12 @@ import (
 )
 
 type subroundStartRound struct {
-	*subround
+	*spos.Subround
 }
 
 // NewSubroundStartRound creates a SubroundStartRound object
 func NewSubroundStartRound(
-	subround *subround,
+	subround *spos.Subround,
 	extend func(subroundId int),
 ) (*subroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
@@ -27,15 +27,15 @@ func NewSubroundStartRound(
 	srStartRound := subroundStartRound{
 		subround,
 	}
-	srStartRound.job = srStartRound.doStartRoundJob
-	srStartRound.check = srStartRound.doStartRoundConsensusCheck
-	srStartRound.extend = extend
+	srStartRound.Job = srStartRound.doStartRoundJob
+	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
+	srStartRound.Extend = extend
 
 	return &srStartRound, nil
 }
 
 func checkNewSubroundStartRoundParams(
-	subround *subround,
+	subround *spos.Subround,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround
@@ -50,7 +50,7 @@ func checkNewSubroundStartRoundParams(
 	return err
 }
 
-// doStartRoundJob method does the job of the start round subround
+// doStartRoundJob method does the Job of the start round Subround
 func (sr *subroundStartRound) doStartRoundJob() bool {
 	sr.ResetConsensusState()
 	sr.RoundIndex = sr.Rounder().Index()
@@ -58,7 +58,7 @@ func (sr *subroundStartRound) doStartRoundJob() bool {
 	return true
 }
 
-// doStartRoundConsensusCheck method checks if the consensus is achieved in the start subround.
+// doStartRoundConsensusCheck method checks if the consensus is achieved in the start Subround.
 func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false
@@ -110,7 +110,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, not in the consensus group\n",
+		log.Info(fmt.Sprintf("%scanceled round %d in Subround %s, not in the consensus group\n",
 			sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(), getSubroundName(SrStartRound)))
 
 		sr.RoundCanceled = true
@@ -131,7 +131,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	startTime = sr.RoundTimeStamp
 	maxTime := sr.Rounder().TimeDuration() * syncThresholdPercent / 100
 	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
-		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, time is out\n",
+		log.Info(fmt.Sprintf("%scanceled round %d in Subround %s, time is out\n",
 			sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(), getSubroundName(SrStartRound)))
 
 		sr.RoundCanceled = true

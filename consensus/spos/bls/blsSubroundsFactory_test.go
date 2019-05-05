@@ -43,7 +43,7 @@ func TestFactory_GetMessageTypeName(t *testing.T) {
 	r = bls.GetStringValue(bls.MtUnknown)
 	assert.Equal(t, "(UNKNOWN)", r)
 
-	r = bls.GetStringValue(spos.MessageType(-1))
+	r = bls.GetStringValue(consensus.MessageType(-1))
 	assert.Equal(t, "Undefined message type", r)
 }
 

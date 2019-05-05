@@ -13,14 +13,14 @@ import (
 )
 
 type subroundBlock struct {
-	*subround
+	*spos.Subround
 
 	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundBlock creates a subroundBlock object
 func NewSubroundBlock(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundBlock, error) {
@@ -37,15 +37,15 @@ func NewSubroundBlock(
 		sendConsensusMessage,
 	}
 
-	srBlock.job = srBlock.doBlockJob
-	srBlock.check = srBlock.doBlockConsensusCheck
-	srBlock.extend = extend
+	srBlock.Job = srBlock.doBlockJob
+	srBlock.Check = srBlock.doBlockConsensusCheck
+	srBlock.Extend = extend
 
 	return &srBlock, nil
 }
 
 func checkNewSubroundBlockParams(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if subround == nil {
@@ -65,7 +65,7 @@ func checkNewSubroundBlockParams(
 	return err
 }
 
-// doBlockJob method does the job of the block subround
+// doBlockJob method does the Job of the block Subround
 func (sr *subroundBlock) doBlockJob() bool {
 	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
@@ -95,7 +95,7 @@ func (sr *subroundBlock) doBlockJob() bool {
 	return true
 }
 
-// sendBlockBody method job the proposed block body in the Block subround
+// sendBlockBody method Job the proposed block body in the Block Subround
 func (sr *subroundBlock) sendBlockBody() bool {
 	startTime := time.Time{}
 	startTime = sr.RoundTimeStamp
@@ -139,7 +139,7 @@ func (sr *subroundBlock) sendBlockBody() bool {
 	return true
 }
 
-// sendBlockHeader method job the proposed block header in the Block subround
+// sendBlockHeader method Job the proposed block header in the Block Subround
 func (sr *subroundBlock) sendBlockHeader() bool {
 	hdr, err := sr.createHeader()
 	if err != nil {
@@ -262,7 +262,7 @@ func (sr *subroundBlock) decodeBlockBody(dta []byte) block.Body {
 
 // receivedBlockHeader method is called when a block header is received through the block header channel.
 // If the block header is valid, than the validatorRoundStates map corresponding to the node which sent it,
-// is set on true for the subround Block
+// is set on true for the Subround Block
 func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
@@ -344,13 +344,13 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	)
 
 	if cnsDta.RoundIndex < sr.Rounder().Index() {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, meantime round index has been changed to %d\n",
+		log.Info(fmt.Sprintf("canceled round %d in Subround %s, meantime round index has been changed to %d\n",
 			cnsDta.RoundIndex, getSubroundName(SrBlock), sr.Rounder().Index()))
 		return false
 	}
 
 	if err != nil {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
+		log.Info(fmt.Sprintf("canceled round %d in Subround %s, %s\n",
 			sr.Rounder().Index(), getSubroundName(SrBlock), err.Error()))
 		if err == process.ErrTimeIsOut {
 			sr.RoundCanceled = true
@@ -361,7 +361,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	sr.MultiSigner().SetMessage(sr.Data)
 	err = sr.SetJobDone(node, SrBlock, true)
 	if err != nil {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
+		log.Info(fmt.Sprintf("canceled round %d in Subround %s, %s\n",
 			sr.Rounder().Index(), getSubroundName(SrBlock), err.Error()))
 		return false
 	}
@@ -369,7 +369,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	return true
 }
 
-// doBlockConsensusCheck method checks if the consensus in the <BLOCK> subround is achieved
+// doBlockConsensusCheck method checks if the consensus in the <BLOCK> Subround is achieved
 func (sr *subroundBlock) doBlockConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false
@@ -381,7 +381,7 @@ func (sr *subroundBlock) doBlockConsensusCheck() bool {
 
 	threshold := sr.Threshold(SrBlock)
 	if sr.isBlockReceived(threshold) {
-		log.Info(fmt.Sprintf("%sStep 1: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
+		log.Info(fmt.Sprintf("%sStep 1: Subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
 		sr.SetStatus(SrBlock, spos.SsFinished)
 		return true
 	}

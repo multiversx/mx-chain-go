@@ -8,14 +8,14 @@ import (
 )
 
 type subroundBitmap struct {
-	*subround
+	*spos.Subround
 
 	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundBitmap creates a subroundBitmap object
 func NewSubroundBitmap(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundBitmap, error) {
@@ -31,15 +31,15 @@ func NewSubroundBitmap(
 		subround,
 		sendConsensusMessage,
 	}
-	srBitmap.job = srBitmap.doBitmapJob
-	srBitmap.check = srBitmap.doBitmapConsensusCheck
-	srBitmap.extend = extend
+	srBitmap.Job = srBitmap.doBitmapJob
+	srBitmap.Check = srBitmap.doBitmapConsensusCheck
+	srBitmap.Extend = extend
 
 	return &srBitmap, nil
 }
 
 func checkNewSubroundBitmapParams(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if subround == nil {

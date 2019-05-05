@@ -16,7 +16,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bls.NewSubround(
+	sr, _ := spos.NewSubround(
 		-1,
 		int(bls.SrStartRound),
 		int(bls.SrBlock),
@@ -61,7 +61,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBlockChainShouldFail(t *test
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bls.NewSubround(
+	sr, _ := spos.NewSubround(
 		-1,
 		int(bls.SrStartRound),
 		int(bls.SrBlock),
@@ -90,7 +90,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBootstraperShouldFail(t *tes
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bls.NewSubround(
+	sr, _ := spos.NewSubround(
 		-1,
 		int(bls.SrStartRound),
 		int(bls.SrBlock),
@@ -118,7 +118,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bls.NewSubround(
+	sr, _ := spos.NewSubround(
 		-1,
 		int(bls.SrStartRound),
 		int(bls.SrBlock),
@@ -148,7 +148,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *tes
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bls.NewSubround(
+	sr, _ := spos.NewSubround(
 		-1,
 		int(bls.SrStartRound),
 		int(bls.SrBlock),
@@ -178,7 +178,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilRounderShouldFail(t *testing
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bls.NewSubround(
+	sr, _ := spos.NewSubround(
 		-1,
 		int(bls.SrStartRound),
 		int(bls.SrBlock),
@@ -207,7 +207,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testi
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bls.NewSubround(
+	sr, _ := spos.NewSubround(
 		-1,
 		int(bls.SrStartRound),
 		int(bls.SrBlock),
@@ -236,7 +236,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bls.NewSubround(
+	sr, _ := spos.NewSubround(
 		-1,
 		int(bls.SrStartRound),
 		int(bls.SrBlock),
@@ -265,7 +265,7 @@ func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bls.NewSubround(
+	sr, _ := spos.NewSubround(
 		-1,
 		int(bls.SrStartRound),
 		int(bls.SrBlock),
@@ -294,7 +294,7 @@ func TestSubroundStartRound_DoStartRoundShouldReturnTrue(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bls.NewSubround(
+	sr, _ := spos.NewSubround(
 		-1,
 		int(bls.SrStartRound),
 		int(bls.SrBlock),
@@ -429,7 +429,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenIsNotInTheConse
 	consensusState.SetSelfPubKey(consensusState.SelfPubKey() + "X")
 	ch := make(chan bool, 1)
 
-	sr, _ := bls.NewSubround(
+	sr, _ := spos.NewSubround(
 		-1,
 		int(bls.SrStartRound),
 		int(bls.SrBlock),

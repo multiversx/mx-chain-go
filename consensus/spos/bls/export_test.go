@@ -89,16 +89,6 @@ func (fct *factory) GenerateEndRoundSubround() error {
 	return fct.generateEndRoundSubround()
 }
 
-// subround
-
-func (sr *subround) SetJobFunction(job func() bool) {
-	sr.job = job
-}
-
-func (sr *subround) SetCheckFunction(check func() bool) {
-	sr.check = check
-}
-
 // worker
 
 type Worker *worker
@@ -179,14 +169,14 @@ func (wrk *worker) ReceivedSyncState(isNodeSynchronized bool) {
 	wrk.receivedSyncState(isNodeSynchronized)
 }
 
-func (wrk *worker) ReceivedMessages() map[spos.MessageType][]*consensus.Message {
+func (wrk *worker) ReceivedMessages() map[consensus.MessageType][]*consensus.Message {
 	wrk.mutReceivedMessages.RLock()
 	defer wrk.mutReceivedMessages.RUnlock()
 
 	return wrk.receivedMessages
 }
 
-func (wrk *worker) SetReceivedMessages(messageType spos.MessageType, cnsDta []*consensus.Message) {
+func (wrk *worker) SetReceivedMessages(messageType consensus.MessageType, cnsDta []*consensus.Message) {
 	wrk.mutReceivedMessages.Lock()
 	wrk.receivedMessages[messageType] = cnsDta
 	wrk.mutReceivedMessages.Unlock()
@@ -198,14 +188,14 @@ func (wrk *worker) NilReceivedMessages() {
 	wrk.mutReceivedMessages.Unlock()
 }
 
-func (wrk *worker) ReceivedMessagesCalls() map[spos.MessageType]func(*consensus.Message) bool {
+func (wrk *worker) ReceivedMessagesCalls() map[consensus.MessageType]func(*consensus.Message) bool {
 	wrk.mutReceivedMessagesCalls.RLock()
 	defer wrk.mutReceivedMessagesCalls.RUnlock()
 
 	return wrk.receivedMessagesCalls
 }
 
-func (wrk *worker) SetReceivedMessagesCalls(messageType spos.MessageType, f func(*consensus.Message) bool) {
+func (wrk *worker) SetReceivedMessagesCalls(messageType consensus.MessageType, f func(*consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
 	wrk.receivedMessagesCalls[messageType] = f
 	wrk.mutReceivedMessagesCalls.Unlock()
@@ -339,6 +329,6 @@ func (sr *subroundStartRound) InitCurrentRound() bool {
 	return sr.initCurrentRound()
 }
 
-func GetStringValue(messageType spos.MessageType) string {
+func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
 }

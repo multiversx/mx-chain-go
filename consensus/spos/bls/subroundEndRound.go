@@ -8,14 +8,14 @@ import (
 )
 
 type subroundEndRound struct {
-	*subround
+	*spos.Subround
 
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
-	subround *subround,
+	subround *spos.Subround,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 	extend func(subroundId int),
 ) (*subroundEndRound, error) {
@@ -31,15 +31,15 @@ func NewSubroundEndRound(
 		subround,
 		broadcastBlock,
 	}
-	srEndRound.job = srEndRound.doEndRoundJob
-	srEndRound.check = srEndRound.doEndRoundConsensusCheck
-	srEndRound.extend = extend
+	srEndRound.Job = srEndRound.doEndRoundJob
+	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
+	srEndRound.Extend = extend
 
 	return &srEndRound, nil
 }
 
 func checkNewSubroundEndRoundParams(
-	subround *subround,
+	subround *spos.Subround,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 ) error {
 	if subround == nil {
@@ -59,7 +59,7 @@ func checkNewSubroundEndRoundParams(
 	return err
 }
 
-// doEndRoundJob method does the job of the end round subround
+// doEndRoundJob method does the Job of the end round Subround
 func (sr *subroundEndRound) doEndRoundJob() bool {
 	// Start (new add)
 	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
@@ -108,8 +108,8 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	return true
 }
 
-// doEndRoundConsensusCheck method checks if the consensus is achieved in each subround from first subround to the given
-// subround. If the consensus is achieved in one subround, the subround status is marked as finished
+// doEndRoundConsensusCheck method checks if the consensus is achieved in each Subround from first Subround to the given
+// Subround. If the consensus is achieved in one Subround, the Subround status is marked as finished
 func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false

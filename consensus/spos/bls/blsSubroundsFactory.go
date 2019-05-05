@@ -95,7 +95,7 @@ func (fct *factory) getTimeDuration() time.Duration {
 }
 
 func (fct *factory) generateStartRoundSubround() error {
-	subround, err := NewSubround(
+	subround, err := spos.NewSubround(
 		-1,
 		SrStartRound,
 		SrBlock,
@@ -126,7 +126,7 @@ func (fct *factory) generateStartRoundSubround() error {
 }
 
 func (fct *factory) generateBlockSubround() error {
-	subround, err := NewSubround(
+	subround, err := spos.NewSubround(
 		SrStartRound,
 		SrBlock,
 		SrSignature,
@@ -158,7 +158,7 @@ func (fct *factory) generateBlockSubround() error {
 }
 
 func (fct *factory) generateSignatureSubround() error {
-	subround, err := NewSubround(
+	subround, err := spos.NewSubround(
 		SrBlock,
 		SrSignature,
 		SrEndRound,
@@ -189,7 +189,7 @@ func (fct *factory) generateSignatureSubround() error {
 }
 
 func (fct *factory) generateEndRoundSubround() error {
-	subround, err := NewSubround(
+	subround, err := spos.NewSubround(
 		SrSignature,
 		SrEndRound,
 		-1,

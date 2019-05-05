@@ -8,14 +8,14 @@ import (
 )
 
 type subroundSignature struct {
-	*subround
+	*spos.Subround
 
 	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundSignature creates a subroundSignature object
 func NewSubroundSignature(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundSignature, error) {
@@ -31,15 +31,15 @@ func NewSubroundSignature(
 		subround,
 		sendConsensusMessage,
 	}
-	srSignature.job = srSignature.doSignatureJob
-	srSignature.check = srSignature.doSignatureConsensusCheck
-	srSignature.extend = extend
+	srSignature.Job = srSignature.doSignatureJob
+	srSignature.Check = srSignature.doSignatureConsensusCheck
+	srSignature.Extend = extend
 
 	return &srSignature, nil
 }
 
 func checkNewSubroundSignatureParams(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if subround == nil {
@@ -59,7 +59,7 @@ func checkNewSubroundSignatureParams(
 	return err
 }
 
-// doSignatureJob method does the job of the signatuure subround
+// doSignatureJob method does the Job of the signatuure Subround
 func (sr *subroundSignature) doSignatureJob() bool {
 	//if !sr.IsSelfJobDone(SrBitmap) { // is NOT self in the leader's bitmap?
 	//	return false
@@ -182,7 +182,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 // receivedSignature method is called when a Signature is received through the Signature channel.
 // If the Signature is valid, than the jobDone map corresponding to the node which sent it,
-// is set on true for the subround Signature
+// is set on true for the Subround Signature
 func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
@@ -244,7 +244,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	return true
 }
 
-// doSignatureConsensusCheck method checks if the consensus in the <SIGNATURE> subround is achieved
+// doSignatureConsensusCheck method checks if the consensus in the <SIGNATURE> Subround is achieved
 func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false
@@ -256,7 +256,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 
 	threshold := sr.Threshold(SrSignature)
 	if sr.signaturesCollected(threshold) {
-		log.Info(fmt.Sprintf("%sStep 2: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
+		log.Info(fmt.Sprintf("%sStep 2: Subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
 		sr.SetStatus(SrSignature, spos.SsFinished)
 		return true
 	}

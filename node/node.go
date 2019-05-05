@@ -10,8 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bls/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
@@ -217,7 +216,13 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	worker, err := bls.NewWorker(
+	bnService, err := bn.NewConsensusService()
+	if err != nil {
+		return err
+	}
+
+	worker, err := spos.NewWorker(
+		bnService,
 		n.blockProcessor,
 		bootstraper,
 		consensusState,
@@ -253,7 +258,7 @@ func (n *Node) StartConsensus() error {
 		chronologyHandler,
 		n.hasher,
 		n.marshalizer,
-		&mock.MultiSignerMock{},
+		n.multisig,
 		n.rounder,
 		n.shardCoordinator,
 		n.syncer,
@@ -263,7 +268,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := bls.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		consensusDataContainer,
 		consensusState,
 		worker,
