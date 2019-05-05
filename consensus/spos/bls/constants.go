@@ -83,6 +83,6 @@ func getSubroundName(subroundId int) string {
 	case SrEndRound:
 		return "(END_ROUND)"
 	default:
-		return "Undefined Subround"
+		return "Undefined subround"
 	}
 }

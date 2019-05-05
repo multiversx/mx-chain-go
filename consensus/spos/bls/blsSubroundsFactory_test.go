@@ -1,7 +1,10 @@
 package bls_test
 
 import (
+	"fmt"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
@@ -9,6 +12,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/stretchr/testify/assert"
 )
+
+func sendMessage(cnsMsg *consensus.Message) {
+	fmt.Println(cnsMsg.Signature)
+}
+
+func sendConsensusMessage(cnsMsg *consensus.Message) bool {
+	fmt.Println(cnsMsg)
+	return true
+}
+
+func broadcastBlock(txBlockBody data.BodyHandler, header data.HeaderHandler) error {
+	fmt.Println(txBlockBody)
+	fmt.Println(header)
+	return nil
+}
+
+func extend(subroundId int) {
+	fmt.Println(subroundId)
+}
 
 func initWorker() spos.IWorker {
 	sposWorker := &mock.SposWorkerMock{}
@@ -320,7 +342,9 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *test
 	t.Parallel()
 
 	fct := *initFactory()
-	fct.Worker().SetConsensusStateChangedChannels(nil)
+	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return nil
+	}
 
 	err := fct.GenerateStartRoundSubround()
 
@@ -343,7 +367,9 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T
 	t.Parallel()
 
 	fct := *initFactory()
-	fct.Worker().SetConsensusStateChangedChannels(nil)
+	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return nil
+	}
 
 	err := fct.GenerateBlockSubround()
 
@@ -366,7 +392,9 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testi
 	t.Parallel()
 
 	fct := *initFactory()
-	fct.Worker().SetConsensusStateChangedChannels(nil)
+	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return nil
+	}
 
 	err := fct.GenerateSignatureSubround()
 
@@ -389,7 +417,9 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testin
 	t.Parallel()
 
 	fct := *initFactory()
-	fct.Worker().SetConsensusStateChangedChannels(nil)
+	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return nil
+	}
 
 	err := fct.GenerateEndRoundSubround()
 
