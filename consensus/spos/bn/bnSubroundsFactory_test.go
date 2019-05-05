@@ -50,7 +50,7 @@ func initWorker() spos.IWorker {
 
 func initFactoryWithContainer(container *mock.ConsensusCoreMock) bn.Factory {
 	worker := initWorker()
-	consensusState := spos.initConsensusState()
+	consensusState := initConsensusState()
 
 	fct, _ := bn.NewSubroundsFactory(
 		container,

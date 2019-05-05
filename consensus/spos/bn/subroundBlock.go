@@ -13,14 +13,14 @@ import (
 )
 
 type subroundBlock struct {
-	*subround
+	*spos.Subround
 
 	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundBlock creates a subroundBlock object
 func NewSubroundBlock(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundBlock, error) {
@@ -37,15 +37,15 @@ func NewSubroundBlock(
 		sendConsensusMessage,
 	}
 
-	srBlock.job = srBlock.doBlockJob
-	srBlock.check = srBlock.doBlockConsensusCheck
-	srBlock.extend = extend
+	srBlock.Job = srBlock.doBlockJob
+	srBlock.Check = srBlock.doBlockConsensusCheck
+	srBlock.Extend = extend
 
 	return &srBlock, nil
 }
 
 func checkNewSubroundBlockParams(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if subround == nil {

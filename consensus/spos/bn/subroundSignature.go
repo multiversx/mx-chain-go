@@ -9,14 +9,14 @@ import (
 )
 
 type subroundSignature struct {
-	*subround
+	*spos.Subround
 
 	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundSignature creates a subroundSignature object
 func NewSubroundSignature(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundSignature, error) {
@@ -32,15 +32,15 @@ func NewSubroundSignature(
 		subround,
 		sendConsensusMessage,
 	}
-	srSignature.job = srSignature.doSignatureJob
-	srSignature.check = srSignature.doSignatureConsensusCheck
-	srSignature.extend = extend
+	srSignature.Job = srSignature.doSignatureJob
+	srSignature.Check = srSignature.doSignatureConsensusCheck
+	srSignature.Extend = extend
 
 	return &srSignature, nil
 }
 
 func checkNewSubroundSignatureParams(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if subround == nil {

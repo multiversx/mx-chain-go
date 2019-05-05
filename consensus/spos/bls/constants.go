@@ -70,3 +70,19 @@ func getStringValue(msgType consensus.MessageType) string {
 		return "Undefined message type"
 	}
 }
+
+// getSubroundName returns the name of each Subround from a given Subround ID
+func getSubroundName(subroundId int) string {
+	switch subroundId {
+	case SrStartRound:
+		return "(START_ROUND)"
+	case SrBlock:
+		return "(BLOCK)"
+	case SrSignature:
+		return "(SIGNATURE)"
+	case SrEndRound:
+		return "(END_ROUND)"
+	default:
+		return "Undefined Subround"
+	}
+}

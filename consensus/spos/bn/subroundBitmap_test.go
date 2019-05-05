@@ -17,7 +17,7 @@ func initSubroundBitmap() bn.SubroundBitmap {
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -58,7 +58,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilBlockProcessorShouldFail(t *testing.
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -89,7 +89,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilConsensusStateShouldFail(t *testing.
 	container := mock.InitConsensusCore()
 	consensusState := initConsensusState()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -119,7 +119,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilRounderShouldFail(t *testing.T) {
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -150,7 +150,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilSyncTimerShouldFail(t *testing.T) {
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -181,7 +181,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilSendConsensusMessageFunctionShouldFa
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -210,7 +210,7 @@ func TestSubroundBitmap_NewSubroundBitmapShouldWork(t *testing.T) {
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),

@@ -8,14 +8,14 @@ import (
 )
 
 type subroundCommitment struct {
-	*subround
+	*spos.Subround
 
 	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundCommitment creates a subroundCommitment object
 func NewSubroundCommitment(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundCommitment, error) {
@@ -34,15 +34,15 @@ func NewSubroundCommitment(
 		sendConsensusMessage,
 	}
 
-	srCommitment.job = srCommitment.doCommitmentJob
-	srCommitment.check = srCommitment.doCommitmentConsensusCheck
-	srCommitment.extend = extend
+	srCommitment.Job = srCommitment.doCommitmentJob
+	srCommitment.Check = srCommitment.doCommitmentConsensusCheck
+	srCommitment.Extend = extend
 
 	return &srCommitment, nil
 }
 
 func checkNewSubroundCommitmentParams(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if subround == nil {

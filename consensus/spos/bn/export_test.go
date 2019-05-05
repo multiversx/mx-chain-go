@@ -105,15 +105,15 @@ func (fct *factory) GenerateEndRoundSubround() error {
 
 type BNConsensusService *worker
 
-// subround
-
-func (sr *subround) SetJobFunction(job func() bool) {
-	sr.job = job
-}
-
-func (sr *subround) SetCheckFunction(check func() bool) {
-	sr.check = check
-}
+//// subround
+//
+//func (sr *subround) SetJobFunction(job func() bool) {
+//	sr.job = job
+//}
+//
+//func (sr *subround) SetCheckFunction(check func() bool) {
+//	sr.check = check
+//}
 
 // subroundStartRound
 

@@ -18,7 +18,7 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bn.Su
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
 		int(bn.SrEndRound),
@@ -65,7 +65,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
 		int(bn.SrEndRound),
@@ -96,7 +96,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
 		int(bn.SrEndRound),
@@ -126,7 +126,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testi
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
 		int(bn.SrEndRound),
@@ -156,7 +156,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
 		int(bn.SrEndRound),
@@ -187,7 +187,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
 		int(bn.SrEndRound),
@@ -217,7 +217,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSendConsensusMessageFunctionSh
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
 		int(bn.SrEndRound),
@@ -247,7 +247,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
 		int(bn.SrEndRound),

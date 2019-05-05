@@ -10,6 +10,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func initWorker() spos.IWorker {
+	sposWorker := &mock.SposWorkerMock{}
+	sposWorker.GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return make(chan bool)
+	}
+	sposWorker.RemoveAllReceivedMessagesCallsCalled = func() {
+
+	}
+
+	sposWorker.AddReceivedMessageCallCalled = func(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool) {
+
+	}
+
+	return sposWorker
+}
+
 func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
 	worker := initWorker()
 	consensusState := initConsensusState()

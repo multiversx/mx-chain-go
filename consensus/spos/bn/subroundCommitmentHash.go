@@ -8,14 +8,14 @@ import (
 )
 
 type subroundCommitmentHash struct {
-	*subround
+	*spos.Subround
 
 	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundCommitmentHash creates a subroundCommitmentHash object
 func NewSubroundCommitmentHash(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundCommitmentHash, error) {
@@ -31,15 +31,15 @@ func NewSubroundCommitmentHash(
 		subround,
 		sendConsensusMessage,
 	}
-	srCommitmentHash.job = srCommitmentHash.doCommitmentHashJob
-	srCommitmentHash.check = srCommitmentHash.doCommitmentHashConsensusCheck
-	srCommitmentHash.extend = extend
+	srCommitmentHash.Job = srCommitmentHash.doCommitmentHashJob
+	srCommitmentHash.Check = srCommitmentHash.doCommitmentHashConsensusCheck
+	srCommitmentHash.Extend = extend
 
 	return &srCommitmentHash, nil
 }
 
 func checkNewSubroundCommitmentHashParams(
-	subround *subround,
+	subround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if subround == nil {

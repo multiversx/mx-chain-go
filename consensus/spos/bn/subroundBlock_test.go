@@ -38,7 +38,7 @@ func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusCo
 
 	container.SetBlockchain(blockChain)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -77,7 +77,7 @@ func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock, container 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -115,7 +115,7 @@ func TestSubroundBlock_NewSubroundBlockNilBlockchainShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -145,7 +145,7 @@ func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T)
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -173,7 +173,7 @@ func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T)
 	container := mock.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -203,7 +203,7 @@ func TestSubroundBlock_NewSubroundBlockNilHasherShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -232,7 +232,7 @@ func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -261,7 +261,7 @@ func TestSubroundBlock_NewSubroundBlockNilMultisignerShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -290,7 +290,7 @@ func TestSubroundBlock_NewSubroundBlockNilRounderShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -319,7 +319,7 @@ func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -348,7 +348,7 @@ func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -376,7 +376,7 @@ func TestSubroundBlock_NewSubroundBlockNilSendConsensusMessageFunctionShouldFail
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -402,7 +402,7 @@ func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),

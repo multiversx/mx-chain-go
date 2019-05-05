@@ -14,7 +14,7 @@ type subroundStartRound struct {
 
 // NewSubroundStartRound creates a SubroundStartRound object
 func NewSubroundStartRound(
-	subround *subround,
+	subround *spos.Subround,
 	extend func(subroundId int),
 ) (*subroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
@@ -27,15 +27,15 @@ func NewSubroundStartRound(
 	srStartRound := subroundStartRound{
 		subround,
 	}
-	srStartRound.job = srStartRound.doStartRoundJob
-	srStartRound.check = srStartRound.doStartRoundConsensusCheck
-	srStartRound.extend = extend
+	srStartRound.Job = srStartRound.doStartRoundJob
+	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
+	srStartRound.Extend = extend
 
 	return &srStartRound, nil
 }
 
 func checkNewSubroundStartRoundParams(
-	subround *subround,
+	subround *spos.Subround,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround
