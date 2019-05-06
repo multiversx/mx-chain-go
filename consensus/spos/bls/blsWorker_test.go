@@ -102,7 +102,7 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyShouldWork(t *te
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsFinished)
 
-	canProceed := blsService.IsFinished(consensusState, bls.MtBlockBody)
+	canProceed := blsService.CanProceed(consensusState, bls.MtBlockBody)
 	assert.True(t, canProceed)
 }
 
@@ -113,7 +113,7 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyShouldNotWork
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsNotFinished)
 
-	canProceed := blsService.IsFinished(consensusState, bls.MtBlockBody)
+	canProceed := blsService.CanProceed(consensusState, bls.MtBlockBody)
 	assert.False(t, canProceed)
 }
 
@@ -124,7 +124,7 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockHeaderShouldWork(t *
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsFinished)
 
-	canProceed := blsService.IsFinished(consensusState, bls.MtBlockHeader)
+	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeader)
 	assert.True(t, canProceed)
 }
 
@@ -135,7 +135,7 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockHeaderShouldNotWo
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsNotFinished)
 
-	canProceed := blsService.IsFinished(consensusState, bls.MtBlockHeader)
+	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeader)
 	assert.False(t, canProceed)
 }
 

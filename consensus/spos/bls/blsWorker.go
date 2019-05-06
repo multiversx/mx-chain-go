@@ -47,21 +47,14 @@ func (wrk *worker) GetMessageRange() []consensus.MessageType {
 	return v
 }
 
-func (wrk *worker) IsFinished(consensusState *spos.ConsensusState, msgType consensus.MessageType) bool {
-	finished := false
+func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType consensus.MessageType) bool {
 	switch msgType {
 	case MtBlockBody:
-		if consensusState.Status(SrStartRound) != spos.SsFinished {
-			return finished
-		}
+		return consensusState.Status(SrStartRound) == spos.SsFinished
 	case MtBlockHeader:
-		if consensusState.Status(SrStartRound) != spos.SsFinished {
-			return finished
-		}
+		return consensusState.Status(SrStartRound) == spos.SsFinished
 	case MtSignature:
-		if consensusState.Status(SrBlock) != spos.SsFinished {
-			return finished
-		}
+		return consensusState.Status(SrBlock) == spos.SsFinished
 	}
 	return true
 }
