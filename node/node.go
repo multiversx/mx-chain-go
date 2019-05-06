@@ -69,8 +69,10 @@ type Node struct {
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
+	blsPrivateKey    crypto.PrivateKey
 	singleSignKeyGen crypto.KeyGenerator
 	singlesig        crypto.SingleSigner
+	blsSinglesig     crypto.SingleSigner
 	multisig         crypto.MultiSigner
 	forkDetector     process.ForkDetector
 
@@ -257,6 +259,8 @@ func (n *Node) StartConsensus() error {
 		chronologyHandler,
 		n.hasher,
 		n.marshalizer,
+		n.blsPrivateKey,
+		n.blsSinglesig,
 		n.multisig,
 		n.rounder,
 		n.shardCoordinator,

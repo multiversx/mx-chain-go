@@ -18,6 +18,8 @@ type ConsensusCoreMock struct {
 	chronologyHandler      consensus.ChronologyHandler
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
+	blsPrivateKey          crypto.PrivateKey
+	blsSingleSigner        crypto.SingleSigner
 	multiSigner            crypto.MultiSigner
 	rounder                consensus.Rounder
 	shardCoordinator       sharding.Coordinator
@@ -110,4 +112,13 @@ func (cdc *ConsensusCoreMock) SetSyncTimer(syncTimer ntp.SyncTimer) {
 
 func (cdc *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector consensus.ValidatorGroupSelector) {
 	cdc.validatorGroupSelector = validatorGroupSelector
+}
+
+func (cdc *ConsensusCoreMock) BlsPrivateKey() crypto.PrivateKey {
+	return cdc.blsPrivateKey
+}
+
+// BlsSingleSigner returns the bls single signer stored in the ConsensusStore
+func (cdc *ConsensusCoreMock) BlsSingleSigner() crypto.SingleSigner {
+	return cdc.blsSingleSigner
 }

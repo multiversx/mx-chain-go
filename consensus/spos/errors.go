@@ -121,6 +121,15 @@ var ErrInvalidSignature = errors.New("signature is invalid")
 // ErrMessageFromItself is raised when a message from itself is received
 var ErrMessageFromItself = errors.New("message is from itself")
 
+// ErrNilBlsPrivateKey is raised when the bls private key is nil
+var ErrNilBlsPrivateKey = errors.New("BLS private key should not be nil")
+
+// ErrNilBlsSingleSigner is raised when a message from itself is received
+var ErrNilBlsSingleSigner = errors.New("BLS single signer should not be nil")
+
+// ErrNilHeader is raised when an expected header is nil
+var ErrNilHeader = errors.New("header is nil")
+
 // ErrBroadCastBlock is raised when a valid broadcastBlock function is expected but nil used
 var ErrNilBroadCastBlock = errors.New("broadCastBlock is nil")
 
