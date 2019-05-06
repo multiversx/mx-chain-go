@@ -35,7 +35,6 @@ type shardProcessor struct {
 	OnRequestTransaction func(shardID uint32, txHash []byte)
 	mutRequestedTxHashes sync.RWMutex
 	requestedTxHashes    map[string]bool
-	shardCoordinator     sharding.Coordinator
 	mutCrossTxsForBlock  sync.RWMutex
 	crossTxsForBlock     map[string]*transaction.Transaction
 	OnRequestMiniBlock   func(shardId uint32, mbHash []byte)
@@ -82,18 +81,18 @@ func NewShardProcessor(
 	}
 
 	base := &baseProcessor{
-		accounts:     accounts,
-		forkDetector: forkDetector,
-		hasher:       hasher,
-		marshalizer:  marshalizer,
-		store:        store,
+		accounts:         accounts,
+		forkDetector:     forkDetector,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		store:            store,
+		shardCoordinator: shardCoordinator,
 	}
 
 	bp := shardProcessor{
-		baseProcessor:    base,
-		dataPool:         dataPool,
-		txProcessor:      txProcessor,
-		shardCoordinator: shardCoordinator,
+		baseProcessor: base,
+		dataPool:      dataPool,
+		txProcessor:   txProcessor,
 	}
 
 	bp.ChRcvAllTxs = make(chan bool)
@@ -132,7 +131,11 @@ func (sp *shardProcessor) ProcessBlock(
 	haveTime func() time.Duration,
 ) error {
 
-	err := checkForNils(chainHandler, headerHandler, bodyHandler)
+	if haveTime == nil {
+		return process.ErrNilHaveTimeHandler
+	}
+
+	err := sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
@@ -145,15 +148,6 @@ func (sp *shardProcessor) ProcessBlock(
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
-	}
-
-	if haveTime == nil {
-		return process.ErrNilHaveTimeHandler
-	}
-
-	err = sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
-	if err != nil {
-		return err
 	}
 
 	requestedTxs := sp.requestBlockTransactions(body)
@@ -1315,8 +1309,9 @@ func (sp *shardProcessor) getNrTxsWithDst(dstShardId uint32) int {
 	return sumTxs
 }
 
-// MarshalizedDataForCrossShard prepares underlying data into a marshalized object according to destination
-func (sp *shardProcessor) MarshalizedDataForCrossShard(
+// MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
+func (sp *shardProcessor) MarshalizedDataToBroadcast(
+	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[uint32][][]byte, error) {
 

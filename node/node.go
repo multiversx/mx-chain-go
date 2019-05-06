@@ -637,7 +637,7 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 		return err
 	}
 
-	msgMapBlockBody, msgMapTx, err := n.blockProcessor.MarshalizedDataForCrossShard(blockBody)
+	msgMapBlockBody, msgMapTx, err := n.blockProcessor.MarshalizedDataToBroadcast(header, blockBody)
 	if err != nil {
 		return err
 	}
