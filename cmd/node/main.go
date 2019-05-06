@@ -124,10 +124,16 @@ VERSION:
 		Usage: "PrivateKeyIndex defines a flag that specify the 0-th based index of the private key to be used from privkeys.pem file.",
 		Value: 0,
 	}
+	blsPrivateKeyIndex = cli.IntFlag{
+		Name:  "bls-private-key-index",
+		Usage: "BlsPrivateKeyIndex defines a flag that specify the 0-th based index of the bls private key to be used from blsPrivKeys.pem file.",
+		Value: 0,
+	}
 
 	configurationFile    = "./config/config.toml"
 	p2pConfigurationFile = "./config/p2p.toml"
 	privKeysPemFile      = "./config/privkeys.pem"
+	blsPrivKeysPemFile   = "./config/blsPrivKeys.pem"
 
 	//TODO remove uniqueID
 	uniqueID = ""
@@ -188,7 +194,7 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, port, privateKey, profileMode, privateKeyIndex}
+	app.Flags = []cli.Flag{genesisFile, port, privateKey, profileMode, privateKeyIndex, blsPrivateKeyIndex}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -466,6 +472,7 @@ func createShardNode(
 	}
 
 	singlesigner := &singlesig.SchnorrSigner{}
+	singleBlsSigner := &singlesig.BlsSingleSigner{}
 
 	multisigHasher, err := getMultisigHasherFromConfig(config)
 	if err != nil {
@@ -591,10 +598,12 @@ func createShardNode(
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
 		node.WithSinglesig(singlesigner),
+		node.WithBlsSinglesig(singleBlsSigner),
 		node.WithMultisig(multisigner),
 		node.WithKeyGenerator(keyGen),
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
+		node.WithBlsPrivateKey(blsPrivateKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
@@ -905,6 +914,16 @@ func getSk(ctx *cli.Context, log *logger.Logger) ([]byte, error) {
 	return decodeAddress(string(encodedSk))
 }
 
+func getBlsSk(ctx *cli.Context, log *logger.Logger) ([]byte, error) {
+	privateKeyIndex := ctx.GlobalInt(blsPrivateKeyIndex.Name)
+	encodedSk, err := core.LoadSkFromPemFile(blsPrivKeysPemFile, log, privateKeyIndex)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodeAddress(string(encodedSk))
+}
+
 func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
@@ -931,6 +950,37 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 
 	pkEncoded := encodeAddress(pk)
 	log.Info("starting with public key: " + pkEncoded)
+
+	return keyGen, privKey, pubKey, err
+}
+
+func getBlsSigningParams(ctx *cli.Context, log *logger.Logger) (
+	keyGen crypto.KeyGenerator,
+	privKey crypto.PrivateKey,
+	pubKey crypto.PublicKey,
+	err error,
+) {
+	sk, err := getBlsSk(ctx, log)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	suite := kyber.NewSuitePairingBn256()
+	keyGen = signing.NewKeyGenerator(suite)
+
+	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	pubKey = privKey.GeneratePublic()
+	pk, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	pkEncoded := encodeAddress(pk)
+	log.Info("starting with bls public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
 }

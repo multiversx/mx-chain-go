@@ -106,6 +106,17 @@ func WithPrivateKey(sk crypto.PrivateKey) Option {
 	}
 }
 
+// WithBlsPrivateKey sets up the BLS private key option for the Node
+func WithBlsPrivateKey(sk crypto.PrivateKey) Option {
+	return func(n *Node) error {
+		if sk == nil {
+			return ErrNilPrivateKey
+		}
+		n.blsPrivateKey = sk
+		return nil
+	}
+}
+
 // WithKeyGenerator sets up the single sign key generator option for the Node
 func WithKeyGenerator(keyGen crypto.KeyGenerator) Option {
 	return func(n *Node) error {
@@ -262,6 +273,17 @@ func WithSinglesig(singlesig crypto.SingleSigner) Option {
 			return ErrNilSingleSig
 		}
 		n.singlesig = singlesig
+		return nil
+	}
+}
+
+// WithBlsSinglesig sets up the singlesig option for the Node
+func WithBlsSinglesig(singlesig crypto.SingleSigner) Option {
+	return func(n *Node) error {
+		if singlesig == nil {
+			return ErrNilSingleSig
+		}
+		n.blsSinglesig = singlesig
 		return nil
 	}
 }

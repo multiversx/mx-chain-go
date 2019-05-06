@@ -11,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
+// ConsensusCore implements ConsensusCoreHandler and provides access to common functionalities
+//  for the rest of the consensus structures
 type ConsensusCore struct {
 	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
@@ -18,6 +20,8 @@ type ConsensusCore struct {
 	chronologyHandler      consensus.ChronologyHandler
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
+	blsPrivateKey          crypto.PrivateKey
+	blsSingleSigner        crypto.SingleSigner
 	multiSigner            crypto.MultiSigner
 	rounder                consensus.Rounder
 	shardCoordinator       sharding.Coordinator
@@ -25,7 +29,7 @@ type ConsensusCore struct {
 	validatorGroupSelector consensus.ValidatorGroupSelector
 }
 
-//NewConsensusCore creates a new ConsensusCore instance
+// NewConsensusCore creates a new ConsensusCore instance
 func NewConsensusCore(
 	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
@@ -33,6 +37,8 @@ func NewConsensusCore(
 	chronologyHandler consensus.ChronologyHandler,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
+	blsPrivateKey crypto.PrivateKey,
+	blsSingleSigner crypto.SingleSigner,
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
@@ -46,6 +52,8 @@ func NewConsensusCore(
 		chronologyHandler,
 		hasher,
 		marshalizer,
+		blsPrivateKey,
+		blsSingleSigner,
 		multiSigner,
 		rounder,
 		shardCoordinator,
@@ -61,37 +69,37 @@ func NewConsensusCore(
 	return consensusCore, nil
 }
 
-//Blockchain gets the ChainHandler stored in the ConsensusCore
+// Blockchain gets the ChainHandler stored in the ConsensusCore
 func (cc *ConsensusCore) Blockchain() data.ChainHandler {
 	return cc.blockChain
 }
 
-//BlockProcessor gets the BlockProcessor stored in the ConsensusCore
+// BlockProcessor gets the BlockProcessor stored in the ConsensusCore
 func (cc *ConsensusCore) BlockProcessor() process.BlockProcessor {
 	return cc.blockProcessor
 }
 
-//BootStrapper gets the Bootstrapper stored in the ConsensusCore
+// BootStrapper gets the Bootstrapper stored in the ConsensusCore
 func (cc *ConsensusCore) BootStrapper() process.Bootstrapper {
 	return cc.bootstraper
 }
 
-//Chronology gets the ChronologyHandler stored in the ConsensusCore
+// Chronology gets the ChronologyHandler stored in the ConsensusCore
 func (cc *ConsensusCore) Chronology() consensus.ChronologyHandler {
 	return cc.chronologyHandler
 }
 
-//Hasher gets the Hasher stored in the ConsensusCore
+// Hasher gets the Hasher stored in the ConsensusCore
 func (cc *ConsensusCore) Hasher() hashing.Hasher {
 	return cc.hasher
 }
 
-//Marshalizer gets the Marshalizer stored in the ConsensusCore
+// Marshalizer gets the Marshalizer stored in the ConsensusCore
 func (cc *ConsensusCore) Marshalizer() marshal.Marshalizer {
 	return cc.marshalizer
 }
 
-//MultiSigner gets the MultiSigner stored in the ConsensusCore
+// MultiSigner gets the MultiSigner stored in the ConsensusCore
 func (cc *ConsensusCore) MultiSigner() crypto.MultiSigner {
 	return cc.multiSigner
 }
@@ -101,7 +109,7 @@ func (cc *ConsensusCore) Rounder() consensus.Rounder {
 	return cc.rounder
 }
 
-//ShardCoordinator gets the Coordinator stored in the ConsensusCore
+// ShardCoordinator gets the Coordinator stored in the ConsensusCore
 func (cc *ConsensusCore) ShardCoordinator() sharding.Coordinator {
 	return cc.shardCoordinator
 }
@@ -111,7 +119,17 @@ func (cc *ConsensusCore) SyncTimer() ntp.SyncTimer {
 	return cc.syncTimer
 }
 
-//ValidatorGroupSelector gets the ValidatorGroupSelector stored in the ConsensusCore
+// ValidatorGroupSelector gets the ValidatorGroupSelector stored in the ConsensusCore
 func (cc *ConsensusCore) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
 	return cc.validatorGroupSelector
+}
+
+// BlsPrivateKey returns the BLS private key stored in the ConsensusStore
+func (cc *ConsensusCore) BlsPrivateKey() crypto.PrivateKey {
+	return cc.blsPrivateKey
+}
+
+// BlsSingleSigner returns the bls single signer stored in the ConsensusStore
+func (cc *ConsensusCore) BlsSingleSigner() crypto.SingleSigner {
+	return cc.blsSingleSigner
 }
