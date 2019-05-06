@@ -100,8 +100,8 @@ func (sp *shardProcessor) RemoveTxBlockFromPools(blockBody block.Body) error {
 	return sp.removeTxBlockFromPools(blockBody)
 }
 
-func (mp *metaProcessor) GetHeaderFromPool(shardID uint32, headerHash []byte) data.HeaderHandler {
-	return mp.getHeaderFromPool(shardID, headerHash)
+func (mp *metaProcessor) GetShardHeaderFromPool(shardID uint32, headerHash []byte) (data.HeaderHandler, error) {
+	return mp.getShardHeaderFromPool(shardID, headerHash)
 }
 
 func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) int {
@@ -156,12 +156,8 @@ func (mp *metaProcessor) SetNextKValidity(val uint32) {
 	mp.nextKValidity = val
 }
 
-func (mp *metaProcessor) CreateLastNotarizedHdrs(header *block.MetaBlock) {
-	mp.createLastNotarizedHdrs(header)
-}
-
-func (mp *metaProcessor) GetSortedShardHdrsFromMetablock(header *block.MetaBlock) (map[uint32][]*block.Header, error) {
-	return mp.getSortedShardHdrsFromMetablock(header)
+func (mp *metaProcessor) CreateLastNotarizedHdrs(header *block.MetaBlock) error {
+	return mp.createLastNotarizedHdrs(header)
 }
 
 func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (mapShardLastHeaders, error) {
