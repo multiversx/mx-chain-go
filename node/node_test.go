@@ -1046,7 +1046,7 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 				return nil
 			},
 		}),
-		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
+		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1080,7 +1080,7 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 				return nil
 			},
 		}),
-		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
+		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1106,7 +1106,7 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 				return true
 			},
 		}),
-		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
+		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1138,7 +1138,7 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 				return errExpected
 			},
 		}),
-		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
+		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1173,7 +1173,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				return errExpected
 			},
 		}),
-		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
+		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1219,7 +1219,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				}
 			},
 		}),
-		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
+		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{
 			GeneratePublicHandler: func() crypto.PublicKey {
 				return &mock.PublicKeyMock{
@@ -1269,7 +1269,7 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 			BroadcastCalled: func(topic string, buff []byte) {
 			},
 		}),
-		node.WithInitialNodesPubKeys([][]string{{"pk1", "pk2"}, {"pk3"}}),
+		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1", "pk2"}, 1: {"pk3"}}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{
 			GeneratePublicHandler: func() crypto.PublicKey {
 				return &mock.PublicKeyMock{
