@@ -54,7 +54,6 @@ s=Sum(s_i) for all s_i of the participants.
 */
 
 type multiSigData struct {
-	message       []byte
 	pubKeys       []crypto.PublicKey
 	privKey       crypto.PrivateKey
 	commHashes    [][]byte
@@ -179,23 +178,6 @@ func (bn *belNevSigner) Create(pubKeys []string, index uint16) (crypto.MultiSign
 	bn.mutSigData.RUnlock()
 
 	return NewBelNevMultisig(bn.hasher, pubKeys, privKey, bn.keyGen, index)
-}
-
-// SetMessage sets the message to be multi-signed upon
-func (bn *belNevSigner) SetMessage(msg []byte) error {
-	if msg == nil {
-		return crypto.ErrNilMessage
-	}
-
-	if len(msg) == 0 {
-		return crypto.ErrInvalidParam
-	}
-
-	bn.mutSigData.Lock()
-	bn.data.message = msg
-	bn.mutSigData.Unlock()
-
-	return nil
 }
 
 // StoreCommitmentHash sets a commitment Hash
@@ -348,14 +330,14 @@ func (bn *belNevSigner) AggregateCommitments(bitmap []byte) error {
 
 // Creates the challenge for the specific index H1(<L'>||X_i||R||m)
 // Not concurrent safe, should be used under RLock
-func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Scalar, error) {
+func (bn *belNevSigner) computeChallenge(message []byte, index uint16, bitmap []byte) (crypto.Scalar, error) {
 	sizeConsensus := uint16(len(bn.data.commitments))
 
 	if index >= sizeConsensus {
 		return nil, crypto.ErrIndexOutOfBounds
 	}
 
-	if bn.data.message == nil {
+	if message == nil {
 		return nil, crypto.ErrNilMessage
 	}
 
@@ -393,7 +375,7 @@ func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Sc
 	// <L'> || X_i || R
 	concatenated = append(concatenated, aggCommBytes...)
 	// <L'> || X_i || R || m
-	concatenated = append(concatenated, bn.data.message...)
+	concatenated = append(concatenated, message...)
 	// H(<L'> || X_i || R || m)
 	challenge := bn.hasher.Compute(string(concatenated))
 
@@ -408,7 +390,7 @@ func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Sc
 }
 
 // CreateSignatureShare creates a partial signature s_i = r_i + H(<L'> || X_i || R || m)*x_i
-func (bn *belNevSigner) CreateSignatureShare(bitmap []byte) ([]byte, error) {
+func (bn *belNevSigner) CreateSignatureShare(message []byte, bitmap []byte) ([]byte, error) {
 	if bitmap == nil {
 		return nil, crypto.ErrNilBitmap
 	}
@@ -423,7 +405,7 @@ func (bn *belNevSigner) CreateSignatureShare(bitmap []byte) ([]byte, error) {
 	}
 	ownIndex := bn.data.ownIndex
 
-	challengeScalar, err := bn.computeChallenge(ownIndex, bitmap)
+	challengeScalar, err := bn.computeChallenge(message, ownIndex, bitmap)
 	if err != nil {
 		return nil, err
 	}
@@ -465,7 +447,7 @@ func (bn *belNevSigner) isIndexInBitmap(index uint16, bitmap []byte) error {
 
 // VerifySignatureShare verifies the partial signature of the signer with specified position
 // s_i * G = R_i + H1(<L'>||X_i||R||m)*X_i
-func (bn *belNevSigner) VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error {
+func (bn *belNevSigner) VerifySignatureShare(index uint16, sig []byte, message []byte, bitmap []byte) error {
 	if sig == nil {
 		return crypto.ErrNilSignature
 	}
@@ -489,7 +471,7 @@ func (bn *belNevSigner) VerifySignatureShare(index uint16, sig []byte, bitmap []
 		return err
 	}
 
-	challengeScalar, err := bn.computeChallenge(index, bitmap)
+	challengeScalar, err := bn.computeChallenge(message, index, bitmap)
 	if err != nil {
 		return err
 	}
@@ -655,7 +637,7 @@ func (bn *belNevSigner) SetAggregatedSig(aggSig []byte) error {
 
 // Verify verifies the aggregated signature by checking equality
 // s * G = R + Sum(H1(<L'>||X_i||R||m)*X_i*B[i])
-func (bn *belNevSigner) Verify(bitmap []byte) error {
+func (bn *belNevSigner) Verify(message []byte, bitmap []byte) error {
 	if bitmap == nil {
 		return crypto.ErrNilBitmap
 	}
@@ -678,7 +660,7 @@ func (bn *belNevSigner) Verify(bitmap []byte) error {
 			continue
 		}
 
-		challengeScalar, err := bn.computeChallenge(uint16(i), bitmap)
+		challengeScalar, err := bn.computeChallenge(message, uint16(i), bitmap)
 		if err != nil {
 			return err
 		}
