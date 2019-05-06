@@ -2,20 +2,20 @@ package heartbeat
 
 import "time"
 
-// HeartbeatMessageInfo retain the message info received from another node (identified by a public key)
-type HeartbeatMessageInfo struct {
+// heartbeatMessageInfo retain the message info received from another node (identified by a public key)
+type heartbeatMessageInfo struct {
 	maxDurationPeerUnresponsive time.Duration
 	peerHeartbeats              map[string]*PeerHeartbeat
 	timeGetter                  func() time.Time
 }
 
-// NewHeartbeatMessageInfo returns a new instance of a PubkeyElement
-func NewHeartbeatMessageInfo(maxDurationPeerUnresponsive time.Duration) (*HeartbeatMessageInfo, error) {
+// newHeartbeatMessageInfo returns a new instance of a PubkeyElement
+func newHeartbeatMessageInfo(maxDurationPeerUnresponsive time.Duration) (*heartbeatMessageInfo, error) {
 	if maxDurationPeerUnresponsive == 0 {
 		return nil, ErrInvalidMaxDurationPeerUnresponsive
 	}
 
-	hbmi := &HeartbeatMessageInfo{
+	hbmi := &heartbeatMessageInfo{
 		peerHeartbeats:              make(map[string]*PeerHeartbeat),
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
 	}
@@ -24,12 +24,12 @@ func NewHeartbeatMessageInfo(maxDurationPeerUnresponsive time.Duration) (*Heartb
 	return hbmi, nil
 }
 
-func (hbmi *HeartbeatMessageInfo) clockTimeGetter() time.Time {
+func (hbmi *heartbeatMessageInfo) clockTimeGetter() time.Time {
 	return time.Now()
 }
 
 // Sweep updates all records
-func (hbmi *HeartbeatMessageInfo) sweep() {
+func (hbmi *heartbeatMessageInfo) sweep() {
 	for _, phb := range hbmi.peerHeartbeats {
 		crtDuration := hbmi.timeGetter().Sub(phb.TimeStamp)
 		phb.IsActive = crtDuration < hbmi.maxDurationPeerUnresponsive
@@ -40,7 +40,7 @@ func (hbmi *HeartbeatMessageInfo) sweep() {
 }
 
 // HeartbeatReceived processes a new message arrived from a p2p address
-func (hbmi *HeartbeatMessageInfo) HeartbeatReceived(p2pAddress string) {
+func (hbmi *heartbeatMessageInfo) HeartbeatReceived(p2pAddress string) {
 	crtTime := hbmi.timeGetter()
 	hbmi.sweep()
 
@@ -64,7 +64,7 @@ func (hbmi *HeartbeatMessageInfo) HeartbeatReceived(p2pAddress string) {
 }
 
 // GetPeerHeartbeats returns the updated peer heart beats collection
-func (hbmi *HeartbeatMessageInfo) GetPeerHeartbeats() []PeerHeartbeat {
+func (hbmi *heartbeatMessageInfo) GetPeerHeartbeats() []PeerHeartbeat {
 	hbmi.sweep()
 	heartbeats := make([]PeerHeartbeat, len(hbmi.peerHeartbeats))
 

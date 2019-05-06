@@ -22,8 +22,8 @@ type Monitor struct {
 	maxDurationPeerUnresponsive time.Duration
 	keygen                      crypto.KeyGenerator
 	marshalizer                 marshal.Marshalizer
-	m                           map[string]*HeartbeatMessageInfo
-	mut                         sync.Mutex
+	heartbeatMessages           map[string]*heartbeatMessageInfo
+	mutHeartbeatMessages        sync.RWMutex
 }
 
 // NewMonitor returns a new monitor instance
@@ -57,13 +57,13 @@ func NewMonitor(
 		singleSigner:                singleSigner,
 		keygen:                      keygen,
 		marshalizer:                 marshalizer,
-		m:                           make(map[string]*HeartbeatMessageInfo),
+		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
 	}
 
 	var err error
 	for _, pubkey := range genesisPubKeyList {
-		mon.m[pubkey], err = NewHeartbeatMessageInfo(maxDurationPeerUnresponsive)
+		mon.heartbeatMessages[pubkey], err = newHeartbeatMessageInfo(maxDurationPeerUnresponsive)
 		if err != nil {
 			return nil, err
 		}
@@ -101,8 +101,8 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	//message is validated, process should be done async, method can return nil
 	go func(msg p2p.MessageP2P, hb *Heartbeat) {
-		m.mut.Lock()
-		defer m.mut.Unlock()
+		m.mutHeartbeatMessages.Lock()
+		defer m.mutHeartbeatMessages.Unlock()
 
 		addr := m.p2pMessenger.PeerAddress(msg.Peer())
 		if addr == "" {
@@ -110,14 +110,14 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			addr = msg.Peer().Pretty()
 		}
 
-		pe := m.m[string(hb.Pubkey)]
+		pe := m.heartbeatMessages[string(hb.Pubkey)]
 		if pe == nil {
-			pe, err = NewHeartbeatMessageInfo(m.maxDurationPeerUnresponsive)
+			pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive)
 			if err != nil {
 				log.Error(err.Error())
 				return
 			}
-			m.m[string(hb.Pubkey)] = pe
+			m.heartbeatMessages[string(hb.Pubkey)] = pe
 		}
 
 		pe.HeartbeatReceived(addr)
@@ -128,19 +128,18 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 // GetHeartbeats returns the heartbeat status
 func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
-	m.mut.Lock()
-	defer m.mut.Unlock()
-
-	status := make([]PubKeyHeartbeat, len(m.m))
+	m.mutHeartbeatMessages.RLock()
+	status := make([]PubKeyHeartbeat, len(m.heartbeatMessages))
 
 	idx := 0
-	for k, v := range m.m {
+	for k, v := range m.heartbeatMessages {
 		status[idx] = PubKeyHeartbeat{
 			HexPublicKey:   hex.EncodeToString([]byte(k)),
 			PeerHeartBeats: v.GetPeerHeartbeats(),
 		}
 		idx++
 	}
+	m.mutHeartbeatMessages.RUnlock()
 
 	sort.Slice(status, func(i, j int) bool {
 		return strings.Compare(status[i].HexPublicKey, status[j].HexPublicKey) < 0

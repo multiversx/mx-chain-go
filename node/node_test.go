@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1188,7 +1189,8 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 	t.Parallel()
 
-	wasBroadcast := false
+	wasBroadcast := atomic.Value{}
+	wasBroadcast.Store(false)
 	buffData := []byte("buff data")
 	n, _ := node.NewNode(
 		node.WithMarshalizer(&mock.MarshalizerMock{
@@ -1213,7 +1215,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 			},
 			BroadcastCalled: func(topic string, buff []byte) {
 				if bytes.Equal(buffData, buff) {
-					wasBroadcast = true
+					wasBroadcast.Store(true)
 				}
 			},
 		}),
@@ -1237,7 +1239,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 
 	assert.Nil(t, err)
 	time.Sleep(time.Second * 3)
-	assert.True(t, wasBroadcast)
+	assert.Equal(t, true, wasBroadcast.Load())
 }
 
 func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
