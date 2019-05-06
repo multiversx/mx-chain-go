@@ -31,7 +31,7 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedFirstTimeForAddressShouldWork(t *
 	t.Parallel()
 
 	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10))
-	hbmi.timeGetter = func() time.Time {
+	hbmi.getTimeHandler = func() time.Time {
 		return time.Unix(0, 1)
 	}
 	p2pAddr := "p2p address"
@@ -55,7 +55,7 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 
 	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10))
 	incrementalTime := int64(0)
-	hbmi.timeGetter = func() time.Time {
+	hbmi.getTimeHandler = func() time.Time {
 		if incrementalTime < 2 {
 			incrementalTime++
 		}
@@ -83,7 +83,7 @@ func TestHeartbeatMessageInfo_HeartbeatSweepShouldUpdate(t *testing.T) {
 
 	hbmi, _ := newHeartbeatMessageInfo(time.Duration(1))
 	incrementalTime := int64(0)
-	hbmi.timeGetter = func() time.Time {
+	hbmi.getTimeHandler = func() time.Time {
 		tReturned := time.Unix(0, incrementalTime)
 		incrementalTime += 10
 

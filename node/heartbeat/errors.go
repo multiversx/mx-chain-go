@@ -2,8 +2,8 @@ package heartbeat
 
 import "errors"
 
-// ErrEmptyGenesisList signals that a nil or empty genesis list has been provided
-var ErrEmptyGenesisList = errors.New("nil or empty genesis list")
+// ErrEmptyPublicKeyList signals that a nil or empty public key list has been provided
+var ErrEmptyPublicKeyList = errors.New("nil or empty public key list")
 
 // ErrNilMessenger signals that a nil p2p messenger has been provided
 var ErrNilMessenger = errors.New("nil P2P Messenger")

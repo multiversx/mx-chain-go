@@ -17,7 +17,7 @@ var log = logger.DefaultLogger()
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
 type Monitor struct {
-	p2pMessenger                P2PMessenger
+	peerMessenger               PeerMessenger
 	singleSigner                crypto.SingleSigner
 	maxDurationPeerUnresponsive time.Duration
 	keygen                      crypto.KeyGenerator
@@ -28,15 +28,15 @@ type Monitor struct {
 
 // NewMonitor returns a new monitor instance
 func NewMonitor(
-	p2pMessenger P2PMessenger,
+	peerMessenger PeerMessenger,
 	singleSigner crypto.SingleSigner,
 	keygen crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 	maxDurationPeerUnresponsive time.Duration,
-	genesisPubKeyList []string,
+	pubKeyList []string,
 ) (*Monitor, error) {
 
-	if p2pMessenger == nil {
+	if peerMessenger == nil {
 		return nil, ErrNilMessenger
 	}
 	if singleSigner == nil {
@@ -48,12 +48,12 @@ func NewMonitor(
 	if marshalizer == nil {
 		return nil, ErrNilMarshalizer
 	}
-	if len(genesisPubKeyList) == 0 {
-		return nil, ErrEmptyGenesisList
+	if len(pubKeyList) == 0 {
+		return nil, ErrEmptyPublicKeyList
 	}
 
 	mon := &Monitor{
-		p2pMessenger:                p2pMessenger,
+		peerMessenger:               peerMessenger,
 		singleSigner:                singleSigner,
 		keygen:                      keygen,
 		marshalizer:                 marshalizer,
@@ -62,7 +62,7 @@ func NewMonitor(
 	}
 
 	var err error
-	for _, pubkey := range genesisPubKeyList {
+	for _, pubkey := range pubKeyList {
 		mon.heartbeatMessages[pubkey], err = newHeartbeatMessageInfo(maxDurationPeerUnresponsive)
 		if err != nil {
 			return nil, err
@@ -104,7 +104,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		m.mutHeartbeatMessages.Lock()
 		defer m.mutHeartbeatMessages.Unlock()
 
-		addr := m.p2pMessenger.PeerAddress(msg.Peer())
+		addr := m.peerMessenger.PeerAddress(msg.Peer())
 		if addr == "" {
 			//address is not known for the peer that emitted the message
 			addr = msg.Peer().Pretty()

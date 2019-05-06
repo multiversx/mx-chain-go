@@ -10,23 +10,23 @@ import (
 
 // Sender periodically sends heartbeat messages on a pubsub topic
 type Sender struct {
-	p2pMessenger P2PMessenger
-	singleSigner crypto.SingleSigner
-	privKey      crypto.PrivateKey
-	marshalizer  marshal.Marshalizer
-	topic        string
+	peerMessenger PeerMessenger
+	singleSigner  crypto.SingleSigner
+	privKey       crypto.PrivateKey
+	marshalizer   marshal.Marshalizer
+	topic         string
 }
 
 // NewSender will create a new sender instance
 func NewSender(
-	p2pMessenger P2PMessenger,
+	peerMessenger PeerMessenger,
 	singleSigner crypto.SingleSigner,
 	privKey crypto.PrivateKey,
 	marshalizer marshal.Marshalizer,
 	topic string,
 ) (*Sender, error) {
 
-	if p2pMessenger == nil {
+	if peerMessenger == nil {
 		return nil, ErrNilMessenger
 	}
 	if singleSigner == nil {
@@ -40,11 +40,11 @@ func NewSender(
 	}
 
 	sender := &Sender{
-		p2pMessenger: p2pMessenger,
-		singleSigner: singleSigner,
-		privKey:      privKey,
-		marshalizer:  marshalizer,
-		topic:        topic,
+		peerMessenger: peerMessenger,
+		singleSigner:  singleSigner,
+		privKey:       privKey,
+		marshalizer:   marshalizer,
+		topic:         topic,
 	}
 
 	return sender, nil
@@ -73,7 +73,7 @@ func (s *Sender) SendHeartbeat() error {
 		return err
 	}
 
-	s.p2pMessenger.Broadcast(s.topic, buffToSend)
+	s.peerMessenger.Broadcast(s.topic, buffToSend)
 
 	return nil
 }

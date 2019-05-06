@@ -79,7 +79,7 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 	assert.Equal(t, heartbeat.ErrNilMarshalizer, err)
 }
 
-func TestNewMonitor_EmptyGenesisListShouldErr(t *testing.T) {
+func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mon, err := heartbeat.NewMonitor(
@@ -92,7 +92,7 @@ func TestNewMonitor_EmptyGenesisListShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, mon)
-	assert.Equal(t, heartbeat.ErrEmptyGenesisList, err)
+	assert.Equal(t, heartbeat.ErrEmptyPublicKeyList, err)
 }
 
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {

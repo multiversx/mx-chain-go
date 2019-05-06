@@ -6,7 +6,7 @@ import "time"
 type heartbeatMessageInfo struct {
 	maxDurationPeerUnresponsive time.Duration
 	peerHeartbeats              map[string]*PeerHeartbeat
-	timeGetter                  func() time.Time
+	getTimeHandler              func() time.Time
 }
 
 // newHeartbeatMessageInfo returns a new instance of a PubkeyElement
@@ -19,19 +19,19 @@ func newHeartbeatMessageInfo(maxDurationPeerUnresponsive time.Duration) (*heartb
 		peerHeartbeats:              make(map[string]*PeerHeartbeat),
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
 	}
-	hbmi.timeGetter = hbmi.clockTimeGetter
+	hbmi.getTimeHandler = hbmi.clockTime
 
 	return hbmi, nil
 }
 
-func (hbmi *heartbeatMessageInfo) clockTimeGetter() time.Time {
+func (hbmi *heartbeatMessageInfo) clockTime() time.Time {
 	return time.Now()
 }
 
 // Sweep updates all records
 func (hbmi *heartbeatMessageInfo) sweep() {
 	for _, phb := range hbmi.peerHeartbeats {
-		crtDuration := hbmi.timeGetter().Sub(phb.TimeStamp)
+		crtDuration := hbmi.getTimeHandler().Sub(phb.TimeStamp)
 		phb.IsActive = crtDuration < hbmi.maxDurationPeerUnresponsive
 		if phb.MaxInactiveTime.Duration < crtDuration {
 			phb.MaxInactiveTime.Duration = crtDuration
@@ -41,7 +41,7 @@ func (hbmi *heartbeatMessageInfo) sweep() {
 
 // HeartbeatReceived processes a new message arrived from a p2p address
 func (hbmi *heartbeatMessageInfo) HeartbeatReceived(p2pAddress string) {
-	crtTime := hbmi.timeGetter()
+	crtTime := hbmi.getTimeHandler()
 	hbmi.sweep()
 
 	phb := hbmi.peerHeartbeats[p2pAddress]
