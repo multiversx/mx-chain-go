@@ -52,7 +52,7 @@ type Node struct {
 	marshalizer              marshal.Marshalizer
 	ctx                      context.Context
 	hasher                   hashing.Hasher
-	initialNodesPubkeys      [][]string
+	initialNodesPubkeys      map[uint32][]string
 	initialNodesBalances     map[string]*big.Int
 	roundDuration            uint64
 	consensusGroupSize       int

@@ -129,7 +129,7 @@ func WithKeyGenerator(keyGen crypto.KeyGenerator) Option {
 }
 
 // WithInitialNodesPubKeys sets up the initial nodes public key option for the Node
-func WithInitialNodesPubKeys(pubKeys [][]string) Option {
+func WithInitialNodesPubKeys(pubKeys map[uint32][]string) Option {
 	return func(n *Node) error {
 		n.initialNodesPubkeys = pubKeys
 		return nil

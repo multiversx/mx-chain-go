@@ -23,6 +23,11 @@ func createGenesisOneShardOneNode() *sharding.Genesis {
 	if err != nil {
 		return nil
 	}
+
+	if g.MetaChainActive {
+		g.ProcessMetaChainAssigment()
+	}
+
 	g.ProcessShardAssignment()
 	g.CreateInitialNodesPubKeys()
 
@@ -53,6 +58,11 @@ func createGenesisTwoShardTwoNodes() *sharding.Genesis {
 	if err != nil {
 		return nil
 	}
+
+	if g.MetaChainActive {
+		g.ProcessMetaChainAssigment()
+	}
+
 	g.ProcessShardAssignment()
 	g.CreateInitialNodesPubKeys()
 
@@ -86,6 +96,55 @@ func createGenesisTwoShard5Nodes() *sharding.Genesis {
 	if err != nil {
 		return nil
 	}
+
+	if g.MetaChainActive {
+		g.ProcessMetaChainAssigment()
+	}
+
+	g.ProcessShardAssignment()
+	g.CreateInitialNodesPubKeys()
+
+	return g
+}
+
+func createGenesisTwoShard6NodesMeta() *sharding.Genesis {
+	g := &sharding.Genesis{}
+	g.ConsensusGroupSize = 1
+	g.MinNodesPerShard = 2
+	g.MetaChainActive = true
+	g.MetaChainMinNodes = 2
+	g.MetaChainConsensusGroupSize = 2
+	g.InitialNodes = make([]*sharding.InitialNode, 6)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+	g.InitialNodes[2] = &sharding.InitialNode{}
+	g.InitialNodes[3] = &sharding.InitialNode{}
+	g.InitialNodes[4] = &sharding.InitialNode{}
+	g.InitialNodes[5] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+	g.InitialNodes[2].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417"
+	g.InitialNodes[3].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416"
+	g.InitialNodes[4].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7411"
+	g.InitialNodes[5].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7410"
+
+	g.InitialNodes[0].Balance = "999"
+	g.InitialNodes[1].Balance = "999"
+	g.InitialNodes[2].Balance = "999"
+	g.InitialNodes[3].Balance = "999"
+	g.InitialNodes[4].Balance = "999"
+	g.InitialNodes[5].Balance = "999"
+
+	err := g.ProcessConfig()
+	if err != nil {
+		return nil
+	}
+
+	if g.MetaChainActive {
+		g.ProcessMetaChainAssigment()
+	}
+
 	g.ProcessShardAssignment()
 	g.CreateInitialNodesPubKeys()
 
@@ -141,9 +200,31 @@ func TestGenesis_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T) {
 	assert.Equal(t, sharding.ErrNegativeOrZeroConsensusGroupSize, err)
 }
 
+func TestGenesis_ProcessConfigInvalidMetaConsensusGroupSizeShouldErr(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize:          1,
+		MinNodesPerShard:            1,
+		MetaChainConsensusGroupSize: 0,
+		MetaChainMinNodes:           0,
+		MetaChainActive:             true,
+	}
+
+	g.InitialNodes = make([]*sharding.InitialNode, 2)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+
+	err := g.ProcessConfig()
+
+	assert.NotNil(t, g)
+	assert.Equal(t, sharding.ErrNegativeOrZeroConsensusGroupSize, err)
+}
+
 func TestGenesis_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesShouldErr(t *testing.T) {
 	g := sharding.Genesis{
-		ConsensusGroupSize: 3,
+		ConsensusGroupSize: 2,
 		MinNodesPerShard:   0,
 	}
 
@@ -157,13 +238,57 @@ func TestGenesis_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesShoul
 	err := g.ProcessConfig()
 
 	assert.NotNil(t, g)
-	assert.Equal(t, sharding.ErrNotEnoughValidators, err)
+	assert.Equal(t, sharding.ErrMinNodesPerShardSmallerThanConsensusSize, err)
+}
+
+func TestGenesis_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNodesShouldErr(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize:          1,
+		MinNodesPerShard:            1,
+		MetaChainConsensusGroupSize: 1,
+		MetaChainMinNodes:           0,
+		MetaChainActive:             true,
+	}
+
+	g.InitialNodes = make([]*sharding.InitialNode, 2)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+
+	err := g.ProcessConfig()
+
+	assert.NotNil(t, g)
+	assert.Equal(t, sharding.ErrMinNodesPerShardSmallerThanConsensusSize, err)
 }
 
 func TestGenesis_ProcessConfigInvalidMinNodesPerShardShouldErr(t *testing.T) {
 	g := sharding.Genesis{
 		ConsensusGroupSize: 2,
 		MinNodesPerShard:   0,
+	}
+
+	g.InitialNodes = make([]*sharding.InitialNode, 2)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+
+	err := g.ProcessConfig()
+
+	assert.NotNil(t, g)
+	assert.Equal(t, sharding.ErrMinNodesPerShardSmallerThanConsensusSize, err)
+}
+
+func TestGenesis_ProcessConfigInvalidMetaMinNodesPerShardShouldErr(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize:          1,
+		MinNodesPerShard:            1,
+		MetaChainConsensusGroupSize: 1,
+		MetaChainMinNodes:           0,
+		MetaChainActive:             true,
 	}
 
 	g.InitialNodes = make([]*sharding.InitialNode, 2)
@@ -191,6 +316,30 @@ func TestGenesis_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardShould
 
 	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+
+	err := g.ProcessConfig()
+
+	assert.NotNil(t, g)
+	assert.Equal(t, sharding.ErrNodesSizeSmallerThanMinNoOfNodes, err)
+}
+
+func TestGenesis_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShardShouldErr(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize:          1,
+		MinNodesPerShard:            1,
+		MetaChainActive:             true,
+		MetaChainConsensusGroupSize: 2,
+		MetaChainMinNodes:           3,
+	}
+
+	g.InitialNodes = make([]*sharding.InitialNode, 3)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+	g.InitialNodes[2] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+	g.InitialNodes[2].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417"
 
 	err := g.ProcessConfig()
 
@@ -294,8 +443,28 @@ func TestGenesis_InitialNodesPubKeysForShardGood(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestGenesis_InitialNodesPubKeysForShardWrongMeta(t *testing.T) {
+	g := createGenesisTwoShardTwoNodes()
+	metaId := sharding.MetachainShardId
+	inPK, err := g.InitialNodesPubKeysForShard(metaId)
+
+	assert.NotNil(t, g)
+	assert.Nil(t, inPK)
+	assert.NotNil(t, err)
+}
+
+func TestGenesis_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
+	g := createGenesisTwoShard6NodesMeta()
+	metaId := sharding.MetachainShardId
+	inPK, err := g.InitialNodesPubKeysForShard(metaId)
+
+	assert.NotNil(t, g)
+	assert.Equal(t, len(inPK), 2)
+	assert.Nil(t, err)
+}
+
 func TestGenesis_Initial5NodesBalancesGood(t *testing.T) {
-	genesis := createGenesisTwoShard5Nodes()
+	genesis := createGenesisTwoShard6NodesMeta()
 	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(2, 1)
 	adrConv := mock.NewAddressConverterFake(32, "")
 	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
@@ -306,7 +475,7 @@ func TestGenesis_Initial5NodesBalancesGood(t *testing.T) {
 }
 
 func TestGenesis_PublicKeyNotGood(t *testing.T) {
-	genesis := createGenesisTwoShard5Nodes()
+	genesis := createGenesisTwoShard6NodesMeta()
 
 	_, err := genesis.GetShardIDForPubKey([]byte("5126b6505a73e59a994caa8f956f8c335d4399229de42102bb4814ca261c7419"))
 
@@ -323,4 +492,27 @@ func TestGenesis_PublicKeyGood(t *testing.T) {
 	assert.NotNil(t, genesis)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), selfId)
+}
+
+func TestGenesis_ShardPublicKeyGoodMeta(t *testing.T) {
+	genesis := createGenesisTwoShard6NodesMeta()
+	publicKey, err := hex.DecodeString("5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417")
+
+	selfId, err := genesis.GetShardIDForPubKey(publicKey)
+
+	assert.NotNil(t, genesis)
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(0), selfId)
+}
+
+func TestGenesis_MetaPublicKeyGoodMeta(t *testing.T) {
+	genesis := createGenesisTwoShard6NodesMeta()
+	metaId := sharding.MetachainShardId
+	publicKey, err := hex.DecodeString("5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418")
+
+	selfId, err := genesis.GetShardIDForPubKey(publicKey)
+
+	assert.NotNil(t, genesis)
+	assert.Nil(t, err)
+	assert.Equal(t, metaId, selfId)
 }
