@@ -1703,3 +1703,236 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 
 }
+
+func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewMetaPoolsHolderFake()
+
+	shardNr := uint32(5)
+	mp, _ := blproc.NewMetaProcessor(
+		&mock.AccountsStub{
+			RevertToSnapshotCalled: func(snapshot int) error {
+				assert.Fail(t, "revert should have not been called")
+				return nil
+			},
+			JournalLenCalled: func() int {
+				return 0
+			},
+		},
+		dataPool,
+		&mock.ForkDetectorMock{},
+		mock.NewMultiShardsCoordinatorMock(shardNr),
+		hasher,
+		marshalizer,
+		initStore(),
+		func(shardID uint32, hdrHash []byte) {},
+	)
+
+	prevRandSeed := []byte("prevrand")
+	currRandSeed := []byte("currrand")
+	lastNodesHdrs := mp.LastNotedHdrs()
+	for i := uint32(0); i < shardNr; i++ {
+		lastHdr := &block.Header{Round: 9,
+			Nonce:    44,
+			RandSeed: prevRandSeed,
+			ShardId:  i}
+		lastNodesHdrs[i] = lastHdr
+	}
+
+	//put the existing headers inside datapool
+
+	//header shard 0
+	prevHash, _ := mp.ComputeHeaderHash(lastNodesHdrs[0])
+	prevHdr := &block.Header{
+		Round:        10,
+		Nonce:        45,
+		ShardId:      0,
+		PrevRandSeed: prevRandSeed,
+		RandSeed:     currRandSeed,
+		PrevHash:     prevHash,
+		RootHash:     []byte("prevRootHash")}
+
+	prevHash, _ = mp.ComputeHeaderHash(prevHdr)
+	currHdr := &block.Header{
+		Round:        11,
+		Nonce:        46,
+		ShardId:      0,
+		PrevRandSeed: currRandSeed,
+		RandSeed:     []byte("nextrand"),
+		PrevHash:     prevHash,
+		RootHash:     []byte("currRootHash")}
+
+	err := mp.IsHdrConstructionValid(nil, prevHdr)
+	assert.Equal(t, err, process.ErrNilBlockHeader)
+
+	err = mp.IsHdrConstructionValid(currHdr, nil)
+	assert.Equal(t, err, process.ErrNilBlockHeader)
+
+	currHdr.Nonce = 0
+	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrWrongNonceInBlock)
+
+	currHdr.Nonce = 0
+	prevHdr.Nonce = 0
+	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrWrongNonceInBlock)
+
+	currHdr.Nonce = 0
+	prevHdr.Nonce = 0
+	prevHdr.RootHash = nil
+	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Nil(t, err)
+
+	currHdr.Nonce = 46
+	prevHdr.Nonce = 45
+	prevHdr.Round = currHdr.Round + 1
+	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrLowShardHeaderRound)
+
+	prevHdr.Round = currHdr.Round - 1
+	currHdr.Nonce = prevHdr.Nonce + 2
+	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrWrongNonceInBlock)
+
+	currHdr.Nonce = prevHdr.Nonce + 1
+	prevHdr.RandSeed = []byte("randomwrong")
+	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrRandSeedMismatch)
+
+	prevHdr.RandSeed = currRandSeed
+	currHdr.PrevHash = []byte("wronghash")
+	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrInvalidBlockHash)
+
+	currHdr.PrevHash = prevHash
+	prevHdr.RootHash = []byte("prevRootHash")
+	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Nil(t, err)
+}
+
+func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewMetaPoolsHolderFake()
+
+	shardNr := uint32(5)
+	mp, _ := blproc.NewMetaProcessor(
+		&mock.AccountsStub{
+			RevertToSnapshotCalled: func(snapshot int) error {
+				assert.Fail(t, "revert should have not been called")
+				return nil
+			},
+			JournalLenCalled: func() int {
+				return 0
+			},
+		},
+		dataPool,
+		&mock.ForkDetectorMock{},
+		mock.NewMultiShardsCoordinatorMock(shardNr),
+		hasher,
+		marshalizer,
+		initStore(),
+		func(shardID uint32, hdrHash []byte) {},
+	)
+
+	prevRandSeed := []byte("prevrand")
+	currRandSeed := []byte("currrand")
+	lastNodesHdrs := mp.LastNotedHdrs()
+	for i := uint32(0); i < shardNr; i++ {
+		lastHdr := &block.Header{Round: 9,
+			Nonce:    44,
+			RandSeed: prevRandSeed,
+			ShardId:  i}
+		lastNodesHdrs[i] = lastHdr
+	}
+
+	//put the existing headers inside datapool
+
+	//header shard 0
+	prevHash, _ := mp.ComputeHeaderHash(lastNodesHdrs[0])
+	prevHdr := &block.Header{
+		Round:        10,
+		Nonce:        45,
+		ShardId:      0,
+		PrevRandSeed: prevRandSeed,
+		RandSeed:     currRandSeed,
+		PrevHash:     prevHash,
+		RootHash:     []byte("prevRootHash")}
+
+	wrongPrevHdr := &block.Header{
+		Round:        10,
+		Nonce:        50,
+		ShardId:      0,
+		PrevRandSeed: prevRandSeed,
+		RandSeed:     currRandSeed,
+		PrevHash:     prevHash,
+		RootHash:     []byte("prevRootHash")}
+
+	prevHash, _ = mp.ComputeHeaderHash(prevHdr)
+	currHdr := &block.Header{
+		Round:        11,
+		Nonce:        46,
+		ShardId:      0,
+		PrevRandSeed: currRandSeed,
+		RandSeed:     []byte("nextrand"),
+		PrevHash:     prevHash,
+		RootHash:     []byte("currRootHash")}
+
+	srtShardHdrs := make([]*block.Header, 0)
+
+	valid, hdrIds := mp.IsShardHeaderValidFinal(currHdr, prevHdr, nil)
+	assert.False(t, valid)
+	assert.Nil(t, hdrIds)
+
+	valid, hdrIds = mp.IsShardHeaderValidFinal(nil, prevHdr, srtShardHdrs)
+	assert.False(t, valid)
+	assert.Nil(t, hdrIds)
+
+	valid, hdrIds = mp.IsShardHeaderValidFinal(currHdr, nil, srtShardHdrs)
+	assert.False(t, valid)
+	assert.Nil(t, hdrIds)
+
+	valid, hdrIds = mp.IsShardHeaderValidFinal(currHdr, wrongPrevHdr, srtShardHdrs)
+	assert.False(t, valid)
+	assert.Nil(t, hdrIds)
+
+	mp.SetNextKValidity(0)
+	valid, hdrIds = mp.IsShardHeaderValidFinal(currHdr, prevHdr, srtShardHdrs)
+	assert.True(t, valid)
+	assert.NotNil(t, hdrIds)
+
+	mp.SetNextKValidity(1)
+	nextWrongHdr := &block.Header{
+		Round:        11,
+		Nonce:        44,
+		ShardId:      0,
+		PrevRandSeed: currRandSeed,
+		RandSeed:     []byte("nextrand"),
+		PrevHash:     prevHash,
+		RootHash:     []byte("currRootHash")}
+
+	srtShardHdrs = append(srtShardHdrs, nextWrongHdr)
+	valid, hdrIds = mp.IsShardHeaderValidFinal(currHdr, prevHdr, srtShardHdrs)
+	assert.False(t, valid)
+	assert.Nil(t, hdrIds)
+
+	prevHash, _ = mp.ComputeHeaderHash(currHdr)
+	nextHdr := &block.Header{
+		Round:        11,
+		Nonce:        47,
+		ShardId:      0,
+		PrevRandSeed: []byte("nextrand"),
+		RandSeed:     []byte("nextnextrand"),
+		PrevHash:     prevHash,
+		RootHash:     []byte("currRootHash")}
+
+	srtShardHdrs = append(srtShardHdrs, nextHdr)
+	valid, hdrIds = mp.IsShardHeaderValidFinal(currHdr, prevHdr, srtShardHdrs)
+	assert.True(t, valid)
+	assert.NotNil(t, hdrIds)
+}

@@ -526,7 +526,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(header *block.MetaBlock) (map
 		}
 
 		for i := 0; i < len(hdrsForShard); i++ {
-			err := mp.IsHeaderConstructionValid(hdrsForShard[i], tmpNotedHdrs[shId])
+			err := mp.isHdrConstructionValid(hdrsForShard[i], tmpNotedHdrs[shId])
 			if err != nil {
 				return nil, err
 			}
@@ -566,7 +566,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 			// found a header with the next nonce
 			tmpHdr := sortedHdrPerShard[shId][i]
 			if tmpHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
-				err := mp.IsHeaderConstructionValid(tmpHdr, lastVerifiedHdr)
+				err := mp.isHdrConstructionValid(tmpHdr, lastVerifiedHdr)
 				if err != nil {
 					continue
 				}
@@ -584,7 +584,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 	return nil
 }
 
-func (mp *metaProcessor) IsHeaderConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
+func (mp *metaProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
 	if prevHdr == nil {
 		return process.ErrNilBlockHeader
 	}
@@ -628,6 +628,52 @@ func (mp *metaProcessor) IsHeaderConstructionValid(currHdr, prevHdr data.HeaderH
 	}
 
 	return nil
+}
+
+func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr *block.Header, sortedShardHdrs []*block.Header) (bool, []uint32) {
+	if currHdr == nil {
+		return false, nil
+	}
+	if sortedShardHdrs == nil {
+		return false, nil
+	}
+	if lastHdr == nil {
+		return false, nil
+	}
+
+	err := mp.isHdrConstructionValid(currHdr, lastHdr)
+	if err != nil {
+		return false, nil
+	}
+
+	// verify if there are "K" block after current to make this one final
+	lastVerifiedHdr := currHdr
+	nextBlocksVerified := uint32(0)
+	hdrIds := make([]uint32, 0)
+	for i := 0; i < len(sortedShardHdrs); i++ {
+		if nextBlocksVerified >= mp.nextKValidity {
+			return true, hdrIds
+		}
+
+		// found a header with the next nonce
+		tmpHdr := sortedShardHdrs[i]
+		if tmpHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
+			err := mp.isHdrConstructionValid(tmpHdr, lastVerifiedHdr)
+			if err != nil {
+				continue
+			}
+
+			lastVerifiedHdr = tmpHdr
+			nextBlocksVerified += 1
+			hdrIds = append(hdrIds, uint32(i))
+		}
+	}
+
+	if nextBlocksVerified >= mp.nextKValidity {
+		return true, hdrIds
+	}
+
+	return false, nil
 }
 
 // getHeaderFromPool gets the header from a given shard id and a given header hash
@@ -857,52 +903,6 @@ func (mp *metaProcessor) createShardInfo(
 
 	log.Info(fmt.Sprintf("creating shard info has been finished: created %d shard data\n", len(shardInfo)))
 	return shardInfo, nil
-}
-
-func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr *block.Header, sortedShardHdrs []*block.Header) (bool, []uint32) {
-	if currHdr == nil {
-		return false, nil
-	}
-	if sortedShardHdrs == nil {
-		return false, nil
-	}
-	if lastHdr == nil {
-		return false, nil
-	}
-
-	err := mp.IsHeaderConstructionValid(currHdr, lastHdr)
-	if err != nil {
-		return false, nil
-	}
-
-	// verify if there are "K" block after current to make this one final
-	lastVerifiedHdr := currHdr
-	nextBlocksVerified := uint32(0)
-	hdrIds := make([]uint32, 0)
-	for i := 0; i < len(sortedShardHdrs); i++ {
-		if nextBlocksVerified >= mp.nextKValidity {
-			return true, hdrIds
-		}
-
-		// found a header with the next nonce
-		tmpHdr := sortedShardHdrs[i]
-		if tmpHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
-			err := mp.IsHeaderConstructionValid(tmpHdr, lastVerifiedHdr)
-			if err != nil {
-				continue
-			}
-
-			lastVerifiedHdr = tmpHdr
-			nextBlocksVerified += 1
-			hdrIds = append(hdrIds, uint32(i))
-		}
-	}
-
-	if nextBlocksVerified >= mp.nextKValidity {
-		return true, hdrIds
-	}
-
-	return false, nil
 }
 
 func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {

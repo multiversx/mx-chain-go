@@ -171,3 +171,11 @@ func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (map
 func (mp *metaProcessor) CheckShardHeadersFinality(header *block.MetaBlock, highestNonceHdrs mapShardLastHeaders) error {
 	return mp.checkShardHeadersFinality(header, highestNonceHdrs)
 }
+
+func (mp *metaProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
+	return mp.isHdrConstructionValid(currHdr, prevHdr)
+}
+
+func (mp *metaProcessor) IsShardHeaderValidFinal(currHdr *block.Header, lastHdr *block.Header, sortedShardHdrs []*block.Header) (bool, []uint32) {
+	return mp.isShardHeaderValidFinal(currHdr, lastHdr, sortedShardHdrs)
+}
