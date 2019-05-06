@@ -43,6 +43,9 @@ var ErrNilConsensusState = errors.New("consensus state is nil")
 // ErrNilConsensusCore is raised when a valid ConsensusCore is expected but nil used
 var ErrNilConsensusCore = errors.New("consensus core is nil")
 
+// ErrNilConsensusService is raised when a valid ConsensusService is expected but nil used
+var ErrNilConsensusService = errors.New("consensus service is nil")
+
 // ErrNilBlockChain is raised when a valid blockchain is expected but nil used
 var ErrNilBlockChain = errors.New("blockchain is nil")
 
@@ -73,8 +76,8 @@ var ErrNilMessage = errors.New("nil message")
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
 
-// ErrNilWorker is raised when a valid worker is expected but nil used
-var ErrNilWorker = errors.New("worker is nil")
+// ErrNilWorker is raised when a valid Worker is expected but nil used
+var ErrNilWorker = errors.New("Worker is nil")
 
 // ErrNilShardCoordinator is raised when a valid shard coordinator is expected but nil used
 var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
@@ -126,3 +129,9 @@ var ErrNilBlsSingleSigner = errors.New("BLS single signer should not be nil")
 
 // ErrNilHeader is raised when an expected header is nil
 var ErrNilHeader = errors.New("header is nil")
+
+// ErrBroadCastBlock is raised when a valid broadcastBlock function is expected but nil used
+var ErrNilBroadCastBlock = errors.New("broadCastBlock is nil")
+
+// ErrNilSendMessage is raised when a valid sendMessage function is expected but nil used
+var ErrNilSendMessage = errors.New("sendMessage is nil")

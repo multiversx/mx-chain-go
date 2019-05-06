@@ -218,7 +218,13 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	worker, err := bn.NewWorker(
+	bnService, err := bn.NewConsensusService()
+	if err != nil {
+		return err
+	}
+
+	worker, err := spos.NewWorker(
+		bnService,
 		n.blockProcessor,
 		bootstraper,
 		consensusState,
@@ -228,6 +234,8 @@ func (n *Node) StartConsensus() error {
 		n.rounder,
 		n.shardCoordinator,
 		n.singlesig,
+		n.BroadcastBlock,
+		n.sendMessage,
 	)
 	if err != nil {
 		return err
@@ -237,9 +245,6 @@ func (n *Node) StartConsensus() error {
 	if err != nil {
 		return err
 	}
-
-	worker.SendMessage = n.sendMessage
-	worker.BroadcastBlock = n.BroadcastBlock
 
 	validatorGroupSelector, err := n.createValidatorGroupSelector()
 
@@ -266,7 +271,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		consensusDataContainer,
 		consensusState,
 		worker,
@@ -604,7 +609,7 @@ func (n *Node) sendMessage(cnsDta *consensus.Message) {
 		cnsDtaBuff)
 }
 
-// BroadcastBlock will send on intra shard topics the header and block body and on cross shard topics
+// broadcastBlock will send on intra shard topics the header and block body and on cross shard topics
 // the miniblocks. This func needs to be exported as it is tested in integrationTests package.
 // TODO: investigate if the body block needs to be sent on intra shard topic as each miniblock is already sent on cross
 //  shard topics
