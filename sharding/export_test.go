@@ -16,6 +16,10 @@ func (g *Genesis) ProcessShardAssignment() {
 	g.processShardAssignment()
 }
 
+func (g *Genesis) ProcessMetaChainAssigment() {
+	g.processMetaChainAssigment()
+}
+
 func (g *Genesis) CreateInitialNodesPubKeys() {
 	g.createInitialNodesPubKeys()
 }
