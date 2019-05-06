@@ -145,13 +145,16 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error {
-	// TODO: replace random source with last block signature
-	headerHash := sr.Blockchain().GetCurrentBlockHeaderHash()
-	if sr.Blockchain().GetCurrentBlockHeaderHash() == nil {
-		headerHash = sr.Blockchain().GetGenesisHeaderHash()
+
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	if currentHeader == nil {
+		currentHeader = sr.Blockchain().GetGenesisHeader()
+		if currentHeader == nil {
+			return spos.ErrNilHeader
+		}
 	}
 
-	randomSource := fmt.Sprintf("%d-%s", roundIndex, toB64(headerHash))
+	randomSource := fmt.Sprintf("%d-%s", roundIndex, toB64(currentHeader.GetRandSeed()))
 
 	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n", randomSource))
 
