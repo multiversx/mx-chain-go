@@ -99,7 +99,7 @@ func StopNode(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
 
-// HeartbeatStatus returns the heartbeat status of the node
+// HeartbeatStatus respond with the heartbeat status of the node
 func HeartbeatStatus(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {
