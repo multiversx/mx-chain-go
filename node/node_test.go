@@ -719,7 +719,7 @@ func getMessenger() *mock.MessengerStub {
 func TestNode_BroadcastBlockShouldFailWhenTxBlockBodyNil(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
 		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
 	}}
 
@@ -747,7 +747,7 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
 
 		return []byte("marshalized ok"), nil
 	}
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
 		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
 	}}
 
@@ -781,7 +781,7 @@ func (wr wrongBody) IntegrityAndValidity() error {
 func TestNode_BroadcastBlockShouldFailWhenBlockIsNotGoodType(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}}
 	_ = n.ApplyOptions(
@@ -799,7 +799,7 @@ func TestNode_BroadcastBlockShouldFailWhenBlockIsNotGoodType(t *testing.T) {
 func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
 		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
 	}}
 	_ = n.ApplyOptions(
@@ -838,7 +838,7 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 		return []byte("marshalized ok"), nil
 	}
 
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
 		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
 	}}
 
@@ -866,7 +866,7 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 func TestNode_BroadcastBlockShouldWorkWithOneShard(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
 		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
 	}}
 	_ = n.ApplyOptions(
@@ -894,7 +894,7 @@ func TestNode_BroadcastBlockShouldWorkWithOneShard(t *testing.T) {
 func TestNode_BroadcastBlockShouldWorkMultiShard(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
 		return make(map[uint32][]byte, 0), make(map[uint32][][]byte, 1), nil
 	}}
 	_ = n.ApplyOptions(
