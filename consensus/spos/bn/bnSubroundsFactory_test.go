@@ -27,7 +27,7 @@ func extend(subroundId int) {
 	fmt.Println(subroundId)
 }
 
-func initWorker() spos.WorkerHandler {
+func initWorker() *mock.SposWorkerMock {
 	sposWorker := &mock.SposWorkerMock{}
 	sposWorker.GetConsensusStateChangedChannelsCalled = func() chan bool {
 		return make(chan bool)
@@ -60,12 +60,18 @@ func initFactory() bn.Factory {
 
 func initFactoryWithConsensusStateChangedChannelNil() bn.Factory {
 	container := mock.InitConsensusCore()
-	factory := *initFactoryWithContainer(container)
-	factory.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+	worker := initWorker()
+	worker.GetConsensusStateChangedChannelsCalled = func() chan bool {
 		return nil
 	}
 
-	return &factory
+	consensusState := initConsensusState()
+	fct, _ := bn.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+	)
+	return fct
 }
 
 func TestFactory_GetMessageTypeName(t *testing.T) {
