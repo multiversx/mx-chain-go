@@ -12,10 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func sendMessage(cnsMsg *consensus.Message) {
-	fmt.Println(cnsMsg.Signature)
-}
-
 func sendConsensusMessage(cnsMsg *consensus.Message) bool {
 	fmt.Println(cnsMsg)
 	return true
@@ -60,6 +56,16 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bn.Factory {
 func initFactory() bn.Factory {
 	container := mock.InitConsensusCore()
 	return initFactoryWithContainer(container)
+}
+
+func initFactoryWithConsensusStateChangedChannelNil() bn.Factory {
+	container := mock.InitConsensusCore()
+	factory := *initFactoryWithContainer(container)
+	factory.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+		return nil
+	}
+
+	return &factory
 }
 
 func TestFactory_GetMessageTypeName(t *testing.T) {
@@ -346,10 +352,7 @@ func TestFactory_NewFactoryShouldWork(t *testing.T) {
 func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
-		return nil
-	}
+	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateStartRoundSubround()
 
@@ -371,10 +374,7 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundStartRoundFa
 func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
-		return nil
-	}
+	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateBlockSubround()
 
@@ -396,10 +396,7 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *test
 func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
-		return nil
-	}
+	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateCommitmentHashSubround()
 
@@ -421,10 +418,7 @@ func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundCommitme
 func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
-		return nil
-	}
+	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateBitmapSubround()
 
@@ -446,10 +440,7 @@ func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundBitmapFail(t *te
 func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
-		return nil
-	}
+	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateCommitmentSubround()
 
@@ -471,10 +462,7 @@ func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundCommitmentFa
 func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
-		return nil
-	}
+	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateSignatureSubround()
 
@@ -496,10 +484,7 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail
 func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
-		return nil
-	}
+	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateEndRoundSubround()
 
