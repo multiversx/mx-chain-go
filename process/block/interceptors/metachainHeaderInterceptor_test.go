@@ -23,6 +23,7 @@ func TestNewMetachainHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		nil,
 		metachainHeaders,
+		nil,
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -41,6 +42,7 @@ func TestNewMetachainHeaderInterceptor_NilMetachainHeadersShouldErr(t *testing.T
 
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
+		nil,
 		nil,
 		metachainStorer,
 		mock.NewMultiSigner(),
@@ -62,6 +64,7 @@ func TestNewMetachainHeaderInterceptor_NilMetachainStorerShouldErr(t *testing.T)
 		&mock.MarshalizerMock{},
 		metachainHeaders,
 		nil,
+		nil,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -81,6 +84,7 @@ func TestNewMetachainHeaderInterceptor_NilMultiSignerShouldErr(t *testing.T) {
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
+		nil,
 		metachainStorer,
 		nil,
 		mock.HasherMock{},
@@ -101,6 +105,7 @@ func TestNewMetachainHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
+		nil,
 		metachainStorer,
 		mock.NewMultiSigner(),
 		nil,
@@ -121,6 +126,7 @@ func TestNewMetachainHeaderInterceptor_NilShardCoordinatorShouldErr(t *testing.T
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
+		nil,
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -141,6 +147,7 @@ func TestNewMetachainHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
+		nil,
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -163,6 +170,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t 
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
+		nil,
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -182,6 +190,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilDataToProcessShould
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
+		nil,
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -208,6 +217,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnm
 			},
 		},
 		metachainHeaders,
+		nil,
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -237,6 +247,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShoul
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		marshalizer,
 		metachainHeaders,
+		nil,
 		metachainStorer,
 		multisigner,
 		mock.HasherMock{},
@@ -274,6 +285,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		marshalizer,
 		metachainHeaders,
+		nil,
 		metachainStorer,
 		multisigner,
 		mock.HasherMock{},
@@ -329,6 +341,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		marshalizer,
 		metachainHeaders,
+		nil,
 		metachainStorer,
 		multisigner,
 		mock.HasherMock{},

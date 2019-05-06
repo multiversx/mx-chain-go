@@ -19,7 +19,6 @@ func TestNewShardedDataPool_NilTransactionsShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
-		&mock.CacherStub{},
 	)
 
 	assert.Equal(t, data.ErrNilTxDataPool, err)
@@ -31,7 +30,6 @@ func TestNewShardedDataPool_NilHeadersShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		nil,
 		&mock.Uint64CacherStub{},
-		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
@@ -49,7 +47,6 @@ func TestNewShardedDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
-		&mock.CacherStub{},
 	)
 
 	assert.Equal(t, data.ErrNilHeadersNoncesDataPool, err)
@@ -62,7 +59,6 @@ func TestNewShardedDataPool_NilTxBlocksShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
 		nil,
-		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 	)
@@ -79,7 +75,6 @@ func TestNewShardedDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		nil,
 		&mock.CacherStub{},
-		&mock.CacherStub{},
 	)
 
 	assert.Equal(t, data.ErrNilPeerChangeBlockDataPool, err)
@@ -91,7 +86,6 @@ func TestNewShardedDataPool_NilMetaBlocksShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
-		&mock.CacherStub{},
 		&mock.CacherStub{},
 		nil,
 		&mock.CacherStub{},
@@ -108,15 +102,13 @@ func TestNewShardedDataPool_OkValsShouldWork(t *testing.T) {
 	txBlocks := &mock.CacherStub{}
 	peersBlock := &mock.CacherStub{}
 	metaChainBlocks := &mock.CacherStub{}
-	headerStatistics := &mock.CacherStub{}
 	tdp, err := dataPool.NewShardedDataPool(
 		transactions,
 		headers,
 		headerNonces,
 		txBlocks,
 		peersBlock,
-		metaChainBlocks,
-		headerStatistics)
+		metaChainBlocks)
 
 	assert.Nil(t, err)
 	//pointer checking

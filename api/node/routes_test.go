@@ -337,7 +337,8 @@ func TestStatistics_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 
 func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	nrOfShards := uint32(10)
-	benchmark, _ := statistics.NewTPSBenchmark(nrOfShards, &mock.CacherStub{})
+	roundTime := uint64(4)
+	benchmark, _ := statistics.NewTPSBenchmark(nrOfShards,roundTime)
 
 	facade := mock.Facade{}
 	facade.TpsBenchmarkHandler = func() *statistics.TpsBenchmark {

@@ -20,11 +20,11 @@ type Handler interface {
 }
 
 type statisticsResponse struct {
-	LiveTPS float32 `json:"liveTPS"`
-	PeakTPS float32 `json:"peakTPS"`
+	LiveTPS float64 `json:"liveTPS"`
+	PeakTPS float64 `json:"peakTPS"`
 	NrOfShards uint32 `json:"nrOfShards"`
 	BlockNumber uint64 `json:"blockNumber"`
-	RoundTime uint32 `json:"roundTime"`
+	RoundTime uint64 `json:"roundTime"`
 	AverageBlockTxCount float32 `json:"averageBlockTxCount"`
 	LastBlockTxCount uint32 `json:"lastBlockTxCount"`
 	TotalProcessedTxCount uint32 `json:"totalProcessedTxCount"`
@@ -33,9 +33,9 @@ type statisticsResponse struct {
 
 type shardStatisticsResponse struct {
 	ShardID uint32 `json:"shardID"`
-	LiveTPS float32 `json:"liveTPS"`
-	AverageTPS float32 `json:"averageTPS"`
-	PeakTPS float32 `json:"peakTPS"`
+	LiveTPS float64 `json:"liveTPS"`
+	AverageTPS float64 `json:"averageTPS"`
+	PeakTPS float64 `json:"peakTPS"`
 	AverageBlockTxCount uint32 `json:"averageBlockTxCount"`
 	CurrentBlockNonce uint64 `json:"currentBlockNonce"`
 	LastBlockTxCount uint32 `json:"lastBlockTxCount"`

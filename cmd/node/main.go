@@ -452,7 +452,10 @@ func createNode(
 		return nil, nil, err
 	}
 
-	tpsBenchmark := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration)
+	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(

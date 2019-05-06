@@ -94,7 +94,6 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 	metaPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
 	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
-	headerStatistics, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
@@ -103,7 +102,6 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaPool,
-		headerStatistics,
 	)
 
 	return dPool
@@ -172,6 +170,7 @@ func createNetNode(port int,
 		dPool,
 		addrConverter,
 		&mock.ChronologyValidatorMock{},
+		nil,
 	)
 	interceptorsContainer, _ := interceptorContainerFactory.Create()
 
