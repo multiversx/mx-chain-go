@@ -71,23 +71,8 @@ var ErrNilAddressContainer = errors.New("nil AddressContainer")
 // ErrEmptyAddress defines the error when trying to work with an empty address
 var ErrEmptyAddress = errors.New("empty Address")
 
-// ErrNilAccount defines the error when trying to work with a nil account
-var ErrNilAccount = errors.New("nil Account")
-
-// ErrNilSimpleAccountWrapper defines the error when trying to work with a nil account wrapper
-var ErrNilSimpleAccountWrapper = errors.New("nil SimpleAccountWrapper")
-
-// ErrNilTrackableAccountWrapper defines the error when trying to work with a nil account wrapper
-var ErrNilTrackableAccountWrapper = errors.New("nil TrackableAccountWrapper")
-
-// ErrNilJurnalizingAccountWrapper defines the error when trying to work with a nil account wrapper
-var ErrNilJurnalizingAccountWrapper = errors.New("nil JurnalizingAccountWrapper")
-
-// ErrNilDataTrie defines the error when trying to search a data key on an uninitialized trie
-var ErrNilDataTrie = errors.New("nil data trie for account or data trie not loaded")
-
 // ErrNilTrie signals that a trie is nil and no operation can be made
-var ErrNilTrie = errors.New("attempt to search on a nil trie")
+var ErrNilTrie = errors.New("trie is nil")
 
 // ErrNilValue signals that an operation has been attempted to or with a nil value
 var ErrNilValue = errors.New("nil value")
@@ -104,8 +89,32 @@ var ErrNilMarshalizer = errors.New("nil marshalizer")
 // ErrNegativeValue signals that an operation has been attempted with a negative value
 var ErrNegativeValue = errors.New("negative values are not permited")
 
-// ErrNotSupportedAccountsRegistration signals an operation not supported on simple, non registration account
-var ErrNotSupportedAccountsRegistration = errors.New("operation not supported on a non registration account")
+// ErrNilAccountFactory signals that a nil account factory was provided
+var ErrNilAccountFactory = errors.New("account factory is nil")
 
-// ErrTrimOperationNotSupported signals an invalid trim operation on an empty slice
-var ErrTrimOperationNotSupported = errors.New("trim operation not supported on an empty slice")
+// ErrNilAccountTracker signals that a nil account tracker has been provided
+var ErrNilAccountTracker = errors.New("nil account tracker provided")
+
+// ErrNilUpdater signals that a nil updater has been provided
+var ErrNilUpdater = errors.New("updater is nil")
+
+// ErrNilAccountHandler signals that a nil account wrapper was provided
+var ErrNilAccountHandler = errors.New("account wrapper is nil")
+
+// ErrNilOrEmptyKey signals that key empty key was provided
+var ErrNilOrEmptyKey = errors.New("key is empty or nil")
+
+// ErrNilShardCoordinator signals that nil shard coordinator was provided
+var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
+
+// ErrWrongTypeAssertion signals that a wrong type assertion occurred
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilTrackableDataTrie signals that a nil trackable data trie has been provided
+var ErrNilTrackableDataTrie = errors.New("nil trackable data trie")
+
+// ErrNilCode signals that a nil code was provided
+var ErrNilCode = errors.New("nil smart contract code")
+
+// ErrAccNotFound signals that account was not found in state trie
+var ErrAccNotFound = errors.New("account was not found")

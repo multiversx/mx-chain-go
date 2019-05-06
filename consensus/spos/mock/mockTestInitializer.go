@@ -28,11 +28,8 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
-	blockProcessorMock.GetRootHashCalled = func() []byte {
-		return []byte{}
-	}
-	blockProcessorMock.CreateBlockHeaderCalled = func(body data.BodyHandler) (header data.HeaderHandler, e error) {
-		return &block.Header{RootHash: blockProcessorMock.GetRootHashCalled()}, nil
+	blockProcessorMock.CreateBlockHeaderCalled = func(body data.BodyHandler, round int32, haveTime func() bool) (header data.HeaderHandler, e error) {
+		return &block.Header{RootHash: []byte{}}, nil
 	}
 	return blockProcessorMock
 }
@@ -85,13 +82,23 @@ func InitKeys() (*KeyGenMock, *PrivateKeyMock, *PublicKeyMock) {
 
 func InitConsensusCore() *ConsensusCoreMock {
 
-	blockChain := &BlockChainMock{}
+	blockChain := &BlockChainMock{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
 	blockProcessorMock := InitBlockProcessorMock()
 	bootstraperMock := &BootstraperMock{}
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
 	hasherMock := HasherMock{}
 	marshalizerMock := MarshalizerMock{}
+	blsPrivateKeyMock := &PrivateKeyMock{}
+	blsSingleSignerMock := &SingleSignerMock{
+		SignStub: func(private crypto.PrivateKey, msg []byte) (bytes []byte, e error) {
+			return make([]byte, 0), nil
+		},
+	}
 	multiSignerMock := InitMultiSignerMock()
 	rounderMock := &RounderMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
@@ -105,6 +112,8 @@ func InitConsensusCore() *ConsensusCoreMock {
 		chronologyHandlerMock,
 		hasherMock,
 		marshalizerMock,
+		blsPrivateKeyMock,
+		blsSingleSignerMock,
 		multiSignerMock,
 		rounderMock,
 		shardCoordinatorMock,

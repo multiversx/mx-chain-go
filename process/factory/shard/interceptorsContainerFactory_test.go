@@ -59,9 +59,11 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.PeerChangesBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
-
 	pools.MetaBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
+	}
+	pools.MetaHeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
+		return &mock.Uint64CacherStub{}
 	}
 
 	return pools

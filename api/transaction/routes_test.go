@@ -113,6 +113,39 @@ func TestGenerateAndSendMultipleTransaction_WithParametersShouldReturnNoError(t 
 	assert.Equal(t, fmt.Sprintf("%d", txCount), multipleTransactionResponse.Message)
 }
 
+func TestGenerateAndSendMultipleTransactionOneByOne_WithParametersShouldReturnNoError(t *testing.T) {
+	t.Parallel()
+	receiver := "multipleReceiver"
+	value := big.NewInt(5)
+	txCount := 10
+
+	facade := mock.Facade{
+		GenerateAndSendBulkTransactionsOneByOneHandler: func(receiver string, value *big.Int,
+			txCount uint64) error {
+			return nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	jsonStr := fmt.Sprintf(
+		`{"receiver":"%s",`+
+			`"value":%s,`+
+			`"txCount":%d}`, receiver, value, txCount)
+
+	req, _ := http.NewRequest("POST", "/transaction/generate-and-send-multiple-one-by-one", bytes.NewBuffer([]byte(jsonStr)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	multipleTransactionResponse := GeneralResponse{}
+	loadResponse(resp.Body, &multipleTransactionResponse)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "", multipleTransactionResponse.Error)
+	assert.Equal(t, fmt.Sprintf("%d", txCount), multipleTransactionResponse.Message)
+}
+
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"

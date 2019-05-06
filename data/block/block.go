@@ -370,8 +370,8 @@ func (h *Header) GetSignature() []byte {
 	return h.Signature
 }
 
-// GetTimestamp returns the time stamp
-func (h *Header) GetTimestamp() uint64 {
+// GetTimeStamp returns the time stamp
+func (h *Header) GetTimeStamp() uint64 {
 	return h.TimeStamp
 }
 

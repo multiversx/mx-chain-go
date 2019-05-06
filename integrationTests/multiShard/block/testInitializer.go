@@ -21,6 +21,7 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
@@ -52,7 +53,7 @@ import (
 var r *rand.Rand
 var testHasher = sha256.Sha256{}
 var testMarshalizer = &marshal.JsonMarshalizer{}
-var testAddressConverter, _ = state.NewPlainAddressConverter(32, "0x")
+var testAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 var testMultiSig = mock.NewMultiSigner()
 
 func init() {
@@ -128,6 +129,8 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
 	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
@@ -139,6 +142,7 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
+		metaHdrNonces,
 	)
 
 	return dPool
@@ -147,7 +151,11 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 func createAccountsDB() *state.AccountsDB {
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer)
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer, &mock.AccountsFactoryStub{
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
+			return state.NewAccount(address, tracker)
+		},
+	})
 	return adb
 }
 
@@ -225,7 +233,7 @@ func createNetNode(
 		shardCoordinator,
 	)
 
-	blockProcessor, _ := block.NewBlockProcessor(
+	blockProcessor, _ := block.NewShardProcessor(
 		dPool,
 		store,
 		testHasher,
@@ -299,7 +307,7 @@ func createMessengerWithKadDht(ctx context.Context, port int, initialAddr string
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, err := libp2p.NewNetworkMessenger(
+	libP2PMes, _, err := libp2p.NewNetworkMessengerWithPortSweep(
 		ctx,
 		port,
 		sk,

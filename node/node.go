@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	gosync "sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
@@ -70,8 +69,10 @@ type Node struct {
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
+	blsPrivateKey    crypto.PrivateKey
 	singleSignKeyGen crypto.KeyGenerator
 	singlesig        crypto.SingleSigner
+	blsSinglesig     crypto.SingleSigner
 	multisig         crypto.MultiSigner
 	forkDetector     process.ForkDetector
 
@@ -253,6 +254,8 @@ func (n *Node) StartConsensus() error {
 		chronologyHandler,
 		n.hasher,
 		n.marshalizer,
+		n.blsPrivateKey,
+		n.blsSinglesig,
 		n.multisig,
 		n.rounder,
 		n.shardCoordinator,
@@ -294,129 +297,21 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 	if err != nil {
 		return nil, errors.New("invalid address, could not decode from hex: " + err.Error())
 	}
-	account, err := n.accounts.GetExistingAccount(address)
+	accWrp, err := n.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
-	if account == nil {
+	if accWrp == nil {
 		return big.NewInt(0), nil
 	}
 
-	return account.BaseAccount().Balance, nil
-}
-
-// GenerateAndSendBulkTransactions is a method for generating and propagating a set
-// of transactions to be processed. It is mainly used for demo purposes
-func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTx uint64) error {
-	if noOfTx == 0 {
-		return errors.New("can not generate and broadcast 0 transactions")
+	account, ok := accWrp.(*state.Account)
+	if !ok {
+		return big.NewInt(0), nil
 	}
 
-	if n.publicKey == nil {
-		return ErrNilPublicKey
-	}
-
-	if n.singlesig == nil {
-		return ErrNilSingleSig
-	}
-
-	senderAddressBytes, err := n.publicKey.ToByteArray()
-	if err != nil {
-		return err
-	}
-
-	if n.addrConverter == nil {
-		return ErrNilAddressConverter
-	}
-	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddressBytes)
-	if err != nil {
-		return err
-	}
-
-	if n.shardCoordinator == nil {
-		return ErrNilShardCoordinator
-	}
-	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
-	fmt.Printf("Sender shard Id: %d\n", senderShardId)
-
-	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
-	if err != nil {
-		return errors.New("could not create receiver address from provided param: " + err.Error())
-	}
-
-	if n.accounts == nil {
-		return ErrNilAccountsAdapter
-	}
-	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
-	if err != nil {
-		return errors.New("could not fetch sender account from provided param: " + err.Error())
-	}
-	newNonce := uint64(0)
-	if senderAccount != nil {
-		newNonce = senderAccount.BaseAccount().Nonce
-	}
-
-	wg := gosync.WaitGroup{}
-	wg.Add(int(noOfTx))
-
-	mutTransactions := gosync.RWMutex{}
-	transactions := make([][]byte, 0)
-
-	mutErrFound := gosync.Mutex{}
-	var errFound error
-
-	for nonce := newNonce; nonce < newNonce+noOfTx; nonce++ {
-		go func(crtNonce uint64) {
-			_, signedTxBuff, err := n.generateAndSignTx(
-				crtNonce,
-				value,
-				receiverAddress.Bytes(),
-				senderAddressBytes,
-				nil,
-			)
-
-			if err != nil {
-				mutErrFound.Lock()
-				errFound = errors.New(fmt.Sprintf("failure generating transaction %d: %s", crtNonce, err.Error()))
-				mutErrFound.Unlock()
-
-				wg.Done()
-				return
-			}
-
-			mutTransactions.Lock()
-			transactions = append(transactions, signedTxBuff)
-			mutTransactions.Unlock()
-			wg.Done()
-		}(nonce)
-	}
-
-	wg.Wait()
-
-	if errFound != nil {
-		return errFound
-	}
-
-	if len(transactions) != int(noOfTx) {
-		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTx))
-	}
-
-	//the topic identifier is made of the current shard id and sender's shard id
-	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
-	fmt.Printf("Identifier: %s\n", identifier)
-
-	for i := 0; i < len(transactions); i++ {
-		//TODO optimize this to send bulk transactions
-		// This should be made in future subtasks belonging to EN-1520 story
-		n.messenger.BroadcastOnChannel(
-			SendTransactionsPipe,
-			identifier,
-			transactions[i],
-		)
-	}
-
-	return nil
+	return account.Balance, nil
 }
 
 // createChronologyHandler method creates a chronology object
@@ -462,8 +357,8 @@ func (n *Node) createMetaChainBootstraper(rounder consensus.Rounder) (process.Bo
 	// TODO make sure metachain blockprocessor is used here in constructor
 	// TODO make sure metachain is used here as blockchain
 	// TODO make sure metachain store is used here as store
-	// TODO make sure accounts merkle tree is for metachain state
 
+	// accounts are good, as it is initialized at main with account factory according to shard coordinator
 	bootstrap, err := sync.NewMetaBootstrap(
 		n.metaDataPool,
 		n.store,
@@ -575,90 +470,6 @@ func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor, shard
 	return n.messenger.RegisterMessageProcessor(n.consensusTopic, messageProcessor)
 }
 
-func (n *Node) generateAndSignTx(
-	nonce uint64,
-	value *big.Int,
-	rcvAddrBytes []byte,
-	sndAddrBytes []byte,
-	dataBytes []byte,
-) (*transaction.Transaction, []byte, error) {
-
-	tx := transaction.Transaction{
-		Nonce:   nonce,
-		Value:   value,
-		RcvAddr: rcvAddrBytes,
-		SndAddr: sndAddrBytes,
-		Data:    dataBytes,
-	}
-
-	if n.marshalizer == nil {
-		return nil, nil, ErrNilMarshalizer
-	}
-
-	if n.privateKey == nil {
-		return nil, nil, ErrNilPrivateKey
-	}
-
-	marshalizedTx, err := n.marshalizer.Marshal(&tx)
-	if err != nil {
-		return nil, nil, errors.New("could not marshal transaction")
-	}
-
-	sig, err := n.singlesig.Sign(n.privateKey, marshalizedTx)
-	if err != nil {
-		return nil, nil, errors.New("could not sign the transaction")
-	}
-	tx.Signature = sig
-	txBuff, err := n.marshalizer.Marshal(&tx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	signedMarshalizedTx, err := n.marshalizer.Marshal([][]byte{txBuff})
-	if err != nil {
-		return nil, nil, errors.New("could not marshal signed transaction")
-	}
-
-	return &tx, signedMarshalizedTx, nil
-}
-
-//GenerateTransaction generates a new transaction with sender, receiver, amount and code
-func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *big.Int, transactionData string) (*transaction.Transaction, error) {
-	if n.addrConverter == nil || n.accounts == nil {
-		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
-	}
-
-	if n.privateKey == nil {
-		return nil, errors.New("initialize PrivateKey first")
-	}
-
-	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
-	if err != nil {
-		return nil, errors.New("could not create receiver address from provided param")
-	}
-	senderAddress, err := n.addrConverter.CreateAddressFromHex(senderHex)
-	if err != nil {
-		return nil, errors.New("could not create sender address from provided param")
-	}
-	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
-	if err != nil {
-		return nil, errors.New("could not fetch sender address from provided param")
-	}
-	newNonce := uint64(0)
-	if senderAccount != nil {
-		newNonce = senderAccount.BaseAccount().Nonce
-	}
-
-	tx, _, err := n.generateAndSignTx(
-		newNonce,
-		value,
-		receiverAddress.Bytes(),
-		senderAddress.Bytes(),
-		[]byte(transactionData))
-
-	return tx, err
-}
-
 // SendTransaction will send a new transaction on the topic channel
 func (n *Node) SendTransaction(
 	nonce uint64,
@@ -668,18 +479,20 @@ func (n *Node) SendTransaction(
 	transactionData string,
 	signature []byte) (*transaction.Transaction, error) {
 
+	if n.shardCoordinator == nil {
+		return nil, ErrNilShardCoordinator
+	}
+
 	sender, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {
 		return nil, err
 	}
+
 	receiver, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
 		return nil, err
 	}
 
-	if n.shardCoordinator == nil {
-		return nil, ErrNilShardCoordinator
-	}
 	senderShardId := n.shardCoordinator.ComputeId(sender)
 
 	tx := transaction.Transaction{
@@ -690,6 +503,7 @@ func (n *Node) SendTransaction(
 		Data:      []byte(transactionData),
 		Signature: signature,
 	}
+
 	txBuff, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, err
@@ -736,11 +550,18 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 	if err != nil {
 		return nil, errors.New("could not create address object from provided string")
 	}
-	account, err := n.accounts.GetExistingAccount(addr)
+
+	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param")
 	}
-	return account.BaseAccount(), nil
+
+	account, ok := accWrp.(*state.Account)
+	if !ok {
+		return nil, errors.New("account is not of type with balance and nonce")
+	}
+
+	return account, nil
 }
 
 func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
@@ -850,7 +671,7 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 }
 
 // createMetaBlockFromBlockHeader func will be deleted when metachain will be fully implemented as its functionality
-// will be fdone by metachain nodes
+// will be done by metachain nodes
 //TODO - delete this func when metachain is fully implemented
 func (n *Node) createMetaBlockFromBlockHeader(hdrHandler data.HeaderHandler, hdrBuff []byte) ([]byte, error) {
 	hdr, ok := hdrHandler.(*block.Header)
@@ -864,13 +685,13 @@ func (n *Node) createMetaBlockFromBlockHeader(hdrHandler data.HeaderHandler, hdr
 		Epoch:         hdr.Epoch,
 		Nonce:         hdr.Nonce,
 		PeerInfo:      make([]block.PeerData, 0),
-		PreviousHash:  hdr.PrevHash,
+		PrevHash:      hdr.PrevHash,
 		PrevRandSeed:  hdr.PrevRandSeed,
 		PubKeysBitmap: hdr.PubKeysBitmap,
 		RandSeed:      hdr.RandSeed,
 		Round:         hdr.Round,
 		Signature:     hdr.Signature,
-		StateRootHash: hdr.RootHash,
+		RootHash:      hdr.RootHash,
 		TimeStamp:     hdr.TimeStamp,
 		TxCount:       hdr.TxCount,
 		ShardInfo: []block.ShardData{

@@ -2,7 +2,9 @@ package interceptors_test
 
 import (
 	"bytes"
+	"sync"
 	"testing"
+	"time"
 
 	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -11,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/stretchr/testify/assert"
 )
+
+var durTimeout = time.Duration(time.Second)
 
 //------- NewHeaderInterceptor
 
@@ -126,7 +130,9 @@ func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.
 func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) {
 	t.Parallel()
 
-	wasCalled := 0
+	chanDone := make(chan struct{}, 1)
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
 	testedNonce := uint64(67)
 	marshalizer := &mock.MarshalizerMock{}
 	headers := &mock.CacherStub{}
@@ -140,7 +146,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
 		if u == testedNonce {
-			wasCalled++
+			wg.Done()
 		}
 
 		return
@@ -182,19 +188,28 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	headers.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
 		if bytes.Equal(aaaHash, key) {
-			wasCalled++
+			wg.Done()
 		}
 		return false, false
 	}
 
+	go func() {
+		wg.Wait()
+		chanDone <- struct{}{}
+	}()
+
 	assert.Nil(t, hi.ProcessReceivedMessage(msg))
-	assert.Equal(t, 2, wasCalled)
+	select {
+	case <-chanDone:
+	case <-time.After(durTimeout):
+		assert.Fail(t, "timeout while waiting for block to be inserted in the pool")
+	}
 }
 
 func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	wasCalled := 0
+	chanDone := make(chan struct{}, 10)
 	testedNonce := uint64(67)
 	marshalizer := &mock.MarshalizerMock{}
 	headers := &mock.CacherStub{}
@@ -208,7 +223,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
 		if u == testedNonce {
-			wasCalled++
+			chanDone <- struct{}{}
 		}
 
 		return
@@ -251,19 +266,23 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 	headers.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
 		if bytes.Equal(aaaHash, key) {
-			wasCalled++
+			chanDone <- struct{}{}
 		}
 		return false, false
 	}
 
 	assert.Nil(t, hi.ProcessReceivedMessage(msg))
-	assert.Equal(t, 0, wasCalled)
+	select {
+	case <-chanDone:
+		assert.Fail(t, "should have not add block in pool")
+	case <-time.After(durTimeout):
+	}
 }
 
 func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	wasCalled := 0
+	chanDone := make(chan struct{}, 10)
 	testedNonce := uint64(67)
 	marshalizer := &mock.MarshalizerMock{}
 	headers := &mock.CacherStub{}
@@ -277,7 +296,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
 		if u == testedNonce {
-			wasCalled++
+			chanDone <- struct{}{}
 		}
 
 		return
@@ -322,11 +341,11 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 	headers.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
 		if bytes.Equal(aaaHash, key) {
-			wasCalled++
+			chanDone <- struct{}{}
 		}
 		return false, false
 	}
 
 	assert.Nil(t, hi.ProcessReceivedMessage(msg))
-	assert.Equal(t, 0, wasCalled)
+
 }

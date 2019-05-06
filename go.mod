@@ -27,6 +27,8 @@ require (
 	github.com/libp2p/go-libp2p-peerstore v0.0.1
 	github.com/libp2p/go-libp2p-protocol v0.0.1
 	github.com/libp2p/go-libp2p-pubsub v0.0.1
+	github.com/libp2p/go-libp2p-transport-upgrader v0.0.1
+	github.com/libp2p/go-tcp-transport v0.0.1
 	github.com/mr-tron/base58 v1.1.1
 	github.com/multiformats/go-multiaddr v0.0.2
 	github.com/multiformats/go-multistream v0.0.1

@@ -17,6 +17,10 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 		return nil, crypto.ErrNilPrivateKey
 	}
 
+	if msg == nil {
+		return nil, crypto.ErrNilMessage
+	}
+
 	scalar := private.Scalar()
 	if scalar == nil {
 		return nil, crypto.ErrNilPrivateKeyScalar
@@ -59,14 +63,14 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 		return crypto.ErrNilSuite
 	}
 
-	kSuite, ok := suite.GetUnderlyingSuite().(pairing.Suite)
-	if !ok {
-		return crypto.ErrInvalidSuite
-	}
-
 	point := public.Point()
 	if point == nil {
 		return crypto.ErrNilPublicKeyPoint
+	}
+
+	kSuite, ok := suite.GetUnderlyingSuite().(pairing.Suite)
+	if !ok {
+		return crypto.ErrInvalidSuite
 	}
 
 	kPoint, ok := point.GetUnderlyingObj().(kyber.Point)

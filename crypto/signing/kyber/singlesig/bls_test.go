@@ -10,9 +10,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
 	"github.com/stretchr/testify/assert"
+	"go.dedis.ch/kyber/v3/pairing"
 )
 
 func TestBLSSigner_SignNilPrivateKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
 	signature, err := signer.Sign(nil, msg)
@@ -22,6 +25,8 @@ func TestBLSSigner_SignNilPrivateKeyShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
+	t.Parallel()
+
 	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
@@ -44,6 +49,8 @@ func TestBLSSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
+	t.Parallel()
+
 	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
@@ -66,6 +73,8 @@ func TestBLSSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_SignInvalidScalarShouldErr(t *testing.T) {
+	t.Parallel()
+
 	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
@@ -88,6 +97,8 @@ func TestBLSSigner_SignInvalidScalarShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_SignInvalidSuiteShouldErr(t *testing.T) {
+	t.Parallel()
+
 	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
@@ -135,6 +146,8 @@ func signBLS(msg []byte, signer crypto.SingleSigner, t *testing.T) (
 }
 
 func TestBLSSigner_SignOK(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
 	pubKey, _, signature, err := signBLS(msg, signer, t)
@@ -145,6 +158,8 @@ func TestBLSSigner_SignOK(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyNilSuiteShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
 	pubKey, _, signature, err := signBLS(msg, signer, t)
@@ -163,6 +178,8 @@ func TestBLSSigner_VerifyNilSuiteShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyNilPublicKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
 	_, _, signature, err := signBLS(msg, signer, t)
@@ -173,6 +190,8 @@ func TestBLSSigner_VerifyNilPublicKeyShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyNilMessageShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
 	pubKey, _, signature, err := signBLS(msg, signer, t)
@@ -183,6 +202,8 @@ func TestBLSSigner_VerifyNilMessageShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyNilSignatureShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
 	pubKey, _, _, err := signBLS(msg, signer, t)
@@ -193,6 +214,8 @@ func TestBLSSigner_VerifyNilSignatureShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
 	pubKey, _, signature, err := signBLS(msg, signer, t)
@@ -217,6 +240,8 @@ func TestBLSSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
 	pubKey, _, signature, err := signBLS(msg, signer, t)
@@ -235,6 +260,8 @@ func TestBLSSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
 	pubKey, _, signature, err := signBLS(msg, signer, t)
@@ -253,6 +280,8 @@ func TestBLSSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
 }
 
 func TestBLSSigner_VerifyOK(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
 	pubKey, _, signature, err := signBLS(msg, signer, t)
@@ -260,4 +289,46 @@ func TestBLSSigner_VerifyOK(t *testing.T) {
 	err = signer.Verify(pubKey, msg, signature)
 
 	assert.Nil(t, err)
+}
+
+func TestBLSSigner_SignVerifyWithReconstructedPubKeyOK(t *testing.T) {
+	t.Parallel()
+
+	msg := []byte("message to be signed")
+	signer := &singlesig.BlsSingleSigner{}
+	pubKey, _, signature, err := signBLS(msg, signer, t)
+
+	pubKeyBytes, err := pubKey.Point().MarshalBinary()
+	assert.Nil(t, err)
+
+	// reconstruct publicKey
+	suite := kyber.NewSuitePairingBn256()
+	kg := signing.NewKeyGenerator(suite)
+	pubKey2, err := kg.PublicKeyFromByteArray(pubKeyBytes)
+	assert.Nil(t, err)
+
+	// reconstructed public key needs to match original
+	// and be able to verify
+	err = signer.Verify(pubKey2, msg, signature)
+
+	assert.Nil(t, err)
+}
+
+func TestBLSMarshalUnmarshal(t *testing.T) {
+	t.Parallel()
+
+	suite := pairing.NewSuiteBn256()
+	randStream := suite.RandomStream()
+
+	p := suite.Point().Pick(randStream)
+
+	pBytes, err := p.MarshalBinary()
+	assert.Nil(t, err)
+
+	p2 := suite.Point()
+	err = p2.UnmarshalBinary(pBytes)
+	assert.Nil(t, err)
+
+	assert.Nil(t, err)
+	assert.True(t, p.Equal(p2))
 }

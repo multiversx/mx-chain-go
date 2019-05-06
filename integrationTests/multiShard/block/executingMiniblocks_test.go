@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -26,7 +27,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	fmt.Println("Step 1. Setup nodes...")
 	numOfShards := 6
-	startingPort := 36000
+	startingPort := 20000
 	nodesPerShard := 3
 
 	senderShard := uint32(0)
@@ -100,8 +101,8 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	fmt.Println(makeDisplayTable(nodes))
 	for _, n := range nodes {
 		isNodeInSenderShardAndNotProposer := n.shardId == senderShard && n != proposerNode
-
 		if isNodeInSenderShardAndNotProposer {
+			n.blkc.SetGenesisHeaderHash(n.headers[0].GetPrevHash())
 			err := n.blkProcessor.ProcessBlock(
 				n.blkc,
 				n.headers[0],
@@ -167,6 +168,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 		if isNodeInReceiverShardAndNotProposer {
 			if len(n.headers) > 0 {
+				n.blkc.SetGenesisHeaderHash(n.headers[0].GetPrevHash())
 				err := n.blkProcessor.ProcessBlock(
 					n.blkc,
 					n.headers[0],
@@ -275,8 +277,8 @@ func createMintingForSenders(
 		for _, sk := range sendersPrivateKeys {
 			pkBuff, _ := sk.GeneratePublic().ToByteArray()
 			adr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
-			account, _ := n.accntState.GetJournalizedAccount(adr)
-			account.SetBalanceWithJournal(value)
+			account, _ := n.accntState.GetAccountWithJournal(adr)
+			account.(*state.Account).SetBalanceWithJournal(value)
 		}
 
 		n.accntState.Commit()
@@ -287,7 +289,7 @@ func testPrivateKeyHasBalance(t *testing.T, n *testNode, sk crypto.PrivateKey, e
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
 	addr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 	account, _ := n.accntState.GetExistingAccount(addr)
-	assert.Equal(t, expectedBalance, account.BaseAccount().Balance)
+	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
 }
 
 func proposeBlock(t *testing.T, proposer *testNode) (data.BodyHandler, data.HeaderHandler) {
@@ -295,8 +297,11 @@ func proposeBlock(t *testing.T, proposer *testNode) (data.BodyHandler, data.Head
 		return true
 	})
 	assert.Nil(t, err)
-	blockHeader, err := proposer.blkProcessor.CreateBlockHeader(blockBody)
+	blockHeader, err := proposer.blkProcessor.CreateBlockHeader(blockBody, 0, func() bool {
+		return true
+	})
 	assert.Nil(t, err)
+	blockHeader.SetNonce(1)
 	blockHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := testMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)

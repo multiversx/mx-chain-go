@@ -178,7 +178,17 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 }
 
 func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
-	hdr, err := sr.BlockProcessor().CreateBlockHeader(sr.BlockBody)
+	startTime := time.Time{}
+	startTime = sr.RoundTimeStamp
+	maxTime := time.Duration(sr.EndTime())
+	haveTimeInCurrentSubround := func() bool {
+		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
+	}
+
+	hdr, err := sr.BlockProcessor().CreateBlockHeader(
+		sr.BlockBody,
+		sr.Rounder().Index(),
+		haveTimeInCurrentSubround)
 	if err != nil {
 		return nil, err
 	}
@@ -186,20 +196,27 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	hdr.SetRound(uint32(sr.Rounder().Index()))
 	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 
+	var prevRandSeed []byte
 	if sr.Blockchain().GetCurrentBlockHeader() == nil {
 		hdr.SetNonce(1)
 		hdr.SetPrevHash(sr.Blockchain().GetGenesisHeaderHash())
-		// Previous random seed is the signature of the previous block
-		hdr.SetPrevRandSeed(sr.Blockchain().GetGenesisHeader().GetSignature())
+		hdr.SetPrevRandSeed(sr.Blockchain().GetGenesisHeader().GetRandSeed())
+
+		prevRandSeed = sr.Blockchain().GetGenesisHeader().GetRandSeed()
 	} else {
 		hdr.SetNonce(sr.Blockchain().GetCurrentBlockHeader().GetNonce() + 1)
 		hdr.SetPrevHash(sr.Blockchain().GetCurrentBlockHeaderHash())
-		// Previous random seed is the signature of the previous block
-		hdr.SetPrevRandSeed(sr.Blockchain().GetCurrentBlockHeader().GetSignature())
+
+		prevRandSeed = sr.Blockchain().GetCurrentBlockHeader().GetRandSeed()
+	}
+	randSeed, err := sr.BlsSingleSigner().Sign(sr.BlsPrivateKey(), prevRandSeed)
+	// Cannot propose block if unable to create random seed
+	if err != nil {
+		return nil, err
 	}
 
-	// currently for bnSPoS RandSeed field is not used
-	hdr.SetRandSeed([]byte{0})
+	hdr.SetRandSeed(randSeed)
+	log.Info(fmt.Sprintf("random seed for the next round is %s", toB64(randSeed)))
 
 	return hdr, nil
 }
@@ -281,13 +298,6 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 
 	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been received\n",
 		sr.SyncTimer().FormattedCurrentTime(), sr.Header.GetNonce(), toB64(cnsDta.BlockHeaderHash)))
-
-	if !sr.BlockProcessor().CheckBlockValidity(sr.Blockchain(), sr.Header, nil) {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, invalid block\n",
-			sr.Rounder().Index(), getSubroundName(SrBlock)))
-
-		return false
-	}
 
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 

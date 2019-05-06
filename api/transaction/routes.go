@@ -17,6 +17,7 @@ type TxService interface {
 	SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, code string, signature []byte) (*transaction.Transaction, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	GenerateAndSendBulkTransactions(string, *big.Int, uint64) error
+	GenerateAndSendBulkTransactionsOneByOne(string, *big.Int, uint64) error
 }
 
 // TxRequest represents the structure on which user input for generating a new transaction will validate against
@@ -57,6 +58,7 @@ type TxResponse struct {
 func Routes(router *gin.RouterGroup) {
 	router.POST("/generate", GenerateTransaction)
 	router.POST("/generate-and-send-multiple", GenerateAndSendBulkTransactions)
+	router.POST("/generate-and-send-multiple-one-by-one", GenerateAndSendBulkTransactionsOneByOne)
 	router.POST("/send", SendTransaction)
 	router.GET("/:txhash", GetTransaction)
 }
@@ -131,6 +133,30 @@ func GenerateAndSendBulkTransactions(c *gin.Context) {
 	}
 
 	err = ef.GenerateAndSendBulkTransactions(gtx.Receiver, gtx.Value, uint64(gtx.TxCount))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrMultipleTxGenerationFailed.Error(), err.Error())})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("%d", gtx.TxCount)})
+}
+
+// GenerateAndSendBulkTransactionsOneByOne generates multipleTransactions in a one-by-one fashion
+func GenerateAndSendBulkTransactionsOneByOne(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(TxService)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	var gtx = MultipleTxRequest{}
+	err := c.ShouldBindJSON(&gtx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		return
+	}
+
+	err = ef.GenerateAndSendBulkTransactionsOneByOne(gtx.Receiver, gtx.Value, uint64(gtx.TxCount))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrMultipleTxGenerationFailed.Error(), err.Error())})
 		return
