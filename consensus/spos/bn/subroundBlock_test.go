@@ -832,14 +832,16 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	sr := *initSubroundBlock(blockChain, container)
 	sr.BlockChain().SetCurrentBlockHeader(nil)
 	header, _ := sr.CreateHeader()
+	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
+	newRand, _ := sr.BlsSingleSigner().Sign(sr.BlsPrivateKey(), oldRand)
 	expectedHeader := &block.Header{
 		Round:            uint32(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
 		RootHash:         []byte{},
 		Nonce:            uint64(1),
 		PrevHash:         sr.BlockChain().GetGenesisHeaderHash(),
-		PrevRandSeed:     sr.BlockChain().GetGenesisHeader().GetSignature(),
-		RandSeed:         []byte{0},
+		PrevRandSeed:     sr.BlockChain().GetGenesisHeader().GetRandSeed(),
+		RandSeed:         newRand,
 		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
 	}
 
@@ -853,13 +855,16 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 		Nonce: 1,
 	})
 	header, _ := sr.CreateHeader()
+	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
+	newRand, _ := sr.BlsSingleSigner().Sign(sr.BlsPrivateKey(), oldRand)
+
 	expectedHeader := &block.Header{
 		Round:            uint32(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
 		RootHash:         []byte{},
 		Nonce:            uint64(sr.BlockChain().GetCurrentBlockHeader().GetNonce() + 1),
 		PrevHash:         sr.BlockChain().GetCurrentBlockHeaderHash(),
-		RandSeed:         []byte{0},
+		RandSeed:         newRand,
 		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
 	}
 
@@ -887,13 +892,16 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 	sr := *initSubroundBlockWithBlockProcessor(bp, container)
 	container.SetBlockchain(&blockChainMock)
 	header, _ := sr.CreateHeader()
+
+	oldRand := sr.BlockChain().GetCurrentBlockHeader().GetRandSeed()
+	newRand, _ := sr.BlsSingleSigner().Sign(sr.BlsPrivateKey(), oldRand)
 	expectedHeader := &block.Header{
 		Round:            uint32(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
 		RootHash:         []byte{},
 		Nonce:            uint64(sr.BlockChain().GetCurrentBlockHeader().GetNonce() + 1),
 		PrevHash:         sr.BlockChain().GetCurrentBlockHeaderHash(),
-		RandSeed:         []byte{0},
+		RandSeed:         newRand,
 		MiniBlockHeaders: mbHeaders,
 	}
 
