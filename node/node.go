@@ -69,8 +69,10 @@ type Node struct {
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
+	blsPrivateKey    crypto.PrivateKey
 	singleSignKeyGen crypto.KeyGenerator
 	singlesig        crypto.SingleSigner
+	blsSinglesig     crypto.SingleSigner
 	multisig         crypto.MultiSigner
 	forkDetector     process.ForkDetector
 
@@ -216,7 +218,13 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	worker, err := bn.NewWorker(
+	bnService, err := bn.NewConsensusService()
+	if err != nil {
+		return err
+	}
+
+	worker, err := spos.NewWorker(
+		bnService,
 		n.blockProcessor,
 		bootstraper,
 		consensusState,
@@ -226,6 +234,8 @@ func (n *Node) StartConsensus() error {
 		n.rounder,
 		n.shardCoordinator,
 		n.singlesig,
+		n.BroadcastBlock,
+		n.sendMessage,
 	)
 	if err != nil {
 		return err
@@ -235,9 +245,6 @@ func (n *Node) StartConsensus() error {
 	if err != nil {
 		return err
 	}
-
-	worker.SendMessage = n.sendMessage
-	worker.BroadcastBlock = n.BroadcastBlock
 
 	validatorGroupSelector, err := n.createValidatorGroupSelector()
 
@@ -252,6 +259,8 @@ func (n *Node) StartConsensus() error {
 		chronologyHandler,
 		n.hasher,
 		n.marshalizer,
+		n.blsPrivateKey,
+		n.blsSinglesig,
 		n.multisig,
 		n.rounder,
 		n.shardCoordinator,
@@ -262,7 +271,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := bn.NewFactory(
+	fct, err := bn.NewSubroundsFactory(
 		consensusDataContainer,
 		consensusState,
 		worker,
@@ -293,16 +302,21 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 	if err != nil {
 		return nil, errors.New("invalid address, could not decode from hex: " + err.Error())
 	}
-	account, err := n.accounts.GetExistingAccount(address)
+	accWrp, err := n.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
-	if account == nil {
+	if accWrp == nil {
 		return big.NewInt(0), nil
 	}
 
-	return account.BaseAccount().Balance, nil
+	account, ok := accWrp.(*state.Account)
+	if !ok {
+		return big.NewInt(0), nil
+	}
+
+	return account.Balance, nil
 }
 
 // createChronologyHandler method creates a chronology object
@@ -348,8 +362,8 @@ func (n *Node) createMetaChainBootstraper(rounder consensus.Rounder) (process.Bo
 	// TODO make sure metachain blockprocessor is used here in constructor
 	// TODO make sure metachain is used here as blockchain
 	// TODO make sure metachain store is used here as store
-	// TODO make sure accounts merkle tree is for metachain state
 
+	// accounts are good, as it is initialized at main with account factory according to shard coordinator
 	bootstrap, err := sync.NewMetaBootstrap(
 		n.metaDataPool,
 		n.store,
@@ -470,18 +484,20 @@ func (n *Node) SendTransaction(
 	transactionData string,
 	signature []byte) (*transaction.Transaction, error) {
 
+	if n.shardCoordinator == nil {
+		return nil, ErrNilShardCoordinator
+	}
+
 	sender, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {
 		return nil, err
 	}
+
 	receiver, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
 		return nil, err
 	}
 
-	if n.shardCoordinator == nil {
-		return nil, ErrNilShardCoordinator
-	}
 	senderShardId := n.shardCoordinator.ComputeId(sender)
 
 	tx := transaction.Transaction{
@@ -492,6 +508,7 @@ func (n *Node) SendTransaction(
 		Data:      []byte(transactionData),
 		Signature: signature,
 	}
+
 	txBuff, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, err
@@ -538,11 +555,18 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 	if err != nil {
 		return nil, errors.New("could not create address object from provided string")
 	}
-	account, err := n.accounts.GetExistingAccount(addr)
+
+	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param")
 	}
-	return account.BaseAccount(), nil
+
+	account, ok := accWrp.(*state.Account)
+	if !ok {
+		return nil, errors.New("account is not of type with balance and nonce")
+	}
+
+	return account, nil
 }
 
 func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
@@ -585,7 +609,7 @@ func (n *Node) sendMessage(cnsDta *consensus.Message) {
 		cnsDtaBuff)
 }
 
-// BroadcastBlock will send on intra shard topics the header and block body and on cross shard topics
+// broadcastBlock will send on intra shard topics the header and block body and on cross shard topics
 // the miniblocks. This func needs to be exported as it is tested in integrationTests package.
 // TODO: investigate if the body block needs to be sent on intra shard topic as each miniblock is already sent on cross
 //  shard topics

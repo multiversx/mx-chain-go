@@ -63,7 +63,7 @@ func TestStart_CorrectParams(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	err := n.Start()
 	defer func() { _ = n.Stop() }()
@@ -80,7 +80,7 @@ func TestStart_CorrectParamsApplyingOptions(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 
 	logError(err)
@@ -156,7 +156,7 @@ func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
 	_, err := n.GetBalance("address")
@@ -206,8 +206,8 @@ func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 
-	accAdapter := mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+	accAdapter := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
 			return nil, errors.New("error")
 		},
 	}
@@ -244,8 +244,8 @@ func createDummyHexAddress(chars int) string {
 
 func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 
-	accAdapter := mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+	accAdapter := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
 			return nil, nil
 		},
 	}
@@ -287,7 +287,7 @@ func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
 	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
@@ -312,7 +312,7 @@ func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
 	assert.NotNil(t, err)
@@ -336,9 +336,9 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 
 func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 
-	accAdapter := mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
-			return nil, errors.New("error")
+	accAdapter := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
+			return nil, nil
 		},
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
@@ -349,6 +349,7 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
+		node.WithSinglesig(&mock.SinglesignMock{}),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.NotNil(t, err)
@@ -356,9 +357,9 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 
 func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
-	accAdapter := mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
-			return nil, nil
+	accAdapter := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
+			return &state.Account{}, nil
 		},
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
@@ -463,18 +464,15 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 
 	nonce := uint64(7)
-	accAdapter := mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
-			return mock.AccountWrapperStub{
-				BaseAccountHandler: func() *state.Account {
-					return &state.Account{
-						Nonce:   nonce,
-						Balance: big.NewInt(0),
-					}
-				},
+	accAdapter := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
+			return &state.Account{
+				Nonce:   nonce,
+				Balance: big.NewInt(0),
 			}, nil
 		},
 	}
+
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	singleSigner := &mock.SinglesignMock{}
@@ -512,19 +510,12 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func getAccAdapter(balance *big.Int) mock.AccountsAdapterStub {
-	return mock.AccountsAdapterStub{
-		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
-			return mock.AccountWrapperStub{
-				BaseAccountHandler: func() *state.Account {
-					return &state.Account{
-						Nonce:   1,
-						Balance: balance,
-					}
-				},
-			}, nil
-		},
+func getAccAdapter(balance *big.Int) *mock.AccountsStub {
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		return &state.Account{Nonce: 1, Balance: balance}, nil
 	}
+	return accDB
 }
 
 func getPrivateKey() *mock.PrivateKeyStub {
@@ -577,7 +568,7 @@ func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	err := n.Start()
 	logError(err)
@@ -596,7 +587,7 @@ func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	err := n.Start()
 	logError(err)
@@ -623,7 +614,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	err := n.Start()
 	logError(err)
@@ -650,7 +641,7 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	err := n.Start()
 	logError(err)
@@ -686,7 +677,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
 	err := n.Start()
 	logError(err)

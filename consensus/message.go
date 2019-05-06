@@ -1,5 +1,8 @@
 package consensus
 
+// MessageType specifies what type of message was received
+type MessageType int
+
 // Message defines the data needed by spos to communicate between nodes over network in all subrounds
 type Message struct {
 	BlockHeaderHash []byte

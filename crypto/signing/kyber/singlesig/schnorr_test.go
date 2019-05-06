@@ -13,6 +13,8 @@ import (
 )
 
 func TestSchnorrSigner_SignNilPrivateKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
 	signature, err := signer.Sign(nil, msg)
@@ -22,6 +24,8 @@ func TestSchnorrSigner_SignNilPrivateKeyShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
+	t.Parallel()
+
 	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
@@ -44,6 +48,8 @@ func TestSchnorrSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
+	t.Parallel()
+
 	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
@@ -66,6 +72,8 @@ func TestSchnorrSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_SignInvalidScalarShouldErr(t *testing.T) {
+	t.Parallel()
+
 	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
@@ -88,6 +96,8 @@ func TestSchnorrSigner_SignInvalidScalarShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_SignInvalidSuiteShouldErr(t *testing.T) {
+	t.Parallel()
+
 	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
@@ -135,6 +145,8 @@ func signSchnorr(msg []byte, signer crypto.SingleSigner, t *testing.T) (
 }
 
 func TestSchnorrSigner_SignOK(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
 	pubKey, _, signature, err := signSchnorr(msg, signer, t)
@@ -145,6 +157,8 @@ func TestSchnorrSigner_SignOK(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyNilSuiteShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
 	pubKey, _, signature, err := signSchnorr(msg, signer, t)
@@ -163,6 +177,8 @@ func TestSchnorrSigner_VerifyNilSuiteShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyNilPublicKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
 	_, _, signature, err := signSchnorr(msg, signer, t)
@@ -173,6 +189,8 @@ func TestSchnorrSigner_VerifyNilPublicKeyShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyNilMessageShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
 	pubKey, _, signature, err := signSchnorr(msg, signer, t)
@@ -183,6 +201,8 @@ func TestSchnorrSigner_VerifyNilMessageShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyNilSignatureShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
 	pubKey, _, _, err := signSchnorr(msg, signer, t)
@@ -193,6 +213,8 @@ func TestSchnorrSigner_VerifyNilSignatureShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
 	pubKey, _, signature, err := signSchnorr(msg, signer, t)
@@ -217,6 +239,8 @@ func TestSchnorrSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
 	pubKey, _, signature, err := signSchnorr(msg, signer, t)
@@ -235,6 +259,8 @@ func TestSchnorrSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
 	pubKey, _, signature, err := signSchnorr(msg, signer, t)
@@ -253,6 +279,8 @@ func TestSchnorrSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_VerifyOK(t *testing.T) {
+	t.Parallel()
+
 	msg := []byte("message to be signed")
 	signer := &singlesig.SchnorrSigner{}
 	pubKey, _, signature, err := signSchnorr(msg, signer, t)

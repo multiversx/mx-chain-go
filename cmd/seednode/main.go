@@ -9,6 +9,8 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"sort"
+	"strings"
 	"syscall"
 	"time"
 
@@ -229,17 +231,27 @@ func createNetMessenger(
 func displayMessengerInfo(messenger p2p.Messenger) {
 	headerSeedAddresses := []string{"Seednode addresses:"}
 	addresses := make([]*display.LineData, 0)
+
 	for _, address := range messenger.Addresses() {
 		addresses = append(addresses, display.NewLineData(false, []string{address}))
 	}
+
 	tbl, _ := display.CreateTableString(headerSeedAddresses, addresses)
 	fmt.Println(tbl)
 
-	headerConnectedAddresses := []string{"Seednode is connected to:"}
-	connAddresses := make([]*display.LineData, 0)
-	for _, address := range messenger.ConnectedAddresses() {
-		connAddresses = append(connAddresses, display.NewLineData(false, []string{address}))
+	mesConnectedAddrs := messenger.ConnectedAddresses()
+	sort.Slice(mesConnectedAddrs, func(i, j int) bool {
+		return strings.Compare(mesConnectedAddrs[i], mesConnectedAddrs[j]) < 0
+	})
+
+	headerConnectedAddresses := []string{
+		fmt.Sprintf("Seednode is connected to %d peers:", len(mesConnectedAddrs))}
+	connAddresses := make([]*display.LineData, len(mesConnectedAddrs))
+
+	for idx, address := range mesConnectedAddrs {
+		connAddresses[idx] = display.NewLineData(false, []string{address})
 	}
+
 	tbl2, _ := display.CreateTableString(headerConnectedAddresses, connAddresses)
 	fmt.Println(tbl2)
 }

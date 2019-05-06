@@ -82,13 +82,23 @@ func InitKeys() (*KeyGenMock, *PrivateKeyMock, *PublicKeyMock) {
 
 func InitConsensusCore() *ConsensusCoreMock {
 
-	blockChain := &BlockChainMock{}
+	blockChain := &BlockChainMock{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
 	blockProcessorMock := InitBlockProcessorMock()
 	bootstraperMock := &BootstraperMock{}
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
 	hasherMock := HasherMock{}
 	marshalizerMock := MarshalizerMock{}
+	blsPrivateKeyMock := &PrivateKeyMock{}
+	blsSingleSignerMock := &SingleSignerMock{
+		SignStub: func(private crypto.PrivateKey, msg []byte) (bytes []byte, e error) {
+			return make([]byte, 0), nil
+		},
+	}
 	multiSignerMock := InitMultiSignerMock()
 	rounderMock := &RounderMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
@@ -102,6 +112,8 @@ func InitConsensusCore() *ConsensusCoreMock {
 		chronologyHandlerMock,
 		hasherMock,
 		marshalizerMock,
+		blsPrivateKeyMock,
+		blsSingleSignerMock,
 		multiSignerMock,
 		rounderMock,
 		shardCoordinatorMock,

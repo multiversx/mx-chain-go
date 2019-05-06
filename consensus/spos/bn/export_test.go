@@ -65,11 +65,11 @@ func (fct *factory) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
 	return fct.consensusCore.ValidatorGroupSelector()
 }
 
-func (fct *factory) Worker() *worker {
+func (fct *factory) Worker() spos.WorkerHandler {
 	return fct.worker
 }
 
-func (fct *factory) SetWorker(worker *worker) {
+func (fct *factory) SetWorker(worker *spos.Worker) {
 	fct.worker = worker
 }
 
@@ -101,6 +101,10 @@ func (fct *factory) GenerateEndRoundSubround() error {
 	return fct.generateEndRoundSubround()
 }
 
+//worker
+
+type BNConsensusService *worker
+
 // subround
 
 func (sr *subround) SetJobFunction(job func() bool) {
@@ -109,134 +113,6 @@ func (sr *subround) SetJobFunction(job func() bool) {
 
 func (sr *subround) SetCheckFunction(check func() bool) {
 	sr.check = check
-}
-
-// worker
-
-type Worker *worker
-
-func (wrk *worker) BlockProcessor() process.BlockProcessor {
-	return wrk.blockProcessor
-}
-
-func (wrk *worker) SetBlockProcessor(blockProcessor process.BlockProcessor) {
-	wrk.blockProcessor = blockProcessor
-}
-
-func (wrk *worker) Bootstraper() process.Bootstrapper {
-	return wrk.bootstraper
-}
-
-func (wrk *worker) SetBootstraper(bootstraper process.Bootstrapper) {
-	wrk.bootstraper = bootstraper
-}
-
-func (wrk *worker) ConsensusState() *spos.ConsensusState {
-	return wrk.consensusState
-}
-
-func (wrk *worker) SetConsensusState(consensusState *spos.ConsensusState) {
-	wrk.consensusState = consensusState
-}
-
-func (wrk *worker) KeyGenerator() crypto.KeyGenerator {
-	return wrk.keyGenerator
-}
-
-func (wrk *worker) SetKeyGenerator(keyGenerator crypto.KeyGenerator) {
-	wrk.keyGenerator = keyGenerator
-}
-
-func (wrk *worker) Marshalizer() marshal.Marshalizer {
-	return wrk.marshalizer
-}
-
-func (wrk *worker) SetMarshalizer(marshalizer marshal.Marshalizer) {
-	wrk.marshalizer = marshalizer
-}
-
-func (wrk *worker) Rounder() consensus.Rounder {
-	return wrk.rounder
-}
-
-func (wrk *worker) SetRounder(rounder consensus.Rounder) {
-	wrk.rounder = rounder
-}
-
-func (wrk *worker) CheckSignature(cnsData *consensus.Message) error {
-	return wrk.checkSignature(cnsData)
-}
-
-func (wrk *worker) ExecuteMessage(cnsDtaList []*consensus.Message) {
-	wrk.executeMessage(cnsDtaList)
-}
-
-func GetSubroundName(subroundId int) string {
-	return getSubroundName(subroundId)
-}
-
-func (wrk *worker) InitReceivedMessages() {
-	wrk.initReceivedMessages()
-}
-
-func (wrk *worker) SendConsensusMessage(cnsDta *consensus.Message) bool {
-	return wrk.sendConsensusMessage(cnsDta)
-}
-
-func (wrk *worker) Extend(subroundId int) {
-	wrk.extend(subroundId)
-}
-
-func (wrk *worker) ReceivedSyncState(isNodeSynchronized bool) {
-	wrk.receivedSyncState(isNodeSynchronized)
-}
-
-func (wrk *worker) ReceivedMessages() map[spos.MessageType][]*consensus.Message {
-	wrk.mutReceivedMessages.RLock()
-	defer wrk.mutReceivedMessages.RUnlock()
-
-	return wrk.receivedMessages
-}
-
-func (wrk *worker) SetReceivedMessages(messageType spos.MessageType, cnsDta []*consensus.Message) {
-	wrk.mutReceivedMessages.Lock()
-	wrk.receivedMessages[messageType] = cnsDta
-	wrk.mutReceivedMessages.Unlock()
-}
-
-func (wrk *worker) NilReceivedMessages() {
-	wrk.mutReceivedMessages.Lock()
-	wrk.receivedMessages = nil
-	wrk.mutReceivedMessages.Unlock()
-}
-
-func (wrk *worker) ReceivedMessagesCalls() map[spos.MessageType]func(*consensus.Message) bool {
-	wrk.mutReceivedMessagesCalls.RLock()
-	defer wrk.mutReceivedMessagesCalls.RUnlock()
-
-	return wrk.receivedMessagesCalls
-}
-
-func (wrk *worker) SetReceivedMessagesCalls(messageType spos.MessageType, f func(*consensus.Message) bool) {
-	wrk.mutReceivedMessagesCalls.Lock()
-	wrk.receivedMessagesCalls[messageType] = f
-	wrk.mutReceivedMessagesCalls.Unlock()
-}
-
-func (wrk *worker) ExecuteMessageChannel() chan *consensus.Message {
-	return wrk.executeMessageChannel
-}
-
-func (wrk *worker) ConsensusStateChangedChannels() chan bool {
-	return wrk.consensusStateChangedChannels
-}
-
-func (wrk *worker) SetConsensusStateChangedChannels(consensusStateChangedChannels chan bool) {
-	wrk.consensusStateChangedChannels = consensusStateChangedChannels
-}
-
-func (wrk *worker) CheckSelfState(cnsDta *consensus.Message) error {
-	return wrk.checkSelfState(cnsDta)
 }
 
 // subroundStartRound
@@ -419,6 +295,6 @@ func (sr *subroundStartRound) InitCurrentRound() bool {
 	return sr.initCurrentRound()
 }
 
-func GetStringValue(messageType spos.MessageType) string {
+func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
 }
