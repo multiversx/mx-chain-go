@@ -129,3 +129,9 @@ var ErrNilBlsSingleSigner = errors.New("BLS single signer should not be nil")
 
 // ErrNilHeader is raised when an expected header is nil
 var ErrNilHeader = errors.New("header is nil")
+
+// ErrBroadCastBlock is raised when a valid broadcastBlock function is expected but nil used
+var ErrNilBroadCastBlock = errors.New("broadCastBlock is nil")
+
+// ErrNilSendMessage is raised when a valid sendMessage function is expected but nil used
+var ErrNilSendMessage = errors.New("sendMessage is nil")

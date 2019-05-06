@@ -4,18 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/stretchr/testify/assert"
 )
-
-func sendMessage(cnsMsg *consensus.Message) {
-	fmt.Println(cnsMsg.Signature)
-}
 
 func sendConsensusMessage(cnsMsg *consensus.Message) bool {
 	fmt.Println(cnsMsg)
@@ -32,17 +27,14 @@ func extend(subroundId int) {
 	fmt.Println(subroundId)
 }
 
-func initWorker() spos.IWorker {
+func initWorker() spos.WorkerHandler {
 	sposWorker := &mock.SposWorkerMock{}
 	sposWorker.GetConsensusStateChangedChannelsCalled = func() chan bool {
 		return make(chan bool)
 	}
-	sposWorker.RemoveAllReceivedMessagesCallsCalled = func() {
-
-	}
-
-	sposWorker.AddReceivedMessageCallCalled = func(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool) {
-
+	sposWorker.RemoveAllReceivedMessagesCallsCalled = func() {}
+	sposWorker.AddReceivedMessageCallCalled = func(messageType consensus.MessageType,
+		receivedMessageCall func(cnsDta *consensus.Message) bool) {
 	}
 
 	return sposWorker

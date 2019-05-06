@@ -11,14 +11,14 @@ import (
 type factory struct {
 	consensusCore  spos.ConsensusCoreHandler
 	consensusState *spos.ConsensusState
-	worker         spos.IWorker
+	worker         spos.WorkerHandler
 }
 
 // NewSubroundsFactory creates a new factory for BN subrounds
 func NewSubroundsFactory(
 	consensusDataContainer spos.ConsensusCoreHandler,
 	consensusState *spos.ConsensusState,
-	worker spos.IWorker,
+	worker spos.WorkerHandler,
 ) (*factory, error) {
 
 	err := checkNewFactoryParams(
@@ -43,7 +43,7 @@ func NewSubroundsFactory(
 func checkNewFactoryParams(
 	container spos.ConsensusCoreHandler,
 	state *spos.ConsensusState,
-	worker spos.IWorker,
+	worker spos.WorkerHandler,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -118,7 +118,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		int64(float64(fct.getTimeDuration())*srStartEndTime),
 		getSubroundName(SrStartRound),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 
@@ -149,7 +149,7 @@ func (fct *factory) generateBlockSubround() error {
 		int64(float64(fct.getTimeDuration())*srBlockEndTime),
 		getSubroundName(SrBlock),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 	if err != nil {
@@ -181,7 +181,7 @@ func (fct *factory) generateCommitmentHashSubround() error {
 		int64(float64(fct.getTimeDuration())*srCommitmentHashEndTime),
 		getSubroundName(SrCommitmentHash),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 	if err != nil {
@@ -212,7 +212,7 @@ func (fct *factory) generateBitmapSubround() error {
 		int64(float64(fct.getTimeDuration())*srBitmapEndTime),
 		getSubroundName(SrBitmap),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 	if err != nil {
@@ -243,7 +243,7 @@ func (fct *factory) generateCommitmentSubround() error {
 		int64(float64(fct.getTimeDuration())*srCommitmentEndTime),
 		getSubroundName(SrCommitment),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 	if err != nil {
@@ -274,7 +274,7 @@ func (fct *factory) generateSignatureSubround() error {
 		int64(float64(fct.getTimeDuration())*srSignatureEndTime),
 		getSubroundName(SrSignature),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 	if err != nil {
@@ -305,7 +305,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		int64(float64(fct.getTimeDuration())*srEndEndTime),
 		getSubroundName(SrEndRound),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 	if err != nil {
@@ -314,7 +314,7 @@ func (fct *factory) generateEndRoundSubround() error {
 
 	subroundEndRound, err := NewSubroundEndRound(
 		subround,
-		fct.worker.GetBroadcastBlock,
+		fct.worker.BroadcastBlock,
 		fct.worker.Extend,
 	)
 	if err != nil {

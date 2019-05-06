@@ -65,11 +65,11 @@ func (fct *factory) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
 	return fct.consensusCore.ValidatorGroupSelector()
 }
 
-func (fct *factory) Worker() spos.IWorker {
+func (fct *factory) Worker() spos.WorkerHandler {
 	return fct.worker
 }
 
-func (fct *factory) SetWorker(worker spos.IWorker) {
+func (fct *factory) SetWorker(worker spos.WorkerHandler) {
 	fct.worker = worker
 }
 

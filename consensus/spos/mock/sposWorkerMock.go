@@ -38,10 +38,10 @@ func (sposWorkerMock *SposWorkerMock) Extend(subroundId int) {
 	sposWorkerMock.ExtendCalled(subroundId)
 }
 
-func (sposWorkerMock *SposWorkerMock) GetConsensusStateChangedChannels() chan bool {
+func (sposWorkerMock *SposWorkerMock) GetConsensusStateChangedChannel() chan bool {
 	return sposWorkerMock.GetConsensusStateChangedChannelsCalled()
 }
 
-func (sposWorkerMock *SposWorkerMock) GetBroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
+func (sposWorkerMock *SposWorkerMock) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
 	return sposWorkerMock.GetBroadcastBlockCalled(body, header)
 }

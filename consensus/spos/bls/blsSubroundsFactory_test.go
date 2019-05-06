@@ -13,10 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func sendMessage(cnsMsg *consensus.Message) {
-	fmt.Println(cnsMsg.Signature)
-}
-
 func sendConsensusMessage(cnsMsg *consensus.Message) bool {
 	fmt.Println(cnsMsg)
 	return true
@@ -32,7 +28,7 @@ func extend(subroundId int) {
 	fmt.Println(subroundId)
 }
 
-func initWorker() spos.IWorker {
+func initWorker() spos.WorkerHandler {
 	sposWorker := &mock.SposWorkerMock{}
 	sposWorker.GetConsensusStateChangedChannelsCalled = func() chan bool {
 		return make(chan bool)

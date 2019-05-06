@@ -42,19 +42,35 @@ type ConsensusCoreHandler interface {
 	BlsSingleSigner() crypto.SingleSigner
 }
 
+//ConsensusService encapsulates the methods specifically for a consensus type (bls, bn)
+//and will be used in the sposWorker
 type ConsensusService interface {
+	//InitReceivedMessages initializes the MessagesType map for all messages for the current ConsensusService
 	InitReceivedMessages() map[consensus.MessageType][]*consensus.Message
+	//GetStringValue gets the name of the messageType
 	GetStringValue(consensus.MessageType) string
+	//GetSubroundName gets the subround name for the subround id provided
 	GetSubroundName(int) string
+	//GetMessageRange provides the MessageType range used in checks by the consensus
 	GetMessageRange() []consensus.MessageType
-	IsFinished(*ConsensusState, consensus.MessageType) bool
+	//CanProceed returns if the current messageType can proceed further if previous subrounds finished
+	CanProceed(*ConsensusState, consensus.MessageType) bool
 }
-type IWorker interface {
+
+//WorkerHandler represents the interface for the SposWorker
+type WorkerHandler interface {
+	//AddReceivedMessageCall adds a new handler function for a received messege type
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
+	//RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
+	//ProcessReceivedMessage method redirects the received message to the channel which should handle it
 	ProcessReceivedMessage(message p2p.MessageP2P) error
+	//SendConsensusMessage sends the consensus message
 	SendConsensusMessage(cnsDta *consensus.Message) bool
+	//Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
-	GetConsensusStateChangedChannels() chan bool
-	GetBroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error
+	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
+	GetConsensusStateChangedChannel() chan bool
+	//BroadcastBlock ge
+	BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error
 }

@@ -65,7 +65,7 @@ func (fct *factory) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
 	return fct.consensusCore.ValidatorGroupSelector()
 }
 
-func (fct *factory) Worker() spos.IWorker {
+func (fct *factory) Worker() spos.WorkerHandler {
 	return fct.worker
 }
 
@@ -100,20 +100,6 @@ func (fct *factory) GenerateSignatureSubround() error {
 func (fct *factory) GenerateEndRoundSubround() error {
 	return fct.generateEndRoundSubround()
 }
-
-//worker
-
-type BNConsensusService *worker
-
-//// subround
-//
-//func (sr *subround) SetJobFunction(job func() bool) {
-//	sr.job = job
-//}
-//
-//func (sr *subround) SetCheckFunction(check func() bool) {
-//	sr.check = check
-//}
 
 // subroundStartRound
 
