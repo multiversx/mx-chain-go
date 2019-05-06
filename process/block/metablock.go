@@ -25,7 +25,9 @@ var shardMBHeadersCurrentBlockProcessed = 0
 var shardMBHeadersTotalProcessed = 0
 
 const maxHeadersInBlock = 256
-const blockFinality = 1
+const blockFinality = 0
+
+// TODO: change block finality to 1, add resolvers and pool for prevhash and integration test.
 
 type mapShardLastHeaders map[uint32]*block.Header
 
