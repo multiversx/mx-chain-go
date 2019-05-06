@@ -65,7 +65,7 @@ func (fct *factory) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
 	return fct.consensusCore.ValidatorGroupSelector()
 }
 
-func (fct *factory) Worker() spos.IWorker {
+func (fct *factory) Worker() spos.WorkerHandler {
 	return fct.worker
 }
 

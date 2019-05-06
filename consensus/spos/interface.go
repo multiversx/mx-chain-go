@@ -38,14 +38,22 @@ type ConsensusCoreHandler interface {
 	ValidatorGroupSelector() consensus.ValidatorGroupSelector
 }
 
+//ConsensusService encapsulates the methods specifically for a consensus type (bls, bn)
+//and will be used in the sposWorker
 type ConsensusService interface {
+	//InitReceivedMessages initializes the MessagesType map for all messages for the current ConsensusService
 	InitReceivedMessages() map[consensus.MessageType][]*consensus.Message
+	//GetStringValue gets the name of the messageType
 	GetStringValue(consensus.MessageType) string
+	//GetSubroundName gets the subround name for the subround id provided
 	GetSubroundName(int) string
+	//GetMessageRange provides the MessageType range used in checks by the consensus
 	GetMessageRange() []consensus.MessageType
-	IsFinished(*ConsensusState, consensus.MessageType) bool
+	//CanProceed returns if the current messageType can proceed further if previous subrounds finished
+	CanProceed(*ConsensusState, consensus.MessageType) bool
 }
-type IWorker interface {
+
+type WorkerHandler interface {
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
 	RemoveAllReceivedMessagesCalls()
 	ProcessReceivedMessage(message p2p.MessageP2P) error

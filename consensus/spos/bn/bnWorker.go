@@ -22,12 +22,9 @@ func NewConsensusService() (*worker, error) {
 func (wrk *worker) InitReceivedMessages() map[consensus.MessageType][]*consensus.Message {
 
 	receivedMessages := make(map[consensus.MessageType][]*consensus.Message)
-	receivedMessages[MtBlockBody] = make([]*consensus.Message, 0)
-	receivedMessages[MtBlockHeader] = make([]*consensus.Message, 0)
-	receivedMessages[MtCommitmentHash] = make([]*consensus.Message, 0)
-	receivedMessages[MtBitmap] = make([]*consensus.Message, 0)
-	receivedMessages[MtCommitment] = make([]*consensus.Message, 0)
-	receivedMessages[MtSignature] = make([]*consensus.Message, 0)
+	for i := MtBlockBody; i <= MtSignature; i++ {
+		receivedMessages[i] = make([]*consensus.Message, 0)
+	}
 
 	return receivedMessages
 
@@ -50,7 +47,7 @@ func (wrk *worker) GetMessageRange() []consensus.MessageType {
 	return v
 }
 
-func (wrk *worker) IsFinished(consensusState *spos.ConsensusState, msgType consensus.MessageType) bool {
+func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType consensus.MessageType) bool {
 	finished := false
 	switch msgType {
 	case MtBlockBody:

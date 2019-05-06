@@ -53,7 +53,7 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyShouldWork(t *te
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bn.SrStartRound, spos.SsFinished)
 
-	canProceed := bnService.IsFinished(consensusState, bn.MtBlockBody)
+	canProceed := bnService.CanProceed(consensusState, bn.MtBlockBody)
 	assert.True(t, canProceed)
 }
 
@@ -64,7 +64,7 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyShouldNotWork
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bn.SrStartRound, spos.SsNotFinished)
 
-	canProceed := bnService.IsFinished(consensusState, bn.MtBlockBody)
+	canProceed := bnService.CanProceed(consensusState, bn.MtBlockBody)
 	assert.False(t, canProceed)
 }
 
@@ -75,7 +75,7 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockHeaderShouldWork(t *
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bn.SrStartRound, spos.SsFinished)
 
-	canProceed := bnService.IsFinished(consensusState, bn.MtBlockHeader)
+	canProceed := bnService.CanProceed(consensusState, bn.MtBlockHeader)
 	assert.True(t, canProceed)
 }
 
@@ -86,7 +86,7 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockHeaderShouldNotWo
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bn.SrStartRound, spos.SsNotFinished)
 
-	canProceed := bnService.IsFinished(consensusState, bn.MtBlockHeader)
+	canProceed := bnService.CanProceed(consensusState, bn.MtBlockHeader)
 	assert.False(t, canProceed)
 }
 
@@ -97,7 +97,7 @@ func TestWorker_CanProceedWithSrBlockFinishedForMtCommitmentHashShouldWork(t *te
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bn.SrBlock, spos.SsFinished)
 
-	canProceed := bnService.IsFinished(consensusState, bn.MtCommitmentHash)
+	canProceed := bnService.CanProceed(consensusState, bn.MtCommitmentHash)
 	assert.True(t, canProceed)
 }
 
@@ -108,7 +108,7 @@ func TestWorker_CanProceedWithSrBlockNotFinishedForMtCommitmentHashShouldNotWork
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bn.SrBlock, spos.SsNotFinished)
 
-	canProceed := bnService.IsFinished(consensusState, bn.MtCommitmentHash)
+	canProceed := bnService.CanProceed(consensusState, bn.MtCommitmentHash)
 	assert.False(t, canProceed)
 }
 
@@ -119,7 +119,7 @@ func TestWorker_CanProceedWithSrBlockFinishedForMtBitmapShouldWork(t *testing.T)
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bn.SrBlock, spos.SsFinished)
 
-	canProceed := bnService.IsFinished(consensusState, bn.MtBitmap)
+	canProceed := bnService.CanProceed(consensusState, bn.MtBitmap)
 	assert.True(t, canProceed)
 }
 
@@ -130,7 +130,7 @@ func TestWorker_CanProceedWithSrBlockNotFinishedForMtBitmaphouldNotWork(t *testi
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bn.SrBlock, spos.SsNotFinished)
 
-	canProceed := bnService.IsFinished(consensusState, bn.MtBitmap)
+	canProceed := bnService.CanProceed(consensusState, bn.MtBitmap)
 	assert.False(t, canProceed)
 }
 
@@ -141,7 +141,7 @@ func TestWorker_CanProceedWithSrBitmapFinishedForMtCommitmentShouldWork(t *testi
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bn.SrBitmap, spos.SsFinished)
 
-	canProceed := bnService.IsFinished(consensusState, bn.MtCommitment)
+	canProceed := bnService.CanProceed(consensusState, bn.MtCommitment)
 	assert.True(t, canProceed)
 }
 
@@ -152,7 +152,7 @@ func TestWorker_CanProceedWithSrBitmapNotFinishedForMtCommitmentShouldNotWork(t 
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bn.SrBitmap, spos.SsNotFinished)
 
-	canProceed := bnService.IsFinished(consensusState, bn.MtCommitment)
+	canProceed := bnService.CanProceed(consensusState, bn.MtCommitment)
 	assert.False(t, canProceed)
 }
 
@@ -163,7 +163,7 @@ func TestWorker_CanProceedWithSrBitmapFinishedMtSignatureShouldWork(t *testing.T
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bn.SrBitmap, spos.SsFinished)
 
-	canProceed := bnService.IsFinished(consensusState, bn.MtSignature)
+	canProceed := bnService.CanProceed(consensusState, bn.MtSignature)
 	assert.True(t, canProceed)
 }
 
@@ -174,7 +174,7 @@ func TestWorker_CanProceedWithSSrBitmapNotFinishedForMtSignatureShouldNotWork(t 
 	consensusState := initConsensusState()
 	consensusState.SetStatus(bn.SrBitmap, spos.SsNotFinished)
 
-	canProceed := bnService.IsFinished(consensusState, bn.MtSignature)
+	canProceed := bnService.CanProceed(consensusState, bn.MtSignature)
 	assert.False(t, canProceed)
 }
 

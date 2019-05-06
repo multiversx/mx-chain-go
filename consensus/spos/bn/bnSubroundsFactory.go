@@ -11,14 +11,14 @@ import (
 type factory struct {
 	consensusCore  spos.ConsensusCoreHandler
 	consensusState *spos.ConsensusState
-	worker         spos.IWorker
+	worker         spos.WorkerHandler
 }
 
 // NewSubroundsFactory creates a new factory for BN subrounds
 func NewSubroundsFactory(
 	consensusDataContainer spos.ConsensusCoreHandler,
 	consensusState *spos.ConsensusState,
-	worker spos.IWorker,
+	worker spos.WorkerHandler,
 ) (*factory, error) {
 
 	err := checkNewFactoryParams(
@@ -43,7 +43,7 @@ func NewSubroundsFactory(
 func checkNewFactoryParams(
 	container spos.ConsensusCoreHandler,
 	state *spos.ConsensusState,
-	worker spos.IWorker,
+	worker spos.WorkerHandler,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {

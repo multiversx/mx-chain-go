@@ -88,6 +88,7 @@ func NewWorker(
 	wrk.consensusStateChangedChannels = make(chan bool, 1)
 	wrk.bootstraper.AddSyncStateListener(wrk.receivedSyncState)
 	wrk.initReceivedMessages()
+
 	go wrk.checkChannels()
 
 	return &wrk, nil
@@ -108,39 +109,30 @@ func checkNewWorkerParams(
 	if service == nil {
 		return ErrNilConsensusService
 	}
-
 	if blockProcessor == nil {
 		return ErrNilBlockProcessor
 	}
-
 	if bootstraper == nil {
 		return ErrNilBlootstraper
 	}
-
 	if consensusState == nil {
 		return ErrNilConsensusState
 	}
-
 	if keyGenerator == nil {
 		return ErrNilKeyGenerator
 	}
-
 	if marshalizer == nil {
 		return ErrNilMarshalizer
 	}
-
 	if privateKey == nil {
 		return ErrNilPrivateKey
 	}
-
 	if rounder == nil {
 		return ErrNilRounder
 	}
-
 	if shardCoordinator == nil {
 		return ErrNilShardCoordinator
 	}
-
 	if singleSigner == nil {
 		return ErrNilSingleSigner
 	}
@@ -158,9 +150,7 @@ func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 
 func (wrk *Worker) initReceivedMessages() {
 	wrk.mutReceivedMessages.Lock()
-
 	wrk.receivedMessages = wrk.consensusService.InitReceivedMessages()
-
 	wrk.mutReceivedMessages.Unlock()
 }
 
@@ -239,6 +229,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	}
 
 	go wrk.executeReceivedMessages(cnsDta)
+
 	return nil
 }
 
@@ -258,11 +249,9 @@ func (wrk *Worker) checkSignature(cnsDta *consensus.Message) error {
 	if cnsDta == nil {
 		return ErrNilConsensusData
 	}
-
 	if cnsDta.PubKey == nil {
 		return ErrNilPublicKey
 	}
-
 	if cnsDta.Signature == nil {
 		return ErrNilSignature
 	}
@@ -311,13 +300,12 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 		if cnsDta == nil {
 			continue
 		}
-
 		if wrk.consensusState.RoundIndex != cnsDta.RoundIndex {
 			continue
 		}
 
 		msgType := consensus.MessageType(cnsDta.MsgType)
-		if !wrk.consensusService.IsFinished(wrk.consensusState, msgType) {
+		if !wrk.consensusService.CanProceed(wrk.consensusState, msgType) {
 			continue
 		}
 
@@ -361,6 +349,7 @@ func (wrk *Worker) SendConsensusMessage(cnsDta *consensus.Message) bool {
 	}
 
 	go wrk.SendMessage(&signedCnsData)
+
 	return true
 }
 
