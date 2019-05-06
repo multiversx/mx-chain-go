@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
@@ -26,6 +27,7 @@ type interceptorsContainerFactory struct {
 	dataPool            dataRetriever.PoolsHolder
 	addrConverter       state.AddressConverter
 	chronologyValidator process.ChronologyValidator
+	tpsBenchmark        *statistics.TpsBenchmark
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -41,6 +43,7 @@ func NewInterceptorsContainerFactory(
 	dataPool dataRetriever.PoolsHolder,
 	addrConverter state.AddressConverter,
 	chronologyValidator process.ChronologyValidator,
+	tpsBenchmark *statistics.TpsBenchmark,
 ) (*interceptorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -89,6 +92,7 @@ func NewInterceptorsContainerFactory(
 		dataPool:            dataPool,
 		addrConverter:       addrConverter,
 		chronologyValidator: chronologyValidator,
+		tpsBenchmark:        tpsBenchmark,
 	}, nil
 }
 
@@ -314,8 +318,8 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.MetaBlocks(),
+		icf.tpsBenchmark,
 		metachainHeaderStorer,
-
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,

@@ -90,11 +90,6 @@ func (hib *HeaderInterceptorBase) ParseReceivedMessage(message p2p.MessageP2P) (
 		return nil, err
 	}
 
-	/*if hib.headerStatistics != nil {
-		statKey := fmt.Sprintf("%d_%d", hdrIntercepted.GetHeader().ShardId, hdrIntercepted.GetHeader().Nonce)
-		_ = hib.headerStatistics.Put([]byte(statKey), hdrIntercepted.GetHeader())
-	}*/
-
 	isHeaderInStorage, _ := hib.storer.Has(hashWithSig)
 	if isHeaderInStorage {
 		return nil, process.ErrHeaderIsInStorage

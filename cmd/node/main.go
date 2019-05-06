@@ -452,6 +452,8 @@ func createNode(
 		return nil, nil, err
 	}
 
+	tpsBenchmark := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration)
+
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -465,6 +467,7 @@ func createNode(
 		datapool,
 		addressConverter,
 		&nullChronologyValidator{},
+		tpsBenchmark,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -566,8 +569,6 @@ func createNode(
 	if err != nil {
 		return nil, nil, err
 	}
-
-	tpsBenchmark, _ := startTpsBenchmark(blkc, shardCoordinator, config.ResourceStats, datapool.HeaderStatistics())
 
 	return nd, tpsBenchmark, nil
 }
@@ -809,12 +810,6 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.HeaderStatisticsDataPool)
-	headerStatisticsStorage, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-	if err != nil {
-		return nil, err
-	}
-
 	return dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
@@ -822,7 +817,6 @@ func createShardDataPoolFromConfig(
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlockBody,
-		headerStatisticsStorage,
 	)
 }
 
@@ -1060,29 +1054,4 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	}()
 
 	return nil
-}
-
-func startTpsBenchmark(
-	blockChain data.ChainHandler,
-	shardCoordinator sharding.Coordinator,
-	config config.ResourceStatsConfig,
-	headerStatisticsPool storage.Cacher) (*statistics.TpsBenchmark, error) {
-	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), headerStatisticsPool)
-	if err != nil {
-		return nil, err
-	}
-
-	go func() {
-		for {
-			if blockChain.GetCurrentBlockHeader() == nil {
-				time.Sleep(time.Second * 2)
-				continue
-			}
-
-			tpsBenchmark.UpdateShardStatistics(blockChain.GetCurrentBlockHeader().GetNonce())
-			time.Sleep(time.Second * 2)
-		}
-	}()
-
-	return tpsBenchmark, nil
 }

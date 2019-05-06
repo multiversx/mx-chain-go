@@ -1,56 +1,56 @@
 package statistics
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 // TpsBenchmark will calculate statistics for the network activity
 type TpsBenchmark struct {
 	nrOfShards            uint32
 	activeNodes           uint32
-	roundTime             uint32
+	roundTime             uint64
 	blockNumber           uint64
-	peakTPS               float32
+	peakTPS               float64
 	averageBlockTxCount   float32
 	lastBlockTxCount      uint32
 	totalProcessedTxCount uint32
 	shardStatisticsMut    sync.RWMutex
 	shardStatistics       map[uint32]*shardStatistics
-	headerCacher          storage.Cacher
+	missingNonces         map[uint64]struct{}
+	missingNoncesLock     sync.RWMutex
 }
 
 type shardStatistics struct {
 	shardID               uint32
-	roundTime             uint32
-	averageTPS            float32
-	peakTPS				  float32
+	roundTime             uint64
+	averageTPS            float64
+	peakTPS				  float64
 	lastBlockTxCount      uint32
 	averageBlockTxCount   uint32
 	currentBlockNonce     uint64
-	missingNonces         map[uint64]struct{}
-	missingNoncesLock     sync.RWMutex
 	totalProcessedTxCount uint32
 }
 
 // NewTPSBenchmark instantiates a new object responsible with calculating statistics for each shard tps
-func NewTPSBenchmark(nrOfShards uint32, headerCacher storage.Cacher) (*TpsBenchmark, error) {
+func NewTPSBenchmark(nrOfShards uint32, roundDuration uint64) (*TpsBenchmark, error) {
+	if roundDuration == 0 {
+		return nil, core.ErrInvalidRoundDuration
+	}
+
 	shardStats := make(map[uint32]*shardStatistics, 0)
 	for i := uint32(0); i < nrOfShards; i++ {
 		shardStats[i] = &shardStatistics{
-			roundTime: 4,
-			missingNonces: make(map[uint64]struct{}, 0),
+			roundTime: roundDuration,
 		}
 	}
 	return &TpsBenchmark{
 		nrOfShards: nrOfShards,
-		roundTime: 4,
+		roundTime: roundDuration,
 		shardStatistics: shardStats,
-		headerCacher: headerCacher,
+		missingNonces: make(map[uint64]struct{}, 0),
 	}, nil
 }
 
@@ -60,7 +60,7 @@ func (s *TpsBenchmark) ActiveNodes() uint32 {
 }
 
 // RoundTime returns the round duration in seconds
-func (s *TpsBenchmark) RoundTime() uint32 {
+func (s *TpsBenchmark) RoundTime() uint64 {
 	return s.roundTime
 }
 
@@ -85,18 +85,23 @@ func (s *TpsBenchmark) TotalProcessedTxCount() uint32 {
 }
 
 // LiveTPS returns tps for the last block
-func (s *TpsBenchmark) LiveTPS() float32 {
-	return float32(s.lastBlockTxCount / s.roundTime)
+func (s *TpsBenchmark) LiveTPS() float64 {
+	return float64(uint64(s.lastBlockTxCount) / s.roundTime)
 }
 
 // PeakTPS returns tps for the last block
-func (s *TpsBenchmark) PeakTPS() float32 {
+func (s *TpsBenchmark) PeakTPS() float64 {
 	return s.peakTPS
 }
 
 // NrOfShards returns the number of shards
 func (s *TpsBenchmark) NrOfShards() uint32 {
 	return s.nrOfShards
+}
+
+// ShardStatistics returns the current statistical state for a given shard
+func (s *TpsBenchmark) ShardStatistics() map[uint32]*shardStatistics {
+	return s.shardStatistics
 }
 
 // ShardStatistic returns the current statistical state for a given shard
@@ -108,103 +113,94 @@ func (s *TpsBenchmark) ShardStatistic(shardID uint32) *shardStatistics {
 	return ss
 }
 
-// UpdateShardStatistics receives a shard id, block nounce and a transaction count and updates all fields accordingly
-func (s *TpsBenchmark) 	UpdateShardStatistics(currentNonce uint64) {
+func (s *TpsBenchmark) isMissingNonce(nonce uint64) bool {
+	if nonce >= s.blockNumber {
+		return false
+	}
 
-	for i := 0; i < len(s.shardStatistics); i++ {
-		//currentStats := s.shardStatistics[uint32(i)]
+	s.missingNoncesLock.RLock()
+	_, isMissing := s.missingNonces[nonce]
+	s.missingNoncesLock.RUnlock()
 
-		// if there's a gap between current round and last nonce that was updated add that gap as missing nonces
-		if uint64(currentNonce) > s.shardStatistics[uint32(i)].currentBlockNonce + 1 {
-			for j := s.shardStatistics[uint32(i)].currentBlockNonce + 1; j < uint64(currentNonce); j++ {
-				s.shardStatistics[uint32(i)].addMissingNonce(uint64(j))
-			}
+	return isMissing
+}
+
+func (s *TpsBenchmark) isMetaBlockRelevant(mb *block.MetaBlock) bool {
+	if mb == nil {
+		return false
+	}
+	if mb.Nonce < s.blockNumber && !s.isMissingNonce(mb.Nonce) {
+		return false
+	}
+	if len(mb.ShardInfo) < 1 {
+		return false
+	}
+
+	return true
+}
+
+// Update receives a metablock and updates all fields accordingly for each shard available in the meta block
+func (s *TpsBenchmark) Update(mb *block.MetaBlock) {
+	if !s.isMetaBlockRelevant(mb) {
+		return
+	}
+
+	if mb.Nonce > s.blockNumber {
+		for i := s.blockNumber + 1; i < mb.Nonce; i++ {
+			s.addMissingNonce(i)
+		}
+	}
+	s.removeMissingNonce(mb.Nonce)
+	_ = s.updateStatistics(mb)
+}
+
+func (s *TpsBenchmark) addMissingNonce(nonce uint64) {
+	s.missingNoncesLock.Lock()
+	s.missingNonces[nonce] = struct{}{}
+	s.missingNoncesLock.Unlock()
+
+}
+
+func (s *TpsBenchmark) removeMissingNonce(nonce uint64) {
+	s.missingNoncesLock.Lock()
+	delete(s.missingNonces, nonce)
+	s.missingNoncesLock.Unlock()
+}
+
+func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
+	for _, shardInfo := range header.ShardInfo {
+		shardStat, ok := s.shardStatistics[shardInfo.ShardId]
+		if !ok {
+			return core.ErrInvalidShardId
 		}
 
-		// Update missing nonces
-		missingNonces := s.shardStatistics[uint32(i)].missingNonces
+		s.totalProcessedTxCount += header.TxCount
+		s.lastBlockTxCount = header.TxCount
+		s.averageBlockTxCount = float32(uint64(s.totalProcessedTxCount) / header.Nonce)
+		s.blockNumber = header.Nonce
 
-		for nonce := range missingNonces {
-			missingHeader := s.getHeader(uint32(i), nonce)
-			if missingHeader == nil {
-				continue
-			}
-
-			s.shardStatistics[uint32(i)].removeMissingNonce(nonce)
-			_ = s.updateStatistics(missingHeader)
+		currentTPS := float64(uint64(header.TxCount) / s.roundTime)
+		if currentTPS > s.peakTPS {
+			s.peakTPS = currentTPS
 		}
 
-		currentShardHeader := s.getHeader(uint32(i), currentNonce)
-		if currentShardHeader == nil {
-			continue
+		shardPeakTPS := shardStat.peakTPS
+		if currentTPS > shardStat.peakTPS {
+			shardPeakTPS = currentTPS
 		}
-		s.shardStatistics[uint32(i)].removeMissingNonce(currentNonce)
-		_ = s.updateStatistics(currentShardHeader)
+
+		updatedShardStats := &shardStatistics{
+			shardID: shardInfo.ShardId,
+			roundTime: s.roundTime,
+			currentBlockNonce: header.Nonce,
+			totalProcessedTxCount: shardStat.totalProcessedTxCount + shardInfo.TxCount,
+			averageTPS: float64(uint64(shardStat.totalProcessedTxCount + shardInfo.TxCount) / (header.Nonce * s.roundTime)),
+			peakTPS: shardPeakTPS,
+			lastBlockTxCount: header.TxCount,
+		}
+
+		s.shardStatistics[shardInfo.ShardId] = updatedShardStats
 	}
-}
-
-func (ss *shardStatistics) addMissingNonce(nonce uint64) {
-	ss.missingNonces[nonce] = struct{}{}
-
-}
-
-func (ss *shardStatistics) removeMissingNonce(nonce uint64) {
-	delete(ss.missingNonces, nonce)
-}
-
-func (s *TpsBenchmark) getHeader(shardID uint32, nonce uint64) *block.Header {
-	headerKey := fmt.Sprintf("%d_%d", shardID, nonce)
-	header, ok := s.headerCacher.Peek([]byte(headerKey))
-	if !ok {
-		return nil
-	}
-
-	currentShardHeader, ok := header.(*block.Header)
-	if !ok {
-		return nil
-	}
-
-	return currentShardHeader
-}
-
-func (s *TpsBenchmark) updateStatistics(header *block.Header) error {
-	shardStat, ok := s.shardStatistics[header.ShardId]
-
-	if !ok {
-		return core.ErrInvalidShardId
-	}
-
-	if shardStat.currentBlockNonce >= header.Nonce {
-		return core.ErrInvalidNonce
-	}
-
-	s.totalProcessedTxCount += header.TxCount
-	s.lastBlockTxCount = header.TxCount
-	s.averageBlockTxCount = float32(uint64(s.totalProcessedTxCount) / header.Nonce)
-	s.blockNumber = header.Nonce
-
-	currentTPS := float32(header.TxCount / s.roundTime)
-	if currentTPS > s.peakTPS {
-		s.peakTPS = currentTPS
-	}
-
-	shardPeakTPS := shardStat.peakTPS
-	if currentTPS > shardStat.peakTPS {
-		shardPeakTPS = currentTPS
-	}
-
-	updatedShardStats := &shardStatistics{
-		shardID: header.ShardId,
-		roundTime: s.roundTime,
-		currentBlockNonce: header.Nonce,
-		totalProcessedTxCount: shardStat.totalProcessedTxCount + header.TxCount,
-		averageTPS: float32(uint64(shardStat.totalProcessedTxCount + header.TxCount) / (header.Nonce * uint64(s.roundTime))),
-		peakTPS: shardPeakTPS,
-		lastBlockTxCount: header.TxCount,
-		missingNonces: shardStat.missingNonces,
-	}
-
-	s.shardStatistics[header.ShardId] = updatedShardStats
 
 	return nil
 }
@@ -215,7 +211,7 @@ func (ss *shardStatistics) ShardID() uint32 {
 }
 
 // AverageTPS returns an average tps for all processed blocks in a shard
-func (ss *shardStatistics) AverageTPS() float32 {
+func (ss *shardStatistics) AverageTPS() float64 {
 	return ss.averageTPS
 }
 
@@ -230,12 +226,12 @@ func (ss *shardStatistics) CurrentBlockNonce() uint64 {
 }
 
 // LiveTPS returns tps for the last block
-func (ss *shardStatistics) LiveTPS() float32 {
-	return float32(ss.lastBlockTxCount / ss.roundTime)
+func (ss *shardStatistics) LiveTPS() float64 {
+	return float64(uint64(ss.lastBlockTxCount) / ss.roundTime)
 }
 
 // PeakTPS returns peak tps for for all the blocks of the current shard
-func (ss *shardStatistics) PeakTPS() float32 {
+func (ss *shardStatistics) PeakTPS() float64 {
 	return ss.peakTPS
 }
 
