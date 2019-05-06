@@ -811,6 +811,7 @@ func createMetaNode(
 		accountsAdapter,
 		metaDatapool,
 		forkDetector,
+		shardCoordinator,
 		hasher,
 		marshalizer,
 		metaStore,
