@@ -289,14 +289,14 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	var currentNode *node.Node
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		currentNode, err = createShardNode(generalConfig, genesisConfig, p2pConfig, syncer, keyGen, privKey, pubKey, shardCoordinator, log)
+		currentNode, err = createShardNode(ctx, generalConfig, genesisConfig, p2pConfig, syncer, keyGen, privKey, pubKey, shardCoordinator, log)
 		if err != nil {
 			return err
 		}
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		currentNode, err = createMetaNode(generalConfig, genesisConfig, p2pConfig, syncer, keyGen, privKey, pubKey, shardCoordinator, log)
+		currentNode, err = createMetaNode(ctx, generalConfig, genesisConfig, p2pConfig, syncer, keyGen, privKey, pubKey, shardCoordinator, log)
 		if err != nil {
 			return err
 		}
@@ -377,6 +377,7 @@ func createShardCoordinator(
 }
 
 func createShardNode(
+	ctx *cli.Context,
 	config *config.Config,
 	genesisConfig *sharding.Genesis,
 	p2pConfig *config.P2PConfig,
@@ -469,6 +470,12 @@ func createShardNode(
 	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
 	if err != nil {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
+	}
+
+	// TODO: pass key generator and public key also when needed
+	_, blsPrivateKey, _, err := getBlsSigningParams(ctx, log)
+	if err != nil {
+		return nil, err
 	}
 
 	singlesigner := &singlesig.SchnorrSigner{}
@@ -622,6 +629,7 @@ func createShardNode(
 }
 
 func createMetaNode(
+	ctx *cli.Context,
 	config *config.Config,
 	genesisConfig *sharding.Genesis,
 	p2pConfig *config.P2PConfig,
@@ -706,7 +714,14 @@ func createMetaNode(
 		return nil, errors.New("could not create shard data pools: " + err.Error())
 	}
 
+	// TODO: pass key generator and public key also when needed
+	_, blsPrivateKey, _, err := getBlsSigningParams(ctx, log)
+	if err != nil {
+		return nil, err
+	}
+
 	singlesigner := &singlesig.SchnorrSigner{}
+	singleBlsSigner := &singlesig.BlsSingleSigner{}
 
 	multisigHasher, err := getMultisigHasherFromConfig(config)
 	if err != nil {
@@ -824,10 +839,12 @@ func createMetaNode(
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
 		node.WithSinglesig(singlesigner),
+		node.WithBlsSinglesig(singleBlsSigner),
 		node.WithMultisig(multisigner),
 		node.WithKeyGenerator(keyGen),
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
+		node.WithBlsPrivateKey(blsPrivateKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
