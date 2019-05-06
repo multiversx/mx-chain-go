@@ -118,7 +118,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		int64(float64(fct.getTimeDuration())*srStartEndTime),
 		getSubroundName(SrStartRound),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 
@@ -149,7 +149,7 @@ func (fct *factory) generateBlockSubround() error {
 		int64(float64(fct.getTimeDuration())*srBlockEndTime),
 		getSubroundName(SrBlock),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 	if err != nil {
@@ -181,7 +181,7 @@ func (fct *factory) generateCommitmentHashSubround() error {
 		int64(float64(fct.getTimeDuration())*srCommitmentHashEndTime),
 		getSubroundName(SrCommitmentHash),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 	if err != nil {
@@ -212,7 +212,7 @@ func (fct *factory) generateBitmapSubround() error {
 		int64(float64(fct.getTimeDuration())*srBitmapEndTime),
 		getSubroundName(SrBitmap),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 	if err != nil {
@@ -243,7 +243,7 @@ func (fct *factory) generateCommitmentSubround() error {
 		int64(float64(fct.getTimeDuration())*srCommitmentEndTime),
 		getSubroundName(SrCommitment),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 	if err != nil {
@@ -274,7 +274,7 @@ func (fct *factory) generateSignatureSubround() error {
 		int64(float64(fct.getTimeDuration())*srSignatureEndTime),
 		getSubroundName(SrSignature),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 	if err != nil {
@@ -305,7 +305,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		int64(float64(fct.getTimeDuration())*srEndEndTime),
 		getSubroundName(SrEndRound),
 		fct.consensusState,
-		fct.worker.GetConsensusStateChangedChannels(),
+		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
 	if err != nil {

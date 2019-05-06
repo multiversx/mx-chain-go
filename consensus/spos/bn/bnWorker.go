@@ -38,7 +38,7 @@ func (wrk *worker) GetSubroundName(subroundId int) string {
 	return getSubroundName(subroundId)
 }
 func (wrk *worker) GetMessageRange() []consensus.MessageType {
-	v := []consensus.MessageType{}
+	var v []consensus.MessageType
 
 	for i := MtBlockBody; i <= MtSignature; i++ {
 		v = append(v, i)
@@ -48,32 +48,19 @@ func (wrk *worker) GetMessageRange() []consensus.MessageType {
 }
 
 func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType consensus.MessageType) bool {
-	finished := false
 	switch msgType {
 	case MtBlockBody:
-		if consensusState.Status(SrStartRound) != spos.SsFinished {
-			return finished
-		}
+		return consensusState.Status(SrStartRound) == spos.SsFinished
 	case MtBlockHeader:
-		if consensusState.Status(SrStartRound) != spos.SsFinished {
-			return finished
-		}
+		return consensusState.Status(SrStartRound) == spos.SsFinished
 	case MtCommitmentHash:
-		if consensusState.Status(SrBlock) != spos.SsFinished {
-			return finished
-		}
+		return consensusState.Status(SrBlock) == spos.SsFinished
 	case MtBitmap:
-		if consensusState.Status(SrBlock) != spos.SsFinished {
-			return finished
-		}
+		return consensusState.Status(SrBlock) == spos.SsFinished
 	case MtCommitment:
-		if consensusState.Status(SrBitmap) != spos.SsFinished {
-			return finished
-		}
+		return consensusState.Status(SrBitmap) == spos.SsFinished
 	case MtSignature:
-		if consensusState.Status(SrBitmap) != spos.SsFinished {
-			return finished
-		}
+		return consensusState.Status(SrBitmap) == spos.SsFinished
 	}
 	return true
 }

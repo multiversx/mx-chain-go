@@ -54,11 +54,18 @@ type ConsensusService interface {
 }
 
 type WorkerHandler interface {
+	//AddReceivedMessageCall adds a new handler function for a received messege type
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
+	//RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
+	//ProcessReceivedMessage method redirects the received message to the channel which should handle it
 	ProcessReceivedMessage(message p2p.MessageP2P) error
+	//SendConsensusMessage sends the consensus message
 	SendConsensusMessage(cnsDta *consensus.Message) bool
+	//Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
-	GetConsensusStateChangedChannels() chan bool
+	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
+	GetConsensusStateChangedChannel() chan bool
+	//GetBroadcastBlock ge
 	GetBroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error
 }

@@ -23,19 +23,10 @@ func sendMessage(cnsMsg *consensus.Message) {
 	fmt.Println(cnsMsg.Signature)
 }
 
-func sendConsensusMessage(cnsMsg *consensus.Message) bool {
-	fmt.Println(cnsMsg)
-	return true
-}
-
 func broadcastBlock(txBlockBody data.BodyHandler, header data.HeaderHandler) error {
 	fmt.Println(txBlockBody)
 	fmt.Println(header)
 	return nil
-}
-
-func extend(subroundId int) {
-	fmt.Println(subroundId)
 }
 
 func initWorker() *spos.Worker {
@@ -70,10 +61,10 @@ func initWorker() *spos.Worker {
 		privateKeyMock,
 		rounderMock,
 		shardCoordinatorMock,
-		singleSignerMock)
+		singleSignerMock,
+		broadcastBlock,
+		sendMessage)
 
-	sposWorker.SendMessage = sendMessage
-	sposWorker.BroadcastBlock = broadcastBlock
 	return sposWorker
 }
 
@@ -108,6 +99,8 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		broadcastBlock,
+		sendMessage,
 	)
 
 	assert.Nil(t, wrk)
@@ -136,6 +129,8 @@ func TestWorker_NewWorkerBlockprocessorNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		broadcastBlock,
+		sendMessage,
 	)
 
 	assert.Nil(t, wrk)
@@ -165,6 +160,8 @@ func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		broadcastBlock,
+		sendMessage,
 	)
 
 	assert.Nil(t, wrk)
@@ -194,6 +191,8 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		broadcastBlock,
+		sendMessage,
 	)
 
 	assert.Nil(t, wrk)
@@ -223,6 +222,8 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		broadcastBlock,
+		sendMessage,
 	)
 
 	assert.Nil(t, wrk)
@@ -252,6 +253,8 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		broadcastBlock,
+		sendMessage,
 	)
 
 	assert.Nil(t, wrk)
@@ -281,6 +284,8 @@ func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		broadcastBlock,
+		sendMessage,
 	)
 
 	assert.Nil(t, wrk)
@@ -310,6 +315,8 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 		nil,
 		shardCoordinatorMock,
 		singleSignerMock,
+		broadcastBlock,
+		sendMessage,
 	)
 
 	assert.Nil(t, wrk)
@@ -339,6 +346,8 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 		rounderMock,
 		nil,
 		singleSignerMock,
+		broadcastBlock,
+		sendMessage,
 	)
 
 	assert.Nil(t, wrk)
@@ -368,10 +377,76 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		nil,
+		broadcastBlock,
+		sendMessage,
 	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilSingleSigner, err)
+}
+
+func TestWorker_NewWorkerBroadcastBlockNilShouldFail(t *testing.T) {
+	t.Parallel()
+	blockProcessor := &mock.BlockProcessorMock{}
+	bootstraperMock := &mock.BootstraperMock{}
+	consensusState := initConsensusState()
+	keyGeneratorMock := &mock.KeyGenMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+	bnService, _ := bn.NewConsensusService()
+
+	wrk, err := spos.NewWorker(
+		bnService,
+		blockProcessor,
+		bootstraperMock,
+		consensusState,
+		keyGeneratorMock,
+		marshalizerMock,
+		privateKeyMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+		nil,
+		sendMessage,
+	)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilBroadCastBlock, err)
+}
+
+func TestWorker_NewWorkerSendMessageNilShouldFail(t *testing.T) {
+	t.Parallel()
+	blockProcessor := &mock.BlockProcessorMock{}
+	bootstraperMock := &mock.BootstraperMock{}
+	consensusState := initConsensusState()
+	keyGeneratorMock := &mock.KeyGenMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+	bnService, _ := bn.NewConsensusService()
+
+	wrk, err := spos.NewWorker(
+		bnService,
+		blockProcessor,
+		bootstraperMock,
+		consensusState,
+		keyGeneratorMock,
+		marshalizerMock,
+		privateKeyMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+		broadcastBlock,
+		nil,
+	)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilSendMessage, err)
 }
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
@@ -398,6 +473,8 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		broadcastBlock,
+		sendMessage,
 	)
 
 	assert.NotNil(t, wrk)
@@ -1067,7 +1144,7 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	wrk.SetReceivedMessagesCalls(bn.MtBlockHeader, func(cnsMsg *consensus.Message) bool {
-		wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bn.SrBlock, true)
+		_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bn.SrBlock, true)
 		return true
 	})
 	rnd := wrk.Rounder()
@@ -1117,12 +1194,12 @@ func TestWorker_SendConsensusMessage(t *testing.T) {
 		0,
 	)
 
-	wrk.SendMessage = nil
+	wrk.SetSendMessage(nil)
 	r := wrk.SendConsensusMessage(cnsMsg)
 
 	assert.False(t, r)
 
-	wrk.SendMessage = sendMessage
+	wrk.SetSendMessage(sendMessage)
 	marshalizerMock.Fail = true
 	wrk.SetMarshalizer(marshalizerMock)
 	r = wrk.SendConsensusMessage(cnsMsg)
@@ -1179,10 +1256,10 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	executed := false
-	wrk.BroadcastBlock = func(data.BodyHandler, data.HeaderHandler) error {
+	wrk.SetBroadCastBlock(func(data.BodyHandler, data.HeaderHandler) error {
 		executed = true
 		return nil
-	}
+	})
 	bootstraperMock := &mock.BootstraperMock{
 		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			return nil, nil, errors.New("error")

@@ -31,7 +31,7 @@ func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 }
 
 func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
-	v := []consensus.MessageType{}
+	var v []consensus.MessageType
 	bnService, _ := bn.NewConsensusService()
 
 	messagesRange := bnService.GetMessageRange()

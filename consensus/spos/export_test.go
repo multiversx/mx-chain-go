@@ -3,6 +3,7 @@ package spos
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
@@ -112,13 +113,21 @@ func (wrk *Worker) ExecuteMessageChannel() chan *consensus.Message {
 }
 
 func (wrk *Worker) ConsensusStateChangedChannels() chan bool {
-	return wrk.consensusStateChangedChannels
+	return wrk.consensusStateChangedChannel
 }
 
 func (wrk *Worker) SetConsensusStateChangedChannels(consensusStateChangedChannels chan bool) {
-	wrk.consensusStateChangedChannels = consensusStateChangedChannels
+	wrk.consensusStateChangedChannel = consensusStateChangedChannels
 }
 
 func (wrk *Worker) CheckSelfState(cnsDta *consensus.Message) error {
 	return wrk.checkSelfState(cnsDta)
+}
+
+func (wrk *Worker) SetSendMessage(sendMessage func(consensus *consensus.Message)) {
+	wrk.sendMessage = sendMessage
+}
+
+func (wrk *Worker) SetBroadCastBlock(broadcastBlock func(data.BodyHandler, data.HeaderHandler) error) {
+	wrk.broadcastBlock = broadcastBlock
 }

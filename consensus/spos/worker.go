@@ -31,11 +31,11 @@ type Worker struct {
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
 
-	executeMessageChannel         chan *consensus.Message
-	consensusStateChangedChannels chan bool
+	executeMessageChannel        chan *consensus.Message
+	consensusStateChangedChannel chan bool
 
-	BroadcastBlock func(data.BodyHandler, data.HeaderHandler) error
-	SendMessage    func(consensus *consensus.Message)
+	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error
+	sendMessage    func(consensus *consensus.Message)
 
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
@@ -53,6 +53,8 @@ func NewWorker(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
+	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
+	sendMessage func(consensus *consensus.Message),
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
 		service,
@@ -65,6 +67,8 @@ func NewWorker(
 		rounder,
 		shardCoordinator,
 		singleSigner,
+		broadcastBlock,
+		sendMessage,
 	)
 	if err != nil {
 		return nil, err
@@ -81,11 +85,13 @@ func NewWorker(
 		rounder:          rounder,
 		shardCoordinator: shardCoordinator,
 		singleSigner:     singleSigner,
+		broadcastBlock:   broadcastBlock,
+		sendMessage:      sendMessage,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
 	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(*consensus.Message) bool)
-	wrk.consensusStateChangedChannels = make(chan bool, 1)
+	wrk.consensusStateChangedChannel = make(chan bool, 1)
 	wrk.bootstraper.AddSyncStateListener(wrk.receivedSyncState)
 	wrk.initReceivedMessages()
 
@@ -105,6 +111,8 @@ func checkNewWorkerParams(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
+	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
+	sendMessage func(consensus *consensus.Message),
 ) error {
 	if service == nil {
 		return ErrNilConsensusService
@@ -136,14 +144,20 @@ func checkNewWorkerParams(
 	if singleSigner == nil {
 		return ErrNilSingleSigner
 	}
+	if broadcastBlock == nil {
+		return ErrNilBroadCastBlock
+	}
+	if sendMessage == nil {
+		return ErrNilSendMessage
+	}
 
 	return nil
 }
 
 func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 	if isNodeSynchronized {
-		if len(wrk.consensusStateChangedChannels) == 0 {
-			wrk.consensusStateChangedChannels <- true
+		if len(wrk.consensusStateChangedChannel) == 0 {
+			wrk.consensusStateChangedChannel <- true
 		}
 	}
 }
@@ -323,8 +337,8 @@ func (wrk *Worker) checkChannels() {
 			msgType := consensus.MessageType(rcvDta.MsgType)
 			if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 				if callReceivedMessage(rcvDta) {
-					if len(wrk.consensusStateChangedChannels) == 0 {
-						wrk.consensusStateChangedChannels <- true
+					if len(wrk.consensusStateChangedChannel) == 0 {
+						wrk.consensusStateChangedChannel <- true
 					}
 				}
 			}
@@ -332,7 +346,7 @@ func (wrk *Worker) checkChannels() {
 	}
 }
 
-// sendConsensusMessage sends the consensus message
+// SendConsensusMessage sends the consensus message
 func (wrk *Worker) SendConsensusMessage(cnsDta *consensus.Message) bool {
 	signature, err := wrk.genConsensusDataSignature(cnsDta)
 	if err != nil {
@@ -343,12 +357,12 @@ func (wrk *Worker) SendConsensusMessage(cnsDta *consensus.Message) bool {
 	signedCnsData := *cnsDta
 	signedCnsData.Signature = signature
 
-	if wrk.SendMessage == nil {
+	if wrk.sendMessage == nil {
 		log.Error("sendMessage call back function is not set\n")
 		return false
 	}
 
-	go wrk.SendMessage(&signedCnsData)
+	go wrk.sendMessage(&signedCnsData)
 
 	return true
 }
@@ -367,6 +381,7 @@ func (wrk *Worker) genConsensusDataSignature(cnsDta *consensus.Message) ([]byte,
 	return signature, nil
 }
 
+//Extend does an extension for the subround with subroundId
 func (wrk *Worker) Extend(subroundId int) {
 	log.Info(fmt.Sprintf("extend function is called from subround: %s\n",
 		wrk.consensusService.GetSubroundName(subroundId)))
@@ -382,10 +397,11 @@ func (wrk *Worker) Extend(subroundId int) {
 	wrk.blockProcessor.RevertAccountState()
 }
 
-func (wrk *Worker) GetConsensusStateChangedChannels() chan bool {
-	return wrk.consensusStateChangedChannels
+//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
+func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
+	return wrk.consensusStateChangedChannel
 }
 
 func (wrk *Worker) GetBroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
-	return wrk.BroadcastBlock(body, header)
+	return wrk.broadcastBlock(body, header)
 }

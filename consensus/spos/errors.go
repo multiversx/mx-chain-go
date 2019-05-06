@@ -120,3 +120,9 @@ var ErrInvalidSignature = errors.New("signature is invalid")
 
 // ErrMessageFromItself is raised when a message from itself is received
 var ErrMessageFromItself = errors.New("message is from itself")
+
+// ErrBroadCastBlock is raised when a valid broadcastBlock function is expected but nil used
+var ErrNilBroadCastBlock = errors.New("broadCastBlock is nil")
+
+// ErrNilSendMessage is raised when a valid sendMessage function is expected but nil used
+var ErrNilSendMessage = errors.New("sendMessage is nil")

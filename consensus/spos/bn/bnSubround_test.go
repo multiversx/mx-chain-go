@@ -41,14 +41,14 @@ func initConsensusState() *spos.ConsensusState {
 	rcns.SetConsensusGroup(eligibleList)
 	rcns.ResetRoundState()
 
-	PBFTThreshold := consensusGroupSize*2/3 + 1
+	pFTThreshold := consensusGroupSize*2/3 + 1
 
 	rthr := spos.NewRoundThreshold()
 	rthr.SetThreshold(1, 1)
-	rthr.SetThreshold(2, PBFTThreshold)
-	rthr.SetThreshold(3, PBFTThreshold)
-	rthr.SetThreshold(4, PBFTThreshold)
-	rthr.SetThreshold(5, PBFTThreshold)
+	rthr.SetThreshold(2, pFTThreshold)
+	rthr.SetThreshold(3, pFTThreshold)
+	rthr.SetThreshold(4, pFTThreshold)
+	rthr.SetThreshold(5, pFTThreshold)
 
 	rstatus := spos.NewRoundStatus()
 	rstatus.ResetRoundStatus()

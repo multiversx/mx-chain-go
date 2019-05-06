@@ -38,7 +38,7 @@ func (sposWorkerMock *SposWorkerMock) Extend(subroundId int) {
 	sposWorkerMock.ExtendCalled(subroundId)
 }
 
-func (sposWorkerMock *SposWorkerMock) GetConsensusStateChangedChannels() chan bool {
+func (sposWorkerMock *SposWorkerMock) GetConsensusStateChangedChannel() chan bool {
 	return sposWorkerMock.GetConsensusStateChangedChannelsCalled()
 }
 
