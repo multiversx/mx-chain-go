@@ -24,14 +24,21 @@ type InitialNode struct {
 
 // Genesis hold data for decoded data from json file
 type Genesis struct {
-	StartTime          int64          `json:"startTime"`
-	RoundDuration      uint64         `json:"roundDuration"`
-	ConsensusGroupSize uint32         `json:"consensusGroupSize"`
-	MinNodesPerShard   uint32         `json:"minNodesPerShard"`
-	InitialNodes       []*InitialNode `json:"initialNodes"`
+	StartTime          int64  `json:"startTime"`
+	RoundDuration      uint64 `json:"roundDuration"`
+	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
+	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
+
+	MetaChainActive             bool   `json:"metaChainActive"`
+	MetaChainConsensusGroupSize uint32 `json:"metaChainConsensusGroupSize"`
+	MetaChainMinNodes           uint32 `json:"metaChainMinNodes"`
+
+	InitialNodes []*InitialNode `json:"initialNodes"`
+
 	nrOfShards         uint32
 	nrOfNodes          uint32
-	allNodesPubKeys    [][]string
+	nrOfMetaChainNodes uint32
+	allNodesPubKeys    map[uint32][]string
 }
 
 // NewGenesisConfig creates a new decoded genesis structure from json config file
@@ -48,6 +55,10 @@ func NewGenesisConfig(genesisFilePath string) (*Genesis, error) {
 		return nil, err
 	}
 
+	if genesis.MetaChainActive {
+		genesis.processMetaChainAssigment()
+	}
+
 	genesis.processShardAssignment()
 	genesis.createInitialNodesPubKeys()
 
@@ -59,6 +70,7 @@ func (g *Genesis) processConfig() error {
 	var ok bool
 
 	g.nrOfNodes = 0
+	g.nrOfMetaChainNodes = 0
 	for i := 0; i < len(g.InitialNodes); i++ {
 		g.InitialNodes[i].pubKey, err = hex.DecodeString(g.InitialNodes[i].PubKey)
 
@@ -81,9 +93,6 @@ func (g *Genesis) processConfig() error {
 	if g.ConsensusGroupSize < 1 {
 		return ErrNegativeOrZeroConsensusGroupSize
 	}
-	if g.nrOfNodes < g.ConsensusGroupSize {
-		return ErrNotEnoughValidators
-	}
 	if g.MinNodesPerShard < g.ConsensusGroupSize {
 		return ErrMinNodesPerShardSmallerThanConsensusSize
 	}
@@ -91,17 +100,41 @@ func (g *Genesis) processConfig() error {
 		return ErrNodesSizeSmallerThanMinNoOfNodes
 	}
 
+	if g.MetaChainActive {
+		if g.MetaChainConsensusGroupSize < 1 {
+			return ErrNegativeOrZeroConsensusGroupSize
+		}
+		if g.MetaChainMinNodes < g.MetaChainConsensusGroupSize {
+			return ErrMinNodesPerShardSmallerThanConsensusSize
+		}
+
+		totalMinNodes := g.MetaChainMinNodes + g.MinNodesPerShard
+		if g.nrOfNodes < totalMinNodes {
+			return ErrNodesSizeSmallerThanMinNoOfNodes
+		}
+	}
+
 	return nil
+}
+
+func (g *Genesis) processMetaChainAssigment() {
+	g.nrOfMetaChainNodes = 0
+	for id := uint32(0); id < g.MetaChainMinNodes; id++ {
+		if g.InitialNodes[id].pubKey != nil {
+			g.InitialNodes[id].assignedShard = MetachainShardId
+			g.nrOfMetaChainNodes++
+		}
+	}
 }
 
 func (g *Genesis) processShardAssignment() {
 	// initial implementation - as there is no other info than public key, we allocate first nodes in FIFO order to shards
-	g.nrOfShards = g.nrOfNodes / g.MinNodesPerShard
+	g.nrOfShards = (g.nrOfNodes - g.nrOfMetaChainNodes) / g.MinNodesPerShard
 
 	currentShard := uint32(0)
-	countSetNodes := uint32(0)
+	countSetNodes := g.nrOfMetaChainNodes
 	for ; currentShard < g.nrOfShards; currentShard++ {
-		for id := countSetNodes; id < (currentShard+1)*g.MinNodesPerShard; id++ {
+		for id := countSetNodes; id < g.nrOfMetaChainNodes+(currentShard+1)*g.MinNodesPerShard; id++ {
 			// consider only nodes with valid public key
 			if g.InitialNodes[id].pubKey != nil {
 				g.InitialNodes[id].assignedShard = currentShard
@@ -119,7 +152,12 @@ func (g *Genesis) processShardAssignment() {
 }
 
 func (g *Genesis) createInitialNodesPubKeys() {
-	g.allNodesPubKeys = make([][]string, g.nrOfShards)
+	nrOfShardAndMeta := g.nrOfShards
+	if g.MetaChainActive {
+		nrOfShardAndMeta += 1
+	}
+
+	g.allNodesPubKeys = make(map[uint32][]string, nrOfShardAndMeta)
 	for _, in := range g.InitialNodes {
 		if in.pubKey != nil {
 			g.allNodesPubKeys[in.assignedShard] = append(g.allNodesPubKeys[in.assignedShard], string(in.pubKey))
@@ -128,13 +166,13 @@ func (g *Genesis) createInitialNodesPubKeys() {
 }
 
 // InitialNodesPubKeys - gets initial public keys
-func (g *Genesis) InitialNodesPubKeys() [][]string {
+func (g *Genesis) InitialNodesPubKeys() map[uint32][]string {
 	return g.allNodesPubKeys
 }
 
 // InitialNodesPubKeysForShard - gets initial public keys
 func (g *Genesis) InitialNodesPubKeysForShard(shardId uint32) ([]string, error) {
-	if shardId >= g.nrOfShards {
+	if g.allNodesPubKeys[shardId] == nil {
 		return nil, ErrShardIdOutOfRange
 	}
 
@@ -174,7 +212,12 @@ func (g *Genesis) NumberOfShards() uint32 {
 	return g.nrOfShards
 }
 
-// GetShardIDForPubKey returns the allocated shard ID from publick key
+// IsMetaChainActive returns if MetaChain is active
+func (g *Genesis) IsMetaChainActive() bool {
+	return g.MetaChainActive
+}
+
+// GetShardIDForPubKey returns the allocated shard ID from public key
 func (g *Genesis) GetShardIDForPubKey(pubKey []byte) (uint32, error) {
 	for _, in := range g.InitialNodes {
 		if in.pubKey != nil && bytes.Equal(pubKey, in.pubKey) {

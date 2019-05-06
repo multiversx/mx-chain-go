@@ -487,7 +487,7 @@ func TestWorker_ReceivedSyncStateShouldNotSendOnChannelWhenInputIsFalse(t *testi
 	wrk.ReceivedSyncState(false)
 	rcv := false
 	select {
-	case rcv = <-wrk.ConsensusStateChangedChannels():
+	case rcv = <-wrk.ConsensusStateChangedChannel():
 	case <-time.After(100 * time.Millisecond):
 	}
 
@@ -497,11 +497,11 @@ func TestWorker_ReceivedSyncStateShouldNotSendOnChannelWhenInputIsFalse(t *testi
 func TestWorker_ReceivedSyncStateShouldNotSendOnChannelWhenChannelIsBusy(t *testing.T) {
 	t.Parallel()
 	wrk := initWorker()
-	wrk.ConsensusStateChangedChannels() <- false
+	wrk.ConsensusStateChangedChannel() <- false
 	wrk.ReceivedSyncState(true)
 	rcv := false
 	select {
-	case rcv = <-wrk.ConsensusStateChangedChannels():
+	case rcv = <-wrk.ConsensusStateChangedChannel():
 	case <-time.After(100 * time.Millisecond):
 	}
 
@@ -514,7 +514,7 @@ func TestWorker_ReceivedSyncStateShouldSendOnChannel(t *testing.T) {
 	wrk.ReceivedSyncState(true)
 	rcv := false
 	select {
-	case rcv = <-wrk.ConsensusStateChangedChannels():
+	case rcv = <-wrk.ConsensusStateChangedChannel():
 	case <-time.After(100 * time.Millisecond):
 	}
 

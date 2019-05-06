@@ -112,26 +112,16 @@ func (wrk *Worker) ExecuteMessageChannel() chan *consensus.Message {
 	return wrk.executeMessageChannel
 }
 
-func (wrk *Worker) ConsensusStateChangedChannels() chan bool {
+func (wrk *Worker) ConsensusStateChangedChannel() chan bool {
 	return wrk.consensusStateChangedChannel
 }
 
-func (wrk *Worker) SetConsensusStateChangedChannels(consensusStateChangedChannels chan bool) {
-	wrk.consensusStateChangedChannel = consensusStateChangedChannels
+func (wrk *Worker) SetConsensusStateChangedChannel(consensusStateChangedChannel chan bool) {
+	wrk.consensusStateChangedChannel = consensusStateChangedChannel
 }
 
 func (wrk *Worker) CheckSelfState(cnsDta *consensus.Message) error {
 	return wrk.checkSelfState(cnsDta)
-}
-
-// Subround
-
-func (sr *Subround) SetJobFunction(job func() bool) {
-	sr.Job = job
-}
-
-func (sr *Subround) SetCheckFunction(check func() bool) {
-	sr.Check = check
 }
 
 func (wrk *Worker) SetSendMessage(sendMessage func(consensus *consensus.Message)) {

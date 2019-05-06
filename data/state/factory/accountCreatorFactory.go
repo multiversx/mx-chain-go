@@ -15,5 +15,9 @@ func NewAccountFactoryCreator(coordinator sharding.Coordinator) (state.AccountFa
 		return NewAccountCreator(), nil
 	}
 
-	return NewMetaAccountCreator(), nil
+	if coordinator.SelfId() == sharding.MetachainShardId {
+		return NewMetaAccountCreator(), nil
+	}
+
+	return nil, state.ErrUnknownShardId
 }

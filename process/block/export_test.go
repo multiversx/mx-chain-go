@@ -100,8 +100,8 @@ func (sp *shardProcessor) RemoveTxBlockFromPools(blockBody block.Body) error {
 	return sp.removeTxBlockFromPools(blockBody)
 }
 
-func (mp *metaProcessor) GetHeaderFromPool(shardID uint32, headerHash []byte) data.HeaderHandler {
-	return mp.getHeaderFromPool(shardID, headerHash)
+func (mp *metaProcessor) GetShardHeaderFromPool(shardID uint32, headerHash []byte) (data.HeaderHandler, error) {
+	return mp.getShardHeaderFromPool(shardID, headerHash)
 }
 
 func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) int {
@@ -144,6 +144,34 @@ func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
 	return found
 }
 
-func (mp *metaProcessor) CreateShardInfo(maxHdrInBlock int, round int32, haveTime func() bool) ([]block.ShardData, error) {
-	return mp.createShardInfo(maxHdrInBlock, round, haveTime)
+func (mp *metaProcessor) CreateShardInfo(maxMiniBlocksInBlock uint32, round int32, haveTime func() bool) ([]block.ShardData, error) {
+	return mp.createShardInfo(maxMiniBlocksInBlock, round, haveTime)
+}
+
+func (mp *metaProcessor) LastNotedHdrs() map[uint32]*block.Header {
+	return mp.lastNotedHdrs
+}
+
+func (mp *metaProcessor) SetNextKValidity(val uint32) {
+	mp.nextKValidity = val
+}
+
+func (mp *metaProcessor) CreateLastNotarizedHdrs(header *block.MetaBlock) error {
+	return mp.createLastNotarizedHdrs(header)
+}
+
+func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (mapShardLastHeaders, error) {
+	return mp.checkShardHeadersValidity(header)
+}
+
+func (mp *metaProcessor) CheckShardHeadersFinality(header *block.MetaBlock, highestNonceHdrs mapShardLastHeaders) error {
+	return mp.checkShardHeadersFinality(header, highestNonceHdrs)
+}
+
+func (mp *metaProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
+	return mp.isHdrConstructionValid(currHdr, prevHdr)
+}
+
+func (mp *metaProcessor) IsShardHeaderValidFinal(currHdr *block.Header, lastHdr *block.Header, sortedShardHdrs []*block.Header) (bool, []uint32) {
+	return mp.isShardHeaderValidFinal(currHdr, lastHdr, sortedShardHdrs)
 }

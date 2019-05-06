@@ -11,6 +11,49 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createEligibleList(size int) []string {
+	eligibleList := make([]string, 0)
+	for i := 0; i < size; i++ {
+		eligibleList = append(eligibleList, string(i+65))
+	}
+	return eligibleList
+}
+
+func initConsensusState() *spos.ConsensusState {
+	consensusGroupSize := 9
+	eligibleList := createEligibleList(consensusGroupSize)
+	indexLeader := 1
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		consensusGroupSize,
+		eligibleList[indexLeader])
+
+	rcns.SetConsensusGroup(eligibleList)
+	rcns.ResetRoundState()
+
+	pFTThreshold := consensusGroupSize*2/3 + 1
+
+	rthr := spos.NewRoundThreshold()
+	rthr.SetThreshold(1, 1)
+	rthr.SetThreshold(2, pFTThreshold)
+	rthr.SetThreshold(3, pFTThreshold)
+	rthr.SetThreshold(4, pFTThreshold)
+	rthr.SetThreshold(5, pFTThreshold)
+
+	rstatus := spos.NewRoundStatus()
+	rstatus.ResetRoundStatus()
+
+	cns := spos.NewConsensusState(
+		rcns,
+		rthr,
+		rstatus,
+	)
+
+	cns.Data = []byte("X")
+	cns.RoundIndex = 0
+	return cns
+}
+
 func TestSubround_NewSubroundNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
@@ -361,12 +404,12 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	sr.SetJobFunction(func() bool {
+	sr.Job = func() bool {
 		return true
-	})
-	sr.SetCheckFunction(func() bool {
+	}
+	sr.Check = func() bool {
 		return false
-	})
+	}
 
 	assert.NotNil(t, sr)
 }
@@ -389,10 +432,10 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 		ch,
 		container,
 	)
-	sr.SetJobFunction(nil)
-	sr.SetCheckFunction(func() bool {
+	sr.Job = nil
+	sr.Check = func() bool {
 		return true
-	})
+	}
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	rounderMock := &mock.RounderMock{}
@@ -423,10 +466,10 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 		ch,
 		container,
 	)
-	sr.SetJobFunction(func() bool {
+	sr.Job = func() bool {
 		return true
-	})
-	sr.SetCheckFunction(nil)
+	}
+	sr.Check = nil
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	rounderMock := &mock.RounderMock{}
@@ -456,12 +499,12 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 		ch,
 		container,
 	)
-	sr.SetJobFunction(func() bool {
+	sr.Job = func() bool {
 		return true
-	})
-	sr.SetCheckFunction(func() bool {
+	}
+	sr.Check = func() bool {
 		return false
-	})
+	}
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	rounderMock := &mock.RounderMock{}
@@ -491,12 +534,12 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 		ch,
 		container,
 	)
-	sr.SetJobFunction(func() bool {
+	sr.Job = func() bool {
 		return true
-	})
-	sr.SetCheckFunction(func() bool {
+	}
+	sr.Check = func() bool {
 		return true
-	})
+	}
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	rounderMock := &mock.RounderMock{}
@@ -532,14 +575,14 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 	checkSuccess := false
 	mut.Unlock()
 
-	sr.SetJobFunction(func() bool {
+	sr.Job = func() bool {
 		return true
-	})
-	sr.SetCheckFunction(func() bool {
+	}
+	sr.Check = func() bool {
 		mut.RLock()
 		defer mut.RUnlock()
 		return checkSuccess
-	})
+	}
 
 	maxTime := time.Now().Add(2000 * time.Millisecond)
 	rounderMock := &mock.RounderMock{}
@@ -580,12 +623,12 @@ func TestSubround_Previous(t *testing.T) {
 		ch,
 		container,
 	)
-	sr.SetJobFunction(func() bool {
+	sr.Job = func() bool {
 		return true
-	})
-	sr.SetCheckFunction(func() bool {
+	}
+	sr.Check = func() bool {
 		return false
-	})
+	}
 
 	assert.Equal(t, int(bls.SrStartRound), sr.Previous())
 }
@@ -608,12 +651,12 @@ func TestSubround_Current(t *testing.T) {
 		ch,
 		container,
 	)
-	sr.SetJobFunction(func() bool {
+	sr.Job = func() bool {
 		return true
-	})
-	sr.SetCheckFunction(func() bool {
+	}
+	sr.Check = func() bool {
 		return false
-	})
+	}
 
 	assert.Equal(t, int(bls.SrBlock), sr.Current())
 }
@@ -636,12 +679,12 @@ func TestSubround_Next(t *testing.T) {
 		ch,
 		container,
 	)
-	sr.SetJobFunction(func() bool {
+	sr.Job = func() bool {
 		return true
-	})
-	sr.SetCheckFunction(func() bool {
+	}
+	sr.Check = func() bool {
 		return false
-	})
+	}
 
 	assert.Equal(t, int(bls.SrSignature), sr.Next())
 }
@@ -664,12 +707,12 @@ func TestSubround_StartTime(t *testing.T) {
 		ch,
 		container,
 	)
-	sr.SetJobFunction(func() bool {
+	sr.Job = func() bool {
 		return true
-	})
-	sr.SetCheckFunction(func() bool {
+	}
+	sr.Check = func() bool {
 		return false
-	})
+	}
 
 	assert.Equal(t, int64(25*roundTimeDuration/100), sr.StartTime())
 }
@@ -692,13 +735,12 @@ func TestSubround_EndTime(t *testing.T) {
 		ch,
 		container,
 	)
-	sr.SetJobFunction(func() bool {
+	sr.Job = func() bool {
 		return true
-	})
-
-	sr.SetCheckFunction(func() bool {
+	}
+	sr.Check = func() bool {
 		return false
-	})
+	}
 
 	assert.Equal(t, int64(25*roundTimeDuration/100), sr.EndTime())
 }
@@ -721,12 +763,12 @@ func TestSubround_Name(t *testing.T) {
 		ch,
 		container,
 	)
-	sr.SetJobFunction(func() bool {
+	sr.Job = func() bool {
 		return true
-	})
-	sr.SetCheckFunction(func() bool {
+	}
+	sr.Check = func() bool {
 		return false
-	})
+	}
 
 	assert.Equal(t, "(BLOCK)", sr.Name())
 }

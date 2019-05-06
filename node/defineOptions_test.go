@@ -277,7 +277,7 @@ func TestWithInitialNodesPubKeys(t *testing.T) {
 
 	node, _ := NewNode()
 
-	pubKeys := make([][]string, 1)
+	pubKeys := make(map[uint32][]string, 1)
 	pubKeys[0] = []string{"pk1", "pk2", "pk3"}
 
 	opt := WithInitialNodesPubKeys(pubKeys)
@@ -292,7 +292,7 @@ func TestWithPublicKey(t *testing.T) {
 
 	node, _ := NewNode()
 
-	pubKeys := make([][]string, 1)
+	pubKeys := make(map[uint32][]string, 1)
 	pubKeys[0] = []string{"pk1", "pk2", "pk3"}
 
 	opt := WithInitialNodesPubKeys(pubKeys)

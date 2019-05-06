@@ -52,7 +52,7 @@ type Node struct {
 	marshalizer              marshal.Marshalizer
 	ctx                      context.Context
 	hasher                   hashing.Hasher
-	initialNodesPubkeys      [][]string
+	initialNodesPubkeys      map[uint32][]string
 	initialNodesBalances     map[string]*big.Int
 	roundDuration            uint64
 	consensusGroupSize       int
@@ -637,7 +637,7 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 		return err
 	}
 
-	msgMapBlockBody, msgMapTx, err := n.blockProcessor.MarshalizedDataForCrossShard(blockBody)
+	msgMapBlockBody, msgMapTx, err := n.blockProcessor.MarshalizedDataToBroadcast(header, blockBody)
 	if err != nil {
 		return err
 	}
