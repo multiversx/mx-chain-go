@@ -19,6 +19,7 @@ type TpsBenchmark struct {
 	totalProcessedTxCount uint32
 	shardStatisticsMut    sync.RWMutex
 	shardStatistics       map[uint32]*shardStatistics
+	shardStatisticsLock   sync.RWMutex
 	missingNonces         map[uint64]struct{}
 	missingNoncesLock     sync.RWMutex
 }
@@ -101,11 +102,16 @@ func (s *TpsBenchmark) NrOfShards() uint32 {
 
 // ShardStatistics returns the current statistical state for a given shard
 func (s *TpsBenchmark) ShardStatistics() map[uint32]*shardStatistics {
+	s.shardStatisticsMut.RLock()
+	defer s.shardStatisticsMut.RUnlock()
 	return s.shardStatistics
 }
 
 // ShardStatistic returns the current statistical state for a given shard
 func (s *TpsBenchmark) ShardStatistic(shardID uint32) *shardStatistics {
+	s.shardStatisticsMut.RLock()
+	defer s.shardStatisticsMut.RUnlock()
+
 	ss, ok := s.shardStatistics[shardID]
 	if !ok {
 		return nil
@@ -168,6 +174,9 @@ func (s *TpsBenchmark) removeMissingNonce(nonce uint64) {
 }
 
 func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
+	s.shardStatisticsMut.Lock()
+	defer s.shardStatisticsMut.Unlock()
+
 	for _, shardInfo := range header.ShardInfo {
 		shardStat, ok := s.shardStatistics[shardInfo.ShardId]
 		if !ok {
