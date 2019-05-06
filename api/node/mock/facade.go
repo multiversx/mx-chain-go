@@ -12,7 +12,7 @@ type Facade struct {
 	ShouldErrorStart           bool
 	ShouldErrorStop            bool
 	GetCurrentPublicKeyHandler func() string
-	GetHeartbeatsHandler       func() ([]heartbeat.PubkeyHeartbeat, error)
+	GetHeartbeatsHandler       func() ([]heartbeat.PubKeyHeartbeat, error)
 }
 
 // IsNodeRunning is the mock implementation of a handler's IsNodeRunning method
@@ -42,7 +42,7 @@ func (f *Facade) GetCurrentPublicKey() string {
 	return f.GetCurrentPublicKeyHandler()
 }
 
-func (f *Facade) GetHeartbeats() ([]heartbeat.PubkeyHeartbeat, error) {
+func (f *Facade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error) {
 	return f.GetHeartbeatsHandler()
 }
 

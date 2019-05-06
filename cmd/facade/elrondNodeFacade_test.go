@@ -441,7 +441,7 @@ func TestElrondNodeFacade_GenerateAndSendBulkTransactionsOneByOne(t *testing.T) 
 
 func TestElrondNodeFacade_GetHeartbeatsReturnsNilShouldErr(t *testing.T) {
 	node := &mock.NodeMock{
-		GetHeartbeatsHandler: func() []heartbeat.PubkeyHeartbeat {
+		GetHeartbeatsHandler: func() []heartbeat.PubKeyHeartbeat {
 			return nil
 		},
 	}
@@ -455,8 +455,8 @@ func TestElrondNodeFacade_GetHeartbeatsReturnsNilShouldErr(t *testing.T) {
 
 func TestElrondNodeFacade_GetHeartbeats(t *testing.T) {
 	node := &mock.NodeMock{
-		GetHeartbeatsHandler: func() []heartbeat.PubkeyHeartbeat {
-			return []heartbeat.PubkeyHeartbeat{
+		GetHeartbeatsHandler: func() []heartbeat.PubKeyHeartbeat {
+			return []heartbeat.PubKeyHeartbeat{
 				{
 					HexPublicKey: "pk1",
 					PeerHeartBeats: []heartbeat.PeerHeartbeat{

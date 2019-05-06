@@ -302,9 +302,11 @@ func TestAddress_ReturnsSuccessfully(t *testing.T) {
 
 func TestHeartbeatStatus_FailsWithoutFacade(t *testing.T) {
 	t.Parallel()
+
 	ws := startNodeServer(nil)
 	defer func() {
 		r := recover()
+
 		assert.NotNil(t, r, "Not providing elrondFacade context should panic")
 	}()
 	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
@@ -314,6 +316,7 @@ func TestHeartbeatStatus_FailsWithoutFacade(t *testing.T) {
 
 func TestHeartbeatstatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	t.Parallel()
+
 	facade := mock.Facade{}
 	facade.Running = true
 	ws := startNodeServerWrongFacade()
@@ -323,6 +326,7 @@ func TestHeartbeatstatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 
 	statusRsp := StatusResponse{}
 	loadResponse(resp.Body, &statusRsp)
+
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
 }
@@ -332,7 +336,7 @@ func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
 
 	errExpected := errs.New("expected error")
 	facade := mock.Facade{
-		GetHeartbeatsHandler: func() ([]heartbeat.PubkeyHeartbeat, error) {
+		GetHeartbeatsHandler: func() ([]heartbeat.PubKeyHeartbeat, error) {
 			return nil, errExpected
 		},
 	}
@@ -343,6 +347,7 @@ func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
 
 	statusRsp := StatusResponse{}
 	loadResponse(resp.Body, &statusRsp)
+
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 	assert.Equal(t, errExpected.Error(), statusRsp.Error)
 }
@@ -350,7 +355,7 @@ func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
 func TestHeartbeatstatus(t *testing.T) {
 	t.Parallel()
 
-	hbStatus := []heartbeat.PubkeyHeartbeat{
+	hbStatus := []heartbeat.PubKeyHeartbeat{
 		{
 			HexPublicKey: "pk1",
 			PeerHeartBeats: []heartbeat.PeerHeartbeat{
@@ -362,7 +367,7 @@ func TestHeartbeatstatus(t *testing.T) {
 		},
 	}
 	facade := mock.Facade{
-		GetHeartbeatsHandler: func() (heartbeats []heartbeat.PubkeyHeartbeat, e error) {
+		GetHeartbeatsHandler: func() (heartbeats []heartbeat.PubKeyHeartbeat, e error) {
 			return hbStatus, nil
 		},
 	}
@@ -373,6 +378,7 @@ func TestHeartbeatstatus(t *testing.T) {
 
 	statusRsp := StatusResponse{}
 	loadResponseAsString(resp.Body, &statusRsp)
+
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.NotEqual(t, "", statusRsp.Message)
 }

@@ -37,3 +37,18 @@ func (s *SinglesignFailMock) Sign(private crypto.PrivateKey, msg []byte) ([]byte
 func (s *SinglesignFailMock) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
 	return errors.New("signature verification failure")
 }
+
+type SinglesignStub struct {
+	SignCalled   func(private crypto.PrivateKey, msg []byte) ([]byte, error)
+	VerifyCalled func(public crypto.PublicKey, msg []byte, sig []byte) error
+}
+
+// Sign Signs a message with using a single signature schnorr scheme
+func (s *SinglesignStub) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+	return s.SignCalled(private, msg)
+}
+
+// Verify verifies a signature using a single signature schnorr scheme
+func (s *SinglesignStub) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
+	return s.VerifyCalled(public, msg, sig)
+}

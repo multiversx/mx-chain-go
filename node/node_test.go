@@ -1031,7 +1031,20 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithSinglesig(&mock.SinglesignMock{}),
 		node.WithKeyGenerator(&mock.KeyGenMock{}),
-		node.WithMessenger(&mock.MessengerStub{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicCalled: func(name string) bool {
+				return false
+			},
+			HasTopicValidatorCalled: func(name string) bool {
+				return false
+			},
+			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				return nil
+			},
+			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+				return nil
+			},
+		}),
 		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
@@ -1052,7 +1065,20 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithMarshalizer(&mock.MarshalizerMock{}),
 		node.WithSinglesig(&mock.SinglesignMock{}),
-		node.WithMessenger(&mock.MessengerStub{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicCalled: func(name string) bool {
+				return false
+			},
+			HasTopicValidatorCalled: func(name string) bool {
+				return false
+			},
+			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				return nil
+			},
+			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+				return nil
+			},
+		}),
 		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
@@ -1194,7 +1220,11 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 		node.WithInitialNodesPubKeys([][]string{{"pk1"}}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{
 			GeneratePublicHandler: func() crypto.PublicKey {
-				return &mock.PublicKeyMock{}
+				return &mock.PublicKeyMock{
+					ToByteArrayHandler: func() (i []byte, e error) {
+						return []byte("pk1"), nil
+					},
+				}
 			},
 		}),
 	)
@@ -1240,7 +1270,11 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 		node.WithInitialNodesPubKeys([][]string{{"pk1", "pk2"}, {"pk3"}}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{
 			GeneratePublicHandler: func() crypto.PublicKey {
-				return &mock.PublicKeyMock{}
+				return &mock.PublicKeyMock{
+					ToByteArrayHandler: func() (i []byte, e error) {
+						return []byte("pk1"), nil
+					},
+				}
 			},
 		}),
 	)

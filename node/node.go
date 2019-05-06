@@ -748,6 +748,22 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 		return err
 	}
 
+	if n.messenger.HasTopicValidator(HeartbeatTopic) {
+		return ErrValidatorAlreadySet
+	}
+
+	if !n.messenger.HasTopic(HeartbeatTopic) {
+		err := n.messenger.CreateTopic(HeartbeatTopic, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = n.messenger.RegisterMessageProcessor(HeartbeatTopic, n.heartbeatMonitor)
+	if err != nil {
+		return err
+	}
+
 	n.heartbeatSender, err = heartbeat.NewSender(
 		n.messenger,
 		n.singlesig,
@@ -776,23 +792,8 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 		return err
 	}
 
-	if n.messenger.HasTopicValidator(HeartbeatTopic) {
-		return ErrValidatorAlreadySet
-	}
-
-	if !n.messenger.HasTopic(HeartbeatTopic) {
-		err := n.messenger.CreateTopic(HeartbeatTopic, true)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = n.messenger.RegisterMessageProcessor(HeartbeatTopic, n.heartbeatMonitor)
-	if err != nil {
-		return err
-	}
-
 	go n.startSendingHeartbeats(config)
+
 	return nil
 }
 
@@ -833,7 +834,7 @@ func (n *Node) startSendingHeartbeats(config config.HeartbeatConfig) {
 }
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
-func (n *Node) GetHeartbeats() []heartbeat.PubkeyHeartbeat {
+func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 	if n.heartbeatMonitor == nil {
 		return nil
 	}

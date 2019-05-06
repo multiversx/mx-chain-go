@@ -74,5 +74,6 @@ func (s *Sender) SendHeartbeat() error {
 	}
 
 	s.p2pMessenger.Broadcast(s.topic, buffToSend)
+
 	return nil
 }

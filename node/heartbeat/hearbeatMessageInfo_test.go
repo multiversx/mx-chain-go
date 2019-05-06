@@ -8,17 +8,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPubkeyElement_HeartbeatArrivedFirstTimeForAddressShouldWork(t *testing.T) {
+//------ NewHeartbeatMessageInfo
+
+func TestNewHeartbeatMessageInfo_InvalidDurationShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pe := heartbeat.NewPubkeyElement(time.Duration(10))
-	pe.SetTimeGetter(func() time.Time {
+	hbmi, err := heartbeat.NewHeartbeatMessageInfo(0)
+
+	assert.Nil(t, hbmi)
+	assert.Equal(t, heartbeat.ErrInvalidMaxDurationPeerUnresponsive, err)
+}
+
+func TestNewHeartbeatMessageInfo_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hbmi, err := heartbeat.NewHeartbeatMessageInfo(1)
+
+	assert.NotNil(t, hbmi)
+	assert.Nil(t, err)
+}
+
+func TestHeartbeatMessageInfo_HeartbeatReceivedFirstTimeForAddressShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(time.Duration(10))
+	hbmi.SetTimeGetter(func() time.Time {
 		return time.Unix(0, 1)
 	})
 	p2pAddr := "p2p address"
 
-	pe.HeartbeatArrived(p2pAddr)
-	heartbeats := pe.GetPeerHeartbeats()
+	hbmi.HeartbeatReceived(p2pAddr)
+	heartbeats := hbmi.GetPeerHeartbeats()
 
 	expectedHeartBeat := heartbeat.PeerHeartbeat{
 		P2PAddress:      p2pAddr,
@@ -31,12 +51,12 @@ func TestPubkeyElement_HeartbeatArrivedFirstTimeForAddressShouldWork(t *testing.
 	assert.Equal(t, expectedHeartBeat, heartbeats[0])
 }
 
-func TestPubkeyElement_HeartbeatArrivedShouldUpdate(t *testing.T) {
+func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 	t.Parallel()
 
-	pe := heartbeat.NewPubkeyElement(time.Duration(10))
+	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(time.Duration(10))
 	incrementalTime := int64(0)
-	pe.SetTimeGetter(func() time.Time {
+	hbmi.SetTimeGetter(func() time.Time {
 		if incrementalTime < 2 {
 			incrementalTime++
 		}
@@ -44,9 +64,9 @@ func TestPubkeyElement_HeartbeatArrivedShouldUpdate(t *testing.T) {
 	})
 	p2pAddr := "p2p address"
 
-	pe.HeartbeatArrived(p2pAddr)
-	pe.HeartbeatArrived(p2pAddr)
-	heartbeats := pe.GetPeerHeartbeats()
+	hbmi.HeartbeatReceived(p2pAddr)
+	hbmi.HeartbeatReceived(p2pAddr)
+	heartbeats := hbmi.GetPeerHeartbeats()
 
 	expectedHeartBeat := heartbeat.PeerHeartbeat{
 		P2PAddress:      p2pAddr,
@@ -59,12 +79,12 @@ func TestPubkeyElement_HeartbeatArrivedShouldUpdate(t *testing.T) {
 	assert.Equal(t, expectedHeartBeat, heartbeats[0])
 }
 
-func TestPubkeyElement_HeartbeatSweepShouldUpdate(t *testing.T) {
+func TestHeartbeatMessageInfo_HeartbeatSweepShouldUpdate(t *testing.T) {
 	t.Parallel()
 
-	pe := heartbeat.NewPubkeyElement(time.Duration(1))
+	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(time.Duration(1))
 	incrementalTime := int64(0)
-	pe.SetTimeGetter(func() time.Time {
+	hbmi.SetTimeGetter(func() time.Time {
 		tReturned := time.Unix(0, incrementalTime)
 		incrementalTime += 10
 
@@ -72,8 +92,8 @@ func TestPubkeyElement_HeartbeatSweepShouldUpdate(t *testing.T) {
 	})
 	p2pAddr := "p2p address"
 
-	pe.HeartbeatArrived(p2pAddr)
-	heartbeats := pe.GetPeerHeartbeats()
+	hbmi.HeartbeatReceived(p2pAddr)
+	heartbeats := hbmi.GetPeerHeartbeats()
 
 	expectedHeartBeat := heartbeat.PeerHeartbeat{
 		P2PAddress:      p2pAddr,

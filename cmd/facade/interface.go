@@ -54,5 +54,5 @@ type NodeWrapper interface {
 	GetAccount(address string) (*state.Account, error)
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
-	GetHeartbeats() []heartbeat.PubkeyHeartbeat
+	GetHeartbeats() []heartbeat.PubKeyHeartbeat
 }

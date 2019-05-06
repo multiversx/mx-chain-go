@@ -140,8 +140,8 @@ func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactionsOneByOne(
 	return ef.node.GenerateAndSendBulkTransactionsOneByOne(destination, value, nrTransactions)
 }
 
-// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
-func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubkeyHeartbeat, error) {
+// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json or in the shard
+func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error) {
 	hbStatus := ef.node.GetHeartbeats()
 	if hbStatus == nil {
 		return nil, ErrHeartbeatsNotActive

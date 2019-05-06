@@ -25,3 +25,6 @@ var ErrNilMessage = errors.New("nil message")
 
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
+
+// ErrInvalidMaxDurationPeerUnresponsive signals that the duration provided is invalid
+var ErrInvalidMaxDurationPeerUnresponsive = errors.New("invalid max duration to declare the peer unresponsive")

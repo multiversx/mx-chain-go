@@ -7,10 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
+
+var log = logger.DefaultLogger()
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
 type Monitor struct {
@@ -19,7 +22,7 @@ type Monitor struct {
 	maxDurationPeerUnresponsive time.Duration
 	keygen                      crypto.KeyGenerator
 	marshalizer                 marshal.Marshalizer
-	m                           map[string]*PubkeyElement
+	m                           map[string]*HeartbeatMessageInfo
 	mut                         sync.Mutex
 }
 
@@ -54,12 +57,16 @@ func NewMonitor(
 		singleSigner:                singleSigner,
 		keygen:                      keygen,
 		marshalizer:                 marshalizer,
-		m:                           make(map[string]*PubkeyElement),
+		m:                           make(map[string]*HeartbeatMessageInfo),
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
 	}
 
+	var err error
 	for _, pubkey := range genesisPubKeyList {
-		mon.m[pubkey] = NewPubkeyElement(maxDurationPeerUnresponsive)
+		mon.m[pubkey], err = NewHeartbeatMessageInfo(maxDurationPeerUnresponsive)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return mon, nil
@@ -105,26 +112,30 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 		pe := m.m[string(hb.Pubkey)]
 		if pe == nil {
-			pe = NewPubkeyElement(m.maxDurationPeerUnresponsive)
+			pe, err = NewHeartbeatMessageInfo(m.maxDurationPeerUnresponsive)
+			if err != nil {
+				log.Error(err.Error())
+				return
+			}
 			m.m[string(hb.Pubkey)] = pe
 		}
 
-		pe.HeartbeatArrived(addr)
+		pe.HeartbeatReceived(addr)
 	}(message, hbRecv)
 
 	return nil
 }
 
 // GetHeartbeats returns the heartbeat status
-func (m *Monitor) GetHeartbeats() []PubkeyHeartbeat {
+func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	m.mut.Lock()
 	defer m.mut.Unlock()
 
-	status := make([]PubkeyHeartbeat, len(m.m))
+	status := make([]PubKeyHeartbeat, len(m.m))
 
 	idx := 0
 	for k, v := range m.m {
-		status[idx] = PubkeyHeartbeat{
+		status[idx] = PubKeyHeartbeat{
 			HexPublicKey:   hex.EncodeToString([]byte(k)),
 			PeerHeartBeats: v.GetPeerHeartbeats(),
 		}

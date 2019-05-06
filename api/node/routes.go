@@ -16,7 +16,7 @@ type Handler interface {
 	StartNode() error
 	StopNode() error
 	GetCurrentPublicKey() string
-	GetHeartbeats() ([]heartbeat.PubkeyHeartbeat, error)
+	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 }
 
 // Routes defines node related routes
