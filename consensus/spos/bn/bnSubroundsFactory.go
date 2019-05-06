@@ -314,7 +314,7 @@ func (fct *factory) generateEndRoundSubround() error {
 
 	subroundEndRound, err := NewSubroundEndRound(
 		subround,
-		fct.worker.GetBroadcastBlock,
+		fct.worker.BroadcastBlock,
 		fct.worker.Extend,
 	)
 	if err != nil {

@@ -42,6 +42,6 @@ func (sposWorkerMock *SposWorkerMock) GetConsensusStateChangedChannel() chan boo
 	return sposWorkerMock.GetConsensusStateChangedChannelsCalled()
 }
 
-func (sposWorkerMock *SposWorkerMock) GetBroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
+func (sposWorkerMock *SposWorkerMock) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
 	return sposWorkerMock.GetBroadcastBlockCalled(body, header)
 }

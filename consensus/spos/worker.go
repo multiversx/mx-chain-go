@@ -402,6 +402,7 @@ func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 	return wrk.consensusStateChangedChannel
 }
 
-func (wrk *Worker) GetBroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
+//BroadcastBlock does a broadcast of the blockBody and blockHeader
+func (wrk *Worker) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
 	return wrk.broadcastBlock(body, header)
 }
