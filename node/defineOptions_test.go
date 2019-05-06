@@ -105,7 +105,7 @@ func TestWithAccountsAdapter_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	accounts := &mock.AccountsAdapterStub{}
+	accounts := &mock.AccountsStub{}
 
 	opt := WithAccountsAdapter(accounts)
 	err := opt(node)

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -16,6 +17,8 @@ import (
 )
 
 func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -27,7 +30,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator)
 
@@ -36,9 +39,9 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 
 	//Step 1. create account with a nonce and a balance
 	address, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
-	account, _ := accnts.GetJournalizedAccount(address)
-	account.SetNonceWithJournal(nonce)
-	account.SetBalanceWithJournal(balance)
+	account, _ := accnts.GetAccountWithJournal(address)
+	account.(*state.Account).SetNonceWithJournal(nonce)
+	account.(*state.Account).SetBalanceWithJournal(balance)
 
 	hashCreated, _ := accnts.Commit()
 
@@ -56,12 +59,14 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	hashAfterExec, _ := accnts.Commit()
 	assert.NotEqual(t, hashCreated, hashAfterExec)
 
-	accountAfterExec, _ := accnts.GetJournalizedAccount(address)
-	assert.Equal(t, nonce+1, accountAfterExec.BaseAccount().Nonce)
-	assert.Equal(t, balance, accountAfterExec.BaseAccount().Balance)
+	accountAfterExec, _ := accnts.GetAccountWithJournal(address)
+	assert.Equal(t, nonce+1, accountAfterExec.(*state.Account).Nonce)
+	assert.Equal(t, balance, accountAfterExec.(*state.Account).Balance)
 }
 
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
+	t.Parallel()
+
 	accnts := adbCreateAccountsDB()
 
 	pubKeyBuff := createDummyHexAddress(64)
@@ -69,7 +74,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator)
 
@@ -78,9 +83,9 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 
 	//Step 1. create account with a nonce and a balance
 	address, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
-	account, _ := accnts.GetJournalizedAccount(address)
-	account.SetNonceWithJournal(nonce)
-	account.SetBalanceWithJournal(balance)
+	account, _ := accnts.GetAccountWithJournal(address)
+	account.(*state.Account).SetNonceWithJournal(nonce)
+	account.(*state.Account).SetBalanceWithJournal(balance)
 
 	accnts.Commit()
 
@@ -97,28 +102,30 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 
 	_ = accnts.RevertToSnapshot(0)
 
-	accountAfterExec, _ := accnts.GetJournalizedAccount(address)
-	assert.Equal(t, nonce, accountAfterExec.BaseAccount().Nonce)
-	assert.Equal(t, balance, accountAfterExec.BaseAccount().Balance)
+	accountAfterExec, _ := accnts.GetAccountWithJournal(address)
+	assert.Equal(t, nonce, accountAfterExec.(*state.Account).Nonce)
+	assert.Equal(t, balance, accountAfterExec.(*state.Account).Balance)
 }
 
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
+	t.Parallel()
+
 	accnts := adbCreateAccountsDB()
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
 	balance := big.NewInt(initialBalance)
 
-	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	pubKeyBuff := createDummyHexAddress(64)
 	sender, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
 	pubKeyBuff = createDummyHexAddress(64)
 	receiver, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
-	account, _ := accnts.GetJournalizedAccount(sender)
-	account.SetNonceWithJournal(nonce)
-	account.SetBalanceWithJournal(balance)
+	account, _ := accnts.GetAccountWithJournal(sender)
+	account.(*state.Account).SetNonceWithJournal(nonce)
+	account.(*state.Account).SetBalanceWithJournal(balance)
 
 	initialHash, _ := accnts.Commit()
 	fmt.Printf("Initial hash: %s\n", base64.StdEncoding.EncodeToString(initialHash))
@@ -138,7 +145,7 @@ func testExecTransactionsMoreTxWithRevert(
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator)
 
@@ -161,14 +168,14 @@ func testExecTransactionsMoreTxWithRevert(
 	fmt.Printf("Modified hash: %s\n", base64.StdEncoding.EncodeToString(modifiedHash))
 
 	//Step 2. test that accounts have correct nonces and balances
-	newAccount, _ := accnts.GetJournalizedAccount(receiver)
-	account, _ := accnts.GetJournalizedAccount(sender)
+	newAccount, _ := accnts.GetAccountWithJournal(receiver)
+	account, _ := accnts.GetAccountWithJournal(sender)
 
-	assert.Equal(t, account.BaseAccount().Balance, big.NewInt(initialBalance-int64(txToGenerate)))
-	assert.Equal(t, account.BaseAccount().Nonce, uint64(txToGenerate)+initialNonce)
+	assert.Equal(t, account.(*state.Account).Balance, big.NewInt(initialBalance-int64(txToGenerate)))
+	assert.Equal(t, account.(*state.Account).Nonce, uint64(txToGenerate)+initialNonce)
 
-	assert.Equal(t, newAccount.BaseAccount().Balance, big.NewInt(int64(txToGenerate)))
-	assert.Equal(t, newAccount.BaseAccount().Nonce, uint64(0))
+	assert.Equal(t, newAccount.(*state.Account).Balance, big.NewInt(int64(txToGenerate)))
+	assert.Equal(t, newAccount.(*state.Account).Nonce, uint64(0))
 
 	assert.NotEqual(t, initialHash, modifiedHash)
 
@@ -183,10 +190,10 @@ func testExecTransactionsMoreTxWithRevert(
 	fmt.Printf("Reverted hash: %s\n", base64.StdEncoding.EncodeToString(revertedHash))
 
 	receiver2, _ := accnts.GetExistingAccount(receiver)
-	account, _ = accnts.GetJournalizedAccount(sender)
+	account, _ = accnts.GetAccountWithJournal(sender)
 
-	assert.Equal(t, account.BaseAccount().Balance, big.NewInt(initialBalance))
-	assert.Equal(t, account.BaseAccount().Nonce, initialNonce)
+	assert.Equal(t, account.(*state.Account).Balance, big.NewInt(initialBalance))
+	assert.Equal(t, account.(*state.Account).Nonce, initialNonce)
 
 	assert.Nil(t, receiver2)
 
@@ -194,22 +201,24 @@ func testExecTransactionsMoreTxWithRevert(
 }
 
 func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *testing.T) {
+	t.Parallel()
+
 	accnts := adbCreateAccountsDB()
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
 	balance := big.NewInt(initialBalance)
 
-	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	pubKeyBuff := createDummyHexAddress(64)
 	sender, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
 	pubKeyBuff = createDummyHexAddress(64)
 	receiver, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
-	account, _ := accnts.GetJournalizedAccount(sender)
-	account.SetNonceWithJournal(nonce)
-	account.SetBalanceWithJournal(balance)
+	account, _ := accnts.GetAccountWithJournal(sender)
+	account.(*state.Account).SetNonceWithJournal(nonce)
+	account.(*state.Account).SetBalanceWithJournal(balance)
 
 	initialHash, _ := accnts.Commit()
 	fmt.Printf("Initial hash: %s\n", base64.StdEncoding.EncodeToString(initialHash))
