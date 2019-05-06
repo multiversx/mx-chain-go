@@ -11,6 +11,59 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const roundTimeDuration = time.Duration(100 * time.Millisecond)
+
+func initRounderMock() *mock.RounderMock {
+	return &mock.RounderMock{
+		RoundIndex:        0,
+		RoundTimeStamp:    time.Unix(0, 0),
+		RoundTimeDuration: roundTimeDuration,
+	}
+}
+
+func createEligibleList(size int) []string {
+	eligibleList := make([]string, 0)
+	for i := 0; i < size; i++ {
+		eligibleList = append(eligibleList, string(i+65))
+	}
+	return eligibleList
+}
+
+func initConsensusState() *spos.ConsensusState {
+	consensusGroupSize := 9
+	eligibleList := createEligibleList(consensusGroupSize)
+	indexLeader := 1
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		consensusGroupSize,
+		eligibleList[indexLeader])
+
+	rcns.SetConsensusGroup(eligibleList)
+	rcns.ResetRoundState()
+
+	pFTThreshold := consensusGroupSize*2/3 + 1
+
+	rthr := spos.NewRoundThreshold()
+	rthr.SetThreshold(1, 1)
+	rthr.SetThreshold(2, pFTThreshold)
+	rthr.SetThreshold(3, pFTThreshold)
+	rthr.SetThreshold(4, pFTThreshold)
+	rthr.SetThreshold(5, pFTThreshold)
+
+	rstatus := spos.NewRoundStatus()
+	rstatus.ResetRoundStatus()
+
+	cns := spos.NewConsensusState(
+		rcns,
+		rthr,
+		rstatus,
+	)
+
+	cns.Data = []byte("X")
+	cns.RoundIndex = 0
+	return cns
+}
+
 func TestSubround_NewSubroundNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
