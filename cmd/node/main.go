@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"io"
 	"os"
 	"os/signal"
@@ -53,7 +54,6 @@ import (
 	factoryP2P "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
@@ -563,8 +563,8 @@ func createShardNode(
 		accountsAdapter,
 		shardCoordinator,
 		forkDetector,
-		createRequestTransactionHandler(resolversFinder, log),
-		createRequestMiniBlocksHandler(resolversFinder, log),
+		createRequestHandler(resolversFinder, factory.TransactionTopic, log),
+		createRequestHandler(resolversFinder, factory.MiniBlocksTopic, log),
 	)
 
 	if err != nil {
@@ -790,7 +790,7 @@ func createMetaNode(
 		hasher,
 		marshalizer,
 		metaStore,
-		createMetaRequestHeader(resolversFinder, log))
+		createRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
 
 	if err != nil {
 		return nil, errors.New("could not create block processor: " + err.Error())
@@ -836,48 +836,16 @@ func createMetaNode(
 	return nd, nil
 }
 
-func createRequestTransactionHandler(resolversFinder dataRetriever.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(destShardID uint32, txHash []byte) {
-		log.Debug(fmt.Sprintf("Requesting tx from shard %d with hash %s from network\n", destShardID, toB64(txHash)))
-		resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
+		log.Debug(fmt.Sprintf("Requesting %s from shard %d with hash %s from network\n", baseTopic, destShardID, toB64(txHash)))
+		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
 		if err != nil {
-			log.Error(fmt.Sprintf("missing resolver to transaction topic to shard %d", destShardID))
+			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
 			return
 		}
 
 		err = resolver.RequestDataFromHash(txHash)
-		if err != nil {
-			log.Debug(err.Error())
-		}
-	}
-}
-
-func createRequestMiniBlocksHandler(resolversFinder dataRetriever.ResolversFinder, log *logger.Logger) func(destShardID uint32, mbHash []byte) {
-	return func(shardId uint32, mbHash []byte) {
-		log.Debug(fmt.Sprintf("Requesting miniblock from shard %d with hash %s from network\n", shardId, toB64(mbHash)))
-		resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
-		if err != nil {
-			log.Error(fmt.Sprintf("missing resolver to miniblock topic to shard %d", shardId))
-			return
-		}
-
-		err = resolver.RequestDataFromHash(mbHash)
-		if err != nil {
-			log.Debug(err.Error())
-		}
-	}
-}
-
-func createMetaRequestHeader(resolversFinder dataRetriever.ResolversFinder, log *logger.Logger) func(destShardID uint32, hdrHash []byte) {
-	return func(shardId uint32, hdrHash []byte) {
-		log.Debug(fmt.Sprintf("Metachain Requesting header from shard %d with hash %s from network\n", shardId, toB64(hdrHash)))
-		resolver, err := resolversFinder.CrossShardResolver(factory.ShardHeadersForMetachainTopic, shardId)
-		if err != nil {
-			log.Error(fmt.Sprintf("missing resolver to shard headers for metachain topic to shard %d", shardId))
-			return
-		}
-
-		err = resolver.RequestDataFromHash(hdrHash)
 		if err != nil {
 			log.Debug(err.Error())
 		}

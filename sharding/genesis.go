@@ -93,9 +93,6 @@ func (g *Genesis) processConfig() error {
 	if g.ConsensusGroupSize < 1 {
 		return ErrNegativeOrZeroConsensusGroupSize
 	}
-	if g.nrOfNodes < g.ConsensusGroupSize {
-		return ErrNotEnoughValidators
-	}
 	if g.MinNodesPerShard < g.ConsensusGroupSize {
 		return ErrMinNodesPerShardSmallerThanConsensusSize
 	}
@@ -111,11 +108,7 @@ func (g *Genesis) processConfig() error {
 			return ErrMinNodesPerShardSmallerThanConsensusSize
 		}
 
-		totalMinConsenus := g.MetaChainConsensusGroupSize + g.ConsensusGroupSize
 		totalMinNodes := g.MetaChainMinNodes + g.MinNodesPerShard
-		if g.nrOfNodes < totalMinConsenus {
-			return ErrNotEnoughValidators
-		}
 		if g.nrOfNodes < totalMinNodes {
 			return ErrNodesSizeSmallerThanMinNoOfNodes
 		}

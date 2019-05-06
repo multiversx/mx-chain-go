@@ -1,12 +1,12 @@
 package factory_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
