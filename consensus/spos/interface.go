@@ -53,6 +53,7 @@ type ConsensusService interface {
 	CanProceed(*ConsensusState, consensus.MessageType) bool
 }
 
+//WorkerHandler represents the interface for the SposWorker
 type WorkerHandler interface {
 	//AddReceivedMessageCall adds a new handler function for a received messege type
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
