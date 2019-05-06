@@ -118,3 +118,6 @@ var ErrNilCode = errors.New("nil smart contract code")
 
 // ErrAccNotFound signals that account was not found in state trie
 var ErrAccNotFound = errors.New("account was not found")
+
+// ErrUnknownShardId signals that shard id is not valid
+var ErrUnknownShardId = errors.New("shard id is not valid")
