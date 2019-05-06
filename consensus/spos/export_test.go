@@ -112,12 +112,12 @@ func (wrk *Worker) ExecuteMessageChannel() chan *consensus.Message {
 	return wrk.executeMessageChannel
 }
 
-func (wrk *Worker) ConsensusStateChangedChannels() chan bool {
+func (wrk *Worker) ConsensusStateChangedChannel() chan bool {
 	return wrk.consensusStateChangedChannel
 }
 
-func (wrk *Worker) SetConsensusStateChangedChannels(consensusStateChangedChannels chan bool) {
-	wrk.consensusStateChangedChannel = consensusStateChangedChannels
+func (wrk *Worker) SetConsensusStateChangedChannel(consensusStateChangedChannel chan bool) {
+	wrk.consensusStateChangedChannel = consensusStateChangedChannel
 }
 
 func (wrk *Worker) CheckSelfState(cnsDta *consensus.Message) error {
