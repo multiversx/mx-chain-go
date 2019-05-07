@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"io"
 	"os"
 	"os/signal"
@@ -54,6 +53,7 @@ import (
 	factoryP2P "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
@@ -62,6 +62,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/google/gops/agent"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
@@ -128,6 +129,11 @@ VERSION:
 		Name:  "bls-private-key-index",
 		Usage: "BlsPrivateKeyIndex defines a flag that specify the 0-th based index of the bls private key to be used from blsPrivKeys.pem file.",
 		Value: 0,
+	}
+	gopsEn = cli.IntFlag{
+		Name:  "gops-enable",
+		Usage: "Enables gops over the process.",
+		Value: 1,
 	}
 
 	configurationFile    = "./config/config.toml"
@@ -196,7 +202,7 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, port, privateKey, profileMode, privateKeyIndex, blsPrivateKeyIndex}
+	app.Flags = []cli.Flag{genesisFile, port, privateKey, profileMode, privateKeyIndex, blsPrivateKeyIndex, gopsEn}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -231,6 +237,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		p := profile.Start(profile.BlockProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 		defer p.Stop()
 	}
+
+	enableGopsIfNeeded(ctx, log)
 
 	log.Info("Starting node...")
 
@@ -340,6 +348,19 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func enableGopsIfNeeded(ctx *cli.Context, log *logger.Logger) {
+	var gopsEnabled bool
+	if ctx.IsSet(gopsEn.Name) {
+		gopsEnabled = ctx.GlobalInt(gopsEn.Name) != 0
+	}
+
+	if gopsEnabled {
+		if err := agent.Listen(agent.Options{}); err != nil {
+			log.Error(err.Error())
+		}
+	}
 }
 
 func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error) {
