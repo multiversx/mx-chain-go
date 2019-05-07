@@ -1292,3 +1292,59 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 	elements := n.HeartbeatMonitor().GetHeartbeats()
 	assert.Equal(t, 3, len(elements))
 }
+
+func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
+	t.Parallel()
+
+	var registeredHandler p2p.MessageProcessor
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(&mock.MarshalizerMock{
+			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
+				return make([]byte, 0), nil
+			},
+		}),
+		node.WithSinglesig(&mock.SinglesignMock{}),
+		node.WithKeyGenerator(&mock.KeyGenMock{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicValidatorCalled: func(name string) bool {
+				return false
+			},
+			HasTopicCalled: func(name string) bool {
+				return false
+			},
+			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				return nil
+			},
+			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+				registeredHandler = handler
+				return nil
+			},
+			BroadcastCalled: func(topic string, buff []byte) {
+			},
+		}),
+		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
+		node.WithPrivateKey(&mock.PrivateKeyStub{
+			GeneratePublicHandler: func() crypto.PublicKey {
+				return &mock.PublicKeyMock{
+					ToByteArrayHandler: func() (i []byte, e error) {
+						return []byte("pk1"), nil
+					},
+				}
+			},
+		}),
+	)
+
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, registeredHandler)
+
+	err = registeredHandler.ProcessReceivedMessage(nil)
+	assert.NotNil(t, err)
+	assert.Contains(t, "nil message", err.Error())
+}
