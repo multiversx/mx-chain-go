@@ -75,7 +75,7 @@ type Bootstrapper interface {
 // to detect forks
 type ForkDetector interface {
 	AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error
-	RemoveHeaders(nonce uint64)
+	RemoveHeaders(nonce uint64, hash []byte)
 	CheckFork() (bool, uint64)
 	GetHighestFinalBlockNonce() uint64
 	ProbableHighestNonce() uint64
