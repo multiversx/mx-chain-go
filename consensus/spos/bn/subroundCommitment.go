@@ -78,7 +78,7 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 		return false
 	}
 
-	multiSig, err := sr.MultiSignerBN()
+	multiSig, err := getBnMultiSigner(sr.MultiSigner())
 	if err!= nil {
 		log.Error(err.Error())
 		return false
@@ -143,7 +143,7 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.Message) bool
 		return false
 	}
 
-	currentMultiSigner, err := sr.MultiSignerBN()
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
 	if err!= nil {
 		log.Error(err.Error())
 		return false

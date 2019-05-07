@@ -78,7 +78,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	currentMultiSigner, err := sr.MultiSignerBN()
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -131,7 +131,7 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 		size = nbBitsBitmap
 	}
 
-	currentMultiSigner, err := sr.MultiSignerBN()
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
 	if err != nil {
 		return err
 	}

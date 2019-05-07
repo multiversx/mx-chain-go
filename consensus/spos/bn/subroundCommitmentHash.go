@@ -132,7 +132,7 @@ func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *consensus.Messa
 		return false
 	}
 
-	currentMultiSigner, err := sr.MultiSignerBN()
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -255,7 +255,7 @@ func (sr *subroundCommitmentHash) commitmentHashesCollected(threshold int) bool 
 }
 
 func (sr *subroundCommitmentHash) genCommitmentHash() ([]byte, error) {
-	currentMultiSigner, err := sr.MultiSignerBN()
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
 	if err != nil {
 		return nil, err
 	}
