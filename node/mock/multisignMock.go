@@ -15,15 +15,11 @@ func (mm *MultisignMock) Reset(pubKeys []string, index uint16) error {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) SetMessage(msg []byte) error {
-	panic("implement me")
-}
-
 func (mm *MultisignMock) SetAggregatedSig([]byte) error {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) Verify(bitmap []byte) error {
+func (mm *MultisignMock) Verify(msg []byte, bitmap []byte) error {
 	panic("implement me")
 }
 
@@ -51,7 +47,7 @@ func (mm *MultisignMock) AggregateCommitments(bitmap []byte) error {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) CreateSignatureShare(bitmap []byte) ([]byte, error) {
+func (mm *MultisignMock) CreateSignatureShare(msg []byte, bitmap []byte) ([]byte, error) {
 	panic("implement me")
 }
 
@@ -59,7 +55,7 @@ func (mm *MultisignMock) StoreSignatureShare(index uint16, sig []byte) error {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error {
+func (mm *MultisignMock) VerifySignatureShare(index uint16, sig []byte, msg []byte, bitmap []byte) error {
 	panic("implement me")
 }
 
