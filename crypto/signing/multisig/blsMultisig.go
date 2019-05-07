@@ -137,7 +137,7 @@ func (bms *blsMultiSigner) Reset(pubKeys []string, index uint16) error {
 }
 
 // Create generates a multiSigner and initializes corresponding fields with the given params
-func (bms *blsMultiSigner) Create(pubKeys []string, index uint16) (crypto.MultiSignerBLS, error) {
+func (bms *blsMultiSigner) Create(pubKeys []string, index uint16) (crypto.MultiSigner, error) {
 	bms.mutSigData.RLock()
 	privKey := bms.data.privKey
 	bms.mutSigData.RUnlock()
@@ -147,7 +147,7 @@ func (bms *blsMultiSigner) Create(pubKeys []string, index uint16) (crypto.MultiS
 
 // CreateSignatureShare returns a BLS single signature over the message previously configured with a previous call of
 // SetMessage
-func (bms *blsMultiSigner) CreateSignatureShare(message []byte) ([]byte, error) {
+func (bms *blsMultiSigner) CreateSignatureShare(message []byte, _ []byte) ([]byte, error) {
 	bms.mutSigData.Lock()
 	defer bms.mutSigData.Unlock()
 
@@ -179,7 +179,7 @@ func (bms *blsMultiSigner) isIndexInBitmap(index uint16, bitmap []byte) error {
 
 // VerifySignatureShare verifies the single signature share of the signer with specified position
 // Signature is verified over a message configured with a previous call of SetMessage
-func (bms *blsMultiSigner) VerifySignatureShare(index uint16, sig []byte, message []byte) error {
+func (bms *blsMultiSigner) VerifySignatureShare(index uint16, sig []byte, message []byte, _ []byte) error {
 	if sig == nil {
 		return crypto.ErrNilSignature
 	}
@@ -300,7 +300,7 @@ func (bms *blsMultiSigner) SetAggregatedSig(aggSig []byte) error {
 
 // Verify verifies the aggregated signature by checking that aggregated signature is valid with respect
 // to aggregated public keys.
-func (bms *blsMultiSigner) Verify(bitmap []byte, message []byte) error {
+func (bms *blsMultiSigner) Verify(message []byte, bitmap []byte) error {
 	if bitmap == nil {
 		return crypto.ErrNilBitmap
 	}

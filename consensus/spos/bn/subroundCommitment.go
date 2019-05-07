@@ -78,8 +78,14 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 		return false
 	}
 
+	multiSig, err := getBnMultiSigner(sr.MultiSigner())
+	if err!= nil {
+		log.Error(err.Error())
+		return false
+	}
+
 	// commitment
-	commitment, err := sr.MultiSigner().Commitment(uint16(selfIndex))
+	commitment, err := multiSig.Commitment(uint16(selfIndex))
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -137,7 +143,12 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.Message) bool
 		return false
 	}
 
-	currentMultiSigner := sr.MultiSigner()
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
+	if err!= nil {
+		log.Error(err.Error())
+		return false
+	}
+
 	err = currentMultiSigner.StoreCommitment(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
 		log.Info(err.Error())
