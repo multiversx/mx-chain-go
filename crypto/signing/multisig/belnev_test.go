@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type MultiSignerBN interface {
+type multiSignerBN interface {
 	crypto.MultiSigner
 	// CreateCommitment creates a secret commitment and the corresponding public commitment point
 	CreateCommitment() (commSecret []byte, commitment []byte)
@@ -54,7 +54,7 @@ func genMultiSigParams(cnGrSize int, ownIndex uint16) (
 	return privKey, pubKey, pubKeys, kg
 }
 
-func setComms(multiSig MultiSignerBN, grSize uint16) (bitmap []byte) {
+func setComms(multiSig multiSignerBN, grSize uint16) (bitmap []byte) {
 	_, comm := multiSig.CreateCommitment()
 	_ = multiSig.StoreCommitment(0, comm)
 
@@ -75,7 +75,7 @@ func createSignerAndSigShare(
 	kg crypto.KeyGenerator,
 	grSize uint16,
 	ownIndex uint16,
-) (sigShare []byte, multiSig MultiSignerBN, bitmap []byte) {
+) (sigShare []byte, multiSig multiSignerBN, bitmap []byte) {
 
 	multiSig, _ = multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	bitmap = setComms(multiSig, grSize)
@@ -85,7 +85,7 @@ func createSignerAndSigShare(
 	return sigShare, multiSig, bitmap
 }
 
-func createAndSetCommitment(multiSig MultiSignerBN, index uint16) (commSecret, comm []byte) {
+func createAndSetCommitment(multiSig multiSignerBN, index uint16) (commSecret, comm []byte) {
 	commSecret, comm = multiSig.CreateCommitment()
 	_ = multiSig.StoreCommitment(index, comm)
 	return commSecret, comm
@@ -97,7 +97,7 @@ func createSigShares(
 	message []byte,
 	bitmap []byte,
 	ownIndex uint16,
-) (sigShares [][]byte, multiSigner MultiSignerBN) {
+) (sigShares [][]byte, multiSigner multiSignerBN) {
 
 	hasher := &mock.HasherMock{}
 	suite := kyber.NewBlakeSHA256Ed25519()
@@ -119,7 +119,7 @@ func createSigShares(
 	}
 
 	sigShares = make([][]byte, nbSigs)
-	multiSigners := make([]MultiSignerBN, nbSigs)
+	multiSigners := make([]multiSignerBN, nbSigs)
 
 	for i := uint16(0); i < nbSigs; i++ {
 		multiSigners[i], _ = multisig.NewBelNevMultisig(hasher, pubKeysStr, privKeys[i], kg, i)
@@ -349,7 +349,7 @@ func TestBelNevSigner_CreateOK(t *testing.T) {
 	multiSig.StoreCommitment(0, comm)
 
 	multiSigCreated, err := multiSig.Create(pubKeys, ownIndex)
-	mSig, _ := multiSigCreated.(MultiSignerBN)
+	mSig, _ := multiSigCreated.(multiSignerBN)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, mSig)
@@ -797,7 +797,7 @@ func TestBelNevSigner_CreateSignatureShareNotSetCommSecretShouldErr(t *testing.T
 	_ = multiSig.AggregateCommitments(bitmap)
 
 	multiSigCreated, _ := multiSig.Create(pubKeys, ownIndex)
-	ms, _ := multiSigCreated.(MultiSignerBN)
+	ms, _ := multiSigCreated.(multiSignerBN)
 
 	_ = ms.StoreCommitment(ownIndex, comm)
 	_ = ms.AggregateCommitments(bitmap)

@@ -14,6 +14,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type multiSignerBN interface {
+	crypto.MultiSigner
+	// CreateCommitment creates a secret commitment and the corresponding public commitment point
+	CreateCommitment() (commSecret []byte, commitment []byte)
+	// StoreCommitmentHash adds a commitment hash to the list with the specified position
+	StoreCommitmentHash(index uint16, commHash []byte) error
+	// CommitmentHash returns the commitment hash from the list with the specified position
+	CommitmentHash(index uint16) ([]byte, error)
+	// StoreCommitment adds a commitment to the list with the specified position
+	StoreCommitment(index uint16, value []byte) error
+	// Commitment returns the commitment from the list with the specified position
+	Commitment(index uint16) ([]byte, error)
+	// AggregateCommitments aggregates the list of commitments
+	AggregateCommitments(bitmap []byte) error
+}
+
 func generateKeyPairs(kg crypto.KeyGenerator, consensusSize uint16) (
 	privKeys []crypto.PrivateKey,
 	pubKeysStr []string) {
@@ -39,10 +55,10 @@ func createMultiSigners(
 	hasher hashing.Hasher,
 	privKeys []crypto.PrivateKey,
 	pubKeysStr []string,
-) (mutiSigners []crypto.MultiSigner, err error) {
+) (mutiSigners []multiSignerBN, err error) {
 
 	groupSize := uint16(len(pubKeysStr))
-	multiSigners := make([]crypto.MultiSigner, groupSize)
+	multiSigners := make([]multiSignerBN, groupSize)
 
 	for i := uint16(0); i < groupSize; i++ {
 		multiSigners[i], err = multisig.NewBelNevMultisig(hasher, pubKeysStr, privKeys[i], kg, i)
@@ -54,13 +70,13 @@ func createMultiSigners(
 	return multiSigners, nil
 }
 
-func createAndSetCommitment(multiSig crypto.MultiSigner) (commSecret, comm []byte) {
+func createAndSetCommitment(multiSig multiSignerBN) (commSecret, comm []byte) {
 	commSecret, comm = multiSig.CreateCommitment()
 
 	return commSecret, comm
 }
 
-func createAndSetCommitmentsAllSigners(multiSigners []crypto.MultiSigner) error {
+func createAndSetCommitmentsAllSigners(multiSigners []multiSignerBN) error {
 	groupSize := uint16(len(multiSigners))
 	var err error
 
@@ -78,7 +94,7 @@ func createAndSetCommitmentsAllSigners(multiSigners []crypto.MultiSigner) error 
 	return nil
 }
 
-func aggregateCommitmentsForAllSigners(multiSigners []crypto.MultiSigner, bitmap []byte, grSize uint16) error {
+func aggregateCommitmentsForAllSigners(multiSigners []multiSignerBN, bitmap []byte, grSize uint16) error {
 	for i := uint16(0); i < grSize; i++ {
 		err := multiSigners[i].AggregateCommitments(bitmap)
 
@@ -90,27 +106,13 @@ func aggregateCommitmentsForAllSigners(multiSigners []crypto.MultiSigner, bitmap
 	return nil
 }
 
-func setMessageAllSigners(multiSigners []crypto.MultiSigner, msg []byte) error {
-	grSize := uint16(len(multiSigners))
-
-	for i := uint16(0); i < grSize; i++ {
-		err := multiSigners[i].SetMessage(msg)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func createAndSetSignatureSharesAllSigners(multiSigners []crypto.MultiSigner, bitmap []byte) error {
+func createAndSetSignatureSharesAllSigners(multiSigners []multiSignerBN, msg []byte, bitmap []byte) error {
 	grSize := uint16(len(multiSigners))
 	sigShares := make([][]byte, grSize)
 	var err error
 
 	for i := uint16(0); i < grSize; i++ {
-		sigShares[i], err = multiSigners[i].CreateSignatureShare(bitmap)
+		sigShares[i], err = multiSigners[i].CreateSignatureShare(msg, bitmap)
 		if err != nil {
 			return err
 		}
@@ -126,7 +128,7 @@ func createAndSetSignatureSharesAllSigners(multiSigners []crypto.MultiSigner, bi
 	return nil
 }
 
-func aggregateSignatureSharesAllSigners(multiSigners []crypto.MultiSigner, bitmap []byte, grSize uint16) (
+func aggregateSignatureSharesAllSigners(multiSigners []multiSignerBN, bitmap []byte, grSize uint16) (
 	signature []byte,
 	err error,
 ) {
@@ -152,7 +154,7 @@ func aggregateSignatureSharesAllSigners(multiSigners []crypto.MultiSigner, bitma
 }
 
 func verifySigAllSigners(
-	multiSigners []crypto.MultiSigner,
+	multiSigners []multiSignerBN,
 	message []byte,
 	signature []byte,
 	pubKeys []string,
@@ -160,24 +162,26 @@ func verifySigAllSigners(
 	grSize uint16) error {
 
 	var err error
+	var muSig crypto.MultiSigner
 
 	for i := uint16(0); i < grSize; i++ {
-		multiSigners[i], err = multiSigners[i].Create(pubKeys, i)
+		muSig, err = multiSigners[i].Create(pubKeys, i)
 		if err != nil {
 			return err
 		}
 
-		err = multiSigners[i].SetMessage(message)
-		if err != nil {
-			return err
+		muSigBn, ok := muSig.(multiSignerBN)
+		if !ok {
+			return crypto.ErrInvalidSigner
 		}
 
+		multiSigners[i] = muSigBn
 		err = multiSigners[i].SetAggregatedSig(signature)
 		if err != nil {
 			return err
 		}
 
-		err = multiSigners[i].Verify(bitmap)
+		err = multiSigners[i].Verify(message, bitmap)
 		if err != nil {
 			return err
 		}
@@ -213,10 +217,9 @@ func TestBelnev_MultiSigningMultipleSignersOK(t *testing.T) {
 	assert.Nil(t, err)
 
 	message := []byte("message to be signed")
-	err = setMessageAllSigners(multiSigners, message)
 	assert.Nil(t, err)
 
-	err = createAndSetSignatureSharesAllSigners(multiSigners, bitmap)
+	err = createAndSetSignatureSharesAllSigners(multiSigners, message, bitmap)
 	assert.Nil(t, err)
 
 	aggSig, err := aggregateSignatureSharesAllSigners(multiSigners, bitmap, consensusGroupSize)
