@@ -1,3 +1,9 @@
+# GeneralSettings section of the node
+[GeneralSettings]
+   # DestinationShardAsObserver represents the desired shard when running as observer
+   # value will be given as string. For example: "0", "1", "15", "metachain"
+   DestinationShardAsObserver = "metaChaiN"
+
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Size = 1000
@@ -140,4 +146,3 @@
    MinTimeToWaitBetweenBroadcastsInSec = 20
    MaxTimeToWaitBetweenBroadcastsInSec = 25
    DurationInSecToConsiderUnresponsive = 60
-
