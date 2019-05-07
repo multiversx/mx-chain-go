@@ -19,7 +19,7 @@ type MetachainHeaderInterceptor struct {
 	marshalizer            marshal.Marshalizer
 	metachainHeaders       storage.Cacher
 	metachainHeadersNonces dataRetriever.Uint64Cacher
-	tpsBenchmark         *statistics.TpsBenchmark
+	tpsBenchmark           *statistics.TpsBenchmark
 	storer                 storage.Storer
 	multiSigVerifier       crypto.MultiSigVerifier
 	hasher                 hashing.Hasher

@@ -13,11 +13,11 @@ import (
 
 // HeaderInterceptorBase is the "abstract class" extended in HeaderInterceptor and ShardHeaderInterceptor
 type HeaderInterceptorBase struct {
-	marshalizer      marshal.Marshalizer
-	storer           storage.Storer
-	multiSigVerifier crypto.MultiSigVerifier
-	hasher           hashing.Hasher
-	shardCoordinator sharding.Coordinator
+	marshalizer         marshal.Marshalizer
+	storer              storage.Storer
+	multiSigVerifier    crypto.MultiSigVerifier
+	hasher              hashing.Hasher
+	shardCoordinator    sharding.Coordinator
 	chronologyValidator process.ChronologyValidator
 }
 
@@ -50,11 +50,11 @@ func NewHeaderInterceptorBase(
 	}
 
 	hdrIntercept := &HeaderInterceptorBase{
-		marshalizer:      marshalizer,
-		storer:           storer,
-		multiSigVerifier: multiSigVerifier,
-		hasher:           hasher,
-		shardCoordinator: shardCoordinator,
+		marshalizer:         marshalizer,
+		storer:              storer,
+		multiSigVerifier:    multiSigVerifier,
+		hasher:              hasher,
+		shardCoordinator:    shardCoordinator,
 		chronologyValidator: chronologyValidator,
 	}
 

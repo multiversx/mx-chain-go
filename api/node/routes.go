@@ -2,6 +2,7 @@ package node
 
 import (
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/url"
 
@@ -25,21 +26,21 @@ type statisticsResponse struct {
 	NrOfShards uint32 `json:"nrOfShards"`
 	BlockNumber uint64 `json:"blockNumber"`
 	RoundTime uint64 `json:"roundTime"`
-	AverageBlockTxCount float32 `json:"averageBlockTxCount"`
+	AverageBlockTxCount *big.Int `json:"averageBlockTxCount"`
 	LastBlockTxCount uint32 `json:"lastBlockTxCount"`
-	TotalProcessedTxCount uint32 `json:"totalProcessedTxCount"`
+	TotalProcessedTxCount *big.Int `json:"totalProcessedTxCount"`
 	ShardStatistics []shardStatisticsResponse `json:"shardStatistics"`
 }
 
 type shardStatisticsResponse struct {
 	ShardID uint32 `json:"shardID"`
 	LiveTPS float64 `json:"liveTPS"`
-	AverageTPS float64 `json:"averageTPS"`
+	AverageTPS *big.Int `json:"averageTPS"`
 	PeakTPS float64 `json:"peakTPS"`
 	AverageBlockTxCount uint32 `json:"averageBlockTxCount"`
 	CurrentBlockNonce uint64 `json:"currentBlockNonce"`
 	LastBlockTxCount uint32 `json:"lastBlockTxCount"`
-	TotalProcessedTxCount uint32 `json:"totalProcessedTxCount"`
+	TotalProcessedTxCount *big.Int `json:"totalProcessedTxCount"`
 }
 
 // Routes defines node related routes

@@ -510,7 +510,7 @@ func createShardNode(
 		return nil, nil, err
 	}
 
-	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration)
+	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration / 1000)
 	if err != nil {
 		return nil, nil, err
 	}
