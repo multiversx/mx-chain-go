@@ -2,6 +2,8 @@ package mock
 
 import (
 	"errors"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 )
 
 // Facade is the mock implementation of a node router handler
@@ -10,6 +12,7 @@ type Facade struct {
 	ShouldErrorStart           bool
 	ShouldErrorStop            bool
 	GetCurrentPublicKeyHandler func() string
+	GetHeartbeatsHandler       func() ([]heartbeat.PubKeyHeartbeat, error)
 }
 
 // IsNodeRunning is the mock implementation of a handler's IsNodeRunning method
@@ -37,6 +40,10 @@ func (f *Facade) StopNode() error {
 // GetCurrentPublicKey is the mock implementation of a handler's StopNode method
 func (f *Facade) GetCurrentPublicKey() string {
 	return f.GetCurrentPublicKeyHandler()
+}
+
+func (f *Facade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error) {
+	return f.GetHeartbeatsHandler()
 }
 
 // WrongFacade is a struct that can be used as a wrong implementation of the node router handler

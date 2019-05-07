@@ -182,6 +182,8 @@ type nullChronologyValidator struct {
 }
 
 func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+	//TODO when implementing a workable variant take into account to receive headers "from future" (nonce or round > current round)
+	// as this might happen when clocks are slightly de-synchronized
 	return nil
 }
 
@@ -621,6 +623,11 @@ func createShardNode(
 	}
 
 	err = nd.CreateShardedStores()
+	if err != nil {
+		return nil, err
+	}
+
+	err = nd.StartHeartbeat(config.Heartbeat)
 	if err != nil {
 		return nil, err
 	}

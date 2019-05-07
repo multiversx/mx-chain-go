@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,6 +16,7 @@ type Handler interface {
 	StartNode() error
 	StopNode() error
 	GetCurrentPublicKey() string
+	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 }
 
 // Routes defines node related routes
@@ -23,6 +25,7 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/status", Status)
 	router.GET("/stop", StopNode)
 	router.GET("/address", Address)
+	router.GET("/heartbeatstatus", HeartbeatStatus)
 }
 
 // Status returns the state of the node e.g. running/stopped
@@ -94,4 +97,21 @@ func StopNode(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+}
+
+// HeartbeatStatus respond with the heartbeat status of the node
+func HeartbeatStatus(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(Handler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	hbStatus, err := ef.GetHeartbeats()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": hbStatus})
 }

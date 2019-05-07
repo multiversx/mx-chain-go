@@ -6,8 +6,9 @@ import (
 )
 
 type PublicKeyMock struct {
-	SuiteCalled func() crypto.Suite
-	PointCalled func() crypto.Point
+	ToByteArrayHandler func() ([]byte, error)
+	SuiteCalled        func() crypto.Suite
+	PointCalled        func() crypto.Point
 }
 
 type PrivateKeyStub struct {
@@ -27,7 +28,7 @@ type KeyGenMock struct {
 //------- PublicKeyMock
 
 func (sspk *PublicKeyMock) ToByteArray() ([]byte, error) {
-	panic("implement me")
+	return sspk.ToByteArrayHandler()
 }
 
 func (sspk *PublicKeyMock) Suite() crypto.Suite {

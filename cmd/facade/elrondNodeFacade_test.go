@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -436,4 +437,57 @@ func TestElrondNodeFacade_GenerateAndSendBulkTransactionsOneByOne(t *testing.T) 
 	ef := facade.NewElrondNodeFacade(node)
 	ef.GenerateAndSendBulkTransactionsOneByOne("", big.NewInt(0), 0)
 	assert.Equal(t, called, 1)
+}
+
+func TestElrondNodeFacade_GetHeartbeatsReturnsNilShouldErr(t *testing.T) {
+	node := &mock.NodeMock{
+		GetHeartbeatsHandler: func() []heartbeat.PubKeyHeartbeat {
+			return nil
+		},
+	}
+	ef := facade.NewElrondNodeFacade(node)
+
+	result, err := ef.GetHeartbeats()
+
+	assert.Nil(t, result)
+	assert.Equal(t, facade.ErrHeartbeatsNotActive, err)
+}
+
+func TestElrondNodeFacade_GetHeartbeats(t *testing.T) {
+	node := &mock.NodeMock{
+		GetHeartbeatsHandler: func() []heartbeat.PubKeyHeartbeat {
+			return []heartbeat.PubKeyHeartbeat{
+				{
+					HexPublicKey: "pk1",
+					PeerHeartBeats: []heartbeat.PeerHeartbeat{
+						{
+							P2PAddress: "addr1",
+							IsActive:   true,
+						},
+						{
+							P2PAddress: "addr2",
+						},
+					},
+				},
+				{
+					HexPublicKey: "pk2",
+					PeerHeartBeats: []heartbeat.PeerHeartbeat{
+						{
+							P2PAddress: "addr3",
+							IsActive:   true,
+						},
+						{
+							P2PAddress: "addr4",
+						},
+					},
+				},
+			}
+		},
+	}
+	ef := facade.NewElrondNodeFacade(node)
+
+	result, err := ef.GetHeartbeats()
+
+	assert.Nil(t, err)
+	fmt.Println(result)
 }

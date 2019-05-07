@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 )
 
 //NodeWrapper contains all functions that a node should contain.
@@ -51,4 +52,7 @@ type NodeWrapper interface {
 	// GetAccount returns an accountResponse containing information
 	//  about the account corelated with provided address
 	GetAccount(address string) (*state.Account, error)
+
+	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
+	GetHeartbeats() []heartbeat.PubKeyHeartbeat
 }

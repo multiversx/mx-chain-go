@@ -265,9 +265,8 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 		node.WithPublicKey(pk),
 		node.WithSinglesig(signer),
 		node.WithShardCoordinator(shardCoordinator),
+		node.WithMessenger(mes),
 	)
-
-	n.SetMessenger(mes)
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), uint64(noOfTx))
 	assert.Nil(t, err)
