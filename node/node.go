@@ -768,11 +768,6 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 		}
 	}
 
-	err = n.messenger.RegisterMessageProcessor(HeartbeatTopic, n.heartbeatMonitor)
-	if err != nil {
-		return err
-	}
-
 	n.heartbeatSender, err = heartbeat.NewSender(
 		n.messenger,
 		n.singlesig,
@@ -797,6 +792,11 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 		time.Duration(time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive)),
 		allPubKeys,
 	)
+	if err != nil {
+		return err
+	}
+
+	err = n.messenger.RegisterMessageProcessor(HeartbeatTopic, n.heartbeatMonitor)
 	if err != nil {
 		return err
 	}
