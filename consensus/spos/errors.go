@@ -37,6 +37,9 @@ var ErrNilSingleSigner = errors.New("singleSigner is nil")
 // ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used
 var ErrNilMultiSigner = errors.New("multiSigner is nil")
 
+// ErrInvalidMultiSigner is raised when an invalid multiSigner is used
+var ErrInvalidMultiSigner = errors.New("multiSigner is invalid")
+
 // ErrNilConsensusState is raised when a valid consensus is expected but nil used
 var ErrNilConsensusState = errors.New("consensus state is nil")
 

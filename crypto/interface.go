@@ -161,73 +161,30 @@ type SingleSigner interface {
 
 // MultiSigner provides functionality for multi-signing a message and verifying a multi-signed message
 type MultiSigner interface {
-	// Reset resets the data holder inside the multiSigner
-	Reset(pubKeys []string, index uint16) error
 	// MultiSigVerifier Provides functionality for verifying a multi-signature
 	MultiSigVerifier
-	// CreateCommitment creates a secret commitment and the corresponding public commitment point
-	CreateCommitment() (commSecret []byte, commitment []byte)
-	// StoreCommitmentHash adds a commitment hash to the list with the specified position
-	StoreCommitmentHash(index uint16, commHash []byte) error
-	// CommitmentHash returns the commitment hash from the list with the specified position
-	CommitmentHash(index uint16) ([]byte, error)
-	// StoreCommitment adds a commitment to the list with the specified position
-	StoreCommitment(index uint16, value []byte) error
-	// Commitment returns the commitment from the list with the specified position
-	Commitment(index uint16) ([]byte, error)
-	// AggregateCommitments aggregates the list of commitments
-	AggregateCommitments(bitmap []byte) error
+	// Reset resets the data holder inside the multiSigner
+	Reset(pubKeys []string, index uint16) error
 	// CreateSignatureShare creates a partial signature
-	CreateSignatureShare(bitmap []byte) ([]byte, error)
+	CreateSignatureShare(msg []byte, bitmap []byte) ([]byte, error)
 	// StoreSignatureShare adds the partial signature of the signer with specified position
 	StoreSignatureShare(index uint16, sig []byte) error
 	// SignatureShare returns the partial signature set for given index
 	SignatureShare(index uint16) ([]byte, error)
 	// VerifySignatureShare verifies the partial signature of the signer with specified position
-	VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error
+	VerifySignatureShare(index uint16, sig []byte, msg []byte, bitmap []byte) error
 	// AggregateSigs aggregates all collected partial signatures
 	AggregateSigs(bitmap []byte) ([]byte, error)
 }
 
-// MultiSigVerifier Provides functionality for verifying a multi-signature
+// MultiSigVerifier provides functionality for verifying a multi-signature
 type MultiSigVerifier interface {
 	// Create resets the multisigner and initializes to the new params
 	Create(pubKeys []string, index uint16) (MultiSigner, error)
-	// SetMessage sets the message to be multi-signed upon
-	SetMessage(msg []byte) error
 	// SetAggregatedSig sets the aggregated signature
 	SetAggregatedSig([]byte) error
 	// Verify verifies the aggregated signature
-	Verify(bitmap []byte) error
-}
-
-// MultiSignerBLS provides functionality for multi-signing a message and verifying a multi-signed message
-// TODO: refactor BN to use this same multiSigner, and then remove the MultiSigner - EN-1774
-type MultiSignerBLS interface {
-	// MultiSigVerifierBLS Provides functionality for verifying a multi-signature
-	MultiSigVerifierBLS
-	// Reset resets the data holder inside the multiSigner
-	Reset(pubKeys []string, index uint16) error
-	// CreateSignatureShare creates a partial signature
-	CreateSignatureShare(msg []byte) ([]byte, error)
-	// StoreSignatureShare adds the partial signature of the signer with specified position
-	StoreSignatureShare(index uint16, sig []byte) error
-	// SignatureShare returns the partial signature set for given index
-	SignatureShare(index uint16) ([]byte, error)
-	// VerifySignatureShare verifies the partial signature of the signer with specified position
-	VerifySignatureShare(index uint16, sig []byte, msg []byte) error
-	// AggregateSigs aggregates all collected partial signatures
-	AggregateSigs(bitmap []byte) ([]byte, error)
-}
-
-// MultiSigVerifierBLS provides functionality for verifying a multi-signature
-type MultiSigVerifierBLS interface {
-	// Create resets the multisigner and initializes to the new params
-	Create(pubKeys []string, index uint16) (MultiSignerBLS, error)
-	// SetAggregatedSig sets the aggregated signature
-	SetAggregatedSig([]byte) error
-	// Verify verifies the aggregated signature
-	Verify(bitmap []byte, msg []byte) error
+	Verify(msg []byte, bitmap []byte, ) error
 }
 
 // LowLevelSignerBLS provides functionality to sign and verify BLS single/multi-signatures

@@ -47,10 +47,10 @@ func createSignerAndSigShareBLS(
 	kg crypto.KeyGenerator,
 	ownIndex uint16,
 	message []byte,
-) (sigShare []byte, multiSig crypto.MultiSignerBLS) {
+) (sigShare []byte, multiSig crypto.MultiSigner) {
 	llSigner := &llsig.KyberMultiSignerBLS{}
 	multiSig, _ = multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
-	sigShare, _ = multiSig.CreateSignatureShare(message)
+	sigShare, _ = multiSig.CreateSignatureShare(message, []byte(""))
 
 	return sigShare, multiSig
 }
@@ -60,7 +60,7 @@ func createSigSharesBLS(
 	grSize uint16,
 	message []byte,
 	ownIndex uint16,
-) (sigShares [][]byte, multiSigner crypto.MultiSignerBLS) {
+) (sigShares [][]byte, multiSigner crypto.MultiSigner) {
 
 	hasher := &mock.HasherSpongeMock{}
 	suite := kyber.NewSuitePairingBn256()
@@ -82,7 +82,7 @@ func createSigSharesBLS(
 	}
 
 	sigShares = make([][]byte, nbSigs)
-	multiSigners := make([]crypto.MultiSignerBLS, nbSigs)
+	multiSigners := make([]crypto.MultiSigner, nbSigs)
 	llSigner := &llsig.KyberMultiSignerBLS{}
 
 	for i := uint16(0); i < nbSigs; i++ {
@@ -90,13 +90,13 @@ func createSigSharesBLS(
 	}
 
 	for i := uint16(0); i < nbSigs; i++ {
-		sigShares[i], _ = multiSigners[i].CreateSignatureShare(message)
+		sigShares[i], _ = multiSigners[i].CreateSignatureShare(message, []byte(""))
 	}
 
 	return sigShares, multiSigners[ownIndex]
 }
 
-func createAndAddSignatureSharesBLS(msg []byte) (multiSigner crypto.MultiSignerBLS, bitmap []byte) {
+func createAndAddSignatureSharesBLS(msg []byte) (multiSigner crypto.MultiSigner, bitmap []byte) {
 	grSize := uint16(15)
 	ownIndex := uint16(0)
 	nbSigners := uint16(3)
@@ -112,7 +112,7 @@ func createAndAddSignatureSharesBLS(msg []byte) (multiSigner crypto.MultiSignerB
 	return multiSigner, bitmap
 }
 
-func createAggregatedSigBLS(msg []byte, t *testing.T) (multiSigner crypto.MultiSignerBLS, aggSig []byte, bitmap []byte) {
+func createAggregatedSigBLS(msg []byte, t *testing.T) (multiSigner crypto.MultiSigner, aggSig []byte, bitmap []byte) {
 	multiSigner, bitmap = createAndAddSignatureSharesBLS(msg)
 	aggSig, err := multiSigner.AggregateSigs(bitmap)
 
@@ -393,7 +393,7 @@ func TestBLSMultiSigner_CreateSignatureShareNilMessageShouldErr(t *testing.T) {
 	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 
 	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
-	sigShare, err := multiSig.CreateSignatureShare(nil)
+	sigShare, err := multiSig.CreateSignatureShare(nil, []byte(""))
 
 	assert.Nil(t, sigShare)
 	assert.Equal(t, crypto.ErrNilMessage, err)
@@ -408,9 +408,9 @@ func TestBLSMultiSigner_CreateSignatureShareOK(t *testing.T) {
 
 	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 	msg := []byte("message")
-	sigShare, err := multiSig.CreateSignatureShare(msg)
+	sigShare, err := multiSig.CreateSignatureShare(msg, []byte(""))
 
-	verifErr := multiSig.VerifySignatureShare(ownIndex, sigShare, msg)
+	verifErr := multiSig.VerifySignatureShare(ownIndex, sigShare, msg, []byte(""))
 
 	assert.Nil(t, err)
 	assert.NotNil(t, sigShare)
@@ -426,7 +426,7 @@ func TestBLSMultiSigner_VerifySignatureShareNilSigShouldErr(t *testing.T) {
 	msg := []byte("message")
 	_, multiSig := createSignerAndSigShareBLS(hasher, pubKeys, privKey, kg, ownIndex, msg)
 
-	verifErr := multiSig.VerifySignatureShare(ownIndex, nil, msg)
+	verifErr := multiSig.VerifySignatureShare(ownIndex, nil, msg, []byte(""))
 
 	assert.Equal(t, crypto.ErrNilSignature, verifErr)
 }
@@ -440,7 +440,7 @@ func TestBLSMultiSigner_VerifySignatureShareInvalidSignatureShouldErr(t *testing
 	msg := []byte("message")
 	sigShare, multiSig := createSignerAndSigShareBLS(hasher, pubKeys, privKey, kg, ownIndex, msg)
 
-	verifErr := multiSig.VerifySignatureShare(0, sigShare, msg)
+	verifErr := multiSig.VerifySignatureShare(0, sigShare, msg, []byte(""))
 
 	assert.NotNil(t, verifErr)
 	assert.Contains(t, verifErr.Error(), "invalid signature")
@@ -455,7 +455,7 @@ func TestBLSMultiSigner_VerifySignatureShareOK(t *testing.T) {
 	msg := []byte("message")
 	sigShare, multiSig := createSignerAndSigShareBLS(hasher, pubKeys, privKey, kg, ownIndex, msg)
 
-	verifErr := multiSig.VerifySignatureShare(ownIndex, sigShare, msg)
+	verifErr := multiSig.VerifySignatureShare(ownIndex, sigShare, msg, []byte(""))
 
 	assert.Nil(t, verifErr)
 }
@@ -481,7 +481,7 @@ func TestBLSMultiSigner_AddSignatureShareIndexOutOfBoundsIndexShouldErr(t *testi
 	privKey, _, pubKeys, kg, llSigner := genMultiSigParamsBLS(4, ownIndex)
 	multiSig, _ := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privKey, kg, ownIndex)
 
-	sigShare, _ := multiSig.CreateSignatureShare([]byte("message"))
+	sigShare, _ := multiSig.CreateSignatureShare([]byte("message"), []byte(""))
 
 	err := multiSig.StoreSignatureShare(15, sigShare)
 
@@ -698,7 +698,7 @@ func TestBLSMultiSigner_VerifyNilBitmapShouldErr(t *testing.T) {
 	msg := []byte("message")
 	multiSigner, aggSig, _ := createAggregatedSigBLS(msg, t)
 	_ = multiSigner.SetAggregatedSig(aggSig)
-	err := multiSigner.Verify(nil, msg)
+	err := multiSigner.Verify(msg, nil)
 
 	assert.Equal(t, crypto.ErrNilBitmap, err)
 }
@@ -711,7 +711,7 @@ func TestBLSMultiSigner_VerifyBitmapMismatchShouldErr(t *testing.T) {
 	// set a smaller bitmap
 	bitmap = make([]byte, 1)
 
-	err := multiSigner.Verify(bitmap, msg)
+	err := multiSigner.Verify(msg, bitmap)
 	assert.Equal(t, crypto.ErrBitmapMismatch, err)
 }
 
@@ -733,7 +733,7 @@ func TestBLSMultiSigner_VerifySigValid(t *testing.T) {
 	multiSigner, aggSig, bitmap := createAggregatedSigBLS(msg, t)
 	_ = multiSigner.SetAggregatedSig(aggSig)
 
-	err := multiSigner.Verify(bitmap, msg)
+	err := multiSigner.Verify(msg, bitmap)
 	assert.Nil(t, err)
 }
 

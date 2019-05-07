@@ -152,7 +152,7 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 		}
 
 		// verify partial signature
-		err = sr.MultiSigner().VerifySignatureShare(uint16(i), signature, bitmap)
+		err = sr.MultiSigner().VerifySignatureShare(uint16(i), signature, sr.GetData(), bitmap)
 		if err != nil {
 			return err
 		}
