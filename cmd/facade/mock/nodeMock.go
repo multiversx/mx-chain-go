@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 )
 
 type NodeMock struct {
@@ -23,6 +24,7 @@ type NodeMock struct {
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
+	GetHeartbeatsHandler                           func() []heartbeat.PubKeyHeartbeat
 }
 
 func (nm *NodeMock) Address() (string, error) {
@@ -83,4 +85,8 @@ func (nm *NodeMock) GenerateAndSendBulkTransactionsOneByOne(receiverHex string, 
 
 func (nm *NodeMock) GetAccount(address string) (*state.Account, error) {
 	return nm.GetAccountHandler(address)
+}
+
+func (nm *NodeMock) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
+	return nm.GetHeartbeatsHandler()
 }
