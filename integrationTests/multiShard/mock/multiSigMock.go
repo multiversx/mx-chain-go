@@ -28,18 +28,13 @@ func (bnm *BelNevMock) Reset(pubKeys []string, index uint16) error {
 	return nil
 }
 
-// SetMessage sets the message to be signed
-func (bnm *BelNevMock) SetMessage(msg []byte) error {
-	return nil
-}
-
 // SetAggregatedSig sets the aggregated signature according to the given byte array
 func (bnm *BelNevMock) SetAggregatedSig(aggSig []byte) error {
 	return nil
 }
 
 // Verify returns nil if the aggregateed signature is verified for the given public keys
-func (bnm *BelNevMock) Verify(bitmap []byte) error {
+func (bnm *BelNevMock) Verify(_ []byte, bitmap []byte) error {
 	if bytes.Equal(bitmap, sigValue) {
 		return nil
 	}
@@ -77,7 +72,7 @@ func (bnm *BelNevMock) AggregateCommitments(bitmap []byte) error {
 }
 
 // CreateSignatureShare creates a partial signature
-func (bnm *BelNevMock) CreateSignatureShare(bitmap []byte) ([]byte, error) {
+func (bnm *BelNevMock) CreateSignatureShare(msg []byte, bitmap []byte) ([]byte, error) {
 	return make([]byte, 0), nil
 }
 
@@ -87,7 +82,7 @@ func (bnm *BelNevMock) StoreSignatureShare(index uint16, sig []byte) error {
 }
 
 // VerifySignatureShare verifies the partial signature of the signer with specified position
-func (bnm *BelNevMock) VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error {
+func (bnm *BelNevMock) VerifySignatureShare(index uint16, sig []byte, msg []byte, bitmap []byte) error {
 	return nil
 }
 

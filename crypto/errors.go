@@ -105,3 +105,6 @@ var ErrAggSigNotValid = errors.New("aggregate signature is invalid")
 
 // ErrEmptyPubKeyString is raised when an empty public key string is used
 var ErrEmptyPubKeyString = errors.New("public key string is empty")
+
+// ErrInvalidSigner is raised when the signer is invalid
+var ErrInvalidSigner = errors.New("signer is invalid")
