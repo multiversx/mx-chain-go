@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 )
 
@@ -107,7 +108,7 @@ func (ef *ElrondNodeFacade) GetTransaction(hash string) (*transaction.Transactio
 }
 
 // GetAccount returns an accountResponse containing information
-//  about the account correlated with provided address
+// about the account correlated with provided address
 func (ef *ElrondNodeFacade) GetAccount(address string) (*state.Account, error) {
 	return ef.node.GetAccount(address)
 }
@@ -117,8 +118,8 @@ func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
 	return ef.node.GetCurrentPublicKey()
 }
 
-//GenerateAndSendBulkTransactions generates a number of nrTransactions of amount value
-//for the receiver destination
+// GenerateAndSendBulkTransactions generates a number of nrTransactions of amount value
+// for the receiver destination
 func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactions(
 	destination string,
 	value *big.Int,
@@ -128,8 +129,8 @@ func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactions(
 	return ef.node.GenerateAndSendBulkTransactions(destination, value, nrTransactions)
 }
 
-//GenerateAndSendBulkTransactions generates a number of nrTransactions of amount value
-//for the receiver destination in a one by one fashion
+// GenerateAndSendBulkTransactionsOneByOne generates a number of nrTransactions of amount value
+// for the receiver destination in a one by one fashion
 func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactionsOneByOne(
 	destination string,
 	value *big.Int,
@@ -137,4 +138,14 @@ func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactionsOneByOne(
 ) error {
 
 	return ef.node.GenerateAndSendBulkTransactionsOneByOne(destination, value, nrTransactions)
+}
+
+// GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network
+func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error) {
+	hbStatus := ef.node.GetHeartbeats()
+	if hbStatus == nil {
+		return nil, ErrHeartbeatsNotActive
+	}
+
+	return hbStatus, nil
 }

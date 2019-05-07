@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
@@ -23,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -40,6 +43,9 @@ const ConsensusTopic = "consensus"
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
 
+// HeartbeatTopic is the topic used for heartbeat signaling
+const HeartbeatTopic = "heartbeat"
+
 var log = logger.DefaultLogger()
 
 // Option represents a functional configuration parameter that can operate
@@ -52,11 +58,11 @@ type Node struct {
 	marshalizer              marshal.Marshalizer
 	ctx                      context.Context
 	hasher                   hashing.Hasher
-	initialNodesPubkeys      [][]string
+	initialNodesPubkeys      map[uint32][]string
 	initialNodesBalances     map[string]*big.Int
 	roundDuration            uint64
 	consensusGroupSize       int
-	messenger                p2p.Messenger
+	messenger                P2PMessenger
 	syncer                   ntp.SyncTimer
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
@@ -66,6 +72,8 @@ type Node struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer    process.InterceptorsContainer
 	resolversFinder          dataRetriever.ResolversFinder
+	heartbeatMonitor         *heartbeat.Monitor
+	heartbeatSender          *heartbeat.Sender
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
@@ -736,4 +744,108 @@ func (n *Node) BroadcastMetaBlock(blockBody data.BodyHandler, header data.Header
 	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
 
 	return nil
+}
+
+// StartHeartbeat starts the node's heartbeat processing/signaling module
+func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
+	if !config.Enabled {
+		return nil
+	}
+
+	err := n.checkConfigParams(config)
+	if err != nil {
+		return err
+	}
+
+	if n.messenger.HasTopicValidator(HeartbeatTopic) {
+		return ErrValidatorAlreadySet
+	}
+
+	if !n.messenger.HasTopic(HeartbeatTopic) {
+		err := n.messenger.CreateTopic(HeartbeatTopic, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = n.messenger.RegisterMessageProcessor(HeartbeatTopic, n.heartbeatMonitor)
+	if err != nil {
+		return err
+	}
+
+	n.heartbeatSender, err = heartbeat.NewSender(
+		n.messenger,
+		n.singlesig,
+		n.privateKey,
+		n.marshalizer,
+		HeartbeatTopic,
+	)
+	if err != nil {
+		return err
+	}
+
+	allPubKeys := make([]string, 0)
+	for _, shardPubKeys := range n.initialNodesPubkeys {
+		allPubKeys = append(allPubKeys, shardPubKeys...)
+	}
+
+	n.heartbeatMonitor, err = heartbeat.NewMonitor(
+		n.messenger,
+		n.singlesig,
+		n.singleSignKeyGen,
+		n.marshalizer,
+		time.Duration(time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive)),
+		allPubKeys,
+	)
+	if err != nil {
+		return err
+	}
+
+	go n.startSendingHeartbeats(config)
+
+	return nil
+}
+
+func (n *Node) checkConfigParams(config config.HeartbeatConfig) error {
+	if config.DurationInSecToConsiderUnresponsive < 1 {
+		return ErrNegativeDurationInSecToConsiderUnresponsive
+	}
+	if config.MaxTimeToWaitBetweenBroadcastsInSec < 1 {
+		return ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec
+	}
+	if config.MinTimeToWaitBetweenBroadcastsInSec < 1 {
+		return ErrNegativeMinTimeToWaitBetweenBroadcastsInSec
+	}
+	if config.MaxTimeToWaitBetweenBroadcastsInSec <= config.MinTimeToWaitBetweenBroadcastsInSec {
+		return ErrWrongValues
+	}
+	if config.DurationInSecToConsiderUnresponsive <= config.MaxTimeToWaitBetweenBroadcastsInSec {
+		return ErrWrongValues
+	}
+
+	return nil
+}
+
+func (n *Node) startSendingHeartbeats(config config.HeartbeatConfig) {
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+
+	for {
+		diffSeconds := config.MaxTimeToWaitBetweenBroadcastsInSec - config.MinTimeToWaitBetweenBroadcastsInSec
+		diffNanos := int64(diffSeconds) * time.Second.Nanoseconds()
+		randomNanos := r.Int63n(diffNanos)
+		timeToWait := time.Second*time.Duration(config.MinTimeToWaitBetweenBroadcastsInSec) + time.Duration(randomNanos)
+
+		time.Sleep(timeToWait)
+
+		err := n.heartbeatSender.SendHeartbeat()
+		log.LogIfError(err)
+	}
+}
+
+// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
+func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
+	if n.heartbeatMonitor == nil {
+		return nil
+	}
+	return n.heartbeatMonitor.GetHeartbeats()
 }

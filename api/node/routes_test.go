@@ -2,13 +2,16 @@ package node_test
 
 import (
 	"encoding/json"
+	errs "errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -295,12 +298,107 @@ func TestAddress_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, addressRsp.Address, address)
 }
 
+//------- Heartbeatstatus
+
+func TestHeartbeatStatus_FailsWithoutFacade(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+	defer func() {
+		r := recover()
+
+		assert.NotNil(t, r, "Not providing elrondFacade context should panic")
+	}()
+	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+}
+
+func TestHeartbeatstatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{}
+	facade.Running = true
+	ws := startNodeServerWrongFacade()
+	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := StatusResponse{}
+	loadResponse(resp.Body, &statusRsp)
+
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
+}
+
+func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errs.New("expected error")
+	facade := mock.Facade{
+		GetHeartbeatsHandler: func() ([]heartbeat.PubKeyHeartbeat, error) {
+			return nil, errExpected
+		},
+	}
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := StatusResponse{}
+	loadResponse(resp.Body, &statusRsp)
+
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Equal(t, errExpected.Error(), statusRsp.Error)
+}
+
+func TestHeartbeatstatus(t *testing.T) {
+	t.Parallel()
+
+	hbStatus := []heartbeat.PubKeyHeartbeat{
+		{
+			HexPublicKey: "pk1",
+			PeerHeartBeats: []heartbeat.PeerHeartbeat{
+				{
+					P2PAddress: "addr",
+					IsActive:   true,
+				},
+			},
+		},
+	}
+	facade := mock.Facade{
+		GetHeartbeatsHandler: func() (heartbeats []heartbeat.PubKeyHeartbeat, e error) {
+			return hbStatus, nil
+		},
+	}
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := StatusResponse{}
+	loadResponseAsString(resp.Body, &statusRsp)
+
+	assert.Equal(t, resp.Code, http.StatusOK)
+	assert.NotEqual(t, "", statusRsp.Message)
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
 	if err != nil {
 		logError(err)
 	}
+}
+
+func loadResponseAsString(rsp io.Reader, response *StatusResponse) {
+	buff, err := ioutil.ReadAll(rsp)
+	if err != nil {
+		logError(err)
+		return
+	}
+
+	response.Message = string(buff)
 }
 
 func logError(err error) {

@@ -767,6 +767,123 @@ func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
 	mes3.Close()
 }
 
+func TestLibp2pMessenger_ConnectedAddresses(t *testing.T) {
+	netw, mes1, mes2 := createMockNetworkOf2()
+	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+
+	netw.LinkAll()
+
+	adr2 := mes2.Addresses()[0]
+
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = mes1.ConnectToPeer(adr2)
+	_ = mes3.ConnectToPeer(adr2)
+
+	//connected peers:  1 ----- 2 ----- 3
+
+	foundAddr1 := false
+	foundAddr3 := false
+
+	for _, addr := range mes2.ConnectedAddresses() {
+		for _, addrMes1 := range mes1.Addresses() {
+			if addr == addrMes1 {
+				foundAddr1 = true
+			}
+		}
+
+		for _, addrMes3 := range mes3.Addresses() {
+			if addr == addrMes3 {
+				foundAddr3 = true
+			}
+		}
+	}
+
+	assert.True(t, foundAddr1)
+	assert.True(t, foundAddr3)
+	assert.Equal(t, 2, len(mes2.ConnectedAddresses()))
+	//no need to further test that mes2 is connected to mes1 and mes3 s this was tested in first 2 asserts
+
+	mes1.Close()
+	mes2.Close()
+	mes3.Close()
+}
+
+func TestLibp2pMessenger_PeerAddressConnectedPeerShouldWork(t *testing.T) {
+	netw, mes1, mes2 := createMockNetworkOf2()
+	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+
+	netw.LinkAll()
+
+	adr2 := mes2.Addresses()[0]
+
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = mes1.ConnectToPeer(adr2)
+	_ = mes3.ConnectToPeer(adr2)
+
+	//connected peers:  1 ----- 2 ----- 3
+
+	defer mes1.Close()
+	defer mes2.Close()
+	defer mes3.Close()
+
+	adr1Recov := mes2.PeerAddress(mes1.ID())
+	for _, addr := range mes1.Addresses() {
+		if strings.Contains(addr, adr1Recov) {
+			//address returned is valid, test is successful
+			return
+		}
+	}
+
+	assert.Fail(t, "Returned address is not valid!")
+}
+
+func TestLibp2pMessenger_PeerAddressDisconnectedPeerShouldWork(t *testing.T) {
+	netw, mes1, mes2 := createMockNetworkOf2()
+	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+
+	netw.LinkAll()
+
+	adr2 := mes2.Addresses()[0]
+
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = mes1.ConnectToPeer(adr2)
+	_ = mes3.ConnectToPeer(adr2)
+
+	defer mes1.Close()
+	defer mes2.Close()
+	defer mes3.Close()
+
+	netw.UnlinkPeers(peer.ID(mes1.ID().Bytes()), peer.ID(mes2.ID().Bytes()))
+	netw.DisconnectPeers(peer.ID(mes1.ID().Bytes()), peer.ID(mes2.ID().Bytes()))
+	netw.DisconnectPeers(peer.ID(mes2.ID().Bytes()), peer.ID(mes1.ID().Bytes()))
+
+	//connected peers:  1 --x-- 2 ----- 3
+
+	assert.False(t, mes2.IsConnected(mes1.ID()))
+
+	adr1Recov := mes2.PeerAddress(mes1.ID())
+	for _, addr := range mes1.Addresses() {
+		if strings.Contains(addr, adr1Recov) {
+			//address returned is valid, test is successful
+			return
+		}
+	}
+
+	assert.Fail(t, "Returned address is not valid!")
+}
+
+func TestLibp2pMessenger_PeerAddressUnknownPeerShouldReturnEmpty(t *testing.T) {
+	_, mes1, _ := createMockNetworkOf2()
+
+	defer mes1.Close()
+
+	adr1Recov := mes1.PeerAddress("unknown peer")
+	assert.Equal(t, "", adr1Recov)
+}
+
 //------- ConnectedPeersOnTopic
 
 func TestLibp2pMessenger_ConnectedPeersOnTopicInvalidTopicShouldRetEmptyList(t *testing.T) {

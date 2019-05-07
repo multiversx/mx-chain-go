@@ -266,6 +266,27 @@ func (netMes *networkMessenger) ConnectedAddresses() []string {
 	return conns
 }
 
+// PeerAddress returns the peer's address or empty string if the peer is unknown
+func (netMes *networkMessenger) PeerAddress(pid p2p.PeerID) string {
+	h := netMes.ctxProvider.Host()
+
+	//check if the peer is connected to return it's connected address
+	for _, c := range h.Network().Conns() {
+		if string(c.RemotePeer()) == string(pid.Bytes()) {
+			return c.RemoteMultiaddr().String()
+		}
+	}
+
+	//check in peerstore (maybe it is known but not connected)
+	addresses := h.Peerstore().Addrs(peer.ID(pid.Bytes()))
+	if len(addresses) == 0 {
+		return ""
+	}
+
+	//return the first address from multi address slice
+	return addresses[0].String()
+}
+
 // ConnectedPeersOnTopic returns the connected peers on a provided topic
 func (netMes *networkMessenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
 	//as the peers in pubsub impl are held inside a map where the key is the peerID,
