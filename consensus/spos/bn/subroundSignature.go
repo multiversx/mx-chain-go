@@ -78,14 +78,20 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	// first compute commitment aggregation
-	err = sr.MultiSigner().AggregateCommitments(bitmap)
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	sigPart, err := sr.MultiSigner().CreateSignatureShare(bitmap)
+	// first compute commitment aggregation
+	err = currentMultiSigner.AggregateCommitments(bitmap)
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
+	sigPart, err := currentMultiSigner.CreateSignatureShare(sr.GetData(), bitmap)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -125,6 +131,11 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 		size = nbBitsBitmap
 	}
 
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
+	if err != nil {
+		return err
+	}
+
 	for i := 0; i < size; i++ {
 		indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
 
@@ -142,13 +153,13 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 			return spos.ErrNilCommitment
 		}
 
-		commitment, err := sr.MultiSigner().Commitment(uint16(i))
+		commitment, err := currentMultiSigner.Commitment(uint16(i))
 		if err != nil {
 			return err
 		}
 
 		computedCommitmentHash := sr.Hasher().Compute(string(commitment))
-		receivedCommitmentHash, err := sr.MultiSigner().CommitmentHash(uint16(i))
+		receivedCommitmentHash, err := currentMultiSigner.CommitmentHash(uint16(i))
 
 		if err != nil {
 			return err
