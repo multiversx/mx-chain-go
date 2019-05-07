@@ -207,6 +207,7 @@ func checkBootstrapNilParameters(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	store dataRetriever.StorageService,
+	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 ) error {
 	if blkc == nil {
 		return process.ErrNilBlockChain
@@ -237,6 +238,9 @@ func checkBootstrapNilParameters(
 	}
 	if store == nil {
 		return process.ErrNilStore
+	}
+	if broadcastBlock == nil {
+		return process.ErrNilBroadcastBlock
 	}
 
 	return nil
