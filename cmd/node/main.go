@@ -376,6 +376,7 @@ func createShardCoordinator(
 
 	selfShardId, err := genesisConfig.GetShardIDForPubKey(publicKey)
 	if err == sharding.ErrNoValidPublicKey {
+		log.Info("Starting as observer node...")
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
 	}
 	if err != nil {
@@ -547,7 +548,7 @@ func createShardNode(
 		return nil, nil, err
 	}
 
-	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration / 1000)
+	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration/1000)
 	if err != nil {
 		return nil, nil, err
 	}
