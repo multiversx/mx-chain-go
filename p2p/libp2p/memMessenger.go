@@ -9,8 +9,6 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
-const maxPort = 65535
-
 // NewMemoryMessenger creates a new sandbox testable instance of libP2P messenger
 // It should not open ports on current machine
 // Should be used only in testing!
