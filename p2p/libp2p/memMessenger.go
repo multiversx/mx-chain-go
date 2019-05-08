@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
@@ -13,6 +14,12 @@ import (
 )
 
 const maxPort = 65535
+
+var portMutex *sync.Mutex
+
+func init() {
+	portMutex = &sync.Mutex{}
+}
 
 // NewMemoryMessenger creates a new sandbox testable instance of libP2P messenger
 // It should not open ports on current machine
@@ -69,6 +76,8 @@ func NewNetworkMessengerWithPortSweep(ctx context.Context,
 	outgoingPLB p2p.ChannelLoadBalancer,
 	peerDiscoverer p2p.PeerDiscoverer,
 ) (*networkMessenger, int, error) {
+	portMutex.Lock()
+	defer portMutex.Unlock()
 
 	for ; port < maxPort; port++ {
 		if isTcpPortFree(port) {
