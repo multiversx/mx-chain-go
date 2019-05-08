@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -69,8 +70,9 @@ import (
 )
 
 const (
-	defaultLogPath   = "logs"
-	defaultStatsPath = "stats"
+	defaultLogPath     = "logs"
+	defaultStatsPath   = "stats"
+	metachainShardName = "metachain"
 )
 
 var (
@@ -182,6 +184,8 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 type nullChronologyValidator struct {
 }
 
+// ValidateReceivedBlock should validate if parameters to be checked are valid
+// In this implementation it just returns nil
 func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
 	//TODO when implementing a workable variant take into account to receive headers "from future" (nonce or round > current round)
 	// as this might happen when clocks are slightly de-synchronized
@@ -285,7 +289,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	shardCoordinator, err := createShardCoordinator(genesisConfig, pubKey)
+	shardCoordinator, err := createShardCoordinator(genesisConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
 	}
@@ -357,6 +361,8 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 func createShardCoordinator(
 	genesisConfig *sharding.Genesis,
 	pubKey crypto.PublicKey,
+	settingsConfig config.GeneralSettingsConfig,
+	log *logger.Logger,
 ) (shardCoordinator sharding.Coordinator,
 	err error) {
 	if pubKey == nil {
@@ -369,9 +375,21 @@ func createShardCoordinator(
 	}
 
 	selfShardId, err := genesisConfig.GetShardIDForPubKey(publicKey)
+	if err == sharding.ErrNoValidPublicKey {
+		log.Info("Starting as observer node...")
+		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
+	}
 	if err != nil {
 		return nil, err
 	}
+
+	var shardName string
+	if selfShardId == sharding.MetachainShardId {
+		shardName = metachainShardName
+	} else {
+		shardName = fmt.Sprintf("%d", selfShardId)
+	}
+	log.Info(fmt.Sprintf("Starting in shard: %s", shardName))
 
 	shardCoordinator, err = sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
 	if err != nil {
@@ -379,6 +397,23 @@ func createShardCoordinator(
 	}
 
 	return shardCoordinator, nil
+}
+
+func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {
+	destShard := strings.ToLower(settingsConfig.DestinationShardAsObserver)
+	if len(destShard) == 0 {
+		return 0, errors.New("option DestinationShardAsObserver is not set in config.toml")
+	}
+	if destShard == metachainShardName {
+		return sharding.MetachainShardId, nil
+	}
+
+	val, err := strconv.ParseUint(destShard, 10, 32)
+	if err != nil {
+		return 0, errors.New("error parsing DestinationShardAsObserver option: " + err.Error())
+	}
+
+	return uint32(val), err
 }
 
 func createShardNode(
@@ -979,7 +1014,7 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 	pk, _ := pubKey.ToByteArray()
 
 	pkEncoded := encodeAddress(pk)
-	log.Info("starting with public key: " + pkEncoded)
+	log.Info("Starting with public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
 }
@@ -1010,7 +1045,7 @@ func getBlsSigningParams(ctx *cli.Context, log *logger.Logger) (
 	}
 
 	pkEncoded := encodeAddress(pk)
-	log.Info("starting with bls public key: " + pkEncoded)
+	log.Info("Starting with bls public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
 }

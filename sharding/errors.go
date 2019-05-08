@@ -16,9 +16,6 @@ var ErrShardIdOutOfRange = errors.New("shard id out of range")
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
 
-// ErrNotEnoughValidators signals an error when there are not enough validators for consensus
-var ErrNotEnoughValidators = errors.New("not enough validators to make consensus group")
-
 // ErrNoValidPublicKey signals an error when the public key is not in genesis file
 var ErrNoValidPublicKey = errors.New("public key is not valid, it is missing from genesis file")
 
