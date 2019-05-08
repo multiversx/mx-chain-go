@@ -15,8 +15,8 @@ type factory struct {
 	worker         spos.WorkerHandler
 }
 
-// NewFactory creates a new consensusState object
-func NewFactory(
+// NewSubroundsFactory creates a new consensusState object
+func NewSubroundsFactory(
 	consensusDataContainer spos.ConsensusCoreHandler,
 	consensusState *spos.ConsensusState,
 	worker spos.WorkerHandler,
