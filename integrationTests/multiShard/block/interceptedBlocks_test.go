@@ -25,18 +25,15 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	}
 
 	numOfShards := 6
-	startingPort := 20000
 	nodesPerShard := 3
 
 	senderShard := uint32(0)
 	recvShards := []uint32{1, 2}
 
-	advertiser := createMessengerWithKadDht(context.Background(), startingPort, "")
+	advertiser := createMessengerWithKadDht(context.Background(), "")
 	advertiser.Bootstrap()
-	startingPort++
 
 	nodes := createNodes(
-		startingPort,
 		numOfShards,
 		nodesPerShard,
 		getConnectableAddress(advertiser),

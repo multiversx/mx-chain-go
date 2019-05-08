@@ -2,10 +2,6 @@ package libp2p
 
 import (
 	"context"
-	"fmt"
-	"net"
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	crypto "github.com/libp2p/go-libp2p-crypto"
@@ -14,12 +10,6 @@ import (
 )
 
 const maxPort = 65535
-
-var portMutex *sync.Mutex
-
-func init() {
-	portMutex = &sync.Mutex{}
-}
 
 // NewMemoryMessenger creates a new sandbox testable instance of libP2P messenger
 // It should not open ports on current machine
@@ -65,43 +55,21 @@ func NewMemoryMessenger(
 	return mes, err
 }
 
-// NewNetworkMessengerWithPortSweep tries to create a new NetworkMessenger on the given port
-// If the port is opened, will try the next one until it succeeds or fails for another reason other than
-// occupied port
+// NewNetworkMessengerOnFreePort tries to create a new NetworkMessenger on a free port found in the system
 // Should be used only in testing!
-func NewNetworkMessengerWithPortSweep(ctx context.Context,
-	port int,
+func NewNetworkMessengerOnFreePort(ctx context.Context,
 	p2pPrivKey crypto.PrivKey,
 	conMgr ifconnmgr.ConnManager,
 	outgoingPLB p2p.ChannelLoadBalancer,
 	peerDiscoverer p2p.PeerDiscoverer,
-) (*networkMessenger, int, error) {
-	portMutex.Lock()
-	defer portMutex.Unlock()
-
-	for ; port < maxPort; port++ {
-		if isTcpPortFree(port) {
-			mes, err := NewNetworkMessenger(
-				ctx,
-				port,
-				p2pPrivKey,
-				conMgr,
-				outgoingPLB,
-				peerDiscoverer,
-			)
-
-			return mes, port, err
-		}
-	}
-
-	return nil, port, p2p.ErrNoUsablePortsOnMachine
-}
-
-func isTcpPortFree(port int) bool {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-	if ln != nil {
-		_ = ln.Close()
-	}
-
-	return err == nil
+) (*networkMessenger, error) {
+	return NewNetworkMessenger(
+		ctx,
+		0,
+		p2pPrivKey,
+		conMgr,
+		outgoingPLB,
+		peerDiscoverer,
+		ListenLocalhostAddrWithIp4AndTcp,
+	)
 }

@@ -27,7 +27,6 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	fmt.Println("Step 1. Setup nodes...")
 	numOfShards := 6
-	startingPort := 20000
 	nodesPerShard := 3
 
 	senderShard := uint32(0)
@@ -36,12 +35,10 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	valMinting := big.NewInt(100)
 	valToTransferPerTx := big.NewInt(2)
 
-	advertiser := createMessengerWithKadDht(context.Background(), startingPort, "")
+	advertiser := createMessengerWithKadDht(context.Background(), "")
 	advertiser.Bootstrap()
-	startingPort++
 
 	nodes := createNodes(
-		startingPort,
 		numOfShards,
 		nodesPerShard,
 		getConnectableAddress(advertiser),

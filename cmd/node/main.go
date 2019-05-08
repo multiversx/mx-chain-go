@@ -512,7 +512,7 @@ func createShardNode(
 		return nil, nil, err
 	}
 
-	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration / 1000)
+	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration/1000)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -918,6 +918,7 @@ func createNetMessenger(
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		pDiscoverer,
+		libp2p.ListenAddrWithIp4AndTcp,
 	)
 
 	if err != nil {

@@ -142,7 +142,7 @@ func createAccountsDB() *state.AccountsDB {
 	return adb
 }
 
-func createNetNode(port int,
+func createNetNode(
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
@@ -155,7 +155,7 @@ func createNetNode(port int,
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	messenger := createMessenger(context.Background(), port)
+	messenger := createMessenger(context.Background())
 
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
@@ -218,13 +218,12 @@ func createNetNode(port int,
 	return n, messenger, sk, resolversFinder
 }
 
-func createMessenger(ctx context.Context, port int) p2p.Messenger {
+func createMessenger(ctx context.Context) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, _, err := libp2p.NewNetworkMessengerWithPortSweep(
+	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,
-		port,
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
