@@ -22,7 +22,7 @@ func (msm *MultiSignerMock) SetAggregatedSig([]byte) error {
 	return nil
 }
 
-func (msm *MultiSignerMock) Verify(bitmap []byte) error {
+func (msm *MultiSignerMock) Verify(msg []byte, bitmap []byte) error {
 	return nil
 }
 
@@ -50,7 +50,7 @@ func (msm *MultiSignerMock) AggregateCommitments(bitmap []byte) error {
 	return nil
 }
 
-func (msm *MultiSignerMock) CreateSignatureShare(bitmap []byte) ([]byte, error) {
+func (msm *MultiSignerMock) CreateSignatureShare(msg []byte, bitmap []byte) ([]byte, error) {
 	return []byte("bls"), nil
 }
 
@@ -62,7 +62,7 @@ func (msm *MultiSignerMock) SignatureShare(index uint16) ([]byte, error) {
 	return []byte("bls"), nil
 }
 
-func (msm *MultiSignerMock) VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error {
+func (msm *MultiSignerMock) VerifySignatureShare(index uint16, sig []byte, msg []byte, bitmap []byte) error {
 	return nil
 }
 

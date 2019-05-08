@@ -98,6 +98,8 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
+	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
+
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
@@ -178,6 +180,7 @@ func createNetNode(port int,
 		dPool,
 		addrConverter,
 		&mock.ChronologyValidatorMock{},
+		nil,
 	)
 	interceptorsContainer, _ := interceptorContainerFactory.Create()
 

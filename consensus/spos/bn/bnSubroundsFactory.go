@@ -3,6 +3,8 @@ package bn
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/common"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
 
@@ -126,9 +128,11 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
-	subroundStartRound, err := NewSubroundStartRound(
+	subroundStartRound, err := common.NewSubroundStartRound(
 		subround,
 		fct.worker.Extend,
+		processingThresholdPercent,
+		getSubroundName,
 	)
 
 	if err != nil {
@@ -156,17 +160,21 @@ func (fct *factory) generateBlockSubround() error {
 		return err
 	}
 
-	subroundBlock, err := NewSubroundBlock(
+	subroundBlock, err := common.NewSubroundBlock(
 		subround,
 		fct.worker.SendConsensusMessage,
 		fct.worker.Extend,
+		int(MtBlockBody),
+		int(MtBlockHeader),
+		processingThresholdPercent,
+		getSubroundName,
 	)
 	if err != nil {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.receivedBlockBody)
-	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.receivedBlockHeader)
+	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.ReceivedBlockBody)
+	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.ReceivedBlockHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundBlock)
 
 	return nil

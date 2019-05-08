@@ -1,6 +1,7 @@
 package interceptors
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -18,6 +19,7 @@ type MetachainHeaderInterceptor struct {
 	marshalizer            marshal.Marshalizer
 	metachainHeaders       storage.Cacher
 	metachainHeadersNonces dataRetriever.Uint64Cacher
+	tpsBenchmark           *statistics.TpsBenchmark
 	storer                 storage.Storer
 	multiSigVerifier       crypto.MultiSigVerifier
 	hasher                 hashing.Hasher
@@ -31,6 +33,7 @@ func NewMetachainHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	metachainHeaders storage.Cacher,
 	metachainHeadersNonces dataRetriever.Uint64Cacher,
+	tpsBenchmark *statistics.TpsBenchmark,
 	storer storage.Storer,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
@@ -67,6 +70,7 @@ func NewMetachainHeaderInterceptor(
 		messageChecker:         &messageChecker{},
 		marshalizer:            marshalizer,
 		metachainHeaders:       metachainHeaders,
+		tpsBenchmark:           tpsBenchmark,
 		storer:                 storer,
 		multiSigVerifier:       multiSigVerifier,
 		hasher:                 hasher,
@@ -101,6 +105,10 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 	err = metaHdrIntercepted.VerifySig()
 	if err != nil {
 		return err
+	}
+
+	if mhi.tpsBenchmark != nil {
+		mhi.tpsBenchmark.Update(metaHdrIntercepted.GetMetaHeader())
 	}
 
 	go mhi.processMetaHeader(metaHdrIntercepted)

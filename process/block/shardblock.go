@@ -1095,8 +1095,11 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 	}
 
 	mbLen := len(body)
+	totalTxCount := 0
 	miniBlockHeaders := make([]block.MiniBlockHeader, mbLen)
 	for i := 0; i < mbLen; i++ {
+		txCount := len(body[i].TxHashes)
+		totalTxCount += txCount
 		mbBytes, err := sp.marshalizer.Marshal(body[i])
 		if err != nil {
 			return nil, err
@@ -1107,10 +1110,12 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 			Hash:            mbHash,
 			SenderShardID:   sp.shardCoordinator.SelfId(),
 			ReceiverShardID: body[i].ReceiverShardID,
+			TxCount:         uint32(txCount),
 		}
 	}
 
 	header.MiniBlockHeaders = miniBlockHeaders
+	header.TxCount = uint32(totalTxCount)
 	return header, nil
 }
 

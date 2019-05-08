@@ -91,7 +91,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	//}
 
 	// Start (new add)
-	sigPart, err := sr.MultiSigner().CreateSignatureShare([]byte("bls"))
+	sigPart, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), []byte("bls"))
 	if err != nil {
 		log.Error(err.Error())
 		return false

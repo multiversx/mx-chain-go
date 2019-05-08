@@ -1,20 +1,65 @@
-package bn_test
+package common_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/common"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/stretchr/testify/assert"
 )
 
-func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusCoreMock) bn.SubroundBlock {
+func sendConsensusMessage(cnsMsg *consensus.Message) bool {
+	fmt.Println(cnsMsg)
+	return true
+}
+
+func broadcastBlock(txBlockBody data.BodyHandler, header data.HeaderHandler) error {
+	fmt.Println(txBlockBody)
+	fmt.Println(header)
+	return nil
+}
+
+func extend(subroundId int) {
+	fmt.Println(subroundId)
+}
+
+func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool,
+	container *mock.ConsensusCoreMock) (*spos.Subround, error) {
+	return spos.NewSubround(
+		int(SrStartRound),
+		int(SrBlock),
+		int(SrCommitmentHash),
+		int64(5*roundTimeDuration/100),
+		int64(25*roundTimeDuration/100),
+		"(BLOCK)",
+		consensusState,
+		ch,
+		container,
+	)
+}
+
+func defaultSubroundBlockFromSubround(sr *spos.Subround) (*common.SubroundBlock, error) {
+	srBlock, err := common.NewSubroundBlock(
+		sr,
+		sendConsensusMessage,
+		extend,
+		int(MtBlockBody),
+		int(MtBlockHeader),
+		processingThresholdPercent,
+		getSubroundName,
+	)
+
+	return srBlock, err
+}
+
+func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusCoreMock) *common.SubroundBlock {
 	if blockChain == nil {
 		blockChain = &mock.BlockChainMock{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
@@ -38,26 +83,12 @@ func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusCo
 
 	container.SetBlockchain(blockChain)
 
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
-	srBlock, _ := bn.NewSubroundBlock(
-		sr,
-		sendConsensusMessage,
-		extend,
-	)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
+	srBlock, _ := defaultSubroundBlockFromSubround(sr)
 	return srBlock
 }
 
-func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock, container *mock.ConsensusCoreMock) bn.
+func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock, container *mock.ConsensusCoreMock) *common.
 	SubroundBlock {
 	blockChain := &mock.BlockChainMock{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -77,32 +108,22 @@ func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock, container 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
-	srBlock, _ := bn.NewSubroundBlock(
-		sr,
-		sendConsensusMessage,
-		extend,
-	)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
+	srBlock, _ := defaultSubroundBlockFromSubround(sr)
 	return srBlock
 }
 
 func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	srBlock, err := bn.NewSubroundBlock(
+	srBlock, err := common.NewSubroundBlock(
 		nil,
 		sendConsensusMessage,
 		extend,
+		int(MtBlockBody),
+		int(MtBlockHeader),
+		processingThresholdPercent,
+		getSubroundName,
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSubround, err)
@@ -115,25 +136,11 @@ func TestSubroundBlock_NewSubroundBlockNilBlockchainShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
 
 	container.SetBlockchain(nil)
 
-	srBlock, err := bn.NewSubroundBlock(
-		sr,
-		sendConsensusMessage,
-		extend,
-	)
+	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilBlockChain, err)
 }
@@ -145,25 +152,11 @@ func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T)
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
 
 	container.SetBlockProcessor(nil)
 
-	srBlock, err := bn.NewSubroundBlock(
-		sr,
-		sendConsensusMessage,
-		extend,
-	)
+	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
@@ -173,25 +166,11 @@ func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T)
 	container := mock.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
 
 	sr.ConsensusState = nil
 
-	srBlock, err := bn.NewSubroundBlock(
-		sr,
-		sendConsensusMessage,
-		extend,
-	)
+	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
@@ -203,24 +182,10 @@ func TestSubroundBlock_NewSubroundBlockNilHasherShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
 
 	container.SetHasher(nil)
-	srBlock, err := bn.NewSubroundBlock(
-		sr,
-		sendConsensusMessage,
-		extend,
-	)
+	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilHasher, err)
 }
@@ -232,24 +197,10 @@ func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
 
 	container.SetMarshalizer(nil)
-	srBlock, err := bn.NewSubroundBlock(
-		sr,
-		sendConsensusMessage,
-		extend,
-	)
+	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
@@ -261,24 +212,10 @@ func TestSubroundBlock_NewSubroundBlockNilMultisignerShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
 
 	container.SetMultiSigner(nil)
-	srBlock, err := bn.NewSubroundBlock(
-		sr,
-		sendConsensusMessage,
-		extend,
-	)
+	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
@@ -290,24 +227,10 @@ func TestSubroundBlock_NewSubroundBlockNilRounderShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
 
 	container.SetRounder(nil)
-	srBlock, err := bn.NewSubroundBlock(
-		sr,
-		sendConsensusMessage,
-		extend,
-	)
+	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilRounder, err)
 }
@@ -319,24 +242,10 @@ func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
 
 	container.SetShardCoordinator(nil)
-	srBlock, err := bn.NewSubroundBlock(
-		sr,
-		sendConsensusMessage,
-		extend,
-	)
+	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilShardCoordinator, err)
 }
@@ -348,24 +257,10 @@ func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 
 	ch := make(chan bool, 1)
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
 
 	container.SetSyncTimer(nil)
-	srBlock, err := bn.NewSubroundBlock(
-		sr,
-		sendConsensusMessage,
-		extend,
-	)
+	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
@@ -376,21 +271,15 @@ func TestSubroundBlock_NewSubroundBlockNilSendConsensusMessageFunctionShouldFail
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
-	srBlock, err := bn.NewSubroundBlock(
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
+	srBlock, err := common.NewSubroundBlock(
 		sr,
 		nil,
 		extend,
+		int(MtBlockBody),
+		int(MtBlockHeader),
+		processingThresholdPercent,
+		getSubroundName,
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSendConsensusMessageFunction, err)
@@ -402,22 +291,8 @@ func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	sr, _ := spos.NewSubround(
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
-		"(BLOCK)",
-		consensusState,
-		ch,
-		container,
-	)
-	srBlock, err := bn.NewSubroundBlock(
-		sr,
-		sendConsensusMessage,
-		extend,
-	)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
+	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.NotNil(t, srBlock)
 	assert.Nil(t, err)
 }
@@ -430,16 +305,16 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	assert.False(t, r)
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
-	sr.SetJobDone(sr.SelfPubKey(), bn.SrBlock, true)
+	sr.SetJobDone(sr.SelfPubKey(), SrBlock, true)
 	r = sr.DoBlockJob()
 	assert.False(t, r)
 
-	sr.SetJobDone(sr.SelfPubKey(), bn.SrBlock, false)
-	sr.SetStatus(bn.SrBlock, spos.SsFinished)
+	sr.SetJobDone(sr.SelfPubKey(), SrBlock, false)
+	sr.SetStatus(SrBlock, spos.SsFinished)
 	r = sr.DoBlockJob()
 	assert.False(t, r)
 
-	sr.SetStatus(bn.SrBlock, spos.SsNotFinished)
+	sr.SetStatus(SrBlock, spos.SsNotFinished)
 	bpm := &mock.BlockProcessorMock{}
 	err := errors.New("error")
 	bpm.CreateBlockCalled = func(round int32, remainingTime func() bool) (data.BodyHandler, error) {
@@ -469,7 +344,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		blBodyStr,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(bn.MtBlockBody),
+		int(MtBlockBody),
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 	)
@@ -483,11 +358,11 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	assert.False(t, r)
 
 	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[0])
-	sr.SetStatus(bn.SrBlock, spos.SsFinished)
+	sr.SetStatus(SrBlock, spos.SsFinished)
 	r = sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
-	sr.SetStatus(bn.SrBlock, spos.SsNotFinished)
+	sr.SetStatus(SrBlock, spos.SsNotFinished)
 	r = sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
@@ -500,7 +375,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		hdrStr,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(bn.MtBlockHeader),
+		int(MtBlockHeader),
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 	)
@@ -518,11 +393,11 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	assert.False(t, r)
 
 	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[0])
-	sr.SetStatus(bn.SrBlock, spos.SsFinished)
+	sr.SetStatus(SrBlock, spos.SsFinished)
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
 
-	sr.SetStatus(bn.SrBlock, spos.SsNotFinished)
+	sr.SetStatus(SrBlock, spos.SsNotFinished)
 	container.SetBlockProcessor(blockProcessorMock)
 	sr.Data = nil
 	sr.Header = nil
@@ -586,7 +461,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(bn.MtBlockBody),
+		int(MtBlockBody),
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 	)
@@ -611,7 +486,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(bn.MtBlockBody),
+		int(MtBlockBody),
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 	)
@@ -632,7 +507,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(bn.MtBlockBody),
+		int(MtBlockBody),
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 	)
@@ -659,7 +534,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(bn.MtBlockBody),
+		int(MtBlockBody),
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 	)
@@ -714,7 +589,7 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenSubroundIsFinish
 	t.Parallel()
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container)
-	sr.SetStatus(bn.SrBlock, spos.SsFinished)
+	sr.SetStatus(SrBlock, spos.SsFinished)
 	assert.True(t, sr.DoBlockConsensusCheck())
 }
 
@@ -722,8 +597,8 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenBlockIsReceivedR
 	t.Parallel()
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container)
-	for i := 0; i < sr.Threshold(bn.SrBlock); i++ {
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBlock, true)
+	for i := 0; i < sr.Threshold(SrBlock); i++ {
+		sr.SetJobDone(sr.ConsensusGroup()[i], SrBlock, true)
 	}
 	assert.True(t, sr.DoBlockConsensusCheck())
 }
@@ -740,17 +615,17 @@ func TestSubroundBlock_IsBlockReceived(t *testing.T) {
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container)
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBlock, false)
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitmentHash, false)
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBitmap, false)
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitment, false)
-		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrSignature, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], SrBlock, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], SrCommitmentHash, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], SrBitmap, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], SrCommitment, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], SrSignature, false)
 	}
 	ok := sr.IsBlockReceived(1)
 	assert.False(t, ok)
 
-	sr.SetJobDone("A", bn.SrBlock, true)
-	isJobDone, _ := sr.JobDone("A", bn.SrBlock)
+	sr.SetJobDone("A", SrBlock, true)
+	isJobDone, _ := sr.JobDone("A", SrBlock)
 	assert.True(t, isJobDone)
 
 	ok = sr.IsBlockReceived(1)

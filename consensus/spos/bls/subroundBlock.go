@@ -90,8 +90,6 @@ func (sr *subroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	sr.MultiSigner().SetMessage(sr.GetData())
-
 	return true
 }
 
@@ -358,7 +356,6 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	sr.MultiSigner().SetMessage(sr.Data)
 	err = sr.SetJobDone(node, SrBlock, true)
 	if err != nil {
 		log.Info(fmt.Sprintf("canceled round %d in Subround %s, %s\n",

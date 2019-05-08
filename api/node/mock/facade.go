@@ -4,6 +4,8 @@ import (
 	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 )
 
 // Facade is the mock implementation of a node router handler
@@ -12,6 +14,7 @@ type Facade struct {
 	ShouldErrorStart           bool
 	ShouldErrorStop            bool
 	GetCurrentPublicKeyHandler func() string
+	TpsBenchmarkHandler        func() *statistics.TpsBenchmark
 	GetHeartbeatsHandler       func() ([]heartbeat.PubKeyHeartbeat, error)
 }
 
@@ -24,6 +27,14 @@ func (f *Facade) IsNodeRunning() bool {
 func (f *Facade) StartNode() error {
 	if f.ShouldErrorStart {
 		return errors.New("error")
+	}
+	return nil
+}
+
+// TpsBenchmark is the mock implementation for retreiving the TpsBenchmark
+func (f *Facade) TpsBenchmark() *statistics.TpsBenchmark {
+	if f.TpsBenchmarkHandler != nil {
+		return f.TpsBenchmarkHandler()
 	}
 	return nil
 }

@@ -433,7 +433,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidSignatureShare(
 	multiSignerMock := mock.InitMultiSignerMock()
 
 	err := errors.New("invalid signature share")
-	multiSignerMock.VerifySignatureShareMock = func(index uint16, sig []byte, bitmap []byte) error {
+	multiSignerMock.VerifySignatureShareMock = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
 		return err
 	}
 

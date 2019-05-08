@@ -1,4 +1,4 @@
-package bn
+package common
 
 import (
 	"encoding/hex"
@@ -8,15 +8,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
 
-type subroundStartRound struct {
+type SubroundStartRound struct {
 	*spos.Subround
+
+	processingThresholdPercentage int
+	getSubroundName               func(subroundId int) string
 }
 
 // NewSubroundStartRound creates a SubroundStartRound object
 func NewSubroundStartRound(
 	subround *spos.Subround,
 	extend func(subroundId int),
-) (*subroundStartRound, error) {
+	processingThresholdPercentage int,
+	getSubroundName func(subroundId int) string,
+) (*SubroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		subround,
 	)
@@ -24,8 +29,10 @@ func NewSubroundStartRound(
 	if err != nil {
 		return nil, err
 	}
-	srStartRound := subroundStartRound{
+	srStartRound := SubroundStartRound{
 		subround,
+		processingThresholdPercentage,
+		getSubroundName,
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -51,7 +58,7 @@ func checkNewSubroundStartRoundParams(
 }
 
 // doStartRoundJob method does the job of the start round subround
-func (sr *subroundStartRound) doStartRoundJob() bool {
+func (sr *SubroundStartRound) doStartRoundJob() bool {
 	sr.ResetConsensusState()
 	sr.RoundIndex = sr.Rounder().Index()
 	sr.RoundTimeStamp = sr.Rounder().TimeStamp()
@@ -59,12 +66,12 @@ func (sr *subroundStartRound) doStartRoundJob() bool {
 }
 
 // doStartRoundConsensusCheck method checks if the consensus is achieved in the start subround.
-func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
+func (sr *SubroundStartRound) doStartRoundConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false
 	}
 
-	if sr.Status(SrStartRound) == spos.SsFinished {
+	if sr.Status(sr.Current()) == spos.SsFinished {
 		return true
 	}
 
@@ -75,7 +82,7 @@ func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
 	return false
 }
 
-func (sr *subroundStartRound) initCurrentRound() bool {
+func (sr *SubroundStartRound) initCurrentRound() bool {
 	if sr.BootStrapper().ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
 	}
@@ -111,7 +118,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
 		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, not in the consensus group\n",
-			sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(), getSubroundName(SrStartRound)))
+			sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(), sr.getSubroundName(sr.Current())))
 
 		sr.RoundCanceled = true
 
@@ -129,22 +136,22 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	startTime := time.Time{}
 	startTime = sr.RoundTimeStamp
-	maxTime := sr.Rounder().TimeDuration() * syncThresholdPercent / 100
+	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
 		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, time is out\n",
-			sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(), getSubroundName(SrStartRound)))
+			sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(), sr.getSubroundName(sr.Current())))
 
 		sr.RoundCanceled = true
 
 		return false
 	}
 
-	sr.SetStatus(SrStartRound, spos.SsFinished)
+	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	return true
 }
 
-func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error {
+func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error {
 
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
 	if currentHeader == nil {
