@@ -216,10 +216,12 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	bootstraper, err := n.createShardBootstraper(n.rounder)
+	bootstrapper, err := n.createBootstrapper(n.rounder)
 	if err != nil {
 		return err
 	}
+
+	bootstrapper.StartSync()
 
 	consensusState, err := n.createConsensusState()
 	if err != nil {
@@ -234,7 +236,7 @@ func (n *Node) StartConsensus() error {
 	worker, err := spos.NewWorker(
 		bnService,
 		n.blockProcessor,
-		bootstraper,
+		bootstrapper,
 		consensusState,
 		n.singleSignKeyGen,
 		n.marshalizer,
@@ -242,7 +244,7 @@ func (n *Node) StartConsensus() error {
 		n.rounder,
 		n.shardCoordinator,
 		n.singlesig,
-		n.BroadcastBlock,
+		n.getBroadcastBlock(),
 		n.sendMessage,
 	)
 	if err != nil {
@@ -255,7 +257,6 @@ func (n *Node) StartConsensus() error {
 	}
 
 	validatorGroupSelector, err := n.createValidatorGroupSelector()
-
 	if err != nil {
 		return err
 	}
@@ -263,7 +264,7 @@ func (n *Node) StartConsensus() error {
 	consensusDataContainer, err := spos.NewConsensusCore(
 		n.blkc,
 		n.blockProcessor,
-		bootstraper,
+		bootstrapper,
 		chronologyHandler,
 		n.hasher,
 		n.marshalizer,
@@ -274,7 +275,6 @@ func (n *Node) StartConsensus() error {
 		n.shardCoordinator,
 		n.syncer,
 		validatorGroupSelector)
-
 	if err != nil {
 		return err
 	}
@@ -284,13 +284,11 @@ func (n *Node) StartConsensus() error {
 		consensusState,
 		worker,
 	)
-
 	if err != nil {
 		return err
 	}
 
 	err = fct.GenerateSubrounds()
-
 	if err != nil {
 		return err
 	}
@@ -341,7 +339,31 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 	return chr, nil
 }
 
-func (n *Node) createShardBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+func (n *Node) getBroadcastBlock() func(data.BodyHandler, data.HeaderHandler) error {
+	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
+		return n.BroadcastShardBlock
+	}
+
+	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return n.BroadcastMetaBlock
+	}
+
+	return nil
+}
+
+func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
+		return n.createShardBootstrapper(rounder)
+	}
+
+	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return n.createMetaChainBootstrapper(rounder)
+	}
+
+	return nil, sharding.ErrShardIdOutOfRange
+}
+
+func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
 	bootstrap, err := sync.NewShardBootstrap(
 		n.dataPool,
 		n.store,
@@ -360,18 +382,10 @@ func (n *Node) createShardBootstraper(rounder consensus.Rounder) (process.Bootst
 		return nil, err
 	}
 
-	bootstrap.BroadcastBlock = n.BroadcastBlock
-	bootstrap.StartSync()
-
 	return bootstrap, nil
 }
 
-func (n *Node) createMetaChainBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	// TODO make sure metachain blockprocessor is used here in constructor
-	// TODO make sure metachain is used here as blockchain
-	// TODO make sure metachain store is used here as store
-
-	// accounts are good, as it is initialized at main with account factory according to shard coordinator
+func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
 	bootstrap, err := sync.NewMetaBootstrap(
 		n.metaDataPool,
 		n.store,
@@ -390,9 +404,6 @@ func (n *Node) createMetaChainBootstraper(rounder consensus.Rounder) (process.Bo
 	if err != nil {
 		return nil, err
 	}
-
-	bootstrap.BroadcastBlock = n.BroadcastMetaBlock
-	bootstrap.StartSync()
 
 	return bootstrap, nil
 }
@@ -428,7 +439,6 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 // createValidatorGroupSelector creates a index hashed group selector object
 func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector, error) {
 	validatorGroupSelector, err := groupSelectors.NewIndexHashedGroupSelector(n.consensusGroupSize, n.hasher)
-
 	if err != nil {
 		return nil, err
 	}
@@ -436,13 +446,12 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 	validatorsList := make([]consensus.Validator, 0)
 	shID := n.shardCoordinator.SelfId()
 
-	if int(shID) >= len(n.initialNodesPubkeys) {
+	if len(n.initialNodesPubkeys[shID]) == 0 {
 		return nil, errors.New("could not create validator group as shardID is out of range")
 	}
 
 	for i := 0; i < len(n.initialNodesPubkeys[shID]); i++ {
 		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shID][i]))
-
 		if err != nil {
 			return nil, err
 		}
@@ -451,7 +460,6 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 	}
 
 	err = validatorGroupSelector.LoadEligibleList(validatorsList)
-
 	if err != nil {
 		return nil, err
 	}
@@ -577,25 +585,15 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 	return account, nil
 }
 
-func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
-	rootHash, err := n.blockProcessor.CreateGenesisBlock(n.initialNodesBalances)
+func (n *Node) createGenesisBlock() (data.HeaderHandler, []byte, error) {
+	header, err := n.blockProcessor.CreateGenesisBlock(n.initialNodesBalances)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	header := &block.Header{
-		Nonce:         0,
-		ShardId:       n.shardCoordinator.SelfId(),
-		TimeStamp:     uint64(n.genesisTime.Unix()),
-		BlockBodyType: block.StateBlock,
-		Signature:     rootHash,
-		RootHash:      rootHash,
-		PrevRandSeed:  rootHash,
-		RandSeed:      rootHash,
-	}
+	header.SetTimeStamp(uint64(n.genesisTime.Unix()))
 
 	marshalizedHeader, err := n.marshalizer.Marshal(header)
-
 	if err != nil {
 		return nil, nil, err
 	}
@@ -617,11 +615,11 @@ func (n *Node) sendMessage(cnsDta *consensus.Message) {
 		cnsDtaBuff)
 }
 
-// broadcastBlock will send on intra shard topics the header and block body and on cross shard topics
+// BroadcastShardBlock will send on intra shard topics the header and block body and on cross shard topics
 // the miniblocks. This func needs to be exported as it is tested in integrationTests package.
 // TODO: investigate if the body block needs to be sent on intra shard topic as each miniblock is already sent on cross
 //  shard topics
-func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
+func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
 	if blockBody == nil {
 		return ErrNilTxBlockBody
 	}

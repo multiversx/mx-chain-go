@@ -12,7 +12,7 @@ type BlockProcessorStub struct {
 	ProcessBlockCalled               func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func()
-	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (rootHash []byte, err error)
+	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockBodyCalled            func(round int32, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
@@ -36,7 +36,7 @@ func (blProcMock *BlockProcessorStub) RevertAccountState() {
 }
 
 // CreateGenesisBlock mocks the creation of a genesis block body
-func (blProcMock *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) (rootHash []byte, err error) {
+func (blProcMock *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
 	return blProcMock.CreateGenesisBlockCalled(balances)
 }
 

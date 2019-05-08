@@ -713,10 +713,6 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
-
 	r := bs.SyncBlock()
 
 	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, r)
@@ -768,10 +764,6 @@ func TestMetaBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
-
 	r := bs.SyncBlock()
 
 	assert.Equal(t, process.ErrMissingHeader, r)
@@ -822,10 +814,6 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.StartSync()
 	time.Sleep(200 * time.Millisecond)
@@ -922,10 +910,6 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.StartSync()
 
