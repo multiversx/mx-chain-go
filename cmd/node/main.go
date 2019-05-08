@@ -130,10 +130,11 @@ VERSION:
 		Usage: "BlsPrivateKeyIndex defines a flag that specify the 0-th based index of the bls private key to be used from blsPrivKeys.pem file.",
 		Value: 0,
 	}
+	// gopsEn used to enable diagnosis of running go processes
 	gopsEn = cli.IntFlag{
 		Name:  "gops-enable",
 		Usage: "Enables gops over the process.",
-		Value: 1,
+		Value: 0,
 	}
 
 	configurationFile    = "./config/config.toml"
