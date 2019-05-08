@@ -94,6 +94,7 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	assert.Nil(t, icf)
@@ -115,6 +116,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	assert.Nil(t, icf)
@@ -136,6 +138,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	assert.Nil(t, icf)
@@ -157,6 +160,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	assert.Nil(t, icf)
@@ -178,6 +182,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	assert.Nil(t, icf)
@@ -199,6 +204,7 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	assert.Nil(t, icf)
@@ -220,6 +226,7 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	assert.Nil(t, icf)
@@ -241,6 +248,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	assert.Nil(t, icf)
@@ -262,6 +270,7 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		nil,
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	assert.Nil(t, icf)
@@ -283,6 +292,7 @@ func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T)
 		createDataPools(),
 		nil,
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	assert.Nil(t, icf)
@@ -304,6 +314,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	assert.NotNil(t, icf)
@@ -327,6 +338,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *tes
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	container, err := icf.Create()
@@ -350,6 +362,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	container, err := icf.Create()
@@ -373,6 +386,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	container, err := icf.Create()
@@ -396,6 +410,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationPeerChBlocksFailsShould
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	container, err := icf.Create()
@@ -419,6 +434,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsSh
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	container, err := icf.Create()
@@ -442,6 +458,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	container, err := icf.Create()
@@ -465,6 +482,7 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	container, err := icf.Create()
@@ -488,6 +506,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	container, err := icf.Create()
@@ -511,6 +530,7 @@ func TestInterceptorsContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	container, err := icf.Create()
@@ -534,6 +554,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	container, err := icf.Create()
@@ -564,6 +585,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	container, err := icf.Create()
@@ -600,6 +622,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		&mock.ChronologyValidatorStub{},
+		nil,
 	)
 
 	container, _ := icf.Create()

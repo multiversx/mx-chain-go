@@ -682,7 +682,7 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return true, math.MaxUint64
 	}
-	forkDetector.RemoveHeadersCalled = func(nonce uint64) {
+	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
@@ -712,10 +712,6 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	r := bs.SyncBlock()
 
@@ -768,10 +764,6 @@ func TestMetaBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
-
 	r := bs.SyncBlock()
 
 	assert.Equal(t, process.ErrMissingHeader, r)
@@ -822,10 +814,6 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.StartSync()
 	time.Sleep(200 * time.Millisecond)
@@ -922,10 +910,6 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.StartSync()
 

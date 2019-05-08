@@ -226,7 +226,7 @@ func createHeadersNoncesDataPool(
 
 func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.ForkDetector {
 	return &mock.ForkDetectorMock{
-		RemoveHeadersCalled: func(nonce uint64) {
+		RemoveHeadersCalled: func(nonce uint64, hash []byte) {
 			if nonce == removedNonce {
 				remFlags.flagHdrRemovedFromForkDetector = true
 			}
@@ -898,7 +898,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return true, math.MaxUint64
 	}
-	forkDetector.RemoveHeadersCalled = func(nonce uint64) {
+	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
@@ -928,10 +928,6 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	r := bs.SyncBlock()
 
@@ -983,10 +979,6 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	r := bs.SyncBlock()
 
@@ -1066,10 +1058,6 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
-
 	bs.RequestHeader(2)
 	r := bs.SyncBlock()
 	assert.Equal(t, process.ErrMissingBody, r)
@@ -1120,10 +1108,6 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.StartSync()
 	time.Sleep(200 * time.Millisecond)
@@ -1235,10 +1219,6 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.StartSync()
 

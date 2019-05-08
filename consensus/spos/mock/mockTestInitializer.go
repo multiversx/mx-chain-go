@@ -39,10 +39,10 @@ func InitMultiSignerMock() *BelNevMock {
 	multiSigner.CreateCommitmentMock = func() ([]byte, []byte) {
 		return []byte("commSecret"), []byte("commitment")
 	}
-	multiSigner.VerifySignatureShareMock = func(index uint16, sig []byte, bitmap []byte) error {
+	multiSigner.VerifySignatureShareMock = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
 		return nil
 	}
-	multiSigner.VerifyMock = func(bitmap []byte) error {
+	multiSigner.VerifyMock = func(msg []byte, bitmap []byte) error {
 		return nil
 	}
 	multiSigner.AggregateSigsMock = func(bitmap []byte) ([]byte, error) {
@@ -51,7 +51,7 @@ func InitMultiSignerMock() *BelNevMock {
 	multiSigner.AggregateCommitmentsMock = func(bitmap []byte) error {
 		return nil
 	}
-	multiSigner.CreateSignatureShareMock = func(bitmap []byte) ([]byte, error) {
+	multiSigner.CreateSignatureShareMock = func(msg []byte, bitmap []byte) ([]byte, error) {
 		return []byte("partialSign"), nil
 	}
 	return multiSigner

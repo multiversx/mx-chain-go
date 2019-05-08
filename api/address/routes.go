@@ -48,7 +48,7 @@ func GetAccount(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"account": accountResponseFromBaseAccount(addr, acc)})
 }
 
-//GetBalance returns the balance for the address parameter
+// GetBalance returns the balance for the address parameter
 func GetBalance(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {

@@ -62,8 +62,6 @@ type baseBootstrap struct {
 	mutRcvHdrInfo         sync.RWMutex
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
-
-	BroadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -191,7 +189,7 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) (has
 
 func (boot *baseBootstrap) cleanCachesOnRollback(header data.HeaderHandler, headerStore storage.Storer) {
 	hash := boot.removeHeaderFromPools(header)
-	boot.forkDetector.RemoveHeaders(header.GetNonce())
+	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
 	_ = headerStore.Remove(hash)
 }
 

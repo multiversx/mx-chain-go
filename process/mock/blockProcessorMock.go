@@ -11,7 +11,7 @@ type BlockProcessorMock struct {
 	ProcessBlockCalled               func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func()
-	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (rootHash []byte, err error)
+	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockCalled                func(round int32, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	noShards                         uint32
@@ -32,7 +32,7 @@ func (bpm *BlockProcessorMock) RevertAccountState() {
 	bpm.RevertAccountStateCalled()
 }
 
-func (blProcMock BlockProcessorMock) CreateGenesisBlock(balances map[string]*big.Int) (rootHash []byte, err error) {
+func (blProcMock BlockProcessorMock) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
 	return blProcMock.CreateGenesisBlockCalled(balances)
 }
 
