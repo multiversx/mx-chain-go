@@ -74,8 +74,9 @@ type Config struct {
 	MultisigHasher TypeConfig
 	Marshalizer    TypeConfig
 
-	ResourceStats ResourceStatsConfig
-	Heartbeat     HeartbeatConfig
+	ResourceStats   ResourceStatsConfig
+	Heartbeat       HeartbeatConfig
+	GeneralSettings GeneralSettingsConfig
 }
 
 // NodeConfig will hold basic p2p settings
@@ -118,4 +119,9 @@ type HeartbeatConfig struct {
 	MinTimeToWaitBetweenBroadcastsInSec int
 	MaxTimeToWaitBetweenBroadcastsInSec int
 	DurationInSecToConsiderUnresponsive int
+}
+
+// GeneralSettingsConfig will hold the general settings for a node
+type GeneralSettingsConfig struct {
+	DestinationShardAsObserver string
 }

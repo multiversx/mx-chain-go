@@ -894,10 +894,10 @@ func TestMetaProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
 	)
-	rootHash, err := mp.CreateGenesisBlock(nil)
+	hdr, err := mp.CreateGenesisBlock(nil)
 	assert.Nil(t, err)
-	assert.NotNil(t, rootHash)
-	assert.Equal(t, rootHash, []byte("metachain genesis block root hash"))
+	assert.NotNil(t, hdr)
+	assert.Equal(t, hdr.GetRootHash(), []byte("metachainRootHash"))
 }
 
 func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *testing.T) {

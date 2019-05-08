@@ -13,9 +13,12 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
@@ -69,8 +72,9 @@ import (
 )
 
 const (
-	defaultLogPath   = "logs"
-	defaultStatsPath = "stats"
+	defaultLogPath     = "logs"
+	defaultStatsPath   = "stats"
+	metachainShardName = "metachain"
 )
 
 var (
@@ -188,6 +192,8 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 type nullChronologyValidator struct {
 }
 
+// ValidateReceivedBlock should validate if parameters to be checked are valid
+// In this implementation it just returns nil
 func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
 	//TODO when implementing a workable variant take into account to receive headers "from future" (nonce or round > current round)
 	// as this might happen when clocks are slightly de-synchronized
@@ -293,14 +299,15 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	shardCoordinator, err := createShardCoordinator(genesisConfig, pubKey)
+	shardCoordinator, err := createShardCoordinator(genesisConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
 	}
 
 	var currentNode *node.Node
+	var tpsBenchmark *statistics.TpsBenchmark
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		currentNode, err = createShardNode(ctx, generalConfig, genesisConfig, p2pConfig, syncer, keyGen, privKey, pubKey, shardCoordinator, log)
+		currentNode, tpsBenchmark, err = createShardNode(ctx, generalConfig, genesisConfig, p2pConfig, syncer, keyGen, privKey, pubKey, shardCoordinator, log)
 		if err != nil {
 			return err
 		}
@@ -321,6 +328,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	ef.SetLogger(log)
 	ef.SetSyncer(syncer)
+	ef.SetTpsBenchmark(tpsBenchmark)
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
@@ -376,6 +384,8 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 func createShardCoordinator(
 	genesisConfig *sharding.Genesis,
 	pubKey crypto.PublicKey,
+	settingsConfig config.GeneralSettingsConfig,
+	log *logger.Logger,
 ) (shardCoordinator sharding.Coordinator,
 	err error) {
 	if pubKey == nil {
@@ -388,9 +398,21 @@ func createShardCoordinator(
 	}
 
 	selfShardId, err := genesisConfig.GetShardIDForPubKey(publicKey)
+	if err == sharding.ErrNoValidPublicKey {
+		log.Info("Starting as observer node...")
+		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
+	}
 	if err != nil {
 		return nil, err
 	}
+
+	var shardName string
+	if selfShardId == sharding.MetachainShardId {
+		shardName = metachainShardName
+	} else {
+		shardName = fmt.Sprintf("%d", selfShardId)
+	}
+	log.Info(fmt.Sprintf("Starting in shard: %s", shardName))
 
 	shardCoordinator, err = sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
 	if err != nil {
@@ -398,6 +420,23 @@ func createShardCoordinator(
 	}
 
 	return shardCoordinator, nil
+}
+
+func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {
+	destShard := strings.ToLower(settingsConfig.DestinationShardAsObserver)
+	if len(destShard) == 0 {
+		return 0, errors.New("option DestinationShardAsObserver is not set in config.toml")
+	}
+	if destShard == metachainShardName {
+		return sharding.MetachainShardId, nil
+	}
+
+	val, err := strconv.ParseUint(destShard, 10, 32)
+	if err != nil {
+		return 0, errors.New("error parsing DestinationShardAsObserver option: " + err.Error())
+	}
+
+	return uint32(val), err
 }
 
 func createShardNode(
@@ -411,95 +450,95 @@ func createShardNode(
 	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
 	log *logger.Logger,
-) (*node.Node, error) {
+) (*node.Node, *statistics.TpsBenchmark, error) {
 
 	hasher, err := getHasherFromConfig(config)
 	if err != nil {
-		return nil, errors.New("could not create hasher: " + err.Error())
+		return nil, nil, errors.New("could not create hasher: " + err.Error())
 	}
 
 	marshalizer, err := getMarshalizerFromConfig(config)
 	if err != nil {
-		return nil, errors.New("could not create marshalizer: " + err.Error())
+		return nil, nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
 	tr, err := getTrie(config.AccountsTrieStorage, hasher)
 	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, errors.New("error creating node: " + err.Error())
 	}
 
 	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
 	if err != nil {
-		return nil, errors.New("could not create address converter: " + err.Error())
+		return nil, nil, errors.New("could not create address converter: " + err.Error())
 	}
 
 	accountFactory, err := factoryState.NewAccountFactoryCreator(shardCoordinator)
 	if err != nil {
-		return nil, errors.New("could not create account factory: " + err.Error())
+		return nil, nil, errors.New("could not create account factory: " + err.Error())
 	}
 
 	accountsAdapter, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
 	if err != nil {
-		return nil, errors.New("could not create accounts adapter: " + err.Error())
+		return nil, nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
 	initialPubKeys := genesisConfig.InitialNodesPubKeys()
 
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hexPublicKey := hex.EncodeToString(publicKey)
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = log.ApplyOptions(logger.WithFile(logFile))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
 	if err != nil {
-		return nil, errors.New("could not create transaction processor: " + err.Error())
+		return nil, nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
 	blkc, err := createBlockChainFromConfig(config)
 	if err != nil {
-		return nil, errors.New("could not create block chain: " + err.Error())
+		return nil, nil, errors.New("could not create block chain: " + err.Error())
 	}
 
 	store, err := createShardDataStoreFromConfig(config)
 	if err != nil {
-		return nil, errors.New("could not create local data store: " + err.Error())
+		return nil, nil, errors.New("could not create local data store: " + err.Error())
 	}
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 	datapool, err := createShardDataPoolFromConfig(config, uint64ByteSliceConverter)
 	if err != nil {
-		return nil, errors.New("could not create shard data pools: " + err.Error())
+		return nil, nil, errors.New("could not create shard data pools: " + err.Error())
 	}
 
 	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
 	if err != nil {
-		return nil, errors.New("initial balances could not be processed " + err.Error())
+		return nil, nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
 	// TODO: pass key generator and public key also when needed
 	_, blsPrivateKey, _, err := getBlsSigningParams(ctx, log)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	singlesigner := &singlesig.SchnorrSigner{}
@@ -507,17 +546,17 @@ func createShardNode(
 
 	multisigHasher, err := getMultisigHasherFromConfig(config)
 	if err != nil {
-		return nil, errors.New("could not create multisig hasher: " + err.Error())
+		return nil, nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
 	currentShardPubKeys, err := genesisConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
 	if err != nil {
-		return nil, errors.New("could not start creation of multisigner: " + err.Error())
+		return nil, nil, errors.New("could not start creation of multisigner: " + err.Error())
 	}
 
 	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, currentShardPubKeys, privKey, keyGen, uint16(0))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var randReader io.Reader
@@ -529,7 +568,12 @@ func createShardNode(
 
 	netMessenger, err := createNetMessenger(p2pConfig, log, randReader)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration/1000)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	//TODO add a real chronology validator and remove null chronology validator
@@ -545,15 +589,16 @@ func createShardNode(
 		datapool,
 		addressConverter,
 		&nullChronologyValidator{},
+		tpsBenchmark,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	//TODO refactor all these factory calls
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	resolversContainerFactory, err := shardfactoryDataRetriever.NewResolversContainerFactory(
@@ -565,17 +610,17 @@ func createShardNode(
 		uint64ByteSliceConverter,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	resolversContainer, err := resolversContainerFactory.Create()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	resolversFinder, err := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	rounder, err := round.NewRound(
@@ -584,12 +629,12 @@ func createShardNode(
 		time.Millisecond*time.Duration(genesisConfig.RoundDuration),
 		syncer)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	forkDetector, err := processSync.NewBasicForkDetector(rounder)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	blockProcessor, err := block.NewShardProcessor(
@@ -606,7 +651,7 @@ func createShardNode(
 	)
 
 	if err != nil {
-		return nil, errors.New("could not create block processor: " + err.Error())
+		return nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
 	nd, err := node.NewNode(
@@ -641,20 +686,20 @@ func createShardNode(
 	)
 
 	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, errors.New("error creating node: " + err.Error())
 	}
 
 	err = nd.CreateShardedStores()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = nd.StartHeartbeat(config.Heartbeat)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return nd, nil
+	return nd, tpsBenchmark, nil
 }
 
 func createMetaNode(
@@ -860,7 +905,7 @@ func createMetaNode(
 		node.WithBlockChain(metaChain),
 		node.WithDataStore(metaStore),
 		node.WithRoundDuration(genesisConfig.RoundDuration),
-		node.WithConsensusGroupSize(int(genesisConfig.ConsensusGroupSize)),
+		node.WithConsensusGroupSize(int(genesisConfig.MetaChainConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(metaProcessor),
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
@@ -882,11 +927,6 @@ func createMetaNode(
 
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
-	}
-
-	err = nd.CreateShardedStores()
-	if err != nil {
-		return nil, err
 	}
 
 	return nd, nil
@@ -937,6 +977,7 @@ func createNetMessenger(
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		pDiscoverer,
+		libp2p.ListenAddrWithIp4AndTcp,
 	)
 
 	if err != nil {
@@ -996,7 +1037,7 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 	pk, _ := pubKey.ToByteArray()
 
 	pkEncoded := encodeAddress(pk)
-	log.Info("starting with public key: " + pkEncoded)
+	log.Info("Starting with public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
 }
@@ -1027,7 +1068,7 @@ func getBlsSigningParams(ctx *cli.Context, log *logger.Logger) (
 	}
 
 	pkEncoded := encodeAddress(pk)
-	log.Info("starting with bls public key: " + pkEncoded)
+	log.Info("Starting with bls public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
 }

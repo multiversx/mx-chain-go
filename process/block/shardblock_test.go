@@ -1293,10 +1293,10 @@ func TestShardProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
-	rootHash, err := sp.CreateGenesisBlock(nil)
+	hdr, err := sp.CreateGenesisBlock(nil)
 	assert.Nil(t, err)
-	assert.NotNil(t, rootHash)
-	assert.Equal(t, rootHash, []byte("rootHash"))
+	assert.NotNil(t, hdr)
+	assert.Equal(t, hdr.GetRootHash(), []byte("rootHash"))
 }
 
 func TestShardProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {

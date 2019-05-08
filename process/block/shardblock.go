@@ -150,6 +150,8 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
+	log.Info(fmt.Sprintf("Total txs in pool: %d\n", sp.getNrTxsWithDst(header.ShardId)))
+
 	requestedTxs := sp.requestBlockTransactions(body)
 
 	if haveTime() < 0 {
@@ -345,9 +347,23 @@ func (sp *shardProcessor) CreateBlockBody(round int32, haveTime func() bool) (da
 }
 
 // CreateGenesisBlock creates the genesis block body from map of account balances
-func (sp *shardProcessor) CreateGenesisBlock(balances map[string]*big.Int) (rootHash []byte, err error) {
-	// TODO: balances map should be validated
-	return sp.txProcessor.SetBalancesToTrie(balances)
+func (sp *shardProcessor) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
+	rootHash, err := sp.txProcessor.SetBalancesToTrie(balances)
+	if err != nil {
+		return nil, err
+	}
+
+	header := &block.Header{
+		Nonce:         0,
+		ShardId:       sp.shardCoordinator.SelfId(),
+		BlockBodyType: block.StateBlock,
+		Signature:     rootHash,
+		RootHash:      rootHash,
+		PrevRandSeed:  rootHash,
+		RandSeed:      rootHash,
+	}
+
+	return header, err
 }
 
 func (sp *shardProcessor) processBlockTransactions(body block.Body, round int32, haveTime func() time.Duration) error {
@@ -1093,8 +1109,11 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 	}
 
 	mbLen := len(body)
+	totalTxCount := 0
 	miniBlockHeaders := make([]block.MiniBlockHeader, mbLen)
 	for i := 0; i < mbLen; i++ {
+		txCount := len(body[i].TxHashes)
+		totalTxCount += txCount
 		mbBytes, err := sp.marshalizer.Marshal(body[i])
 		if err != nil {
 			return nil, err
@@ -1105,10 +1124,12 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 			Hash:            mbHash,
 			SenderShardID:   sp.shardCoordinator.SelfId(),
 			ReceiverShardID: body[i].ReceiverShardID,
+			TxCount:         uint32(txCount),
 		}
 	}
 
 	header.MiniBlockHeaders = miniBlockHeaders
+	header.TxCount = uint32(totalTxCount)
 	return header, nil
 }
 

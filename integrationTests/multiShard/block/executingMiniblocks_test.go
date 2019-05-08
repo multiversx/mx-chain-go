@@ -27,7 +27,6 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	fmt.Println("Step 1. Setup nodes...")
 	numOfShards := 6
-	startingPort := 20000
 	nodesPerShard := 3
 
 	senderShard := uint32(0)
@@ -36,12 +35,10 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	valMinting := big.NewInt(100)
 	valToTransferPerTx := big.NewInt(2)
 
-	advertiser := createMessengerWithKadDht(context.Background(), startingPort, "")
+	advertiser := createMessengerWithKadDht(context.Background(), "")
 	advertiser.Bootstrap()
-	startingPort++
 
 	nodes := createNodes(
-		startingPort,
 		numOfShards,
 		nodesPerShard,
 		getConnectableAddress(advertiser),
@@ -93,7 +90,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	blockBody, blockHeader := proposeBlock(t, proposerNode)
 
 	fmt.Println("Step 6. Proposer disseminates header, block body and miniblocks...")
-	proposerNode.node.BroadcastBlock(blockBody, blockHeader)
+	proposerNode.node.BroadcastShardBlock(blockBody, blockHeader)
 	fmt.Println("Delaying for disseminating miniblocks and header...")
 	time.Sleep(time.Second * 5)
 
@@ -144,7 +141,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		firstReceiverNodes = append(firstReceiverNodes, receiverProposer)
 
 		body, header := proposeBlock(t, receiverProposer)
-		receiverProposer.node.BroadcastBlock(body, header)
+		receiverProposer.node.BroadcastShardBlock(body, header)
 	}
 	fmt.Println("Delaying for disseminating miniblocks and headers...")
 	time.Sleep(time.Second * 5)

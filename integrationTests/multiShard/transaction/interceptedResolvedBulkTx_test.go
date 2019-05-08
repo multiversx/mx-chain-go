@@ -30,15 +30,12 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	}
 
 	numOfShards := 6
-	startingPort := 20000
 	nodesPerShard := 3
 
-	advertiser := createMessengerWithKadDht(context.Background(), startingPort, "")
+	advertiser := createMessengerWithKadDht(context.Background(), "")
 	advertiser.Bootstrap()
-	startingPort++
 
 	nodes := createNodesWithNodeSkInShardExceptFirst(
-		startingPort,
 		numOfShards,
 		nodesPerShard,
 		0,
@@ -101,17 +98,14 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	}
 
 	numOfShards := 6
-	startingPort := 20000
 	nodesPerShard := 3
 
 	firstSkInShard := uint32(4)
 
-	advertiser := createMessengerWithKadDht(context.Background(), startingPort, "")
+	advertiser := createMessengerWithKadDht(context.Background(), "")
 	advertiser.Bootstrap()
-	startingPort++
 
 	nodes := createNodesWithNodeSkInShardExceptFirst(
-		startingPort,
 		numOfShards,
 		nodesPerShard,
 		firstSkInShard,
@@ -184,17 +178,14 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	}
 
 	numOfShards := 6
-	startingPort := 20000
 	nodesPerShard := 3
 
 	firstSkInShard := uint32(4)
 
-	advertiser := createMessengerWithKadDht(context.Background(), startingPort, "")
+	advertiser := createMessengerWithKadDht(context.Background(), "")
 	advertiser.Bootstrap()
-	startingPort++
 
 	nodes := createNodesWithNodeSkInShardExceptFirst(
-		startingPort,
 		numOfShards,
 		nodesPerShard,
 		firstSkInShard,

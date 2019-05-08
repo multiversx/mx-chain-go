@@ -10,6 +10,8 @@ type BootstraperMock struct {
 	CreateAndCommitEmptyBlockCalled func(uint32) (data.BodyHandler, data.HeaderHandler, error)
 	AddSyncStateListenerCalled      func(func(bool))
 	ShouldSyncCalled                func() bool
+	StartSyncCalled                 func()
+	StopSyncCalled                  func()
 }
 
 func (boot *BootstraperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
@@ -36,4 +38,12 @@ func (boot *BootstraperMock) ShouldSync() bool {
 	}
 
 	return false
+}
+
+func (boot *BootstraperMock) StartSync() {
+	boot.StartSyncCalled()
+}
+
+func (boot *BootstraperMock) StopSync() {
+	boot.StopSyncCalled()
 }

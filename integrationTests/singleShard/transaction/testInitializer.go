@@ -96,6 +96,8 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
+	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
+
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
@@ -154,7 +156,6 @@ func createMultiSigner(
 }
 
 func createNetNode(
-	port int,
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
@@ -167,7 +168,7 @@ func createNetNode(
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	messenger := createMessenger(context.Background(), port)
+	messenger := createMessenger(context.Background())
 
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
@@ -192,6 +193,7 @@ func createNetNode(
 		dPool,
 		addrConverter,
 		&mock.ChronologyValidatorMock{},
+		nil,
 	)
 	interceptorsContainer, _ := interceptorContainerFactory.Create()
 
@@ -229,13 +231,12 @@ func createNetNode(
 	return n, messenger, sk, resolversFinder
 }
 
-func createMessenger(ctx context.Context, port int) p2p.Messenger {
+func createMessenger(ctx context.Context) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, _, err := libp2p.NewNetworkMessengerWithPortSweep(
+	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,
-		port,
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),

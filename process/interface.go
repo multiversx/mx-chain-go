@@ -25,7 +25,7 @@ type BlockProcessor interface {
 	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
-	CreateGenesisBlock(balances map[string]*big.Int) ([]byte, error)
+	CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlockHeader(body data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error)
@@ -69,13 +69,15 @@ type InterceptedBlockBody interface {
 type Bootstrapper interface {
 	AddSyncStateListener(func(bool))
 	ShouldSync() bool
+	StopSync()
+	StartSync()
 }
 
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
 	AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error
-	RemoveHeaders(nonce uint64)
+	RemoveHeaders(nonce uint64, hash []byte)
 	CheckFork() (bool, uint64)
 	GetHighestFinalBlockNonce() uint64
 	ProbableHighestNonce() uint64

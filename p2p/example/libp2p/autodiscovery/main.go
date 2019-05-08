@@ -30,6 +30,7 @@ func main() {
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", nil),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 	startingPort++
 	fmt.Printf("advertiser is %s\n", getConnectableAddress(advertiser))
@@ -48,6 +49,7 @@ func main() {
 				"test",
 				[]string{getConnectableAddress(advertiser)},
 			),
+			libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		)
 		_ = netPeer.Bootstrap()
 

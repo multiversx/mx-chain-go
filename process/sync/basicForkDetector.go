@@ -184,7 +184,7 @@ func (bfd *basicForkDetector) computeProbableHighestNonce() uint64 {
 }
 
 // RemoveHeaders removes all the stored headers with a given nonce
-func (bfd *basicForkDetector) RemoveHeaders(nonce uint64) {
+func (bfd *basicForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
 	bfd.mutFork.Lock()
 	if nonce == bfd.fork.checkpointNonce {
 		bfd.fork.checkpointNonce = bfd.fork.lastCheckpointNonce
@@ -192,8 +192,26 @@ func (bfd *basicForkDetector) RemoveHeaders(nonce uint64) {
 	}
 	bfd.mutFork.Unlock()
 
+	var preservedHdrInfos []*headerInfo
+
+	bfd.mutHeaders.RLock()
+	hdrInfos := bfd.headers[nonce]
+	bfd.mutHeaders.RUnlock()
+
+	for _, hdrInfoStored := range hdrInfos {
+		if bytes.Equal(hdrInfoStored.hash, hash) {
+			continue
+		}
+
+		preservedHdrInfos = append(preservedHdrInfos, hdrInfoStored)
+	}
+
 	bfd.mutHeaders.Lock()
-	delete(bfd.headers, nonce)
+	if preservedHdrInfos == nil {
+		delete(bfd.headers, nonce)
+	} else {
+		bfd.headers[nonce] = preservedHdrInfos
+	}
 	bfd.mutHeaders.Unlock()
 }
 

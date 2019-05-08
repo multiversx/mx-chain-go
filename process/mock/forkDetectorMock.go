@@ -6,7 +6,7 @@ import (
 
 type ForkDetectorMock struct {
 	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, isProcessed bool) error
-	RemoveHeadersCalled             func(nonce uint64)
+	RemoveHeadersCalled             func(nonce uint64, hash []byte)
 	CheckForkCalled                 func() (bool, uint64)
 	GetHighestFinalBlockNonceCalled func() uint64
 	ProbableHighestNonceCalled      func() uint64
@@ -16,8 +16,8 @@ func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, i
 	return fdm.AddHeaderCalled(header, hash, isProcessed)
 }
 
-func (fdm *ForkDetectorMock) RemoveHeaders(nonce uint64) {
-	fdm.RemoveHeadersCalled(nonce)
+func (fdm *ForkDetectorMock) RemoveHeaders(nonce uint64, hash []byte) {
+	fdm.RemoveHeadersCalled(nonce, hash)
 }
 
 func (fdm *ForkDetectorMock) CheckFork() (bool, uint64) {

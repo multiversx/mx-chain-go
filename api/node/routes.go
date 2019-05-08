@@ -2,10 +2,12 @@ package node
 
 import (
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/url"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 	"github.com/gin-gonic/gin"
 )
@@ -17,6 +19,30 @@ type Handler interface {
 	StopNode() error
 	GetCurrentPublicKey() string
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
+	TpsBenchmark() *statistics.TpsBenchmark
+}
+
+type statisticsResponse struct {
+	LiveTPS               float64                   `json:"liveTPS"`
+	PeakTPS               float64                   `json:"peakTPS"`
+	NrOfShards            uint32                    `json:"nrOfShards"`
+	BlockNumber           uint64                    `json:"blockNumber"`
+	RoundTime             uint64                    `json:"roundTime"`
+	AverageBlockTxCount   *big.Int                  `json:"averageBlockTxCount"`
+	LastBlockTxCount      uint32                    `json:"lastBlockTxCount"`
+	TotalProcessedTxCount *big.Int                  `json:"totalProcessedTxCount"`
+	ShardStatistics       []shardStatisticsResponse `json:"shardStatistics"`
+}
+
+type shardStatisticsResponse struct {
+	ShardID               uint32   `json:"shardID"`
+	LiveTPS               float64  `json:"liveTPS"`
+	AverageTPS            *big.Int `json:"averageTPS"`
+	PeakTPS               float64  `json:"peakTPS"`
+	AverageBlockTxCount   uint32   `json:"averageBlockTxCount"`
+	CurrentBlockNonce     uint64   `json:"currentBlockNonce"`
+	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
+	TotalProcessedTxCount *big.Int `json:"totalProcessedTxCount"`
 }
 
 // Routes defines node related routes
@@ -26,6 +52,7 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/stop", StopNode)
 	router.GET("/address", Address)
 	router.GET("/heartbeatstatus", HeartbeatStatus)
+	router.GET("/statistics", Statistics)
 }
 
 // Status returns the state of the node e.g. running/stopped
@@ -114,4 +141,44 @@ func HeartbeatStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": hbStatus})
+}
+
+// Statistics returns the blockchain statistics
+func Statistics(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(Handler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"statistics": statsFromTpsBenchmark(ef.TpsBenchmark())})
+}
+
+func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResponse {
+	sr := statisticsResponse{}
+	sr.LiveTPS = tpsBenchmark.LiveTPS()
+	sr.PeakTPS = tpsBenchmark.PeakTPS()
+	sr.NrOfShards = tpsBenchmark.NrOfShards()
+	sr.RoundTime = tpsBenchmark.RoundTime()
+	sr.BlockNumber = tpsBenchmark.BlockNumber()
+	sr.AverageBlockTxCount = tpsBenchmark.AverageBlockTxCount()
+	sr.LastBlockTxCount = tpsBenchmark.LastBlockTxCount()
+	sr.TotalProcessedTxCount = tpsBenchmark.TotalProcessedTxCount()
+	sr.ShardStatistics = make([]shardStatisticsResponse, tpsBenchmark.NrOfShards())
+
+	for i := 0; i < int(tpsBenchmark.NrOfShards()); i++ {
+		ss := tpsBenchmark.ShardStatistic(uint32(i))
+		sr.ShardStatistics[i] = shardStatisticsResponse{
+			ShardID:               ss.ShardID(),
+			LiveTPS:               ss.LiveTPS(),
+			PeakTPS:               ss.PeakTPS(),
+			AverageTPS:            ss.AverageTPS(),
+			AverageBlockTxCount:   ss.AverageBlockTxCount(),
+			CurrentBlockNonce:     ss.CurrentBlockNonce(),
+			LastBlockTxCount:      ss.LastBlockTxCount(),
+			TotalProcessedTxCount: ss.TotalProcessedTxCount(),
+		}
+	}
+
+	return sr
 }
