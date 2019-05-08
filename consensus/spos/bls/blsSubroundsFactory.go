@@ -3,9 +3,8 @@ package bls
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/common"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/common"
 )
 
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
