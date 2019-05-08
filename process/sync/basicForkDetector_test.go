@@ -180,7 +180,7 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 	hInfos = bfd.GetHeaders(2)
 	assert.Equal(t, 1, len(hInfos))
 
-	bfd.RemoveHeaders(1)
+	bfd.RemoveHeaders(1, hash1)
 
 	hInfos = bfd.GetHeaders(1)
 	assert.Nil(t, hInfos)
@@ -320,7 +320,7 @@ func TestBasicForkDetector_RemoveCheckpointHeaderNonceShouldResetCheckpoint(t *t
 	_ = bfd.AddHeader(hdr1, hash1, true)
 	assert.Equal(t, uint64(2), bfd.CheckpointNonce())
 
-	bfd.RemoveHeaders(2)
+	bfd.RemoveHeaders(2, hash1)
 	assert.Equal(t, uint64(0), bfd.CheckpointNonce())
 	assert.Equal(t, int32(-1), bfd.CheckpointRound())
 }
