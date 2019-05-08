@@ -27,20 +27,18 @@ const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
-const maxGoRoutinesSendMessage = 400000
 
 var log = logger.DefaultLogger()
 
 type networkMessenger struct {
-	ctxProvider      *Libp2pContext
-	pb               *pubsub.PubSub
-	ds               p2p.DirectSender
-	connMonitor      *libp2pConnectionMonitor
-	peerDiscoverer   p2p.PeerDiscoverer
-	mutTopics        sync.RWMutex
-	topics           map[string]p2p.MessageProcessor
-	outgoingPLB      p2p.ChannelLoadBalancer
-	throttleSendData chan struct{}
+	ctxProvider    *Libp2pContext
+	pb             *pubsub.PubSub
+	ds             p2p.DirectSender
+	connMonitor    *libp2pConnectionMonitor
+	peerDiscoverer p2p.PeerDiscoverer
+	mutTopics      sync.RWMutex
+	topics         map[string]p2p.MessageProcessor
+	outgoingPLB    p2p.ChannelLoadBalancer
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -155,8 +153,6 @@ func createMessenger(
 	for _, address := range netMes.ctxProvider.Host().Addrs() {
 		fmt.Println(address.String() + "/p2p/" + netMes.ID().Pretty())
 	}
-
-	netMes.throttleSendData = make(chan struct{}, maxGoRoutinesSendMessage)
 
 	return &netMes, nil
 }
@@ -367,17 +363,19 @@ func (netMes *networkMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadBal
 	return netMes.outgoingPLB
 }
 
+// BroadcastOnChannelBlocking tries to send a byte buffer onto a topic using provided channel
+// It is a blocking method. It needs to be launch on a go routine
+func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
+	sendable := &p2p.SendableData{
+		Buff:  buff,
+		Topic: topic,
+	}
+	netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
+}
+
 // BroadcastOnChannel tries to send a byte buffer onto a topic using provided channel
 func (netMes *networkMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
-	netMes.throttleSendData <- struct{}{}
-	go func() {
-		sendable := &p2p.SendableData{
-			Buff:  buff,
-			Topic: topic,
-		}
-		netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
-		<-netMes.throttleSendData
-	}()
+	go netMes.BroadcastOnChannelBlocking(channel, topic, buff)
 }
 
 // Broadcast tries to send a byte buffer onto a topic using the topic name as channel

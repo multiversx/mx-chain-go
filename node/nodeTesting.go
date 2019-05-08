@@ -11,11 +11,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 )
 
+const maxGoRoutinesSendMessage = 100000
+
 //TODO move this funcs in a new benchmarking/stress-test binary
 
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
 // of transactions to be processed. It is mainly used for demo purposes
 func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTx uint64) error {
+	if len(n.throttleSendData) >= maxGoRoutinesSendMessage/2 {
+		return ErrSystemBusyGeneratingTransactions
+	}
+
 	err := n.generateBulkTransactionsChecks(noOfTx)
 	if err != nil {
 		return err
@@ -76,13 +82,18 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	fmt.Printf("Identifier: %s\n", identifier)
 
 	for i := 0; i < len(transactions); i++ {
-		//TODO optimize this to send bulk transactions
-		// This should be made in future subtasks belonging to EN-1520 story
-		n.messenger.BroadcastOnChannel(
-			SendTransactionsPipe,
-			identifier,
-			transactions[i],
-		)
+		n.throttleSendData <- struct{}{}
+		go func(idx int) {
+			//TODO optimize this to send bulk transactions
+			// This should be made in future subtasks belonging to EN-1520 story
+			n.messenger.BroadcastOnChannelBlocking(
+				SendTransactionsPipe,
+				identifier,
+				transactions[idx],
+			)
+
+			<-n.throttleSendData
+		}(i)
 	}
 
 	return nil

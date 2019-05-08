@@ -93,6 +93,8 @@ type Node struct {
 	consensusTopic string
 
 	isRunning bool
+
+	throttleSendData chan struct{}
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -120,6 +122,9 @@ func NewNode(opts ...Option) (*Node, error) {
 			return nil, errors.New("error applying option: " + err.Error())
 		}
 	}
+
+	node.throttleSendData = make(chan struct{}, maxGoRoutinesSendMessage)
+
 	return node, nil
 }
 

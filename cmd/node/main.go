@@ -18,8 +18,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"

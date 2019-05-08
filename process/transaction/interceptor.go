@@ -146,11 +146,12 @@ func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte))
 }
 
 func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
-	isTxInStorage, _ := txi.txStorer.Has(tx.Hash())
-	if isTxInStorage {
-		log.Debug("intercepted tx already processed")
-		return
-	}
+	//TODO(jls) remove this after extensive testing is done
+	//isTxInStorage, _ := txi.txStorer.Has(tx.Hash())
+	//if isTxInStorage {
+	//	log.Debug("intercepted tx already processed")
+	//	return
+	//}
 
 	cacherIdentifier := process.ShardCacherIdentifier(tx.SndShard(), tx.RcvShard())
 	txi.txPool.AddData(

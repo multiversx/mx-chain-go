@@ -105,3 +105,6 @@ var ErrNegativeMinTimeToWaitBetweenBroadcastsInSec = errors.New("value MinTimeTo
 
 // ErrWrongValues signals that wrong values were provided
 var ErrWrongValues = errors.New("wrong values for heartbeat parameters")
+
+// ErrSystemBusyGeneratingTransactions signals that to many transactions are trying to get generated
+var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generating bulk transactions")
