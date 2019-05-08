@@ -615,7 +615,7 @@ func (n *Node) sendMessage(cnsDta *consensus.Message) {
 		cnsDtaBuff)
 }
 
-// broadcastBlock will send on intra shard topics the header and block body and on cross shard topics
+// BroadcastShardBlock will send on intra shard topics the header and block body and on cross shard topics
 // the miniblocks. This func needs to be exported as it is tested in integrationTests package.
 // TODO: investigate if the body block needs to be sent on intra shard topic as each miniblock is already sent on cross
 //  shard topics
