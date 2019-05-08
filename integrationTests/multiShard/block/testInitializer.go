@@ -160,7 +160,6 @@ func createAccountsDB() *state.AccountsDB {
 }
 
 func createNetNode(
-	port int,
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
@@ -174,7 +173,7 @@ func createNetNode(
 	process.BlockProcessor,
 	data.ChainHandler) {
 
-	messenger := createMessengerWithKadDht(context.Background(), port, initialAddr)
+	messenger := createMessengerWithKadDht(context.Background(), initialAddr)
 	suite := kyber.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
@@ -303,13 +302,12 @@ func createNetNode(
 	return n, messenger, sk, resolversFinder, blockProcessor, blkc
 }
 
-func createMessengerWithKadDht(ctx context.Context, port int, initialAddr string) p2p.Messenger {
+func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, _, err := libp2p.NewNetworkMessengerWithPortSweep(
+	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,
-		port,
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
@@ -372,7 +370,6 @@ func displayAndStartNodes(nodes []*testNode) {
 }
 
 func createNodes(
-	startingPort int,
 	numOfShards int,
 	nodesPerShard int,
 	serviceID string,
@@ -392,7 +389,6 @@ func createNodes(
 			shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
 			accntAdapter := createAccountsDB()
 			n, mes, sk, resFinder, blkProcessor, blkc := createNetNode(
-				startingPort+idx,
 				testNode.dPool,
 				accntAdapter,
 				shardCoordinator,

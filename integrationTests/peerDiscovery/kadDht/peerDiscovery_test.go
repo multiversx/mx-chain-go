@@ -22,15 +22,15 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	basePort := 20000
+	seed := 0
 	noOfPeers := 20
 
 	//Step 1. Create advertiser
 	advertiser := peerDiscovery.CreateMessenger(
 		context.Background(),
-		basePort,
+		seed,
 		discovery.NewKadDhtPeerDiscoverer(time.Second, randezVous, nil))
-	basePort++
+	seed++
 	advertiser.Bootstrap()
 
 	//Step 2. Create noOfPeers instances of messenger type and call bootstrap
@@ -44,7 +44,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 
 		peers[i] = peerDiscovery.CreateMessenger(
 			context.Background(),
-			basePort+i,
+			seed+i,
 			kadDht)
 
 		peers[i].Bootstrap()
@@ -88,7 +88,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	basePort := 20000
+	seed := 0
 	noOfPeers := 20
 	noOfAdvertisers := 3
 
@@ -98,19 +98,19 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 		if i == 0 {
 			advertisers[i] = peerDiscovery.CreateMessenger(
 				context.Background(),
-				basePort,
+				seed,
 				discovery.NewKadDhtPeerDiscoverer(time.Second, randezVous, nil))
 		} else {
 			advertisers[i] = peerDiscovery.CreateMessenger(
 				context.Background(),
-				basePort,
+				seed,
 				discovery.NewKadDhtPeerDiscoverer(
 					time.Second,
 					randezVous,
 					[]string{chooseNonCircuitAddress(advertisers[0].Addresses())}))
 		}
 
-		basePort++
+		seed++
 		advertisers[i].Bootstrap()
 	}
 
@@ -125,7 +125,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 
 		peers[i] = peerDiscovery.CreateMessenger(
 			context.Background(),
-			basePort+i,
+			seed+i,
 			kadDht)
 
 		peers[i].Bootstrap()
