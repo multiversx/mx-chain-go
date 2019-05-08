@@ -260,9 +260,21 @@ func (mp *metaProcessor) CreateBlockBody(round int32, haveTime func() bool) (dat
 }
 
 // CreateGenesisBlock creates the genesis block body from map of account balances
-func (mp *metaProcessor) CreateGenesisBlock(balances map[string]*big.Int) (rootHash []byte, err error) {
+func (mp *metaProcessor) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
 	// TODO: add here, something like initial peer list. staked accounts
-	return []byte("metachain genesis block root hash"), nil
+	// TODO: add saving of shard initial shard data info into metachain state
+	rootHash := []byte("metachainRootHash")
+	header := &block.MetaBlock{
+		Nonce:        0,
+		Epoch:        0,
+		Round:        0,
+		Signature:    rootHash,
+		RootHash:     rootHash,
+		PrevRandSeed: rootHash,
+		RandSeed:     rootHash,
+	}
+
+	return header, nil
 }
 
 func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int32, haveTime func() time.Duration) error {
