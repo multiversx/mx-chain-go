@@ -226,7 +226,7 @@ func createHeadersNoncesDataPool(
 
 func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.ForkDetector {
 	return &mock.ForkDetectorMock{
-		RemoveHeadersCalled: func(nonce uint64) {
+		RemoveHeadersCalled: func(nonce uint64, hash []byte) {
 			if nonce == removedNonce {
 				remFlags.flagHdrRemovedFromForkDetector = true
 			}
@@ -898,7 +898,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return true, math.MaxUint64
 	}
-	forkDetector.RemoveHeadersCalled = func(nonce uint64) {
+	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
