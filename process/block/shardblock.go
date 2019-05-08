@@ -150,6 +150,8 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
+	log.Info(fmt.Sprintf("Total txs in pool: %d\n", sp.getNrTxsWithDst(header.ShardId)))
+
 	requestedTxs := sp.requestBlockTransactions(body)
 
 	if haveTime() < 0 {

@@ -191,7 +191,7 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) (has
 
 func (boot *baseBootstrap) cleanCachesOnRollback(header data.HeaderHandler, headerStore storage.Storer) {
 	hash := boot.removeHeaderFromPools(header)
-	boot.forkDetector.RemoveHeaders(header.GetNonce())
+	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
 	_ = headerStore.Remove(hash)
 }
 
