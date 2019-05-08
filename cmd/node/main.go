@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"io"
 	"os"
 	"os/signal"
@@ -17,6 +16,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
@@ -512,7 +513,7 @@ func createShardNode(
 		return nil, nil, err
 	}
 
-	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration / 1000)
+	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration/1000)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -918,6 +919,7 @@ func createNetMessenger(
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		pDiscoverer,
+		libp2p.ListenAddrWithIp4AndTcp,
 	)
 
 	if err != nil {

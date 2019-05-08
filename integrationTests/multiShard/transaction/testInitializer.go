@@ -183,7 +183,6 @@ func createMultiSigner(
 }
 
 func createNetNode(
-	port int,
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
@@ -197,7 +196,7 @@ func createNetNode(
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
-	messenger := createMessengerWithKadDht(context.Background(), port, initialAddr)
+	messenger := createMessengerWithKadDht(context.Background(), initialAddr)
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	suite := kyber.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
@@ -273,13 +272,12 @@ func createNetNode(
 	return n, messenger, sk, resolversFinder
 }
 
-func createMessengerWithKadDht(ctx context.Context, port int, initialAddr string) p2p.Messenger {
+func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, _, err := libp2p.NewNetworkMessengerWithPortSweep(
+	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,
-		port,
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
@@ -344,7 +342,6 @@ func displayAndStartNodes(nodes []*testNode) {
 }
 
 func createNodesWithNodeSkInShardExceptFirst(
-	startingPort int,
 	numOfShards int,
 	nodesPerShard int,
 	firstSkShardId uint32,
@@ -372,7 +369,6 @@ func createNodesWithNodeSkInShardExceptFirst(
 			isFirstNodeGenerated := shardId == 0 && j == 0
 			if isFirstNodeGenerated {
 				n, mes, sk, resFinder = createNetNode(
-					startingPort+idx,
 					testNode.dPool,
 					accntAdapter,
 					shardCoordinator,
@@ -381,7 +377,6 @@ func createNodesWithNodeSkInShardExceptFirst(
 				)
 			} else {
 				n, mes, sk, resFinder = createNetNode(
-					startingPort+idx,
 					testNode.dPool,
 					accntAdapter,
 					shardCoordinator,

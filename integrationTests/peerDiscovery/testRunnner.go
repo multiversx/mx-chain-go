@@ -19,16 +19,15 @@ import (
 var durationMsgRecieved = time.Duration(time.Second * 2)
 
 func CreateMessenger(ctx context.Context,
-	port int,
+	seed int,
 	peerDiscoverer p2p.PeerDiscoverer) p2p.Messenger {
 
-	r := rand.New(rand.NewSource(int64(port)))
+	r := rand.New(rand.NewSource(int64(seed)))
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, _, err := libp2p.NewNetworkMessengerWithPortSweep(
+	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,
-		port,
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
