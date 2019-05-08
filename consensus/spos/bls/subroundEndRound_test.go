@@ -338,32 +338,6 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	assert.False(t, r)
 }
 
-//func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
-//	t.Parallel()
-//
-//	sr := *initSubroundEndRound()
-//
-//	sr.SetBroadcastBlock(func(data.BodyHandler, data.HeaderHandler) error {
-//		return spos.ErrNilBroadcastBlockFunction
-//	})
-//
-//	sr.Header = &block.Header{}
-//
-//	r := sr.DoEndRoundJob()
-//	assert.True(t, r)
-//}
-
-//func TestSubroundEndRound_DoEndRoundJobAllOK(t *testing.T) {
-//	t.Parallel()
-//
-//	sr := *initSubroundEndRound()
-//
-//	sr.Header = &block.Header{}
-//
-//	r := sr.DoEndRoundJob()
-//	assert.True(t, r)
-//}
-
 func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
 

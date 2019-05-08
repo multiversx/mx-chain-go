@@ -104,10 +104,6 @@ func (sr *subroundSignature) DoSignatureConsensusCheck() bool {
 	return sr.doSignatureConsensusCheck()
 }
 
-//func (sr *subroundSignature) CheckCommitmentsValidity(bitmap []byte) error {
-//	return sr.checkCommitmentsValidity(bitmap)
-//}
-
 func (sr *subroundSignature) SignaturesCollected(threshold int) bool {
 	return sr.signaturesCollected(threshold)
 }

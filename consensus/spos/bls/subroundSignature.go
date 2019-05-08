@@ -69,27 +69,6 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	//bitmap := sr.GenerateBitmap(SrBitmap)
-	//
-	//err := sr.checkCommitmentsValidity(bitmap)
-	//if err != nil {
-	//	log.Error(err.Error())
-	//	return false
-	//}
-
-	//// first compute commitment aggregation
-	//err = sr.MultiSigner().AggregateCommitments(bitmap)
-	//if err != nil {
-	//	log.Error(err.Error())
-	//	return false
-	//}
-
-	//sigPart, err := sr.MultiSigner().CreateSignatureShare(bitmap)
-	//if err != nil {
-	//	log.Error(err.Error())
-	//	return false
-	//}
-
 	// Start (new add)
 	sigPart, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), []byte("bls"))
 	if err != nil {
@@ -106,12 +85,6 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		int(MtSignature),
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
-
-	//if !sr.sendConsensusMessage(msg) {
-	//	return false
-	//}
-	//
-	//log.Info(fmt.Sprintf("%sStep 2: signature has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
 
 	// Start (new add)
 	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
@@ -134,52 +107,6 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	return true
 }
 
-//func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
-//	nbBitsBitmap := len(bitmap) * 8
-//	consensusGroup := sr.ConsensusGroup()
-//	consensusGroupSize := len(consensusGroup)
-//	size := consensusGroupSize
-//
-//	if consensusGroupSize > nbBitsBitmap {
-//		size = nbBitsBitmap
-//	}
-//
-//	for i := 0; i < size; i++ {
-//		indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
-//
-//		if !indexRequired {
-//			continue
-//		}
-//
-//		pubKey := consensusGroup[i]
-//		isCommJobDone, err := sr.JobDone(pubKey, SrCommitment)
-//		if err != nil {
-//			return err
-//		}
-//
-//		if !isCommJobDone {
-//			return spos.ErrNilCommitment
-//		}
-//
-//		commitment, err := sr.MultiSigner().Commitment(uint16(i))
-//		if err != nil {
-//			return err
-//		}
-//
-//		computedCommitmentHash := sr.Hasher().Compute(string(commitment))
-//		receivedCommitmentHash, err := sr.MultiSigner().CommitmentHash(uint16(i))
-//
-//		if err != nil {
-//			return err
-//		}
-//		if !bytes.Equal(computedCommitmentHash, receivedCommitmentHash) {
-//			return spos.ErrCommitmentHashDoesNotMatch
-//		}
-//	}
-//
-//	return nil
-//}
-
 // receivedSignature method is called when a Signature is received through the Signature channel.
 // If the Signature is valid, than the jobDone map corresponding to the node which sent it,
 // is set on true for the Subround Signature
@@ -193,10 +120,6 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
 		return false
 	}
-
-	//if !sr.IsJobDone(node, SrBitmap) { // is NOT this node in the bitmap group?
-	//	return false
-	//}
 
 	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), SrSignature) {
 		return false
@@ -271,12 +194,7 @@ func (sr *subroundSignature) signaturesCollected(threshold int) bool {
 
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		node := sr.ConsensusGroup()[i]
-		//isBitmapJobDone, err := sr.JobDone(node, SrBitmap)
-		//if err != nil {
-		//	log.Error(err.Error())
-		//	continue
-		//}
-		//
+
 		//if isBitmapJobDone {
 		isSignJobDone, err := sr.JobDone(node, SrSignature)
 
@@ -284,12 +202,6 @@ func (sr *subroundSignature) signaturesCollected(threshold int) bool {
 			log.Error(err.Error())
 			continue
 		}
-
-		//if !isSignJobDone {
-		//	return false
-		//}
-		//n++
-		//}
 
 		// Start (new add)
 		if isSignJobDone {
