@@ -929,10 +929,6 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
-
 	r := bs.SyncBlock()
 
 	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, r)
@@ -983,10 +979,6 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	r := bs.SyncBlock()
 
@@ -1066,10 +1058,6 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
-
 	bs.RequestHeader(2)
 	r := bs.SyncBlock()
 	assert.Equal(t, process.ErrMissingBody, r)
@@ -1120,10 +1108,6 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.StartSync()
 	time.Sleep(200 * time.Millisecond)
@@ -1235,10 +1219,6 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.StartSync()
 

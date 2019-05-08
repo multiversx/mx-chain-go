@@ -170,12 +170,13 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 	if err != nil {
 		return nil, err
 	}
-
-	resolver, err := resolvers.NewShardHeaderResolver(
+	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.MetaChainBlocks(),
+		rcf.dataPools.MetaBlockNonces(),
 		hdrStorer,
 		rcf.marshalizer,
+		rcf.uint64ByteSliceConverter,
 	)
 	if err != nil {
 		return nil, err

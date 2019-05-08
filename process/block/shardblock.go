@@ -347,9 +347,23 @@ func (sp *shardProcessor) CreateBlockBody(round int32, haveTime func() bool) (da
 }
 
 // CreateGenesisBlock creates the genesis block body from map of account balances
-func (sp *shardProcessor) CreateGenesisBlock(balances map[string]*big.Int) (rootHash []byte, err error) {
-	// TODO: balances map should be validated
-	return sp.txProcessor.SetBalancesToTrie(balances)
+func (sp *shardProcessor) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
+	rootHash, err := sp.txProcessor.SetBalancesToTrie(balances)
+	if err != nil {
+		return nil, err
+	}
+
+	header := &block.Header{
+		Nonce:         0,
+		ShardId:       sp.shardCoordinator.SelfId(),
+		BlockBodyType: block.StateBlock,
+		Signature:     rootHash,
+		RootHash:      rootHash,
+		PrevRandSeed:  rootHash,
+		RandSeed:      rootHash,
+	}
+
+	return header, err
 }
 
 func (sp *shardProcessor) processBlockTransactions(body block.Body, round int32, haveTime func() time.Duration) error {

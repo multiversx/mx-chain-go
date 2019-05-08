@@ -285,3 +285,6 @@ var ErrHeaderNotFinal = errors.New("header in metablock is not final")
 
 // ErrShardIdMissmatch signals shard ID does not match expectations
 var ErrShardIdMissmatch = errors.New("shard ID missmatch")
+
+// ErrNilBroadcastBlock signals that a nil broadcast block function was provided
+var ErrNilBroadcastBlock = errors.New("broadcast block method is nil")

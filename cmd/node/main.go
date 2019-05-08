@@ -846,7 +846,7 @@ func createMetaNode(
 		node.WithBlockChain(metaChain),
 		node.WithDataStore(metaStore),
 		node.WithRoundDuration(genesisConfig.RoundDuration),
-		node.WithConsensusGroupSize(int(genesisConfig.ConsensusGroupSize)),
+		node.WithConsensusGroupSize(int(genesisConfig.MetaChainConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(metaProcessor),
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
@@ -868,11 +868,6 @@ func createMetaNode(
 
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
-	}
-
-	err = nd.CreateShardedStores()
-	if err != nil {
-		return nil, err
 	}
 
 	return nd, nil
