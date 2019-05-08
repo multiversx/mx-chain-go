@@ -44,7 +44,6 @@ func NewShardBootstrap(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 ) (*ShardBootstrap, error) {
 
 	if poolsHolder == nil {
@@ -71,7 +70,6 @@ func NewShardBootstrap(
 		shardCoordinator,
 		accounts,
 		store,
-		broadcastBlock,
 	)
 	if err != nil {
 		return nil, err
@@ -90,7 +88,6 @@ func NewShardBootstrap(
 		forkDetector:     forkDetector,
 		shardCoordinator: shardCoordinator,
 		accounts:         accounts,
-		BroadcastBlock:   broadcastBlock,
 	}
 
 	boot := ShardBootstrap{

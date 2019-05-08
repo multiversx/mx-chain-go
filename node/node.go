@@ -221,6 +221,8 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
+	bootstrapper.StartSync()
+
 	consensusState, err := n.createConsensusState()
 	if err != nil {
 		return err
@@ -339,7 +341,7 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 
 func (n *Node) getBroadcastBlock() func(data.BodyHandler, data.HeaderHandler) error {
 	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
-		return n.BroadcastBlock
+		return n.BroadcastShardBlock
 	}
 
 	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -375,13 +377,10 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.resolversFinder,
 		n.shardCoordinator,
 		n.accounts,
-		n.BroadcastBlock,
 	)
 	if err != nil {
 		return nil, err
 	}
-
-	bootstrap.StartSync()
 
 	return bootstrap, nil
 }
@@ -400,14 +399,11 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.resolversFinder,
 		n.shardCoordinator,
 		n.accounts,
-		n.BroadcastMetaBlock,
 	)
 
 	if err != nil {
 		return nil, err
 	}
-
-	bootstrap.StartSync()
 
 	return bootstrap, nil
 }
@@ -623,7 +619,7 @@ func (n *Node) sendMessage(cnsDta *consensus.Message) {
 // the miniblocks. This func needs to be exported as it is tested in integrationTests package.
 // TODO: investigate if the body block needs to be sent on intra shard topic as each miniblock is already sent on cross
 //  shard topics
-func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
+func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
 	if blockBody == nil {
 		return ErrNilTxBlockBody
 	}

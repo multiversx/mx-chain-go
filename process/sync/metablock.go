@@ -39,7 +39,6 @@ func NewMetaBootstrap(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 ) (*MetaBootstrap, error) {
 
 	if poolsHolder == nil {
@@ -63,7 +62,6 @@ func NewMetaBootstrap(
 		shardCoordinator,
 		accounts,
 		store,
-		broadcastBlock,
 	)
 	if err != nil {
 		return nil, err
@@ -82,7 +80,6 @@ func NewMetaBootstrap(
 		forkDetector:     forkDetector,
 		shardCoordinator: shardCoordinator,
 		accounts:         accounts,
-		BroadcastBlock:   broadcastBlock,
 	}
 
 	boot := MetaBootstrap{

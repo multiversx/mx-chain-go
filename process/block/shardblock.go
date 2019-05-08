@@ -346,7 +346,6 @@ func (sp *shardProcessor) CreateBlockBody(round int32, haveTime func() bool) (da
 
 // CreateGenesisBlock creates the genesis block body from map of account balances
 func (sp *shardProcessor) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
-	// TODO: balances map should be validated
 	rootHash, err := sp.txProcessor.SetBalancesToTrie(balances)
 	if err != nil {
 		return nil, err

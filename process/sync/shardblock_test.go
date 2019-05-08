@@ -283,7 +283,6 @@ func TestNewShardBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -320,7 +319,6 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -356,7 +354,6 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnHeadersNoncesShouldErr(t *testing.
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -392,7 +389,6 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T)
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -424,7 +420,6 @@ func TestNewShardBootstrap_NilStoreShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -456,7 +451,6 @@ func TestNewShardBootstrap_NilBlockchainShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -488,7 +482,6 @@ func TestNewShardBootstrap_NilRounderShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -520,7 +513,6 @@ func TestNewShardBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -552,7 +544,6 @@ func TestNewShardBootstrap_NilHasherShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -584,7 +575,6 @@ func TestNewShardBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -616,7 +606,6 @@ func TestNewShardBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -649,7 +638,6 @@ func TestNewShardBootstrap_NilResolversContainerShouldErr(t *testing.T) {
 		nil,
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -681,7 +669,6 @@ func TestNewShardBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		nil,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -713,44 +700,10 @@ func TestNewShardBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		nil,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
-}
-
-func TestNewShardBootstrap_NilBroadcastBlockShouldErr(t *testing.T) {
-	t.Parallel()
-
-	pools := createMockPools()
-	blkc := initBlockchain()
-	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
-	forkDetector := &mock.ForkDetectorMock{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
-
-	bs, err := sync.NewShardBootstrap(
-		pools,
-		createStore(),
-		blkc,
-		rnd,
-		blkExec,
-		waitTime,
-		hasher,
-		marshalizer,
-		forkDetector,
-		&mock.ResolversFinderStub{},
-		shardCoordinator,
-		account,
-		nil,
-	)
-
-	assert.Nil(t, bs)
-	assert.Equal(t, process.ErrNilBroadcastBlock, err)
 }
 
 func TestNewShardBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
@@ -796,7 +749,6 @@ func TestNewShardBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 		resFinder,
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -846,7 +798,6 @@ func TestNewShardBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 		resFinder,
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs)
@@ -911,7 +862,6 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.NotNil(t, bs)
@@ -977,12 +927,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	r := bs.SyncBlock()
 
@@ -1033,12 +978,7 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	r := bs.SyncBlock()
 
@@ -1116,12 +1056,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		createMockResolversFinderNilMiniBlocks(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.RequestHeader(2)
 	r := bs.SyncBlock()
@@ -1172,12 +1107,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.StartSync()
 	time.Sleep(200 * time.Millisecond)
@@ -1288,12 +1218,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.StartSync()
 
@@ -1400,7 +1325,6 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	r := bs.SyncBlock()
@@ -1510,7 +1434,6 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	err := bs.SyncBlock()
@@ -1550,7 +1473,6 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.False(t, bs.ShouldSync())
@@ -1589,7 +1511,6 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.True(t, bs.ShouldSync())
@@ -1633,7 +1554,6 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.False(t, bs.ShouldSync())
@@ -1677,7 +1597,6 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.True(t, bs.ShouldSync())
@@ -1712,7 +1631,6 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.Nil(t, bs.GetHeaderFromPool(0))
@@ -1775,7 +1693,6 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	assert.True(t, hdr == bs.GetHeaderFromPool(0))
@@ -1821,7 +1738,6 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	mbHashes := make([][]byte, 0)
@@ -1894,7 +1810,6 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	bs.ReceivedHeaders(addedHash)
@@ -1967,7 +1882,6 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	bs.ReceivedHeaders(addedHash)
@@ -2003,7 +1917,6 @@ func TestBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	err := bs.ForkChoice()
@@ -2036,7 +1949,6 @@ func TestBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -2084,7 +1996,6 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -2206,7 +2117,6 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	bs.SetForkNonce(currentHdrNonce)
@@ -2362,7 +2272,6 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	bs.SetForkNonce(currentHdrNonce)
@@ -2455,7 +2364,6 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 	txBlockRecovered := bs.GetMiniBlocks(requestedHash)
 
@@ -2505,7 +2413,6 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 		createMockResolversFinderNilMiniBlocks(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 	txBlockRecovered := bs.GetMiniBlocks(requestedHash)
 
@@ -2562,7 +2469,6 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 	txBlockRecovered := bs.GetMiniBlocks(requestedHash)
 
@@ -2595,7 +2501,6 @@ func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T)
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	f1 := func(bool) {}
@@ -2636,7 +2541,6 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 		createMockResolversFinder(),
 		shardCoordinator,
 		account,
-		broadCastBlockMock,
 	)
 
 	mutex.RLock()
