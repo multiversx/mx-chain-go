@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	peer "github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-peer"
 )
 
 // peersOnChannel manages peers on topics
@@ -46,6 +46,7 @@ func newPeersOnChannel(
 		fetchPeersHandler: fetchPeersHandler,
 	}
 	poc.getTimeHandler = poc.clockTime
+
 	go poc.refreshPeersOnAllKnownTopics()
 
 	return poc, nil
