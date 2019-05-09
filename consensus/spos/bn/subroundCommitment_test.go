@@ -274,7 +274,6 @@ func TestSubroundCommitment_ReceivedCommitment(t *testing.T) {
 	sr := *initSubroundCommitment()
 
 	commitment := []byte("commitment")
-
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.Data,
 		commitment,

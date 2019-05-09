@@ -45,11 +45,9 @@ func checkNewSubroundSignatureParams(
 	if subround == nil {
 		return spos.ErrNilSubround
 	}
-
 	if subround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
-
 	if sendConsensusMessage == nil {
 		return spos.ErrNilSendConsensusMessageFunction
 	}
@@ -187,7 +185,6 @@ func (sr *subroundSignature) signaturesCollected(threshold int) (bool, int) {
 		node := sr.ConsensusGroup()[i]
 
 		isSignJobDone, err := sr.JobDone(node, SrSignature)
-
 		if err != nil {
 			log.Error(err.Error())
 			continue

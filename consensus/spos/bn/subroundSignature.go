@@ -258,7 +258,6 @@ func (sr *subroundSignature) signaturesCollected(threshold int) bool {
 
 		if isBitmapJobDone {
 			isSignJobDone, err := sr.JobDone(node, SrSignature)
-
 			if err != nil {
 				log.Error(err.Error())
 				continue

@@ -40,7 +40,6 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bn.Su
 
 func initSubroundSignature() bn.SubroundSignature {
 	container := mock.InitConsensusCore()
-
 	return initSubroundSignatureWithContainer(container)
 }
 
@@ -91,7 +90,6 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -424,7 +422,6 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	sr := *initSubroundSignature()
 
 	commitment := []byte("commitment")
-
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.Data,
 		commitment,

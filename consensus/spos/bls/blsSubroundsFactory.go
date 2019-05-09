@@ -21,13 +21,11 @@ func NewSubroundsFactory(
 	consensusState *spos.ConsensusState,
 	worker spos.WorkerHandler,
 ) (*factory, error) {
-
 	err := checkNewFactoryParams(
 		consensusDataContainer,
 		consensusState,
 		worker,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -50,11 +48,9 @@ func checkNewFactoryParams(
 	if err != nil {
 		return err
 	}
-
 	if state == nil {
 		return spos.ErrNilConsensusState
 	}
-
 	if worker == nil {
 		return spos.ErrNilWorker
 	}
@@ -62,7 +58,7 @@ func checkNewFactoryParams(
 	return nil
 }
 
-// GenerateSubrounds will generate the subrounds used in Belare & Naveen Cns
+// GenerateSubrounds will generate the subrounds used in BLS Cns
 func (fct *factory) GenerateSubrounds() error {
 	fct.initConsensusThreshold()
 	fct.consensusCore.Chronology().RemoveAllSubrounds()
@@ -107,7 +103,6 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.consensusCore,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -118,7 +113,6 @@ func (fct *factory) generateStartRoundSubround() error {
 		processingThresholdPercent,
 		getSubroundName,
 	)
-
 	if err != nil {
 		return err
 	}

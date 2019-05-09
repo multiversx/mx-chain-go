@@ -11,7 +11,6 @@ import (
 )
 
 func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.SubroundSignature {
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -38,7 +37,6 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.S
 
 func initSubroundSignature() bls.SubroundSignature {
 	container := mock.InitConsensusCore()
-
 	return initSubroundSignatureWithContainer(container)
 }
 
@@ -89,7 +87,6 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -119,7 +116,6 @@ func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testi
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -149,7 +145,6 @@ func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -180,7 +175,6 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -210,7 +204,6 @@ func TestSubroundSignature_NewSubroundSignatureNilSendConsensusMessageFunctionSh
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -240,7 +233,6 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -270,9 +262,7 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	t.Parallel()
 
 	sr := *initSubroundSignature()
-
 	commitment := []byte("commitment")
-
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.Data,
 		commitment,

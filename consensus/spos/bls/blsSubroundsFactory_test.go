@@ -32,13 +32,10 @@ func initWorker() spos.WorkerHandler {
 	sposWorker.GetConsensusStateChangedChannelsCalled = func() chan bool {
 		return make(chan bool)
 	}
-	sposWorker.RemoveAllReceivedMessagesCallsCalled = func() {
+	sposWorker.RemoveAllReceivedMessagesCallsCalled = func() {}
 
-	}
-
-	sposWorker.AddReceivedMessageCallCalled = func(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool) {
-
-	}
+	sposWorker.AddReceivedMessageCallCalled =
+		func(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool) {}
 
 	return sposWorker
 }

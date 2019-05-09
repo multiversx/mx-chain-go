@@ -45,11 +45,9 @@ func checkNewSubroundEndRoundParams(
 	if subround == nil {
 		return spos.ErrNilSubround
 	}
-
 	if subround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
-
 	if broadcastBlock == nil {
 		return spos.ErrNilBroadcastBlockFunction
 	}
@@ -130,7 +128,6 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 
 	for i := 0; i < size; i++ {
 		indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
-
 		if !indexRequired {
 			continue
 		}

@@ -283,7 +283,6 @@ func TestSubroundBitmap_ReceivedBitmap(t *testing.T) {
 	sr.Header = &block.Header{}
 
 	commitment := []byte("commitment")
-
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.Data,
 		commitment,

@@ -11,7 +11,6 @@ import (
 // SubroundStartRound defines the data needed by the subround StartRound
 type SubroundStartRound struct {
 	*spos.Subround
-
 	processingThresholdPercentage int
 	getSubroundName               func(subroundId int) string
 }
@@ -26,10 +25,10 @@ func NewSubroundStartRound(
 	err := checkNewSubroundStartRoundParams(
 		subround,
 	)
-
 	if err != nil {
 		return nil, err
 	}
+
 	srStartRound := SubroundStartRound{
 		subround,
 		processingThresholdPercentage,

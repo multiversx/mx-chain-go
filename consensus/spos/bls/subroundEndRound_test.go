@@ -16,9 +16,7 @@ import (
 
 func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bls.SubroundEndRound {
 	ch := make(chan bool, 1)
-
 	consensusState := initConsensusState()
-
 	sr, _ := spos.NewSubround(
 		int(bls.SrSignature),
 		int(bls.SrEndRound),
@@ -61,7 +59,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -91,7 +88,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -151,7 +147,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -181,7 +176,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -211,7 +205,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -241,7 +234,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastBlockFunctionShouldFail
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -271,7 +263,6 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -301,9 +292,7 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	t.Parallel()
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container)
-
 	multiSignerMock := mock.InitMultiSignerMock()
-
 	multiSignerMock.AggregateSigsMock = func(bitmap []byte) ([]byte, error) {
 		return nil, crypto.ErrNilHasher
 	}
@@ -320,9 +309,7 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container)
-
 	blProcMock := mock.InitBlockProcessorMock()
-
 	blProcMock.CommitBlockCalled = func(
 		blockChain data.ChainHandler,
 		header data.HeaderHandler,
@@ -342,7 +329,6 @@ func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnFalseWhenRoundIsCa
 	t.Parallel()
 
 	sr := *initSubroundEndRound()
-
 	sr.RoundCanceled = true
 
 	ok := sr.DoEndRoundConsensusCheck()
@@ -353,7 +339,6 @@ func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnTrueWhenRoundIsFin
 	t.Parallel()
 
 	sr := *initSubroundEndRound()
-
 	sr.SetStatus(bls.SrEndRound, spos.SsFinished)
 
 	ok := sr.DoEndRoundConsensusCheck()
@@ -383,16 +368,13 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrIndexOutOfBounds(t *te
 
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container)
-
 	_, _ = sr.MultiSigner().Create(nil, 0)
-
 	sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 	multiSignerMock := mock.InitMultiSignerMock()
 	multiSignerMock.SignatureShareMock = func(index uint16) ([]byte, error) {
 		return nil, crypto.ErrIndexOutOfBounds
 	}
-
 	container.SetMultiSigner(multiSignerMock)
 
 	err := sr.CheckSignaturesValidity([]byte(string(1)))
@@ -403,14 +385,11 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidSignatureShare(
 	t.Parallel()
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container)
-
 	multiSignerMock := mock.InitMultiSignerMock()
-
 	err := errors.New("invalid signature share")
 	multiSignerMock.VerifySignatureShareMock = func(index uint16, sig []byte, msg []byte, bitmap []byte) error {
 		return err
 	}
-
 	container.SetMultiSigner(multiSignerMock)
 
 	sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)

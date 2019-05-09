@@ -41,9 +41,7 @@ func defaultSubround(consensusState *spos.ConsensusState, ch chan bool, containe
 func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) *common.SubroundStartRound {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-
 	sr, _ := defaultSubround(consensusState, ch, container)
-
 	srStartRound, _ := common.NewSubroundStartRound(
 		sr,
 		extend,
