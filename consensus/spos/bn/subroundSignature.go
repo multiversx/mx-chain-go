@@ -60,7 +60,7 @@ func checkNewSubroundSignatureParams(
 	return err
 }
 
-// doSignatureJob method does the job of the signatuure subround
+// doSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) doSignatureJob() bool {
 	if !sr.IsSelfJobDone(SrBitmap) { // is NOT self in the leader's bitmap?
 		return false
@@ -223,7 +223,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	return true
 }
 
-// doSignatureConsensusCheck method checks if the consensus in the <SIGNATURE> subround is achieved
+// doSignatureConsensusCheck method checks if the consensus in the subround Signature is achieved
 func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false

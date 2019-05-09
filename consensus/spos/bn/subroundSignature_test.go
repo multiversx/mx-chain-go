@@ -14,7 +14,6 @@ import (
 )
 
 func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bn.SubroundSignature {
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 

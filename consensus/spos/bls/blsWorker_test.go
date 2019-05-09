@@ -7,19 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/stretchr/testify/assert"
 )
 
 const roundTimeDuration = time.Duration(100 * time.Millisecond)
-
-func initRounderMock() *mock.RounderMock {
-	return &mock.RounderMock{
-		RoundIndex:        0,
-		RoundTimeStamp:    time.Unix(0, 0),
-		RoundTimeDuration: roundTimeDuration,
-	}
-}
 
 func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
@@ -80,7 +71,7 @@ func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 }
 
 func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
-	v := []consensus.MessageType{}
+	var v []consensus.MessageType
 	blsService, _ := bls.NewConsensusService()
 
 	messagesRange := blsService.GetMessageRange()

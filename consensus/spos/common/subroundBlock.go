@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
+// SubroundBlock defines the data needed by the subround Block
 type SubroundBlock struct {
 	*spos.Subround
 
@@ -78,7 +79,7 @@ func checkNewSubroundBlockParams(
 	return err
 }
 
-// doBlockJob method does the job of the block subround
+// doBlockJob method does the job of the subround Block
 func (sr *SubroundBlock) doBlockJob() bool {
 	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
@@ -106,7 +107,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 	return true
 }
 
-// sendBlockBody method job the proposed block body in the Block subround
+// sendBlockBody method job the proposed block body in the subround Block
 func (sr *SubroundBlock) sendBlockBody() bool {
 	startTime := time.Time{}
 	startTime = sr.RoundTimeStamp
@@ -150,7 +151,7 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 	return true
 }
 
-// sendBlockHeader method job the proposed block header in the Block subround
+// sendBlockHeader method job the proposed block header in the subround Block
 func (sr *SubroundBlock) sendBlockHeader() bool {
 	hdr, err := sr.createHeader()
 	if err != nil {
@@ -227,12 +228,11 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 	}
 
 	hdr.SetRandSeed(randSeed)
-	log.Info(fmt.Sprintf("random seed for the next round is %s", toB64(randSeed)))
 
 	return hdr, nil
 }
 
-// ReceivedBlockBody method is called when a block body is received through the block body channel.
+// ReceivedBlockBody method is called when a block body is received through the block body channel
 func (sr *SubroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
@@ -386,7 +386,7 @@ func (sr *SubroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	return true
 }
 
-// doBlockConsensusCheck method checks if the consensus in the <BLOCK> subround is achieved
+// doBlockConsensusCheck method checks if the consensus in the subround Block is achieved
 func (sr *SubroundBlock) doBlockConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false

@@ -104,7 +104,7 @@ func (sr *subroundSignature) DoSignatureConsensusCheck() bool {
 	return sr.doSignatureConsensusCheck()
 }
 
-func (sr *subroundSignature) SignaturesCollected(threshold int) bool {
+func (sr *subroundSignature) SignaturesCollected(threshold int) (bool, int) {
 	return sr.signaturesCollected(threshold)
 }
 

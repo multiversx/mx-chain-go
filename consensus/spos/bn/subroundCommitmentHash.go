@@ -59,7 +59,7 @@ func checkNewSubroundCommitmentHashParams(
 	return err
 }
 
-// doCommitmentHashJob method does the job of the commitment hash subround
+// doCommitmentHashJob method does the job of the subround CommitmentHash
 func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
 	if !sr.CanDoSubroundJob(SrCommitmentHash) {
 		return false
@@ -171,7 +171,7 @@ func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *consensus.Messa
 	return true
 }
 
-// doCommitmentHashConsensusCheck method checks if the consensus in the <COMMITMENT_HASH> subround is achieved
+// doCommitmentHashConsensusCheck method checks if the consensus in the subround CommitmentHash is achieved
 func (sr *subroundCommitmentHash) doCommitmentHashConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false

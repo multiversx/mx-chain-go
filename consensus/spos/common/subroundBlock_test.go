@@ -20,12 +20,6 @@ func sendConsensusMessage(cnsMsg *consensus.Message) bool {
 	return true
 }
 
-func broadcastBlock(txBlockBody data.BodyHandler, header data.HeaderHandler) error {
-	fmt.Println(txBlockBody)
-	fmt.Println(header)
-	return nil
-}
-
 func extend(subroundId int) {
 	fmt.Println(subroundId)
 }

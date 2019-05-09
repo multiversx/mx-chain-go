@@ -59,16 +59,13 @@ func checkNewSubroundEndRoundParams(
 	return err
 }
 
-// doEndRoundJob method does the Job of the end round Subround
+// doEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) doEndRoundJob() bool {
-	// Start (new add)
 	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
 	}
-	// End (new add)
 
-	//bitmap := sr.GenerateBitmap(SrBitmap)
-	bitmap := sr.GenerateBitmap(SrSignature) // (new add)
+	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Error(err.Error())
@@ -82,7 +79,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		return false
 	}
 
-	sr.Header.SetPubKeysBitmap(bitmap) // (new add)
+	sr.Header.SetPubKeysBitmap(bitmap)
 	sr.Header.SetSignature(sig)
 
 	// Commit the block (commits also the account state)
@@ -100,7 +97,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		log.Error(err.Error())
 	}
 
-	log.Info(fmt.Sprintf("%sStep 3: TxBlockBody and Header has been commited and broadcasted \n", sr.SyncTimer().FormattedCurrentTime()))
+	log.Info(fmt.Sprintf("%sStep 3: BlockBody and Header has been commited and broadcasted \n", sr.SyncTimer().FormattedCurrentTime()))
 
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
@@ -108,8 +105,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	return true
 }
 
-// doEndRoundConsensusCheck method checks if the consensus is achieved in each Subround from first Subround to the given
-// Subround. If the consensus is achieved in one Subround, the Subround status is marked as finished
+// doEndRoundConsensusCheck method checks if the consensus is achieved
 func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false
@@ -154,7 +150,6 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 			return err
 		}
 
-		// verify partial signature
 		err = sr.MultiSigner().VerifySignatureShare(uint16(i), signature, sr.GetData(), bitmap)
 		if err != nil {
 			return err

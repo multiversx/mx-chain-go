@@ -7,19 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/stretchr/testify/assert"
 )
 
 const roundTimeDuration = time.Duration(100 * time.Millisecond)
-
-func initRounderMock() *mock.RounderMock {
-	return &mock.RounderMock{
-		RoundIndex:        0,
-		RoundTimeStamp:    time.Unix(0, 0),
-		RoundTimeDuration: roundTimeDuration,
-	}
-}
 
 func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
@@ -102,7 +93,6 @@ func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
 }
 
 func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyShouldWork(t *testing.T) {
-
 	bnService, _ := bn.NewConsensusService()
 
 	consensusState := initConsensusState()
@@ -113,7 +103,6 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyShouldWork(t *te
 }
 
 func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyShouldNotWork(t *testing.T) {
-
 	bnService, _ := bn.NewConsensusService()
 
 	consensusState := initConsensusState()
@@ -124,7 +113,6 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyShouldNotWork
 }
 
 func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockHeaderShouldWork(t *testing.T) {
-
 	bnService, _ := bn.NewConsensusService()
 
 	consensusState := initConsensusState()
@@ -135,7 +123,6 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockHeaderShouldWork(t *
 }
 
 func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockHeaderShouldNotWork(t *testing.T) {
-
 	bnService, _ := bn.NewConsensusService()
 
 	consensusState := initConsensusState()
@@ -146,7 +133,6 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockHeaderShouldNotWo
 }
 
 func TestWorker_CanProceedWithSrBlockFinishedForMtCommitmentHashShouldWork(t *testing.T) {
-
 	bnService, _ := bn.NewConsensusService()
 
 	consensusState := initConsensusState()
@@ -157,7 +143,6 @@ func TestWorker_CanProceedWithSrBlockFinishedForMtCommitmentHashShouldWork(t *te
 }
 
 func TestWorker_CanProceedWithSrBlockNotFinishedForMtCommitmentHashShouldNotWork(t *testing.T) {
-
 	bnService, _ := bn.NewConsensusService()
 
 	consensusState := initConsensusState()
@@ -168,7 +153,6 @@ func TestWorker_CanProceedWithSrBlockNotFinishedForMtCommitmentHashShouldNotWork
 }
 
 func TestWorker_CanProceedWithSrBlockFinishedForMtBitmapShouldWork(t *testing.T) {
-
 	bnService, _ := bn.NewConsensusService()
 
 	consensusState := initConsensusState()
@@ -179,7 +163,6 @@ func TestWorker_CanProceedWithSrBlockFinishedForMtBitmapShouldWork(t *testing.T)
 }
 
 func TestWorker_CanProceedWithSrBlockNotFinishedForMtBitmaphouldNotWork(t *testing.T) {
-
 	bnService, _ := bn.NewConsensusService()
 
 	consensusState := initConsensusState()
@@ -190,7 +173,6 @@ func TestWorker_CanProceedWithSrBlockNotFinishedForMtBitmaphouldNotWork(t *testi
 }
 
 func TestWorker_CanProceedWithSrBitmapFinishedForMtCommitmentShouldWork(t *testing.T) {
-
 	bnService, _ := bn.NewConsensusService()
 
 	consensusState := initConsensusState()
@@ -201,7 +183,6 @@ func TestWorker_CanProceedWithSrBitmapFinishedForMtCommitmentShouldWork(t *testi
 }
 
 func TestWorker_CanProceedWithSrBitmapNotFinishedForMtCommitmentShouldNotWork(t *testing.T) {
-
 	bnService, _ := bn.NewConsensusService()
 
 	consensusState := initConsensusState()
@@ -212,7 +193,6 @@ func TestWorker_CanProceedWithSrBitmapNotFinishedForMtCommitmentShouldNotWork(t 
 }
 
 func TestWorker_CanProceedWithSrBitmapFinishedMtSignatureShouldWork(t *testing.T) {
-
 	bnService, _ := bn.NewConsensusService()
 
 	consensusState := initConsensusState()
@@ -223,7 +203,6 @@ func TestWorker_CanProceedWithSrBitmapFinishedMtSignatureShouldWork(t *testing.T
 }
 
 func TestWorker_CanProceedWithSSrBitmapNotFinishedForMtSignatureShouldNotWork(t *testing.T) {
-
 	bnService, _ := bn.NewConsensusService()
 
 	consensusState := initConsensusState()

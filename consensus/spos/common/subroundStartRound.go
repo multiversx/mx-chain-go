@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
 
+// SubroundStartRound defines the data needed by the subround StartRound
 type SubroundStartRound struct {
 	*spos.Subround
 
@@ -57,7 +58,7 @@ func checkNewSubroundStartRoundParams(
 	return err
 }
 
-// doStartRoundJob method does the job of the start round subround
+// doStartRoundJob method does the job of the subround StartRound
 func (sr *SubroundStartRound) doStartRoundJob() bool {
 	sr.ResetConsensusState()
 	sr.RoundIndex = sr.Rounder().Index()
@@ -65,7 +66,7 @@ func (sr *SubroundStartRound) doStartRoundJob() bool {
 	return true
 }
 
-// doStartRoundConsensusCheck method checks if the consensus is achieved in the start subround.
+// doStartRoundConsensusCheck method checks if the consensus is achieved in the subround StartRound
 func (sr *SubroundStartRound) doStartRoundConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false
@@ -152,7 +153,6 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 }
 
 func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error {
-
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
 	if currentHeader == nil {
 		currentHeader = sr.Blockchain().GetGenesisHeader()

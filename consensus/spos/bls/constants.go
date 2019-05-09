@@ -26,9 +26,6 @@ const (
 	MtSignature
 )
 
-// syncThesholdPercent sepcifies the max allocated time to syncronize as a percentage of the total time of the round
-const syncThresholdPercent = 50
-
 // processingThresholdPercent specifies the max allocated time for processing the block as a percentage of the total time of the round
 const processingThresholdPercent = 65
 

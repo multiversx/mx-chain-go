@@ -62,7 +62,7 @@ func checkNewSubroundCommitmentParams(
 	return err
 }
 
-// doCommitmentJob method does the job of the commitment subround
+// doCommitmentJob method does the job of the subround Commitment
 func (sr *subroundCommitment) doCommitmentJob() bool {
 	if !sr.IsSelfJobDone(SrBitmap) { // is NOT self in the leader's bitmap?
 		return false
@@ -79,7 +79,7 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 	}
 
 	multiSig, err := getBnMultiSigner(sr.MultiSigner())
-	if err!= nil {
+	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
@@ -144,7 +144,7 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.Message) bool
 	}
 
 	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
-	if err!= nil {
+	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
@@ -171,7 +171,7 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.Message) bool
 	return true
 }
 
-// doCommitmentConsensusCheck method checks if the consensus in the <COMMITMENT> subround is achieved
+// doCommitmentConsensusCheck method checks if the consensus in the subround Commitment is achieved
 func (sr *subroundCommitment) doCommitmentConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false

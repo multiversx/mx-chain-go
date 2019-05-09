@@ -145,8 +145,7 @@ func (bms *blsMultiSigner) Create(pubKeys []string, index uint16) (crypto.MultiS
 	return NewBLSMultisig(bms.llSigner, bms.hasher, pubKeys, privKey, bms.keyGen, index)
 }
 
-// CreateSignatureShare returns a BLS single signature over the message previously configured with a previous call of
-// SetMessage
+// CreateSignatureShare returns a BLS single signature over the message
 func (bms *blsMultiSigner) CreateSignatureShare(message []byte, _ []byte) ([]byte, error) {
 	bms.mutSigData.Lock()
 	defer bms.mutSigData.Unlock()

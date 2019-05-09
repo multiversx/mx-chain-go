@@ -59,7 +59,7 @@ func checkNewSubroundEndRoundParams(
 	return err
 }
 
-// doEndRoundJob method does the job of the end round subround
+// doEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) doEndRoundJob() bool {
 	bitmap := sr.GenerateBitmap(SrBitmap)
 	err := sr.checkSignaturesValidity(bitmap)

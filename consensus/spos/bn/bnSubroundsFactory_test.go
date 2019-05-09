@@ -71,6 +71,7 @@ func initFactoryWithConsensusStateChangedChannelNil() bn.Factory {
 		consensusState,
 		worker,
 	)
+
 	return fct
 }
 
@@ -133,6 +134,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 	assert.Nil(t, fct)
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
+
 func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
 
@@ -351,7 +353,6 @@ func TestFactory_NewFactoryShouldWork(t *testing.T) {
 	t.Parallel()
 
 	fct := *initFactory()
-
 	assert.NotNil(t, fct)
 }
 
@@ -361,7 +362,6 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *test
 	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateStartRoundSubround()
-
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -373,7 +373,6 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundStartRoundFa
 	container.SetSyncTimer(nil)
 
 	err := fct.GenerateStartRoundSubround()
-
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -383,7 +382,6 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T
 	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateBlockSubround()
-
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -395,7 +393,6 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *test
 	container.SetSyncTimer(nil)
 
 	err := fct.GenerateBlockSubround()
-
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -405,7 +402,6 @@ func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundFail(t *
 	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateCommitmentHashSubround()
-
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -417,7 +413,6 @@ func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundCommitme
 	container.SetSyncTimer(nil)
 
 	err := fct.GenerateCommitmentHashSubround()
-
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -427,7 +422,6 @@ func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundFail(t *testing.
 	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateBitmapSubround()
-
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -439,7 +433,6 @@ func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundBitmapFail(t *te
 	container.SetSyncTimer(nil)
 
 	err := fct.GenerateBitmapSubround()
-
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -449,7 +442,6 @@ func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundFail(t *test
 	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateCommitmentSubround()
-
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -461,7 +453,6 @@ func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundCommitmentFa
 	container.SetSyncTimer(nil)
 
 	err := fct.GenerateCommitmentSubround()
-
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -471,7 +462,6 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testi
 	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateSignatureSubround()
-
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -483,7 +473,6 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail
 	container.SetSyncTimer(nil)
 
 	err := fct.GenerateSignatureSubround()
-
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -493,7 +482,6 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testin
 	fct := *initFactoryWithConsensusStateChangedChannelNil()
 
 	err := fct.GenerateEndRoundSubround()
-
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -505,7 +493,6 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t
 	container.SetSyncTimer(nil)
 
 	err := fct.GenerateEndRoundSubround()
-
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 

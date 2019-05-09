@@ -3,7 +3,6 @@ package common_test
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 )
@@ -28,20 +27,10 @@ const (
 )
 
 const (
-	// MtUnknown defines ID of a message that has unknown Data inside
-	MtUnknown consensus.MessageType = iota
 	// MtBlockBody defines ID of a message that has a block body inside
-	MtBlockBody
+	MtBlockBody = iota + 1
 	// MtBlockHeader defines ID of a message that has a block header inside
 	MtBlockHeader
-	// MtCommitmentHash defines ID of a message that has a commitment hash inside
-	MtCommitmentHash
-	// MtBitmap defines ID of a message that has a bitmap inside
-	MtBitmap
-	// MtCommitment defines ID of a message that has a commitment inside
-	MtCommitment
-	// MtSignature defines ID of a message that has a Signature inside
-	MtSignature
 )
 
 const roundTimeDuration = time.Duration(100 * time.Millisecond)
@@ -95,27 +84,6 @@ func initConsensusState() *spos.ConsensusState {
 	cns.Data = []byte("X")
 	cns.RoundIndex = 0
 	return cns
-}
-
-func getStringValue(msgType consensus.MessageType) string {
-	switch msgType {
-	case MtBlockBody:
-		return "(BLOCK_BODY)"
-	case MtBlockHeader:
-		return "(BLOCK_HEADER)"
-	case MtCommitmentHash:
-		return "(COMMITMENT_HASH)"
-	case MtBitmap:
-		return "(BITMAP)"
-	case MtCommitment:
-		return "(COMMITMENT)"
-	case MtSignature:
-		return "(SIGNATURE)"
-	case MtUnknown:
-		return "(UNKNOWN)"
-	default:
-		return "Undefined message type"
-	}
 }
 
 // getSubroundName returns the name of each subround from a given subround ID

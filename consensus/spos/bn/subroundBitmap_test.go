@@ -12,7 +12,6 @@ import (
 )
 
 func initSubroundBitmap() bn.SubroundBitmap {
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()

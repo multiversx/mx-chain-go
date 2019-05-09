@@ -21,14 +21,12 @@ func NewConsensusService() (*worker, error) {
 
 //InitReceivedMessages initializes the MessagesType map for all messages for the current ConsensusService
 func (wrk *worker) InitReceivedMessages() map[consensus.MessageType][]*consensus.Message {
-
 	receivedMessages := make(map[consensus.MessageType][]*consensus.Message)
 	for i := MtBlockBody; i <= MtSignature; i++ {
 		receivedMessages[i] = make([]*consensus.Message, 0)
 	}
 
 	return receivedMessages
-
 }
 
 //GetStringValue gets the name of the messageType
@@ -68,5 +66,6 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 	case MtSignature:
 		return consensusState.Status(SrBitmap) == spos.SsFinished
 	}
+
 	return true
 }

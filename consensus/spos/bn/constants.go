@@ -38,14 +38,8 @@ const (
 	MtSignature
 )
 
-// syncThesholdPercent sepcifies the max allocated time to syncronize as a percentage of the total time of the round
-const syncThresholdPercent = 50
-
 // processingThresholdPercent specifies the max allocated time for processing the block as a percentage of the total time of the round
 const processingThresholdPercent = 65
-
-// maxThresholdPercent specifies the max allocated time percent for doing job as a percentage of the total time of one round
-const maxThresholdPercent = 75
 
 // srStartStartTime specifies the start time, from the total time of the round, of subround Start
 const srStartStartTime = 0.0

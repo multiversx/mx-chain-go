@@ -59,23 +59,17 @@ func checkNewSubroundSignatureParams(
 	return err
 }
 
-// doSignatureJob method does the Job of the signatuure Subround
+// doSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) doSignatureJob() bool {
-	//if !sr.IsSelfJobDone(SrBitmap) { // is NOT self in the leader's bitmap?
-	//	return false
-	//}
-
 	if !sr.CanDoSubroundJob(SrSignature) {
 		return false
 	}
 
-	// Start (new add)
-	sigPart, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), []byte("bls"))
+	sigPart, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
-	// End (new add)
 
 	msg := consensus.NewConsensusMessage(
 		sr.GetData(),
@@ -86,17 +80,17 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
 
-	// Start (new add)
 	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
+		//TODO: Check if it is possible to send message only to leader with O(1) instead of O(n)
 		if !sr.sendConsensusMessage(msg) {
 			return false
 		}
 
 		log.Info(fmt.Sprintf("%sStep 2: signature has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
 
+		// Validator has finished its job for this round
 		sr.RoundCanceled = true
 	}
-	// End (new add)
 
 	err = sr.SetSelfJobDone(SrSignature, true)
 	if err != nil {
@@ -107,9 +101,9 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	return true
 }
 
-// receivedSignature method is called when a Signature is received through the Signature channel.
-// If the Signature is valid, than the jobDone map corresponding to the node which sent it,
-// is set on true for the Subround Signature
+// receivedSignature method is called when a signature is received through the signature channel.
+// If the signature is valid, than the jobDone map corresponding to the node which sent it,
+// is set on true for the subround Signature
 func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
@@ -125,16 +119,14 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	// Start (new add)
 	// if this node is leader in this round and it already received 2/3 + 1 of signatures
 	// it will ignore any others received later
 	if sr.IsSelfLeaderInCurrentRound() {
 		threshold := sr.Threshold(SrSignature)
-		if sr.signaturesCollected(threshold) {
+		if ok, _ := sr.signaturesCollected(threshold); ok {
 			return false
 		}
 	}
-	// End (new add)
 
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
@@ -155,10 +147,9 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	if sr.IsSelfLeaderInCurrentRound() { // (new add)
+	if sr.IsSelfLeaderInCurrentRound() {
 		threshold := sr.Threshold(SrSignature)
-		if sr.signaturesCollected(threshold) {
-			n := sr.ComputeSize(SrSignature)
+		if ok, n := sr.signaturesCollected(threshold); ok {
 			log.Info(fmt.Sprintf("%sStep 2: received %d from %d signatures\n",
 				sr.SyncTimer().FormattedCurrentTime(), n, len(sr.ConsensusGroup())))
 		}
@@ -167,7 +158,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	return true
 }
 
-// doSignatureConsensusCheck method checks if the consensus in the <SIGNATURE> Subround is achieved
+// doSignatureConsensusCheck method checks if the consensus in the subround Signature is achieved
 func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false
@@ -178,7 +169,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	}
 
 	threshold := sr.Threshold(SrSignature)
-	if sr.signaturesCollected(threshold) {
+	if ok, _ := sr.signaturesCollected(threshold); ok {
 		log.Info(fmt.Sprintf("%sStep 2: Subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
 		sr.SetStatus(SrSignature, spos.SsFinished)
 		return true
@@ -188,14 +179,13 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 }
 
 // signaturesCollected method checks if the signatures received from the nodes, belonging to the current
-// jobDone group, are covering the bitmap received from the leader in the current round
-func (sr *subroundSignature) signaturesCollected(threshold int) bool {
+// jobDone group, are more than the necessary given threshold
+func (sr *subroundSignature) signaturesCollected(threshold int) (bool, int) {
 	n := 0
 
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		node := sr.ConsensusGroup()[i]
 
-		//if isBitmapJobDone {
 		isSignJobDone, err := sr.JobDone(node, SrSignature)
 
 		if err != nil {
@@ -203,12 +193,10 @@ func (sr *subroundSignature) signaturesCollected(threshold int) bool {
 			continue
 		}
 
-		// Start (new add)
 		if isSignJobDone {
 			n++
 		}
-		// End (new add)
 	}
 
-	return n >= threshold
+	return n >= threshold, n
 }
