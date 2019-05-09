@@ -3,9 +3,10 @@ package consensus
 import (
 	"context"
 	"fmt"
-	"gotest.tools/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConsensusOnlyTest(t *testing.T) {
@@ -47,7 +48,7 @@ func TestConsensusOnlyTest(t *testing.T) {
 	highestCommitCalled := uint32(0)
 	for _, n := range nodes {
 		if n.blkProcessor.NrCommitBlockCalled > highestCommitCalled {
-			highestCommitCalled += n.blkProcessor.NrCommitBlockCalled
+			highestCommitCalled = n.blkProcessor.NrCommitBlockCalled
 		}
 	}
 

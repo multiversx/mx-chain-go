@@ -176,12 +176,12 @@ func createAccountsDB() state.AccountsAdapter {
 	return adb
 }
 
-func initialPrivPubKeys(nrConsens int) ([]crypto.PrivateKey, []crypto.PublicKey) {
-	testMultiSig = mock.NewMultiSigner(uint32(nrConsens))
+func initialPrivPubKeys(numConsensus int) ([]crypto.PrivateKey, []crypto.PublicKey) {
+	testMultiSig = mock.NewMultiSigner(uint32(numConsensus))
 	privKeys := make([]crypto.PrivateKey, 0)
 	pubKeys := make([]crypto.PublicKey, 0)
 
-	for i := 0; i < nrConsens; i++ {
+	for i := 0; i < numConsensus; i++ {
 		sk, pk := testKeyGen.GeneratePair()
 
 		privKeys = append(privKeys, sk)
@@ -381,7 +381,6 @@ func createNodes(
 	//first node generated will have is pk belonging to firstSkShardId
 	nodes := make([]*testNode, nodesPerShard)
 
-	idx := 0
 	for i := 0; i < nodesPerShard; i++ {
 		testNode := &testNode{
 			shardId: uint32(0),
@@ -409,8 +408,7 @@ func createNodes(
 		testNode.blkProcessor = blkProcessor
 		testNode.blkc = blkc
 
-		nodes[idx] = testNode
-		idx++
+		nodes[i] = testNode
 	}
 
 	return nodes
