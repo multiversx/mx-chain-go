@@ -28,6 +28,9 @@ const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
 
+const refreshPeersOnTopic = time.Second * 60
+const ttlPeersOnTopic = time.Second * 120
+
 var log = logger.DefaultLogger()
 
 type networkMessenger struct {
@@ -39,6 +42,7 @@ type networkMessenger struct {
 	mutTopics      sync.RWMutex
 	topics         map[string]p2p.MessageProcessor
 	outgoingPLB    p2p.ChannelLoadBalancer
+	poc            *peersOnChannel
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -133,6 +137,14 @@ func createMessenger(
 	lctx.connHost.Network().Notify(netMes.connMonitor)
 
 	netMes.ds, err = NewDirectSender(lctx.Context(), lctx.Host(), netMes.directMessageHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	netMes.poc, err = newPeersOnChannel(
+		pb.ListPeers,
+		refreshPeersOnTopic,
+		ttlPeersOnTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -295,16 +307,7 @@ func (netMes *networkMessenger) PeerAddress(pid p2p.PeerID) string {
 
 // ConnectedPeersOnTopic returns the connected peers on a provided topic
 func (netMes *networkMessenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
-	//as the peers in pubsub impl are held inside a map where the key is the peerID,
-	//the returned list will hold distinct values
-	list := netMes.pb.ListPeers(topic)
-	connectedPeers := make([]p2p.PeerID, len(list))
-
-	for idx, pid := range list {
-		connectedPeers[idx] = p2p.PeerID(pid)
-	}
-
-	return connectedPeers
+	return netMes.poc.ConnectedPeersOnChannel(topic)
 }
 
 // CreateTopic opens a new topic using pubsub infrastructure
