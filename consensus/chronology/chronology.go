@@ -108,7 +108,7 @@ func (chr *chronology) startRound() {
 		chr.updateRound()
 	}
 
-	if chr.rounder.Index() < 0 {
+	if chr.rounder.Index() <= 0 {
 		return
 	}
 
@@ -148,7 +148,7 @@ func (chr *chronology) initRound() {
 
 	chr.mutSubrounds.RLock()
 
-	hasSubroundsAndGenesisTimePassed := chr.rounder.Index() >= 0 && len(chr.subroundHandlers) > 0
+	hasSubroundsAndGenesisTimePassed := chr.rounder.Index() > 0 && len(chr.subroundHandlers) > 0
 
 	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
