@@ -219,6 +219,7 @@ func createNetMessenger(
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		pDiscoverer,
+		libp2p.ListenAddrWithIp4AndTcp,
 	)
 
 	if err != nil {

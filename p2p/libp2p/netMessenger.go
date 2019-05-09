@@ -18,7 +18,12 @@ import (
 )
 
 const durationBetweenSends = time.Duration(time.Microsecond * 10)
-const listenAddrIp4 = "/ip4/0.0.0.0/tcp/"
+
+// ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
+const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
+
+// ListenLocalhostAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
+const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
@@ -45,13 +50,14 @@ func NewNetworkMessenger(
 	conMgr ifconnmgr.ConnManager,
 	outgoingPLB p2p.ChannelLoadBalancer,
 	peerDiscoverer p2p.PeerDiscoverer,
+	listenAddress string,
 ) (*networkMessenger, error) {
 
 	if ctx == nil {
 		return nil, p2p.ErrNilContext
 	}
 
-	if port < 1 {
+	if port < 0 {
 		return nil, p2p.ErrInvalidPort
 	}
 
@@ -67,7 +73,7 @@ func NewNetworkMessenger(
 		return nil, p2p.ErrNilPeerDiscoverer
 	}
 
-	address := fmt.Sprintf(listenAddrIp4+"%d", port)
+	address := fmt.Sprintf(listenAddress+"%d", port)
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(address),
 		libp2p.Identity(p2pPrivKey),
