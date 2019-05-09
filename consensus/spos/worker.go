@@ -43,7 +43,7 @@ type Worker struct {
 
 // NewWorker creates a new Worker object
 func NewWorker(
-	service ConsensusService,
+	consensusService ConsensusService,
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	consensusState *ConsensusState,
@@ -57,7 +57,7 @@ func NewWorker(
 	sendMessage func(consensus *consensus.Message),
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
-		service,
+		consensusService,
 		blockProcessor,
 		bootstraper,
 		consensusState,
@@ -75,7 +75,7 @@ func NewWorker(
 	}
 
 	wrk := Worker{
-		consensusService: service,
+		consensusService: consensusService,
 		blockProcessor:   blockProcessor,
 		bootstraper:      bootstraper,
 		consensusState:   consensusState,
@@ -101,7 +101,7 @@ func NewWorker(
 }
 
 func checkNewWorkerParams(
-	service ConsensusService,
+	consensusService ConsensusService,
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	consensusState *ConsensusState,
@@ -114,7 +114,7 @@ func checkNewWorkerParams(
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 	sendMessage func(consensus *consensus.Message),
 ) error {
-	if service == nil {
+	if consensusService == nil {
 		return ErrNilConsensusService
 	}
 	if blockProcessor == nil {

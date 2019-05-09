@@ -8,8 +8,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bls"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
@@ -230,13 +228,13 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	bnService, err := bn.NewConsensusService()
+	consensusService, err := bn.NewConsensusService()
 	if err != nil {
 		return err
 	}
 
 	worker, err := spos.NewWorker(
-		bnService,
+		consensusService,
 		n.blockProcessor,
 		bootstrapper,
 		consensusState,
@@ -281,7 +279,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := bn.NewSubroundsFactory(
 		consensusDataContainer,
 		consensusState,
 		worker,
