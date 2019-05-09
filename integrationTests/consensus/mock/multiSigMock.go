@@ -34,11 +34,16 @@ type BelNevMock struct {
 	ResetCalled              func(pubKeys []string, index uint16) error
 }
 
-func NewMultiSigner() *BelNevMock {
+func NewMultiSigner(nrConsens uint32) *BelNevMock {
 	multisigner := &BelNevMock{}
-	multisigner.commitments = make([][]byte, 21)
-	multisigner.sigs = make([][]byte, 21)
-	multisigner.pubkeys = make([]string, 21)
+	multisigner.commitments = make([][]byte, nrConsens)
+	multisigner.sigs = make([][]byte, nrConsens)
+	multisigner.pubkeys = make([]string, nrConsens)
+
+	multisigner.aggCom = []byte("commitment")
+	multisigner.commHash = []byte("commitment")
+	multisigner.commSecret = []byte("commitment")
+	multisigner.aggSig = []byte("commitment")
 
 	return multisigner
 }
@@ -49,7 +54,7 @@ func (bnm *BelNevMock) Create(pubKeys []string, index uint16) (crypto.MultiSigne
 		return bnm.CreateCalled(pubKeys, index)
 	}
 
-	multiSig := NewMultiSigner()
+	multiSig := NewMultiSigner(uint32(len(pubKeys)))
 
 	multiSig.selfId = index
 	multiSig.pubkeys = pubKeys
@@ -63,9 +68,15 @@ func (bnm *BelNevMock) Reset(pubKeys []string, index uint16) error {
 		return bnm.ResetCalled(pubKeys, index)
 	}
 
-	bnm.commitments = make([][]byte, 21)
-	bnm.sigs = make([][]byte, 21)
-	bnm.pubkeys = make([]string, 21)
+	bnm.commitments = make([][]byte, len(pubKeys))
+	bnm.sigs = make([][]byte, len(pubKeys))
+	bnm.pubkeys = make([]string, len(pubKeys))
+
+	for i := 0; i < len(pubKeys); i++ {
+		bnm.commitments[i] = bnm.commSecret
+		bnm.sigs[i] = bnm.aggSig
+	}
+
 	bnm.selfId = index
 	bnm.pubkeys = pubKeys
 
@@ -86,11 +97,15 @@ func (bnm *BelNevMock) Verify(msg []byte, bitmap []byte) error {
 
 // CreateCommitment creates a secret commitment and the corresponding public commitment point
 func (bnm *BelNevMock) CreateCommitment() (commSecret []byte, commitment []byte) {
-	commSecret, comm := bnm.CreateCommitmentMock()
-	bnm.commSecret = commSecret
-	bnm.commitments[bnm.selfId] = comm
+	if bnm.CreateCommitmentMock != nil {
+		commSecret, comm := bnm.CreateCommitmentMock()
+		bnm.commSecret = commSecret
+		bnm.commitments[bnm.selfId] = comm
 
-	return commSecret, comm
+		return commSecret, comm
+	}
+
+	return bnm.commSecret, bnm.commitments[bnm.selfId]
 }
 
 // StoreCommitmentHash adds a commitment hash to the list on the specified position
@@ -143,16 +158,19 @@ func (bnm *BelNevMock) Commitment(index uint16) ([]byte, error) {
 
 // AggregateCommitments aggregates the list of commitments
 func (bnm *BelNevMock) AggregateCommitments(bitmap []byte) error {
-	return bnm.AggregateCommitmentsMock(bitmap)
+	if bnm.AggregateCommitmentsMock != nil {
+		return bnm.AggregateCommitmentsMock(bitmap)
+	}
+	return nil
 }
 
 // CreateSignatureShare creates a partial signature
 func (bnm *BelNevMock) CreateSignatureShare(msg []byte, bitmap []byte) ([]byte, error) {
-	if bnm.CreateSignatureShareMock == nil {
+	if bnm.CreateSignatureShareMock != nil {
 		return bnm.CreateSignatureShareMock(msg, bitmap)
 	}
 
-	return bnm.CreateSignatureShareMock(msg, bitmap)
+	return bnm.aggSig, nil
 }
 
 // StoreSignatureShare adds the partial signature of the signer with specified position
@@ -167,23 +185,31 @@ func (bnm *BelNevMock) StoreSignatureShare(index uint16, sig []byte) error {
 
 // VerifySignatureShare verifies the partial signature of the signer with specified position
 func (bnm *BelNevMock) VerifySignatureShare(index uint16, sig []byte, msg []byte, bitmap []byte) error {
-	return bnm.VerifySignatureShareMock(index, sig, msg, bitmap)
+	if bnm.VerifySignatureShareMock != nil {
+		return bnm.VerifySignatureShareMock(index, sig, msg, bitmap)
+	}
+
+	return nil
 }
 
 // AggregateSigs aggregates all collected partial signatures
 func (bnm *BelNevMock) AggregateSigs(bitmap []byte) ([]byte, error) {
-	return bnm.AggregateSigsMock(bitmap)
+	if bnm.AggregateSigsMock != nil {
+		return bnm.AggregateSigsMock(bitmap)
+	}
+	return bnm.aggSig, nil
 }
 
 // SignatureShare
 func (bnm *BelNevMock) SignatureShare(index uint16) ([]byte, error) {
-	if bnm.SignatureShareMock == nil {
-		if index >= uint16(len(bnm.sigs)) {
-			return nil, crypto.ErrIndexOutOfBounds
-		}
+	if bnm.SignatureShareMock != nil {
+		return bnm.SignatureShareMock(index)
 
-		return bnm.sigs[index], nil
 	}
 
-	return bnm.SignatureShareMock(index)
+	if index >= uint16(len(bnm.sigs)) {
+		return nil, crypto.ErrIndexOutOfBounds
+	}
+
+	return bnm.sigs[index], nil
 }

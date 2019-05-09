@@ -3,7 +3,7 @@ package consensus
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
+	"gotest.tools/assert"
 	"testing"
 	"time"
 )
@@ -14,15 +14,12 @@ func TestConsensusOnlyTest(t *testing.T) {
 	}
 
 	fmt.Println("Step 1. Setup nodes...")
-	startingPort := 20000
 	nodesPerShard := 21
 
-	advertiser := createMessengerWithKadDht(context.Background(), startingPort, "")
+	advertiser := createMessengerWithKadDht(context.Background(), "")
 	advertiser.Bootstrap()
-	startingPort++
 
 	nodes := createNodes(
-		startingPort,
 		nodesPerShard,
 		getConnectableAddress(advertiser),
 	)
@@ -43,13 +40,26 @@ func TestConsensusOnlyTest(t *testing.T) {
 		_ = n.node.StartConsensus()
 	}
 
-	fmt.Println("Wait 10 seconds...")
-	time.Sleep(time.Second * 30)
+	fmt.Println("Run for 20 seconds...")
+	time.Sleep(time.Second * 20)
 
+	// test is good if 2/3+1 of validators are somewhat synchronized - blocks committed.
+	highestCommitCalled := uint32(0)
 	for _, n := range nodes {
-		isHigher := (n.blkProcessor.NrCommitBlockCalled > 2)
-		assert.True(t, isHigher)
+		if n.blkProcessor.NrCommitBlockCalled > highestCommitCalled {
+			highestCommitCalled += n.blkProcessor.NrCommitBlockCalled
+		}
 	}
+
+	nrSynced := 0
+	for _, n := range nodes {
+		if highestCommitCalled-n.blkProcessor.NrCommitBlockCalled < 2 {
+			nrSynced += 1
+		}
+	}
+
+	passed := nrSynced > (len(nodes)*2)/3
+	assert.Equal(t, true, passed)
 }
 
 func TestConsensusWithMetaBlockProcessor(t *testing.T) {
