@@ -18,7 +18,6 @@ import (
 	"math/rand"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
@@ -34,7 +33,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -176,16 +174,6 @@ func createAccountsDB() state.AccountsAdapter {
 		},
 	})
 	return adb
-}
-
-func initialPubKeysAndBalances(nrConsens int) map[string]*big.Int {
-	pubKeyBalance := make(map[string]*big.Int)
-
-	for i := 0; i < nrConsens; i++ {
-		pubKeyBalance[string(i)] = big.NewInt(1000)
-	}
-
-	return pubKeyBalance
 }
 
 func initialPrivPubKeys(nrConsens int) ([]crypto.PrivateKey, []crypto.PublicKey) {
@@ -367,25 +355,6 @@ func getConnectableAddress(mes p2p.Messenger) string {
 		return addr
 	}
 	return ""
-}
-
-func makeDisplayTable(nodes []*testNode) string {
-	header := []string{"pk", "shard ID", "txs", "miniblocks", "headers", "metachain headers", "connections"}
-	dataLines := make([]*display.LineData, len(nodes))
-	for idx, n := range nodes {
-		buffPk, _ := n.pk.ToByteArray()
-
-		dataLines[idx] = display.NewLineData(
-			false,
-			[]string{
-				hex.EncodeToString(buffPk),
-				fmt.Sprintf("%d", n.shardId),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.headersRecv)),
-			},
-		)
-	}
-	table, _ := display.CreateTableString(header, dataLines)
-	return table
 }
 
 func displayAndStartNodes(nodes []*testNode) {
