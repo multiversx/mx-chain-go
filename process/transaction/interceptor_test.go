@@ -671,79 +671,78 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 	}
 }
 
-//TODO(jls) remove this after extensive testing is done
-//func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAdd(t *testing.T) {
-//	t.Parallel()
-//
-//	marshalizer := &mock.MarshalizerMock{}
-//	chanDone := make(chan struct{}, 10)
-//	txPool := &mock.ShardedDataStub{}
-//	addrConv := &mock.AddressConverterMock{}
-//	pubKey := &mock.SingleSignPublicKey{}
-//	keyGen := &mock.SingleSignKeyGenMock{}
-//	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
-//		return pubKey, nil
-//	}
-//	storer := &mock.StorerStub{}
-//	storer.HasCalled = func(key []byte) (bool, error) {
-//		return true, nil
-//	}
-//
-//	multiSharder := mock.NewMultipleShardsCoordinatorMock()
-//	multiSharder.CurrentShard = 0
-//	called := uint32(0)
-//	multiSharder.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-//		defer func() {
-//			called++
-//		}()
-//
-//		return called
-//	}
-//	signer := &mock.SignerMock{
-//		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-//			return nil
-//		},
-//	}
-//
-//	txi, _ := transaction.NewTxInterceptor(
-//		marshalizer,
-//		txPool,
-//		storer,
-//		addrConv,
-//		mock.HasherMock{},
-//		signer,
-//		keyGen,
-//		multiSharder)
-//
-//	txNewer := &dataTransaction.Transaction{
-//		Nonce:     1,
-//		Value:     big.NewInt(2),
-//		Data:      []byte("data"),
-//		GasLimit:  3,
-//		GasPrice:  4,
-//		RcvAddr:   recvAddress,
-//		SndAddr:   senderAddress,
-//		Signature: sigOk,
-//	}
-//	txNewerBuff, _ := marshalizer.Marshal(txNewer)
-//
-//	buff, _ := marshalizer.Marshal([][]byte{txNewerBuff})
-//	msg := &mock.P2PMessageMock{
-//		DataField: buff,
-//	}
-//
-//	txPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
-//		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
-//			chanDone <- struct{}{}
-//		}
-//	}
-//
-//	err := txi.ProcessReceivedMessage(msg)
-//
-//	assert.Nil(t, err)
-//	select {
-//	case <-chanDone:
-//		assert.Fail(t, "should have not add tx in pool")
-//	case <-time.After(durTimeout):
-//	}
-//}
+func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAdd(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	chanDone := make(chan struct{}, 10)
+	txPool := &mock.ShardedDataStub{}
+	addrConv := &mock.AddressConverterMock{}
+	pubKey := &mock.SingleSignPublicKey{}
+	keyGen := &mock.SingleSignKeyGenMock{}
+	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
+		return pubKey, nil
+	}
+	storer := &mock.StorerStub{}
+	storer.HasCalled = func(key []byte) (bool, error) {
+		return true, nil
+	}
+
+	multiSharder := mock.NewMultipleShardsCoordinatorMock()
+	multiSharder.CurrentShard = 0
+	called := uint32(0)
+	multiSharder.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		defer func() {
+			called++
+		}()
+
+		return called
+	}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
+
+	txi, _ := transaction.NewTxInterceptor(
+		marshalizer,
+		txPool,
+		storer,
+		addrConv,
+		mock.HasherMock{},
+		signer,
+		keyGen,
+		multiSharder)
+
+	txNewer := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
+	txNewerBuff, _ := marshalizer.Marshal(txNewer)
+
+	buff, _ := marshalizer.Marshal([][]byte{txNewerBuff})
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+	}
+
+	txPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
+		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
+			chanDone <- struct{}{}
+		}
+	}
+
+	err := txi.ProcessReceivedMessage(msg)
+
+	assert.Nil(t, err)
+	select {
+	case <-chanDone:
+		assert.Fail(t, "should have not add tx in pool")
+	case <-time.After(durTimeout):
+	}
+}
