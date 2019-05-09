@@ -3,10 +3,7 @@ package bn
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 )
-
-var log = logger.DefaultLogger()
 
 // worker defines the data needed by spos to communicate between nodes which are in the validators group
 type worker struct {
