@@ -186,9 +186,6 @@ func initialPrivPubKeys(numConsensus int) ([]crypto.PrivateKey, []crypto.PublicK
 	return privKeys, pubKeys, testKeyGen
 }
 
-// err := ef.node.Start()
-//err = ef.node.StartConsensus()
-
 func createConsensusOnlyNode(
 	shardCoordinator sharding.Coordinator,
 	shardId uint32,
@@ -255,9 +252,6 @@ func createConsensusOnlyNode(
 
 	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
 	go syncer.StartSync()
-
-	//ntpTime := syncer.CurrentTime()
-	//startTime = (ntpTime.Unix()/60 + 1) * 58
 
 	rounder, err := round.NewRound(
 		time.Unix(startTime, 0),
