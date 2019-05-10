@@ -6,25 +6,69 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConsensusOnlyTest(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
+func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint64) ([]*testNode, p2p.Messenger) {
 	fmt.Println("Step 1. Setup nodes...")
-	nodesPerShard := 21
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
 	advertiser.Bootstrap()
 
 	nodes := createNodes(
-		nodesPerShard,
+		int(numNodes),
+		int(consensusSize),
+		roundTime,
 		getConnectableAddress(advertiser),
 	)
 	displayAndStartNodes(nodes)
+
+	if numInvalid < numNodes {
+		for i := uint32(0); i < numInvalid; i++ {
+			nodes[i].blkProcessor.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+				return process.ErrInvalidBlockHash
+			}
+		}
+	}
+
+	return nodes, advertiser
+}
+
+func calculatedNrSynced(nodes []*testNode, committedLimit uint32) uint32 {
+	highestCommitCalled := uint32(0)
+	for _, n := range nodes {
+		if n.blkProcessor.NrCommitBlockCalled > highestCommitCalled {
+			highestCommitCalled = n.blkProcessor.NrCommitBlockCalled
+		}
+	}
+
+	if committedLimit > highestCommitCalled {
+		return 0
+	}
+
+	nrSynced := uint32(0)
+	for _, n := range nodes {
+		if highestCommitCalled-n.blkProcessor.NrCommitBlockCalled < 2 {
+			nrSynced += 1
+		}
+	}
+
+	return nrSynced
+}
+
+func TestConsensusFullTest(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numNodes := uint32(21)
+	consensusSize := uint32(21)
+	numInvalid := uint32(0)
+	roundTime := uint64(2000)
+	nodes, advertiser := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime)
 
 	defer func() {
 		advertiser.Close()
@@ -41,28 +85,90 @@ func TestConsensusOnlyTest(t *testing.T) {
 		_ = n.node.StartConsensus()
 	}
 
+	waitTime := time.Second * 20
 	fmt.Println("Run for 20 seconds...")
-	time.Sleep(time.Second * 20)
+	time.Sleep(waitTime)
 
 	// test is good if 2/3+1 of validators are somewhat synchronized - blocks committed.
-	highestCommitCalled := uint32(0)
-	for _, n := range nodes {
-		if n.blkProcessor.NrCommitBlockCalled > highestCommitCalled {
-			highestCommitCalled = n.blkProcessor.NrCommitBlockCalled
-		}
-	}
+	minCommitted := uint64(waitTime)/uint64(roundTime*uint64(time.Millisecond)) - 1
+	nrSynced := calculatedNrSynced(nodes, uint32(minCommitted))
 
-	nrSynced := 0
-	for _, n := range nodes {
-		if highestCommitCalled-n.blkProcessor.NrCommitBlockCalled < 2 {
-			nrSynced += 1
-		}
-	}
-
-	passed := nrSynced > (len(nodes)*2)/3
+	passed := nrSynced > uint32((len(nodes)*2)/3)
 	assert.Equal(t, true, passed)
 }
 
-func TestConsensusWithMetaBlockProcessor(t *testing.T) {
+func TestConsensusOnlyTestValidatorsAtLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
+	numNodes := uint32(21)
+	consensusSize := uint32(21)
+	numInvalid := uint32(6)
+	roundTime := uint64(2000)
+	nodes, advertiser := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime)
+
+	defer func() {
+		advertiser.Close()
+		for _, n := range nodes {
+			n.node.Stop()
+		}
+	}()
+
+	// delay for bootstrapping and topic announcement
+	fmt.Println("Start consensus...")
+	time.Sleep(time.Second * 1)
+
+	for _, n := range nodes {
+		_ = n.node.StartConsensus()
+	}
+
+	waitTime := time.Second * 20
+	fmt.Println("Run for 20 seconds...")
+	time.Sleep(waitTime)
+
+	// test is good if 2/3+1 of validators are somewhat synchronized - blocks committed.
+	minCommitted := uint64(waitTime)/uint64(roundTime*uint64(time.Millisecond)) - 1
+	nrSynced := calculatedNrSynced(nodes, uint32(minCommitted))
+
+	passed := nrSynced > uint32((len(nodes)*2)/3)
+	assert.Equal(t, true, passed)
+}
+
+func TestConsensusNotEnoughValidators(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numNodes := uint32(21)
+	consensusSize := uint32(21)
+	numInvalid := uint32(7)
+	roundTime := uint64(2000)
+	nodes, advertiser := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime)
+
+	defer func() {
+		advertiser.Close()
+		for _, n := range nodes {
+			n.node.Stop()
+		}
+	}()
+
+	// delay for bootstrapping and topic announcement
+	fmt.Println("Start consensus...")
+	time.Sleep(time.Second * 1)
+
+	for _, n := range nodes {
+		_ = n.node.StartConsensus()
+	}
+
+	waitTime := time.Second * 20
+	fmt.Println("Run for 20 seconds...")
+	time.Sleep(waitTime)
+
+	// test is good if 2/3+1 of validators are somewhat synchronized - blocks committed.
+	minCommitted := uint64(waitTime)/uint64(roundTime*uint64(time.Millisecond)) - 1
+	nrSynced := calculatedNrSynced(nodes, uint32(minCommitted))
+
+	passed := nrSynced > uint32((len(nodes)*2)/3)
+	assert.Equal(t, false, passed)
 }

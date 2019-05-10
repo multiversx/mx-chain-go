@@ -5,24 +5,17 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/btcsuite/btcd/btcec"
-	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"math/big"
 	"math/rand"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -37,22 +30,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	syncFork "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	beevikntp "github.com/beevik/ntp"
+	"github.com/btcsuite/btcd/btcec"
+	crypto2 "github.com/libp2p/go-libp2p-crypto"
 )
 
 var r *rand.Rand
-var testHasher = sha256.Sha256{}
-var testMarshalizer = &marshal.JsonMarshalizer{}
-var testAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
-var testMultiSig *mock.BelNevMock
-
-var testSuite = kyber.NewSuitePairingBn256()
-var testKeyGen = signing.NewKeyGenerator(testSuite)
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -165,10 +158,10 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	return dPool
 }
 
-func createAccountsDB() state.AccountsAdapter {
+func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer, &mock.AccountsFactoryStub{
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
 			return state.NewAccount(address, tracker)
 		},
@@ -176,10 +169,12 @@ func createAccountsDB() state.AccountsAdapter {
 	return adb
 }
 
-func initialPrivPubKeys(numConsensus int) ([]crypto.PrivateKey, []crypto.PublicKey) {
-	testMultiSig = mock.NewMultiSigner(uint32(numConsensus))
+func initialPrivPubKeys(numConsensus int) ([]crypto.PrivateKey, []crypto.PublicKey, crypto.KeyGenerator) {
 	privKeys := make([]crypto.PrivateKey, 0)
 	pubKeys := make([]crypto.PublicKey, 0)
+
+	testSuite := kyber.NewSuitePairingBn256()
+	testKeyGen := signing.NewKeyGenerator(testSuite)
 
 	for i := 0; i < numConsensus; i++ {
 		sk, pk := testKeyGen.GeneratePair()
@@ -188,21 +183,22 @@ func initialPrivPubKeys(numConsensus int) ([]crypto.PrivateKey, []crypto.PublicK
 		pubKeys = append(pubKeys, pk)
 	}
 
-	return privKeys, pubKeys
+	return privKeys, pubKeys, testKeyGen
 }
 
 // err := ef.node.Start()
 //err = ef.node.StartConsensus()
 
 func createConsensusOnlyNode(
-	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	shardId uint32,
 	selfId uint32,
 	initialAddr string,
 	consensusSize uint32,
+	roundTime uint64,
 	privKey crypto.PrivateKey,
 	pubKeys []crypto.PublicKey,
+	testKeyGen crypto.KeyGenerator,
 ) (
 	*node.Node,
 	p2p.Messenger,
@@ -245,14 +241,13 @@ func createConsensusOnlyNode(
 	}
 	blockProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 		blockProcessor.NrCommitBlockCalled++
-		blockChain.SetCurrentBlockHeader(header)
-		blockChain.SetCurrentBlockBody(body)
+		_ = blockChain.SetCurrentBlockHeader(header)
+		_ = blockChain.SetCurrentBlockBody(body)
 		return nil
 	}
 
 	blockChain := createTestBlockChain()
 
-	roundDuration := uint64(2000)
 	startTime := int64(0)
 
 	singlesigner := &singlesig.SchnorrSigner{}
@@ -267,7 +262,7 @@ func createConsensusOnlyNode(
 	rounder, err := round.NewRound(
 		time.Unix(startTime, 0),
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(roundDuration),
+		time.Millisecond*time.Duration(uint64(roundTime)),
 		syncer)
 
 	forkDetector, _ := syncFork.NewBasicForkDetector(rounder)
@@ -292,11 +287,18 @@ func createConsensusOnlyNode(
 		inPubKeys[shardId] = append(inPubKeys[shardId], string(sPubKey))
 	}
 
-	testMultiSig.Reset(inPubKeys[shardId], uint16(selfId))
+	testMultiSig := mock.NewMultiSigner(uint32(consensusSize))
+	_ = testMultiSig.Reset(inPubKeys[shardId], uint16(selfId))
+
+	testHasher := sha256.Sha256{}
+	testMarshalizer := &marshal.JsonMarshalizer{}
+	testAddressConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
+
+	accntAdapter := createAccountsDB(testMarshalizer)
 
 	n, err := node.NewNode(
 		node.WithInitialNodesPubKeys(inPubKeys),
-		node.WithRoundDuration(roundDuration),
+		node.WithRoundDuration(uint64(roundTime)),
 		node.WithConsensusGroupSize(int(consensusSize)),
 		node.WithSyncer(syncer),
 		node.WithGenesisTime(time.Unix(startTime, 0)),
@@ -374,10 +376,12 @@ func displayAndStartNodes(nodes []*testNode) {
 
 func createNodes(
 	nodesPerShard int,
+	consensusSize int,
+	roundTime uint64,
 	serviceID string,
 ) []*testNode {
 
-	privKeys, pubKeys := initialPrivPubKeys(nodesPerShard)
+	privKeys, pubKeys, testKeyGen := initialPrivPubKeys(nodesPerShard)
 	//first node generated will have is pk belonging to firstSkShardId
 	nodes := make([]*testNode, nodesPerShard)
 
@@ -387,20 +391,19 @@ func createNodes(
 		}
 
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
-		accntAdapter := createAccountsDB()
 		n, mes, blkProcessor, blkc := createConsensusOnlyNode(
-			accntAdapter,
 			shardCoordinator,
 			testNode.shardId,
 			uint32(i),
 			serviceID,
-			uint32(nodesPerShard),
+			uint32(consensusSize),
+			roundTime,
 			privKeys[i],
 			pubKeys,
+			testKeyGen,
 		)
 
 		testNode.node = n
-		testNode.accntState = accntAdapter
 		testNode.node = n
 		testNode.sk = privKeys[i]
 		testNode.mesenger = mes
