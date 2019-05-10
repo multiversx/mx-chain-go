@@ -220,6 +220,8 @@ func createConsensusOnlyNode(
 			return header, nil
 		},
 		ProcessBlockCalled: func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+			_ = blockChain.SetCurrentBlockHeader(header)
+			_ = blockChain.SetCurrentBlockBody(body)
 			return nil
 		},
 		RevertAccountStateCalled: func() {
@@ -236,6 +238,7 @@ func createConsensusOnlyNode(
 			return mrsData, mrsTxs, nil
 		},
 	}
+
 	blockProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 		blockProcessor.NrCommitBlockCalled++
 		_ = blockChain.SetCurrentBlockHeader(header)
