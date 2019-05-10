@@ -45,7 +45,7 @@ func calculatedNrSynced(nodes []*testNode, waitTime, roundTime uint64) uint32 {
 		}
 	}
 
-	committedLimit := (waitTime/roundTime)/2 - 2
+	committedLimit := (waitTime/roundTime)/2 - 20
 	if committedLimit < 2 {
 		committedLimit = 2
 	}
@@ -93,7 +93,7 @@ func TestConsensusFullTest(t *testing.T) {
 		_ = n.node.StartConsensus()
 	}
 
-	waitTime := time.Second * 20
+	waitTime := time.Second * 60
 	fmt.Println("Run for 20 seconds...")
 	time.Sleep(waitTime)
 
@@ -129,7 +129,7 @@ func TestConsensusOnlyTestValidatorsAtLimit(t *testing.T) {
 		_ = n.node.StartConsensus()
 	}
 
-	waitTime := time.Second * 20
+	waitTime := time.Second * 60
 	fmt.Println("Run for 20 seconds...")
 	time.Sleep(waitTime)
 
@@ -165,7 +165,7 @@ func TestConsensusNotEnoughValidators(t *testing.T) {
 		_ = n.node.StartConsensus()
 	}
 
-	waitTime := time.Second * 20
+	waitTime := time.Second * 60
 	fmt.Println("Run for 20 seconds...")
 	time.Sleep(waitTime)
 
