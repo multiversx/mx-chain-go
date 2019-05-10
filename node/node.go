@@ -147,7 +147,6 @@ func (n *Node) Stop() error {
 		return err
 	}
 
-	n.messenger = nil
 	return nil
 }
 

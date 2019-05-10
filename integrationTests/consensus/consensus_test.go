@@ -90,7 +90,7 @@ func TestConsensusFullTest(t *testing.T) {
 	time.Sleep(waitTime)
 
 	// test is good if 2/3+1 of validators are somewhat synchronized - blocks committed.
-	minCommitted := uint64(waitTime)/uint64(roundTime*uint64(time.Millisecond)) - 1
+	minCommitted := uint64(waitTime) / uint64(roundTime*uint64(time.Millisecond)) / 2
 	nrSynced := calculatedNrSynced(nodes, uint32(minCommitted))
 
 	passed := nrSynced > uint32((len(nodes)*2)/3)
@@ -128,7 +128,7 @@ func TestConsensusOnlyTestValidatorsAtLimit(t *testing.T) {
 	time.Sleep(waitTime)
 
 	// test is good if 2/3+1 of validators are somewhat synchronized - blocks committed.
-	minCommitted := uint64(waitTime)/uint64(roundTime*uint64(time.Millisecond)) - 1
+	minCommitted := uint64(waitTime) / uint64(roundTime*uint64(time.Millisecond)) / 2
 	nrSynced := calculatedNrSynced(nodes, uint32(minCommitted))
 
 	passed := nrSynced > uint32((len(nodes)*2)/3)
@@ -166,7 +166,7 @@ func TestConsensusNotEnoughValidators(t *testing.T) {
 	time.Sleep(waitTime)
 
 	// test is good if 2/3+1 of validators are somewhat synchronized - blocks committed.
-	minCommitted := uint64(waitTime)/uint64(roundTime*uint64(time.Millisecond)) - 1
+	minCommitted := uint64(waitTime) / uint64(roundTime*uint64(time.Millisecond)) / 2
 	nrSynced := calculatedNrSynced(nodes, uint32(minCommitted))
 
 	passed := nrSynced > uint32((len(nodes)*2)/3)
