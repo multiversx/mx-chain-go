@@ -17,7 +17,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/mock/sha3"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock/sha3"
 )
 
 type Keccak256 struct {

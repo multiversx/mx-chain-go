@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
-	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"

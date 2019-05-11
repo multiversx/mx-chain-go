@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,8 +16,9 @@ const roundTimeDuration = time.Duration(100 * time.Millisecond)
 func initRounderMock() *mock.RounderMock {
 	return &mock.RounderMock{
 		RoundIndex:        0,
-		RoundTimeStamp:    time.Unix(0, 0),
-		RoundTimeDuration: roundTimeDuration,
+		TimeDurationCalled: func() time.Duration {
+			return roundTimeDuration
+		},
 	}
 }
 

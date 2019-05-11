@@ -14,8 +14,8 @@ import (
 
 	errors2 "github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/middleware"
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/transaction/mock"
 	tr "github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

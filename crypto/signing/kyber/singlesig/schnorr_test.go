@@ -4,11 +4,10 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	mock2 "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,7 +29,7 @@ func TestSchnorrSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 
-	privKeyNilSuite := &mock2.PrivateKeyStub{
+	privKeyNilSuite := &mock.PrivateKeyStub{
 		SuiteStub: func() crypto.Suite {
 			return nil
 		},
@@ -54,7 +53,7 @@ func TestSchnorrSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 
-	privKeyNilSuite := &mock2.PrivateKeyStub{
+	privKeyNilSuite := &mock.PrivateKeyStub{
 		SuiteStub:       privKey.Suite,
 		ToByteArrayStub: privKey.ToByteArray,
 		ScalarStub: func() crypto.Scalar {
@@ -78,7 +77,7 @@ func TestSchnorrSigner_SignInvalidScalarShouldErr(t *testing.T) {
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 
-	privKeyNilSuite := &mock2.PrivateKeyStub{
+	privKeyNilSuite := &mock.PrivateKeyStub{
 		SuiteStub:       privKey.Suite,
 		ToByteArrayStub: privKey.ToByteArray,
 		ScalarStub: func() crypto.Scalar {
@@ -108,7 +107,7 @@ func TestSchnorrSigner_SignInvalidSuiteShouldErr(t *testing.T) {
 		},
 	}
 
-	privKeyNilSuite := &mock2.PrivateKeyStub{
+	privKeyNilSuite := &mock.PrivateKeyStub{
 		SuiteStub: func() crypto.Suite {
 			return invalidSuite
 		},
@@ -163,7 +162,7 @@ func TestSchnorrSigner_VerifyNilSuiteShouldErr(t *testing.T) {
 	signer := &singlesig.SchnorrSigner{}
 	pubKey, _, signature, err := signSchnorr(msg, signer, t)
 
-	pubKeyNilSuite := &mock2.PublicKeyStub{
+	pubKeyNilSuite := &mock.PublicKeyStub{
 		SuiteStub: func() crypto.Suite {
 			return nil
 		},
@@ -225,7 +224,7 @@ func TestSchnorrSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
 		},
 	}
 
-	pubKeyInvalidSuite := &mock2.PublicKeyStub{
+	pubKeyInvalidSuite := &mock.PublicKeyStub{
 		SuiteStub: func() crypto.Suite {
 			return invalidSuite
 		},
@@ -245,7 +244,7 @@ func TestSchnorrSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
 	signer := &singlesig.SchnorrSigner{}
 	pubKey, _, signature, err := signSchnorr(msg, signer, t)
 
-	pubKeyInvalidSuite := &mock2.PublicKeyStub{
+	pubKeyInvalidSuite := &mock.PublicKeyStub{
 		SuiteStub:       pubKey.Suite,
 		ToByteArrayStub: pubKey.ToByteArray,
 		PointStub: func() crypto.Point {
@@ -265,7 +264,7 @@ func TestSchnorrSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
 	signer := &singlesig.SchnorrSigner{}
 	pubKey, _, signature, err := signSchnorr(msg, signer, t)
 
-	pubKeyInvalidSuite := &mock2.PublicKeyStub{
+	pubKeyInvalidSuite := &mock.PublicKeyStub{
 		SuiteStub:       pubKey.Suite,
 		ToByteArrayStub: pubKey.ToByteArray,
 		PointStub: func() crypto.Point {

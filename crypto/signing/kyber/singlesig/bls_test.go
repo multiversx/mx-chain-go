@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/mock"
+	keyMock "github.com/ElrondNetwork/elrond-go-sandbox/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	keyMock "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/pairing"
 )

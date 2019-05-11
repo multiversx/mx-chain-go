@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/stretchr/testify/assert"
 )
 

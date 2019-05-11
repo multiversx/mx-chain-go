@@ -17,8 +17,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/node"
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/node/mock"
 )
 
 type GeneralResponse struct {
@@ -38,15 +38,15 @@ type AddressResponse struct {
 
 type StatisticsResponse struct {
 	GeneralResponse
-	Statistics struct{
-		LiveTPS float32 `json:"liveTPS"`
-		PeakTPS float32 `json:"peakTPS"`
-		NrOfShards uint32 `json:"nrOfShards"`
-		BlockNumber uint64 `json:"blockNumber"`
-		RoundTime uint32 `json:"roundTime"`
-		AverageBlockTxCount float32 `json:"averageBlockTxCount"`
-		LastBlockTxCount uint32 `json:"lastBlockTxCount"`
-		TotalProcessedTxCount uint32 `json:"totalProcessedTxCount"`
+	Statistics struct {
+		LiveTPS               float32 `json:"liveTPS"`
+		PeakTPS               float32 `json:"peakTPS"`
+		NrOfShards            uint32  `json:"nrOfShards"`
+		BlockNumber           uint64  `json:"blockNumber"`
+		RoundTime             uint32  `json:"roundTime"`
+		AverageBlockTxCount   float32 `json:"averageBlockTxCount"`
+		LastBlockTxCount      uint32  `json:"lastBlockTxCount"`
+		TotalProcessedTxCount uint32  `json:"totalProcessedTxCount"`
 	} `json:"statistics"`
 }
 
@@ -426,7 +426,7 @@ func TestStatistics_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	nrOfShards := uint32(10)
 	roundTime := uint64(4)
-	benchmark, _ := statistics.NewTPSBenchmark(nrOfShards,roundTime)
+	benchmark, _ := statistics.NewTPSBenchmark(nrOfShards, roundTime)
 
 	facade := mock.Facade{}
 	facade.TpsBenchmarkHandler = func() *statistics.TpsBenchmark {
