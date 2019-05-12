@@ -69,6 +69,49 @@ type testNode struct {
 	metachainHdrRecv int32
 }
 
+func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
+	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
+
+	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
+		ctx,
+		sk,
+		nil,
+		loadBalancer.NewOutgoingChannelLoadBalancer(),
+		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", []string{initialAddr}),
+	)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return libP2PMes
+}
+
+func getConnectableAddress(mes p2p.Messenger) string {
+	for _, addr := range mes.Addresses() {
+		if strings.Contains(addr, "circuit") || strings.Contains(addr, "169.254") {
+			continue
+		}
+		return addr
+	}
+	return ""
+}
+
+func displayAndStartNodes(nodes []*testNode) {
+	for _, n := range nodes {
+		skBuff, _ := n.sk.ToByteArray()
+		pkBuff, _ := n.pk.ToByteArray()
+
+		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
+			n.shardId,
+			hex.EncodeToString(skBuff),
+			hex.EncodeToString(pkBuff),
+		)
+		_ = n.node.Start()
+		_ = n.node.P2PBootstrap()
+	}
+}
+
 func createTestBlockChain() data.ChainHandler {
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
@@ -326,49 +369,6 @@ func createConsensusOnlyNode(
 	}
 
 	return n, messenger, blockProcessor, blockChain
-}
-
-func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
-
-	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
-		ctx,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", []string{initialAddr}),
-	)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	return libP2PMes
-}
-
-func getConnectableAddress(mes p2p.Messenger) string {
-	for _, addr := range mes.Addresses() {
-		if strings.Contains(addr, "circuit") || strings.Contains(addr, "169.254") {
-			continue
-		}
-		return addr
-	}
-	return ""
-}
-
-func displayAndStartNodes(nodes []*testNode) {
-	for _, n := range nodes {
-		skBuff, _ := n.sk.ToByteArray()
-		pkBuff, _ := n.pk.ToByteArray()
-
-		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
-			n.shardId,
-			hex.EncodeToString(skBuff),
-			hex.EncodeToString(pkBuff),
-		)
-		_ = n.node.Start()
-		_ = n.node.P2PBootstrap()
-	}
 }
 
 func createNodes(
