@@ -40,31 +40,41 @@ func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint
 	return nodes, advertiser, concMap
 }
 
-func calculatedNrSynced(nodes []*testNode, waitTime, roundTime uint64) uint32 {
-	highestCommitCalled := uint32(0)
-	for _, n := range nodes {
-		if n.blkProcessor.NrCommitBlockCalled > highestCommitCalled {
-			highestCommitCalled = n.blkProcessor.NrCommitBlockCalled
+func checkBlockProposedEveryRound(numCommBlock uint32, combinedMap map[uint32]uint64, mutex *sync.Mutex, chDone chan bool, t *testing.T) {
+	for {
+		mutex.Lock()
+
+		minRound := ^uint32(0)
+		maxRound := uint32(0)
+		if uint32(len(combinedMap)) >= numCommBlock {
+			for k, _ := range combinedMap {
+				if k > maxRound {
+					maxRound = k
+				}
+				if k < minRound {
+					minRound = k
+				}
+			}
+
+			if maxRound-minRound >= numCommBlock {
+				for i := minRound; i <= maxRound; i++ {
+					if _, ok := combinedMap[i]; !ok {
+						assert.Fail(t, "consensus not reached in each round")
+						fmt.Println("combined map: \n", combinedMap)
+						mutex.Unlock()
+						return
+					}
+				}
+				chDone <- true
+				mutex.Unlock()
+				return
+			}
 		}
+
+		mutex.Unlock()
+
+		time.Sleep(time.Second * 2)
 	}
-
-	committedLimit := uint64(3)
-	if committedLimit > uint64(highestCommitCalled) {
-		return 0
-	}
-
-	nrSynced := uint32(0)
-	for _, n := range nodes {
-		if n.blkProcessor.NrCommitBlockCalled < 2 {
-			continue
-		}
-
-		if highestCommitCalled-n.blkProcessor.NrCommitBlockCalled < 2 {
-			nrSynced += 1
-		}
-	}
-
-	return nrSynced
 }
 
 func TestConsensusFullTest(t *testing.T) {
@@ -75,7 +85,7 @@ func TestConsensusFullTest(t *testing.T) {
 	numNodes := uint32(21)
 	consensusSize := uint32(21)
 	numInvalid := uint32(0)
-	roundTime := uint64(2000)
+	roundTime := uint64(4000)
 	numCommBlock := uint32(10)
 	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, numCommBlock)
 
@@ -92,7 +102,7 @@ func TestConsensusFullTest(t *testing.T) {
 
 	combinedMap := make(map[uint32]uint64)
 	totalCalled := 0
-	mutex := sync.Mutex{}
+	mutex := &sync.Mutex{}
 
 	for _, n := range nodes {
 		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
@@ -101,7 +111,7 @@ func TestConsensusFullTest(t *testing.T) {
 			_ = blockChain.SetCurrentBlockBody(body)
 
 			mutex.Lock()
-			combinedMap[header.GetRound()] = 1
+			combinedMap[header.GetRound()] = header.GetNonce()
 			totalCalled += 1
 			mutex.Unlock()
 
@@ -112,45 +122,13 @@ func TestConsensusFullTest(t *testing.T) {
 
 	time.Sleep(time.Second * 20)
 	chDone := make(chan bool, 0)
-	minRound := ^uint32(0)
-	maxRound := uint32(0)
-	go func() {
-		mutex.Lock()
-
-		if uint32(len(combinedMap)) >= numCommBlock {
-			for k, _ := range combinedMap {
-				if k > maxRound {
-					maxRound = k
-				}
-				if k < minRound {
-					minRound = k
-				}
-			}
-
-			if maxRound-minRound >= numCommBlock {
-				for i := minRound; i <= maxRound; i++ {
-					if _, ok := combinedMap[i]; ok {
-						assert.Fail(t, "consensus not reached in each round")
-					}
-				}
-				chDone <- true
-				return
-			}
-		}
-
-		mutex.Unlock()
-
-		time.Sleep(time.Second)
-	}()
+	go checkBlockProposedEveryRound(numCommBlock, combinedMap, mutex, chDone, t)
 
 	select {
 	case <-chDone:
-	case <-time.After(40 * time.Second):
+	case <-time.After(60 * time.Second):
 		mutex.Lock()
-		assert.Equal(t, 0, minRound)
-		assert.Equal(t, 10000, maxRound)
-		assert.Equal(t, 10, len(combinedMap))
-		assert.Equal(t, 10, totalCalled)
+		fmt.Println("combined map: \n", combinedMap)
 		assert.Fail(t, "consensus too slow, not working %d %d")
 		mutex.Unlock()
 		return
@@ -164,8 +142,8 @@ func TestConsensusOnlyTestValidatorsAtLimit(t *testing.T) {
 
 	numNodes := uint32(21)
 	consensusSize := uint32(21)
-	numInvalid := uint32(0)
-	roundTime := uint64(2000)
+	numInvalid := uint32(6)
+	roundTime := uint64(4000)
 	numCommBlock := uint32(10)
 	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, numCommBlock)
 
@@ -180,18 +158,71 @@ func TestConsensusOnlyTestValidatorsAtLimit(t *testing.T) {
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second * 1)
 
+	combinedMap := make(map[uint64]uint32)
+	totalCalled := 0
+	mutex := &sync.Mutex{}
+	maxNonce := uint64(0)
+	minNonce := ^uint64(0)
 	for _, n := range nodes {
+		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+			n.blkProcessor.NrCommitBlockCalled++
+			_ = blockChain.SetCurrentBlockHeader(header)
+			_ = blockChain.SetCurrentBlockBody(body)
+
+			mutex.Lock()
+			combinedMap[header.GetNonce()] = header.GetRound()
+			totalCalled += 1
+
+			if maxNonce < header.GetNonce() {
+				maxNonce = header.GetNonce()
+			}
+
+			if minNonce < header.GetNonce() {
+				minNonce = header.GetNonce()
+			}
+
+			mutex.Unlock()
+
+			return nil
+		}
 		_ = n.node.StartConsensus()
 	}
 
-	waitTime := time.Second * 60
-	fmt.Println("Run for 20 seconds...")
-	time.Sleep(waitTime)
+	time.Sleep(time.Second * 20)
+	chDone := make(chan bool, 0)
+	go func() {
+		for {
+			mutex.Lock()
 
-	nrSynced := calculatedNrSynced(nodes, uint64(waitTime), uint64(roundTime*uint64(time.Millisecond)))
+			if maxNonce > uint64(numCommBlock) {
+				for i := minNonce; i <= maxNonce; i++ {
+					if _, ok := combinedMap[i]; !ok {
+						assert.Fail(t, "consensus not reached in each round")
+						fmt.Println("combined map: \n", combinedMap)
+						mutex.Unlock()
+						return
+					}
+				}
+				chDone <- true
+				mutex.Unlock()
+				return
+			}
 
-	passed := nrSynced > uint32((len(nodes)*2)/3)
-	assert.Equal(t, true, passed)
+			mutex.Unlock()
+
+			time.Sleep(time.Second * 2)
+		}
+	}()
+
+	select {
+	case <-chDone:
+	case <-time.After(60 * time.Second):
+		mutex.Lock()
+		fmt.Println("combined map: \n", combinedMap)
+		assert.Fail(t, "consensus too slow, not working %d %d")
+		mutex.Unlock()
+		return
+	}
 }
 
 func TestConsensusNotEnoughValidators(t *testing.T) {
@@ -201,10 +232,9 @@ func TestConsensusNotEnoughValidators(t *testing.T) {
 
 	numNodes := uint32(21)
 	consensusSize := uint32(21)
-	numInvalid := uint32(0)
+	numInvalid := uint32(7)
 	roundTime := uint64(2000)
-	numCommBlock := uint32(10)
-	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, numCommBlock)
+	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, 10)
 
 	defer func() {
 		advertiser.Close()
@@ -217,16 +247,33 @@ func TestConsensusNotEnoughValidators(t *testing.T) {
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second * 1)
 
+	mutex := &sync.Mutex{}
+	maxNonce := uint64(0)
+	minNonce := ^uint64(0)
 	for _, n := range nodes {
+		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+			n.blkProcessor.NrCommitBlockCalled++
+			_ = blockChain.SetCurrentBlockHeader(header)
+			_ = blockChain.SetCurrentBlockBody(body)
+
+			mutex.Lock()
+			if maxNonce < header.GetNonce() {
+				maxNonce = header.GetNonce()
+			}
+
+			if minNonce < header.GetNonce() {
+				minNonce = header.GetNonce()
+			}
+			mutex.Unlock()
+
+			return nil
+		}
 		_ = n.node.StartConsensus()
 	}
 
-	waitTime := time.Second * 20
-	fmt.Println("Run for 20 seconds...")
+	waitTime := time.Second * 60
+	fmt.Println("Run for 60 seconds...")
 	time.Sleep(waitTime)
 
-	nrSynced := calculatedNrSynced(nodes, uint64(waitTime), uint64(roundTime*uint64(time.Millisecond)))
-
-	passed := nrSynced > uint32((len(nodes)*2)/3)
-	assert.Equal(t, false, passed)
+	assert.Equal(t, uint64(0), maxNonce)
 }
