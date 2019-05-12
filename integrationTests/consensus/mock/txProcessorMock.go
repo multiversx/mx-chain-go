@@ -21,9 +21,9 @@ func (etm *TxProcessorMock) SetSCHandler(func(accountsAdapter state.AccountsAdap
 }
 
 func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transaction, round int32) error {
-	return etm.ProcessTransactionCalled(transaction, round)
+	return nil
 }
 
 func (etm *TxProcessorMock) SetBalancesToTrie(accBalance map[string]*big.Int) (rootHash []byte, err error) {
-	return etm.SetBalancesToTrieCalled(accBalance)
+	return []byte("roothash"), nil
 }

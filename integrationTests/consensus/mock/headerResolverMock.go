@@ -11,13 +11,22 @@ type HeaderResolverMock struct {
 }
 
 func (hrm *HeaderResolverMock) RequestDataFromHash(hash []byte) error {
+	if hrm.RequestDataFromHashCalled == nil {
+		return nil
+	}
 	return hrm.RequestDataFromHashCalled(hash)
 }
 
 func (hrm *HeaderResolverMock) ProcessReceivedMessage(message p2p.MessageP2P) error {
+	if hrm.ProcessReceivedMessageCalled == nil {
+		return nil
+	}
 	return hrm.ProcessReceivedMessageCalled(message)
 }
 
 func (hrm *HeaderResolverMock) RequestDataFromNonce(nonce uint64) error {
+	if hrm.RequestDataFromNonceCalled == nil {
+		return nil
+	}
 	return hrm.RequestDataFromNonceCalled(nonce)
 }

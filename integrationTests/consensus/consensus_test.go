@@ -77,6 +77,31 @@ func checkBlockProposedEveryRound(numCommBlock uint32, combinedMap map[uint32]ui
 	}
 }
 
+func checkBlockProposedForEachNonce(numCommBlock uint32, combinedMap map[uint64]uint32, minNonce, maxNonce *uint64,
+	mutex *sync.Mutex, chDone chan bool, t *testing.T) {
+	for {
+		mutex.Lock()
+
+		if *maxNonce > uint64(numCommBlock) {
+			for i := *minNonce; i <= *maxNonce; i++ {
+				if _, ok := combinedMap[i]; !ok {
+					assert.Fail(t, "consensus not reached in each round")
+					fmt.Println("combined map: \n", combinedMap)
+					mutex.Unlock()
+					return
+				}
+			}
+			chDone <- true
+			mutex.Unlock()
+			return
+		}
+
+		mutex.Unlock()
+
+		time.Sleep(time.Second * 2)
+	}
+}
+
 func TestConsensusFullTest(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -190,33 +215,11 @@ func TestConsensusOnlyTestValidatorsAtLimit(t *testing.T) {
 
 	time.Sleep(time.Second * 20)
 	chDone := make(chan bool, 0)
-	go func() {
-		for {
-			mutex.Lock()
-
-			if maxNonce > uint64(numCommBlock) {
-				for i := minNonce; i <= maxNonce; i++ {
-					if _, ok := combinedMap[i]; !ok {
-						assert.Fail(t, "consensus not reached in each round")
-						fmt.Println("combined map: \n", combinedMap)
-						mutex.Unlock()
-						return
-					}
-				}
-				chDone <- true
-				mutex.Unlock()
-				return
-			}
-
-			mutex.Unlock()
-
-			time.Sleep(time.Second * 2)
-		}
-	}()
+	go checkBlockProposedForEachNonce(numCommBlock, combinedMap, &minNonce, &maxNonce, mutex, chDone, t)
 
 	select {
 	case <-chDone:
-	case <-time.After(60 * time.Second):
+	case <-time.After(180 * time.Second):
 		mutex.Lock()
 		fmt.Println("combined map: \n", combinedMap)
 		assert.Fail(t, "consensus too slow, not working %d %d")
