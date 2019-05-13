@@ -447,13 +447,10 @@ func createMultiSigner(
 		suite := kyber.NewSuitePairingBn256()
 		keyGeneratorBls := signing.NewKeyGenerator(suite)
 		llSigner := &llsig.KyberMultiSignerBLS{}
-		multiSigner, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privateKeyBls, keyGeneratorBls, uint16(0))
-		return multiSigner, err
+		return multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privateKeyBls, keyGeneratorBls, uint16(0))
 	}
 
-	multiSigner, err := multisig.NewBelNevMultisig(hasher, pubKeys, privateKey, keyGenerator, uint16(0))
-
-	return multiSigner, err
+	return multisig.NewBelNevMultisig(hasher, pubKeys, privateKey, keyGenerator, uint16(0))
 }
 
 func createShardNode(

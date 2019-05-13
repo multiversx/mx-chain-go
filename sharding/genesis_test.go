@@ -10,76 +10,76 @@ import (
 )
 
 func createGenesisOneShardOneNode() *sharding.Genesis {
-	g := &sharding.Genesis{}
-	g.InitialBalances = make([]*sharding.InitialBalance, 1)
-	g.InitialBalances[0] = &sharding.InitialBalance{}
-	g.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
-	g.InitialBalances[0].Balance = "11"
+	genesis := &sharding.Genesis{}
+	genesis.InitialBalances = make([]*sharding.InitialBalance, 1)
+	genesis.InitialBalances[0] = &sharding.InitialBalance{}
+	genesis.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	genesis.InitialBalances[0].Balance = "11"
 
-	err := g.ProcessConfig()
+	err := genesis.ProcessConfig()
 	if err != nil {
 		return nil
 	}
 
-	return g
+	return genesis
 }
 
 func createGenesisTwoShardTwoNodes() *sharding.Genesis {
-	g := &sharding.Genesis{}
-	g.InitialBalances = make([]*sharding.InitialBalance, 4)
-	g.InitialBalances[0] = &sharding.InitialBalance{}
-	g.InitialBalances[1] = &sharding.InitialBalance{}
-	g.InitialBalances[2] = &sharding.InitialBalance{}
-	g.InitialBalances[3] = &sharding.InitialBalance{}
+	genesis := &sharding.Genesis{}
+	genesis.InitialBalances = make([]*sharding.InitialBalance, 4)
+	genesis.InitialBalances[0] = &sharding.InitialBalance{}
+	genesis.InitialBalances[1] = &sharding.InitialBalance{}
+	genesis.InitialBalances[2] = &sharding.InitialBalance{}
+	genesis.InitialBalances[3] = &sharding.InitialBalance{}
 
-	g.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
-	g.InitialBalances[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
-	g.InitialBalances[2].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417"
-	g.InitialBalances[3].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416"
+	genesis.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	genesis.InitialBalances[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+	genesis.InitialBalances[2].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417"
+	genesis.InitialBalances[3].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416"
 
-	g.InitialBalances[0].Balance = "999"
-	g.InitialBalances[1].Balance = "999"
-	g.InitialBalances[2].Balance = "999"
-	g.InitialBalances[3].Balance = "999"
+	genesis.InitialBalances[0].Balance = "999"
+	genesis.InitialBalances[1].Balance = "999"
+	genesis.InitialBalances[2].Balance = "999"
+	genesis.InitialBalances[3].Balance = "999"
 
-	err := g.ProcessConfig()
+	err := genesis.ProcessConfig()
 	if err != nil {
 		return nil
 	}
 
-	return g
+	return genesis
 }
 
 func createGenesisTwoShard6NodesMeta() *sharding.Genesis {
-	g := &sharding.Genesis{}
-	g.InitialBalances = make([]*sharding.InitialBalance, 6)
-	g.InitialBalances[0] = &sharding.InitialBalance{}
-	g.InitialBalances[1] = &sharding.InitialBalance{}
-	g.InitialBalances[2] = &sharding.InitialBalance{}
-	g.InitialBalances[3] = &sharding.InitialBalance{}
-	g.InitialBalances[4] = &sharding.InitialBalance{}
-	g.InitialBalances[5] = &sharding.InitialBalance{}
+	genesis := &sharding.Genesis{}
+	genesis.InitialBalances = make([]*sharding.InitialBalance, 6)
+	genesis.InitialBalances[0] = &sharding.InitialBalance{}
+	genesis.InitialBalances[1] = &sharding.InitialBalance{}
+	genesis.InitialBalances[2] = &sharding.InitialBalance{}
+	genesis.InitialBalances[3] = &sharding.InitialBalance{}
+	genesis.InitialBalances[4] = &sharding.InitialBalance{}
+	genesis.InitialBalances[5] = &sharding.InitialBalance{}
 
-	g.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
-	g.InitialBalances[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
-	g.InitialBalances[2].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417"
-	g.InitialBalances[3].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416"
-	g.InitialBalances[4].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7411"
-	g.InitialBalances[5].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7410"
+	genesis.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	genesis.InitialBalances[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+	genesis.InitialBalances[2].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417"
+	genesis.InitialBalances[3].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416"
+	genesis.InitialBalances[4].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7411"
+	genesis.InitialBalances[5].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7410"
 
-	g.InitialBalances[0].Balance = "999"
-	g.InitialBalances[1].Balance = "999"
-	g.InitialBalances[2].Balance = "999"
-	g.InitialBalances[3].Balance = "999"
-	g.InitialBalances[4].Balance = "999"
-	g.InitialBalances[5].Balance = "999"
+	genesis.InitialBalances[0].Balance = "999"
+	genesis.InitialBalances[1].Balance = "999"
+	genesis.InitialBalances[2].Balance = "999"
+	genesis.InitialBalances[3].Balance = "999"
+	genesis.InitialBalances[4].Balance = "999"
+	genesis.InitialBalances[5].Balance = "999"
 
-	err := g.ProcessConfig()
+	err := genesis.ProcessConfig()
 	if err != nil {
 		return nil
 	}
 
-	return g
+	return genesis
 }
 
 func TestGenesis_NewGenesisConfigWrongFile(t *testing.T) {
@@ -89,37 +89,51 @@ func TestGenesis_NewGenesisConfigWrongFile(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestNodes_NewGenesisConfigWrongDataInFile(t *testing.T) {
+	genesis, err := sharding.NewGenesisConfig("mock/invalidGenesisMock.json")
+
+	assert.Nil(t, genesis)
+	assert.Equal(t, sharding.ErrCouldNotParsePubKey, err)
+}
+
+func TestNodes_NewGenesisShouldWork(t *testing.T) {
+	genesis, err := sharding.NewGenesisConfig("mock/genesisMock.json")
+
+	assert.NotNil(t, genesis)
+	assert.Nil(t, err)
+}
+
 func TestGenesis_ProcessConfigGenesisWithIncompleteDataShouldErr(t *testing.T) {
-	g := sharding.Genesis{}
+	genesis := sharding.Genesis{}
 
-	g.InitialBalances = make([]*sharding.InitialBalance, 2)
-	g.InitialBalances[0] = &sharding.InitialBalance{}
-	g.InitialBalances[1] = &sharding.InitialBalance{}
+	genesis.InitialBalances = make([]*sharding.InitialBalance, 2)
+	genesis.InitialBalances[0] = &sharding.InitialBalance{}
+	genesis.InitialBalances[1] = &sharding.InitialBalance{}
 
-	g.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	genesis.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 
-	err := g.ProcessConfig()
+	err := genesis.ProcessConfig()
 
-	assert.NotNil(t, g)
+	assert.NotNil(t, genesis)
 	assert.Equal(t, sharding.ErrCouldNotParsePubKey, err)
 }
 
 func TestGenesis_GenesisWithIncompleteBalance(t *testing.T) {
-	g := sharding.Genesis{}
+	genesis := sharding.Genesis{}
 
-	g.InitialBalances = make([]*sharding.InitialBalance, 1)
-	g.InitialBalances[0] = &sharding.InitialBalance{}
+	genesis.InitialBalances = make([]*sharding.InitialBalance, 1)
+	genesis.InitialBalances[0] = &sharding.InitialBalance{}
 
-	g.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	genesis.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 
-	_ = g.ProcessConfig()
+	_ = genesis.ProcessConfig()
 
 	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
 	adrConv := mock.NewAddressConverterFake(32, "")
 
-	inBal, err := g.InitialNodesBalances(shardCoordinator, adrConv)
+	inBal, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
 
-	assert.NotNil(t, g)
+	assert.NotNil(t, genesis)
 	assert.Nil(t, err)
 	for _, val := range inBal {
 		assert.Equal(t, big.NewInt(0), val)
