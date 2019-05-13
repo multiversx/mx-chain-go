@@ -290,7 +290,7 @@ func TestConsensusMultisigFullConsensus(t *testing.T) {
 
 	select {
 	case <-chDone:
-	case <-time.After(60 * time.Second):
+	case <-time.After(180 * time.Second):
 		mutex.Lock()
 		fmt.Println("combined map: \n", combinedMap)
 		assert.Fail(t, "consensus too slow, not working %d %d")
