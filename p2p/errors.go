@@ -79,5 +79,8 @@ var ErrNegativeOrZeroPeersRefreshInterval = errors.New("negative or zero peers r
 // ErrMessageTooLarge signals that the message provided is too large
 var ErrMessageTooLarge = errors.New("buffer too large")
 
-// ErrNoUsablePortsOnMachine appears when no free ports are found on the current machine
-var ErrNoUsablePortsOnMachine = errors.New("no usable free ports on this machine")
+// ErrNilFetchPeersOnTopicHandler signals that a nil handler was provided
+var ErrNilFetchPeersOnTopicHandler = errors.New("nil fetch peers on topic handler")
+
+// ErrInvalidDurationProvided signals that an invalid time.Duration has been provided
+var ErrInvalidDurationProvided = errors.New("invalid time.Duration provided")
