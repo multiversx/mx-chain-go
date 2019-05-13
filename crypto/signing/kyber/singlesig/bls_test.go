@@ -297,6 +297,7 @@ func TestBLSSigner_SignVerifyWithReconstructedPubKeyOK(t *testing.T) {
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
 	pubKey, _, signature, err := signBLS(msg, signer, t)
+	assert.Nil(t, err)
 
 	pubKeyBytes, err := pubKey.Point().MarshalBinary()
 	assert.Nil(t, err)

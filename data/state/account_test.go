@@ -72,12 +72,12 @@ func TestAccount_GetCode(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	assert.Nil(t, err)
 
 	code := []byte("code")
 	acc.SetCode(code)
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, code, acc.GetCode())
 }
 
@@ -85,12 +85,12 @@ func TestAccount_GetCodeHash(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	assert.Nil(t, err)
 
 	code := []byte("code")
 	acc.CodeHash = code
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, code, acc.GetCodeHash())
 }
 
@@ -98,12 +98,12 @@ func TestAccount_SetCodeHash(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	assert.Nil(t, err)
 
 	code := []byte("code")
 	acc.SetCodeHash(code)
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, code, acc.GetCodeHash())
 }
 
@@ -111,12 +111,12 @@ func TestAccount_GetRootHash(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	assert.Nil(t, err)
 
 	root := []byte("root")
 	acc.RootHash = root
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, root, acc.GetRootHash())
 }
 
@@ -124,12 +124,12 @@ func TestAccount_SetRootHash(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	assert.Nil(t, err)
 
 	root := []byte("root")
 	acc.SetRootHash(root)
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, root, acc.GetRootHash())
 }
 
@@ -137,12 +137,12 @@ func TestAccount_DataTrie(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
-	trie := &mock.TrieMock{}
+	assert.Nil(t, err)
 
+	trie := &mock.TrieMock{}
 	acc.SetDataTrie(trie)
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, trie, acc.DataTrie())
 }
 
@@ -162,6 +162,7 @@ func TestAccount_SetNonceWithJournal(t *testing.T) {
 	}
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, tracker)
+	assert.Nil(t, err)
 
 	nonce := uint64(0)
 	err = acc.SetNonceWithJournal(nonce)
@@ -189,6 +190,7 @@ func TestAccount_SetBalanceWithJournal(t *testing.T) {
 	}
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, tracker)
+	assert.Nil(t, err)
 
 	balance := big.NewInt(15)
 	err = acc.SetBalanceWithJournal(balance)
@@ -216,6 +218,7 @@ func TestAccount_SetCodeHashWithJournal(t *testing.T) {
 	}
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, tracker)
+	assert.Nil(t, err)
 
 	codeHash := []byte("codehash")
 	err = acc.SetCodeHashWithJournal(codeHash)
@@ -243,6 +246,7 @@ func TestAccount_SetRootHashWithJournal(t *testing.T) {
 	}
 
 	acc, err := state.NewAccount(&mock.AddressMock{}, tracker)
+	assert.Nil(t, err)
 
 	rootHash := []byte("roothash")
 	err = acc.SetRootHashWithJournal(rootHash)

@@ -23,19 +23,19 @@ func initConsensusDataContainer() *ConsensusCore {
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
 
 	return &ConsensusCore{
-		blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		hasherMock,
-		marshalizerMock,
-		blsPrivateKeyMock,
-		blsSingleSignerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
+		blockChain:             blockChain,
+		blockProcessor:         blockProcessorMock,
+		bootstraper:            bootstraperMock,
+		chronologyHandler:      chronologyHandlerMock,
+		hasher:                 hasherMock,
+		marshalizer:            marshalizerMock,
+		blsPrivateKey:          blsPrivateKeyMock,
+		blsSingleSigner:        blsSingleSignerMock,
+		multiSigner:            multiSignerMock,
+		rounder:                rounderMock,
+		shardCoordinator:       shardCoordinatorMock,
+		syncTimer:              syncTimerMock,
+		validatorGroupSelector: validatorGroupSelector,
 	}
 }
 

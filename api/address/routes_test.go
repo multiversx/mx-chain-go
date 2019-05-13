@@ -135,7 +135,6 @@ func TestGetBalance_WithEmptyAddressShouldReturnZeroAndError(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{
 		BalanceHandler: func(s string) (i *big.Int, e error) {
-			panic("aaaa")
 			return big.NewInt(0), errors.New("address was empty")
 		},
 	}

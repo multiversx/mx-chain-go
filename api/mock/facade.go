@@ -12,19 +12,29 @@ import (
 
 // Facade is the mock implementation of a node router handler
 type Facade struct {
-	Running                    bool
-	ShouldErrorStart           bool
-	ShouldErrorStop            bool
-	GetCurrentPublicKeyHandler func() string
-	TpsBenchmarkHandler        func() *statistics.TpsBenchmark
-	GetHeartbeatsHandler       func() ([]heartbeat.PubKeyHeartbeat, error)
-	BalanceHandler             func(string) (*big.Int, error)
-	GetAccountHandler          func(address string) (*state.Account, error)
-	GenerateTransactionHandler func(sender string, receiver string, value *big.Int,
-		code string) (*transaction.Transaction, error)
-	GetTransactionHandler  func(hash string) (*transaction.Transaction, error)
-	SendTransactionHandler func(nonce uint64, sender string, receiver string, value *big.Int, code string,
-		signature []byte) (*transaction.Transaction, error)
+	Running                                        bool
+	ShouldErrorStart                               bool
+	ShouldErrorStop                                bool
+	GetCurrentPublicKeyHandler                     func() string
+	TpsBenchmarkHandler                            func() *statistics.TpsBenchmark
+	GetHeartbeatsHandler                           func() ([]heartbeat.PubKeyHeartbeat, error)
+	BalanceHandler                                 func(string) (*big.Int, error)
+	GetAccountHandler                              func(address string) (*state.Account, error)
+	GenerateTransactionHandler                     func(
+		sender string,
+		receiver string,
+		value *big.Int,
+		code string,
+		) (*transaction.Transaction, error)
+	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
+	SendTransactionHandler                         func(
+		nonce uint64,
+		sender string,
+		receiver string,
+		value *big.Int,
+		code string,
+		signature []byte,
+		) (*transaction.Transaction, error)
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 }

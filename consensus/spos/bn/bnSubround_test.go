@@ -15,7 +15,7 @@ const roundTimeDuration = time.Duration(100 * time.Millisecond)
 
 func initRounderMock() *mock.RounderMock {
 	return &mock.RounderMock{
-		RoundIndex:        0,
+		RoundIndex: 0,
 		TimeDurationCalled: func() time.Duration {
 			return roundTimeDuration
 		},

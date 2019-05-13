@@ -64,7 +64,7 @@ func createPoint() crypto.Point {
 	}
 }
 
-func createKeyPair(stream cipher.Stream) (crypto.Scalar, crypto.Point) {
+func createKeyPair(_ cipher.Stream) (crypto.Scalar, crypto.Point) {
 	scalar := createScalar()
 	point, _ := createPoint().Mul(scalar)
 	return scalar, point
