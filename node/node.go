@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -586,7 +587,12 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 }
 
 func (n *Node) createGenesisBlock() (data.HeaderHandler, []byte, error) {
-	header, err := n.blockProcessor.CreateGenesisBlock(n.initialNodesBalances)
+	header, err := block2.CreateGenesisBlockFromInitialBalances(
+		n.accounts,
+		n.shardCoordinator,
+		n.addrConverter,
+		n.initialNodesBalances,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -651,13 +657,17 @@ func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.Heade
 	go n.messenger.Broadcast(factory.HeadersTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgHeader)
 
+	shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
+		n.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
+	go n.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
+
 	go n.messenger.Broadcast(factory.MiniBlocksTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
 	//TODO - for now, on MetachainHeaderTopic we will broadcast shard headers
 	// Later, this call should be done by metachain nodes when they agree upon a metachain header
-	msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
-	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
+	//msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
+	//go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
 
 	for k, v := range msgMapBlockBody {
 		go n.messenger.Broadcast(factory.MiniBlocksTopic+

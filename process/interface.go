@@ -1,7 +1,6 @@
 package process
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -17,7 +16,6 @@ type TransactionProcessor interface {
 	SetSCHandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error)
 
 	ProcessTransaction(transaction *transaction.Transaction, round int32) error
-	SetBalancesToTrie(accBalance map[string]*big.Int) (rootHash []byte, err error)
 }
 
 // BlockProcessor is the main interface for block execution engine
@@ -25,7 +23,6 @@ type BlockProcessor interface {
 	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
-	CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlockHeader(body data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error)

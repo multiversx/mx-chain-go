@@ -3,7 +3,6 @@ package block
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -38,7 +37,7 @@ type metaProcessor struct {
 
 	OnRequestShardHeaderHandler   func(shardId uint32, mbHash []byte)
 	requestedShardHeaderHashes    map[string]bool
-	mutRequestedShardHeaderHahses sync.RWMutex
+	mutRequestedShardHeaderHashes sync.RWMutex
 
 	lastNotedHdrs         mapShardLastHeaders
 	nextKValidity         uint32
@@ -57,6 +56,7 @@ func NewMetaProcessor(
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
 	requestHeaderHandler func(shardId uint32, hdrHash []byte),
+	shardGenesisBlocks map[uint32]*block.Header,
 ) (*metaProcessor, error) {
 
 	err := checkProcessorNilParameters(
@@ -80,6 +80,9 @@ func NewMetaProcessor(
 	}
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
+	}
+	if shardGenesisBlocks == nil {
+		return nil, process.ErrNilShardGenesisBlocks
 	}
 
 	base := &baseProcessor{
@@ -106,7 +109,7 @@ func NewMetaProcessor(
 
 	mp.lastNotedHdrs = make(mapShardLastHeaders, shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		mp.lastNotedHdrs[i] = &block.Header{Round: 0, Nonce: 0}
+		mp.lastNotedHdrs[i] = shardGenesisBlocks[i]
 	}
 
 	mp.finalityAttestingHdrs = make([]*block.Header, 0)
@@ -257,24 +260,6 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 // CreateBlockBody creates block body of metachain
 func (mp *metaProcessor) CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error) {
 	return &block.MetaBlockBody{}, nil
-}
-
-// CreateGenesisBlock creates the genesis block body from map of account balances
-func (mp *metaProcessor) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
-	// TODO: add here, something like initial peer list. staked accounts
-	// TODO: add saving of shard initial shard data info into metachain state
-	rootHash := []byte("metachainRootHash")
-	header := &block.MetaBlock{
-		Nonce:        0,
-		Epoch:        0,
-		Round:        0,
-		Signature:    rootHash,
-		RootHash:     rootHash,
-		PrevRandSeed: rootHash,
-		RandSeed:     rootHash,
-	}
-
-	return header, nil
 }
 
 func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int32, haveTime func() time.Duration) error {
@@ -704,7 +689,7 @@ func (mp *metaProcessor) getShardHeaderFromPool(shardID uint32, headerHash []byt
 // receivedHeader is a call back function which is called when a new header
 // is added in the headers pool
 func (mp *metaProcessor) receivedHeader(headerHash []byte) {
-	mp.mutRequestedShardHeaderHahses.Lock()
+	mp.mutRequestedShardHeaderHashes.Lock()
 
 	if len(mp.requestedShardHeaderHashes) > 0 {
 		if mp.requestedShardHeaderHashes[string(headerHash)] {
@@ -712,7 +697,7 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 		}
 
 		lenReqHeadersHashes := len(mp.requestedShardHeaderHashes)
-		mp.mutRequestedShardHeaderHahses.Unlock()
+		mp.mutRequestedShardHeaderHashes.Unlock()
 
 		if lenReqHeadersHashes == 0 {
 			mp.ChRcvAllHdrs <- true
@@ -721,11 +706,11 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 		return
 	}
 
-	mp.mutRequestedShardHeaderHahses.Unlock()
+	mp.mutRequestedShardHeaderHashes.Unlock()
 }
 
 func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
-	mp.mutRequestedShardHeaderHahses.Lock()
+	mp.mutRequestedShardHeaderHashes.Lock()
 
 	requestedHeaders := 0
 	missingHeaderHashes := mp.computeMissingHeaders(header)
@@ -739,7 +724,7 @@ func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
 		}
 	}
 
-	mp.mutRequestedShardHeaderHahses.Unlock()
+	mp.mutRequestedShardHeaderHashes.Unlock()
 
 	return requestedHeaders
 }

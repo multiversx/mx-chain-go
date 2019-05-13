@@ -95,5 +95,8 @@ func (hib *HeaderInterceptorBase) ParseReceivedMessage(message p2p.MessageP2P) (
 
 // CheckHeaderForCurrentShard checks if the header is for current shard
 func (hib *HeaderInterceptorBase) CheckHeaderForCurrentShard(interceptedHdr *block.InterceptedHeader) bool {
-	return hib.shardCoordinator.SelfId() == interceptedHdr.GetHeader().ShardId
+	isHeaderForCurrentShard := hib.shardCoordinator.SelfId() == interceptedHdr.GetHeader().ShardId
+	isMetachainShardCoordinator := hib.shardCoordinator.SelfId() == sharding.MetachainShardId
+
+	return isHeaderForCurrentShard || isMetachainShardCoordinator
 }

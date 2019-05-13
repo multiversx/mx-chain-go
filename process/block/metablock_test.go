@@ -60,6 +60,7 @@ func createMetaBlockHeader() *block.MetaBlock {
 
 func TestNewMetaProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		nil,
@@ -70,6 +71,7 @@ func TestNewMetaProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 	assert.Nil(t, be)
@@ -77,6 +79,7 @@ func TestNewMetaProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 
 func TestNewMetaProcessor_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
+
 	be, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
 		nil,
@@ -86,6 +89,7 @@ func TestNewMetaProcessor_NilDataPoolShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
 	assert.Nil(t, be)
@@ -93,6 +97,7 @@ func TestNewMetaProcessor_NilDataPoolShouldErr(t *testing.T) {
 
 func TestNewMetaProcessor_NilForkDetectorShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -103,6 +108,7 @@ func TestNewMetaProcessor_NilForkDetectorShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	assert.Equal(t, process.ErrNilForkDetector, err)
 	assert.Nil(t, be)
@@ -110,6 +116,7 @@ func TestNewMetaProcessor_NilForkDetectorShouldErr(t *testing.T) {
 
 func TestNewMetaProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -120,6 +127,7 @@ func TestNewMetaProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 	assert.Nil(t, be)
@@ -127,6 +135,7 @@ func TestNewMetaProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 
 func TestNewMetaProcessor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -137,6 +146,7 @@ func TestNewMetaProcessor_NilHasherShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	assert.Equal(t, process.ErrNilHasher, err)
 	assert.Nil(t, be)
@@ -144,6 +154,7 @@ func TestNewMetaProcessor_NilHasherShouldErr(t *testing.T) {
 
 func TestNewMetaProcessor_NilMarshalizerShouldWork(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -154,6 +165,7 @@ func TestNewMetaProcessor_NilMarshalizerShouldWork(t *testing.T) {
 		nil,
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, be)
@@ -161,6 +173,7 @@ func TestNewMetaProcessor_NilMarshalizerShouldWork(t *testing.T) {
 
 func TestNewMetaProcessor_NilChainStorerShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -171,6 +184,7 @@ func TestNewMetaProcessor_NilChainStorerShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		nil,
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	assert.Equal(t, process.ErrNilStorage, err)
 	assert.Nil(t, be)
@@ -178,6 +192,7 @@ func TestNewMetaProcessor_NilChainStorerShouldErr(t *testing.T) {
 
 func TestNewMetaProcessor_NilrequestHeaderHandlerShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -188,13 +203,15 @@ func TestNewMetaProcessor_NilrequestHeaderHandlerShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		nil,
+		make(map[uint32]*block.Header),
 	)
 	assert.Equal(t, process.ErrNilRequestHeaderHandler, err)
 	assert.Nil(t, be)
 }
 
-func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
+func TestNewMetaProcessor_NilGenesisHeadersShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, err := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -205,6 +222,26 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		nil,
+	)
+	assert.Equal(t, process.ErrNilShardGenesisBlocks, err)
+	assert.Nil(t, mp)
+}
+
+func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	mdp := initMetaDataPool()
+	mp, err := blproc.NewMetaProcessor(
+		&mock.AccountsStub{},
+		mdp,
+		&mock.ForkDetectorMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.ChainStorerMock{},
+		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, mp)
@@ -214,6 +251,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 
 func TestMetaProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -224,6 +262,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	blk := &block.MetaBlockBody{}
 	err := mp.ProcessBlock(nil, &block.MetaBlock{}, blk, haveTime)
@@ -232,6 +271,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 
 func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -242,6 +282,7 @@ func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	blk := &block.MetaBlockBody{}
 	err := mp.ProcessBlock(&blockchain.MetaChain{}, nil, blk, haveTime)
@@ -250,6 +291,7 @@ func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 
 func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -260,6 +302,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	err := mp.ProcessBlock(&blockchain.MetaChain{}, &block.MetaBlock{}, nil, haveTime)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
@@ -267,6 +310,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 
 func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -277,6 +321,7 @@ func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	blk := &block.MetaBlockBody{}
 	err := mp.ProcessBlock(&blockchain.MetaChain{}, &block.MetaBlock{}, blk, nil)
@@ -285,6 +330,7 @@ func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 
 func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	// set accounts dirty
 	journalLen := func() int { return 3 }
@@ -310,6 +356,7 @@ func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	// should return err
 	err := mp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -319,6 +366,7 @@ func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 
 func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -329,6 +377,7 @@ func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	blkc := &blockchain.MetaChain{}
@@ -342,6 +391,7 @@ func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 
 func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -352,6 +402,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
@@ -368,6 +419,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 
 func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -378,6 +430,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
@@ -396,6 +449,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 
 func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
@@ -427,6 +481,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		map[uint32]*block.Header{0: {Nonce: 0, Round: 0}},
 	)
 	go func() {
 		mp.ChRcvAllHdrs <- true
@@ -444,6 +499,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 
 func TestMetaProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	accounts := &mock.AccountsStub{}
 	accounts.RevertToSnapshotCalled = func(snapshot int) error {
@@ -458,6 +514,7 @@ func TestMetaProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	blk := &block.MetaBlockBody{}
 	err := mp.CommitBlock(nil, &block.MetaBlock{}, blk)
@@ -466,6 +523,7 @@ func TestMetaProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 
 func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	accounts := &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
@@ -493,6 +551,7 @@ func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T
 		marshalizer,
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	blkc := createTestBlockchain()
 	err := mp.CommitBlock(blkc, hdr, body)
@@ -501,6 +560,7 @@ func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T
 
 func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	errPersister := errors.New("failure")
 	accounts := &mock.AccountsStub{
@@ -527,6 +587,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		store,
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	blkc, _ := blockchain.NewMetaChain(
@@ -538,6 +599,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 
 func TestMetaProcessor_CommitBlockStorageFailsForShardDataShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	errPersister := errors.New("failure")
 	accounts := &mock.AccountsStub{
@@ -569,6 +631,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForShardDataShouldErr(t *testing.T
 		&mock.MarshalizerMock{},
 		store,
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	blkc, _ := blockchain.NewMetaChain(
 		generateTestCache(),
@@ -580,6 +643,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForShardDataShouldErr(t *testing.T
 
 func TestMetaProcessor_CommitBlockStorageFailsForPeerDataShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	errPersister := errors.New("failure")
 	accounts := &mock.AccountsStub{
@@ -617,6 +681,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForPeerDataShouldErr(t *testing.T)
 		&mock.MarshalizerMock{},
 		store,
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	blkc, _ := blockchain.NewMetaChain(
 		generateTestCache(),
@@ -628,6 +693,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForPeerDataShouldErr(t *testing.T)
 
 func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	accounts := &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
@@ -659,6 +725,7 @@ func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		store,
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	mdp.MetaBlockNoncesCalled = func() dataRetriever.Uint64Cacher {
 		return nil
@@ -671,6 +738,7 @@ func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 
 func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	hdr := createMetaBlockHeader()
 	body := &block.MetaBlockBody{}
@@ -704,6 +772,7 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		store,
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	mdp.ShardHeadersCalled = func() storage.Cacher {
@@ -721,6 +790,7 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 
 func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	rootHash := []byte("rootHash")
 	hdr := createMetaBlockHeader()
@@ -774,6 +844,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		store,
 		func(shardID uint32, hdrHash []byte) {},
+		map[uint32]*block.Header{0: {Nonce: 0, Round: 0}},
 	)
 
 	removeHdrWasCalled := false
@@ -807,6 +878,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 
 func TestMetaProcessor_GetHeaderFromPool(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -817,6 +889,7 @@ func TestMetaProcessor_GetHeaderFromPool(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	hdrHash := []byte("hdr_hash1")
 	hdr, err := mp.GetShardHeaderFromPool(0, hdrHash)
@@ -827,6 +900,7 @@ func TestMetaProcessor_GetHeaderFromPool(t *testing.T) {
 
 func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -837,6 +911,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	mdp.ShardHeadersCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
@@ -860,48 +935,9 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	}
 }
 
-func TestMetaProcessor_CreateBlockBodyShouldWork(t *testing.T) {
-	t.Parallel()
-	mdp := initMetaDataPool()
-	haveTime := func() bool {
-		return true
-	}
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		func(shardID uint32, hdrHash []byte) {},
-	)
-	blk, err := mp.CreateBlockBody(0, haveTime)
-	assert.NotNil(t, blk)
-	assert.Nil(t, err)
-}
-
-func TestMetaProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
-	t.Parallel()
-	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		initStore(),
-		func(shardID uint32, hdrHash []byte) {},
-	)
-	hdr, err := mp.CreateGenesisBlock(nil)
-	assert.Nil(t, err)
-	assert.NotNil(t, hdr)
-	assert.Equal(t, hdr.GetRootHash(), []byte("metachainRootHash"))
-}
-
 func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -912,6 +948,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *tes
 		&mock.MarshalizerMock{},
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	err := mp.RemoveBlockInfoFromPool(nil)
 	assert.NotNil(t, err)
@@ -920,6 +957,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *tes
 
 func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -930,6 +968,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	header := createMetaBlockHeader()
 	err := mp.RemoveBlockInfoFromPool(header)
@@ -940,6 +979,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 
 func TestMetaProcessor_DisplayLogInfo(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	hasher := mock.HasherMock{}
 	hdr := createMetaBlockHeader()
@@ -952,6 +992,7 @@ func TestMetaProcessor_DisplayLogInfo(t *testing.T) {
 		&mock.MarshalizerMock{},
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	hdr.PrevHash = hasher.Compute("prev hash")
 	mp.DisplayMetaBlock(hdr)
@@ -959,6 +1000,7 @@ func TestMetaProcessor_DisplayLogInfo(t *testing.T) {
 
 func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFail(t *testing.T) {
 	t.Parallel()
+
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{
 			JournalLenCalled: func() int {
@@ -972,6 +1014,7 @@ func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFai
 		&mock.MarshalizerMock{},
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	haveTime := func() bool { return true }
 	hdr, err := mp.CreateBlockHeader(nil, 0, haveTime)
@@ -981,6 +1024,7 @@ func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFai
 
 func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
 	t.Parallel()
+
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{
 			JournalLenCalled: func() int {
@@ -997,6 +1041,7 @@ func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	haveTime := func() bool { return true }
 	hdr, err := mp.CreateBlockHeader(nil, 0, haveTime)
@@ -1006,6 +1051,7 @@ func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
 
 func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) {
 	t.Parallel()
+
 	// set accounts dirty
 	journalEntries := 3
 	revToSnapshot := func(snapshot int) error {
@@ -1023,6 +1069,7 @@ func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) 
 		&mock.MarshalizerMock{},
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	err := mp.CommitBlock(nil, nil, nil)
 	assert.NotNil(t, err)
@@ -1031,6 +1078,7 @@ func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) 
 
 func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -1041,6 +1089,7 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	msh, mstx, err := mp.MarshalizedDataToBroadcast(&block.MetaBlock{}, &block.MetaBlockBody{})
@@ -1067,6 +1116,7 @@ func TestMetaProcessor_ReceivedHeaderShouldEraseRequested(t *testing.T) {
 		marshalizer,
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	//add 3 tx hashes on requested list
@@ -1155,6 +1205,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 		marshalizer,
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	haveTime := func() bool { return true }
@@ -1231,6 +1282,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		marshalizer,
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	haveTime := func() bool { return true }
@@ -1352,6 +1404,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		marshalizer,
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	haveTime := func() bool { return true }
@@ -1521,6 +1574,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		marshalizer,
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	haveTime := func() bool { return true }
@@ -1637,6 +1691,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 
 func TestMetaProcessor_RestoreBlockIntoPoolsShouldErrNilMetaBlockHeader(t *testing.T) {
 	t.Parallel()
+
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
@@ -1647,6 +1702,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldErrNilMetaBlockHeader(t *testi
 		&mock.MarshalizerMock{},
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 	err := mp.RestoreBlockIntoPools(nil, nil)
 	assert.NotNil(t, err)
@@ -1655,6 +1711,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldErrNilMetaBlockHeader(t *testi
 
 func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	t.Parallel()
+
 	dataPool := mock.NewMetaPoolsHolderFake()
 	marshalizerMock := &mock.MarshalizerMock{}
 	hasherMock := &mock.HasherStub{}
@@ -1681,6 +1738,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		marshalizerMock,
 		store,
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	mhdr := createMetaBlockHeader()
@@ -1717,6 +1775,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 		marshalizer,
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -1813,6 +1872,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		marshalizer,
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -1910,6 +1970,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 		marshalizer,
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -1970,6 +2031,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 		marshalizer,
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -2036,6 +2098,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 		marshalizer,
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -2146,6 +2209,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 		marshalizer,
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -2255,6 +2319,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 		marshalizer,
 		initStore(),
 		func(shardID uint32, hdrHash []byte) {},
+		make(map[uint32]*block.Header),
 	)
 
 	prevRandSeed := []byte("prevrand")

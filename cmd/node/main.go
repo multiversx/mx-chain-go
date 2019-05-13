@@ -18,7 +18,9 @@ import (
 	"syscall"
 	"time"
 
+	block2 "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
@@ -858,6 +860,18 @@ func createMetaNode(
 		return nil, err
 	}
 
+	shardsGenesisBlocks, err := createGenesisBlocksOnShards(
+		genesisConfig,
+		shardCoordinator,
+		addressConverter,
+		accountFactory,
+		hasher,
+		marshalizer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	metaProcessor, err := block.NewMetaProcessor(
 		accountsAdapter,
 		metaDatapool,
@@ -866,7 +880,9 @@ func createMetaNode(
 		hasher,
 		marshalizer,
 		metaStore,
-		createRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
+		createRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic, log),
+		shardsGenesisBlocks,
+	)
 
 	if err != nil {
 		return nil, errors.New("could not create block processor: " + err.Error())
@@ -1439,4 +1455,62 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	}()
 
 	return nil
+}
+
+func createGenesisBlocksOnShards(
+	genesisConfig *sharding.Genesis,
+	shardCoordinator sharding.Coordinator,
+	addressConverter state.AddressConverter,
+	accountFactory state.AccountFactory,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+) (map[uint32]*block2.Header, error) {
+
+	shardsGenesisBlocks := make(map[uint32]*block2.Header)
+
+	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
+		accounts := generateInMemoryAccountsdapter(accountFactory, hasher, marshalizer)
+
+		newShardCoordinator, err := sharding.NewMultiShardCoordinator(shardId, shardCoordinator.NumberOfShards())
+		if err != nil {
+			return nil, err
+		}
+
+		initialBalances, err := genesisConfig.InitialNodesBalances(newShardCoordinator, addressConverter)
+		if err != nil {
+			return nil, err
+		}
+
+		genesisBlock, err := block.CreateGenesisBlockFromInitialBalances(
+			accounts,
+			newShardCoordinator,
+			addressConverter,
+			initialBalances,
+		)
+
+		shardsGenesisBlocks[shardId] = genesisBlock
+	}
+
+	return shardsGenesisBlocks, nil
+}
+
+func generateInMemoryAccountsdapter(
+	accountFactory state.AccountFactory,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+) state.AccountsAdapter {
+
+	dbw, _ := trie.NewDBWriteCache(createMemUnit())
+	tr, _ := trie.NewTrie(make([]byte, 32), dbw, hasher)
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, accountFactory)
+
+	return adb
+}
+
+func createMemUnit() storage.Storer {
+	cache, _ := storage.NewCache(storage.LRUCache, 10)
+	persist, _ := memorydb.New()
+
+	unit, _ := storage.NewStorageUnit(cache, persist)
+	return unit
 }
