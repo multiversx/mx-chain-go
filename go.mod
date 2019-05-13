@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
+	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/beevik/ntp v0.2.0
 	github.com/btcsuite/btcd v0.0.0-20190315201642-aa6e0f35703c
 	github.com/cornelk/hashmap v1.0.1-0.20190121140111-33e58823eb9d
