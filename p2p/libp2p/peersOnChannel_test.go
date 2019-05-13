@@ -66,12 +66,13 @@ func TestPeersOnChannel_ConnectedPeersOnChannelMissingTopicShouldTriggerFetchAnd
 
 	retPeerIDs := []peer.ID{"peer1", "peer2"}
 	testTopic := "test_topic"
-	wasFetchCalled := false
+	wasFetchCalled := atomic.Value{}
+	wasFetchCalled.Store(false)
 
 	poc, _ := newPeersOnChannel(
 		func(topic string) []peer.ID {
 			if topic == testTopic {
-				wasFetchCalled = true
+				wasFetchCalled.Store(true)
 				return retPeerIDs
 			}
 			return nil
@@ -82,7 +83,7 @@ func TestPeersOnChannel_ConnectedPeersOnChannelMissingTopicShouldTriggerFetchAnd
 
 	peers := poc.ConnectedPeersOnChannel(testTopic)
 
-	assert.True(t, wasFetchCalled)
+	assert.True(t, wasFetchCalled.Load().(bool))
 	for idx, pid := range retPeerIDs {
 		assert.Equal(t, []byte(pid), peers[idx].Bytes())
 	}
@@ -93,11 +94,12 @@ func TestPeersOnChannel_ConnectedPeersOnChannelFindTopicShouldReturn(t *testing.
 
 	retPeerIDs := []p2p.PeerID{"peer1", "peer2"}
 	testTopic := "test_topic"
-	wasFetchCalled := false
+	wasFetchCalled := atomic.Value{}
+	wasFetchCalled.Store(false)
 
 	poc, _ := newPeersOnChannel(
 		func(topic string) []peer.ID {
-			wasFetchCalled = true
+			wasFetchCalled.Store(true)
 			return nil
 		},
 		time.Second,
@@ -110,7 +112,7 @@ func TestPeersOnChannel_ConnectedPeersOnChannelFindTopicShouldReturn(t *testing.
 
 	peers := poc.ConnectedPeersOnChannel(testTopic)
 
-	assert.False(t, wasFetchCalled)
+	assert.False(t, wasFetchCalled.Load().(bool))
 	for idx, pid := range retPeerIDs {
 		assert.Equal(t, []byte(pid), peers[idx].Bytes())
 	}
