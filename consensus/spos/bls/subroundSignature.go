@@ -15,12 +15,12 @@ type subroundSignature struct {
 
 // NewSubroundSignature creates a subroundSignature object
 func NewSubroundSignature(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	)
 	if err != nil {
@@ -28,7 +28,7 @@ func NewSubroundSignature(
 	}
 
 	srSignature := subroundSignature{
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	}
 	srSignature.Job = srSignature.doSignatureJob
@@ -39,20 +39,20 @@ func NewSubroundSignature(
 }
 
 func checkNewSubroundSignatureParams(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
-	if subround == nil {
+	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
-	if subround.ConsensusState == nil {
+	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
 	if sendConsensusMessage == nil {
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
 }
@@ -69,17 +69,17 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	msg := consensus.NewConsensusMessage(
-		sr.GetData(),
-		sigPart,
-		[]byte(sr.SelfPubKey()),
-		nil,
-		int(MtSignature),
-		uint64(sr.Rounder().TimeStamp().Unix()),
-		sr.Rounder().Index())
-
 	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
 		//TODO: Check if it is possible to send message only to leader with O(1) instead of O(n)
+		msg := consensus.NewConsensusMessage(
+			sr.GetData(),
+			sigPart,
+			[]byte(sr.SelfPubKey()),
+			nil,
+			int(MtSignature),
+			uint64(sr.Rounder().TimeStamp().Unix()),
+			sr.Rounder().Index())
+
 		if !sr.sendConsensusMessage(msg) {
 			return false
 		}

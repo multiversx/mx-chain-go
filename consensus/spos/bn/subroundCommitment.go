@@ -15,13 +15,13 @@ type subroundCommitment struct {
 
 // NewSubroundCommitment creates a subroundCommitment object
 func NewSubroundCommitment(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundCommitment, error) {
 
 	err := checkNewSubroundCommitmentParams(
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	)
 
@@ -30,7 +30,7 @@ func NewSubroundCommitment(
 	}
 
 	srCommitment := subroundCommitment{
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	}
 
@@ -42,14 +42,14 @@ func NewSubroundCommitment(
 }
 
 func checkNewSubroundCommitmentParams(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
-	if subround == nil {
+	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 
-	if subround.ConsensusState == nil {
+	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
 
@@ -57,7 +57,7 @@ func checkNewSubroundCommitmentParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
 }

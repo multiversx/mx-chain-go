@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/common"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/commonSubround"
 )
 
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
@@ -107,7 +107,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
-	subroundStartRound, err := common.NewSubroundStartRound(
+	subroundStartRound, err := commonSubround.NewSubroundStartRound(
 		subround,
 		fct.worker.Extend,
 		processingThresholdPercent,
@@ -138,7 +138,7 @@ func (fct *factory) generateBlockSubround() error {
 		return err
 	}
 
-	subroundBlock, err := common.NewSubroundBlock(
+	subroundBlock, err := commonSubround.NewSubroundBlock(
 		subround,
 		fct.worker.SendConsensusMessage,
 		fct.worker.Extend,

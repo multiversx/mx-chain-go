@@ -37,9 +37,6 @@ func initConsensusState() *spos.ConsensusState {
 	rthr := spos.NewRoundThreshold()
 	rthr.SetThreshold(1, 1)
 	rthr.SetThreshold(2, PBFTThreshold)
-	rthr.SetThreshold(3, PBFTThreshold)
-	rthr.SetThreshold(4, PBFTThreshold)
-	rthr.SetThreshold(5, PBFTThreshold)
 
 	rstatus := spos.NewRoundStatus()
 	rstatus.ResetRoundStatus()
@@ -56,6 +53,8 @@ func initConsensusState() *spos.ConsensusState {
 }
 
 func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
+	t.Parallel()
+
 	bnService, _ := bls.NewConsensusService()
 	messages := bnService.InitReceivedMessages()
 
@@ -71,6 +70,8 @@ func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 }
 
 func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
+	t.Parallel()
+
 	var v []consensus.MessageType
 	blsService, _ := bls.NewConsensusService()
 
@@ -87,6 +88,7 @@ func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
 }
 
 func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyShouldWork(t *testing.T) {
+	t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -98,6 +100,7 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyShouldWork(t *te
 }
 
 func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyShouldNotWork(t *testing.T) {
+	t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -109,6 +112,7 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyShouldNotWork
 }
 
 func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockHeaderShouldWork(t *testing.T) {
+	t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -120,6 +124,7 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockHeaderShouldWork(t *
 }
 
 func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockHeaderShouldNotWork(t *testing.T) {
+	t.Parallel()
 
 	blsService, _ := bls.NewConsensusService()
 
@@ -127,6 +132,40 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockHeaderShouldNotWo
 	consensusState.SetStatus(bls.SrStartRound, spos.SsNotFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeader)
+	assert.False(t, canProceed)
+}
+
+func TestWorker_CanProceedWithSrBlockFinishedForMtBlockHeaderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	blsService, _ := bls.NewConsensusService()
+
+	consensusState := initConsensusState()
+	consensusState.SetStatus(bls.SrBlock, spos.SsFinished)
+
+	canProceed := blsService.CanProceed(consensusState, bls.MtSignature)
+	assert.True(t, canProceed)
+}
+
+func TestWorker_CanProceedWithSrBlockRoundNotFinishedForMtBlockHeaderShouldNotWork(t *testing.T) {
+	t.Parallel()
+
+	blsService, _ := bls.NewConsensusService()
+
+	consensusState := initConsensusState()
+	consensusState.SetStatus(bls.SrBlock, spos.SsNotFinished)
+
+	canProceed := blsService.CanProceed(consensusState, bls.MtSignature)
+	assert.False(t, canProceed)
+}
+
+func TestWorker_CanProceedWitUnkownMessageTypeShouldNotWork(t *testing.T) {
+	t.Parallel()
+
+	blsService, _ := bls.NewConsensusService()
+	consensusState := initConsensusState()
+
+	canProceed := blsService.CanProceed(consensusState, -1)
 	assert.False(t, canProceed)
 }
 
@@ -145,4 +184,21 @@ func TestWorker_GetSubroundName(t *testing.T) {
 	assert.Equal(t, "(END_ROUND)", r)
 	r = service.GetSubroundName(-1)
 	assert.Equal(t, "Undefined subround", r)
+}
+
+func TestWorker_GetStringValue(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	r := service.GetStringValue(bls.MtBlockBody)
+	assert.Equal(t, bls.BlockBodyStringValue, r)
+	r = service.GetStringValue(bls.MtBlockHeader)
+	assert.Equal(t, bls.BlockHeaderStringValue, r)
+	r = service.GetStringValue(bls.MtSignature)
+	assert.Equal(t, bls.BlockSignatureStringValue, r)
+	r = service.GetStringValue(bls.MtUnknown)
+	assert.Equal(t, bls.BlockUnknownStringValue, r)
+	r = service.GetStringValue(-1)
+	assert.Equal(t, bls.BlockDefaultStringValue, r)
 }

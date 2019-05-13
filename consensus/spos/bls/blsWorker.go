@@ -58,5 +58,5 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 		return consensusState.Status(SrBlock) == spos.SsFinished
 	}
 
-	return true
+	return false
 }

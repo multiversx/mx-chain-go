@@ -56,18 +56,26 @@ const srEndStartTime = 0.65
 // srEndEndTime specifies the end time, from the total time of the round, of Subround End
 const srEndEndTime = 0.75
 
+const (
+	BlockBodyStringValue      = "(BLOCK_BODY)"
+	BlockHeaderStringValue    = "(BLOCK_HEADER)"
+	BlockSignatureStringValue = "(SIGNATURE)"
+	BlockUnknownStringValue   = "(UNKNOWN)"
+	BlockDefaultStringValue   = "Undefined message type"
+)
+
 func getStringValue(msgType consensus.MessageType) string {
 	switch msgType {
 	case MtBlockBody:
-		return "(BLOCK_BODY)"
+		return BlockBodyStringValue
 	case MtBlockHeader:
-		return "(BLOCK_HEADER)"
+		return BlockHeaderStringValue
 	case MtSignature:
-		return "(SIGNATURE)"
+		return BlockSignatureStringValue
 	case MtUnknown:
-		return "(UNKNOWN)"
+		return BlockUnknownStringValue
 	default:
-		return "Undefined message type"
+		return BlockDefaultStringValue
 	}
 }
 

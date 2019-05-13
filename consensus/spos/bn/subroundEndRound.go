@@ -15,12 +15,12 @@ type subroundEndRound struct {
 
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 	extend func(subroundId int),
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
-		subround,
+		baseSubround,
 		broadcastBlock,
 	)
 	if err != nil {
@@ -28,7 +28,7 @@ func NewSubroundEndRound(
 	}
 
 	srEndRound := subroundEndRound{
-		subround,
+		baseSubround,
 		broadcastBlock,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
@@ -39,14 +39,14 @@ func NewSubroundEndRound(
 }
 
 func checkNewSubroundEndRoundParams(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 ) error {
-	if subround == nil {
+	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 
-	if subround.ConsensusState == nil {
+	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
 
@@ -54,7 +54,7 @@ func checkNewSubroundEndRoundParams(
 		return spos.ErrNilBroadcastBlockFunction
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
 }

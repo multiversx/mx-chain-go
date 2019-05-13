@@ -300,6 +300,9 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	container.SetMultiSigner(multiSignerMock)
 	sr.Header = &block.Header{}
 
+	sr.SetSelfPubKey("A")
+
+	assert.True(t, sr.ConsensusState.IsSelfLeaderInCurrentRound())
 	r := sr.DoEndRoundJob()
 	assert.False(t, r)
 }
@@ -309,6 +312,8 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container)
+	sr.SetSelfPubKey("A")
+
 	blProcMock := mock.InitBlockProcessorMock()
 	blProcMock.CommitBlockCalled = func(
 		blockChain data.ChainHandler,
@@ -323,6 +328,33 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 
 	r := sr.DoEndRoundJob()
 	assert.False(t, r)
+}
+
+func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundEndRound()
+	sr.SetSelfPubKey("A")
+	sr.SetBroadcastBlock(func(data.BodyHandler, data.HeaderHandler) error {
+		return spos.ErrNilBroadcastBlockFunction
+	})
+
+	sr.Header = &block.Header{}
+
+	r := sr.DoEndRoundJob()
+	assert.True(t, r)
+}
+
+func TestSubroundEndRound_DoEndRoundJobAllOK(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundEndRound()
+	sr.SetSelfPubKey("A")
+
+	sr.Header = &block.Header{}
+
+	r := sr.DoEndRoundJob()
+	assert.True(t, r)
 }
 
 func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {

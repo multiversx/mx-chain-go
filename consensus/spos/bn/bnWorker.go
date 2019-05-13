@@ -64,5 +64,5 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 		return consensusState.Status(SrBitmap) == spos.SsFinished
 	}
 
-	return true
+	return false
 }

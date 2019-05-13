@@ -1,4 +1,4 @@
-package common_test
+package commonSubround_test
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/common"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/commonSubround"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -39,8 +39,8 @@ func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool
 	)
 }
 
-func defaultSubroundBlockFromSubround(sr *spos.Subround) (*common.SubroundBlock, error) {
-	srBlock, err := common.NewSubroundBlock(
+func defaultSubroundBlockFromSubround(sr *spos.Subround) (*commonSubround.SubroundBlock, error) {
+	srBlock, err := commonSubround.NewSubroundBlock(
 		sr,
 		sendConsensusMessage,
 		extend,
@@ -53,7 +53,7 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (*common.SubroundBlock,
 	return srBlock, err
 }
 
-func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusCoreMock) *common.SubroundBlock {
+func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusCoreMock) *commonSubround.SubroundBlock {
 	if blockChain == nil {
 		blockChain = &mock.BlockChainMock{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
@@ -82,7 +82,7 @@ func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusCo
 	return srBlock
 }
 
-func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock, container *mock.ConsensusCoreMock) *common.
+func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock, container *mock.ConsensusCoreMock) *commonSubround.
 	SubroundBlock {
 	blockChain := &mock.BlockChainMock{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -110,7 +110,7 @@ func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock, container 
 func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	srBlock, err := common.NewSubroundBlock(
+	srBlock, err := commonSubround.NewSubroundBlock(
 		nil,
 		sendConsensusMessage,
 		extend,
@@ -266,7 +266,7 @@ func TestSubroundBlock_NewSubroundBlockNilSendConsensusMessageFunctionShouldFail
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
-	srBlock, err := common.NewSubroundBlock(
+	srBlock, err := commonSubround.NewSubroundBlock(
 		sr,
 		nil,
 		extend,

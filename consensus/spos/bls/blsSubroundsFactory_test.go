@@ -108,6 +108,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 	assert.Nil(t, fct)
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
+
 func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
 

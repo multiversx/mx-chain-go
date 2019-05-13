@@ -15,12 +15,12 @@ type subroundBitmap struct {
 
 // NewSubroundBitmap creates a subroundBitmap object
 func NewSubroundBitmap(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundBitmap, error) {
 	err := checkNewSubroundBitmapParams(
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	)
 	if err != nil {
@@ -28,7 +28,7 @@ func NewSubroundBitmap(
 	}
 
 	srBitmap := subroundBitmap{
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	}
 	srBitmap.Job = srBitmap.doBitmapJob
@@ -39,14 +39,14 @@ func NewSubroundBitmap(
 }
 
 func checkNewSubroundBitmapParams(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
-	if subround == nil {
+	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 
-	if subround.ConsensusState == nil {
+	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
 
@@ -54,7 +54,7 @@ func checkNewSubroundBitmapParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
 }

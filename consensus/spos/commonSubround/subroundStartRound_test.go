@@ -1,4 +1,4 @@
-package common_test
+package commonSubround_test
 
 import (
 	"errors"
@@ -7,13 +7,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/common"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/commonSubround"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (*common.SubroundStartRound, error) {
-	startRound, err := common.NewSubroundStartRound(
+func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (*commonSubround.SubroundStartRound, error) {
+	startRound, err := commonSubround.NewSubroundStartRound(
 		sr,
 		extend,
 		processingThresholdPercent,
@@ -38,11 +38,11 @@ func defaultSubround(consensusState *spos.ConsensusState, ch chan bool, containe
 	)
 }
 
-func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) *common.SubroundStartRound {
+func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) *commonSubround.SubroundStartRound {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubround(consensusState, ch, container)
-	srStartRound, _ := common.NewSubroundStartRound(
+	srStartRound, _ := commonSubround.NewSubroundStartRound(
 		sr,
 		extend,
 		processingThresholdPercent,
@@ -52,7 +52,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) *c
 	return srStartRound
 }
 
-func initSubroundStartRound() *common.SubroundStartRound {
+func initSubroundStartRound() *commonSubround.SubroundStartRound {
 	container := mock.InitConsensusCore()
 	return initSubroundStartRoundWithContainer(container)
 }
@@ -60,7 +60,7 @@ func initSubroundStartRound() *common.SubroundStartRound {
 func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	srStartRound, err := common.NewSubroundStartRound(
+	srStartRound, err := commonSubround.NewSubroundStartRound(
 		nil,
 		extend,
 		processingThresholdPercent,

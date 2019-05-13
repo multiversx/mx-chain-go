@@ -15,12 +15,12 @@ type subroundCommitmentHash struct {
 
 // NewSubroundCommitmentHash creates a subroundCommitmentHash object
 func NewSubroundCommitmentHash(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundCommitmentHash, error) {
 	err := checkNewSubroundCommitmentHashParams(
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	)
 	if err != nil {
@@ -28,7 +28,7 @@ func NewSubroundCommitmentHash(
 	}
 
 	srCommitmentHash := subroundCommitmentHash{
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	}
 	srCommitmentHash.Job = srCommitmentHash.doCommitmentHashJob
@@ -39,14 +39,14 @@ func NewSubroundCommitmentHash(
 }
 
 func checkNewSubroundCommitmentHashParams(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
-	if subround == nil {
+	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 
-	if subround.ConsensusState == nil {
+	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
 
@@ -54,7 +54,7 @@ func checkNewSubroundCommitmentHashParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
 }

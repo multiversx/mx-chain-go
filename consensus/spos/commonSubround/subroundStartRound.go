@@ -1,12 +1,16 @@
-package common
+package commonSubround
 
 import (
 	"encoding/hex"
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
+
+var log = logger.DefaultLogger()
 
 // SubroundStartRound defines the data needed by the subround StartRound
 type SubroundStartRound struct {
@@ -17,20 +21,20 @@ type SubroundStartRound struct {
 
 // NewSubroundStartRound creates a SubroundStartRound object
 func NewSubroundStartRound(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	extend func(subroundId int),
 	processingThresholdPercentage int,
 	getSubroundName func(subroundId int) string,
 ) (*SubroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
-		subround,
+		baseSubround,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	srStartRound := SubroundStartRound{
-		subround,
+		baseSubround,
 		processingThresholdPercentage,
 		getSubroundName,
 	}
@@ -42,17 +46,17 @@ func NewSubroundStartRound(
 }
 
 func checkNewSubroundStartRoundParams(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 ) error {
-	if subround == nil {
+	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 
-	if subround.ConsensusState == nil {
+	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
 }

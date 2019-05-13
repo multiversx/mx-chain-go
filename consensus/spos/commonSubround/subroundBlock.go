@@ -1,4 +1,4 @@
-package common
+package commonSubround
 
 import (
 	"encoding/base64"
@@ -26,7 +26,7 @@ type SubroundBlock struct {
 
 // NewSubroundBlock creates a SubroundBlock object
 func NewSubroundBlock(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 	mtBlockBody int,
@@ -35,7 +35,7 @@ func NewSubroundBlock(
 	getSubroundName func(subroundId int) string,
 ) (*SubroundBlock, error) {
 	err := checkNewSubroundBlockParams(
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	)
 	if err != nil {
@@ -43,7 +43,7 @@ func NewSubroundBlock(
 	}
 
 	srBlock := SubroundBlock{
-		subround,
+		baseSubround,
 		mtBlockBody,
 		mtBlockHeader,
 		processingThresholdPercentage,
@@ -59,14 +59,14 @@ func NewSubroundBlock(
 }
 
 func checkNewSubroundBlockParams(
-	subround *spos.Subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
-	if subround == nil {
+	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 
-	if subround.ConsensusState == nil {
+	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
 
@@ -74,7 +74,7 @@ func checkNewSubroundBlockParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
 }
