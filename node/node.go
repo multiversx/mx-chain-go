@@ -91,6 +91,7 @@ type Node struct {
 	shardCoordinator sharding.Coordinator
 
 	consensusTopic string
+	consensusBls   bool
 
 	isRunning bool
 }

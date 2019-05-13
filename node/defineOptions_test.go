@@ -752,3 +752,15 @@ func TestWithResolversContainer_NilContainerShouldErr(t *testing.T) {
 	assert.Nil(t, node.resolversFinder)
 	assert.Equal(t, ErrNilResolversFinder, err)
 }
+
+func TestWithConsensusBls_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithConsensusBls(true)
+	err := opt(node)
+
+	assert.True(t, node.consensusBls)
+	assert.Nil(t, err)
+}

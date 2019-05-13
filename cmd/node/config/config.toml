@@ -146,3 +146,7 @@
    MinTimeToWaitBetweenBroadcastsInSec = 20
    MaxTimeToWaitBetweenBroadcastsInSec = 25
    DurationInSecToConsiderUnresponsive = 60
+
+# ConsensusBls, if enabled, the BLS consensus will be used, otherwise Belare & Naven
+[ConsensusBls]
+   Enabled = false

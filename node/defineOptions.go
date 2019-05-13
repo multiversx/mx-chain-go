@@ -330,3 +330,11 @@ func WithResolversFinder(resolversFinder dataRetriever.ResolversFinder) Option {
 		return nil
 	}
 }
+
+// WithConsensusBls sets up the consensus type option for the Node
+func WithConsensusBls(consensusBls bool) Option {
+	return func(n *Node) error {
+		n.consensusBls = consensusBls
+		return nil
+	}
+}

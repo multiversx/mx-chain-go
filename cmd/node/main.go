@@ -18,8 +18,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
@@ -29,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+	llsig "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -56,6 +55,7 @@ import (
 	factoryP2P "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
@@ -73,6 +73,7 @@ const (
 	defaultLogPath     = "logs"
 	defaultStatsPath   = "stats"
 	metachainShardName = "metachain"
+	blsHashSize = 16
 )
 
 var (
@@ -98,10 +99,22 @@ VERSION:
 		Usage: "The node will extract bootstrapping info from the genesis.json",
 		Value: "genesis.json",
 	}
+	// nodesFile defines a flag for the path of the initial nodes file.
+	nodesFile = cli.StringFlag{
+		Name:  "nodes-file",
+		Usage: "The node will extract initial nodes info from the nodes.json",
+		Value: "nodes.json",
+	}
 	// privateKey defines a flag for the path of the private key used when starting the node
 	privateKey = cli.StringFlag{
 		Name:  "private-key",
 		Usage: "Private key that the node will load on startup and will sign transactions - temporary until we have a wallet that can do that",
+		Value: "",
+	}
+	// blsPrivateKey defines a flag for the path of the bls private key used when starting the node
+	blsPrivateKey = cli.StringFlag{
+		Name:  "bls-private-key",
+		Usage: "Bls private key that the node will load on startup",
 		Value: "",
 	}
 	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
@@ -201,7 +214,7 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, port, privateKey, profileMode, privateKeyIndex, blsPrivateKeyIndex}
+	app.Flags = []cli.Flag{genesisFile, nodesFile, port, privateKey, blsPrivateKey, profileMode, privateKeyIndex, blsPrivateKeyIndex}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -270,18 +283,23 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(genesisFile.Name)))
 
+	nodesConfig, err := sharding.NewNodesConfig(ctx.GlobalString(nodesFile.Name))
+	if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("Initialized with nodes config from: %s", ctx.GlobalString(nodesFile.Name)))
+
 	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
 	go syncer.StartSync()
 
-	// TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded)
-	//  timestamp
-	if genesisConfig.StartTime == 0 {
+	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
+	if nodesConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
 		ntpTime := syncer.CurrentTime()
-		genesisConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
+		nodesConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
 	}
 
-	startTime := time.Unix(genesisConfig.StartTime, 0)
+	startTime := time.Unix(nodesConfig.StartTime, 0)
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
 
 	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
@@ -289,7 +307,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	shardCoordinator, err := createShardCoordinator(genesisConfig, pubKey, generalConfig.GeneralSettings, log)
+	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
 	}
@@ -297,14 +315,14 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	var currentNode *node.Node
 	var tpsBenchmark *statistics.TpsBenchmark
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		currentNode, tpsBenchmark, err = createShardNode(ctx, generalConfig, genesisConfig, p2pConfig, syncer, keyGen, privKey, pubKey, shardCoordinator, log)
+		currentNode, tpsBenchmark, err = createShardNode(ctx, generalConfig, genesisConfig, nodesConfig, p2pConfig, syncer, keyGen, privKey, pubKey, shardCoordinator, log)
 		if err != nil {
 			return err
 		}
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		currentNode, err = createMetaNode(ctx, generalConfig, genesisConfig, p2pConfig, syncer, keyGen, privKey, pubKey, shardCoordinator, log)
+		currentNode, err = createMetaNode(ctx, generalConfig, nodesConfig, p2pConfig, syncer, keyGen, privKey, pubKey, shardCoordinator, log)
 		if err != nil {
 			return err
 		}
@@ -359,7 +377,7 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 }
 
 func createShardCoordinator(
-	genesisConfig *sharding.Genesis,
+	nodesConfig *sharding.Nodes,
 	pubKey crypto.PublicKey,
 	settingsConfig config.GeneralSettingsConfig,
 	log *logger.Logger,
@@ -374,7 +392,7 @@ func createShardCoordinator(
 		return nil, err
 	}
 
-	selfShardId, err := genesisConfig.GetShardIDForPubKey(publicKey)
+	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
 	if err == sharding.ErrNoValidPublicKey {
 		log.Info("Starting as observer node...")
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
@@ -391,7 +409,7 @@ func createShardCoordinator(
 	}
 	log.Info(fmt.Sprintf("Starting in shard: %s", shardName))
 
-	shardCoordinator, err = sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
+	shardCoordinator, err = sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -416,10 +434,33 @@ func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConf
 	return uint32(val), err
 }
 
+func createMultiSigner(
+	config *config.Config,
+	hasher hashing.Hasher,
+	pubKeys []string,
+	privateKey crypto.PrivateKey,
+	privateKeyBls crypto.PrivateKey,
+	keyGenerator crypto.KeyGenerator,
+	) (crypto.MultiSigner, error) {
+
+	if config.ConsensusBls.Enabled {
+		suite := kyber.NewSuitePairingBn256()
+		keyGeneratorBls := signing.NewKeyGenerator(suite)
+		llSigner := &llsig.KyberMultiSignerBLS{}
+		multiSigner, err := multisig.NewBLSMultisig(llSigner, hasher, pubKeys, privateKeyBls, keyGeneratorBls, uint16(0))
+		return multiSigner, err
+	}
+
+	multiSigner, err := multisig.NewBelNevMultisig(hasher, pubKeys, privateKey, keyGenerator, uint16(0))
+
+	return multiSigner, err
+}
+
 func createShardNode(
 	ctx *cli.Context,
 	config *config.Config,
 	genesisConfig *sharding.Genesis,
+	nodesConfig *sharding.Nodes,
 	p2pConfig *config.P2PConfig,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
@@ -459,7 +500,7 @@ func createShardNode(
 		return nil, nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	initialPubKeys := genesisConfig.InitialNodesPubKeys()
+	initialPubKeys := nodesConfig.InitialNodesPubKeys()
 
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
@@ -526,12 +567,12 @@ func createShardNode(
 		return nil, nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
-	currentShardPubKeys, err := genesisConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
+	currentShardPubKeys, err := nodesConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
 	if err != nil {
 		return nil, nil, errors.New("could not start creation of multisigner: " + err.Error())
 	}
 
-	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, currentShardPubKeys, privKey, keyGen, uint16(0))
+	multisigner, err := createMultiSigner(config, multisigHasher, currentShardPubKeys, privKey, blsPrivateKey, keyGen)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -548,7 +589,7 @@ func createShardNode(
 		return nil, nil, err
 	}
 
-	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration/1000)
+	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), nodesConfig.RoundDuration/1000)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -601,9 +642,9 @@ func createShardNode(
 	}
 
 	rounder, err := round.NewRound(
-		time.Unix(genesisConfig.StartTime, 0),
+		time.Unix(nodesConfig.StartTime, 0),
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(genesisConfig.RoundDuration),
+		time.Millisecond*time.Duration(nodesConfig.RoundDuration),
 		syncer)
 	if err != nil {
 		return nil, nil, err
@@ -641,11 +682,11 @@ func createShardNode(
 		node.WithAccountsAdapter(accountsAdapter),
 		node.WithBlockChain(blkc),
 		node.WithDataStore(store),
-		node.WithRoundDuration(genesisConfig.RoundDuration),
-		node.WithConsensusGroupSize(int(genesisConfig.ConsensusGroupSize)),
+		node.WithRoundDuration(nodesConfig.RoundDuration),
+		node.WithConsensusGroupSize(int(nodesConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(blockProcessor),
-		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
+		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(rounder),
 		node.WithDataPool(datapool),
 		node.WithShardCoordinator(shardCoordinator),
@@ -660,6 +701,7 @@ func createShardNode(
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
+		node.WithConsensusBls(config.ConsensusBls.Enabled),
 	)
 
 	if err != nil {
@@ -682,7 +724,7 @@ func createShardNode(
 func createMetaNode(
 	ctx *cli.Context,
 	config *config.Config,
-	genesisConfig *sharding.Genesis,
+	nodesConfig *sharding.Nodes,
 	p2pConfig *config.P2PConfig,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
@@ -722,7 +764,7 @@ func createMetaNode(
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	initialPubKeys := genesisConfig.InitialNodesPubKeys()
+	initialPubKeys := nodesConfig.InitialNodesPubKeys()
 
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
@@ -779,12 +821,12 @@ func createMetaNode(
 		return nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
-	currentShardPubKeys, err := genesisConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
+	currentShardPubKeys, err := nodesConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
 	if err != nil {
 		return nil, errors.New("could not start creation of multisigner: " + err.Error())
 	}
 
-	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, currentShardPubKeys, privKey, keyGen, uint16(0))
+	multisigner, err := createMultiSigner(config, multisigHasher, currentShardPubKeys, privKey, blsPrivateKey, keyGen)
 	if err != nil {
 		return nil, err
 	}
@@ -845,9 +887,9 @@ func createMetaNode(
 	}
 
 	rounder, err := round.NewRound(
-		time.Unix(genesisConfig.StartTime, 0),
+		time.Unix(nodesConfig.StartTime, 0),
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(genesisConfig.RoundDuration),
+		time.Millisecond*time.Duration(nodesConfig.RoundDuration),
 		syncer)
 	if err != nil {
 		return nil, err
@@ -881,11 +923,11 @@ func createMetaNode(
 		node.WithAccountsAdapter(accountsAdapter),
 		node.WithBlockChain(metaChain),
 		node.WithDataStore(metaStore),
-		node.WithRoundDuration(genesisConfig.RoundDuration),
-		node.WithConsensusGroupSize(int(genesisConfig.MetaChainConsensusGroupSize)),
+		node.WithRoundDuration(nodesConfig.RoundDuration),
+		node.WithConsensusGroupSize(int(nodesConfig.MetaChainConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(metaProcessor),
-		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
+		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(rounder),
 		node.WithMetaDataPool(metaDatapool),
 		node.WithShardCoordinator(shardCoordinator),
@@ -900,6 +942,7 @@ func createMetaNode(
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
+		node.WithConsensusBls(config.ConsensusBls.Enabled),
 	)
 
 	if err != nil {
@@ -1084,6 +1127,9 @@ func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	case "sha256":
 		return sha256.Sha256{}, nil
 	case "blake2b":
+		if cfg.ConsensusBls.Enabled {
+			return blake2b.Blake2b{HashSize: blsHashSize}, nil
+		}
 		return blake2b.Blake2b{}, nil
 	}
 
