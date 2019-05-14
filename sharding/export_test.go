@@ -12,20 +12,20 @@ func (g *Genesis) ProcessConfig() error {
 	return g.processConfig()
 }
 
-func (n *Nodes) ProcessConfig() error {
-	return n.processConfig()
+func (ns *NodesSetup) ProcessConfig() error {
+	return ns.processConfig()
 }
 
-func (n *Nodes) ProcessShardAssignment() {
-	n.processShardAssignment()
+func (ns *NodesSetup) ProcessShardAssignment() {
+	ns.processShardAssignment()
 }
 
-func (n *Nodes) ProcessMetaChainAssigment() {
-	n.processMetaChainAssigment()
+func (ns *NodesSetup) ProcessMetaChainAssigment() {
+	ns.processMetaChainAssigment()
 }
 
-func (n *Nodes) CreateInitialNodesPubKeys() {
-	n.createInitialNodesPubKeys()
+func (ns *NodesSetup) CreateInitialNodesPubKeys() {
+	ns.createInitialNodesPubKeys()
 }
 
 func CommunicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) string {

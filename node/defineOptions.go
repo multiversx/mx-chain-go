@@ -94,30 +94,41 @@ func WithDataStore(store dataRetriever.StorageService) Option {
 	}
 }
 
-// WithPrivateKey sets up the private key option for the Node
-func WithPrivateKey(sk crypto.PrivateKey) Option {
+// WithSingleSignPrivKey sets up the single sign private key option for the Node
+func WithSingleSignPrivKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
 		if sk == nil {
 			return ErrNilPrivateKey
 		}
-		n.privateKey = sk
+		n.singleSignPrivKey = sk
 		return nil
 	}
 }
 
-// WithBlsPrivateKey sets up the BLS private key option for the Node
-func WithBlsPrivateKey(sk crypto.PrivateKey) Option {
+// WithPubKey sets up the multi sign pub key option for the Node
+func WithPubKey(pk crypto.PublicKey) Option {
+	return func(n *Node) error {
+		if pk == nil {
+			return ErrNilPublicKey
+		}
+		n.pubKey = pk
+		return nil
+	}
+}
+
+// WithPrivKey sets up the multi sign private key option for the Node
+func WithPrivKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
 		if sk == nil {
 			return ErrNilPrivateKey
 		}
-		n.blsPrivateKey = sk
+		n.privKey = sk
 		return nil
 	}
 }
 
-// WithKeyGenerator sets up the single sign key generator option for the Node
-func WithKeyGenerator(keyGen crypto.KeyGenerator) Option {
+// WithSingleSignKeyGen sets up the single sign key generator option for the Node
+func WithSingleSignKeyGen(keyGen crypto.KeyGenerator) Option {
 	return func(n *Node) error {
 		if keyGen == nil {
 			return ErrNilSingleSignKeyGen
@@ -135,14 +146,14 @@ func WithInitialNodesPubKeys(pubKeys map[uint32][]string) Option {
 	}
 }
 
-// WithPublicKey sets up the public key option for the Node
-func WithPublicKey(pk crypto.PublicKey) Option {
+// WithSingleSignPubKey sets up the single sign public key option for the Node
+func WithSingleSignPubKey(pk crypto.PublicKey) Option {
 	return func(n *Node) error {
 		if pk == nil {
 			return ErrNilPublicKey
 		}
 
-		n.publicKey = pk
+		n.singleSignPubKey = pk
 		return nil
 	}
 }
@@ -265,40 +276,40 @@ func WithInitialNodesBalances(balances map[string]*big.Int) Option {
 	}
 }
 
-// WithSinglesig sets up the singlesig option for the Node
-func WithSinglesig(singlesig crypto.SingleSigner) Option {
+// WithSchnorrSingleSigner sets up a schnorrSingleSigner option for the Node
+func WithSchnorrSingleSigner(singleSigner crypto.SingleSigner) Option {
 	return func(n *Node) error {
-		if singlesig == nil {
+		if singleSigner == nil {
 			return ErrNilSingleSig
 		}
-		n.singlesig = singlesig
+		n.schnorrSingleSigner = singleSigner
 		return nil
 	}
 }
 
-// WithBlsSinglesig sets up the singlesig option for the Node
-func WithBlsSinglesig(singlesig crypto.SingleSigner) Option {
+// WithSingleSigner sets up a singleSigner option for the Node
+func WithSingleSigner(singleSigner crypto.SingleSigner) Option {
 	return func(n *Node) error {
-		if singlesig == nil {
+		if singleSigner == nil {
 			return ErrNilSingleSig
 		}
-		n.blsSinglesig = singlesig
+		n.singleSigner = singleSigner
 		return nil
 	}
 }
 
-// WithMultisig sets up the multisig option for the Node
-func WithMultisig(multisig crypto.MultiSigner) Option {
+// WithMultiSigner sets up the multiSigner option for the Node
+func WithMultiSigner(multiSigner crypto.MultiSigner) Option {
 	return func(n *Node) error {
-		if multisig == nil {
+		if multiSigner == nil {
 			return ErrNilMultiSig
 		}
-		n.multisig = multisig
+		n.multiSigner = multiSigner
 		return nil
 	}
 }
 
-// WithForkDetector sets up the multisig option for the Node
+// WithForkDetector sets up the multiSigner option for the Node
 func WithForkDetector(forkDetector process.ForkDetector) Option {
 	return func(n *Node) error {
 		if forkDetector == nil {
@@ -331,10 +342,10 @@ func WithResolversFinder(resolversFinder dataRetriever.ResolversFinder) Option {
 	}
 }
 
-// WithConsensusBls sets up the consensus type option for the Node
-func WithConsensusBls(consensusBls bool) Option {
+// WithConsensusType sets up the consensus type option for the Node
+func WithConsensusType(consensusType string) Option {
 	return func(n *Node) error {
-		n.consensusBls = consensusBls
+		n.consensusType = consensusType
 		return nil
 	}
 }

@@ -94,7 +94,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	fmt.Println("Delaying for disseminating miniblocks and header...")
 	time.Sleep(time.Second * 5)
 
-	fmt.Println("Step 7. Nodes from proposer's shard will have to successfully process the block sent by the proposer...")
+	fmt.Println("Step 7. NodesSetup from proposer's shard will have to successfully process the block sent by the proposer...")
 	fmt.Println(makeDisplayTable(nodes))
 	for _, n := range nodes {
 		isNodeInSenderShardAndNotProposer := n.shardId == senderShard && n != proposerNode
@@ -147,7 +147,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
 
-	fmt.Println("Step 10. Nodes from receivers shards will have to successfully process the block sent by their proposer...")
+	fmt.Println("Step 10. NodesSetup from receivers shards will have to successfully process the block sent by their proposer...")
 	fmt.Println(makeDisplayTable(nodes))
 	for _, n := range nodes {
 		isNodeInReceiverShardAndNotProposer := false

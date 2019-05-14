@@ -176,7 +176,7 @@ func TestWithDataStore_NilStoreShouldErr(t *testing.T) {
 	opt := WithDataStore(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.privateKey)
+	assert.Nil(t, node.singleSignPrivKey)
 	assert.Equal(t, ErrNilStore, err)
 }
 
@@ -199,10 +199,10 @@ func TestWithPrivateKey_NilPrivateKeyShouldErr(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithPrivateKey(nil)
+	opt := WithSingleSignPrivKey(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.privateKey)
+	assert.Nil(t, node.singleSignPrivKey)
 	assert.Equal(t, ErrNilPrivateKey, err)
 }
 
@@ -213,10 +213,10 @@ func TestWithPrivateKey_ShouldWork(t *testing.T) {
 
 	sk := &mock.PrivateKeyStub{}
 
-	opt := WithPrivateKey(sk)
+	opt := WithSingleSignPrivKey(sk)
 	err := opt(node)
 
-	assert.True(t, node.privateKey == sk)
+	assert.True(t, node.singleSignPrivKey == sk)
 	assert.Nil(t, err)
 }
 
@@ -225,10 +225,10 @@ func TestWithPrivateKey_NilBlsPrivateKeyShouldErr(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithBlsPrivateKey(nil)
+	opt := WithPrivKey(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.blsPrivateKey)
+	assert.Nil(t, node.privKey)
 	assert.Equal(t, ErrNilPrivateKey, err)
 }
 
@@ -239,10 +239,10 @@ func TestWithBlsPrivateKey_ShouldWork(t *testing.T) {
 
 	sk := &mock.PrivateKeyStub{}
 
-	opt := WithBlsPrivateKey(sk)
+	opt := WithPrivKey(sk)
 	err := opt(node)
 
-	assert.True(t, node.blsPrivateKey == sk)
+	assert.True(t, node.privKey == sk)
 	assert.Nil(t, err)
 }
 
@@ -251,7 +251,7 @@ func TestWithSingleSignKeyGenerator_NilPrivateKeyShouldErr(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithKeyGenerator(nil)
+	opt := WithSingleSignKeyGen(nil)
 	err := opt(node)
 
 	assert.Nil(t, node.singleSignKeyGen)
@@ -265,7 +265,7 @@ func TestWithSingleSignKeyGenerator_ShouldWork(t *testing.T) {
 
 	keyGen := &mock.KeyGenMock{}
 
-	opt := WithKeyGenerator(keyGen)
+	opt := WithSingleSignKeyGen(keyGen)
 	err := opt(node)
 
 	assert.True(t, node.singleSignKeyGen == keyGen)
@@ -307,10 +307,10 @@ func TestWithPublicKey_NilPublicKeyShouldErr(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithPublicKey(nil)
+	opt := WithSingleSignPubKey(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.publicKey)
+	assert.Nil(t, node.singleSignPubKey)
 	assert.Equal(t, ErrNilPublicKey, err)
 }
 
@@ -321,10 +321,10 @@ func TestWithPublicKey_ShouldWork(t *testing.T) {
 
 	pk := &mock.PublicKeyMock{}
 
-	opt := WithPublicKey(pk)
+	opt := WithSingleSignPubKey(pk)
 	err := opt(node)
 
-	assert.True(t, node.publicKey == pk)
+	assert.True(t, node.singleSignPubKey == pk)
 	assert.Nil(t, err)
 }
 
@@ -598,15 +598,41 @@ func TestWithInitialNodesBalances_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithSinglesig_NilSinglesigShouldErr(t *testing.T) {
+func TestWithShnorrSinglesig_NilSinglesigShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithSinglesig(nil)
+	opt := WithSchnorrSingleSigner(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.singlesig)
+	assert.Nil(t, node.schnorrSingleSigner)
+	assert.Equal(t, ErrNilSingleSig, err)
+}
+
+func TestWithSchnorrSinglesig_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	singlesigner := &mock.SinglesignMock{}
+
+	opt := WithSchnorrSingleSigner(singlesigner)
+	err := opt(node)
+
+	assert.True(t, node.schnorrSingleSigner == singlesigner)
+	assert.Nil(t, err)
+}
+
+func TestWithSinglesig_NilBlsSinglesigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithSingleSigner(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.singleSigner)
 	assert.Equal(t, ErrNilSingleSig, err)
 }
 
@@ -617,36 +643,10 @@ func TestWithSinglesig_ShouldWork(t *testing.T) {
 
 	singlesigner := &mock.SinglesignMock{}
 
-	opt := WithSinglesig(singlesigner)
+	opt := WithSingleSigner(singlesigner)
 	err := opt(node)
 
-	assert.True(t, node.singlesig == singlesigner)
-	assert.Nil(t, err)
-}
-
-func TestWithBlsSinglesig_NilBlsSinglesigShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithBlsSinglesig(nil)
-	err := opt(node)
-
-	assert.Nil(t, node.blsSinglesig)
-	assert.Equal(t, ErrNilSingleSig, err)
-}
-
-func TestWithBlsSinglesig_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	singlesigner := &mock.SinglesignMock{}
-
-	opt := WithBlsSinglesig(singlesigner)
-	err := opt(node)
-
-	assert.True(t, node.blsSinglesig == singlesigner)
+	assert.True(t, node.singleSigner == singlesigner)
 	assert.Nil(t, err)
 }
 
@@ -655,10 +655,10 @@ func TestWithMultisig_NilMultisigShouldErr(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithMultisig(nil)
+	opt := WithMultiSigner(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.multisig)
+	assert.Nil(t, node.multiSigner)
 	assert.Equal(t, ErrNilMultiSig, err)
 }
 
@@ -669,10 +669,10 @@ func TestWithMultisig_ShouldWork(t *testing.T) {
 
 	multisigner := &mock.MultisignMock{}
 
-	opt := WithMultisig(multisigner)
+	opt := WithMultiSigner(multisigner)
 	err := opt(node)
 
-	assert.True(t, node.multisig == multisigner)
+	assert.True(t, node.multiSigner == multisigner)
 	assert.Nil(t, err)
 }
 
@@ -758,9 +758,10 @@ func TestWithConsensusBls_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithConsensusBls(true)
+	consensusType := "bls"
+	opt := WithConsensusType(consensusType)
 	err := opt(node)
 
-	assert.True(t, node.consensusBls)
+	assert.Equal(t, consensusType, node.consensusType)
 	assert.Nil(t, err)
 }

@@ -147,6 +147,6 @@
    MaxTimeToWaitBetweenBroadcastsInSec = 25
    DurationInSecToConsiderUnresponsive = 60
 
-# ConsensusBls, if enabled, the BLS consensus will be used, otherwise Belare & Naven
-[ConsensusBls]
-   Enabled = false
+# Consensus type which will be used (the current implementation can manage "bn" and "bls")
+[Consensus]
+   Type = "bls"

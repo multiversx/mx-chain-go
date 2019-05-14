@@ -77,7 +77,7 @@ type Config struct {
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
-	ConsensusBls    ConsensusBlsConfig
+	Consensus       TypeConfig
 }
 
 // NodeConfig will hold basic p2p settings
@@ -125,9 +125,4 @@ type HeartbeatConfig struct {
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
-}
-
-// ConsensusBlsConfig will hold the consensus BLS settings
-type ConsensusBlsConfig struct {
-	Enabled bool
 }
