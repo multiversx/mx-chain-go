@@ -295,7 +295,7 @@ func TestConsensusBlockProcessorNotEnoughValidators(t *testing.T) {
 	numNodes := uint32(21)
 	consensusSize := uint32(21)
 	numInvalid := uint32(7)
-	roundTime := uint64(2000)
+	roundTime := uint64(4000)
 	nodes, advertiser := initNodesWithBlockProcessor(numNodes, consensusSize, numInvalid, roundTime, 0)
 
 	defer func() {
@@ -414,7 +414,7 @@ func TestConsensusMetaProcessorNotEnoughValidators(t *testing.T) {
 	numNodes := uint32(21)
 	consensusSize := uint32(21)
 	numInvalid := uint32(7)
-	roundTime := uint64(2000)
+	roundTime := uint64(4000)
 	shardId := sharding.MetachainShardId
 	nodes, advertiser := initNodesWithBlockProcessor(numNodes, consensusSize, numInvalid, roundTime, shardId)
 

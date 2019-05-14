@@ -299,74 +299,6 @@ func TestConsensusMultisigFullConsensus(t *testing.T) {
 	}
 }
 
-func TestConsensusWithMultiSigTestValidatorsAtLimit(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	numNodes := uint32(21)
-	consensusSize := uint32(21)
-	numInvalid := uint32(6)
-	roundTime := uint64(4000)
-	numCommBlock := uint32(10)
-	nodes, advertiser, _ := initNodesWithMultiSigAndTest(numNodes, consensusSize, numInvalid, roundTime, numCommBlock)
-
-	defer func() {
-		advertiser.Close()
-		for _, n := range nodes {
-			n.node.Stop()
-		}
-	}()
-
-	// delay for bootstrapping and topic announcement
-	fmt.Println("Start consensus...")
-	time.Sleep(time.Second * 1)
-
-	combinedMap := make(map[uint64]uint32)
-	totalCalled := 0
-	mutex := &sync.Mutex{}
-	maxNonce := uint64(0)
-	minNonce := ^uint64(0)
-	for _, n := range nodes {
-		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
-			n.blkProcessor.NrCommitBlockCalled++
-			_ = blockChain.SetCurrentBlockHeader(header)
-			_ = blockChain.SetCurrentBlockBody(body)
-
-			mutex.Lock()
-			combinedMap[header.GetNonce()] = header.GetRound()
-			totalCalled += 1
-
-			if maxNonce < header.GetNonce() {
-				maxNonce = header.GetNonce()
-			}
-
-			if minNonce < header.GetNonce() {
-				minNonce = header.GetNonce()
-			}
-
-			mutex.Unlock()
-
-			return nil
-		}
-		_ = n.node.StartConsensus()
-	}
-
-	time.Sleep(time.Second * 20)
-	chDone := make(chan bool, 0)
-	go checkBlockProposedForEachNonce(numCommBlock, combinedMap, &minNonce, &maxNonce, mutex, chDone, t)
-
-	select {
-	case <-chDone:
-	case <-time.After(180 * time.Second):
-		mutex.Lock()
-		fmt.Println("combined map: \n", combinedMap)
-		assert.Fail(t, "consensus too slow, not working %d %d")
-		mutex.Unlock()
-		return
-	}
-}
-
 func TestConsensusMultiSignNotEnoughValidators(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -375,7 +307,7 @@ func TestConsensusMultiSignNotEnoughValidators(t *testing.T) {
 	numNodes := uint32(21)
 	consensusSize := uint32(21)
 	numInvalid := uint32(7)
-	roundTime := uint64(2000)
+	roundTime := uint64(4000)
 	nodes, advertiser, _ := initNodesWithMultiSigAndTest(numNodes, consensusSize, numInvalid, roundTime, 10)
 
 	defer func() {
