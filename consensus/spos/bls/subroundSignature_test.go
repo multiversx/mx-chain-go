@@ -3,8 +3,6 @@ package bls_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bls"
@@ -260,63 +258,101 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestSubroundSignature_DoSignatureJob(t *testing.T) {
-	t.Parallel()
-
-	container := mock.InitConsensusCore()
-	sr := *initSubroundSignatureWithContainer(container)
-
-	sr.SetSelfPubKey(sr.ConsensusGroup()[1])
-
-	//sr.SetStatus(bls.SrBlock, spos.SsNotFinished)
-	//sr.SetStatus(bls.SrSignature, spos.SsNotFinished)
-
-	r := sr.DoSignatureJob()
-	assert.False(t, r)
-
-	sr.SetStatus(bls.SrBlock, spos.SsFinished)
-	sr.SetStatus(bls.SrSignature, spos.SsFinished)
-
-	r = sr.DoSignatureJob()
-	assert.False(t, r)
-
-	sr.SetStatus(bls.SrSignature, spos.SsNotFinished)
-	sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, true)
-
-	r = sr.DoSignatureJob()
-	assert.False(t, r)
-
-	sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, false)
-
-	r = sr.DoSignatureJob()
-	assert.False(t, r)
-
-	//sr.SetJobDone(sr.SelfPubKey(), bls.SrBitmap, true)
-	sr.Data = nil
-
-	r = sr.DoSignatureJob()
-	assert.False(t, r)
-
-	dta := []byte("X")
-	sr.Data = dta
-	sr.Header = &block.Header{}
-
-	multiSignerMock := mock.InitMultiSignerMock()
-
-	multiSignerMock.CommitmentMock = func(uint16) ([]byte, error) {
-		return dta, nil
-	}
-
-	multiSignerMock.CommitmentHashMock = func(uint16) ([]byte, error) {
-		return mock.HasherMock{}.Compute(string(dta)), nil
-	}
-
-	container.SetMultiSigner(multiSignerMock)
-
-	sr.SetJobDone(sr.SelfPubKey(), bls.SrBlock, true)
-	r = sr.DoSignatureJob()
-	assert.True(t, r)
-}
+//
+//func TestSubroundSignature_DoSignatureJob(t *testing.T) {
+//	t.Parallel()
+//
+//	container := mock.InitConsensusCore()
+//	sr := *initSubroundSignatureWithContainer(container)
+//
+//	sr.SetSelfPubKey(sr.ConsensusGroup()[1])
+//
+//	//sr.SetStatus(bls.SrBlock, spos.SsNotFinished)
+//	//sr.SetStatus(bls.SrSignature, spos.SsNotFinished)
+//
+//	r := sr.DoSignatureJob()
+//	assert.False(t, r)
+//
+//	sr.SetStatus(bls.SrBlock, spos.SsFinished)
+//	sr.SetStatus(bls.SrSignature, spos.SsFinished)
+//
+//	r = sr.DoSignatureJob()
+//	assert.False(t, r)
+//
+//	sr.SetStatus(bls.SrSignature, spos.SsNotFinished)
+//	sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, true)
+//
+//	r = sr.DoSignatureJob()
+//	assert.False(t, r)
+//
+//	sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, false)
+//
+//	r = sr.DoSignatureJob()
+//	assert.False(t, r)
+//
+//	//sr.SetJobDone(sr.SelfPubKey(), bls.SrBitmap, true)
+//	sr.Data = nil
+//
+//	r = sr.DoSignatureJob()
+//	assert.False(t, r)
+//
+//	dta := []byte("X")
+//	sr.Data = dta
+//	sr.Header = &block.Header{}
+//
+//	multiSignerMock := mock.InitMultiSignerMock()
+//
+//	multiSignerMock.CommitmentMock = func(uint16) ([]byte, error) {
+//		return dta, nil
+//	}
+//
+//	multiSignerMock.CommitmentHashMock = func(uint16) ([]byte, error) {
+//		return mock.HasherMock{}.Compute(string(dta)), nil
+//	}
+//
+//	container.SetMultiSigner(multiSignerMock)
+//
+//	sr.SetJobDone(sr.SelfPubKey(), bls.SrBlock, true)
+//	r = sr.DoSignatureJob()
+//	assert.True(t, r)
+//}
+//
+//func TestSubroundSignature_SignaturesCollected(t *testing.T) {
+//	t.Parallel()
+//
+//	sr := *initSubroundSignature()
+//
+//	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+//		sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrBlock, false)
+//		sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, false)
+//	}
+//
+//	ok := sr.SignaturesCollected(2)
+//	assert.False(t, ok)
+//
+//	sr.SetJobDone("A", bls.SrBitmap, true)
+//	sr.SetJobDone("C", bls.SrBitmap, true)
+//	isJobDone, _ := sr.JobDone("C", bls.SrBitmap)
+//	assert.True(t, isJobDone)
+//
+//	ok = sr.SignaturesCollected(2)
+//	assert.False(t, ok)
+//
+//	sr.SetJobDone("B", bls.SrSignature, true)
+//	isJobDone, _ := sr.JobDone("B", bls.SrSignature)
+//	assert.True(t, isJobDone)
+//
+//	ok = sr.SignaturesCollected(2)
+//	assert.False(t, ok)
+//
+//	sr.SetJobDone("C", bls.SrSignature, true)
+//	ok = sr.SignaturesCollected(2)
+//	assert.False(t, ok)
+//
+//	sr.SetJobDone("A", bls.SrSignature, true)
+//	ok = sr.SignaturesCollected(2)
+//	assert.True(t, ok)
+//}
 
 func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	t.Parallel()
