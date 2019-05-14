@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"sort"
 	"sync"
@@ -1002,11 +1003,14 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
 
-		part := fmt.Sprintf("ShardData_%d", shardData.ShardId)
+		lines = append(lines, display.NewLineData(false, []string{
+			fmt.Sprintf("ShardData_%d", shardData.ShardId),
+			"Header hash",
+			base64.StdEncoding.EncodeToString(shardData.HeaderHash)}))
 
 		if shardData.ShardMiniBlockHeaders == nil || len(shardData.ShardMiniBlockHeaders) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
-				part, "", "<NIL> or <EMPTY>"}))
+				"", "ShardMiniBlockHeaders", "<NIL> or <EMPTY>"}))
 		}
 
 		shardMBHeaderCounterMutex.Lock()
@@ -1017,18 +1021,14 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 		for j := 0; j < len(shardData.ShardMiniBlockHeaders); j++ {
 			if j == 0 || j >= len(shardData.ShardMiniBlockHeaders)-1 {
 				lines = append(lines, display.NewLineData(false, []string{
-					part,
+					"",
 					fmt.Sprintf("ShardMiniBlockHeaderHash %d", j+1),
 					toB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
-
-				part = ""
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
-					part,
+					"",
 					fmt.Sprintf("..."),
 					fmt.Sprintf("...")}))
-
-				part = ""
 			}
 		}
 

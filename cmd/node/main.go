@@ -662,6 +662,7 @@ func createShardNode(
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
+		node.WithActiveMetachain(genesisConfig.MetaChainActive),
 	)
 
 	if err != nil {
@@ -674,6 +675,11 @@ func createShardNode(
 	}
 
 	err = nd.StartHeartbeat(config.Heartbeat)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = nd.CreateShardGenesisBlock()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -864,7 +870,6 @@ func createMetaNode(
 		genesisConfig,
 		shardCoordinator,
 		addressConverter,
-		accountFactory,
 		hasher,
 		marshalizer,
 	)
@@ -917,9 +922,13 @@ func createMetaNode(
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
 	)
-
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
+	}
+
+	err = nd.CreateMetaGenesisBlock()
+	if err != nil {
+		return nil, err
 	}
 
 	return nd, nil
@@ -1461,7 +1470,6 @@ func createGenesisBlocksOnShards(
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
 	addressConverter state.AddressConverter,
-	accountFactory state.AccountFactory,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 ) (map[uint32]*block2.Header, error) {
@@ -1469,12 +1477,17 @@ func createGenesisBlocksOnShards(
 	shardsGenesisBlocks := make(map[uint32]*block2.Header)
 
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		accounts := generateInMemoryAccountsdapter(accountFactory, hasher, marshalizer)
-
 		newShardCoordinator, err := sharding.NewMultiShardCoordinator(shardCoordinator.NumberOfShards(), shardId)
 		if err != nil {
 			return nil, err
 		}
+
+		accountFactory, err := factoryState.NewAccountFactoryCreator(newShardCoordinator)
+		if err != nil {
+			return nil, err
+		}
+
+		accounts := generateInMemoryAccountsdapter(accountFactory, hasher, marshalizer)
 
 		initialBalances, err := genesisConfig.InitialNodesBalances(newShardCoordinator, addressConverter)
 		if err != nil {
@@ -1486,7 +1499,11 @@ func createGenesisBlocksOnShards(
 			newShardCoordinator,
 			addressConverter,
 			initialBalances,
+			uint64(genesisConfig.StartTime),
 		)
+		if err != nil {
+			return nil, err
+		}
 
 		shardsGenesisBlocks[shardId] = genesisBlock
 	}

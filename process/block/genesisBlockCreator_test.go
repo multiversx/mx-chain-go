@@ -80,6 +80,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilAccountsShouldErr(t *testing.T
 		mock.NewOneShardCoordinatorMock(),
 		&mock.AddressConverterMock{},
 		make(map[string]*big.Int),
+		0,
 	)
 
 	assert.Nil(t, header)
@@ -94,6 +95,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilShardCoordinatorShouldErr(t *t
 		nil,
 		&mock.AddressConverterMock{},
 		make(map[string]*big.Int),
+		0,
 	)
 
 	assert.Nil(t, header)
@@ -108,6 +110,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilAddressConverterShouldErr(t *t
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		make(map[string]*big.Int),
+		0,
 	)
 
 	assert.Nil(t, header)
@@ -122,6 +125,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilBalanceMapShouldErr(t *testing
 		mock.NewOneShardCoordinatorMock(),
 		&mock.AddressConverterMock{},
 		nil,
+		0,
 	)
 
 	assert.Nil(t, header)
@@ -142,6 +146,7 @@ func TestCreateGenesisBlockFromInitialBalances_AccountStateDirtyShouldErr(t *tes
 		mock.NewOneShardCoordinatorMock(),
 		&mock.AddressConverterMock{},
 		make(map[string]*big.Int),
+		0,
 	)
 
 	assert.Nil(t, header)
@@ -168,6 +173,7 @@ func TestCreateGenesisBlockFromInitialBalances_TrieCommitFailsShouldRevert(t *te
 		mock.NewOneShardCoordinatorMock(),
 		&mock.AddressConverterMock{},
 		balances,
+		0,
 	)
 
 	assert.Nil(t, header)
@@ -191,6 +197,7 @@ func TestCreateGenesisBlockFromInitialBalances_AccountsFailShouldErr(t *testing.
 		mock.NewOneShardCoordinatorMock(),
 		&mock.AddressConverterMock{},
 		balances,
+		0,
 	)
 
 	assert.Nil(t, header)
@@ -207,6 +214,7 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.AddressConverterMock{},
 		balances,
+		0,
 	)
 
 	assert.Equal(t,

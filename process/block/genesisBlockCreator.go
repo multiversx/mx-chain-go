@@ -15,6 +15,7 @@ func CreateGenesisBlockFromInitialBalances(
 	shardCoordinator sharding.Coordinator,
 	addrConv state.AddressConverter,
 	initialBalances map[string]*big.Int,
+	genesisTime uint64,
 ) (*block.Header, error) {
 
 	if accounts == nil {
@@ -48,6 +49,7 @@ func CreateGenesisBlockFromInitialBalances(
 		RootHash:      rootHash,
 		PrevRandSeed:  rootHash,
 		RandSeed:      rootHash,
+		TimeStamp:     genesisTime,
 	}
 
 	return header, err

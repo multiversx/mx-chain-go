@@ -198,7 +198,6 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	if sr.Blockchain().GetCurrentBlockHeader() == nil {
 		hdr.SetNonce(1)
 		hdr.SetPrevHash(sr.Blockchain().GetGenesisHeaderHash())
-		hdr.SetPrevRandSeed(sr.Blockchain().GetGenesisHeader().GetRandSeed())
 
 		prevRandSeed = sr.Blockchain().GetGenesisHeader().GetRandSeed()
 	} else {
@@ -213,6 +212,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
+	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)
 	log.Info(fmt.Sprintf("random seed for the next round is %s", toB64(randSeed)))
 
