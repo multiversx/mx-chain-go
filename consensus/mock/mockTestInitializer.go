@@ -102,7 +102,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	multiSignerMock := InitMultiSignerMock()
 	rounderMock := &RounderMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
-	syncTimerMock := SyncTimerMock{}
+	syncTimerMock := &SyncTimerMock{}
 	validatorGroupSelector := ValidatorGroupSelectorMock{}
 
 	container := &ConsensusCoreMock{

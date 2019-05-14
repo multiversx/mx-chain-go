@@ -29,7 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/multiShard/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"

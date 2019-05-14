@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,7 +64,7 @@ func createPoint() crypto.Point {
 	}
 }
 
-func createKeyPair(stream cipher.Stream) (crypto.Scalar, crypto.Point) {
+func createKeyPair(_ cipher.Stream) (crypto.Scalar, crypto.Point) {
 	scalar := createScalar()
 	point, _ := createPoint().Mul(scalar)
 	return scalar, point

@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
 	llsig "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/stretchr/testify/assert"
