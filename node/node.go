@@ -2,7 +2,6 @@ package node
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"math/big"
@@ -115,7 +114,8 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
 	node := &Node{
-		ctx: context.Background(),
+		ctx:               context.Background(),
+		isMetachainActive: true,
 	}
 	for _, opt := range opts {
 		err := opt(node)
