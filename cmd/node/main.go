@@ -613,7 +613,6 @@ func createShardNode(
 		return nil, nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
-	schnorrSingleSigner := &singlesig.SchnorrSigner{}
 	singleSigner, err := createSingleSigner(config)
 	if err != nil {
 		return nil, nil, errors.New("could not create singleSigner: " + err.Error())
@@ -673,7 +672,7 @@ func createShardNode(
 		marshalizer,
 		hasher,
 		singleSignKeyGen,
-		schnorrSingleSigner,
+		&singlesig.SchnorrSigner{},
 		multiSigner,
 		datapool,
 		addressConverter,
@@ -762,7 +761,6 @@ func createShardNode(
 		node.WithDataPool(datapool),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
-		node.WithSchnorrSingleSigner(schnorrSingleSigner),
 		node.WithSingleSigner(singleSigner),
 		node.WithMultiSigner(multiSigner),
 		node.WithSingleSignKeyGen(singleSignKeyGen),
@@ -879,7 +877,6 @@ func createMetaNode(
 		return nil, errors.New("could not create shard data pools: " + err.Error())
 	}
 
-	schnorrSingleSigner := &singlesig.SchnorrSigner{}
 	singleSigner, err := createSingleSigner(config)
 	if err != nil {
 		return nil, errors.New("could not create singleSigner: " + err.Error())
@@ -1015,7 +1012,6 @@ func createMetaNode(
 		node.WithMetaDataPool(metaDatapool),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
-		node.WithSchnorrSingleSigner(schnorrSingleSigner),
 		node.WithSingleSigner(singleSigner),
 		node.WithMultiSigner(multiSigner),
 		node.WithSingleSignKeyGen(singleSignKeyGen),

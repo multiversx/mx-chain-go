@@ -75,15 +75,14 @@ type Node struct {
 	heartbeatMonitor         *heartbeat.Monitor
 	heartbeatSender          *heartbeat.Sender
 
-	singleSignPrivKey   crypto.PrivateKey
-	singleSignPubKey    crypto.PublicKey
-	pubKey              crypto.PublicKey
-	privKey             crypto.PrivateKey
-	singleSignKeyGen    crypto.KeyGenerator
-	schnorrSingleSigner crypto.SingleSigner
-	singleSigner        crypto.SingleSigner
-	multiSigner         crypto.MultiSigner
-	forkDetector        process.ForkDetector
+	singleSignPrivKey crypto.PrivateKey
+	singleSignPubKey  crypto.PublicKey
+	pubKey            crypto.PublicKey
+	privKey           crypto.PrivateKey
+	singleSignKeyGen  crypto.KeyGenerator
+	singleSigner      crypto.SingleSigner
+	multiSigner       crypto.MultiSigner
+	forkDetector      process.ForkDetector
 
 	blkc             data.ChainHandler
 	dataPool         dataRetriever.PoolsHolder
@@ -245,7 +244,7 @@ func (n *Node) StartConsensus() error {
 		n.singleSignPrivKey,
 		n.rounder,
 		n.shardCoordinator,
-		n.schnorrSingleSigner,
+		n.singleSigner,
 		n.getBroadcastBlock(),
 		n.sendMessage,
 	)
@@ -770,7 +769,7 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 
 	n.heartbeatSender, err = heartbeat.NewSender(
 		n.messenger,
-		n.schnorrSingleSigner,
+		n.singleSigner,
 		n.singleSignPrivKey,
 		n.marshalizer,
 		HeartbeatTopic,
@@ -786,7 +785,7 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		n.messenger,
-		n.schnorrSingleSigner,
+		n.singleSigner,
 		n.singleSignKeyGen,
 		n.marshalizer,
 		time.Duration(time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive)),

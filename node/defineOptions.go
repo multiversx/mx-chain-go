@@ -276,17 +276,6 @@ func WithInitialNodesBalances(balances map[string]*big.Int) Option {
 	}
 }
 
-// WithSchnorrSingleSigner sets up a schnorrSingleSigner option for the Node
-func WithSchnorrSingleSigner(singleSigner crypto.SingleSigner) Option {
-	return func(n *Node) error {
-		if singleSigner == nil {
-			return ErrNilSingleSig
-		}
-		n.schnorrSingleSigner = singleSigner
-		return nil
-	}
-}
-
 // WithSingleSigner sets up a singleSigner option for the Node
 func WithSingleSigner(singleSigner crypto.SingleSigner) Option {
 	return func(n *Node) error {
