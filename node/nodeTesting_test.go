@@ -39,7 +39,7 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 		node.WithAddressConverter(addrConverter),
 		node.WithSingleSignPrivKey(sk),
 		node.WithSingleSignPubKey(pk),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
@@ -85,7 +85,7 @@ func TestGenerateAndSendBulkTransactions_NilShardCoordinatorShouldErr(t *testing
 		node.WithAddressConverter(addrConverter),
 		node.WithSingleSignPrivKey(sk),
 		node.WithSingleSignPubKey(pk),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 	)
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
@@ -105,7 +105,7 @@ func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing
 		node.WithAccountsAdapter(accAdapter),
 		node.WithSingleSignPrivKey(sk),
 		node.WithSingleSignPubKey(pk),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 	)
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
@@ -123,7 +123,7 @@ func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithSingleSignPubKey(pk),
 		node.WithMarshalizer(&mock.MarshalizerFake{}),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
@@ -142,7 +142,7 @@ func TestGenerateAndSendBulkTransactions_NilPublicKeyShouldErr(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
 		node.WithSingleSignPrivKey(sk),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 	)
 
 	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
@@ -161,7 +161,7 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 		node.WithAddressConverter(addrConverter),
 		node.WithSingleSignPrivKey(sk),
 		node.WithSingleSignPubKey(pk),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
@@ -184,7 +184,7 @@ func TestGenerateAndSendBulkTransactions_CreateAddressFromPublicKeyBytesErrorsSh
 		node.WithAddressConverter(addrConverter),
 		node.WithSingleSignPrivKey(sk),
 		node.WithSingleSignPubKey(pk),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
@@ -207,7 +207,7 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 		node.WithSingleSignPrivKey(sk),
 		node.WithSingleSignPubKey(pk),
 		node.WithMarshalizer(marshalizer),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
@@ -263,7 +263,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithSingleSignPrivKey(sk),
 		node.WithSingleSignPubKey(pk),
-		node.WithSchnorrSingleSigner(signer),
+		node.WithSingleSigner(signer),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithMessenger(mes),
 	)

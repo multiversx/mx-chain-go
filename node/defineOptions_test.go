@@ -598,32 +598,6 @@ func TestWithInitialNodesBalances_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithShnorrSinglesig_NilSinglesigShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithSchnorrSingleSigner(nil)
-	err := opt(node)
-
-	assert.Nil(t, node.schnorrSingleSigner)
-	assert.Equal(t, ErrNilSingleSig, err)
-}
-
-func TestWithSchnorrSinglesig_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	singlesigner := &mock.SinglesignMock{}
-
-	opt := WithSchnorrSingleSigner(singlesigner)
-	err := opt(node)
-
-	assert.True(t, node.schnorrSingleSigner == singlesigner)
-	assert.Nil(t, err)
-}
-
 func TestWithSinglesig_NilBlsSinglesigShouldErr(t *testing.T) {
 	t.Parallel()
 

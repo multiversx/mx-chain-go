@@ -261,7 +261,7 @@ func createNetNode(
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
 		node.WithMultiSigner(multiSigner),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 		node.WithSingleSignPrivKey(sk),
 		node.WithSingleSignPubKey(pk),
 		node.WithInterceptorsContainer(interceptorsContainer),

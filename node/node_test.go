@@ -247,7 +247,7 @@ func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithSingleSignPrivKey(privateKey),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 	)
 	_, err := n.GetBalance("address")
 	assert.NotNil(t, err)
@@ -399,7 +399,7 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithSingleSignPrivKey(privateKey),
-		node.WithSchnorrSingleSigner(&mock.SinglesignMock{}),
+		node.WithSingleSigner(&mock.SinglesignMock{}),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.NotNil(t, err)
@@ -422,7 +422,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithSingleSignPrivKey(privateKey),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.Nil(t, err)
@@ -441,7 +441,7 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithSingleSignPrivKey(privateKey),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.Nil(t, err)
@@ -464,7 +464,7 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithSingleSignPrivKey(privateKey),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 	)
 	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
 	assert.NotNil(t, err)
@@ -483,7 +483,7 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithSingleSignPrivKey(privateKey),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.NotNil(t, err)
@@ -503,7 +503,7 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithSingleSignPrivKey(privateKey),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 	)
 
 	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
@@ -533,7 +533,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithSingleSignPrivKey(privateKey),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 	)
 
 	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
@@ -554,7 +554,7 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithSingleSignPrivKey(privateKey),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.Nil(t, err)
@@ -1030,7 +1030,7 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	n, _ := node.NewNode(
-		node.WithSchnorrSingleSigner(&mock.SinglesignMock{}),
+		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithSingleSignKeyGen(&mock.KeyGenMock{}),
 		node.WithMessenger(&mock.MessengerStub{
 			HasTopicCalled: func(name string) bool {
@@ -1065,7 +1065,7 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithMarshalizer(&mock.MarshalizerMock{}),
-		node.WithSchnorrSingleSigner(&mock.SinglesignMock{}),
+		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithMessenger(&mock.MessengerStub{
 			HasTopicCalled: func(name string) bool {
 				return false
@@ -1099,7 +1099,7 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithMarshalizer(&mock.MarshalizerMock{}),
-		node.WithSchnorrSingleSigner(&mock.SinglesignMock{}),
+		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithSingleSignKeyGen(&mock.KeyGenMock{}),
 		node.WithMessenger(&mock.MessengerStub{
 			HasTopicValidatorCalled: func(name string) bool {
@@ -1125,7 +1125,7 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 	errExpected := errors.New("expected error")
 	n, _ := node.NewNode(
 		node.WithMarshalizer(&mock.MarshalizerMock{}),
-		node.WithSchnorrSingleSigner(&mock.SinglesignMock{}),
+		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithSingleSignKeyGen(&mock.KeyGenMock{}),
 		node.WithMessenger(&mock.MessengerStub{
 			HasTopicValidatorCalled: func(name string) bool {
@@ -1157,7 +1157,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 	errExpected := errors.New("expected error")
 	n, _ := node.NewNode(
 		node.WithMarshalizer(&mock.MarshalizerMock{}),
-		node.WithSchnorrSingleSigner(&mock.SinglesignMock{}),
+		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithSingleSignKeyGen(&mock.KeyGenMock{}),
 		node.WithMessenger(&mock.MessengerStub{
 			HasTopicValidatorCalled: func(name string) bool {
@@ -1198,7 +1198,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				return buffData, nil
 			},
 		}),
-		node.WithSchnorrSingleSigner(&mock.SinglesignMock{}),
+		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithSingleSignKeyGen(&mock.KeyGenMock{}),
 		node.WithMessenger(&mock.MessengerStub{
 			HasTopicValidatorCalled: func(name string) bool {
@@ -1251,7 +1251,7 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 				return make([]byte, 0), nil
 			},
 		}),
-		node.WithSchnorrSingleSigner(&mock.SinglesignMock{}),
+		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithSingleSignKeyGen(&mock.KeyGenMock{}),
 		node.WithMessenger(&mock.MessengerStub{
 			HasTopicValidatorCalled: func(name string) bool {
@@ -1304,7 +1304,7 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 				return make([]byte, 0), nil
 			},
 		}),
-		node.WithSchnorrSingleSigner(&mock.SinglesignMock{}),
+		node.WithSingleSigner(&mock.SinglesignMock{}),
 		node.WithSingleSignKeyGen(&mock.KeyGenMock{}),
 		node.WithMessenger(&mock.MessengerStub{
 			HasTopicValidatorCalled: func(name string) bool {

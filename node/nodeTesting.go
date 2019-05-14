@@ -138,7 +138,7 @@ func (n *Node) generateBulkTransactionsChecks(noOfTx uint64) error {
 	if n.singleSignPubKey == nil {
 		return ErrNilPublicKey
 	}
-	if n.schnorrSingleSigner == nil {
+	if n.singleSigner == nil {
 		return ErrNilSingleSig
 	}
 	if n.addrConverter == nil {
@@ -220,7 +220,7 @@ func (n *Node) generateAndSignTx(
 		return nil, nil, errors.New("could not marshal transaction")
 	}
 
-	sig, err := n.schnorrSingleSigner.Sign(n.singleSignPrivKey, marshalizedTx)
+	sig, err := n.singleSigner.Sign(n.singleSignPrivKey, marshalizedTx)
 	if err != nil {
 		return nil, nil, errors.New("could not sign the transaction")
 	}

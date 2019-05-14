@@ -202,7 +202,7 @@ func createNetNode(
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithSchnorrSingleSigner(singleSigner),
+		node.WithSingleSigner(singleSigner),
 		node.WithMultiSigner(multiSigner),
 		node.WithSingleSignKeyGen(keyGen),
 		node.WithSingleSignPrivKey(sk),
