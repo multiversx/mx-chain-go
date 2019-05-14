@@ -60,6 +60,7 @@ func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusCo
 func initSubroundBlockWithBlockProcessor(
 	bp *mock.BlockProcessorMock,
 	container *mock.ConsensusCoreMock) bn.SubroundBlock {
+
 	blockChain := &mock.BlockChainMock{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
@@ -71,8 +72,8 @@ func initSubroundBlockWithBlockProcessor(
 			return []byte("genesis header hash")
 		},
 	}
-	blockProcessorMock := bp
 
+	blockProcessorMock := bp
 	container.SetBlockchain(blockChain)
 	container.SetBlockProcessor(blockProcessorMock)
 	consensusState := initConsensusState()
