@@ -1,4 +1,4 @@
-package facade_test
+package facade
 
 import (
 	"errors"
@@ -6,8 +6,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
-	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
@@ -17,12 +16,12 @@ import (
 
 func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
 	node := &mock.NodeMock{}
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 	assert.NotNil(t, ef)
 }
 
 func TestNewElrondFacade_FromNullNodeShouldReturnNil(t *testing.T) {
-	ef := facade.NewElrondNodeFacade(nil)
+	ef := NewElrondNodeFacade(nil)
 	assert.Nil(t, ef)
 }
 
@@ -44,7 +43,7 @@ func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T)
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	err := ef.StartNode()
 	assert.Nil(t, err)
@@ -64,7 +63,7 @@ func TestElrondFacade_StartNodeWithErrorOnStartNodeShouldReturnError(t *testing.
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	err := ef.StartNode()
 	assert.NotNil(t, err)
@@ -92,7 +91,7 @@ func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *tes
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	err := ef.StartNode()
 	assert.NotNil(t, err)
@@ -113,7 +112,7 @@ func TestElrondFacade_StopNodeWithNodeNotNullShouldNotReturnError(t *testing.T) 
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	err := ef.StopNode()
 	assert.Nil(t, err)
@@ -134,7 +133,7 @@ func TestElrondFacade_StopNodeWithNodeNullShouldReturnError(t *testing.T) {
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	err := ef.StopNode()
 	assert.NotNil(t, err)
@@ -155,7 +154,7 @@ func TestElrondFacade_GetBalanceWithValidAddressShouldReturnBalance(t *testing.T
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	amount, err := ef.GetBalance(addr)
 	assert.Nil(t, err)
@@ -177,7 +176,7 @@ func TestElrondFacade_GetBalanceWithUnknownAddressShouldReturnZeroBalance(t *tes
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	amount, err := ef.GetBalance(unknownAddr)
 	assert.Nil(t, err)
@@ -194,7 +193,7 @@ func TestElrondFacade_GetBalanceWithErrorOnNodeShouldReturnZeroBalanceAndError(t
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	amount, err := ef.GetBalance(addr)
 	assert.NotNil(t, err)
@@ -225,7 +224,7 @@ func TestElrondFacade_GenerateTransactionWithCorrectInputsShouldReturnNoError(t 
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	generatedTx, err := ef.GenerateTransaction(sender, receiver, value, data)
 	assert.Nil(t, err)
@@ -247,7 +246,7 @@ func TestElrondFacade_GenerateTransactionWithNilSenderShouldReturnError(t *testi
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	generatedTx, err := ef.GenerateTransaction("", receiver, amount, code)
 	assert.NotNil(t, err)
@@ -269,7 +268,7 @@ func TestElrondFacade_GenerateTransactionWithNilReceiverShouldReturnError(t *tes
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	generatedTx, err := ef.GenerateTransaction(sender, "", amount, code)
 	assert.NotNil(t, err)
@@ -292,7 +291,7 @@ func TestElrondFacade_GenerateTransactionWithZeroAmountShouldReturnError(t *test
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	generatedTx, err := ef.GenerateTransaction(sender, receiver, amount, code)
 	assert.NotNil(t, err)
@@ -315,7 +314,7 @@ func TestElrondFacade_GenerateTransactionWithNegativeAmountShouldReturnError(t *
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	generatedTx, err := ef.GenerateTransaction(sender, receiver, amount, code)
 	assert.NotNil(t, err)
@@ -335,7 +334,7 @@ func TestElrondFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testi
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	tx, err := ef.GetTransaction(testHash)
 	assert.Nil(t, err)
@@ -354,7 +353,7 @@ func TestElrondFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *t
 		},
 	}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	tx, err := ef.GetTransaction("unknownHash")
 	assert.Nil(t, err)
@@ -364,7 +363,7 @@ func TestElrondFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *t
 func TestElrondNodeFacade_SetLogger(t *testing.T) {
 	node := &mock.NodeMock{}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 	log := logger.DefaultLogger()
 	ef.SetLogger(log)
 	assert.Equal(t, log, ef.GetLogger())
@@ -373,7 +372,7 @@ func TestElrondNodeFacade_SetLogger(t *testing.T) {
 func TestElrondNodeFacade_SetSyncer(t *testing.T) {
 	node := &mock.NodeMock{}
 
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 	sync := &mock.SyncTimerMock{}
 	ef.SetSyncer(sync)
 	assert.Equal(t, sync, ef.GetSyncer())
@@ -386,7 +385,7 @@ func TestElrondNodeFacade_SendTransaction(t *testing.T) {
 		called++
 		return nil, nil
 	}
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 	ef.SendTransaction(1, "test", "test", big.NewInt(0), "code", []byte{})
 	assert.Equal(t, called, 1)
 }
@@ -398,7 +397,7 @@ func TestElrondNodeFacade_GetAccount(t *testing.T) {
 		called++
 		return nil, nil
 	}
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 	ef.GetAccount("test")
 	assert.Equal(t, called, 1)
 }
@@ -410,7 +409,7 @@ func TestElrondNodeFacade_GetCurrentPublicKey(t *testing.T) {
 		called++
 		return ""
 	}
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 	ef.GetCurrentPublicKey()
 	assert.Equal(t, called, 1)
 }
@@ -422,7 +421,7 @@ func TestElrondNodeFacade_GenerateAndSendBulkTransactions(t *testing.T) {
 		called++
 		return nil
 	}
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 	ef.GenerateAndSendBulkTransactions("", big.NewInt(0), 0)
 	assert.Equal(t, called, 1)
 }
@@ -434,7 +433,7 @@ func TestElrondNodeFacade_GenerateAndSendBulkTransactionsOneByOne(t *testing.T) 
 		called++
 		return nil
 	}
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 	ef.GenerateAndSendBulkTransactionsOneByOne("", big.NewInt(0), 0)
 	assert.Equal(t, called, 1)
 }
@@ -445,12 +444,12 @@ func TestElrondNodeFacade_GetHeartbeatsReturnsNilShouldErr(t *testing.T) {
 			return nil
 		},
 	}
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	result, err := ef.GetHeartbeats()
 
 	assert.Nil(t, result)
-	assert.Equal(t, facade.ErrHeartbeatsNotActive, err)
+	assert.Equal(t, ErrHeartbeatsNotActive, err)
 }
 
 func TestElrondNodeFacade_GetHeartbeats(t *testing.T) {
@@ -484,7 +483,7 @@ func TestElrondNodeFacade_GetHeartbeats(t *testing.T) {
 			}
 		},
 	}
-	ef := facade.NewElrondNodeFacade(node)
+	ef := NewElrondNodeFacade(node)
 
 	result, err := ef.GetHeartbeats()
 

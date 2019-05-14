@@ -212,7 +212,6 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 	if sr.Blockchain().GetCurrentBlockHeader() == nil {
 		hdr.SetNonce(1)
 		hdr.SetPrevHash(sr.Blockchain().GetGenesisHeaderHash())
-		hdr.SetPrevRandSeed(sr.Blockchain().GetGenesisHeader().GetRandSeed())
 
 		prevRandSeed = sr.Blockchain().GetGenesisHeader().GetRandSeed()
 	} else {
@@ -221,12 +220,14 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 
 		prevRandSeed = sr.Blockchain().GetCurrentBlockHeader().GetRandSeed()
 	}
-	randSeed, err := sr.BlsSingleSigner().Sign(sr.BlsPrivateKey(), prevRandSeed)
+
+	randSeed, err := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), prevRandSeed)
 	// Cannot propose block if unable to create random seed
 	if err != nil {
 		return nil, err
 	}
 
+	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)
 
 	return hdr, nil

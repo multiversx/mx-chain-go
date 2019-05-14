@@ -5,7 +5,7 @@ import (
 )
 
 type RounderMock struct {
-	index int32
+	RoundIndex int32
 
 	IndexCalled         func() int32
 	TimeDurationCalled  func() time.Duration
@@ -19,7 +19,7 @@ func (rndm *RounderMock) Index() int32 {
 		return rndm.IndexCalled()
 	}
 
-	return rndm.index
+	return rndm.RoundIndex
 }
 
 func (rndm *RounderMock) TimeDuration() time.Duration {
@@ -44,7 +44,7 @@ func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 		return
 	}
 
-	rndm.index++
+	rndm.RoundIndex++
 }
 
 func (rndm *RounderMock) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
