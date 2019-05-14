@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
@@ -249,7 +248,7 @@ func (sr *SubroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	sr.BlockBody = sr.decodeBlockBody(cnsDta.SubRoundData)
+	sr.BlockBody = sr.BlockProcessor().DecodeBlockBody(cnsDta.SubRoundData)
 
 	if sr.BlockBody == nil {
 		return false
@@ -260,23 +259,6 @@ func (sr *SubroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 
 	return blockProcessedWithSuccess
-}
-
-// decodeBlockBody method decodes block body which is marshalized in the received message
-func (sr *SubroundBlock) decodeBlockBody(dta []byte) block.Body {
-	if dta == nil {
-		return nil
-	}
-
-	var blk block.Body
-
-	err := sr.Marshalizer().Unmarshal(&blk, dta)
-	if err != nil {
-		log.Error(err.Error())
-		return nil
-	}
-
-	return blk
 }
 
 // ReceivedBlockHeader method is called when a block header is received through the block header channel.
@@ -302,7 +284,7 @@ func (sr *SubroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 	}
 
 	sr.Data = cnsDta.BlockHeaderHash
-	sr.Header = sr.decodeBlockHeader(cnsDta.SubRoundData)
+	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.SubRoundData)
 
 	if sr.Header == nil {
 		return false
@@ -314,24 +296,6 @@ func (sr *SubroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 
 	return blockProcessedWithSuccess
-}
-
-// decodeBlockHeader method decodes block header which is marshalized in the received message
-func (sr *SubroundBlock) decodeBlockHeader(dta []byte) *block.Header {
-	if dta == nil {
-		return nil
-	}
-
-	var hdr block.Header
-
-	err := sr.Marshalizer().Unmarshal(&hdr, dta)
-
-	if err != nil {
-		log.Error(err.Error())
-		return nil
-	}
-
-	return &hdr
 }
 
 func (sr *SubroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {

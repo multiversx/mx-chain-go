@@ -405,45 +405,6 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	assert.True(t, r)
 }
 
-func TestSubroundBlock_DecodeBlockBody(t *testing.T) {
-	t.Parallel()
-	container := mock.InitConsensusCore()
-	sr := *initSubroundBlock(nil, container)
-	body := make(block.Body, 0)
-	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
-	message, err := mock.MarshalizerMock{}.Marshal(body)
-	assert.Nil(t, err)
-
-	dcdBlk := sr.DecodeBlockBody(nil)
-	assert.Nil(t, dcdBlk)
-
-	dcdBlk = sr.DecodeBlockBody(message)
-	assert.Equal(t, body, dcdBlk)
-	assert.Equal(t, uint32(69), body[0].ReceiverShardID)
-}
-
-func TestSubroundBlock_DecodeBlockHeader(t *testing.T) {
-	t.Parallel()
-	container := mock.InitConsensusCore()
-	sr := *initSubroundBlock(nil, container)
-	hdr := &block.Header{}
-	hdr.Nonce = 1
-	hdr.TimeStamp = uint64(sr.Rounder().TimeStamp().Unix())
-	hdr.Signature = []byte(sr.SelfPubKey())
-	message, err := mock.MarshalizerMock{}.Marshal(hdr)
-	assert.Nil(t, err)
-
-	message, err = mock.MarshalizerMock{}.Marshal(hdr)
-	assert.Nil(t, err)
-
-	dcdHdr := sr.DecodeBlockHeader(nil)
-	assert.Nil(t, dcdHdr)
-
-	dcdHdr = sr.DecodeBlockHeader(message)
-	assert.Equal(t, hdr, dcdHdr)
-	assert.Equal(t, []byte(sr.SelfPubKey()), dcdHdr.Signature)
-}
-
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAreNotSet(t *testing.T) {
 	t.Parallel()
 	container := mock.InitConsensusCore()

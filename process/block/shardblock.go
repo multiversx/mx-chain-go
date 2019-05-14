@@ -1408,3 +1408,37 @@ func getTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, 
 
 	return transactions, txHashes, nil
 }
+
+// DecodeBlockBody method decodes block body from a given byte array
+func (sp *shardProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
+	if dta == nil {
+		return nil
+	}
+
+	var body block.Body
+
+	err := sp.marshalizer.Unmarshal(&body, dta)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
+	return body
+}
+
+// DecodeBlockHeader method decodes block header from a given byte array
+func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	if dta == nil {
+		return nil
+	}
+
+	var header block.Header
+
+	err := sp.marshalizer.Unmarshal(&header, dta)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
+	return &header
+}

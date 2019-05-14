@@ -3,7 +3,6 @@ package commonSubround
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
 
 // subroundStartRound
@@ -32,14 +31,6 @@ func (sr *SubroundBlock) BlockChain() data.ChainHandler {
 
 func (sr *SubroundBlock) DoBlockJob() bool {
 	return sr.doBlockJob()
-}
-
-func (sr *SubroundBlock) DecodeBlockBody(dta []byte) block.Body {
-	return sr.decodeBlockBody(dta)
-}
-
-func (sr *SubroundBlock) DecodeBlockHeader(dta []byte) *block.Header {
-	return sr.decodeBlockHeader(dta)
 }
 
 func (sr *SubroundBlock) ProcessReceivedBlock(cnsDta *consensus.Message) bool {
