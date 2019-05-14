@@ -3,7 +3,7 @@ package spos
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,23 +19,23 @@ func initConsensusDataContainer() *ConsensusCore {
 	marshalizerMock := mock.MarshalizerMock{}
 	rounderMock := &mock.RounderMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
 
 	return &ConsensusCore{
-		blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		hasherMock,
-		marshalizerMock,
-		blsPrivateKeyMock,
-		blsSingleSignerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
+		blockChain:             blockChain,
+		blockProcessor:         blockProcessorMock,
+		bootstraper:            bootstraperMock,
+		chronologyHandler:      chronologyHandlerMock,
+		hasher:                 hasherMock,
+		marshalizer:            marshalizerMock,
+		blsPrivateKey:          blsPrivateKeyMock,
+		blsSingleSigner:        blsSingleSignerMock,
+		multiSigner:            multiSignerMock,
+		rounder:                rounderMock,
+		shardCoordinator:       shardCoordinatorMock,
+		syncTimer:              syncTimerMock,
+		validatorGroupSelector: validatorGroupSelector,
 	}
 }
 

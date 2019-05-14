@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors/mock"
 )
 
 type ValidatorGroupSelectorMock struct {
@@ -17,15 +16,15 @@ func (vgsm ValidatorGroupSelectorMock) ComputeValidatorsGroup(randomness []byte)
 	}
 
 	list := []consensus.Validator{
-		mock.NewValidatorMock(big.NewInt(0), 0, []byte("A")),
-		mock.NewValidatorMock(big.NewInt(0), 0, []byte("B")),
-		mock.NewValidatorMock(big.NewInt(0), 0, []byte("C")),
-		mock.NewValidatorMock(big.NewInt(0), 0, []byte("D")),
-		mock.NewValidatorMock(big.NewInt(0), 0, []byte("E")),
-		mock.NewValidatorMock(big.NewInt(0), 0, []byte("F")),
-		mock.NewValidatorMock(big.NewInt(0), 0, []byte("G")),
-		mock.NewValidatorMock(big.NewInt(0), 0, []byte("H")),
-		mock.NewValidatorMock(big.NewInt(0), 0, []byte("I")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("A")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("B")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("C")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("D")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("E")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("F")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("G")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("H")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("I")),
 	}
 
 	return list, nil

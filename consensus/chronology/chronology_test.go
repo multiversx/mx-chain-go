@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -14,10 +14,12 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
+// TODO: remove this file once we completely migrate to Elrond Trie implementation
+// crypto_test.go needs to be removed as well as the sha3 folder
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/mock/sha3"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock/sha3"
 )
 
 type Keccak256 struct {

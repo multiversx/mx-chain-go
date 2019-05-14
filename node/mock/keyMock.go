@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 )
 

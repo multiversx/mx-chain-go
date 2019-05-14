@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/mock"
+	keyMock "github.com/ElrondNetwork/elrond-go-sandbox/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	keyMock "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/pairing"
 )
@@ -297,6 +297,7 @@ func TestBLSSigner_SignVerifyWithReconstructedPubKeyOK(t *testing.T) {
 	msg := []byte("message to be signed")
 	signer := &singlesig.BlsSingleSigner{}
 	pubKey, _, signature, err := signBLS(msg, signer, t)
+	assert.Nil(t, err)
 
 	pubKeyBytes, err := pubKey.Point().MarshalBinary()
 	assert.Nil(t, err)
