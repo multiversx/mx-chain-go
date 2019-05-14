@@ -3,8 +3,9 @@ package commonSubround_test
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 )
 
 const processingThresholdPercent = 65
@@ -37,9 +38,13 @@ const roundTimeDuration = time.Duration(100 * time.Millisecond)
 
 func initRounderMock() *mock.RounderMock {
 	return &mock.RounderMock{
-		RoundIndex:        0,
-		RoundTimeStamp:    time.Unix(0, 0),
-		RoundTimeDuration: roundTimeDuration,
+		RoundIndex: 0,
+		TimeStampCalled: func() time.Time {
+			return time.Unix(0, 0)
+		},
+		TimeDurationCalled: func() time.Duration {
+			return roundTimeDuration
+		},
 	}
 }
 

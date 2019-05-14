@@ -114,11 +114,11 @@ func (cdc *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector c
 	cdc.validatorGroupSelector = validatorGroupSelector
 }
 
-func (cdc *ConsensusCoreMock) BlsPrivateKey() crypto.PrivateKey {
+func (cdc *ConsensusCoreMock) RandomnessPrivateKey() crypto.PrivateKey {
 	return cdc.blsPrivateKey
 }
 
-// BlsSingleSigner returns the bls single signer stored in the ConsensusStore
-func (cdc *ConsensusCoreMock) BlsSingleSigner() crypto.SingleSigner {
+// RandomnessSingleSigner returns the bls single signer stored in the ConsensusStore
+func (cdc *ConsensusCoreMock) RandomnessSingleSigner() crypto.SingleSigner {
 	return cdc.blsSingleSigner
 }

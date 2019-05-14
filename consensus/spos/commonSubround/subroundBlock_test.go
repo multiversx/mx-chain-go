@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/commonSubround"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/stretchr/testify/assert"
@@ -552,19 +552,19 @@ func TestSubroundBlock_RemainingTimeShouldReturnNegativeValue(t *testing.T) {
 
 		return time.Duration(remainingTime)
 	}
-	container.SetSyncTimer(mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
+	container.SetSyncTimer(&mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
 		return time.Unix(0, 0).Add(roundTimeDuration * 84 / 100)
 	}})
 	ret := remainingTimeInThisRound()
 	assert.True(t, ret > 0)
 
-	container.SetSyncTimer(mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
+	container.SetSyncTimer(&mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
 		return time.Unix(0, 0).Add(roundTimeDuration * 85 / 100)
 	}})
 	ret = remainingTimeInThisRound()
 	assert.True(t, ret == 0)
 
-	container.SetSyncTimer(mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
+	container.SetSyncTimer(&mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
 		return time.Unix(0, 0).Add(roundTimeDuration * 86 / 100)
 	}})
 	ret = remainingTimeInThisRound()
@@ -642,8 +642,12 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 		return time.Duration(remainingTime) > 0
 	}
 	rounderMock := &mock.RounderMock{}
-	rounderMock.RoundTimeDuration = time.Duration(4000 * time.Millisecond)
-	rounderMock.RoundTimeStamp = time.Unix(0, 0)
+	rounderMock.TimeDurationCalled = func() time.Duration {
+		return time.Duration(4000 * time.Millisecond)
+	}
+	rounderMock.TimeStampCalled = func() time.Time {
+		return time.Unix(0, 0)
+	}
 	syncTimerMock := &mock.SyncTimerMock{}
 	timeElapsed := int64(sr.EndTime() - 1)
 	syncTimerMock.CurrentTimeCalled = func() time.Time {
@@ -668,8 +672,12 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 		return time.Duration(remainingTime) > 0
 	}
 	rounderMock := &mock.RounderMock{}
-	rounderMock.RoundTimeDuration = time.Duration(4000 * time.Millisecond)
-	rounderMock.RoundTimeStamp = time.Unix(0, 0)
+	rounderMock.TimeDurationCalled = func() time.Duration {
+		return time.Duration(4000 * time.Millisecond)
+	}
+	rounderMock.TimeStampCalled = func() time.Time {
+		return time.Unix(0, 0)
+	}
 	syncTimerMock := &mock.SyncTimerMock{}
 	timeElapsed := int64(sr.EndTime() + 1)
 	syncTimerMock.CurrentTimeCalled = func() time.Time {
@@ -702,7 +710,7 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	sr.BlockChain().SetCurrentBlockHeader(nil)
 	header, _ := sr.CreateHeader()
 	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
-	newRand, _ := sr.BlsSingleSigner().Sign(sr.BlsPrivateKey(), oldRand)
+	newRand, _ := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), oldRand)
 	expectedHeader := &block.Header{
 		Round:            uint32(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
@@ -725,7 +733,7 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 	})
 	header, _ := sr.CreateHeader()
 	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
-	newRand, _ := sr.BlsSingleSigner().Sign(sr.BlsPrivateKey(), oldRand)
+	newRand, _ := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), oldRand)
 
 	expectedHeader := &block.Header{
 		Round:            uint32(sr.Rounder().Index()),
@@ -763,7 +771,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 	header, _ := sr.CreateHeader()
 
 	oldRand := sr.BlockChain().GetCurrentBlockHeader().GetRandSeed()
-	newRand, _ := sr.BlsSingleSigner().Sign(sr.BlsPrivateKey(), oldRand)
+	newRand, _ := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), oldRand)
 	expectedHeader := &block.Header{
 		Round:            uint32(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
