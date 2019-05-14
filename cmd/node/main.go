@@ -1471,7 +1471,7 @@ func createGenesisBlocksOnShards(
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
 		accounts := generateInMemoryAccountsdapter(accountFactory, hasher, marshalizer)
 
-		newShardCoordinator, err := sharding.NewMultiShardCoordinator(shardId, shardCoordinator.NumberOfShards())
+		newShardCoordinator, err := sharding.NewMultiShardCoordinator(shardCoordinator.NumberOfShards(), shardId)
 		if err != nil {
 			return nil, err
 		}
