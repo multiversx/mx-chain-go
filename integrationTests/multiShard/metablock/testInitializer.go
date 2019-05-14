@@ -477,7 +477,6 @@ func createMetaNetNode(
 		testMarshalizer,
 		store,
 		func(shardId uint32, hdrHash []byte) {},
-		make(map[uint32]*dataBlock.Header),
 	)
 
 	n, err := node.NewNode(

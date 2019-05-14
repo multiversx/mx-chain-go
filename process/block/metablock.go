@@ -40,7 +40,8 @@ type metaProcessor struct {
 	requestedShardHeaderHashes    map[string]bool
 	mutRequestedShardHeaderHashes sync.RWMutex
 
-	lastNotedHdrs         mapShardLastHeaders
+	mutLastNotarizedHdrs  sync.RWMutex
+	lastNotarizedHdrs     mapShardLastHeaders
 	nextKValidity         uint32
 	finalityAttestingHdrs []*block.Header
 
@@ -57,7 +58,6 @@ func NewMetaProcessor(
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
 	requestHeaderHandler func(shardId uint32, hdrHash []byte),
-	shardGenesisBlocks map[uint32]*block.Header,
 ) (*metaProcessor, error) {
 
 	err := checkProcessorNilParameters(
@@ -82,9 +82,6 @@ func NewMetaProcessor(
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if shardGenesisBlocks == nil {
-		return nil, process.ErrNilShardGenesisBlocks
-	}
 
 	base := &baseProcessor{
 		accounts:         accounts,
@@ -108,15 +105,28 @@ func NewMetaProcessor(
 
 	mp.ChRcvAllHdrs = make(chan bool)
 
-	mp.lastNotedHdrs = make(mapShardLastHeaders, shardCoordinator.NumberOfShards())
-	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		mp.lastNotedHdrs[i] = shardGenesisBlocks[i]
-	}
-
 	mp.finalityAttestingHdrs = make([]*block.Header, 0)
 	mp.nextKValidity = blockFinality
 
 	return &mp, nil
+}
+
+// SetLastNotarizedHeadersSlice sets the shard headers blocks in lastNotarizedHdrs.
+// This is done when starting a new epoch so metachain can use it when validating next shard header blocks
+func (mp *metaProcessor) SetLastNotarizedHeadersSlice(shardHeaderBlocks map[uint32]*block.Header) error {
+	mp.mutLastNotarizedHdrs.Lock()
+	defer mp.mutLastNotarizedHdrs.Unlock()
+
+	if shardHeaderBlocks == nil {
+		return process.ErrNilHeadersBlocks
+	}
+
+	mp.lastNotarizedHdrs = make(mapShardLastHeaders, mp.shardCoordinator.NumberOfShards())
+	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
+		mp.lastNotarizedHdrs[i] = shardHeaderBlocks[i]
+	}
+
+	return nil
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -429,17 +439,24 @@ func (mp *metaProcessor) CommitBlock(
 }
 
 func (mp *metaProcessor) createLastNotarizedHdrs(header *block.MetaBlock) error {
+	mp.mutLastNotarizedHdrs.Lock()
+	defer mp.mutLastNotarizedHdrs.Unlock()
+
+	if mp.lastNotarizedHdrs == nil {
+		return process.ErrLastNotarizedHdrsSliceIsNil
+	}
+
 	// save last highest round number per shard
 	tmpNotedHdrs := make(mapShardLastHeaders, mp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		tmpNotedHdrs[i] = mp.lastNotedHdrs[i]
+		tmpNotedHdrs[i] = mp.lastNotarizedHdrs[i]
 	}
 
 	var err error
 	defer func() {
 		if err != nil {
 			for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-				mp.lastNotedHdrs[i] = tmpNotedHdrs[i]
+				mp.lastNotarizedHdrs[i] = tmpNotedHdrs[i]
 			}
 		}
 	}()
@@ -451,8 +468,8 @@ func (mp *metaProcessor) createLastNotarizedHdrs(header *block.MetaBlock) error 
 			return err
 		}
 
-		if mp.lastNotedHdrs[header.ShardId].Nonce < header.Nonce {
-			mp.lastNotedHdrs[header.ShardId] = header
+		if mp.lastNotarizedHdrs[header.ShardId].Nonce < header.Nonce {
+			mp.lastNotarizedHdrs[header.ShardId] = header
 		}
 	}
 
@@ -490,10 +507,17 @@ func (mp *metaProcessor) getSortedShardHdrsFromMetablock(header *block.MetaBlock
 // check if shard headers were signed and constructed correctly and returns headers which has to be
 // checked for finality
 func (mp *metaProcessor) checkShardHeadersValidity(header *block.MetaBlock) (mapShardLastHeaders, error) {
+	mp.mutLastNotarizedHdrs.RLock()
+	if mp.lastNotarizedHdrs == nil {
+		mp.mutLastNotarizedHdrs.RUnlock()
+		return nil, process.ErrLastNotarizedHdrsSliceIsNil
+	}
+
 	tmpNotedHdrs := make(mapShardLastHeaders, mp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		tmpNotedHdrs[i] = mp.lastNotedHdrs[i]
+		tmpNotedHdrs[i] = mp.lastNotarizedHdrs[i]
 	}
+	mp.mutLastNotarizedHdrs.RUnlock()
 
 	sortedShardHdrs, err := mp.getSortedShardHdrsFromMetablock(header)
 	if err != nil {
@@ -802,9 +826,15 @@ func (mp *metaProcessor) createShardInfo(
 	log.Info(fmt.Sprintf("creating shard info has been started: have %d hdrs in pool\n", len(orderedHdrs)))
 
 	// save last committed hdr for verification
-	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
-		lastPushedHdr[shardId] = mp.lastNotedHdrs[shardId]
+	mp.mutLastNotarizedHdrs.RLock()
+	if mp.lastNotarizedHdrs == nil {
+		mp.mutLastNotarizedHdrs.RUnlock()
+		return nil, process.ErrLastNotarizedHdrsSliceIsNil
 	}
+	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
+		lastPushedHdr[shardId] = mp.lastNotarizedHdrs[shardId]
+	}
+	mp.mutLastNotarizedHdrs.RUnlock()
 
 	mp.finalityAttestingHdrs = make([]*block.Header, 0)
 
@@ -1070,6 +1100,12 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 
 	maxRoundToSort := round + mp.nextKValidity + 1
 
+	mp.mutLastNotarizedHdrs.RLock()
+	if mp.lastNotarizedHdrs == nil {
+		mp.mutLastNotarizedHdrs.RUnlock()
+		return nil, nil, nil, process.ErrLastNotarizedHdrsSliceIsNil
+	}
+
 	// get keys and arrange them into shards
 	for _, key := range hdrStore.Keys() {
 		val, _ := hdrStore.Peek(key)
@@ -1087,21 +1123,22 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 		}
 
 		currShardId := hdr.ShardId
-		if mp.lastNotedHdrs[currShardId] == nil {
+		if mp.lastNotarizedHdrs[currShardId] == nil {
 			continue
 		}
 
-		if hdr.GetRound() <= mp.lastNotedHdrs[currShardId].GetRound() {
+		if hdr.GetRound() <= mp.lastNotarizedHdrs[currShardId].GetRound() {
 			continue
 		}
 
-		if hdr.GetNonce() <= mp.lastNotedHdrs[currShardId].GetNonce() {
+		if hdr.GetNonce() <= mp.lastNotarizedHdrs[currShardId].GetNonce() {
 			continue
 		}
 
 		hashAndBlockMap[currShardId] = append(hashAndBlockMap[currShardId],
 			&hashAndBlock{hdr: hdr, hash: key})
 	}
+	mp.mutLastNotarizedHdrs.RUnlock()
 
 	// sort headers for each shard
 	maxHdrLen := 0

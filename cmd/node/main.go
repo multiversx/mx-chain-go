@@ -18,7 +18,8 @@ import (
 	"syscall"
 	"time"
 
-	block2 "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
+	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 
@@ -886,11 +887,14 @@ func createMetaNode(
 		marshalizer,
 		metaStore,
 		createRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic, log),
-		shardsGenesisBlocks,
 	)
-
 	if err != nil {
 		return nil, errors.New("could not create block processor: " + err.Error())
+	}
+
+	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks)
+	if err != nil {
+		return nil, err
 	}
 
 	nd, err := node.NewNode(
@@ -1472,9 +1476,9 @@ func createGenesisBlocksOnShards(
 	addressConverter state.AddressConverter,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
-) (map[uint32]*block2.Header, error) {
+) (map[uint32]*dataBlock.Header, error) {
 
-	shardsGenesisBlocks := make(map[uint32]*block2.Header)
+	shardsGenesisBlocks := make(map[uint32]*dataBlock.Header)
 
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
 		newShardCoordinator, err := sharding.NewMultiShardCoordinator(shardCoordinator.NumberOfShards(), shardId)
@@ -1487,14 +1491,13 @@ func createGenesisBlocksOnShards(
 			return nil, err
 		}
 
-		accounts := generateInMemoryAccountsdapter(accountFactory, hasher, marshalizer)
-
+		accounts := generateInMemoryAccountsAdapter(accountFactory, hasher, marshalizer)
 		initialBalances, err := genesisConfig.InitialNodesBalances(newShardCoordinator, addressConverter)
 		if err != nil {
 			return nil, err
 		}
 
-		genesisBlock, err := block.CreateGenesisBlockFromInitialBalances(
+		genesisBlock, err := genesis.CreateGenesisBlockFromInitialBalances(
 			accounts,
 			newShardCoordinator,
 			addressConverter,
@@ -1511,7 +1514,7 @@ func createGenesisBlocksOnShards(
 	return shardsGenesisBlocks, nil
 }
 
-func generateInMemoryAccountsdapter(
+func generateInMemoryAccountsAdapter(
 	accountFactory state.AccountFactory,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,

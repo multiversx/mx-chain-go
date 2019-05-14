@@ -307,10 +307,12 @@ func proposeBlock(t *testing.T, proposer *testNode) (data.BodyHandler, data.Head
 		return true
 	})
 	assert.Nil(t, err)
+
 	blockHeader, err := proposer.blkProcessor.CreateBlockHeader(blockBody, 1, func() bool {
 		return true
 	})
 	assert.Nil(t, err)
+
 	blockHeader.SetNonce(1)
 	blockHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := testMultiSig.AggregateSigs(nil)
@@ -329,6 +331,7 @@ func proposeMetaBlock(t *testing.T, proposer *testNode) (data.BodyHandler, data.
 		return true
 	})
 	assert.Nil(t, err)
+
 	metaHeader.SetNonce(1)
 	metaHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := testMultiSig.AggregateSigs(nil)

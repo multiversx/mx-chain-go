@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -29,7 +30,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -201,6 +201,12 @@ func (n *Node) CreateShardedStores() error {
 
 // StartConsensus will start the consesus service for the current node
 func (n *Node) StartConsensus() error {
+	isGenesisBlockNotInitialized := n.blkc.GetGenesisHeaderHash() == nil ||
+		n.blkc.GetGenesisHeader() == nil
+	if isGenesisBlockNotInitialized {
+		return ErrGenesisBlockNotInitialized
+	}
+
 	chronologyHandler, err := n.createChronologyHandler(n.rounder)
 	if err != nil {
 		return err
@@ -290,7 +296,7 @@ func (n *Node) StartConsensus() error {
 
 // CreateShardGenesisBlock creates the shard genesis block
 func (n *Node) CreateShardGenesisBlock() error {
-	header, err := block2.CreateGenesisBlockFromInitialBalances(
+	header, err := genesis.CreateGenesisBlockFromInitialBalances(
 		n.accounts,
 		n.shardCoordinator,
 		n.addrConverter,
@@ -308,7 +314,7 @@ func (n *Node) CreateShardGenesisBlock() error {
 
 	blockHeaderHash := n.hasher.Compute(string(marshalizedHeader))
 
-	return n.applyGenesisOnBlockchain(header, blockHeaderHash)
+	return n.setGenesis(header, blockHeaderHash)
 }
 
 // CreateMetaGenesisBlock creates the meta genesis block
@@ -330,10 +336,10 @@ func (n *Node) CreateMetaGenesisBlock() error {
 
 	blockHeaderHash := n.hasher.Compute(string(marshalizedHeader))
 
-	return n.applyGenesisOnBlockchain(header, blockHeaderHash)
+	return n.setGenesis(header, blockHeaderHash)
 }
 
-func (n *Node) applyGenesisOnBlockchain(genesisHeader data.HeaderHandler, genesisHeaderHash []byte) error {
+func (n *Node) setGenesis(genesisHeader data.HeaderHandler, genesisHeaderHash []byte) error {
 	err := n.blkc.SetGenesisHeader(genesisHeader)
 	if err != nil {
 		return err
@@ -678,21 +684,23 @@ func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.Heade
 	go n.messenger.Broadcast(factory.HeadersTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgHeader)
 
-	shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
-		n.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
-	go n.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
-
 	go n.messenger.Broadcast(factory.MiniBlocksTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
 	if !n.isMetachainActive {
-		//TODO - remove this when metachain is fully tested
+		//TODO - remove this when metachain is fully tested. Should remove only "if" branch,
+		// the "else" branch should not be removed
 		msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
 		if err != nil {
 			return err
 		}
 
 		go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
+	} else {
+		shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
+			n.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
+
+		go n.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
 	}
 
 	for k, v := range msgMapBlockBody {

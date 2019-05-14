@@ -73,7 +73,6 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		fmt.Println(makeDisplayTable(nodes))
-
 		time.Sleep(time.Second)
 	}
 

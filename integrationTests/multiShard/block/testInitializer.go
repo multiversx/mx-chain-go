@@ -626,7 +626,7 @@ func createMetaNetNode(
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolvers, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 
-	tn.blkProcessor, _ = block.NewMetaProcessor(
+	blkProc, _ := block.NewMetaProcessor(
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{
@@ -642,8 +642,9 @@ func createMetaNetNode(
 		testMarshalizer,
 		store,
 		func(shardId uint32, hdrHash []byte) {},
-		createGenesisBlocks(shardCoordinator),
 	)
+	_ = blkProc.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator))
+	tn.blkProcessor = blkProc
 
 	n, err := node.NewNode(
 		node.WithMessenger(tn.messenger),

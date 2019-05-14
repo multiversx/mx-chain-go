@@ -1,13 +1,16 @@
-package block
+package genesis
 
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
+
+var log = logger.DefaultLogger()
 
 // CreateGenesisBlockFromInitialBalances creates the genesis block body from map of account balances
 func CreateGenesisBlockFromInitialBalances(
@@ -53,7 +56,6 @@ func CreateGenesisBlockFromInitialBalances(
 	}
 
 	return header, err
-
 }
 
 // setBalancesToTrie adds balances to trie
@@ -86,7 +88,7 @@ func setBalancesToTrie(
 		return nil, err
 	}
 
-	return rootHash, err
+	return rootHash, nil
 }
 
 func setBalanceToTrie(
