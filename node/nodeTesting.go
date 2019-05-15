@@ -135,10 +135,10 @@ func (n *Node) generateBulkTransactionsChecks(noOfTx uint64) error {
 	if noOfTx == 0 {
 		return errors.New("can not generate and broadcast 0 transactions")
 	}
-	if n.publicKey == nil {
+	if n.txSignPubKey == nil {
 		return ErrNilPublicKey
 	}
-	if n.singlesig == nil {
+	if n.txSingleSigner == nil {
 		return ErrNilSingleSig
 	}
 	if n.addrConverter == nil {
@@ -155,7 +155,7 @@ func (n *Node) generateBulkTransactionsChecks(noOfTx uint64) error {
 }
 
 func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string) (uint64, []byte, []byte, uint32, error) {
-	senderAddressBytes, err := n.publicKey.ToByteArray()
+	senderAddressBytes, err := n.txSignPubKey.ToByteArray()
 	if err != nil {
 		return 0, nil, nil, 0, err
 	}
@@ -203,7 +203,7 @@ func (n *Node) generateAndSignTx(
 	if n.marshalizer == nil {
 		return nil, nil, ErrNilMarshalizer
 	}
-	if n.privateKey == nil {
+	if n.txSignPrivKey == nil {
 		return nil, nil, ErrNilPrivateKey
 	}
 
@@ -220,7 +220,7 @@ func (n *Node) generateAndSignTx(
 		return nil, nil, errors.New("could not marshal transaction")
 	}
 
-	sig, err := n.singlesig.Sign(n.privateKey, marshalizedTx)
+	sig, err := n.txSingleSigner.Sign(n.txSignPrivKey, marshalizedTx)
 	if err != nil {
 		return nil, nil, errors.New("could not sign the transaction")
 	}
@@ -244,7 +244,7 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
-	if n.privateKey == nil {
+	if n.txSignPrivKey == nil {
 		return nil, errors.New("initialize PrivateKey first")
 	}
 

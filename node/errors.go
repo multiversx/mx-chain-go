@@ -61,11 +61,11 @@ var ErrNilUint64ByteSliceConverter = errors.New("trying to set nil uint64 - byte
 // ErrNilBalances signals that a nil list of initial balances has been provided
 var ErrNilBalances = errors.New("trying to set nil balances")
 
-// ErrNilSingleSig signals that a nil singlesig object has been provided
-var ErrNilSingleSig = errors.New("trying to set nil singlesig")
+// ErrNilSingleSig signals that a nil schnorrSingleSigner object has been provided
+var ErrNilSingleSig = errors.New("trying to set nil schnorrSingleSigner")
 
-// ErrNilMultiSig signals that a nil multisig object has been provided
-var ErrNilMultiSig = errors.New("trying to set nil multisig")
+// ErrNilMultiSig signals that a nil multiSigner object has been provided
+var ErrNilMultiSig = errors.New("trying to set nil multiSigner")
 
 // ErrNilForkDetector signals that a nil forkdetector object has been provided
 var ErrNilForkDetector = errors.New("nil fork detector")
