@@ -42,6 +42,11 @@ func buildDummyRecentBlocks() recentBlocksResponse {
 // Routes defines block related routes
 func Routes(router *gin.RouterGroup) {
 	router.GET("/:block", Block)
+}
+
+// RoutesForBlockLists defines routes related to lists of blocks. Used sepparatly so
+//  it will not confloct with the wildcard for block details route
+func RoutesForBlockLists(router *gin.RouterGroup) {
 	router.GET("/recent-blocks", RecentBlocks)
 }
 
