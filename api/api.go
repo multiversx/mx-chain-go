@@ -3,6 +3,7 @@ package api
 import (
 	"reflect"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/block"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -45,6 +46,10 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	txRoutes := ws.Group("/transaction")
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	transaction.Routes(txRoutes)
+
+	blockRoutes := ws.Group("/block")
+	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
+	block.Routes(blockRoutes)
 }
 
 func registerValidators() error {
