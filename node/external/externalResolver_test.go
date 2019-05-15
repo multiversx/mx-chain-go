@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/external"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,12 +25,10 @@ var defaultShardHeader = block.Header{
 }
 var testMarshalizer = &mock.MarshalizerFake{}
 
-func createMockValidatorGroupSelector() consensus.ValidatorGroupSelector {
-	return &mock.ValidatorGroupSelectorStub{
-		ComputeValidatorsGroupCalled: func(randomness []byte) (validatorsGroup []consensus.Validator, err error) {
-			return []consensus.Validator{
-				&mock.ValidatorMock{PubKeyField: pk1},
-			}, nil
+func createMockProposerResolver() external.ProposerResolver {
+	return &mock.ProposerResolverStub{
+		ResolveProposerCalled: func(shardId uint32, roundIndex uint32, prevRandomSeed []byte) (bytes []byte, e error) {
+			return []byte(pk1), nil
 		},
 	}
 }
@@ -71,7 +69,7 @@ func TestNewExternalResolver_NilCoordinatorShouldErr(t *testing.T) {
 		&mock.BlockChainMock{},
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
-		&mock.ValidatorGroupSelectorStub{},
+		&mock.ProposerResolverStub{},
 	)
 
 	assert.Nil(t, ner)
@@ -86,7 +84,7 @@ func TestNewExternalResolver_NilChainHandlerShouldErr(t *testing.T) {
 		nil,
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
-		&mock.ValidatorGroupSelectorStub{},
+		&mock.ProposerResolverStub{},
 	)
 
 	assert.Nil(t, ner)
@@ -101,7 +99,7 @@ func TestNewExternalResolver_NilChainStorerShouldErr(t *testing.T) {
 		&mock.BlockChainMock{},
 		nil,
 		&mock.MarshalizerMock{},
-		&mock.ValidatorGroupSelectorStub{},
+		&mock.ProposerResolverStub{},
 	)
 
 	assert.Nil(t, ner)
@@ -116,7 +114,7 @@ func TestNewExternalResolver_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.BlockChainMock{},
 		&mock.ChainStorerMock{},
 		nil,
-		&mock.ValidatorGroupSelectorStub{},
+		&mock.ProposerResolverStub{},
 	)
 
 	assert.Nil(t, ner)
@@ -135,7 +133,7 @@ func TestNewExternalResolver_NilValidatorGroupSelectorShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, ner)
-	assert.Equal(t, external.ErrNilValidatorGroupSelector, err)
+	assert.Equal(t, external.ErrNilProposerResolver, err)
 }
 
 func TestNewExternalResolver_OkValsShouldWork(t *testing.T) {
@@ -146,7 +144,7 @@ func TestNewExternalResolver_OkValsShouldWork(t *testing.T) {
 		&mock.BlockChainMock{},
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
-		&mock.ValidatorGroupSelectorStub{},
+		&mock.ProposerResolverStub{},
 	)
 
 	assert.NotNil(t, ner)
@@ -163,7 +161,7 @@ func TestExternalResolver_RecentNotarizedBlocksNotMetachainShouldErr(t *testing.
 		&mock.BlockChainMock{},
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
-		&mock.ValidatorGroupSelectorStub{},
+		&mock.ProposerResolverStub{},
 	)
 
 	recentBlocks, err := ner.RecentNotarizedBlocks(1)
@@ -181,7 +179,7 @@ func TestExternalResolver_InvalidMaxNumShouldErr(t *testing.T) {
 		&mock.BlockChainMock{},
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
-		&mock.ValidatorGroupSelectorStub{},
+		&mock.ProposerResolverStub{},
 	)
 
 	recentBlocks, err := ner.RecentNotarizedBlocks(0)
@@ -205,12 +203,45 @@ func TestExternalResolver_CurrentBlockIsGenesisShouldWork(t *testing.T) {
 		},
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
-		&mock.ValidatorGroupSelectorStub{},
+		&mock.ProposerResolverStub{},
 	)
 
 	recentBlocks, err := ner.RecentNotarizedBlocks(1)
 	assert.Empty(t, recentBlocks)
 	assert.Nil(t, err)
+}
+
+func TestExternalResolver_ProposerResolverErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	crtNonce := 5
+	errExpected := errors.New("expected error")
+
+	ner, _ := external.NewExternalResolver(
+		&mock.ShardCoordinatorMock{
+			SelfIdField: sharding.MetachainShardId,
+		},
+		&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlock{
+					Nonce:     uint64(crtNonce),
+					PrevHash:  []byte(fmt.Sprintf("hash_%d", crtNonce-1)),
+					ShardInfo: []block.ShardData{{}},
+				}
+			},
+		},
+		createMockStorer(),
+		testMarshalizer,
+		&mock.ProposerResolverStub{
+			ResolveProposerCalled: func(shardId uint32, roundIndex uint32, prevRandomSeed []byte) (bytes []byte, e error) {
+				return nil, errExpected
+			},
+		},
+	)
+
+	recentBlocks, err := ner.RecentNotarizedBlocks(crtNonce)
+	assert.Nil(t, recentBlocks)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestExternalResolver_WithBlocksShouldWork(t *testing.T) {
@@ -233,7 +264,7 @@ func TestExternalResolver_WithBlocksShouldWork(t *testing.T) {
 		},
 		createMockStorer(),
 		testMarshalizer,
-		createMockValidatorGroupSelector(),
+		createMockProposerResolver(),
 	)
 
 	recentBlocks, err := ner.RecentNotarizedBlocks(crtNonce)
@@ -262,7 +293,7 @@ func TestExternalResolver_WithMoreBlocksShouldWorkAndReturnMaxBlocksNum(t *testi
 		},
 		createMockStorer(),
 		testMarshalizer,
-		createMockValidatorGroupSelector(),
+		createMockProposerResolver(),
 	)
 
 	maxBlocks := 10

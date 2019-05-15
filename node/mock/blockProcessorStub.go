@@ -18,6 +18,8 @@ type BlockProcessorStub struct {
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
 	CreateBlockHeaderCalled          func(body data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error)
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
+	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
+	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 }
 
 // ProcessBlock mocks pocessing a block
@@ -55,4 +57,12 @@ func (blProcMock BlockProcessorStub) CreateBlockHeader(body data.BodyHandler, ro
 
 func (blProcMock BlockProcessorStub) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
 	return blProcMock.MarshalizedDataToBroadcastCalled(header, body)
+}
+
+func (blProcMock BlockProcessorStub) DecodeBlockBody(dta []byte) data.BodyHandler {
+	return blProcMock.DecodeBlockBodyCalled(dta)
+}
+
+func (blProcMock BlockProcessorStub) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	return blProcMock.DecodeBlockHeaderCalled(dta)
 }

@@ -124,12 +124,12 @@ func (cc *ConsensusCore) ValidatorGroupSelector() consensus.ValidatorGroupSelect
 	return cc.validatorGroupSelector
 }
 
-// BlsPrivateKey returns the BLS private key stored in the ConsensusStore
-func (cc *ConsensusCore) BlsPrivateKey() crypto.PrivateKey {
+// RandomnessPrivateKey returns the BLS private key stored in the ConsensusStore
+func (cc *ConsensusCore) RandomnessPrivateKey() crypto.PrivateKey {
 	return cc.blsPrivateKey
 }
 
-// BlsSingleSigner returns the bls single signer stored in the ConsensusStore
-func (cc *ConsensusCore) BlsSingleSigner() crypto.SingleSigner {
+// RandomnessSingleSigner returns the bls single signer stored in the ConsensusStore
+func (cc *ConsensusCore) RandomnessSingleSigner() crypto.SingleSigner {
 	return cc.blsSingleSigner
 }

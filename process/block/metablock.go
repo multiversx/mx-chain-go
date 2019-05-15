@@ -1173,3 +1173,37 @@ func (mp *metaProcessor) getHeadersCountInPool() int {
 
 	return headerPool.Len()
 }
+
+// DecodeBlockBody method decodes block body from a given byte array
+func (mp *metaProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
+	if dta == nil {
+		return nil
+	}
+
+	var body block.MetaBlockBody
+
+	err := mp.marshalizer.Unmarshal(&body, dta)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
+	return &body
+}
+
+// DecodeBlockHeader method decodes block header from a given byte array
+func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	if dta == nil {
+		return nil
+	}
+
+	var header block.MetaBlock
+
+	err := mp.marshalizer.Unmarshal(&header, dta)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
+	return &header
+}

@@ -1,9 +1,6 @@
 package spos
 
 import (
-	"encoding/base64"
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -39,10 +36,10 @@ type ConsensusCoreHandler interface {
 	SyncTimer() ntp.SyncTimer
 	// ValidatorGroupSelector gets the ValidatorGroupSelector stored in the ConsensusCore
 	ValidatorGroupSelector() consensus.ValidatorGroupSelector
-	// BlsPrivateKey returns the BLS private key stored in the ConsensusStore
-	BlsPrivateKey() crypto.PrivateKey
-	// BlsSingleSigner returns the bls single signer stored in the ConsensusStore
-	BlsSingleSigner() crypto.SingleSigner
+	// RandomnessPrivateKey returns the private key stored in the ConsensusStore used for randomness generation
+	RandomnessPrivateKey() crypto.PrivateKey
+	// RandomnessSingleSigner returns the single signer stored in the ConsensusStore used for randomness generation
+	RandomnessSingleSigner() crypto.SingleSigner
 }
 
 //ConsensusService encapsulates the methods specifically for a consensus type (bls, bn)
@@ -76,18 +73,4 @@ type WorkerHandler interface {
 	GetConsensusStateChangedChannel() chan bool
 	//BroadcastBlock ge
 	BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error
-}
-
-// GenerateRandomness is used to generate a random string based on randSeed concatenated with round index
-func GenerateRandomness(roundIndex int32, randSeed []byte) string {
-	return fmt.Sprintf("%d-%s", roundIndex, toB64(randSeed))
-}
-
-// toB64 convert a byte array to a base64 string
-func toB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-
-	return base64.StdEncoding.EncodeToString(buff)
 }

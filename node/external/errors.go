@@ -26,5 +26,5 @@ var ErrNilStore = errors.New("nil data storage service")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
-// ErrNilValidatorGroupSelector is raised when a valid validator group selector is expected but nil used
-var ErrNilValidatorGroupSelector = errors.New("validator group selector is nil")
+// ErrNilProposerResolver is raised when a valid proposer resolver is expected but nil used
+var ErrNilProposerResolver = errors.New("proposer validator is nil")

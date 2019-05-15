@@ -127,7 +127,7 @@
    Type = "blake2b"
 
 [MultisigHasher]
-   Type = "sha256"
+   Type = "blake2b"
 
 [Marshalizer]
    Type = "json"
@@ -146,3 +146,7 @@
    MinTimeToWaitBetweenBroadcastsInSec = 20
    MaxTimeToWaitBetweenBroadcastsInSec = 25
    DurationInSecToConsiderUnresponsive = 60
+
+# Consensus type which will be used (the current implementation can manage "bn" and "bls")
+[Consensus]
+   Type = "bls"

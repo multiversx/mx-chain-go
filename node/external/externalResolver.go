@@ -1,8 +1,6 @@
 package external
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
@@ -12,11 +10,11 @@ import (
 
 // ExternalResolver is a struct used to gather relevant info about the blockchain status
 type ExternalResolver struct {
-	coordinator       sharding.Coordinator
-	chainHandler      data.ChainHandler
-	storage           dataRetriever.StorageService
-	marshalizer       marshal.Marshalizer
-	validatorGroupSel consensus.ValidatorGroupSelector
+	coordinator      sharding.Coordinator
+	chainHandler     data.ChainHandler
+	storage          dataRetriever.StorageService
+	marshalizer      marshal.Marshalizer
+	proposerResolver ProposerResolver
 }
 
 // NewExternalResolver creates a new struct responsible with the gathering of relevant blockchain info
@@ -25,7 +23,7 @@ func NewExternalResolver(
 	chainHandler data.ChainHandler,
 	storage dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-	validatorGroupSel consensus.ValidatorGroupSelector,
+	proposerResolver ProposerResolver,
 ) (*ExternalResolver, error) {
 
 	if coordinator == nil {
@@ -40,16 +38,16 @@ func NewExternalResolver(
 	if marshalizer == nil {
 		return nil, ErrNilMarshalizer
 	}
-	if validatorGroupSel == nil {
-		return nil, ErrNilValidatorGroupSelector
+	if proposerResolver == nil {
+		return nil, ErrNilProposerResolver
 	}
 
 	er := &ExternalResolver{
-		coordinator:       coordinator,
-		chainHandler:      chainHandler,
-		storage:           storage,
-		marshalizer:       marshalizer,
-		validatorGroupSel: validatorGroupSel,
+		coordinator:      coordinator,
+		chainHandler:     chainHandler,
+		storage:          storage,
+		marshalizer:      marshalizer,
+		proposerResolver: proposerResolver,
 	}
 
 	return er, nil
@@ -128,7 +126,7 @@ func (er *ExternalResolver) extractShardBlocksAsRecentBlocks(metablock *block.Me
 			return nil, err
 		}
 
-		proposer, err := er.computeProposer(shardHeader.PrevRandSeed, shardHeader.Round)
+		proposer, err := er.proposerResolver.ResolveProposer(shardHeader.ShardId, shardHeader.Round, shardHeader.PrevRandSeed)
 		if err != nil {
 			return nil, err
 		}
@@ -148,14 +146,4 @@ func (er *ExternalResolver) extractShardBlocksAsRecentBlocks(metablock *block.Me
 
 	return recentBlocks, nil
 
-}
-
-func (er *ExternalResolver) computeProposer(prevRandSeed []byte, roundIndex uint32) ([]byte, error) {
-	randomness := []byte(spos.GenerateRandomness(int32(roundIndex), prevRandSeed))
-	validatorList, err := er.validatorGroupSel.ComputeValidatorsGroup(randomness)
-	if err != nil {
-		return nil, err
-	}
-
-	return validatorList[0].PubKey(), nil
 }

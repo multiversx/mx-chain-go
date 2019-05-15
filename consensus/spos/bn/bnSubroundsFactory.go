@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/commonSubround"
 )
 
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
@@ -110,7 +111,7 @@ func (fct *factory) getTimeDuration() time.Duration {
 }
 
 func (fct *factory) generateStartRoundSubround() error {
-	subround, err := NewSubround(
+	subround, err := spos.NewSubround(
 		-1,
 		SrStartRound,
 		SrBlock,
@@ -126,9 +127,11 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
-	subroundStartRound, err := NewSubroundStartRound(
+	subroundStartRound, err := commonSubround.NewSubroundStartRound(
 		subround,
 		fct.worker.Extend,
+		processingThresholdPercent,
+		getSubroundName,
 	)
 
 	if err != nil {
@@ -141,7 +144,7 @@ func (fct *factory) generateStartRoundSubround() error {
 }
 
 func (fct *factory) generateBlockSubround() error {
-	subround, err := NewSubround(
+	subround, err := spos.NewSubround(
 		SrStartRound,
 		SrBlock,
 		SrCommitmentHash,
@@ -156,24 +159,28 @@ func (fct *factory) generateBlockSubround() error {
 		return err
 	}
 
-	subroundBlock, err := NewSubroundBlock(
+	subroundBlock, err := commonSubround.NewSubroundBlock(
 		subround,
 		fct.worker.SendConsensusMessage,
 		fct.worker.Extend,
+		int(MtBlockBody),
+		int(MtBlockHeader),
+		processingThresholdPercent,
+		getSubroundName,
 	)
 	if err != nil {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.receivedBlockBody)
-	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.receivedBlockHeader)
+	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.ReceivedBlockBody)
+	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.ReceivedBlockHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundBlock)
 
 	return nil
 }
 
 func (fct *factory) generateCommitmentHashSubround() error {
-	subround, err := NewSubround(
+	subround, err := spos.NewSubround(
 		SrBlock,
 		SrCommitmentHash,
 		SrBitmap,
@@ -204,7 +211,7 @@ func (fct *factory) generateCommitmentHashSubround() error {
 }
 
 func (fct *factory) generateBitmapSubround() error {
-	subround, err := NewSubround(
+	subround, err := spos.NewSubround(
 		SrCommitmentHash,
 		SrBitmap,
 		SrCommitment,
@@ -235,7 +242,7 @@ func (fct *factory) generateBitmapSubround() error {
 }
 
 func (fct *factory) generateCommitmentSubround() error {
-	subround, err := NewSubround(
+	subround, err := spos.NewSubround(
 		SrBitmap,
 		SrCommitment,
 		SrSignature,
@@ -266,7 +273,7 @@ func (fct *factory) generateCommitmentSubround() error {
 }
 
 func (fct *factory) generateSignatureSubround() error {
-	subround, err := NewSubround(
+	subround, err := spos.NewSubround(
 		SrCommitment,
 		SrSignature,
 		SrEndRound,
@@ -297,7 +304,7 @@ func (fct *factory) generateSignatureSubround() error {
 }
 
 func (fct *factory) generateEndRoundSubround() error {
-	subround, err := NewSubround(
+	subround, err := spos.NewSubround(
 		SrSignature,
 		SrEndRound,
 		-1,

@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
@@ -99,80 +98,6 @@ func (fct *factory) GenerateSignatureSubround() error {
 
 func (fct *factory) GenerateEndRoundSubround() error {
 	return fct.generateEndRoundSubround()
-}
-
-//worker
-
-type BNConsensusService *worker
-
-// subround
-
-func (sr *subround) SetJobFunction(job func() bool) {
-	sr.job = job
-}
-
-func (sr *subround) SetCheckFunction(check func() bool) {
-	sr.check = check
-}
-
-// subroundStartRound
-
-type SubroundStartRound *subroundStartRound
-
-func (sr *subroundStartRound) DoStartRoundJob() bool {
-	return sr.doStartRoundJob()
-}
-
-func (sr *subroundStartRound) DoStartRoundConsensusCheck() bool {
-	return sr.doStartRoundConsensusCheck()
-}
-
-func (sr *subroundStartRound) GenerateNextConsensusGroup(roundIndex int32) error {
-	return sr.generateNextConsensusGroup(roundIndex)
-}
-
-// subroundBlock
-
-type SubroundBlock *subroundBlock
-
-func (sr *subroundBlock) BlockChain() data.ChainHandler {
-	return sr.Blockchain()
-}
-
-func (sr *subroundBlock) DoBlockJob() bool {
-	return sr.doBlockJob()
-}
-
-func (sr *subroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockBody(cnsDta)
-}
-
-func (sr *subroundBlock) DecodeBlockBody(dta []byte) block.Body {
-	return sr.decodeBlockBody(dta)
-}
-
-func (sr *subroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockHeader(cnsDta)
-}
-
-func (sr *subroundBlock) DecodeBlockHeader(dta []byte) *block.Header {
-	return sr.decodeBlockHeader(dta)
-}
-
-func (sr *subroundBlock) ProcessReceivedBlock(cnsDta *consensus.Message) bool {
-	return sr.processReceivedBlock(cnsDta)
-}
-
-func (sr *subroundBlock) DoBlockConsensusCheck() bool {
-	return sr.doBlockConsensusCheck()
-}
-
-func (sr *subroundBlock) IsBlockReceived(threshold int) bool {
-	return sr.isBlockReceived(threshold)
-}
-
-func (sr *subroundBlock) CreateHeader() (data.HeaderHandler, error) {
-	return sr.createHeader()
 }
 
 // subroundCommitmentHash
@@ -289,10 +214,6 @@ func (sr *subroundEndRound) BroadcastBlock() func(data.BodyHandler, data.HeaderH
 
 func (sr *subroundEndRound) SetBroadcastBlock(broadcastBlock func(data.BodyHandler, data.HeaderHandler) error) {
 	sr.broadcastBlock = broadcastBlock
-}
-
-func (sr *subroundStartRound) InitCurrentRound() bool {
-	return sr.initCurrentRound()
 }
 
 func GetStringValue(messageType consensus.MessageType) string {
