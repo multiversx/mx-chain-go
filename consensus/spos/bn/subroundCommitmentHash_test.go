@@ -15,7 +15,7 @@ func initSubroundCommitmentHashWithContainer(container *mock.ConsensusCoreMock) 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
@@ -62,7 +62,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilConsensusStateShould
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
@@ -92,7 +92,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilHasherShouldFail(t *
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
@@ -122,7 +122,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilMultisignerShouldFai
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
@@ -152,7 +152,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilRounderShouldFail(t 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
@@ -182,7 +182,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSyncTimerShouldFail(
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
@@ -212,7 +212,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSendConsensusMessage
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
@@ -242,7 +242,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashShouldWork(t *testing.T
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
@@ -305,7 +305,6 @@ func TestSubroundCommitmentHash_ReceivedCommitmentHash(t *testing.T) {
 	sr := *initSubroundCommitmentHash()
 
 	commitment := []byte("commitment")
-
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.Data,
 		commitment,

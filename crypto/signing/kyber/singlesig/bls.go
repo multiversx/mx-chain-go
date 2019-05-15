@@ -7,7 +7,7 @@ import (
 	"go.dedis.ch/kyber/v3/sign/bls"
 )
 
-// BlsSingleSigner is a SingleSigner implementation that uses a BLS signature scheme
+// RandomnessSingleSigner is a SingleSigner implementation that uses a BLS signature scheme
 type BlsSingleSigner struct {
 }
 

@@ -142,7 +142,7 @@ func TestNewMetaProcessor_NilHasherShouldErr(t *testing.T) {
 	assert.Nil(t, be)
 }
 
-func TestNewMetaProcessor_NilMarshalizerShouldWork(t *testing.T) {
+func TestNewMetaProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
@@ -176,7 +176,7 @@ func TestNewMetaProcessor_NilChainStorerShouldErr(t *testing.T) {
 	assert.Nil(t, be)
 }
 
-func TestNewMetaProcessor_NilrequestHeaderHandlerShouldErr(t *testing.T) {
+func TestNewMetaProcessor_NilRequestHeaderHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
@@ -2352,4 +2352,61 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 	valid, hdrIds = mp.IsShardHeaderValidFinal(currHdr, prevHdr, srtShardHdrs)
 	assert.True(t, valid)
 	assert.NotNil(t, hdrIds)
+}
+
+func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
+	t.Parallel()
+	mdp := initMetaDataPool()
+	marshalizerMock := &mock.MarshalizerMock{}
+	mp, err := blproc.NewMetaProcessor(
+		&mock.AccountsStub{},
+		mdp,
+		&mock.ForkDetectorMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.HasherStub{},
+		marshalizerMock,
+		&mock.ChainStorerMock{},
+		func(shardID uint32, hdrHash []byte) {},
+	)
+	body := &block.MetaBlockBody{}
+	message, err := marshalizerMock.Marshal(body)
+	assert.Nil(t, err)
+
+	dcdBlk := mp.DecodeBlockBody(nil)
+	assert.Nil(t, dcdBlk)
+
+	dcdBlk = mp.DecodeBlockBody(message)
+	assert.Equal(t, body, dcdBlk)
+}
+
+func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
+	t.Parallel()
+	mdp := initMetaDataPool()
+	marshalizerMock := &mock.MarshalizerMock{}
+	mp, err := blproc.NewMetaProcessor(
+		&mock.AccountsStub{},
+		mdp,
+		&mock.ForkDetectorMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.HasherStub{},
+		marshalizerMock,
+		&mock.ChainStorerMock{},
+		func(shardID uint32, hdrHash []byte) {},
+	)
+	hdr := &block.MetaBlock{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(0)
+	hdr.Signature = []byte("A")
+	message, err := marshalizerMock.Marshal(hdr)
+	assert.Nil(t, err)
+
+	message, err = marshalizerMock.Marshal(hdr)
+	assert.Nil(t, err)
+
+	dcdHdr := mp.DecodeBlockHeader(nil)
+	assert.Nil(t, dcdHdr)
+
+	dcdHdr = mp.DecodeBlockHeader(message)
+	assert.Equal(t, hdr, dcdHdr)
+	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
 }

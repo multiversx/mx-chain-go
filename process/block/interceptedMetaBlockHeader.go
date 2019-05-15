@@ -115,6 +115,6 @@ func (imh *InterceptedMetaHeader) validityCheck() error {
 func (imh *InterceptedMetaHeader) VerifySig() error {
 	// TODO: Check block signature after multisig will be implemented
 	// TODO: the interceptors do not have access yet to consensus group selection to validate multisigs
-
+	// TODO: verify that the block proposer is among the signers
 	return nil
 }
