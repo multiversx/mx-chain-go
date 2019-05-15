@@ -1,4 +1,4 @@
-package bn
+package bls
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
@@ -68,7 +68,7 @@ func (fct *factory) Worker() spos.WorkerHandler {
 	return fct.worker
 }
 
-func (fct *factory) SetWorker(worker *spos.Worker) {
+func (fct *factory) SetWorker(worker spos.WorkerHandler) {
 	fct.worker = worker
 }
 
@@ -80,92 +80,12 @@ func (fct *factory) GenerateBlockSubround() error {
 	return fct.generateBlockSubround()
 }
 
-func (fct *factory) GenerateCommitmentHashSubround() error {
-	return fct.generateCommitmentHashSubround()
-}
-
-func (fct *factory) GenerateBitmapSubround() error {
-	return fct.generateBitmapSubround()
-}
-
-func (fct *factory) GenerateCommitmentSubround() error {
-	return fct.generateCommitmentSubround()
-}
-
 func (fct *factory) GenerateSignatureSubround() error {
 	return fct.generateSignatureSubround()
 }
 
 func (fct *factory) GenerateEndRoundSubround() error {
 	return fct.generateEndRoundSubround()
-}
-
-// subroundCommitmentHash
-
-type SubroundCommitmentHash *subroundCommitmentHash
-
-func (sr *subroundCommitmentHash) DoCommitmentHashJob() bool {
-	return sr.doCommitmentHashJob()
-}
-
-func (sr *subroundCommitmentHash) ReceivedCommitmentHash(cnsDta *consensus.Message) bool {
-	return sr.receivedCommitmentHash(cnsDta)
-}
-
-func (sr *subroundCommitmentHash) DoCommitmentHashConsensusCheck() bool {
-	return sr.doCommitmentHashConsensusCheck()
-}
-
-func (sr *subroundCommitmentHash) IsCommitmentHashReceived(threshold int) bool {
-	return sr.isCommitmentHashReceived(threshold)
-}
-
-func (sr *subroundCommitmentHash) CommitmentHashesCollected(threshold int) bool {
-	return sr.commitmentHashesCollected(threshold)
-}
-
-func (sr *subroundCommitmentHash) GenCommitmentHash() ([]byte, error) {
-	return sr.genCommitmentHash()
-}
-
-// subroundBitmap
-
-type SubroundBitmap *subroundBitmap
-
-func (sr *subroundBitmap) DoBitmapJob() bool {
-	return sr.doBitmapJob()
-}
-
-func (sr *subroundBitmap) ReceivedBitmap(cnsDta *consensus.Message) bool {
-	return sr.receivedBitmap(cnsDta)
-}
-
-func (sr *subroundBitmap) DoBitmapConsensusCheck() bool {
-	return sr.doBitmapConsensusCheck()
-}
-
-func (sr *subroundBitmap) IsBitmapReceived(threshold int) bool {
-	return sr.isBitmapReceived(threshold)
-}
-
-// subroundCommitment
-
-type SubroundCommitment *subroundCommitment
-
-func (sr *subroundCommitment) DoCommitmentJob() bool {
-	return sr.doCommitmentJob()
-}
-
-func (sr *subroundCommitment) ReceivedCommitment(cnsDta *consensus.Message) bool {
-	return sr.receivedCommitment(cnsDta)
-}
-
-func (sr *subroundCommitment) DoCommitmentConsensusCheck() bool {
-	return sr.doCommitmentConsensusCheck()
-}
-
-func (sr *subroundCommitment) CommitmentsCollected(threshold int) bool {
-	return sr.commitmentsCollected(threshold)
 }
 
 // subroundSignature
@@ -184,11 +104,7 @@ func (sr *subroundSignature) DoSignatureConsensusCheck() bool {
 	return sr.doSignatureConsensusCheck()
 }
 
-func (sr *subroundSignature) CheckCommitmentsValidity(bitmap []byte) error {
-	return sr.checkCommitmentsValidity(bitmap)
-}
-
-func (sr *subroundSignature) SignaturesCollected(threshold int) bool {
+func (sr *subroundSignature) SignaturesCollected(threshold int) (bool, int) {
 	return sr.signaturesCollected(threshold)
 }
 

@@ -1,4 +1,4 @@
-package bn
+package bls
 
 import (
 	"fmt"
@@ -45,11 +45,9 @@ func checkNewSubroundEndRoundParams(
 	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
-
 	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
-
 	if broadcastBlock == nil {
 		return spos.ErrNilBroadcastBlockFunction
 	}
@@ -61,7 +59,11 @@ func checkNewSubroundEndRoundParams(
 
 // doEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) doEndRoundJob() bool {
-	bitmap := sr.GenerateBitmap(SrBitmap)
+	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
+		return false
+	}
+
+	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Error(err.Error())
@@ -75,6 +77,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		return false
 	}
 
+	sr.Header.SetPubKeysBitmap(bitmap)
 	sr.Header.SetSignature(sig)
 
 	// Commit the block (commits also the account state)
@@ -92,21 +95,15 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		log.Error(err.Error())
 	}
 
-	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been commited and broadcasted \n", sr.SyncTimer().FormattedCurrentTime()))
+	log.Info(fmt.Sprintf("%sStep 3: BlockBody and Header has been commited and broadcasted \n", sr.SyncTimer().FormattedCurrentTime()))
 
-	actionMsg := "synchronized"
-	if sr.IsSelfLeaderInCurrentRound() {
-		actionMsg = "proposed"
-	}
-
-	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.Header.GetNonce())
+	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
 	return true
 }
 
-// doEndRoundConsensusCheck method checks if the consensus is achieved in each subround from first subround to the given
-// subround. If the consensus is achieved in one subround, the subround status is marked as finished
+// doEndRoundConsensusCheck method checks if the consensus is achieved
 func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false
@@ -131,7 +128,6 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 
 	for i := 0; i < size; i++ {
 		indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
-
 		if !indexRequired {
 			continue
 		}
@@ -151,7 +147,6 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 			return err
 		}
 
-		// verify partial signature
 		err = sr.MultiSigner().VerifySignatureShare(uint16(i), signature, sr.GetData(), bitmap)
 		if err != nil {
 			return err

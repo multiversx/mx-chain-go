@@ -27,6 +27,8 @@ type BlockProcessor interface {
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlockHeader(body data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
+	DecodeBlockBody(dta []byte) data.BodyHandler
+	DecodeBlockHeader(dta []byte) data.HeaderHandler
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

@@ -2563,3 +2563,68 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	assert.Equal(t, &tx, txFromPool)
 	assert.Equal(t, false, metablock.GetMiniBlockProcessed(miniblockHash))
 }
+
+func TestShardProcessor_DecodeBlockBody(t *testing.T) {
+	t.Parallel()
+	tdp := initDataPool()
+	marshalizerMock := &mock.MarshalizerMock{}
+	sp, err := blproc.NewShardProcessor(
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		marshalizerMock,
+		&mock.TxProcessorMock{},
+		initAccountsMock(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+		func(destShardID uint32, txHash []byte) {},
+	)
+	body := make(block.Body, 0)
+	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
+	message, err := marshalizerMock.Marshal(body)
+	assert.Nil(t, err)
+
+	dcdBlk := sp.DecodeBlockBody(nil)
+	assert.Nil(t, dcdBlk)
+
+	dcdBlk = sp.DecodeBlockBody(message)
+	assert.Equal(t, body, dcdBlk)
+	assert.Equal(t, uint32(69), body[0].ReceiverShardID)
+}
+
+func TestShardProcessor_DecodeBlockHeader(t *testing.T) {
+	t.Parallel()
+	tdp := initDataPool()
+	marshalizerMock := &mock.MarshalizerMock{}
+	sp, err := blproc.NewShardProcessor(
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		marshalizerMock,
+		&mock.TxProcessorMock{},
+		initAccountsMock(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+		func(destShardID uint32, txHash []byte) {},
+	)
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(0)
+	hdr.Signature = []byte("A")
+	message, err := marshalizerMock.Marshal(hdr)
+	assert.Nil(t, err)
+
+	message, err = marshalizerMock.Marshal(hdr)
+	assert.Nil(t, err)
+
+	dcdHdr := sp.DecodeBlockHeader(nil)
+	assert.Nil(t, dcdHdr)
+
+	dcdHdr = sp.DecodeBlockHeader(message)
+	assert.Equal(t, hdr, dcdHdr)
+	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
+}

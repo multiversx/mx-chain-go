@@ -8,19 +8,19 @@ import (
 )
 
 type subroundBitmap struct {
-	*subround
+	*spos.Subround
 
 	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundBitmap creates a subroundBitmap object
 func NewSubroundBitmap(
-	subround *subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundBitmap, error) {
 	err := checkNewSubroundBitmapParams(
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	)
 	if err != nil {
@@ -28,25 +28,25 @@ func NewSubroundBitmap(
 	}
 
 	srBitmap := subroundBitmap{
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	}
-	srBitmap.job = srBitmap.doBitmapJob
-	srBitmap.check = srBitmap.doBitmapConsensusCheck
-	srBitmap.extend = extend
+	srBitmap.Job = srBitmap.doBitmapJob
+	srBitmap.Check = srBitmap.doBitmapConsensusCheck
+	srBitmap.Extend = extend
 
 	return &srBitmap, nil
 }
 
 func checkNewSubroundBitmapParams(
-	subround *subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
-	if subround == nil {
+	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 
-	if subround.ConsensusState == nil {
+	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
 
@@ -54,12 +54,12 @@ func checkNewSubroundBitmapParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
 }
 
-// doBitmapJob method does the job of the bitmap subround
+// doBitmapJob method does the job of the subround Bitmap
 func (sr *subroundBitmap) doBitmapJob() bool {
 	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
@@ -193,7 +193,7 @@ func countBitmapFlags(bitmap []byte) uint16 {
 	return uint16(flags)
 }
 
-// doBitmapConsensusCheck method checks if the consensus in the <BITMAP> subround is achieved
+// doBitmapConsensusCheck method checks if the consensus in the subround Bitmap is achieved
 func (sr *subroundBitmap) doBitmapConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false

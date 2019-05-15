@@ -1,4 +1,4 @@
-package bn
+package bls
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
@@ -19,9 +19,9 @@ func NewConsensusService() (*worker, error) {
 //InitReceivedMessages initializes the MessagesType map for all messages for the current ConsensusService
 func (wrk *worker) InitReceivedMessages() map[consensus.MessageType][]*consensus.Message {
 	receivedMessages := make(map[consensus.MessageType][]*consensus.Message)
-	for i := MtBlockBody; i <= MtSignature; i++ {
-		receivedMessages[i] = make([]*consensus.Message, 0)
-	}
+	receivedMessages[MtBlockBody] = make([]*consensus.Message, 0)
+	receivedMessages[MtBlockHeader] = make([]*consensus.Message, 0)
+	receivedMessages[MtSignature] = make([]*consensus.Message, 0)
 
 	return receivedMessages
 }
@@ -54,14 +54,8 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 		return consensusState.Status(SrStartRound) == spos.SsFinished
 	case MtBlockHeader:
 		return consensusState.Status(SrStartRound) == spos.SsFinished
-	case MtCommitmentHash:
-		return consensusState.Status(SrBlock) == spos.SsFinished
-	case MtBitmap:
-		return consensusState.Status(SrBlock) == spos.SsFinished
-	case MtCommitment:
-		return consensusState.Status(SrBitmap) == spos.SsFinished
 	case MtSignature:
-		return consensusState.Status(SrBitmap) == spos.SsFinished
+		return consensusState.Status(SrBlock) == spos.SsFinished
 	}
 
 	return false
