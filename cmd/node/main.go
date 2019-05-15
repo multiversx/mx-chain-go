@@ -18,14 +18,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
-	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
@@ -35,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
@@ -67,6 +64,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
@@ -78,9 +76,9 @@ const (
 	defaultLogPath     = "logs"
 	defaultStatsPath   = "stats"
 	metachainShardName = "metachain"
-	blsHashSize = 16
-	blsConsensusType = "bls"
-	bnConsensusType = "bn"
+	blsHashSize        = 16
+	blsConsensusType   = "bls"
+	bnConsensusType    = "bn"
 )
 
 var (
@@ -372,6 +370,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 			ctx,
 			generalConfig,
 			nodesConfig,
+			genesisConfig,
 			p2pConfig,
 			syncer,
 			keyGen,
@@ -497,7 +496,7 @@ func createMultiSigner(
 	pubKeys []string,
 	privateKey crypto.PrivateKey,
 	keyGen crypto.KeyGenerator,
-	) (crypto.MultiSigner, error) {
+) (crypto.MultiSigner, error) {
 
 	switch config.Consensus.Type {
 	case blsConsensusType:
@@ -779,7 +778,7 @@ func createShardNode(
 		node.WithResolversFinder(resolversFinder),
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(txSingleSigner),
-		node.WithActiveMetachain(genesisConfig.MetaChainActive),
+		node.WithActiveMetachain(nodesConfig.MetaChainActive),
 	)
 
 	if err != nil {
@@ -808,6 +807,7 @@ func createMetaNode(
 	ctx *cli.Context,
 	config *config.Config,
 	nodesConfig *sharding.NodesSetup,
+	genesisConfig *sharding.Genesis,
 	p2pConfig *config.P2PConfig,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
@@ -995,6 +995,7 @@ func createMetaNode(
 	}
 
 	shardsGenesisBlocks, err := generateGenesisHeadersForMetachainInit(
+		nodesConfig,
 		genesisConfig,
 		shardCoordinator,
 		addressConverter,
@@ -1144,7 +1145,7 @@ func getSigningParams(
 	skIndexName string,
 	skPemFileName string,
 	suite crypto.Suite,
-	) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
+) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
 
 	sk, err := getSk(ctx, log, skName, skIndexName, skPemFileName)
 	if err != nil {
@@ -1567,6 +1568,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 }
 
 func generateGenesisHeadersForMetachainInit(
+	nodesSetup *sharding.NodesSetup,
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
 	addressConverter state.AddressConverter,
@@ -1610,7 +1612,7 @@ func generateGenesisHeadersForMetachainInit(
 			newShardCoordinator,
 			addressConverter,
 			initialBalances,
-			uint64(genesisConfig.StartTime),
+			uint64(nodesSetup.StartTime),
 		)
 		if err != nil {
 			return nil, err
