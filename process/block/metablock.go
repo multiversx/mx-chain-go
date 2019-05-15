@@ -450,7 +450,7 @@ func (mp *metaProcessor) createLastNotarizedHdrs(header *block.MetaBlock) error 
 		return process.ErrLastNotarizedHdrsSliceIsNil
 	}
 
-	// save last highest round number per shard
+	// save the last headers with the highest round per shard
 	tmpNotedHdrs := make(mapShardLastHeaders, mp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
 		tmpNotedHdrs[i] = mp.lastNotarizedHdrs[i]
