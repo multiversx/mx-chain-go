@@ -253,11 +253,14 @@ func TestConsensusMultisigFullConsensus(t *testing.T) {
 	numCommBlock := uint32(10)
 	nodes, advertiser, _ := initNodesWithMultiSigAndTest(numNodes, consensusSize, numInvalid, roundTime, numCommBlock)
 
+	mutex := &sync.Mutex{}
 	defer func() {
 		advertiser.Close()
 		for _, n := range nodes {
 			n.node.Stop()
 		}
+		mutex.Lock()
+		mutex.Unlock()
 	}()
 
 	// delay for bootstrapping and topic announcement
@@ -266,8 +269,6 @@ func TestConsensusMultisigFullConsensus(t *testing.T) {
 
 	combinedMap := make(map[uint32]uint64)
 	totalCalled := 0
-	mutex := &sync.Mutex{}
-
 	for _, n := range nodes {
 		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 			n.blkProcessor.NrCommitBlockCalled++
@@ -310,18 +311,20 @@ func TestConsensusMultiSignNotEnoughValidators(t *testing.T) {
 	roundTime := uint64(4000)
 	nodes, advertiser, _ := initNodesWithMultiSigAndTest(numNodes, consensusSize, numInvalid, roundTime, 10)
 
+	mutex := &sync.Mutex{}
 	defer func() {
 		advertiser.Close()
 		for _, n := range nodes {
 			n.node.Stop()
 		}
+		mutex.Lock()
+		mutex.Unlock()
 	}()
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second * 1)
 
-	mutex := &sync.Mutex{}
 	maxNonce := uint64(0)
 	minNonce := ^uint64(0)
 	for _, n := range nodes {

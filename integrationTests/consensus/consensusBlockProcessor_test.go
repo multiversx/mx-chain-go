@@ -236,18 +236,20 @@ func TestConsensusBlockProcessorFullConsensus(t *testing.T) {
 	numCommBlock := uint32(10)
 	nodes, advertiser := initNodesWithBlockProcessor(numNodes, consensusSize, numInvalid, roundTime, shardId)
 
+	mutex := &sync.Mutex{}
 	defer func() {
 		advertiser.Close()
 		for _, n := range nodes {
 			n.node.Stop()
 		}
+		mutex.Lock()
+		mutex.Unlock()
 	}()
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second * 1)
 
-	mutex := &sync.Mutex{}
 	combinedMap := make(map[uint64]uint32, 0)
 	minNonce := ^uint64(0)
 	maxNonce := uint64(0)
@@ -298,17 +300,19 @@ func TestConsensusBlockProcessorNotEnoughValidators(t *testing.T) {
 	roundTime := uint64(4000)
 	nodes, advertiser := initNodesWithBlockProcessor(numNodes, consensusSize, numInvalid, roundTime, 0)
 
+	mutex := &sync.Mutex{}
 	defer func() {
 		advertiser.Close()
 		for _, n := range nodes {
 			n.node.Stop()
 		}
+		mutex.Lock()
+		mutex.Unlock()
 	}()
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second * 1)
-	mutex := &sync.Mutex{}
 	combinedMap := make(map[uint64]uint32, 0)
 	minNonce := ^uint64(0)
 	maxNonce := uint64(0)
@@ -418,17 +422,19 @@ func TestConsensusMetaProcessorNotEnoughValidators(t *testing.T) {
 	shardId := sharding.MetachainShardId
 	nodes, advertiser := initNodesWithBlockProcessor(numNodes, consensusSize, numInvalid, roundTime, shardId)
 
+	mutex := &sync.Mutex{}
 	defer func() {
 		advertiser.Close()
 		for _, n := range nodes {
 			n.node.Stop()
 		}
+		mutex.Lock()
+		mutex.Unlock()
 	}()
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second * 1)
-	mutex := &sync.Mutex{}
 	combinedMap := make(map[uint64]uint32, 0)
 	minNonce := ^uint64(0)
 	maxNonce := uint64(0)
