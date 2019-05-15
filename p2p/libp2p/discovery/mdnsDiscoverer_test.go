@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	libp2p2 "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"

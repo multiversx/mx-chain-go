@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 

@@ -31,7 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/multiShard/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -281,14 +281,14 @@ func createNetNode(
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(testAddressConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithKeyGenerator(keyGen),
+		node.WithKeyGen(keyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
-		node.WithMultisig(testMultiSig),
-		node.WithSinglesig(singleSigner),
-		node.WithPrivateKey(sk),
-		node.WithPublicKey(pk),
+		node.WithMultiSigner(testMultiSig),
+		node.WithSingleSigner(singleSigner),
+		node.WithTxSignPrivKey(sk),
+		node.WithTxSignPubKey(pk),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
 		node.WithBlockProcessor(blockProcessor),

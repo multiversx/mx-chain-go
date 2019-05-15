@@ -37,12 +37,12 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container.ValidatorGroupSelector() == nil {
 		return ErrNilValidatorGroupSelector
 	}
-	if container.BlsPrivateKey() == nil {
+	if container.RandomnessPrivateKey() == nil {
 		return ErrNilBlsPrivateKey
 	}
-	if container.BlsSingleSigner() == nil {
+	if container.RandomnessSingleSigner() == nil {
 		return ErrNilBlsSingleSigner
 	}
-	
+
 	return nil
 }

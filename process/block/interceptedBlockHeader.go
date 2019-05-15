@@ -123,7 +123,7 @@ func (inHdr *InterceptedHeader) validityCheck() error {
 func (inHdr *InterceptedHeader) VerifySig() error {
 	// TODO: Check block signature after multisig will be implemented
 	// TODO: the interceptors do not have access yet to consensus group selection to validate multisigs
-
+	// TODO: verify that the block proposer is among the signers and in the bitmap
 	return nil
 }
 
