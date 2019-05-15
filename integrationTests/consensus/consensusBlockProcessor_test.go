@@ -54,7 +54,6 @@ func createNodeConsensusWithBlockProcessor(
 
 	startTime := int64(0)
 
-	singlesigner := &singlesig.SchnorrSigner{}
 	singleBlsSigner := &singlesig.BlsSingleSigner{}
 
 	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
@@ -120,21 +119,19 @@ func createNodeConsensusWithBlockProcessor(
 		node.WithSyncer(syncer),
 		node.WithGenesisTime(time.Unix(startTime, 0)),
 		node.WithRounder(rounder),
-		node.WithBlsSinglesig(singleBlsSigner),
-		node.WithBlsPrivateKey(privKey),
+		node.WithSingleSigner(singleBlsSigner),
+		node.WithPrivKey(privKey),
+		node.WithPubKey(privKey.GeneratePublic()),
+		node.WithMultiSigner(testMultiSig),
+		node.WithKeyGen(testKeyGen),
 		node.WithForkDetector(forkDetector),
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(testMarshalizer),
 		node.WithHasher(testHasher),
 		node.WithAddressConverter(testAddressConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithKeyGenerator(testKeyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blockChainMock),
-		node.WithMultisig(testMultiSig),
-		node.WithSinglesig(singlesigner),
-		node.WithPrivateKey(privKey),
-		node.WithPublicKey(privKey.GeneratePublic()),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithDataPool(dataPool),
 		node.WithMetaDataPool(metaDataPool),

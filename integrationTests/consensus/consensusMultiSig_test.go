@@ -82,7 +82,7 @@ func createConsensusWithMultiSigBN(
 			return mrsData, mrsTxs, nil
 		},
 	}
-
+	blockProcessor.Marshalizer = &marshal.JsonMarshalizer{}
 	blockProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 		blockProcessor.NrCommitBlockCalled++
 		_ = blockChain.SetCurrentBlockHeader(header)
@@ -94,7 +94,6 @@ func createConsensusWithMultiSigBN(
 
 	startTime := int64(0)
 
-	singlesigner := &singlesig.SchnorrSigner{}
 	singleBlsSigner := &singlesig.BlsSingleSigner{}
 
 	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
@@ -143,24 +142,20 @@ func createConsensusWithMultiSigBN(
 		node.WithSyncer(syncer),
 		node.WithGenesisTime(time.Unix(startTime, 0)),
 		node.WithRounder(rounder),
-		node.WithBlsSinglesig(singleBlsSigner),
-		node.WithBlsPrivateKey(privKey),
+		node.WithSingleSigner(singleBlsSigner),
+		node.WithPrivKey(privKey),
+		node.WithPubKey(privKey.GeneratePublic()),
+		node.WithMultiSigner(multiSigner),
+		node.WithKeyGen(testKeyGen),
 		node.WithForkDetector(forkDetector),
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(testMarshalizer),
 		node.WithHasher(testHasher),
 		node.WithAddressConverter(testAddressConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithKeyGenerator(testKeyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blockChain),
-		node.WithMultisig(multiSigner),
-		node.WithSinglesig(singlesigner),
-		node.WithPrivateKey(privKey),
-		node.WithPublicKey(privKey.GeneratePublic()),
 		node.WithBlockProcessor(blockProcessor),
-		node.WithDataPool(createTestShardDataPool()),
-		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 	)
 

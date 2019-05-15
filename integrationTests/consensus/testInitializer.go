@@ -288,7 +288,7 @@ func createConsensusOnlyNode(
 		_ = blockChain.SetCurrentBlockBody(body)
 		return nil
 	}
-
+	blockProcessor.Marshalizer = &marshal.JsonMarshalizer{}
 	blockChain := createTestBlockChain()
 
 	startTime := int64(0)
@@ -343,21 +343,21 @@ func createConsensusOnlyNode(
 		node.WithSyncer(syncer),
 		node.WithGenesisTime(time.Unix(startTime, 0)),
 		node.WithRounder(rounder),
-		node.WithBlsSinglesig(singleBlsSigner),
-		node.WithBlsPrivateKey(privKey),
+		node.WithSingleSigner(singleBlsSigner),
+		node.WithPrivKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(testMarshalizer),
 		node.WithHasher(testHasher),
 		node.WithAddressConverter(testAddressConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithKeyGenerator(testKeyGen),
+		node.WithKeyGen(testKeyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blockChain),
-		node.WithMultisig(testMultiSig),
-		node.WithSinglesig(singlesigner),
-		node.WithPrivateKey(privKey),
-		node.WithPublicKey(privKey.GeneratePublic()),
+		node.WithMultiSigner(testMultiSig),
+		node.WithTxSingleSigner(singlesigner),
+		node.WithTxSignPrivKey(privKey),
+		node.WithPubKey(privKey.GeneratePublic()),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithDataPool(createTestShardDataPool()),
 		node.WithDataStore(createTestStore()),
