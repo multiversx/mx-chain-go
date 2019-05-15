@@ -567,7 +567,7 @@ func createShardNode(
 		return nil, nil, err
 	}
 
-	hexPublicKey := hex.EncodeToString(publicKey)
+	hexPublicKey := hex.EncodeToString(publicKey[:20])
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, nil, err
@@ -663,7 +663,7 @@ func createShardNode(
 		return nil, nil, err
 	}
 
-	log.Info("Starting with single sign public key: " + getPkEncoded(txSignPubKey))
+	log.Info("Starting with tx sign public key: " + getPkEncoded(txSignPubKey))
 
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
@@ -843,7 +843,7 @@ func createMetaNode(
 		return nil, err
 	}
 
-	hexPublicKey := hex.EncodeToString(publicKey)
+	hexPublicKey := hex.EncodeToString(publicKey[:20])
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, err
@@ -924,7 +924,7 @@ func createMetaNode(
 		return nil, err
 	}
 
-	log.Info("Starting with single sign public key: " + getPkEncoded(txSignPubKey))
+	log.Info("Starting with tx sign public key: " + getPkEncoded(txSignPubKey))
 
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
@@ -1171,13 +1171,14 @@ func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 }
 
 func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
+	if cfg.Consensus.Type == blsConsensusType {
+		return blake2b.Blake2b{HashSize: blsHashSize}, nil
+	}
+
 	switch cfg.MultisigHasher.Type {
 	case "sha256":
 		return sha256.Sha256{}, nil
 	case "blake2b":
-		if cfg.Consensus.Type == blsConsensusType {
-			return blake2b.Blake2b{HashSize: blsHashSize}, nil
-		}
 		return blake2b.Blake2b{}, nil
 	}
 

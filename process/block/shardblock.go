@@ -675,7 +675,8 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	for key, senderShardId := range crossMiniBlockHashes {
 		miniVal, _ := miniBlockCache.Peek([]byte(key))
 		if miniVal == nil {
-			go sp.OnRequestMiniBlock(senderShardId, []byte(key))
+			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
+			sp.OnRequestMiniBlock(senderShardId, []byte(key))
 		}
 	}
 }
@@ -707,7 +708,8 @@ func (sp *shardProcessor) receivedMiniBlock(miniBlockHash []byte) {
 	for _, txHash := range miniBlock.TxHashes {
 		tx := sp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
 		if tx == nil {
-			go sp.OnRequestTransaction(miniBlock.SenderShardID, txHash)
+			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
+			sp.OnRequestTransaction(miniBlock.SenderShardID, txHash)
 		}
 	}
 }
@@ -724,7 +726,8 @@ func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
 			for _, txHash := range txHashes {
 				requestedTxs++
 				sp.requestedTxHashes[string(txHash)] = true
-				go sp.OnRequestTransaction(shardId, txHash)
+				//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
+				sp.OnRequestTransaction(shardId, txHash)
 			}
 		}
 	}

@@ -735,7 +735,8 @@ func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
 		for shardId, headerHash := range missingHeaderHashes {
 			requestedHeaders++
 			mp.requestedShardHeaderHashes[string(headerHash)] = true
-			go mp.OnRequestShardHeaderHandler(shardId, headerHash)
+			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
+			mp.OnRequestShardHeaderHandler(shardId, headerHash)
 		}
 	}
 

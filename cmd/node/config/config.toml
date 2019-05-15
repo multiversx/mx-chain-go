@@ -127,7 +127,7 @@
    Type = "blake2b"
 
 [MultisigHasher]
-   Type = "blake2b"
+   Type = "sha256"
 
 [Marshalizer]
    Type = "json"

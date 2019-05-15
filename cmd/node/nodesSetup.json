@@ -1,0 +1,14 @@
+{
+  "startTime": 0,
+  "roundDuration": 4000,
+  "consensusGroupSize": 1,
+  "minNodesPerShard": 1,
+  "metaChainActive" : false,
+  "metaChainConsensusGroupSize" : 1,
+  "metaChainMinNodes" : 1,
+  "initialNodes": [
+    {
+      "pubkey": "8cb4eab221b25f200bcba87712fadc66858f8222322b1628c6cc3fae63ae3b4c1822141ad01646a362efdc6bde9ce9eef20774f57b20b2818dc5c106a38edb597411cee2480d5478b9cab65d814749a01e4c7aa610cf7f2b5c637aa6d9eef6193f96c533cbd074883360bd938197935d448b039fd71ef834566833da1aab58d8"
+    }
+  ]
+}
