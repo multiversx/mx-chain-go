@@ -28,6 +28,7 @@ type statisticsResponse struct {
 	NrOfShards            uint32                    `json:"nrOfShards"`
 	NrOfNodes             uint32                    `json:"nrOfNodes"`
 	BlockNumber           uint64                    `json:"blockNumber"`
+	RoundNumber           uint64                    `json:"roundNumber"`
 	RoundTime             uint64                    `json:"roundTime"`
 	AverageBlockTxCount   *big.Int                  `json:"averageBlockTxCount"`
 	LastBlockTxCount      uint32                    `json:"lastBlockTxCount"`
@@ -164,6 +165,7 @@ func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResp
 	sr.NrOfNodes = 1
 	sr.RoundTime = tpsBenchmark.RoundTime()
 	sr.BlockNumber = tpsBenchmark.BlockNumber()
+	sr.RoundNumber = tpsBenchmark.RoundNumber()
 	sr.AverageBlockTxCount = tpsBenchmark.AverageBlockTxCount()
 	sr.LastBlockTxCount = tpsBenchmark.LastBlockTxCount()
 	sr.TotalProcessedTxCount = tpsBenchmark.TotalProcessedTxCount()

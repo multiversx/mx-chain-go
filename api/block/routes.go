@@ -12,12 +12,17 @@ type Handler interface {
 }
 
 type blockResponse struct {
-	Nonce     uint64 `json:"nonce"`
-	ShardID   uint32 `json:"shardId"`
-	Hash      string `json:"hash"`
-	Proposer  string `json:"proposer"`
-	Size      string `json:"size"`
-	Timestamp int64 `json:"timestamp"`
+	Nonce         uint64   `json:"nonce"`
+	ShardID       uint32   `json:"shardId"`
+	Hash          string   `json:"hash"`
+	Proposer      string   `json:"proposer"`
+	Validators    []string `json:"validators"`
+	PubKeyBitmap  string   `json:"pubKeyBitmap"`
+	Size          string   `json:"size"`
+	Timestamp     int64    `json:"timestamp"`
+	TxCount       int32    `json:"txCount"`
+	StateRootHash string   `json:"stateRootHash"`
+	PrevHash      string   `json:"prevHash"`
 }
 
 type recentBlocksResponse struct {
@@ -27,7 +32,8 @@ type recentBlocksResponse struct {
 func buildDummyBlock() blockResponse {
 	return blockResponse{
 		1, 1, "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-		"32kb", 23,
+		[]string{"0x1234567", "0x123242342"}, "0x1234", "32kb", 23, 15000,
+		"0x883284732784278", "0x32184232364274",
 	}
 }
 
@@ -47,7 +53,7 @@ func Routes(router *gin.RouterGroup) {
 // RoutesForBlockLists defines routes related to lists of blocks. Used sepparatly so
 //  it will not confloct with the wildcard for block details route
 func RoutesForBlockLists(router *gin.RouterGroup) {
-	router.GET("/recent-blocks", RecentBlocks)
+	router.GET("/recent", RecentBlocks)
 }
 
 // Block returns a single blockResponse object containing information

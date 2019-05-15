@@ -47,6 +47,10 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	transaction.Routes(txRoutes)
 
+	txsRoutes := ws.Group("/transactions")
+	txsRoutes.Use(middleware.WithElrondFacade(elrondFacade))
+	transaction.RoutesForTransactionLists(txsRoutes)
+
 	blockRoutes := ws.Group("/block")
 	blockRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	block.Routes(blockRoutes)
