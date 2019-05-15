@@ -75,7 +75,7 @@ func prepareAccountsAndBalancesMap() (*mock.AccountsStub, map[string]*big.Int, *
 func TestCreateGenesisBlockFromInitialBalances_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	header, err := genesis.CreateGenesisBlockFromInitialBalances(
+	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		nil,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.AddressConverterMock{},
@@ -90,7 +90,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilAccountsShouldErr(t *testing.T
 func TestCreateGenesisBlockFromInitialBalances_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	header, err := genesis.CreateGenesisBlockFromInitialBalances(
+	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		&mock.AccountsStub{},
 		nil,
 		&mock.AddressConverterMock{},
@@ -105,7 +105,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilShardCoordinatorShouldErr(t *t
 func TestCreateGenesisBlockFromInitialBalances_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	header, err := genesis.CreateGenesisBlockFromInitialBalances(
+	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		nil,
@@ -120,7 +120,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilAddressConverterShouldErr(t *t
 func TestCreateGenesisBlockFromInitialBalances_NilBalanceMapShouldErr(t *testing.T) {
 	t.Parallel()
 
-	header, err := genesis.CreateGenesisBlockFromInitialBalances(
+	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.AddressConverterMock{},
@@ -141,7 +141,7 @@ func TestCreateGenesisBlockFromInitialBalances_AccountStateDirtyShouldErr(t *tes
 		},
 	}
 
-	header, err := genesis.CreateGenesisBlockFromInitialBalances(
+	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.AddressConverterMock{},
@@ -168,7 +168,7 @@ func TestCreateGenesisBlockFromInitialBalances_TrieCommitFailsShouldRevert(t *te
 		return nil
 	}
 
-	header, err := genesis.CreateGenesisBlockFromInitialBalances(
+	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.AddressConverterMock{},
@@ -192,7 +192,7 @@ func TestCreateGenesisBlockFromInitialBalances_AccountsFailShouldErr(t *testing.
 			return nil, errAccounts
 		}
 
-	header, err := genesis.CreateGenesisBlockFromInitialBalances(
+	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.AddressConverterMock{},
@@ -209,7 +209,7 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 
 	accounts, balances, accnt1, accnt2 := prepareAccountsAndBalancesMap()
 
-	header, err := genesis.CreateGenesisBlockFromInitialBalances(
+	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.AddressConverterMock{},

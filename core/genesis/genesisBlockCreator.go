@@ -12,8 +12,8 @@ import (
 
 var log = logger.DefaultLogger()
 
-// CreateGenesisBlockFromInitialBalances creates the genesis block body from map of account balances
-func CreateGenesisBlockFromInitialBalances(
+// CreateShardGenesisBlockFromInitialBalances creates the genesis block body from map of account balances
+func CreateShardGenesisBlockFromInitialBalances(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	addrConv state.AddressConverter,

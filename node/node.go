@@ -296,7 +296,7 @@ func (n *Node) StartConsensus() error {
 
 // CreateShardGenesisBlock creates the shard genesis block
 func (n *Node) CreateShardGenesisBlock() error {
-	header, err := genesis.CreateGenesisBlockFromInitialBalances(
+	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 		n.accounts,
 		n.shardCoordinator,
 		n.addrConverter,

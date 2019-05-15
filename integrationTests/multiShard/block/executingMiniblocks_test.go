@@ -338,7 +338,6 @@ func proposeMetaBlock(t *testing.T, proposer *testNode) (data.BodyHandler, data.
 	metaHeader.SetSignature(sig)
 	buffGenesis, _ := testMarshalizer.Marshal(proposer.blkc.GetGenesisHeader())
 	metaHeader.SetPrevHash(testHasher.Compute(string(buffGenesis)))
-	metaHeader.SetPrevRandSeed(sig)
 	metaHeader.SetRandSeed(sig)
 
 	return nil, metaHeader

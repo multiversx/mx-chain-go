@@ -867,7 +867,7 @@ func createMetaNode(
 		return nil, err
 	}
 
-	shardsGenesisBlocks, err := createGenesisBlocksOnShards(
+	shardsGenesisBlocks, err := generateGenesisHeadersForMetachainInit(
 		genesisConfig,
 		shardCoordinator,
 		addressConverter,
@@ -1470,13 +1470,25 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createGenesisBlocksOnShards(
+func generateGenesisHeadersForMetachainInit(
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
 	addressConverter state.AddressConverter,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 ) (map[uint32]*dataBlock.Header, error) {
+	//TODO change this rudimentary startup for metachain nodes
+	// Talk between Adrian, Robert and Iulian, did not want it to be discarded:
+	// --------------------------------------------------------------------
+	// Adrian: "This looks like a workaround as the metchain should not deal with individual accounts, but shards data.
+	// What I was thinking was that the genesis on metachain (or pre-genesis block) is the nodes allocation to shards,
+	// with 0 state root for every shard, as there is no balance yet.
+	// Then the shards start operating as they get the initial node allocation, maybe we can do consensus on the
+	// genesis as well, I think this would be actually good as then everything is signed and agreed upon.
+	// The genesis shard blocks need to be then just the state root, I think we already have that in genesis,
+	// so shard nodes can go ahead with individually creating the block, but then run consensus on this.
+	// Then this block is sent to metachain who updates the state root of every shard and creates the metablock for
+	// the genesis of each of the shards (this is actually the same thing that would happen at new epoch start)."
 
 	shardsGenesisBlocks := make(map[uint32]*dataBlock.Header)
 
@@ -1497,7 +1509,7 @@ func createGenesisBlocksOnShards(
 			return nil, err
 		}
 
-		genesisBlock, err := genesis.CreateGenesisBlockFromInitialBalances(
+		genesisBlock, err := genesis.CreateShardGenesisBlockFromInitialBalances(
 			accounts,
 			newShardCoordinator,
 			addressConverter,
