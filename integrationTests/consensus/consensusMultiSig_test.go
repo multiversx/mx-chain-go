@@ -349,5 +349,7 @@ func TestConsensusMultiSignNotEnoughValidators(t *testing.T) {
 	fmt.Println("Run for 60 seconds...")
 	time.Sleep(waitTime)
 
+	mutex.Lock()
 	assert.Equal(t, uint64(0), maxNonce)
+	mutex.Unlock()
 }
