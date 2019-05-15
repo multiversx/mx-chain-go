@@ -16,7 +16,7 @@ func initSubroundCommitment() bn.SubroundCommitment {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
@@ -57,7 +57,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
@@ -88,7 +88,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *tes
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
@@ -118,7 +118,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
@@ -148,7 +148,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testi
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
@@ -178,7 +178,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunction
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
@@ -208,7 +208,7 @@ func TestSubroundCommitment_NewSubroundCommitmentShouldWork(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
 		int(bn.SrSignature),
@@ -274,7 +274,6 @@ func TestSubroundCommitment_ReceivedCommitment(t *testing.T) {
 	sr := *initSubroundCommitment()
 
 	commitment := []byte("commitment")
-
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.Data,
 		commitment,
