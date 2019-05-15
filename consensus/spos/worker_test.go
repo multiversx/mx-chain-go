@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -70,9 +70,13 @@ func initWorker() *spos.Worker {
 
 func initRounderMock() *mock.RounderMock {
 	return &mock.RounderMock{
-		RoundIndex:        0,
-		RoundTimeStamp:    time.Unix(0, 0),
-		RoundTimeDuration: roundTimeDuration,
+		RoundIndex: 0,
+		TimeStampCalled: func() time.Time {
+			return time.Unix(0, 0)
+		},
+		TimeDurationCalled: func() time.Duration {
+			return roundTimeDuration
+		},
 	}
 }
 

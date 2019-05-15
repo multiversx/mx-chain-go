@@ -11,12 +11,12 @@ type SyncTimerMock struct {
 }
 
 // StartSync method does the time synchronization at every syncPeriod time elapsed. This should be started as a go routine
-func (stm SyncTimerMock) StartSync() {
+func (stm *SyncTimerMock) StartSync() {
 	panic("implement me")
 }
 
 // ClockOffset method gets the current time offset
-func (stm SyncTimerMock) ClockOffset() time.Duration {
+func (stm *SyncTimerMock) ClockOffset() time.Duration {
 	if stm.ClockOffsetCalled != nil {
 		return stm.ClockOffsetCalled()
 	}
@@ -25,12 +25,12 @@ func (stm SyncTimerMock) ClockOffset() time.Duration {
 }
 
 // FormattedCurrentTime method gets the formatted current time on which is added a given offset
-func (stm SyncTimerMock) FormattedCurrentTime() string {
+func (stm *SyncTimerMock) FormattedCurrentTime() string {
 	return time.Unix(0, 0).String()
 }
 
 // CurrentTime method gets the current time on which is added the current offset
-func (stm SyncTimerMock) CurrentTime() time.Time {
+func (stm *SyncTimerMock) CurrentTime() time.Time {
 	if stm.CurrentTimeCalled != nil {
 		return stm.CurrentTimeCalled()
 	}

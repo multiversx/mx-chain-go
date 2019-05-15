@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +27,7 @@ func TestRound_NewRoundShouldWork(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	syncTimerMock := mock.SyncTimerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
 
 	rnd, err := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
 
@@ -40,7 +40,7 @@ func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	syncTimerMock := mock.SyncTimerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
 
 	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
 	oldIndex := rnd.Index()
@@ -61,7 +61,7 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	syncTimerMock := mock.SyncTimerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
 
 	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
 	oldIndex := rnd.Index()
@@ -76,7 +76,7 @@ func TestRound_IndexShouldReturnFirstIndex(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	syncTimerMock := mock.SyncTimerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
 
 	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration/2))
@@ -90,7 +90,7 @@ func TestRound_TimeStampShouldReturnTimeStampOfTheNextRound(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	syncTimerMock := mock.SyncTimerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
 
 	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration+roundTimeDuration/2))
@@ -104,7 +104,7 @@ func TestRound_TimeDurationShouldReturnTheDurationOfOneRound(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	syncTimerMock := mock.SyncTimerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
 
 	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
 	timeDuration := rnd.TimeDuration()
@@ -117,7 +117,7 @@ func TestRound_RemainingTimeInCurrentRoundShouldReturnPositiveValue(t *testing.T
 
 	genesisTime := time.Unix(0, 0)
 
-	syncTimerMock := mock.SyncTimerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
 
 	timeElapsed := int64(roundTimeDuration - 1)
 
@@ -138,7 +138,7 @@ func TestRound_RemainingTimeInCurrentRoundShouldReturnNegativeValue(t *testing.T
 
 	genesisTime := time.Unix(0, 0)
 
-	syncTimerMock := mock.SyncTimerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
 
 	timeElapsed := int64(roundTimeDuration + 1)
 

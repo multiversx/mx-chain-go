@@ -18,6 +18,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
@@ -27,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	blsMultiSig "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -44,6 +45,7 @@ import (
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
 	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go-sandbox/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
