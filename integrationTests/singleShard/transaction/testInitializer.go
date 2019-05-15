@@ -215,17 +215,18 @@ func createNetNode(
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithSingleSignKeyGen(keyGen),
+		node.WithKeyGen(keyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
 		node.WithMultiSigner(multiSigner),
 		node.WithSingleSigner(singleSigner),
-		node.WithSingleSignPrivKey(sk),
-		node.WithSingleSignPubKey(pk),
+		node.WithTxSignPrivKey(sk),
+		node.WithTxSignPubKey(pk),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
 		node.WithDataStore(store),
+		node.WithTxSingleSigner(singleSigner),
 	)
 
 	return n, messenger, sk, resolversFinder

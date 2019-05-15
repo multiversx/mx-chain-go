@@ -176,7 +176,7 @@ func TestWithDataStore_NilStoreShouldErr(t *testing.T) {
 	opt := WithDataStore(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.singleSignPrivKey)
+	assert.Nil(t, node.txSignPrivKey)
 	assert.Equal(t, ErrNilStore, err)
 }
 
@@ -199,10 +199,10 @@ func TestWithPrivateKey_NilPrivateKeyShouldErr(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithSingleSignPrivKey(nil)
+	opt := WithTxSignPrivKey(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.singleSignPrivKey)
+	assert.Nil(t, node.txSignPrivKey)
 	assert.Equal(t, ErrNilPrivateKey, err)
 }
 
@@ -213,10 +213,10 @@ func TestWithPrivateKey_ShouldWork(t *testing.T) {
 
 	sk := &mock.PrivateKeyStub{}
 
-	opt := WithSingleSignPrivKey(sk)
+	opt := WithTxSignPrivKey(sk)
 	err := opt(node)
 
-	assert.True(t, node.singleSignPrivKey == sk)
+	assert.True(t, node.txSignPrivKey == sk)
 	assert.Nil(t, err)
 }
 
@@ -251,10 +251,10 @@ func TestWithSingleSignKeyGenerator_NilPrivateKeyShouldErr(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithSingleSignKeyGen(nil)
+	opt := WithKeyGen(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.singleSignKeyGen)
+	assert.Nil(t, node.keyGen)
 	assert.Equal(t, ErrNilSingleSignKeyGen, err)
 }
 
@@ -265,10 +265,10 @@ func TestWithSingleSignKeyGenerator_ShouldWork(t *testing.T) {
 
 	keyGen := &mock.KeyGenMock{}
 
-	opt := WithSingleSignKeyGen(keyGen)
+	opt := WithKeyGen(keyGen)
 	err := opt(node)
 
-	assert.True(t, node.singleSignKeyGen == keyGen)
+	assert.True(t, node.keyGen == keyGen)
 	assert.Nil(t, err)
 }
 
@@ -307,10 +307,10 @@ func TestWithPublicKey_NilPublicKeyShouldErr(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithSingleSignPubKey(nil)
+	opt := WithTxSignPubKey(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.singleSignPubKey)
+	assert.Nil(t, node.txSignPubKey)
 	assert.Equal(t, ErrNilPublicKey, err)
 }
 
@@ -321,10 +321,10 @@ func TestWithPublicKey_ShouldWork(t *testing.T) {
 
 	pk := &mock.PublicKeyMock{}
 
-	opt := WithSingleSignPubKey(pk)
+	opt := WithTxSignPubKey(pk)
 	err := opt(node)
 
-	assert.True(t, node.singleSignPubKey == pk)
+	assert.True(t, node.txSignPubKey == pk)
 	assert.Nil(t, err)
 }
 

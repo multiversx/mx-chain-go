@@ -75,14 +75,15 @@ type Node struct {
 	heartbeatMonitor         *heartbeat.Monitor
 	heartbeatSender          *heartbeat.Sender
 
-	singleSignPrivKey crypto.PrivateKey
-	singleSignPubKey  crypto.PublicKey
-	pubKey            crypto.PublicKey
-	privKey           crypto.PrivateKey
-	singleSignKeyGen  crypto.KeyGenerator
-	singleSigner      crypto.SingleSigner
-	multiSigner       crypto.MultiSigner
-	forkDetector      process.ForkDetector
+	txSignPrivKey  crypto.PrivateKey
+	txSignPubKey   crypto.PublicKey
+	pubKey         crypto.PublicKey
+	privKey        crypto.PrivateKey
+	keyGen         crypto.KeyGenerator
+	singleSigner   crypto.SingleSigner
+	txSingleSigner crypto.SingleSigner
+	multiSigner    crypto.MultiSigner
+	forkDetector   process.ForkDetector
 
 	blkc             data.ChainHandler
 	dataPool         dataRetriever.PoolsHolder
@@ -239,9 +240,9 @@ func (n *Node) StartConsensus() error {
 		n.blockProcessor,
 		bootstrapper,
 		consensusState,
-		n.singleSignKeyGen,
+		n.keyGen,
 		n.marshalizer,
-		n.singleSignPrivKey,
+		n.privKey,
 		n.rounder,
 		n.shardCoordinator,
 		n.singleSigner,
@@ -555,8 +556,8 @@ func (n *Node) GetTransaction(hash string) (*transaction.Transaction, error) {
 
 // GetCurrentPublicKey will return the current node's public key
 func (n *Node) GetCurrentPublicKey() string {
-	if n.singleSignPubKey != nil {
-		pkey, _ := n.singleSignPubKey.ToByteArray()
+	if n.txSignPubKey != nil {
+		pkey, _ := n.txSignPubKey.ToByteArray()
 		return fmt.Sprintf("%x", pkey)
 	}
 	return ""
@@ -770,7 +771,7 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 	n.heartbeatSender, err = heartbeat.NewSender(
 		n.messenger,
 		n.singleSigner,
-		n.singleSignPrivKey,
+		n.privKey,
 		n.marshalizer,
 		HeartbeatTopic,
 	)
@@ -786,7 +787,7 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		n.messenger,
 		n.singleSigner,
-		n.singleSignKeyGen,
+		n.keyGen,
 		n.marshalizer,
 		time.Duration(time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive)),
 		allPubKeys,

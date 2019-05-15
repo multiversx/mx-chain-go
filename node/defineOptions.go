@@ -94,13 +94,13 @@ func WithDataStore(store dataRetriever.StorageService) Option {
 	}
 }
 
-// WithSingleSignPrivKey sets up the single sign private key option for the Node
-func WithSingleSignPrivKey(sk crypto.PrivateKey) Option {
+// WithTxSignPrivKey sets up the single sign private key option for the Node
+func WithTxSignPrivKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
 		if sk == nil {
 			return ErrNilPrivateKey
 		}
-		n.singleSignPrivKey = sk
+		n.txSignPrivKey = sk
 		return nil
 	}
 }
@@ -127,13 +127,13 @@ func WithPrivKey(sk crypto.PrivateKey) Option {
 	}
 }
 
-// WithSingleSignKeyGen sets up the single sign key generator option for the Node
-func WithSingleSignKeyGen(keyGen crypto.KeyGenerator) Option {
+// WithKeyGen sets up the single sign key generator option for the Node
+func WithKeyGen(keyGen crypto.KeyGenerator) Option {
 	return func(n *Node) error {
 		if keyGen == nil {
 			return ErrNilSingleSignKeyGen
 		}
-		n.singleSignKeyGen = keyGen
+		n.keyGen = keyGen
 		return nil
 	}
 }
@@ -146,14 +146,14 @@ func WithInitialNodesPubKeys(pubKeys map[uint32][]string) Option {
 	}
 }
 
-// WithSingleSignPubKey sets up the single sign public key option for the Node
-func WithSingleSignPubKey(pk crypto.PublicKey) Option {
+// WithTxSignPubKey sets up the single sign public key option for the Node
+func WithTxSignPubKey(pk crypto.PublicKey) Option {
 	return func(n *Node) error {
 		if pk == nil {
 			return ErrNilPublicKey
 		}
 
-		n.singleSignPubKey = pk
+		n.txSignPubKey = pk
 		return nil
 	}
 }
@@ -283,6 +283,17 @@ func WithSingleSigner(singleSigner crypto.SingleSigner) Option {
 			return ErrNilSingleSig
 		}
 		n.singleSigner = singleSigner
+		return nil
+	}
+}
+
+// WithTxSingleSigner sets up a txSingleSigner option for the Node
+func WithTxSingleSigner(txSingleSigner crypto.SingleSigner) Option {
+	return func(n *Node) error {
+		if txSingleSigner == nil {
+			return ErrNilSingleSig
+		}
+		n.txSingleSigner = txSingleSigner
 		return nil
 	}
 }

@@ -18,9 +18,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
@@ -29,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+	blsMultiSig "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -105,19 +103,19 @@ VERSION:
 	}
 	// nodesFile defines a flag for the path of the initial nodes file.
 	nodesFile = cli.StringFlag{
-		Name:  "nodes-file",
-		Usage: "The node will extract initial nodes info from the nodes.json",
-		Value: "nodes.json",
+		Name:  "nodesSetup-file",
+		Usage: "The node will extract initial nodes info from the nodesSetup.json",
+		Value: "nodesSetup.json",
 	}
-	// singleSignPrivateKey defines a flag for the path of the single sign private key used when starting the node
-	singleSignPrivateKey = cli.StringFlag{
-		Name:  "single-sign-private-key",
+	// txSignSk defines a flag for the path of the single sign private key used when starting the node
+	txSignSk = cli.StringFlag{
+		Name:  "tx-sign-sk",
 		Usage: "Private key that the node will load on startup and will sign transactions - temporary until we have a wallet that can do that",
 		Value: "",
 	}
-	// privateKey defines a flag for the path of the multi sign private key used when starting the node
-	privateKey = cli.StringFlag{
-		Name:  "private-key",
+	// sk defines a flag for the path of the multi sign private key used when starting the node
+	sk = cli.StringFlag{
+		Name:  "sk",
 		Usage: "Private key that the node will load on startup and will sign blocks",
 		Value: "",
 	}
@@ -138,15 +136,15 @@ VERSION:
 		Usage: "Profiling mode. Available options: cpu, mem, mutex, block",
 		Value: "",
 	}
-	// simgleSignPrivateKeyIndex defines a flag that specify the 0-th based index of the private key to be used from initialBalancesSk.pem file
-	simgleSignPrivateKeyIndex = cli.IntFlag{
-		Name:  "single-sign-private-key-index",
+	// txSignSkIndex defines a flag that specify the 0-th based index of the private key to be used from initialBalancesSk.pem file
+	txSignSkIndex = cli.IntFlag{
+		Name:  "tx-sign-sk-index",
 		Usage: "Single sign private key index specify the 0-th based index of the private key to be used from initialBalancesSk.pem file.",
 		Value: 0,
 	}
-	// privateKeyIndex defines a flag that specify the 0-th based index of the private key to be used from initialNodesSk.pem file
-	privateKeyIndex = cli.IntFlag{
-		Name:  "private-key-index",
+	// skIndex defines a flag that specify the 0-th based index of the private key to be used from initialNodesSk.pem file
+	skIndex = cli.IntFlag{
+		Name:  "sk-index",
 		Usage: "Private key index specify the 0-th based index of the private key to be used from initialNodesSk.pem file.",
 		Value: 0,
 	}
@@ -219,7 +217,7 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, nodesFile, port, singleSignPrivateKey, privateKey, profileMode, simgleSignPrivateKeyIndex, privateKeyIndex}
+	app.Flags = []cli.Flag{genesisFile, nodesFile, port, txSignSk, sk, profileMode, txSignSkIndex, skIndex}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -326,8 +324,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	keyGen, privKey, pubKey, err := getSigningParams(
 		ctx,
 		log,
-		privateKey.Name,
-		privateKeyIndex.Name,
+		sk.Name,
+		skIndex.Name,
 		initialNodesSkPemFile,
 		suite)
 
@@ -615,6 +613,7 @@ func createShardNode(
 		return nil, nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
+	txSingleSigner := &singlesig.SchnorrSigner{}
 	singleSigner, err := createSingleSigner(config)
 	if err != nil {
 		return nil, nil, errors.New("could not create singleSigner: " + err.Error())
@@ -652,11 +651,11 @@ func createShardNode(
 		return nil, nil, err
 	}
 
-	singleSignKeyGen, singleSignPrivKey, singleSignPubKey, err := getSigningParams(
+	txSignKeyGen, txSignPrivKey, txSignPubKey, err := getSigningParams(
 		ctx,
 		log,
-		singleSignPrivateKey.Name,
-		simgleSignPrivateKeyIndex.Name,
+		txSignSk.Name,
+		txSignSkIndex.Name,
 		initialBalancesSkPemFile,
 		kyber.NewBlakeSHA256Ed25519())
 
@@ -664,7 +663,7 @@ func createShardNode(
 		return nil, nil, err
 	}
 
-	log.Info("Starting with single sign public key: " + getPkEncoded(singleSignPubKey))
+	log.Info("Starting with single sign public key: " + getPkEncoded(txSignPubKey))
 
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
@@ -673,8 +672,8 @@ func createShardNode(
 		store,
 		marshalizer,
 		hasher,
-		singleSignKeyGen,
-		&singlesig.SchnorrSigner{},
+		txSignKeyGen,
+		txSingleSigner,
 		multiSigner,
 		datapool,
 		addressConverter,
@@ -765,15 +764,16 @@ func createShardNode(
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
 		node.WithSingleSigner(singleSigner),
 		node.WithMultiSigner(multiSigner),
-		node.WithSingleSignKeyGen(singleSignKeyGen),
-		node.WithSingleSignPubKey(singleSignPubKey),
-		node.WithSingleSignPrivKey(singleSignPrivKey),
+		node.WithKeyGen(keyGen),
+		node.WithTxSignPubKey(txSignPubKey),
+		node.WithTxSignPrivKey(txSignPrivKey),
 		node.WithPubKey(pubKey),
 		node.WithPrivKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
 		node.WithConsensusType(config.Consensus.Type),
+		node.WithTxSingleSigner(txSingleSigner),
 	)
 
 	if err != nil {
@@ -879,6 +879,7 @@ func createMetaNode(
 		return nil, errors.New("could not create shard data pools: " + err.Error())
 	}
 
+	txSingleSigner := &singlesig.SchnorrSigner{}
 	singleSigner, err := createSingleSigner(config)
 	if err != nil {
 		return nil, errors.New("could not create singleSigner: " + err.Error())
@@ -911,11 +912,11 @@ func createMetaNode(
 		return nil, err
 	}
 
-	singleSignKeyGen, singleSignPrivKey, singleSignPubKey, err := getSigningParams(
+	_, txSignPrivKey, txSignPubKey, err := getSigningParams(
 		ctx,
 		log,
-		singleSignPrivateKey.Name,
-		simgleSignPrivateKeyIndex.Name,
+		txSignSk.Name,
+		txSignSkIndex.Name,
 		initialBalancesSkPemFile,
 		kyber.NewBlakeSHA256Ed25519())
 
@@ -923,7 +924,7 @@ func createMetaNode(
 		return nil, err
 	}
 
-	log.Info("Starting with single sign public key: " + getPkEncoded(singleSignPubKey))
+	log.Info("Starting with single sign public key: " + getPkEncoded(txSignPubKey))
 
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
@@ -1016,15 +1017,16 @@ func createMetaNode(
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
 		node.WithSingleSigner(singleSigner),
 		node.WithMultiSigner(multiSigner),
-		node.WithSingleSignKeyGen(singleSignKeyGen),
-		node.WithSingleSignPubKey(singleSignPubKey),
-		node.WithSingleSignPrivKey(singleSignPrivKey),
+		node.WithKeyGen(keyGen),
+		node.WithTxSignPubKey(txSignPubKey),
+		node.WithTxSignPrivKey(txSignPrivKey),
 		node.WithPubKey(pubKey),
 		node.WithPrivKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
 		node.WithConsensusType(config.Consensus.Type),
+		node.WithTxSingleSigner(txSingleSigner),
 	)
 
 	if err != nil {
