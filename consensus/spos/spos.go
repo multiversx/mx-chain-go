@@ -1,6 +1,9 @@
 package spos
 
 import (
+	"encoding/base64"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -73,4 +76,18 @@ type WorkerHandler interface {
 	GetConsensusStateChangedChannel() chan bool
 	//BroadcastBlock ge
 	BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error
+}
+
+// GenerateRandomness is used to generate a random string based on randSeed concatenated with round index
+func GenerateRandomness(roundIndex int32, randSeed []byte) string {
+	return fmt.Sprintf("%d-%s", roundIndex, toB64(randSeed))
+}
+
+// toB64 convert a byte array to a base64 string
+func toB64(buff []byte) string {
+	if buff == nil {
+		return "<NIL>"
+	}
+
+	return base64.StdEncoding.EncodeToString(buff)
 }

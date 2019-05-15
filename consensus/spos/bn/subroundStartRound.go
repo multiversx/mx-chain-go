@@ -154,7 +154,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 		}
 	}
 
-	randomSource := fmt.Sprintf("%d-%s", roundIndex, toB64(currentHeader.GetRandSeed()))
+	randomSource := spos.GenerateRandomness(roundIndex, currentHeader.GetRandSeed())
 
 	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n", randomSource))
 
