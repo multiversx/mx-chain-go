@@ -31,7 +31,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
@@ -1574,7 +1573,7 @@ func generateGenesisHeadersForMetachainInit(
 	addressConverter state.AddressConverter,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
-) (map[uint32]*dataBlock.Header, error) {
+) (map[uint32]data.HeaderHandler, error) {
 	//TODO change this rudimentary startup for metachain nodes
 	// Talk between Adrian, Robert and Iulian, did not want it to be discarded:
 	// --------------------------------------------------------------------
@@ -1588,7 +1587,7 @@ func generateGenesisHeadersForMetachainInit(
 	// Then this block is sent to metachain who updates the state root of every shard and creates the metablock for
 	// the genesis of each of the shards (this is actually the same thing that would happen at new epoch start)."
 
-	shardsGenesisBlocks := make(map[uint32]*dataBlock.Header)
+	shardsGenesisBlocks := make(map[uint32]data.HeaderHandler)
 
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
 		newShardCoordinator, err := sharding.NewMultiShardCoordinator(shardCoordinator.NumberOfShards(), shardId)

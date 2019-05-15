@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
-	block2 "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
@@ -218,10 +218,10 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 	)
 
 	assert.Equal(t,
-		&block2.Header{
+		&dataBlock.Header{
 			Nonce:         0,
 			ShardId:       mock.NewOneShardCoordinatorMock().SelfId(),
-			BlockBodyType: block2.StateBlock,
+			BlockBodyType: dataBlock.StateBlock,
 			Signature:     rootHash,
 			RootHash:      rootHash,
 			PrevRandSeed:  rootHash,

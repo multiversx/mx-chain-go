@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -19,7 +20,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 	addrConv state.AddressConverter,
 	initialBalances map[string]*big.Int,
 	genesisTime uint64,
-) (*block.Header, error) {
+) (data.HeaderHandler, error) {
 
 	if accounts == nil {
 		return nil, process.ErrNilAccountsAdapter

@@ -691,8 +691,8 @@ func createMetaNetNode(
 	return &tn
 }
 
-func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]*dataBlock.Header {
-	genesisBlocks := make(map[uint32]*dataBlock.Header)
+func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
 		genesisBlocks[shardId] = createGenesisBlock(shardId)
 	}

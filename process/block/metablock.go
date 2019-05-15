@@ -113,7 +113,7 @@ func NewMetaProcessor(
 
 // SetLastNotarizedHeadersSlice sets the shard headers blocks in lastNotarizedHdrs.
 // This is done when starting a new epoch so metachain can use it when validating next shard header blocks
-func (mp *metaProcessor) SetLastNotarizedHeadersSlice(shardHeaderBlocks map[uint32]*block.Header) error {
+func (mp *metaProcessor) SetLastNotarizedHeadersSlice(shardHeaderBlocks map[uint32]data.HeaderHandler) error {
 	mp.mutLastNotarizedHdrs.Lock()
 	defer mp.mutLastNotarizedHdrs.Unlock()
 
@@ -123,7 +123,11 @@ func (mp *metaProcessor) SetLastNotarizedHeadersSlice(shardHeaderBlocks map[uint
 
 	mp.lastNotarizedHdrs = make(mapShardLastHeaders, mp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		mp.lastNotarizedHdrs[i] = shardHeaderBlocks[i]
+		var ok bool
+		mp.lastNotarizedHdrs[i], ok = shardHeaderBlocks[i].(*block.Header)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
 	}
 
 	return nil
