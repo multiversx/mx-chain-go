@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+	blsMultiSig "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -59,6 +60,7 @@ import (
 	factoryP2P "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
@@ -76,6 +78,9 @@ const (
 	defaultLogPath     = "logs"
 	defaultStatsPath   = "stats"
 	metachainShardName = "metachain"
+	blsHashSize = 16
+	blsConsensusType = "bls"
+	bnConsensusType = "bn"
 )
 
 var (
@@ -101,10 +106,22 @@ VERSION:
 		Usage: "The node will extract bootstrapping info from the genesis.json",
 		Value: "genesis.json",
 	}
-	// privateKey defines a flag for the path of the private key used when starting the node
-	privateKey = cli.StringFlag{
-		Name:  "private-key",
+	// nodesFile defines a flag for the path of the initial nodes file.
+	nodesFile = cli.StringFlag{
+		Name:  "nodesSetup-file",
+		Usage: "The node will extract initial nodes info from the nodesSetup.json",
+		Value: "nodesSetup.json",
+	}
+	// txSignSk defines a flag for the path of the single sign private key used when starting the node
+	txSignSk = cli.StringFlag{
+		Name:  "tx-sign-sk",
 		Usage: "Private key that the node will load on startup and will sign transactions - temporary until we have a wallet that can do that",
+		Value: "",
+	}
+	// sk defines a flag for the path of the multi sign private key used when starting the node
+	sk = cli.StringFlag{
+		Name:  "sk",
+		Usage: "Private key that the node will load on startup and will sign blocks",
 		Value: "",
 	}
 	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
@@ -124,22 +141,23 @@ VERSION:
 		Usage: "Profiling mode. Available options: cpu, mem, mutex, block",
 		Value: "",
 	}
-	// privateKeyIndex defines a flag that specify the 0-th based index of the private key to be used from privkeys.pem file.
-	privateKeyIndex = cli.IntFlag{
-		Name:  "private-key-index",
-		Usage: "PrivateKeyIndex defines a flag that specify the 0-th based index of the private key to be used from privkeys.pem file.",
+	// txSignSkIndex defines a flag that specify the 0-th based index of the private key to be used from initialBalancesSk.pem file
+	txSignSkIndex = cli.IntFlag{
+		Name:  "tx-sign-sk-index",
+		Usage: "Single sign private key index specify the 0-th based index of the private key to be used from initialBalancesSk.pem file.",
 		Value: 0,
 	}
-	blsPrivateKeyIndex = cli.IntFlag{
-		Name:  "bls-private-key-index",
-		Usage: "BlsPrivateKeyIndex defines a flag that specify the 0-th based index of the bls private key to be used from blsPrivKeys.pem file.",
+	// skIndex defines a flag that specify the 0-th based index of the private key to be used from initialNodesSk.pem file
+	skIndex = cli.IntFlag{
+		Name:  "sk-index",
+		Usage: "Private key index specify the 0-th based index of the private key to be used from initialNodesSk.pem file.",
 		Value: 0,
 	}
 
-	configurationFile    = "./config/config.toml"
-	p2pConfigurationFile = "./config/p2p.toml"
-	privKeysPemFile      = "./config/privkeys.pem"
-	blsPrivKeysPemFile   = "./config/blsPrivKeys.pem"
+	configurationFile        = "./config/config.toml"
+	p2pConfigurationFile     = "./config/p2p.toml"
+	initialBalancesSkPemFile = "./config/initialBalancesSk.pem"
+	initialNodesSkPemFile    = "./config/initialNodesSk.pem"
 
 	//TODO remove uniqueID
 	uniqueID = ""
@@ -204,7 +222,7 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, port, privateKey, profileMode, privateKeyIndex, blsPrivateKeyIndex}
+	app.Flags = []cli.Flag{genesisFile, nodesFile, port, txSignSk, sk, profileMode, txSignSkIndex, skIndex}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -221,6 +239,17 @@ func main() {
 		log.Error(err.Error())
 		os.Exit(1)
 	}
+}
+
+func getSuite(config *config.Config) (crypto.Suite, error) {
+	switch config.Consensus.Type {
+	case blsConsensusType:
+		return kyber.NewSuitePairingBn256(), nil
+	case bnConsensusType:
+		return kyber.NewBlakeSHA256Ed25519(), nil
+	}
+
+	return nil, errors.New("no consensus provided in config file")
 }
 
 func startNode(ctx *cli.Context, log *logger.Logger) error {
@@ -273,41 +302,84 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(genesisFile.Name)))
 
+	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name))
+	if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("Initialized with nodes config from: %s", ctx.GlobalString(nodesFile.Name)))
+
 	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
 	go syncer.StartSync()
 
-	// TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded)
-	//  timestamp
-	if genesisConfig.StartTime == 0 {
+	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
+	if nodesConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
 		ntpTime := syncer.CurrentTime()
-		genesisConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
+		nodesConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
 	}
 
-	startTime := time.Unix(genesisConfig.StartTime, 0)
+	startTime := time.Unix(nodesConfig.StartTime, 0)
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
 
-	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
+	suite, err := getSuite(generalConfig)
 	if err != nil {
 		return err
 	}
 
-	shardCoordinator, err := createShardCoordinator(genesisConfig, pubKey, generalConfig.GeneralSettings, log)
+	keyGen, privKey, pubKey, err := getSigningParams(
+		ctx,
+		log,
+		sk.Name,
+		skIndex.Name,
+		initialNodesSkPemFile,
+		suite)
+
+	if err != nil {
+		return err
+	}
+
+	log.Info("Starting with public key: " + getPkEncoded(pubKey))
+
+	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
 	}
 
 	var currentNode *node.Node
 	var tpsBenchmark *statistics.TpsBenchmark
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		currentNode, tpsBenchmark, err = createShardNode(ctx, generalConfig, genesisConfig, p2pConfig, syncer, keyGen, privKey, pubKey, shardCoordinator, log)
+		currentNode, tpsBenchmark, err = createShardNode(
+			ctx,
+			generalConfig,
+			genesisConfig,
+			nodesConfig,
+			p2pConfig,
+			syncer,
+			keyGen,
+			privKey,
+			pubKey,
+			shardCoordinator,
+			log)
+
 		if err != nil {
 			return err
 		}
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		currentNode, err = createMetaNode(ctx, generalConfig, genesisConfig, p2pConfig, syncer, keyGen, privKey, pubKey, shardCoordinator, log)
+		currentNode, err = createMetaNode(
+			ctx,
+			generalConfig,
+			nodesConfig,
+			p2pConfig,
+			syncer,
+			keyGen,
+			privKey,
+			pubKey,
+			shardCoordinator,
+			log)
+
 		if err != nil {
 			return err
 		}
@@ -362,7 +434,7 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 }
 
 func createShardCoordinator(
-	genesisConfig *sharding.Genesis,
+	nodesConfig *sharding.NodesSetup,
 	pubKey crypto.PublicKey,
 	settingsConfig config.GeneralSettingsConfig,
 	log *logger.Logger,
@@ -377,7 +449,7 @@ func createShardCoordinator(
 		return nil, err
 	}
 
-	selfShardId, err := genesisConfig.GetShardIDForPubKey(publicKey)
+	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
 	if err == sharding.ErrNoValidPublicKey {
 		log.Info("Starting as observer node...")
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
@@ -394,7 +466,7 @@ func createShardCoordinator(
 	}
 	log.Info(fmt.Sprintf("Starting in shard: %s", shardName))
 
-	shardCoordinator, err = sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
+	shardCoordinator, err = sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -419,10 +491,41 @@ func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConf
 	return uint32(val), err
 }
 
+func createMultiSigner(
+	config *config.Config,
+	hasher hashing.Hasher,
+	pubKeys []string,
+	privateKey crypto.PrivateKey,
+	keyGen crypto.KeyGenerator,
+	) (crypto.MultiSigner, error) {
+
+	switch config.Consensus.Type {
+	case blsConsensusType:
+		blsSigner := &blsMultiSig.KyberMultiSignerBLS{}
+		return multisig.NewBLSMultisig(blsSigner, hasher, pubKeys, privateKey, keyGen, uint16(0))
+	case bnConsensusType:
+		return multisig.NewBelNevMultisig(hasher, pubKeys, privateKey, keyGen, uint16(0))
+	}
+
+	return nil, errors.New("no consensus type provided in config file")
+}
+
+func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
+	switch config.Consensus.Type {
+	case blsConsensusType:
+		return &singlesig.BlsSingleSigner{}, nil
+	case bnConsensusType:
+		return &singlesig.SchnorrSigner{}, nil
+	}
+
+	return nil, errors.New("no consensus type provided in config file")
+}
+
 func createShardNode(
 	ctx *cli.Context,
 	config *config.Config,
 	genesisConfig *sharding.Genesis,
+	nodesConfig *sharding.NodesSetup,
 	p2pConfig *config.P2PConfig,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
@@ -462,7 +565,7 @@ func createShardNode(
 		return nil, nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	initialPubKeys := genesisConfig.InitialNodesPubKeys()
+	initialPubKeys := nodesConfig.InitialNodesPubKeys()
 
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
@@ -515,26 +618,23 @@ func createShardNode(
 		return nil, nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
-	// TODO: pass key generator and public key also when needed
-	_, blsPrivateKey, _, err := getBlsSigningParams(ctx, log)
+	txSingleSigner := &singlesig.SchnorrSigner{}
+	singleSigner, err := createSingleSigner(config)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.New("could not create singleSigner: " + err.Error())
 	}
-
-	singlesigner := &singlesig.SchnorrSigner{}
-	singleBlsSigner := &singlesig.BlsSingleSigner{}
 
 	multisigHasher, err := getMultisigHasherFromConfig(config)
 	if err != nil {
 		return nil, nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
-	currentShardPubKeys, err := genesisConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
+	currentShardPubKeys, err := nodesConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
 	if err != nil {
-		return nil, nil, errors.New("could not start creation of multisigner: " + err.Error())
+		return nil, nil, errors.New("could not start creation of multiSigner: " + err.Error())
 	}
 
-	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, currentShardPubKeys, privKey, keyGen, uint16(0))
+	multiSigner, err := createMultiSigner(config, multisigHasher, currentShardPubKeys, privKey, keyGen)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -551,10 +651,24 @@ func createShardNode(
 		return nil, nil, err
 	}
 
-	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisConfig.RoundDuration/1000)
+	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), nodesConfig.RoundDuration/1000)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	txSignKeyGen, txSignPrivKey, txSignPubKey, err := getSigningParams(
+		ctx,
+		log,
+		txSignSk.Name,
+		txSignSkIndex.Name,
+		initialBalancesSkPemFile,
+		kyber.NewBlakeSHA256Ed25519())
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Info("Starting with single sign public key: " + getPkEncoded(txSignPubKey))
 
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
@@ -563,9 +677,9 @@ func createShardNode(
 		store,
 		marshalizer,
 		hasher,
-		keyGen,
-		singlesigner,
-		multisigner,
+		txSignKeyGen,
+		txSingleSigner,
+		multiSigner,
 		datapool,
 		addressConverter,
 		&nullChronologyValidator{},
@@ -604,9 +718,9 @@ func createShardNode(
 	}
 
 	rounder, err := round.NewRound(
-		time.Unix(genesisConfig.StartTime, 0),
+		time.Unix(nodesConfig.StartTime, 0),
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(genesisConfig.RoundDuration),
+		time.Millisecond*time.Duration(nodesConfig.RoundDuration),
 		syncer)
 	if err != nil {
 		return nil, nil, err
@@ -644,25 +758,27 @@ func createShardNode(
 		node.WithAccountsAdapter(accountsAdapter),
 		node.WithBlockChain(blkc),
 		node.WithDataStore(store),
-		node.WithRoundDuration(genesisConfig.RoundDuration),
-		node.WithConsensusGroupSize(int(genesisConfig.ConsensusGroupSize)),
+		node.WithRoundDuration(nodesConfig.RoundDuration),
+		node.WithConsensusGroupSize(int(nodesConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(blockProcessor),
-		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
+		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(rounder),
 		node.WithDataPool(datapool),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
-		node.WithSinglesig(singlesigner),
-		node.WithBlsSinglesig(singleBlsSigner),
-		node.WithMultisig(multisigner),
-		node.WithKeyGenerator(keyGen),
-		node.WithPublicKey(pubKey),
-		node.WithPrivateKey(privKey),
-		node.WithBlsPrivateKey(blsPrivateKey),
+		node.WithSingleSigner(singleSigner),
+		node.WithMultiSigner(multiSigner),
+		node.WithKeyGen(keyGen),
+		node.WithTxSignPubKey(txSignPubKey),
+		node.WithTxSignPrivKey(txSignPrivKey),
+		node.WithPubKey(pubKey),
+		node.WithPrivKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
+		node.WithConsensusType(config.Consensus.Type),
+		node.WithTxSingleSigner(txSingleSigner),
 		node.WithActiveMetachain(genesisConfig.MetaChainActive),
 	)
 
@@ -691,7 +807,7 @@ func createShardNode(
 func createMetaNode(
 	ctx *cli.Context,
 	config *config.Config,
-	genesisConfig *sharding.Genesis,
+	nodesConfig *sharding.NodesSetup,
 	p2pConfig *config.P2PConfig,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
@@ -731,7 +847,7 @@ func createMetaNode(
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	initialPubKeys := genesisConfig.InitialNodesPubKeys()
+	initialPubKeys := nodesConfig.InitialNodesPubKeys()
 
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
@@ -774,26 +890,23 @@ func createMetaNode(
 		return nil, errors.New("could not create shard data pools: " + err.Error())
 	}
 
-	// TODO: pass key generator and public key also when needed
-	_, blsPrivateKey, _, err := getBlsSigningParams(ctx, log)
+	txSingleSigner := &singlesig.SchnorrSigner{}
+	singleSigner, err := createSingleSigner(config)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("could not create singleSigner: " + err.Error())
 	}
-
-	singlesigner := &singlesig.SchnorrSigner{}
-	singleBlsSigner := &singlesig.BlsSingleSigner{}
 
 	multisigHasher, err := getMultisigHasherFromConfig(config)
 	if err != nil {
 		return nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
-	currentShardPubKeys, err := genesisConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
+	currentShardPubKeys, err := nodesConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
 	if err != nil {
-		return nil, errors.New("could not start creation of multisigner: " + err.Error())
+		return nil, errors.New("could not start creation of multiSigner: " + err.Error())
 	}
 
-	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, currentShardPubKeys, privKey, keyGen, uint16(0))
+	multiSigner, err := createMultiSigner(config, multisigHasher, currentShardPubKeys, privKey, keyGen)
 	if err != nil {
 		return nil, err
 	}
@@ -810,6 +923,20 @@ func createMetaNode(
 		return nil, err
 	}
 
+	_, txSignPrivKey, txSignPubKey, err := getSigningParams(
+		ctx,
+		log,
+		txSignSk.Name,
+		txSignSkIndex.Name,
+		initialBalancesSkPemFile,
+		kyber.NewBlakeSHA256Ed25519())
+
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info("Starting with single sign public key: " + getPkEncoded(txSignPubKey))
+
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -817,7 +944,7 @@ func createMetaNode(
 		metaStore,
 		marshalizer,
 		hasher,
-		multisigner,
+		multiSigner,
 		metaDatapool,
 		&nullChronologyValidator{},
 	)
@@ -854,9 +981,9 @@ func createMetaNode(
 	}
 
 	rounder, err := round.NewRound(
-		time.Unix(genesisConfig.StartTime, 0),
+		time.Unix(nodesConfig.StartTime, 0),
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(genesisConfig.RoundDuration),
+		time.Millisecond*time.Duration(nodesConfig.RoundDuration),
 		syncer)
 	if err != nil {
 		return nil, err
@@ -906,25 +1033,27 @@ func createMetaNode(
 		node.WithAccountsAdapter(accountsAdapter),
 		node.WithBlockChain(metaChain),
 		node.WithDataStore(metaStore),
-		node.WithRoundDuration(genesisConfig.RoundDuration),
-		node.WithConsensusGroupSize(int(genesisConfig.MetaChainConsensusGroupSize)),
+		node.WithRoundDuration(nodesConfig.RoundDuration),
+		node.WithConsensusGroupSize(int(nodesConfig.MetaChainConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(metaProcessor),
-		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
+		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(rounder),
 		node.WithMetaDataPool(metaDatapool),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
-		node.WithSinglesig(singlesigner),
-		node.WithBlsSinglesig(singleBlsSigner),
-		node.WithMultisig(multisigner),
-		node.WithKeyGenerator(keyGen),
-		node.WithPublicKey(pubKey),
-		node.WithPrivateKey(privKey),
-		node.WithBlsPrivateKey(blsPrivateKey),
+		node.WithSingleSigner(singleSigner),
+		node.WithMultiSigner(multiSigner),
+		node.WithKeyGen(keyGen),
+		node.WithTxSignPubKey(txSignPubKey),
+		node.WithTxSignPrivKey(txSignPrivKey),
+		node.WithPubKey(pubKey),
+		node.WithPrivKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
+		node.WithConsensusType(config.Consensus.Type),
+		node.WithTxSingleSigner(txSingleSigner),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -992,15 +1121,15 @@ func createNetMessenger(
 	return nm, nil
 }
 
-func getSk(ctx *cli.Context, log *logger.Logger) ([]byte, error) {
+func getSk(ctx *cli.Context, log *logger.Logger, skName string, skIndexName string, skPemFileName string) ([]byte, error) {
 	//if flag is defined, it shall overwrite what was read from pem file
-	if ctx.GlobalIsSet(privateKey.Name) {
-		encodedSk := []byte(ctx.GlobalString(privateKey.Name))
+	if ctx.GlobalIsSet(skName) {
+		encodedSk := []byte(ctx.GlobalString(skName))
 		return decodeAddress(string(encodedSk))
 	}
 
-	privateKeyIndex := ctx.GlobalInt(privateKeyIndex.Name)
-	encodedSk, err := core.LoadSkFromPemFile(privKeysPemFile, log, privateKeyIndex)
+	skIndex := ctx.GlobalInt(skIndexName)
+	encodedSk, err := core.LoadSkFromPemFile(skPemFileName, log, skIndex)
 	if err != nil {
 		return nil, err
 	}
@@ -1008,75 +1137,39 @@ func getSk(ctx *cli.Context, log *logger.Logger) ([]byte, error) {
 	return decodeAddress(string(encodedSk))
 }
 
-func getBlsSk(ctx *cli.Context, log *logger.Logger) ([]byte, error) {
-	privateKeyIndex := ctx.GlobalInt(blsPrivateKeyIndex.Name)
-	encodedSk, err := core.LoadSkFromPemFile(blsPrivKeysPemFile, log, privateKeyIndex)
-	if err != nil {
-		return nil, err
-	}
+func getSigningParams(
+	ctx *cli.Context,
+	log *logger.Logger,
+	skName string,
+	skIndexName string,
+	skPemFileName string,
+	suite crypto.Suite,
+	) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
 
-	return decodeAddress(string(encodedSk))
-}
-
-func getSigningParams(ctx *cli.Context, log *logger.Logger) (
-	keyGen crypto.KeyGenerator,
-	privKey crypto.PrivateKey,
-	pubKey crypto.PublicKey,
-	err error,
-) {
-	sk, err := getSk(ctx, log)
-
+	sk, err := getSk(ctx, log, skName, skIndexName, skPemFileName)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	suite := kyber.NewBlakeSHA256Ed25519()
 	keyGen = signing.NewKeyGenerator(suite)
-	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
 
+	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	pubKey = privKey.GeneratePublic()
-
-	pk, _ := pubKey.ToByteArray()
-
-	pkEncoded := encodeAddress(pk)
-	log.Info("Starting with public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
 }
 
-func getBlsSigningParams(ctx *cli.Context, log *logger.Logger) (
-	keyGen crypto.KeyGenerator,
-	privKey crypto.PrivateKey,
-	pubKey crypto.PublicKey,
-	err error,
-) {
-	sk, err := getBlsSk(ctx, log)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	suite := kyber.NewSuitePairingBn256()
-	keyGen = signing.NewKeyGenerator(suite)
-
-	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	pubKey = privKey.GeneratePublic()
+func getPkEncoded(pubKey crypto.PublicKey) string {
 	pk, err := pubKey.ToByteArray()
 	if err != nil {
-		return nil, nil, nil, err
+		return err.Error()
 	}
 
-	pkEncoded := encodeAddress(pk)
-	log.Info("Starting with bls public key: " + pkEncoded)
-
-	return keyGen, privKey, pubKey, err
+	return encodeAddress(pk)
 }
 
 func getTrie(cfg config.StorageConfig, hasher hashing.Hasher) (*trie.Trie, error) {
@@ -1113,6 +1206,9 @@ func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	case "sha256":
 		return sha256.Sha256{}, nil
 	case "blake2b":
+		if cfg.Consensus.Type == blsConsensusType {
+			return blake2b.Blake2b{HashSize: blsHashSize}, nil
+		}
 		return blake2b.Blake2b{}, nil
 	}
 

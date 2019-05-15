@@ -29,6 +29,8 @@ func TestTomlParser(t *testing.T) {
 	hasherType := "hashFunc4"
 	multiSigHasherType := "hashFunc5"
 
+	consensusType := "bn"
+
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
@@ -64,6 +66,9 @@ func TestTomlParser(t *testing.T) {
 		MultisigHasher: TypeConfig{
 			Type: multiSigHasherType,
 		},
+		Consensus: TypeConfig{
+			Type: consensusType,
+		},
 	}
 
 	testString := `
@@ -96,8 +101,10 @@ func TestTomlParser(t *testing.T) {
 
 [MultisigHasher]
 	Type = "` + multiSigHasherType + `"
-`
 
+[Consensus]
+	Type = "` + consensusType + `"
+`
 	cfg := Config{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)

@@ -76,14 +76,15 @@ type Node struct {
 	heartbeatMonitor         *heartbeat.Monitor
 	heartbeatSender          *heartbeat.Sender
 
-	privateKey       crypto.PrivateKey
-	publicKey        crypto.PublicKey
-	blsPrivateKey    crypto.PrivateKey
-	singleSignKeyGen crypto.KeyGenerator
-	singlesig        crypto.SingleSigner
-	blsSinglesig     crypto.SingleSigner
-	multisig         crypto.MultiSigner
-	forkDetector     process.ForkDetector
+	txSignPrivKey  crypto.PrivateKey
+	txSignPubKey   crypto.PublicKey
+	pubKey         crypto.PublicKey
+	privKey        crypto.PrivateKey
+	keyGen         crypto.KeyGenerator
+	singleSigner   crypto.SingleSigner
+	txSingleSigner crypto.SingleSigner
+	multiSigner    crypto.MultiSigner
+	forkDetector   process.ForkDetector
 
 	blkc             data.ChainHandler
 	dataPool         dataRetriever.PoolsHolder
@@ -92,6 +93,7 @@ type Node struct {
 	shardCoordinator sharding.Coordinator
 
 	consensusTopic string
+	consensusType  string
 
 	isRunning         bool
 	isMetachainActive bool
@@ -234,12 +236,12 @@ func (n *Node) StartConsensus() error {
 		n.blockProcessor,
 		bootstrapper,
 		consensusState,
-		n.singleSignKeyGen,
+		n.keyGen,
 		n.marshalizer,
-		n.privateKey,
+		n.privKey,
 		n.rounder,
 		n.shardCoordinator,
-		n.singlesig,
+		n.singleSigner,
 		n.getBroadcastBlock(),
 		n.sendMessage,
 	)
@@ -264,9 +266,9 @@ func (n *Node) StartConsensus() error {
 		chronologyHandler,
 		n.hasher,
 		n.marshalizer,
-		n.blsPrivateKey,
-		n.blsSinglesig,
-		n.multisig,
+		n.privKey,
+		n.singleSigner,
+		n.multiSigner,
 		n.rounder,
 		n.shardCoordinator,
 		n.syncer,
@@ -461,7 +463,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 
 // createConsensusState method creates a consensusState object
 func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
-	selfId, err := n.publicKey.ToByteArray()
+	selfId, err := n.pubKey.ToByteArray()
 
 	if err != nil {
 		return nil, err
@@ -605,8 +607,8 @@ func (n *Node) GetTransaction(hash string) (*transaction.Transaction, error) {
 
 // GetCurrentPublicKey will return the current node's public key
 func (n *Node) GetCurrentPublicKey() string {
-	if n.publicKey != nil {
-		pkey, _ := n.publicKey.ToByteArray()
+	if n.txSignPubKey != nil {
+		pkey, _ := n.txSignPubKey.ToByteArray()
 		return fmt.Sprintf("%x", pkey)
 	}
 	return ""
@@ -812,8 +814,8 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 
 	n.heartbeatSender, err = heartbeat.NewSender(
 		n.messenger,
-		n.singlesig,
-		n.privateKey,
+		n.singleSigner,
+		n.privKey,
 		n.marshalizer,
 		HeartbeatTopic,
 	)
@@ -828,8 +830,8 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		n.messenger,
-		n.singlesig,
-		n.singleSignKeyGen,
+		n.singleSigner,
+		n.keyGen,
 		n.marshalizer,
 		time.Duration(time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive)),
 		allPubKeys,
