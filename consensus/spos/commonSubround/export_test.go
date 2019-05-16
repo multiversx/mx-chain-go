@@ -23,6 +23,10 @@ func (sr *SubroundStartRound) InitCurrentRound() bool {
 	return sr.initCurrentRound()
 }
 
+func GetTrimmedPk(pk string) string {
+	return getTrimmedPk(pk)
+}
+
 // subroundBlock
 
 func (sr *SubroundBlock) BlockChain() data.ChainHandler {

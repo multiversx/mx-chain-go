@@ -115,7 +115,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	}
 
 	log.Info(fmt.Sprintf("%sStep 0: preparing for this round with leader %s%s\n",
-		sr.SyncTimer().FormattedCurrentTime(), hex.EncodeToString([]byte(leader)), msg))
+		sr.SyncTimer().FormattedCurrentTime(), getTrimmedPk(hex.EncodeToString([]byte(leader))), msg))
 
 	pubKeys := sr.ConsensusGroup()
 
@@ -177,7 +177,7 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 		roundIndex))
 
 	for i := 0; i < len(nextConsensusGroup); i++ {
-		log.Info(fmt.Sprintf("%s", hex.EncodeToString([]byte(nextConsensusGroup[i]))))
+		log.Info(fmt.Sprintf("%s", getTrimmedPk(hex.EncodeToString([]byte(nextConsensusGroup[i])))))
 	}
 
 	log.Info(fmt.Sprintf("\n"))
@@ -185,4 +185,12 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 	sr.SetConsensusGroup(nextConsensusGroup)
 
 	return nil
+}
+
+func getTrimmedPk(pk string) string {
+	if len(pk) > pkPrefixSize {
+		pk = pk[:pkPrefixSize] + "..."
+	}
+
+	return pk
 }
