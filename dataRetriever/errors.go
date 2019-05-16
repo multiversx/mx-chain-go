@@ -76,9 +76,6 @@ var ErrNilSingleSigner = errors.New("nil single signer")
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
 
-// ErrNilPoolsHolder signals that an operation has been attempted to or with a nil pools holder object
-var ErrNilPoolsHolder = errors.New("nil pools holder")
-
 // ErrNilTxStorage signals that a nil transaction storage has been provided
 var ErrNilTxStorage = errors.New("nil transaction storage")
 
