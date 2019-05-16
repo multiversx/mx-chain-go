@@ -134,6 +134,8 @@ func (er *ExternalResolver) extractShardBlocksAsRecentBlocks(metablock *block.Me
 		rb := RecentBlock{
 			Nonce:          shardHeader.Nonce,
 			Hash:           hash,
+			PrevHash:       shardHeader.PrevHash,
+			StateRootHash:  shardHeader.RootHash,
 			TxCount:        shardHeader.TxCount,
 			BlockSize:      int64(len(shardHeaderBytes)),
 			ProposerPubKey: proposer,

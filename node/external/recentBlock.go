@@ -5,6 +5,8 @@ type RecentBlock struct {
 	ShardID        uint32
 	Nonce          uint64
 	Hash           []byte
+	PrevHash       []byte
+	StateRootHash  []byte
 	ProposerPubKey []byte
 	BlockSize      int64
 	Timestamp      uint64
