@@ -8,6 +8,7 @@ type RecentBlock struct {
 	PrevHash       []byte
 	StateRootHash  []byte
 	ProposerPubKey []byte
+	PubKeysBitmap  []byte
 	BlockSize      int64
 	Timestamp      uint64
 	TxCount        uint32

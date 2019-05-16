@@ -139,6 +139,7 @@ func (er *ExternalResolver) extractShardBlocksAsRecentBlocks(metablock *block.Me
 			TxCount:        shardHeader.TxCount,
 			BlockSize:      int64(len(shardHeaderBytes)),
 			ProposerPubKey: proposer,
+			PubKeysBitmap:  shardHeader.PubKeysBitmap,
 			ShardID:        shardHeader.ShardId,
 			Timestamp:      shardHeader.TimeStamp,
 		}
