@@ -409,15 +409,3 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 
 	assert.Equal(t, err, err2)
 }
-
-func TestSubroundStartRound_GetPkToDisplayShouldTrim(t *testing.T) {
-	pk := "1234567891234"
-	pkToDisplay := commonSubround.GetTrimmedPk(pk)
-	assert.Equal(t, "123456789123...", pkToDisplay)
-}
-
-func TestSubroundStartRound_GetPkToDisplayShouldNotTrim(t *testing.T) {
-	pk := "123456789123"
-	pkToDisplay := commonSubround.GetTrimmedPk(pk)
-	assert.Equal(t, pk, pkToDisplay)
-}

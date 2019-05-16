@@ -570,7 +570,7 @@ func createShardNode(
 		return nil, nil, err
 	}
 
-	hexPublicKey := getTrimmedPk(hex.EncodeToString(publicKey))
+	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, nil, err
@@ -853,7 +853,7 @@ func createMetaNode(
 		return nil, err
 	}
 
-	hexPublicKey := getTrimmedPk(hex.EncodeToString(publicKey))
+	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, err
@@ -1646,12 +1646,4 @@ func createMemUnit() storage.Storer {
 
 	unit, _ := storage.NewStorageUnit(cache, persist)
 	return unit
-}
-
-func getTrimmedPk(pk string) string {
-	if len(pk) > core.PkPrefixSize {
-		pk = pk[:core.PkPrefixSize] + "..."
-	}
-
-	return pk
 }
