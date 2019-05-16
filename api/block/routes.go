@@ -1,14 +1,17 @@
 package block
 
 import (
+	"encoding/hex"
 	"net/http"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/external"
 	"github.com/gin-gonic/gin"
 )
 
 // Handler interface defines methods that can be used from `elrondFacade` context variable
 type Handler interface {
-	RecentNotarizedBlocks() interface{}
+	RecentNotarizedBlocks(maxShardHeadersNum int) ([]external.RecentBlock, error)
 }
 
 type blockResponse struct {
@@ -18,9 +21,9 @@ type blockResponse struct {
 	Proposer      string   `json:"proposer"`
 	Validators    []string `json:"validators"`
 	PubKeyBitmap  string   `json:"pubKeyBitmap"`
-	Size          string   `json:"size"`
-	Timestamp     int64    `json:"timestamp"`
-	TxCount       int32    `json:"txCount"`
+	Size          int64    `json:"size"`
+	Timestamp     uint64   `json:"timestamp"`
+	TxCount       uint32   `json:"txCount"`
 	StateRootHash string   `json:"stateRootHash"`
 	PrevHash      string   `json:"prevHash"`
 }
@@ -32,17 +35,32 @@ type recentBlocksResponse struct {
 func buildDummyBlock() blockResponse {
 	return blockResponse{
 		1, 1, "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-		[]string{"0x1234567", "0x123242342"}, "0x1234", "32kb", 23, 15000,
+		[]string{"0x1234567", "0x123242342"}, "0x1234", 32, 23, 15000,
 		"0x883284732784278", "0x32184232364274",
 	}
 }
 
-func buildDummyRecentBlocks() recentBlocksResponse {
-	recentBlocks := make([]blockResponse, 0)
-	for i := 0; i < 10; i++ {
-		recentBlocks = append(recentBlocks, buildDummyBlock())
+func formattedRecentBlocks(rb []external.RecentBlock) []blockResponse {
+	frb := make([]blockResponse, len(rb))
+
+	for _, block := range rb {
+		frb = append(frb, blockResponse{
+			Nonce: block.Nonce,
+			ShardID: block.ShardID,
+			Hash: hex.EncodeToString(block.Hash),
+			Proposer: hex.EncodeToString(block.ProposerPubKey),
+			// TODO: Add all validators
+			Validators: []string{hex.EncodeToString(block.ProposerPubKey)},
+			PubKeyBitmap: hex.EncodeToString(block.PubKeysBitmap),
+			Size: block.BlockSize,
+			Timestamp: block.Timestamp,
+			TxCount: block.TxCount,
+			StateRootHash: hex.EncodeToString(block.StateRootHash),
+			PrevHash: hex.EncodeToString(block.PrevHash),
+		})
 	}
-	return recentBlocksResponse{recentBlocks}
+
+	return frb
 }
 
 // Routes defines block related routes
@@ -65,5 +83,17 @@ func Block(c *gin.Context) {
 // RecentBlocks returns a list of blockResponse objects containing most
 //  recent blocks from each shard
 func RecentBlocks(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"blocks": buildDummyRecentBlocks().Blocks})
+	ef, ok := c.MustGet("elrondFacade").(Handler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	recentBlocks, err := ef.RecentNotarizedBlocks(20)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"blocks": formattedRecentBlocks(recentBlocks)})
 }
