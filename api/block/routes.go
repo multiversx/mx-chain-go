@@ -28,10 +28,6 @@ type blockResponse struct {
 	PrevHash      string   `json:"prevHash"`
 }
 
-type recentBlocksResponse struct {
-	Blocks []blockResponse `json:"blocks"`
-}
-
 func buildDummyBlock() blockResponse {
 	return blockResponse{
 		1, 1, "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
