@@ -816,7 +816,7 @@ func createShardNode(
 
 	err = nd.CreateShardGenesisBlock()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	return nd, externalResolver, tpsBenchmark, nil
@@ -1022,7 +1022,7 @@ func createMetaNode(
 		marshalizer,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(
@@ -1041,7 +1041,7 @@ func createMetaNode(
 
 	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	nd, err := node.NewNode(
@@ -1092,7 +1092,7 @@ func createMetaNode(
 
 	err = nd.CreateMetaGenesisBlock()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return nd, externalResolver, nil
