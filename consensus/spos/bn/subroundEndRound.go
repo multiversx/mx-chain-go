@@ -8,19 +8,19 @@ import (
 )
 
 type subroundEndRound struct {
-	*subround
+	*spos.Subround
 
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
-	subround *subround,
+	baseSubround *spos.Subround,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 	extend func(subroundId int),
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
-		subround,
+		baseSubround,
 		broadcastBlock,
 	)
 	if err != nil {
@@ -28,25 +28,25 @@ func NewSubroundEndRound(
 	}
 
 	srEndRound := subroundEndRound{
-		subround,
+		baseSubround,
 		broadcastBlock,
 	}
-	srEndRound.job = srEndRound.doEndRoundJob
-	srEndRound.check = srEndRound.doEndRoundConsensusCheck
-	srEndRound.extend = extend
+	srEndRound.Job = srEndRound.doEndRoundJob
+	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
+	srEndRound.Extend = extend
 
 	return &srEndRound, nil
 }
 
 func checkNewSubroundEndRoundParams(
-	subround *subround,
+	baseSubround *spos.Subround,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 ) error {
-	if subround == nil {
+	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 
-	if subround.ConsensusState == nil {
+	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
 
@@ -54,12 +54,12 @@ func checkNewSubroundEndRoundParams(
 		return spos.ErrNilBroadcastBlockFunction
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
 }
 
-// doEndRoundJob method does the job of the end round subround
+// doEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) doEndRoundJob() bool {
 	bitmap := sr.GenerateBitmap(SrBitmap)
 	err := sr.checkSignaturesValidity(bitmap)

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/peerDiscovery"
+	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/p2p/peerDiscovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/stretchr/testify/assert"

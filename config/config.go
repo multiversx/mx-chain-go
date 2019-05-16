@@ -77,6 +77,7 @@ type Config struct {
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
+	Consensus       TypeConfig
 }
 
 // NodeConfig will hold basic p2p settings

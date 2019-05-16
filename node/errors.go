@@ -64,8 +64,8 @@ var ErrNilBalances = errors.New("trying to set nil balances")
 // ErrNilSingleSig signals that a nil singlesig object has been provided
 var ErrNilSingleSig = errors.New("trying to set nil singlesig")
 
-// ErrNilMultiSig signals that a nil multisig object has been provided
-var ErrNilMultiSig = errors.New("trying to set nil multisig")
+// ErrNilMultiSig signals that a nil multiSigner object has been provided
+var ErrNilMultiSig = errors.New("trying to set nil multiSigner")
 
 // ErrNilForkDetector signals that a nil forkdetector object has been provided
 var ErrNilForkDetector = errors.New("nil fork detector")
@@ -105,6 +105,9 @@ var ErrNegativeMinTimeToWaitBetweenBroadcastsInSec = errors.New("value MinTimeTo
 
 // ErrWrongValues signals that wrong values were provided
 var ErrWrongValues = errors.New("wrong values for heartbeat parameters")
+
+// ErrGenesisBlockNotInitialized signals that genesis block is not initialized
+var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized")
 
 // ErrSystemBusyGeneratingTransactions signals that to many transactions are trying to get generated
 var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generating bulk transactions")

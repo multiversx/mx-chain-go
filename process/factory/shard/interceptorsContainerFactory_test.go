@@ -627,7 +627,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	container, _ := icf.Create()
 
-	numInterceptorTxs := noOfShards
+	numInterceptorTxs := noOfShards + 1
 	numInterceptorHeaders := 1
 	numInterceptorMiniBlocks := noOfShards
 	numInterceptorPeerChanges := 1

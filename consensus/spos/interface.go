@@ -36,10 +36,10 @@ type ConsensusCoreHandler interface {
 	SyncTimer() ntp.SyncTimer
 	// ValidatorGroupSelector gets the ValidatorGroupSelector stored in the ConsensusCore
 	ValidatorGroupSelector() consensus.ValidatorGroupSelector
-	// BlsPrivateKey returns the BLS private key stored in the ConsensusStore
-	BlsPrivateKey() crypto.PrivateKey
-	// BlsSingleSigner returns the bls single signer stored in the ConsensusStore
-	BlsSingleSigner() crypto.SingleSigner
+	// RandomnessPrivateKey returns the private key stored in the ConsensusStore used for randomness generation
+	RandomnessPrivateKey() crypto.PrivateKey
+	// RandomnessSingleSigner returns the single signer stored in the ConsensusStore used for randomness generation
+	RandomnessSingleSigner() crypto.SingleSigner
 }
 
 //ConsensusService encapsulates the methods specifically for a consensus type (bls, bn)

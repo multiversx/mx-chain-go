@@ -1,4 +1,4 @@
-package bn_test
+package commonSubround_test
 
 import (
 	"errors"
@@ -8,18 +8,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/commonSubround"
 	"github.com/stretchr/testify/assert"
 )
 
-func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bn.SubroundStartRound {
-	consensusState := initConsensusState()
-	ch := make(chan bool, 1)
+func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (*commonSubround.SubroundStartRound, error) {
+	startRound, err := commonSubround.NewSubroundStartRound(
+		sr,
+		extend,
+		processingThresholdPercent,
+		getSubroundName,
+	)
 
-	sr, _ := bn.NewSubround(
+	return startRound, err
+}
+
+func defaultSubround(consensusState *spos.ConsensusState, ch chan bool, container spos.ConsensusCoreHandler) (*spos.Subround,
+	error) {
+	return spos.NewSubround(
 		-1,
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
+		int(SrStartRound),
+		int(SrBlock),
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
@@ -27,16 +36,23 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bn
 		ch,
 		container,
 	)
+}
 
-	srStartRound, _ := bn.NewSubroundStartRound(
+func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) *commonSubround.SubroundStartRound {
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	sr, _ := defaultSubround(consensusState, ch, container)
+	srStartRound, _ := commonSubround.NewSubroundStartRound(
 		sr,
 		extend,
+		processingThresholdPercent,
+		getSubroundName,
 	)
 
 	return srStartRound
 }
 
-func initSubroundStartRound() bn.SubroundStartRound {
+func initSubroundStartRound() *commonSubround.SubroundStartRound {
 	container := mock.InitConsensusCore()
 	return initSubroundStartRoundWithContainer(container)
 }
@@ -44,9 +60,11 @@ func initSubroundStartRound() bn.SubroundStartRound {
 func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	srStartRound, err := bn.NewSubroundStartRound(
+	srStartRound, err := commonSubround.NewSubroundStartRound(
 		nil,
 		extend,
+		processingThresholdPercent,
+		getSubroundName,
 	)
 
 	assert.Nil(t, srStartRound)
@@ -61,22 +79,9 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBlockChainShouldFail(t *test
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
-		-1,
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubround(consensusState, ch, container)
 	container.SetBlockchain(nil)
-	srStartRound, err := bn.NewSubroundStartRound(
-		sr,
-		extend,
-	)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilBlockChain, err)
@@ -90,22 +95,9 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBootstraperShouldFail(t *tes
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
-		-1,
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubround(consensusState, ch, container)
 	container.SetBootStrapper(nil)
-	srStartRound, err := bn.NewSubroundStartRound(
-		sr,
-		extend,
-	)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilBlootstraper, err)
@@ -118,23 +110,10 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
-		-1,
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubround(consensusState, ch, container)
 
 	sr.ConsensusState = nil
-	srStartRound, err := bn.NewSubroundStartRound(
-		sr,
-		extend,
-	)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilConsensusState, err)
@@ -148,23 +127,9 @@ func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *tes
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
-		-1,
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubround(consensusState, ch, container)
 	container.SetMultiSigner(nil)
-
-	srStartRound, err := bn.NewSubroundStartRound(
-		sr,
-		extend,
-	)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
@@ -178,22 +143,9 @@ func TestSubroundStartRound_NewSubroundStartRoundNilRounderShouldFail(t *testing
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
-		-1,
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubround(consensusState, ch, container)
 	container.SetRounder(nil)
-	srStartRound, err := bn.NewSubroundStartRound(
-		sr,
-		extend,
-	)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilRounder, err)
@@ -207,22 +159,9 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testi
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
-		-1,
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubround(consensusState, ch, container)
 	container.SetSyncTimer(nil)
-	srStartRound, err := bn.NewSubroundStartRound(
-		sr,
-		extend,
-	)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -236,22 +175,9 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
-		-1,
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubround(consensusState, ch, container)
 	container.SetValidatorGroupSelector(nil)
-	srStartRound, err := bn.NewSubroundStartRound(
-		sr,
-		extend,
-	)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
@@ -265,22 +191,9 @@ func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
-		-1,
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubround(consensusState, ch, container)
 
-	srStartRound, err := bn.NewSubroundStartRound(
-		sr,
-		extend,
-	)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.NotNil(t, srStartRound)
 	assert.Nil(t, err)
@@ -294,22 +207,9 @@ func TestSubroundStartRound_DoStartRoundShouldReturnTrue(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
-		-1,
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubround(consensusState, ch, container)
 
-	srStartRound, _ := bn.NewSubroundStartRound(
-		sr,
-		extend,
-	)
+	srStartRound, _ := defaultSubroundStartRoundFromSubround(sr)
 
 	r := srStartRound.DoStartRoundJob()
 	assert.True(t, r)
@@ -331,7 +231,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundI
 
 	sr := *initSubroundStartRound()
 
-	sr.SetStatus(bn.SrStartRound, spos.SsFinished)
+	sr.SetStatus(SrStartRound, spos.SsFinished)
 
 	ok := sr.DoStartRoundConsensusCheck()
 	assert.True(t, ok)
@@ -429,22 +329,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenIsNotInTheConse
 	consensusState.SetSelfPubKey(consensusState.SelfPubKey() + "X")
 	ch := make(chan bool, 1)
 
-	sr, _ := bn.NewSubround(
-		-1,
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		consensusState,
-		ch,
-		container,
-	)
+	sr, _ := defaultSubround(consensusState, ch, container)
 
-	srStartRound, _ := bn.NewSubroundStartRound(
-		sr,
-		extend,
-	)
+	srStartRound, _ := defaultSubroundStartRoundFromSubround(sr)
 
 	r := srStartRound.InitCurrentRound()
 	assert.False(t, r)
