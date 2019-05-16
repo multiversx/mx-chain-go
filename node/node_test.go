@@ -1348,3 +1348,23 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, "nil message", err.Error())
 }
+
+func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithBlockChain(&mock.ChainHandlerStub{
+			GetGenesisHeaderHashCalled: func() []byte {
+				return nil
+			},
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return nil
+			},
+		}),
+	)
+
+	err := n.StartConsensus()
+
+	assert.Equal(t, node.ErrGenesisBlockNotInitialized, err)
+
+}

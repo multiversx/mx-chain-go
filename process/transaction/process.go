@@ -122,63 +122,6 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 	return nil
 }
 
-// SetBalancesToTrie adds balances to trie
-func (txProc *txProcessor) SetBalancesToTrie(accBalance map[string]*big.Int) (rootHash []byte, err error) {
-	if txProc.accounts.JournalLen() != 0 {
-		return nil, process.ErrAccountStateDirty
-	}
-
-	if accBalance == nil {
-		return nil, process.ErrNilValue
-	}
-
-	for i, v := range accBalance {
-		err := txProc.setBalanceToTrie([]byte(i), v)
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	rootHash, err = txProc.accounts.Commit()
-	if err != nil {
-		errToLog := txProc.accounts.RevertToSnapshot(0)
-		if errToLog != nil {
-			log.Error(errToLog.Error())
-		}
-
-		return nil, err
-	}
-
-	return rootHash, err
-}
-
-func (txProc *txProcessor) setBalanceToTrie(addr []byte, balance *big.Int) error {
-	if addr == nil {
-		return process.ErrNilValue
-	}
-
-	addrContainer, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(addr)
-	if err != nil {
-		return err
-	}
-	if addrContainer == nil {
-		return process.ErrNilAddressContainer
-	}
-
-	accWrp, err := txProc.accounts.GetAccountWithJournal(addrContainer)
-	if err != nil {
-		return err
-	}
-
-	account, ok := accWrp.(*state.Account)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	return account.SetBalanceWithJournal(balance)
-}
-
 func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
 	//for now we assume that the address = public key
 	adrSrc, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)

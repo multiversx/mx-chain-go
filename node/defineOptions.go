@@ -342,6 +342,15 @@ func WithResolversFinder(resolversFinder dataRetriever.ResolversFinder) Option {
 	}
 }
 
+// WithActiveMetachain sets up the flag that tells the node that metachain shard is active
+// TODO - remove this when finishing metachain testing as it will always be enabled
+func WithActiveMetachain(flag bool) Option {
+	return func(n *Node) error {
+		n.isMetachainActive = flag
+		return nil
+	}
+}
+
 // WithConsensusType sets up the consensus type option for the Node
 func WithConsensusType(consensusType string) Option {
 	return func(n *Node) error {

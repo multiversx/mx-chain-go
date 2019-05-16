@@ -105,3 +105,6 @@ var ErrNegativeMinTimeToWaitBetweenBroadcastsInSec = errors.New("value MinTimeTo
 
 // ErrWrongValues signals that wrong values were provided
 var ErrWrongValues = errors.New("wrong values for heartbeat parameters")
+
+// ErrGenesisBlockNotInitialized signals that genesis block is not initialized
+var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized")
