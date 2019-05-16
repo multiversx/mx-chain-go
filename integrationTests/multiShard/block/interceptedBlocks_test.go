@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 	"github.com/whyrusleeping/go-logging"
 )
@@ -61,8 +62,9 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	for _, n := range nodes {
 		isSenderShard := n.shardId == senderShard
 		isRecvShard := uint32InSlice(n.shardId, recvShards)
+		isRecvMetachain := n.shardId == sharding.MetachainShardId
 
-		assert.Equal(t, int32(1), atomic.LoadInt32(&n.metachainHdrRecv))
+		assert.Equal(t, int32(0), atomic.LoadInt32(&n.metachainHdrRecv))
 
 		if isSenderShard {
 			assert.Equal(t, int32(1), atomic.LoadInt32(&n.headersRecv))
@@ -81,7 +83,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 			assert.True(t, equalSlices(expectedMiniblocks, n.miniblocksHashes))
 		}
 
-		if !isSenderShard && !isRecvShard {
+		if !isSenderShard && !isRecvShard && !isRecvMetachain {
 			//other nodes should have not received neither the header nor the miniblocks
 			assert.Equal(t, int32(0), atomic.LoadInt32(&n.headersRecv))
 			assert.Equal(t, int32(0), atomic.LoadInt32(&n.miniblocksRecv))

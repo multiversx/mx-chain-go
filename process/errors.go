@@ -286,5 +286,11 @@ var ErrHeaderNotFinal = errors.New("header in metablock is not final")
 // ErrShardIdMissmatch signals shard ID does not match expectations
 var ErrShardIdMissmatch = errors.New("shard ID missmatch")
 
-// ErrNilBroadcastBlock signals that a nil broadcast block function was provided
-var ErrNilBroadcastBlock = errors.New("broadcast block method is nil")
+// ErrNilHeadersBlocks signals that a nil shard genesis headers map has been provided
+var ErrNilHeadersBlocks = errors.New("nil genesis headers blocks map")
+
+// ErrMintAddressNotInThisShard signals that the mint address does not belong to current shard
+var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
+
+// ErrLastNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
+var ErrLastNotarizedHdrsSliceIsNil = errors.New("last notarized shard headers slice is nil")
