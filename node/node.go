@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
@@ -226,7 +226,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	consensusService, err := bn.NewConsensusService()
+	consensusService, err := sposFactory.GetConsensusCoreFactory(n.consensusType)
 	if err != nil {
 		return err
 	}
@@ -277,11 +277,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := bn.NewSubroundsFactory(
-		consensusDataContainer,
-		consensusState,
-		worker,
-	)
+	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType)
 	if err != nil {
 		return err
 	}
