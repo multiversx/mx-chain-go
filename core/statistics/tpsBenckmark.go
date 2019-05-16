@@ -14,6 +14,7 @@ type TpsBenchmark struct {
 	activeNodes           uint32
 	roundTime             uint64
 	blockNumber           uint64
+	roundNumber           uint64
 	peakTPS               float64
 	averageBlockTxCount   *big.Int
 	lastBlockTxCount      uint32
@@ -73,6 +74,11 @@ func (s *TpsBenchmark) RoundTime() uint64 {
 // BlockNumber returns the last processed block number
 func (s *TpsBenchmark) BlockNumber() uint64 {
 	return s.blockNumber
+}
+
+// RoundNumber returns the last processed block number
+func (s *TpsBenchmark) RoundNumber() uint64 {
+	return s.roundNumber
 }
 
 // AverageBlockTxCount returns an average of the tx/block
@@ -194,6 +200,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 		}
 
 		s.blockNumber = header.Nonce
+		s.roundNumber = uint64(header.Round)
 		s.lastBlockTxCount = header.TxCount
 		s.totalProcessedTxCount.Add(s.totalProcessedTxCount, big.NewInt(int64(header.TxCount)))
 		s.averageBlockTxCount.Quo(s.totalProcessedTxCount, big.NewInt(int64(header.Nonce)))

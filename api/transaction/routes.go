@@ -52,6 +52,10 @@ type SendTxRequest struct {
 //TxResponse represents the structure on which the response will be validated against
 type TxResponse struct {
 	SendTxRequest
+	ShardID     uint32 `json:"shardId"`
+	Hash        string `json:"hash"`
+	BlockNumber uint64 `json:"blockNumber"`
+	BlockHash   string `json:"blockHash"`
 }
 
 // Routes defines transaction related routes
@@ -61,6 +65,12 @@ func Routes(router *gin.RouterGroup) {
 	router.POST("/generate-and-send-multiple-one-by-one", GenerateAndSendBulkTransactionsOneByOne)
 	router.POST("/send", SendTransaction)
 	router.GET("/:txhash", GetTransaction)
+}
+
+// RoutesForTransactionLists defines routes related to lists of transactions. Used sepparatly so
+//  it will not confloct with the wildcard for transaction details route
+func RoutesForTransactionLists(router *gin.RouterGroup) {
+	router.GET("/recent", RecentTransactions)
 }
 
 // GenerateTransaction generates a new transaction given a sender, receiver, value and data
@@ -192,6 +202,34 @@ func GetTransaction(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})
+}
+
+// RecentTransactions returns the list of latest transactions from all shards
+func RecentTransactions(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"transactions": buildDummyRecentTransactions()})
+}
+
+func buildDummyRecentTransactions() []TxResponse {
+	txs := make([]TxResponse, 0)
+	for i := 0; i < 10; i++ {
+		txs = append(txs, TxResponse{
+			SendTxRequest {
+				Sender: "0x000000",
+				Receiver: "0x11111",
+				Value: big.NewInt(10),
+				Data: "",
+				Nonce: 1,
+				GasPrice: big.NewInt(10),
+				GasLimit: big.NewInt(10),
+				Signature: "0x12314212313",
+			},
+			1,
+			"0x3213894328492",
+			10,
+			"0x000000000",
+		})
+	}
+	return txs
 }
 
 func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
