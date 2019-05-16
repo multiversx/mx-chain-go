@@ -12,8 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
@@ -46,9 +45,6 @@ const SendTransactionsPipe = "send transactions pipe"
 
 // HeartbeatTopic is the topic used for heartbeat signaling
 const HeartbeatTopic = "heartbeat"
-
-const blsConsensusType = "bls"
-const bnConsensusType = "bn"
 
 var log = logger.DefaultLogger()
 
@@ -202,33 +198,6 @@ func (n *Node) CreateShardedStores() error {
 	return nil
 }
 
-func (n *Node) getConsensusService() (spos.ConsensusService, error) {
-	switch n.consensusType {
-	case blsConsensusType:
-		return bls.NewConsensusService()
-	case bnConsensusType:
-		return bn.NewConsensusService()
-	}
-
-	return nil, ErrInvalidConsensusType
-}
-
-func (n *Node) getSubroundsFactory(
-	consensusDataContainer spos.ConsensusCoreHandler,
-	consensusState *spos.ConsensusState,
-	worker spos.WorkerHandler,
-) (spos.SubroundsFactory, error) {
-
-	switch n.consensusType {
-	case blsConsensusType:
-		return bls.NewSubroundsFactory(consensusDataContainer, consensusState, worker)
-	case bnConsensusType:
-		return bn.NewSubroundsFactory(consensusDataContainer, consensusState, worker)
-	}
-
-	return nil, ErrInvalidConsensusType
-}
-
 // StartConsensus will start the consesus service for the current node
 func (n *Node) StartConsensus() error {
 
@@ -261,7 +230,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	consensusService, err := n.getConsensusService()
+	consensusService, err := sposFactory.GetConsensusCoreFactory(n.consensusType)
 	if err != nil {
 		return err
 	}
@@ -312,7 +281,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := n.getSubroundsFactory(consensusDataContainer, consensusState, worker)
+	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType)
 	if err != nil {
 		return err
 	}

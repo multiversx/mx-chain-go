@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
@@ -188,8 +189,8 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 }
 
 func getTrimmedPk(pk string) string {
-	if len(pk) > pkPrefixSize {
-		pk = pk[:pkPrefixSize] + "..."
+	if len(pk) > core.PkPrefixSize {
+		pk = pk[:core.PkPrefixSize] + "..."
 	}
 
 	return pk

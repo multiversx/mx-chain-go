@@ -105,6 +105,3 @@ var ErrNegativeMinTimeToWaitBetweenBroadcastsInSec = errors.New("value MinTimeTo
 
 // ErrWrongValues signals that wrong values were provided
 var ErrWrongValues = errors.New("wrong values for heartbeat parameters")
-
-// ErrInvalidConsensusType signals that an invalid consensus type has been provided
-var ErrInvalidConsensusType = errors.New("invalid consensus type")

@@ -76,7 +76,6 @@ const (
 	blsHashSize = 16
 	blsConsensusType = "bls"
 	bnConsensusType = "bn"
-	pkPrefixSize = 12
 )
 
 var (
@@ -1172,18 +1171,21 @@ func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 }
 
 func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
-	if cfg.Consensus.Type == blsConsensusType {
-		return blake2b.Blake2b{HashSize: blsHashSize}, nil
+	if cfg.Consensus.Type == blsConsensusType && cfg.MultisigHasher.Type != "blake2b" {
+		return nil, errors.New("wrong multisig hasher provided for bls consensus type")
 	}
 
 	switch cfg.MultisigHasher.Type {
 	case "sha256":
 		return sha256.Sha256{}, nil
 	case "blake2b":
+		if cfg.Consensus.Type == blsConsensusType {
+			return blake2b.Blake2b{HashSize: blsHashSize}, nil
+		}
 		return blake2b.Blake2b{}, nil
 	}
 
-	return nil, errors.New("no hasher provided in config file")
+	return nil, errors.New("no multisig hasher provided in config file")
 }
 
 func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
@@ -1538,8 +1540,8 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 }
 
 func getTrimmedPk(pk string) string {
-	if len(pk) > pkPrefixSize {
-		pk = pk[:pkPrefixSize] + "..."
+	if len(pk) > core.PkPrefixSize {
+		pk = pk[:core.PkPrefixSize] + "..."
 	}
 
 	return pk
