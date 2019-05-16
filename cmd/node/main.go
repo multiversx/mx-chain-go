@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
@@ -62,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
@@ -73,9 +75,9 @@ const (
 	defaultLogPath     = "logs"
 	defaultStatsPath   = "stats"
 	metachainShardName = "metachain"
-	blsHashSize = 16
-	blsConsensusType = "bls"
-	bnConsensusType = "bn"
+	blsHashSize        = 16
+	blsConsensusType   = "bls"
+	bnConsensusType    = "bn"
 )
 
 var (
@@ -367,6 +369,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 			ctx,
 			generalConfig,
 			nodesConfig,
+			genesisConfig,
 			p2pConfig,
 			syncer,
 			keyGen,
@@ -492,7 +495,7 @@ func createMultiSigner(
 	pubKeys []string,
 	privateKey crypto.PrivateKey,
 	keyGen crypto.KeyGenerator,
-	) (crypto.MultiSigner, error) {
+) (crypto.MultiSigner, error) {
 
 	switch config.Consensus.Type {
 	case blsConsensusType:
@@ -774,6 +777,7 @@ func createShardNode(
 		node.WithResolversFinder(resolversFinder),
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(txSingleSigner),
+		node.WithActiveMetachain(nodesConfig.MetaChainActive),
 	)
 
 	if err != nil {
@@ -790,6 +794,11 @@ func createShardNode(
 		return nil, nil, err
 	}
 
+	err = nd.CreateShardGenesisBlock()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return nd, tpsBenchmark, nil
 }
 
@@ -797,6 +806,7 @@ func createMetaNode(
 	ctx *cli.Context,
 	config *config.Config,
 	nodesConfig *sharding.NodesSetup,
+	genesisConfig *sharding.Genesis,
 	p2pConfig *config.P2PConfig,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
@@ -983,6 +993,18 @@ func createMetaNode(
 		return nil, err
 	}
 
+	shardsGenesisBlocks, err := generateGenesisHeadersForMetachainInit(
+		nodesConfig,
+		genesisConfig,
+		shardCoordinator,
+		addressConverter,
+		hasher,
+		marshalizer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	metaProcessor, err := block.NewMetaProcessor(
 		accountsAdapter,
 		metaDatapool,
@@ -991,10 +1013,15 @@ func createMetaNode(
 		hasher,
 		marshalizer,
 		metaStore,
-		createRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
-
+		createRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic, log),
+	)
 	if err != nil {
 		return nil, errors.New("could not create block processor: " + err.Error())
+	}
+
+	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks)
+	if err != nil {
+		return nil, err
 	}
 
 	nd, err := node.NewNode(
@@ -1028,9 +1055,13 @@ func createMetaNode(
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(txSingleSigner),
 	)
-
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
+	}
+
+	err = nd.CreateMetaGenesisBlock()
+	if err != nil {
+		return nil, err
 	}
 
 	return nd, nil
@@ -1113,7 +1144,7 @@ func getSigningParams(
 	skIndexName string,
 	skPemFileName string,
 	suite crypto.Suite,
-	) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
+) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
 
 	sk, err := getSk(ctx, log, skName, skIndexName, skPemFileName)
 	if err != nil {
@@ -1533,4 +1564,82 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	}()
 
 	return nil
+}
+
+func generateGenesisHeadersForMetachainInit(
+	nodesSetup *sharding.NodesSetup,
+	genesisConfig *sharding.Genesis,
+	shardCoordinator sharding.Coordinator,
+	addressConverter state.AddressConverter,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+) (map[uint32]data.HeaderHandler, error) {
+	//TODO change this rudimentary startup for metachain nodes
+	// Talk between Adrian, Robert and Iulian, did not want it to be discarded:
+	// --------------------------------------------------------------------
+	// Adrian: "This looks like a workaround as the metchain should not deal with individual accounts, but shards data.
+	// What I was thinking was that the genesis on metachain (or pre-genesis block) is the nodes allocation to shards,
+	// with 0 state root for every shard, as there is no balance yet.
+	// Then the shards start operating as they get the initial node allocation, maybe we can do consensus on the
+	// genesis as well, I think this would be actually good as then everything is signed and agreed upon.
+	// The genesis shard blocks need to be then just the state root, I think we already have that in genesis,
+	// so shard nodes can go ahead with individually creating the block, but then run consensus on this.
+	// Then this block is sent to metachain who updates the state root of every shard and creates the metablock for
+	// the genesis of each of the shards (this is actually the same thing that would happen at new epoch start)."
+
+	shardsGenesisBlocks := make(map[uint32]data.HeaderHandler)
+
+	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
+		newShardCoordinator, err := sharding.NewMultiShardCoordinator(shardCoordinator.NumberOfShards(), shardId)
+		if err != nil {
+			return nil, err
+		}
+
+		accountFactory, err := factoryState.NewAccountFactoryCreator(newShardCoordinator)
+		if err != nil {
+			return nil, err
+		}
+
+		accounts := generateInMemoryAccountsAdapter(accountFactory, hasher, marshalizer)
+		initialBalances, err := genesisConfig.InitialNodesBalances(newShardCoordinator, addressConverter)
+		if err != nil {
+			return nil, err
+		}
+
+		genesisBlock, err := genesis.CreateShardGenesisBlockFromInitialBalances(
+			accounts,
+			newShardCoordinator,
+			addressConverter,
+			initialBalances,
+			uint64(nodesSetup.StartTime),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		shardsGenesisBlocks[shardId] = genesisBlock
+	}
+
+	return shardsGenesisBlocks, nil
+}
+
+func generateInMemoryAccountsAdapter(
+	accountFactory state.AccountFactory,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+) state.AccountsAdapter {
+
+	dbw, _ := trie.NewDBWriteCache(createMemUnit())
+	tr, _ := trie.NewTrie(make([]byte, 32), dbw, hasher)
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, accountFactory)
+
+	return adb
+}
+
+func createMemUnit() storage.Storer {
+	cache, _ := storage.NewCache(storage.LRUCache, 10)
+	persist, _ := memorydb.New()
+
+	unit, _ := storage.NewStorageUnit(cache, persist)
+	return unit
 }

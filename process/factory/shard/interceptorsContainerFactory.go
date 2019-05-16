@@ -189,6 +189,16 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 		interceptorSlice[int(idx)] = interceptor
 	}
 
+	//tx interceptor for metachain topic
+	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+
+	interceptor, err := icf.createOneTxInterceptor(identifierTx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keys = append(keys, identifierTx)
+	interceptorSlice = append(interceptorSlice, interceptor)
 	return keys, interceptorSlice, nil
 }
 

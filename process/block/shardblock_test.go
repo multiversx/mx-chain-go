@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"reflect"
 	"sync/atomic"
@@ -1235,68 +1234,6 @@ func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
 	blk, err := sp.CreateBlockBody(0, haveTime)
 	assert.NotNil(t, blk)
 	assert.Nil(t, err)
-}
-
-func TestShardProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldErr(t *testing.T) {
-	t.Parallel()
-	tdp := initDataPool()
-	txProcess := func(transaction *transaction.Transaction, round int32) error {
-		return nil
-	}
-	setBalances := func(accBalance map[string]*big.Int) (rootHash []byte, err error) {
-		return nil, process.ErrAccountStateDirty
-	}
-	txProc := mock.TxProcessorMock{
-		ProcessTransactionCalled: txProcess,
-		SetBalancesToTrieCalled:  setBalances,
-	}
-	sp, _ := blproc.NewShardProcessor(
-		tdp,
-		initStore(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&txProc,
-		initAccountsMock(),
-		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {
-		},
-		func(destShardID uint32, txHash []byte) {},
-	)
-	_, err := sp.CreateGenesisBlock(nil)
-	assert.Equal(t, process.ErrAccountStateDirty, err)
-}
-
-func TestShardProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
-	t.Parallel()
-	tdp := initDataPool()
-	txProcess := func(transaction *transaction.Transaction, round int32) error {
-		return nil
-	}
-	setBalances := func(accBalance map[string]*big.Int) (rootHash []byte, err error) {
-		return []byte("rootHash"), nil
-	}
-	txProc := mock.TxProcessorMock{
-		ProcessTransactionCalled: txProcess,
-		SetBalancesToTrieCalled:  setBalances,
-	}
-	sp, _ := blproc.NewShardProcessor(
-		tdp,
-		initStore(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&txProc,
-		initAccountsMock(),
-		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {
-		},
-		func(destShardID uint32, txHash []byte) {},
-	)
-	hdr, err := sp.CreateGenesisBlock(nil)
-	assert.Nil(t, err)
-	assert.NotNil(t, hdr)
-	assert.Equal(t, hdr.GetRootHash(), []byte("rootHash"))
 }
 
 func TestShardProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
