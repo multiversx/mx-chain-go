@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node/external"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 	"github.com/gin-gonic/gin"
 )
@@ -21,7 +20,6 @@ type Handler interface {
 	GetCurrentPublicKey() string
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
-	RecentNotarizedBlocks(maxShardHeadersNum int) ([]external.RecentBlock, error)
 }
 
 type statisticsResponse struct {
