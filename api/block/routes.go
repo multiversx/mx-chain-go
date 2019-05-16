@@ -39,21 +39,21 @@ func buildDummyBlock() blockResponse {
 func formattedRecentBlocks(rb []external.RecentBlock) []blockResponse {
 	frb := make([]blockResponse, len(rb))
 
-	for _, block := range rb {
-		frb = append(frb, blockResponse{
-			Nonce: block.Nonce,
-			ShardID: block.ShardID,
-			Hash: hex.EncodeToString(block.Hash),
+	for index, block := range rb {
+		frb[index] = blockResponse{
+			Nonce:    block.Nonce,
+			ShardID:  block.ShardID,
+			Hash:     hex.EncodeToString(block.Hash),
 			Proposer: hex.EncodeToString(block.ProposerPubKey),
 			// TODO: Add all validators
-			Validators: []string{hex.EncodeToString(block.ProposerPubKey)},
-			PubKeyBitmap: hex.EncodeToString(block.PubKeysBitmap),
-			Size: block.BlockSize,
-			Timestamp: block.Timestamp,
-			TxCount: block.TxCount,
+			Validators:    []string{hex.EncodeToString(block.ProposerPubKey)},
+			PubKeyBitmap:  hex.EncodeToString(block.PubKeysBitmap),
+			Size:          block.BlockSize,
+			Timestamp:     block.Timestamp,
+			TxCount:       block.TxCount,
 			StateRootHash: hex.EncodeToString(block.StateRootHash),
-			PrevHash: hex.EncodeToString(block.PrevHash),
-		})
+			PrevHash:      hex.EncodeToString(block.PrevHash),
+		}
 	}
 
 	return frb
