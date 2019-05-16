@@ -76,6 +76,7 @@ const (
 	blsHashSize = 16
 	blsConsensusType = "bls"
 	bnConsensusType = "bn"
+	pkPrefixSize = 12
 )
 
 var (
@@ -567,7 +568,7 @@ func createShardNode(
 		return nil, nil, err
 	}
 
-	hexPublicKey := hex.EncodeToString(publicKey[:20])
+	hexPublicKey := getTrimmedPk(hex.EncodeToString(publicKey))
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, nil, err
@@ -843,7 +844,7 @@ func createMetaNode(
 		return nil, err
 	}
 
-	hexPublicKey := hex.EncodeToString(publicKey[:20])
+	hexPublicKey := getTrimmedPk(hex.EncodeToString(publicKey))
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, err
@@ -1534,4 +1535,12 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	}()
 
 	return nil
+}
+
+func getTrimmedPk(pk string) string {
+	if len(pk) > pkPrefixSize {
+		pk = pk[:pkPrefixSize] + "..."
+	}
+
+	return pk
 }
