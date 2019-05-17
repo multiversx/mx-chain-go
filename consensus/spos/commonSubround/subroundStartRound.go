@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
@@ -115,7 +116,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	}
 
 	log.Info(fmt.Sprintf("%sStep 0: preparing for this round with leader %s%s\n",
-		sr.SyncTimer().FormattedCurrentTime(), hex.EncodeToString([]byte(leader)), msg))
+		sr.SyncTimer().FormattedCurrentTime(), core.GetTrimmedPk(hex.EncodeToString([]byte(leader))), msg))
 
 	pubKeys := sr.ConsensusGroup()
 
@@ -177,7 +178,7 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 		roundIndex))
 
 	for i := 0; i < len(nextConsensusGroup); i++ {
-		log.Info(fmt.Sprintf("%s", hex.EncodeToString([]byte(nextConsensusGroup[i]))))
+		log.Info(fmt.Sprintf("%s", core.GetTrimmedPk(hex.EncodeToString([]byte(nextConsensusGroup[i])))))
 	}
 
 	log.Info(fmt.Sprintf("\n"))

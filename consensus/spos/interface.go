@@ -57,6 +57,12 @@ type ConsensusService interface {
 	CanProceed(*ConsensusState, consensus.MessageType) bool
 }
 
+//SubroundsFactory encapsulates the methods specifically for a subrounds factory type (bls, bn)
+//for different consensus types
+type SubroundsFactory interface {
+	GenerateSubrounds() error
+}
+
 //WorkerHandler represents the interface for the SposWorker
 type WorkerHandler interface {
 	//AddReceivedMessageCall adds a new handler function for a received messege type
