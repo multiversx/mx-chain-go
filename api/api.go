@@ -3,6 +3,7 @@ package api
 import (
 	"reflect"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/block"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -45,6 +46,18 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	txRoutes := ws.Group("/transaction")
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	transaction.Routes(txRoutes)
+
+	txsRoutes := ws.Group("/transactions")
+	txsRoutes.Use(middleware.WithElrondFacade(elrondFacade))
+	transaction.RoutesForTransactionsLists(txsRoutes)
+
+	blockRoutes := ws.Group("/block")
+	blockRoutes.Use(middleware.WithElrondFacade(elrondFacade))
+	block.Routes(blockRoutes)
+
+	blocksRoutes := ws.Group("/blocks")
+	blocksRoutes.Use(middleware.WithElrondFacade(elrondFacade))
+	block.RoutesForBlocksLists(blocksRoutes)
 }
 
 func registerValidators() error {
@@ -64,8 +77,13 @@ func registerValidators() error {
 
 // skValidator validates a secret key from user input for correctness
 func skValidator(
-	v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value,
-	field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string,
+	_ *validator.Validate,
+	_ reflect.Value,
+	_ reflect.Value,
+	_ reflect.Value,
+	_ reflect.Type,
+	_ reflect.Kind,
+	_ string,
 ) bool {
 	return true
 }

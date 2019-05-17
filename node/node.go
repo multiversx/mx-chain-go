@@ -12,9 +12,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -94,7 +95,8 @@ type Node struct {
 	consensusTopic string
 	consensusType  string
 
-	isRunning bool
+	isRunning         bool
+	isMetachainActive bool
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -114,7 +116,8 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
 	node := &Node{
-		ctx: context.Background(),
+		ctx:               context.Background(),
+		isMetachainActive: true,
 	}
 	for _, opt := range opts {
 		err := opt(node)
@@ -199,18 +202,11 @@ func (n *Node) CreateShardedStores() error {
 
 // StartConsensus will start the consesus service for the current node
 func (n *Node) StartConsensus() error {
-
-	genesisHeader, genesisHeaderHash, err := n.createGenesisBlock()
-	if err != nil {
-		return err
+	isGenesisBlockNotInitialized := n.blkc.GetGenesisHeaderHash() == nil ||
+		n.blkc.GetGenesisHeader() == nil
+	if isGenesisBlockNotInitialized {
+		return ErrGenesisBlockNotInitialized
 	}
-
-	err = n.blkc.SetGenesisHeader(genesisHeader)
-	if err != nil {
-		return err
-	}
-
-	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
 
 	chronologyHandler, err := n.createChronologyHandler(n.rounder)
 	if err != nil {
@@ -229,7 +225,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	consensusService, err := bn.NewConsensusService()
+	consensusService, err := sposFactory.GetConsensusCoreFactory(n.consensusType)
 	if err != nil {
 		return err
 	}
@@ -280,11 +276,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := bn.NewSubroundsFactory(
-		consensusDataContainer,
-		consensusState,
-		worker,
-	)
+	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType)
 	if err != nil {
 		return err
 	}
@@ -296,6 +288,65 @@ func (n *Node) StartConsensus() error {
 
 	go chronologyHandler.StartRounds()
 
+	return nil
+}
+
+// CreateShardGenesisBlock creates the shard genesis block
+func (n *Node) CreateShardGenesisBlock() error {
+	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
+		n.accounts,
+		n.shardCoordinator,
+		n.addrConverter,
+		n.initialNodesBalances,
+		uint64(n.genesisTime.Unix()),
+	)
+	if err != nil {
+		return err
+	}
+
+	marshalizedHeader, err := n.marshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	blockHeaderHash := n.hasher.Compute(string(marshalizedHeader))
+
+	return n.setGenesis(header, blockHeaderHash)
+}
+
+// CreateMetaGenesisBlock creates the meta genesis block
+func (n *Node) CreateMetaGenesisBlock() error {
+	//TODO create the right metachain genesis block here
+	rootHash := []byte("root hash")
+	header := &block.MetaBlock{
+		RootHash:     rootHash,
+		PrevHash:     rootHash,
+		RandSeed:     rootHash,
+		PrevRandSeed: rootHash,
+	}
+	header.SetTimeStamp(uint64(n.genesisTime.Unix()))
+
+	marshalizedHeader, err := n.marshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	blockHeaderHash := n.hasher.Compute(string(marshalizedHeader))
+	err = n.store.Put(dataRetriever.MetaBlockUnit, blockHeaderHash, marshalizedHeader)
+	if err != nil {
+		return err
+	}
+
+	return n.setGenesis(header, blockHeaderHash)
+}
+
+func (n *Node) setGenesis(genesisHeader data.HeaderHandler, genesisHeaderHash []byte) error {
+	err := n.blkc.SetGenesisHeader(genesisHeader)
+	if err != nil {
+		return err
+	}
+
+	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
 	return nil
 }
 
@@ -586,24 +637,6 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 	return account, nil
 }
 
-func (n *Node) createGenesisBlock() (data.HeaderHandler, []byte, error) {
-	header, err := n.blockProcessor.CreateGenesisBlock(n.initialNodesBalances)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	header.SetTimeStamp(uint64(n.genesisTime.Unix()))
-
-	marshalizedHeader, err := n.marshalizer.Marshal(header)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	blockHeaderHash := n.hasher.Compute(string(marshalizedHeader))
-
-	return header, blockHeaderHash, nil
-}
-
 func (n *Node) sendMessage(cnsDta *consensus.Message) {
 	cnsDtaBuff, err := n.marshalizer.Marshal(cnsDta)
 	if err != nil {
@@ -655,10 +688,21 @@ func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.Heade
 	go n.messenger.Broadcast(factory.MiniBlocksTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
-	//TODO - for now, on MetachainHeaderTopic we will broadcast shard headers
-	// Later, this call should be done by metachain nodes when they agree upon a metachain header
-	msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
-	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
+	if !n.isMetachainActive {
+		//TODO - remove this when metachain is fully tested. Should remove only "if" branch,
+		// the "else" branch should not be removed
+		msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
+		if err != nil {
+			return err
+		}
+
+		go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
+	} else {
+		shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
+			n.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
+
+		go n.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
+	}
 
 	for k, v := range msgMapBlockBody {
 		go n.messenger.Broadcast(factory.MiniBlocksTopic+

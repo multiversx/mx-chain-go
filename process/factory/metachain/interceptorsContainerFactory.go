@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -22,6 +23,7 @@ type interceptorsContainerFactory struct {
 	messenger           process.TopicHandler
 	multiSigner         crypto.MultiSigner
 	chronologyValidator process.ChronologyValidator
+	tpsBenchmark        *statistics.TpsBenchmark
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -34,6 +36,7 @@ func NewInterceptorsContainerFactory(
 	multiSigner crypto.MultiSigner,
 	dataPool dataRetriever.MetaPoolsHolder,
 	chronologyValidator process.ChronologyValidator,
+	tpsBenchmark *statistics.TpsBenchmark,
 ) (*interceptorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -70,6 +73,7 @@ func NewInterceptorsContainerFactory(
 		multiSigner:         multiSigner,
 		dataPool:            dataPool,
 		chronologyValidator: chronologyValidator,
+		tpsBenchmark:        tpsBenchmark,
 	}, nil
 }
 
@@ -122,7 +126,7 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 		icf.marshalizer,
 		icf.dataPool.MetaChainBlocks(),
 		icf.dataPool.MetaBlockNonces(),
-		nil,
+		icf.tpsBenchmark,
 		metachainHeaderStorer,
 		icf.multiSigner,
 		icf.hasher,
@@ -149,7 +153,7 @@ func (icf *interceptorsContainerFactory) generateShardHeaderInterceptors() ([]st
 	keys := make([]string, noOfShards)
 	interceptorSlice := make([]process.Interceptor, noOfShards)
 
-	//wire up to topics: shardHeadersForMetachain_0, shardHeadersForMetachain_1 ...
+	//wire up to topics: shardHeadersForMetachain_0_META, shardHeadersForMetachain_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierHeader := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(idx)
 		interceptor, err := icf.createOneShardHeaderInterceptor(identifierHeader)

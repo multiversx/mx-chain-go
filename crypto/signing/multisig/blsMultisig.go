@@ -25,7 +25,6 @@ This is where the modified BLS scheme comes into play and prevents this attacks 
 const hasherOutputSize = 16
 
 type blsMultiSigData struct {
-	grSize  uint16
 	pubKeys []crypto.PublicKey
 	privKey crypto.PrivateKey
 	// signatures in BLS are points on curve G1
@@ -84,7 +83,6 @@ func NewBLSMultisig(
 	}
 
 	data := &blsMultiSigData{
-		grSize:    sizeConsensus,
 		pubKeys:   pk,
 		privKey:   privKey,
 		ownIndex:  ownIndex,
@@ -111,7 +109,7 @@ func (bms *blsMultiSigner) Reset(pubKeys []string, index uint16) error {
 		return crypto.ErrIndexOutOfBounds
 	}
 
-	sizeConsensus := len(pubKeys)
+	sizeConsensus := uint16(len(pubKeys))
 	sigShares := make([][]byte, sizeConsensus)
 	pk, err := convertStringsToPubKeys(pubKeys, bms.keyGen)
 
@@ -163,7 +161,7 @@ func (bms *blsMultiSigner) CreateSignatureShare(message []byte, _ []byte) ([]byt
 
 // not concurrent safe, should be used under RLock mutex
 func (bms *blsMultiSigner) isIndexInBitmap(index uint16, bitmap []byte) error {
-	indexOutOfBounds := index >= bms.data.grSize
+	indexOutOfBounds := index >= uint16(len(bms.data.pubKeys))
 	if indexOutOfBounds {
 		return crypto.ErrIndexOutOfBounds
 	}
@@ -186,7 +184,7 @@ func (bms *blsMultiSigner) VerifySignatureShare(index uint16, sig []byte, messag
 	bms.mutSigData.RLock()
 	defer bms.mutSigData.RUnlock()
 
-	indexOutOfBounds := index >= bms.data.grSize
+	indexOutOfBounds := index >= uint16(len(bms.data.pubKeys))
 	if indexOutOfBounds {
 		return crypto.ErrIndexOutOfBounds
 	}

@@ -2,7 +2,6 @@ package block
 
 import (
 	"fmt"
-	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -346,26 +345,6 @@ func (sp *shardProcessor) CreateBlockBody(round int32, haveTime func() bool) (da
 	return miniBlocks, nil
 }
 
-// CreateGenesisBlock creates the genesis block body from map of account balances
-func (sp *shardProcessor) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
-	rootHash, err := sp.txProcessor.SetBalancesToTrie(balances)
-	if err != nil {
-		return nil, err
-	}
-
-	header := &block.Header{
-		Nonce:         0,
-		ShardId:       sp.shardCoordinator.SelfId(),
-		BlockBodyType: block.StateBlock,
-		Signature:     rootHash,
-		RootHash:      rootHash,
-		PrevRandSeed:  rootHash,
-		RandSeed:      rootHash,
-	}
-
-	return header, err
-}
-
 func (sp *shardProcessor) processBlockTransactions(body block.Body, round int32, haveTime func() time.Duration) error {
 	// basic validation already done in interceptors
 	txPool := sp.dataPool.Transactions()
@@ -675,6 +654,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	for key, senderShardId := range crossMiniBlockHashes {
 		miniVal, _ := miniBlockCache.Peek([]byte(key))
 		if miniVal == nil {
+			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
 			go sp.OnRequestMiniBlock(senderShardId, []byte(key))
 		}
 	}
@@ -707,6 +687,7 @@ func (sp *shardProcessor) receivedMiniBlock(miniBlockHash []byte) {
 	for _, txHash := range miniBlock.TxHashes {
 		tx := sp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
 		if tx == nil {
+			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
 			go sp.OnRequestTransaction(miniBlock.SenderShardID, txHash)
 		}
 	}
@@ -724,6 +705,7 @@ func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
 			for _, txHash := range txHashes {
 				requestedTxs++
 				sp.requestedTxHashes[string(txHash)] = true
+				//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
 				go sp.OnRequestTransaction(shardId, txHash)
 			}
 		}

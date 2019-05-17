@@ -93,6 +93,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	proposerNode.node.BroadcastShardBlock(blockBody, blockHeader)
 	fmt.Println("Delaying for disseminating miniblocks and header...")
 	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
 
 	fmt.Println("Step 7. NodesSetup from proposer's shard will have to successfully process the block sent by the proposer...")
 	fmt.Println(makeDisplayTable(nodes))
@@ -113,6 +114,14 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 			assert.Nil(t, err)
 		}
 	}
+
+	fmt.Println("Step 7. Metachain processes the received header...")
+	metaNode := nodes[len(nodes)-1]
+	_, metaHeader := proposeMetaBlock(t, metaNode)
+	metaNode.node.BroadcastMetaBlock(nil, metaHeader)
+	fmt.Println("Delaying for disseminating meta header...")
+	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
 
 	fmt.Println("Step 8. Test nodes from proposer shard to have the correct balances...")
 	for _, n := range nodes {
@@ -150,6 +159,10 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	fmt.Println("Step 10. NodesSetup from receivers shards will have to successfully process the block sent by their proposer...")
 	fmt.Println(makeDisplayTable(nodes))
 	for _, n := range nodes {
+		if n.shardId == sharding.MetachainShardId {
+			continue
+		}
+
 		isNodeInReceiverShardAndNotProposer := false
 		for _, shardId := range recvShards {
 			if n.shardId == shardId {
@@ -290,22 +303,42 @@ func testPrivateKeyHasBalance(t *testing.T, n *testNode, sk crypto.PrivateKey, e
 }
 
 func proposeBlock(t *testing.T, proposer *testNode) (data.BodyHandler, data.HeaderHandler) {
-	blockBody, err := proposer.blkProcessor.CreateBlockBody(0, func() bool {
+	blockBody, err := proposer.blkProcessor.CreateBlockBody(1, func() bool {
 		return true
 	})
 	assert.Nil(t, err)
-	blockHeader, err := proposer.blkProcessor.CreateBlockHeader(blockBody, 0, func() bool {
+
+	blockHeader, err := proposer.blkProcessor.CreateBlockHeader(blockBody, 1, func() bool {
 		return true
 	})
 	assert.Nil(t, err)
+
 	blockHeader.SetNonce(1)
 	blockHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := testMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
-	buffGenesis, _ := testMarshalizer.Marshal(proposer.blkc.GetGenesisHeader())
+	buffGenesis, _ := testMarshalizer.Marshal(createGenesisBlock(proposer.shardId))
 	blockHeader.SetPrevHash(testHasher.Compute(string(buffGenesis)))
-	blockHeader.SetPrevRandSeed(sig)
+	blockHeader.SetPrevRandSeed(rootHash)
 	blockHeader.SetRandSeed(sig)
+	blockHeader.SetRound(1)
 
 	return blockBody, blockHeader
+}
+
+func proposeMetaBlock(t *testing.T, proposer *testNode) (data.BodyHandler, data.HeaderHandler) {
+	metaHeader, err := proposer.blkProcessor.CreateBlockHeader(nil, 2, func() bool {
+		return true
+	})
+	assert.Nil(t, err)
+
+	metaHeader.SetNonce(1)
+	metaHeader.SetPubKeysBitmap(make([]byte, 0))
+	sig, _ := testMultiSig.AggregateSigs(nil)
+	metaHeader.SetSignature(sig)
+	buffGenesis, _ := testMarshalizer.Marshal(proposer.blkc.GetGenesisHeader())
+	metaHeader.SetPrevHash(testHasher.Compute(string(buffGenesis)))
+	metaHeader.SetRandSeed(sig)
+
+	return nil, metaHeader
 }

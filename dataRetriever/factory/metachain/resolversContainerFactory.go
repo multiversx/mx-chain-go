@@ -103,7 +103,7 @@ func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, 
 	keys := make([]string, noOfShards)
 	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
 
-	//wire up to topics: shardHeadersForMetachain_0, shardHeadersForMetachain_1 ...
+	//wire up to topics: shardHeadersForMetachain_0_META, shardHeadersForMetachain_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierHeader := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(idx)
 		resolver, err := rcf.createOneShardHeaderResolver(identifierHeader)
