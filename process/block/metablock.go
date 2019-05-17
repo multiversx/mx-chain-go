@@ -280,7 +280,7 @@ func (mp *metaProcessor) CreateBlockBody(round int32, haveTime func() bool) (dat
 func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int32, haveTime func() time.Duration) error {
 	hdrPool := mp.dataPool.ShardHeaders()
 
-	msg := "The following miniblock hashes weere successfully processed: "
+	msg := ""
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
@@ -306,7 +306,9 @@ func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int3
 		}
 	}
 
-	log.Info(fmt.Sprintf("%s\n", msg))
+	if len(msg) > 0 {
+		log.Info(fmt.Sprintf("The following miniblocks hashes were successfully processed:%s\n", msg))
+	}
 
 	return nil
 }
