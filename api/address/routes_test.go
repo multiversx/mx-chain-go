@@ -244,7 +244,7 @@ func logError(err error) {
 	}
 }
 
-func startNodeServer(handler address.Handler) *gin.Engine {
+func startNodeServer(handler address.FacadeHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	addressRoutes := ws.Group("/address")

@@ -13,7 +13,7 @@ import (
 )
 
 // Handler interface defines methods that can be used from `elrondFacade` context variable
-type Handler interface {
+type FacadeHandler interface {
 	IsNodeRunning() bool
 	StartNode() error
 	StopNode() error
@@ -26,7 +26,9 @@ type statisticsResponse struct {
 	LiveTPS               float64                   `json:"liveTPS"`
 	PeakTPS               float64                   `json:"peakTPS"`
 	NrOfShards            uint32                    `json:"nrOfShards"`
+	NrOfNodes             uint32                    `json:"nrOfNodes"`
 	BlockNumber           uint64                    `json:"blockNumber"`
+	RoundNumber           uint64                    `json:"roundNumber"`
 	RoundTime             uint64                    `json:"roundTime"`
 	AverageBlockTxCount   *big.Int                  `json:"averageBlockTxCount"`
 	LastBlockTxCount      uint32                    `json:"lastBlockTxCount"`
@@ -57,7 +59,7 @@ func Routes(router *gin.RouterGroup) {
 
 // Status returns the state of the node e.g. running/stopped
 func Status(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
@@ -68,7 +70,7 @@ func Status(c *gin.Context) {
 
 // StartNode will start the node instance
 func StartNode(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
@@ -89,7 +91,7 @@ func StartNode(c *gin.Context) {
 
 // Address returns the information about the address passed as parameter
 func Address(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
@@ -107,7 +109,7 @@ func Address(c *gin.Context) {
 
 // StopNode will stop the node instance
 func StopNode(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
@@ -128,7 +130,7 @@ func StopNode(c *gin.Context) {
 
 // HeartbeatStatus respond with the heartbeat status of the node
 func HeartbeatStatus(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
@@ -145,7 +147,7 @@ func HeartbeatStatus(c *gin.Context) {
 
 // Statistics returns the blockchain statistics
 func Statistics(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
@@ -159,8 +161,11 @@ func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResp
 	sr.LiveTPS = tpsBenchmark.LiveTPS()
 	sr.PeakTPS = tpsBenchmark.PeakTPS()
 	sr.NrOfShards = tpsBenchmark.NrOfShards()
+	// TODO: Should be filled
+	sr.NrOfNodes = 1
 	sr.RoundTime = tpsBenchmark.RoundTime()
 	sr.BlockNumber = tpsBenchmark.BlockNumber()
+	sr.RoundNumber = tpsBenchmark.RoundNumber()
 	sr.AverageBlockTxCount = tpsBenchmark.AverageBlockTxCount()
 	sr.LastBlockTxCount = tpsBenchmark.LastBlockTxCount()
 	sr.TotalProcessedTxCount = tpsBenchmark.TotalProcessedTxCount()
