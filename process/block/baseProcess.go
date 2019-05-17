@@ -41,7 +41,7 @@ func checkForNils(
 		return process.ErrNilBlockHeader
 	}
 	if bodyHandler == nil {
-		return process.ErrNilMiniBlocks
+		return process.ErrNilBlockBody
 	}
 	return nil
 }

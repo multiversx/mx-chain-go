@@ -315,7 +315,7 @@ func TestShardProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 		func(destShardID uint32, txHash []byte) {},
 	)
 	err := sp.ProcessBlock(&blockchain.BlockChain{}, &block.Header{}, nil, haveTime)
-	assert.Equal(t, process.ErrNilMiniBlocks, err)
+	assert.Equal(t, process.ErrNilBlockBody, err)
 }
 
 func TestShardProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {

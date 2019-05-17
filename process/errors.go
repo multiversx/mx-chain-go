@@ -43,8 +43,8 @@ var ErrNilBlockChain = errors.New("nil block chain")
 // ErrNilMetaBlockHeader signals that an operation has been attempted to or with a nil metablock
 var ErrNilMetaBlockHeader = errors.New("nil metablock header")
 
-// ErrNilTxBlockBody signals that an operation has been attempted to or with a nil block body
-var ErrNilTxBlockBody = errors.New("nil block body")
+// ErrNilTxBlockBody signals that an operation has been attempted to or with a nil tx block body
+var ErrNilTxBlockBody = errors.New("nil tx block body")
 
 // ErrNilStore signals that the provided storage service is nil
 var ErrNilStore = errors.New("nil data storage service")
@@ -54,6 +54,9 @@ var ErrNilPeerBlockBody = errors.New("nil block body")
 
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
+
+// ErrNilBlockBody signals that an operation has been attempted to or with a nil block body
+var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrNilTxHash signals that an operation has been attempted with a nil hash
 var ErrNilTxHash = errors.New("nil transaction hash")
