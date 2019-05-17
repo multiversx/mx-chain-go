@@ -67,7 +67,7 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/:txhash", GetTransaction)
 }
 
-// RoutesForTransactionsLists defines routes related to lists of transactions. Used sepparatly so
+// RoutesForTransactionsLists defines routes related to lists of transactions. Used separately so
 // it will not conflict with the wildcard for transaction details route
 func RoutesForTransactionsLists(router *gin.RouterGroup) {
 	router.GET("/recent", RecentTransactions)
