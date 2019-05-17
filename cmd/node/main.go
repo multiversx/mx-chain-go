@@ -130,7 +130,7 @@ VERSION:
 	port = cli.IntFlag{
 		Name:  "port",
 		Usage: "Port number on which the application will start",
-		Value: 32000,
+		Value: 0,
 	}
 	// profileMode defines a flag for profiling the binary
 	profileMode = cli.StringFlag{
@@ -286,12 +286,6 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
 	}
-	uniqueID = strconv.Itoa(p2pConfig.Node.Port)
-
-	err = os.RemoveAll(config.DefaultPath() + uniqueID)
-	if err != nil {
-		return err
-	}
 
 	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name))
 	if err != nil {
@@ -330,14 +324,23 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		skIndex.Name,
 		initialNodesSkPemFile,
 		suite)
+	if err != nil {
+		return err
+	}
+	log.Info("Starting with public key: " + getPkEncoded(pubKey))
 
+	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
 	}
 
-	log.Info("Starting with public key: " + getPkEncoded(pubKey))
+	publicKey, err := pubKey.ToByteArray()
+	if err != nil {
+		return err
+	}
 
-	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
+	uniqueID = core.GetTrimmedPk(hex.EncodeToString(publicKey))
+	err = os.RemoveAll(config.DefaultPath() + uniqueID)
 	if err != nil {
 		return err
 	}
@@ -1089,8 +1092,8 @@ func createNetMessenger(
 	randReader io.Reader,
 ) (p2p.Messenger, error) {
 
-	if p2pConfig.Node.Port <= 0 {
-		return nil, errors.New("cannot start node on port <= 0")
+	if p2pConfig.Node.Port < 0 {
+		return nil, errors.New("cannot start node on port < 0")
 	}
 
 	pDiscoveryFactory := factoryP2P.NewPeerDiscovererCreator(*p2pConfig)
