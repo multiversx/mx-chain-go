@@ -10,8 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Handler interface defines methods that can be used from `elrondFacade` context variable
-type Handler interface {
+// FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
+type FacadeHandler interface {
 	RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error)
 	RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error)
 }
@@ -29,6 +29,8 @@ type blockResponse struct {
 	StateRootHash string   `json:"stateRootHash"`
 	PrevHash      string   `json:"prevHash"`
 }
+
+const recentBlocksCount = 20
 
 func formattedRecentBlocks(headers []*external.BlockHeader) []blockResponse {
 	frb := make([]blockResponse, len(headers))
@@ -62,9 +64,9 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/:block", Block)
 }
 
-// RoutesForBlockLists defines routes related to lists of blocks. Used sepparatly so
-//  it will not confloct with the wildcard for block details route
-func RoutesForBlockLists(router *gin.RouterGroup) {
+// RoutesForBlocksLists defines routes related to the lists of blocks. Used separately so
+// it will not conflict with the wildcard for block details route
+func RoutesForBlocksLists(router *gin.RouterGroup) {
 	router.GET("/recent", RecentBlocks)
 }
 
@@ -101,13 +103,13 @@ func Block(c *gin.Context) {
 // RecentBlocks returns a list of blockResponse objects containing most
 //  recent blocks from each shard
 func RecentBlocks(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
 	}
 
-	recentBlocks, err := ef.RecentNotarizedBlocks(20)
+	recentBlocks, err := ef.RecentNotarizedBlocks(recentBlocksCount)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

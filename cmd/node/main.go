@@ -215,6 +215,7 @@ func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint
 type mockProposerResolver struct {
 }
 
+// ResolveProposer computes a block proposer. For now, this is mocked.
 func (mockProposerResolver) ResolveProposer(shardId uint32, roundIndex uint32, prevRandomSeed []byte) ([]byte, error) {
 	return []byte("mocked proposer"), nil
 }

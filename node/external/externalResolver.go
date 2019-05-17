@@ -77,7 +77,7 @@ func (er *ExternalResolver) RecentNotarizedBlocks(maxShardHeadersNum int) ([]*Bl
 		return nil, ErrWrongTypeAssertion
 	}
 
-	for currentMetablock.Nonce > 1 {
+	for currentMetablock.Nonce > 0 {
 		fetchedRecentBlocks, err := er.extractShardBlocksAsRecentBlocks(currentMetablock)
 		if err != nil {
 			return nil, err
@@ -145,17 +145,17 @@ func (er *ExternalResolver) retrieveShardBlockHeader(headerHash []byte) (*BlockH
 	}
 
 	shb := &BlockHeader{
-		Nonce:          shardHeader.Nonce,
-		Hash:           headerHash,
-		PrevHash:       shardHeader.PrevHash,
-		StateRootHash:  shardHeader.RootHash,
-		TxCount:        shardHeader.TxCount,
-		BlockSize:      int64(len(shardHeaderBytes)),
-		ProposerPubKey: proposer,
-		PubKeysBitmap:  shardHeader.PubKeysBitmap,
-		ShardID:        shardHeader.ShardId,
-		Timestamp:      shardHeader.TimeStamp,
-	}
+			Nonce:          shardHeader.Nonce,
+			Hash:           headerHash,
+			PrevHash:       shardHeader.PrevHash,
+			StateRootHash:  shardHeader.RootHash,
+			TxCount:        shardHeader.TxCount,
+			BlockSize:      int64(len(shardHeaderBytes)),
+			ProposerPubKey: proposer,
+			PubKeysBitmap:  shardHeader.PubKeysBitmap,
+			ShardId:        shardHeader.ShardId,
+			TimeStamp:      shardHeader.TimeStamp,
+		}
 
 	return shb, nil
 }

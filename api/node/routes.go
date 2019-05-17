@@ -13,7 +13,7 @@ import (
 )
 
 // Handler interface defines methods that can be used from `elrondFacade` context variable
-type Handler interface {
+type FacadeHandler interface {
 	IsNodeRunning() bool
 	StartNode() error
 	StopNode() error
@@ -59,7 +59,7 @@ func Routes(router *gin.RouterGroup) {
 
 // Status returns the state of the node e.g. running/stopped
 func Status(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
@@ -70,7 +70,7 @@ func Status(c *gin.Context) {
 
 // StartNode will start the node instance
 func StartNode(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
@@ -91,7 +91,7 @@ func StartNode(c *gin.Context) {
 
 // Address returns the information about the address passed as parameter
 func Address(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
@@ -109,7 +109,7 @@ func Address(c *gin.Context) {
 
 // StopNode will stop the node instance
 func StopNode(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
@@ -130,7 +130,7 @@ func StopNode(c *gin.Context) {
 
 // HeartbeatStatus respond with the heartbeat status of the node
 func HeartbeatStatus(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
@@ -147,7 +147,7 @@ func HeartbeatStatus(c *gin.Context) {
 
 // Statistics returns the blockchain statistics
 func Statistics(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
