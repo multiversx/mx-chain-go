@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
+	apiErrors "github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/external"
@@ -22,22 +23,9 @@ type errorResponse struct {
 	Error string `json:"error"`
 }
 
-type blockResponse struct {
-	Nonce         uint64   `json:"nonce"`
-	ShardID       uint32   `json:"shardId"`
-	Hash          string   `json:"hash"`
-	Proposer      string   `json:"proposer"`
-	Validators    []string `json:"validators"`
-	PubKeyBitmap  string   `json:"pubKeyBitmap"`
-	Size          int64    `json:"size"`
-	Timestamp     uint64   `json:"timestamp"`
-	TxCount       uint32   `json:"txCount"`
-	StateRootHash string   `json:"stateRootHash"`
-	PrevHash      string   `json:"prevHash"`
-}
-
 type recentBlocksResponse struct {
-	Blocks []blockResponse `json:"blocks"`
+	errorResponse
+	Blocks []external.RecentBlock `json:"blocks"`
 }
 
 func init() {
@@ -105,14 +93,18 @@ func TestRecentBlocks_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	statusRsp := errorResponse{}
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
+	assert.Equal(t, statusRsp.Error, apiErrors.ErrInvalidAppContext.Error())
 }
 
 func TestRecentBlocks_ReturnsCorrectly(t *testing.T) {
 	t.Parallel()
+	recentBlocks := []external.RecentBlock{
+		{Nonce: 0, Hash: make([]byte, 0), PrevHash: make([]byte, 0), StateRootHash: make([]byte, 0)},
+		{Nonce: 0, Hash: make([]byte, 0), PrevHash: make([]byte, 0), StateRootHash: make([]byte, 0)},
+	}
 	facade := mock.Facade{
 		RecentNotarizedBlocksHandler: func(maxShardHeadersNum int) (blocks []external.RecentBlock, e error) {
-			return make([]external.RecentBlock, 0), nil
+			return recentBlocks, nil
 		},
 	}
 
@@ -125,5 +117,27 @@ func TestRecentBlocks_ReturnsCorrectly(t *testing.T) {
 	loadResponse(resp.Body, &rb)
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.NotNil(t, rb.Blocks)
-	assert.Equal(t, 0, len(rb.Blocks))
+	assert.Equal(t, recentBlocks, rb.Blocks)
+}
+
+func TestRecentBlocks_ReturnsErrorWhenRecentBlocksErrors(t *testing.T) {
+	t.Parallel()
+	errMessage := "recent blocks error"
+	facade := mock.Facade{
+		RecentNotarizedBlocksHandler: func(maxShardHeadersNum int) (blocks []external.RecentBlock, e error) {
+			return nil, errors.New(errMessage)
+		},
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/blocks/recent", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	rb := recentBlocksResponse{}
+	loadResponse(resp.Body, &rb)
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Nil(t, rb.Blocks)
+	assert.NotNil(t, rb.Error)
+	assert.Equal(t, errMessage, rb.Error)
 }

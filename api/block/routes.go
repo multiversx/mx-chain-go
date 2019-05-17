@@ -28,6 +28,8 @@ type blockResponse struct {
 	PrevHash      string   `json:"prevHash"`
 }
 
+const recentBlocksCount = 20
+
 func buildDummyBlock() blockResponse {
 	return blockResponse{
 		1, 1, "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -85,7 +87,7 @@ func RecentBlocks(c *gin.Context) {
 		return
 	}
 
-	recentBlocks, err := ef.RecentNotarizedBlocks(20)
+	recentBlocks, err := ef.RecentNotarizedBlocks(recentBlocksCount)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
