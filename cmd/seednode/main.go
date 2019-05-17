@@ -63,7 +63,7 @@ VERSION:
 	errEmotySeed                   = errors.New("empty seed")
 	errNilBuffer                   = errors.New("nil buffer")
 	errEmptyBuffer                 = errors.New("empty buffer")
-	errInvalidPort                 = errors.New("cannot start node on port <= 0")
+	errInvalidPort                 = errors.New("cannot start node on port < 0")
 	errPeerDiscoveryShouldBeKadDht = errors.New("kad-dht peer discovery should have been enabled")
 )
 
@@ -193,7 +193,7 @@ func createNetMessenger(
 	randReader io.Reader,
 ) (p2p.Messenger, error) {
 
-	if p2pConfig.Node.Port <= 0 {
+	if p2pConfig.Node.Port < 0 {
 		return nil, errInvalidPort
 	}
 
