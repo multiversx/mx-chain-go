@@ -333,6 +333,10 @@ func (n *Node) CreateMetaGenesisBlock() error {
 	}
 
 	blockHeaderHash := n.hasher.Compute(string(marshalizedHeader))
+	err = n.store.Put(dataRetriever.MetaBlockUnit, blockHeaderHash, marshalizedHeader)
+	if err != nil {
+		return err
+	}
 
 	return n.setGenesis(header, blockHeaderHash)
 }
