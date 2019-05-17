@@ -580,7 +580,7 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	hexPublicKey := hex.EncodeToString(publicKey)
+	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, nil, nil, err
@@ -676,7 +676,7 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	log.Info("Starting with single sign public key: " + getPkEncoded(txSignPubKey))
+	log.Info("Starting with tx sign public key: " + getPkEncoded(txSignPubKey))
 
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
@@ -873,7 +873,7 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
-	hexPublicKey := hex.EncodeToString(publicKey)
+	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, nil, nil, err
@@ -959,7 +959,7 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
-	log.Info("Starting with single sign public key: " + getPkEncoded(txSignPubKey))
+	log.Info("Starting with tx sign public key: " + getPkEncoded(txSignPubKey))
 
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
@@ -1239,6 +1239,10 @@ func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 }
 
 func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
+	if cfg.Consensus.Type == blsConsensusType && cfg.MultisigHasher.Type != "blake2b" {
+		return nil, errors.New("wrong multisig hasher provided for bls consensus type")
+	}
+
 	switch cfg.MultisigHasher.Type {
 	case "sha256":
 		return sha256.Sha256{}, nil
@@ -1249,7 +1253,7 @@ func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 		return blake2b.Blake2b{}, nil
 	}
 
-	return nil, errors.New("no hasher provided in config file")
+	return nil, errors.New("no multisig hasher provided in config file")
 }
 
 func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
