@@ -57,7 +57,7 @@ func NewExternalResolver(
 // it starts from the most recent notarized metablock, fetches shard blocks and process the data from shards blocks
 // After it completes the current metablock it moves to the previous metablock, process the data and so on
 // It stops if it reaches the genesis block or it gathers [maxShardHeadersNum] shard headers
-func (er *ExternalResolver) RecentNotarizedBlocks(maxShardHeadersNum int) ([]RecentBlock, error) {
+func (er *ExternalResolver) RecentNotarizedBlocks(maxShardHeadersNum int) ([]*BlockHeader, error) {
 	if er.coordinator.SelfId() != sharding.MetachainShardId {
 		return nil, ErrOperationNotSupported
 	}
@@ -65,7 +65,7 @@ func (er *ExternalResolver) RecentNotarizedBlocks(maxShardHeadersNum int) ([]Rec
 		return nil, ErrInvalidValue
 	}
 
-	recentBlocks := make([]RecentBlock, 0)
+	recentBlocks := make([]*BlockHeader, 0)
 
 	currentHeader := er.chainHandler.GetCurrentBlockHeader()
 	if currentHeader == nil {
@@ -110,43 +110,71 @@ func (er *ExternalResolver) RecentNotarizedBlocks(maxShardHeadersNum int) ([]Rec
 	return recentBlocks, nil
 }
 
-func (er *ExternalResolver) extractShardBlocksAsRecentBlocks(metablock *block.MetaBlock) ([]RecentBlock, error) {
-	recentBlocks := make([]RecentBlock, len(metablock.ShardInfo))
+func (er *ExternalResolver) extractShardBlocksAsRecentBlocks(metablock *block.MetaBlock) ([]*BlockHeader, error) {
+	recentBlocks := make([]*BlockHeader, len(metablock.ShardInfo))
 
 	for idx, shardInfo := range metablock.ShardInfo {
 		hash := shardInfo.HeaderHash
-		shardHeaderBytes, err := er.storage.Get(dataRetriever.BlockHeaderUnit, hash)
+		shb, err := er.retrieveShardBlockHeader(hash)
 		if err != nil {
 			return nil, err
 		}
 
-		shardHeader := &block.Header{}
-		err = er.marshalizer.Unmarshal(shardHeader, shardHeaderBytes)
-		if err != nil {
-			return nil, err
-		}
-
-		proposer, err := er.proposerResolver.ResolveProposer(shardHeader.ShardId, shardHeader.Round, shardHeader.PrevRandSeed)
-		if err != nil {
-			return nil, err
-		}
-
-		rb := RecentBlock{
-			Nonce:          shardHeader.Nonce,
-			Hash:           hash,
-			PrevHash:       shardHeader.PrevHash,
-			StateRootHash:  shardHeader.RootHash,
-			TxCount:        shardHeader.TxCount,
-			BlockSize:      int64(len(shardHeaderBytes)),
-			ProposerPubKey: proposer,
-			PubKeysBitmap:  shardHeader.PubKeysBitmap,
-			ShardID:        shardHeader.ShardId,
-			Timestamp:      shardHeader.TimeStamp,
-		}
-
-		recentBlocks[idx] = rb
+		recentBlocks[idx] = shb
 	}
 
 	return recentBlocks, nil
 
+}
+
+func (er *ExternalResolver) retrieveShardBlockHeader(headerHash []byte) (*BlockHeader, error) {
+	shardHeaderBytes, err := er.storage.Get(dataRetriever.BlockHeaderUnit, headerHash)
+	if err != nil {
+		return nil, err
+	}
+
+	shardHeader := &block.Header{}
+	err = er.marshalizer.Unmarshal(shardHeader, shardHeaderBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	proposer, err := er.proposerResolver.ResolveProposer(shardHeader.ShardId, shardHeader.Round, shardHeader.PrevRandSeed)
+	if err != nil {
+		return nil, err
+	}
+
+	shb := &BlockHeader{
+		Nonce:          shardHeader.Nonce,
+		Hash:           headerHash,
+		PrevHash:       shardHeader.PrevHash,
+		StateRootHash:  shardHeader.RootHash,
+		TxCount:        shardHeader.TxCount,
+		BlockSize:      int64(len(shardHeaderBytes)),
+		ProposerPubKey: proposer,
+		PubKeysBitmap:  shardHeader.PubKeysBitmap,
+		ShardID:        shardHeader.ShardId,
+		Timestamp:      shardHeader.TimeStamp,
+	}
+
+	return shb, nil
+}
+
+// RetrieveShardBlock retrieves a shard block info containing header and transactions
+func (er *ExternalResolver) RetrieveShardBlock(blockHash []byte) (*ShardBlockInfo, error) {
+	if blockHash == nil {
+		return nil, ErrNilHash
+	}
+
+	shb, err := er.retrieveShardBlockHeader(blockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	sbi := &ShardBlockInfo{
+		BlockHeader: *shb,
+	}
+
+	//TODO, implement transaction fetching
+	return sbi, nil
 }

@@ -3,6 +3,7 @@ package block
 import (
 	"encoding/hex"
 	"net/http"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/external"
@@ -11,7 +12,8 @@ import (
 
 // Handler interface defines methods that can be used from `elrondFacade` context variable
 type Handler interface {
-	RecentNotarizedBlocks(maxShardHeadersNum int) ([]external.RecentBlock, error)
+	RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error)
+	RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error)
 }
 
 type blockResponse struct {
@@ -28,35 +30,31 @@ type blockResponse struct {
 	PrevHash      string   `json:"prevHash"`
 }
 
-func buildDummyBlock() blockResponse {
-	return blockResponse{
-		1, 1, "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-		[]string{"0x1234567", "0x123242342"}, "0x1234", 32, 23, 15000,
-		"0x883284732784278", "0x32184232364274",
-	}
-}
+func formattedRecentBlocks(headers []*external.BlockHeader) []blockResponse {
+	frb := make([]blockResponse, len(headers))
 
-func formattedRecentBlocks(rb []external.RecentBlock) []blockResponse {
-	frb := make([]blockResponse, len(rb))
-
-	for index, block := range rb {
-		frb[index] = blockResponse{
-			Nonce:    block.Nonce,
-			ShardID:  block.ShardID,
-			Hash:     hex.EncodeToString(block.Hash),
-			Proposer: hex.EncodeToString(block.ProposerPubKey),
-			// TODO: Add all validators
-			Validators:    []string{hex.EncodeToString(block.ProposerPubKey)},
-			PubKeyBitmap:  hex.EncodeToString(block.PubKeysBitmap),
-			Size:          block.BlockSize,
-			Timestamp:     block.Timestamp,
-			TxCount:       block.TxCount,
-			StateRootHash: hex.EncodeToString(block.StateRootHash),
-			PrevHash:      hex.EncodeToString(block.PrevHash),
-		}
+	for index, header := range headers {
+		frb[index] = formatShardHeader(header)
 	}
 
 	return frb
+}
+
+func formatShardHeader(header *external.BlockHeader) blockResponse {
+	return blockResponse{
+		Nonce:    header.Nonce,
+		ShardID:  header.ShardID,
+		Hash:     hex.EncodeToString(header.Hash),
+		Proposer: hex.EncodeToString(header.ProposerPubKey),
+		// TODO: Add all validators
+		Validators:    []string{hex.EncodeToString(header.ProposerPubKey)},
+		PubKeyBitmap:  hex.EncodeToString(header.PubKeysBitmap),
+		Size:          header.BlockSize,
+		Timestamp:     header.Timestamp,
+		TxCount:       header.TxCount,
+		StateRootHash: hex.EncodeToString(header.StateRootHash),
+		PrevHash:      hex.EncodeToString(header.PrevHash),
+	}
 }
 
 // Routes defines block related routes
@@ -73,7 +71,31 @@ func RoutesForBlockLists(router *gin.RouterGroup) {
 // Block returns a single blockResponse object containing information
 //  about the requested block associated with the provided hash
 func Block(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"block": buildDummyBlock()})
+	ef, ok := c.MustGet("elrondFacade").(Handler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	blockHashStringified := c.Param("block")
+	//Change here if representation (request) of a block hash changes from hex
+	blockHash, err := hex.DecodeString(blockHashStringified)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	headerInfo, err := ef.RetrieveShardBlock([]byte(blockHash))
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"block": formatShardHeader(&headerInfo.BlockHeader)})
 }
 
 // RecentBlocks returns a list of blockResponse objects containing most

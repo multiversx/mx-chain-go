@@ -302,3 +302,33 @@ func TestExternalResolver_WithMoreBlocksShouldWorkAndReturnMaxBlocksNum(t *testi
 	assert.Equal(t, maxBlocks, len(recentBlocks))
 	assert.Nil(t, err)
 }
+
+//------- RetrieveShardBlock
+
+func TestExternalResolver_RetrieveShardBlockShouldWork(t *testing.T) {
+	t.Parallel()
+
+	crtNonce := 50
+
+	ner, _ := external.NewExternalResolver(
+		&mock.ShardCoordinatorMock{
+			SelfIdField: sharding.MetachainShardId,
+		},
+		&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlock{}
+			},
+		},
+		createMockStorer(),
+		testMarshalizer,
+		createMockProposerResolver(),
+	)
+
+	shardBlock, err := ner.RetrieveShardBlock([]byte(fmt.Sprintf("hash_%d", crtNonce-1)))
+
+	assert.Nil(t, err)
+	assert.Equal(t, defaultShardHeader.Nonce, shardBlock.BlockHeader.Nonce)
+	assert.Equal(t, defaultShardHeader.ShardId, shardBlock.BlockHeader.ShardID)
+	assert.Equal(t, defaultShardHeader.TxCount, shardBlock.BlockHeader.TxCount)
+	assert.Equal(t, defaultShardHeader.TimeStamp, shardBlock.BlockHeader.Timestamp)
+}
