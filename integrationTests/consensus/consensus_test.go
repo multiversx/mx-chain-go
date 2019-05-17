@@ -102,7 +102,7 @@ func checkBlockProposedForEachNonce(numCommBlock uint32, combinedMap map[uint64]
 	}
 }
 
-func TestConsensusFullTest(t *testing.T) {
+func TestConsensusBNFullTest(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -162,7 +162,7 @@ func TestConsensusFullTest(t *testing.T) {
 	}
 }
 
-func TestConsensusOnlyTestValidatorsAtLimit(t *testing.T) {
+func TestConsensusBNOnlyTestValidatorsAtLimit(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -232,7 +232,7 @@ func TestConsensusOnlyTestValidatorsAtLimit(t *testing.T) {
 	}
 }
 
-func TestConsensusNotEnoughValidators(t *testing.T) {
+func TestConsensusBNNotEnoughValidators(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
