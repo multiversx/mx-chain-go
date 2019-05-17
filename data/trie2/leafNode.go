@@ -46,7 +46,10 @@ func (ln *leafNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Hash
 }
 
 func (ln *leafNode) setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error) {
-	c <- ln.setHash(marshalizer, hasher)
+	err := ln.setHash(marshalizer, hasher)
+	if err != nil {
+		c <- err
+	}
 	wg.Done()
 }
 

@@ -75,7 +75,10 @@ func (en *extensionNode) setHash(marshalizer marshal.Marshalizer, hasher hashing
 }
 
 func (en *extensionNode) setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error) {
-	c <- en.setHash(marshalizer, hasher)
+	err := en.setHash(marshalizer, hasher)
+	if err != nil {
+		c <- err
+	}
 	wg.Done()
 }
 func (en *extensionNode) setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {

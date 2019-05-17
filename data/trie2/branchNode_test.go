@@ -100,6 +100,26 @@ func TestBranchNode_setHash(t *testing.T) {
 	assert.Equal(t, hash, bn.hash)
 }
 
+func TestBranchNode_setRootHash(t *testing.T) {
+	db, _ := memorydb.New()
+	marsh := marshal.JsonMarshalizer{}
+	hsh := keccak.Keccak{}
+
+	tr1, _ := NewTrie(db, marsh, hsh)
+	tr2, _ := NewTrie(db, marsh, hsh)
+
+	for i := 0; i < 100000; i++ {
+		val := hsh.Compute(string(i))
+		tr1.Update(val, val)
+		tr2.Update(val, val)
+	}
+
+	err := tr1.root.setRootHash(marsh, hsh)
+	tr2.root.setHash(marsh, hsh)
+	assert.Nil(t, err)
+	assert.Equal(t, tr1.root.getHash(), tr2.root.getHash())
+}
+
 func TestBranchNode_setHashEmptyNode(t *testing.T) {
 	t.Parallel()
 	marsh, hasher := getTestMarshAndHasher()
