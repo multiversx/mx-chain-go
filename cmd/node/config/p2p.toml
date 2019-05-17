@@ -3,7 +3,7 @@
 #NodeConfig holds the P2P settings
 [Node]
     #Port is the port that will be opened by the node on all interfaces so other peers can connect to it
-    #Value 0 will make the p2p host pick a free port on the machine
+    #If the port = 0, the node will search for a free port on the machine and use it
     Port = 0
 
     #Seed represents the seed string generator for p2p identity (used during authentication and message passing).
