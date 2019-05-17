@@ -77,7 +77,7 @@ func (er *ExternalResolver) RecentNotarizedBlocks(maxShardHeadersNum int) ([]Rec
 		return nil, ErrWrongTypeAssertion
 	}
 
-	for currentMetablock.Nonce > 1 {
+	for currentMetablock.Nonce > 0 {
 		fetchedRecentBlocks, err := er.extractShardBlocksAsRecentBlocks(currentMetablock)
 		if err != nil {
 			return nil, err
@@ -140,8 +140,8 @@ func (er *ExternalResolver) extractShardBlocksAsRecentBlocks(metablock *block.Me
 			BlockSize:      int64(len(shardHeaderBytes)),
 			ProposerPubKey: proposer,
 			PubKeysBitmap:  shardHeader.PubKeysBitmap,
-			ShardID:        shardHeader.ShardId,
-			Timestamp:      shardHeader.TimeStamp,
+			ShardId:        shardHeader.ShardId,
+			TimeStamp:      shardHeader.TimeStamp,
 		}
 
 		recentBlocks[idx] = rb

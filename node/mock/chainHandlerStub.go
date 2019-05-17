@@ -5,6 +5,8 @@ import "github.com/ElrondNetwork/elrond-go-sandbox/data"
 type ChainHandlerStub struct {
 	GetGenesisHeaderCalled     func() data.HeaderHandler
 	GetGenesisHeaderHashCalled func() []byte
+	SetGenesisHeaderCalled     func(gb data.HeaderHandler) error
+	SetGenesisHeaderHashCalled func(hash []byte)
 }
 
 func (chs *ChainHandlerStub) GetGenesisHeader() data.HeaderHandler {
@@ -12,7 +14,7 @@ func (chs *ChainHandlerStub) GetGenesisHeader() data.HeaderHandler {
 }
 
 func (chs *ChainHandlerStub) SetGenesisHeader(gb data.HeaderHandler) error {
-	panic("implement me")
+	return chs.SetGenesisHeaderCalled(gb)
 }
 
 func (chs *ChainHandlerStub) GetGenesisHeaderHash() []byte {
@@ -20,7 +22,7 @@ func (chs *ChainHandlerStub) GetGenesisHeaderHash() []byte {
 }
 
 func (chs *ChainHandlerStub) SetGenesisHeaderHash(hash []byte) {
-	panic("implement me")
+	chs.SetGenesisHeaderHashCalled(hash)
 }
 
 func (chs *ChainHandlerStub) GetCurrentBlockHeader() data.HeaderHandler {

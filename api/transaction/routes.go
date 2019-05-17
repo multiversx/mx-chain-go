@@ -67,9 +67,9 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/:txhash", GetTransaction)
 }
 
-// RoutesForTransactionLists defines routes related to lists of transactions. Used sepparatly so
-//  it will not confloct with the wildcard for transaction details route
-func RoutesForTransactionLists(router *gin.RouterGroup) {
+// RoutesForTransactionsLists defines routes related to lists of transactions. Used sepparatly so
+// it will not conflict with the wildcard for transaction details route
+func RoutesForTransactionsLists(router *gin.RouterGroup) {
 	router.GET("/recent", RecentTransactions)
 }
 
@@ -213,14 +213,14 @@ func buildDummyRecentTransactions() []TxResponse {
 	txs := make([]TxResponse, 0)
 	for i := 0; i < 10; i++ {
 		txs = append(txs, TxResponse{
-			SendTxRequest {
-				Sender: "0x000000",
-				Receiver: "0x11111",
-				Value: big.NewInt(10),
-				Data: "",
-				Nonce: 1,
-				GasPrice: big.NewInt(10),
-				GasLimit: big.NewInt(10),
+			SendTxRequest{
+				Sender:    "0x000000",
+				Receiver:  "0x11111",
+				Value:     big.NewInt(10),
+				Data:      "",
+				Nonce:     1,
+				GasPrice:  big.NewInt(10),
+				GasLimit:  big.NewInt(10),
 				Signature: "0x12314212313",
 			},
 			1,

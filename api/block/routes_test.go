@@ -58,7 +58,7 @@ func logError(err error) {
 	}
 }
 
-func startNodeServer(handler node.Handler) *gin.Engine {
+func startNodeServer(handler node.FacadeHandler) *gin.Engine {
 	server := startNodeServerWithFacade(handler)
 	return server
 }
@@ -79,7 +79,7 @@ func startNodeServerWithFacade(facade interface{}) *gin.Engine {
 	blockRoutes := ws.Group("/block")
 	block.Routes(blockRoutes)
 	blocksRoutes := ws.Group("/blocks")
-	block.RoutesForBlockLists(blocksRoutes)
+	block.RoutesForBlocksLists(blocksRoutes)
 	return ws
 }
 

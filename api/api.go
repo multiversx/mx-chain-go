@@ -49,7 +49,7 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 
 	txsRoutes := ws.Group("/transactions")
 	txsRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	transaction.RoutesForTransactionLists(txsRoutes)
+	transaction.RoutesForTransactionsLists(txsRoutes)
 
 	blockRoutes := ws.Group("/block")
 	blockRoutes.Use(middleware.WithElrondFacade(elrondFacade))
@@ -57,7 +57,7 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 
 	blocksRoutes := ws.Group("/blocks")
 	blocksRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	block.RoutesForBlockLists(blocksRoutes)
+	block.RoutesForBlocksLists(blocksRoutes)
 }
 
 func registerValidators() error {
@@ -77,8 +77,13 @@ func registerValidators() error {
 
 // skValidator validates a secret key from user input for correctness
 func skValidator(
-	v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value,
-	field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string,
+	_ *validator.Validate,
+	_ reflect.Value,
+	_ reflect.Value,
+	_ reflect.Value,
+	_ reflect.Type,
+	_ reflect.Kind,
+	_ string,
 ) bool {
 	return true
 }
