@@ -25,8 +25,8 @@ $ go build
 $ ./node -port 23000 -tx-sign-sk "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f" -sk "7964df79735f1ce9dff69cc2ec7c87e499a9fcab6808ee9ab4fc65443a9ff171"
 ```
 
-For the network customization please take a look in the p2p.toml<br />
-For the consensus group customization please take a look in the /cmd/node/genesis.json<br />
+For the network customization please take a look in the p2p.toml
+For the consensus group customization please take a look in the /cmd/node/nodesSetup.json
 To run multiple nodes take a look at the end of this document.
 
 ### Running the tests
@@ -114,8 +114,8 @@ $ go test ./...
 # Private/Public Keys for testing
 
 ```
-# Start n instances in a group of <consensusGroupSize> (nodesSetup.json) from a total of <initialNodes> (nodesSetup.json) validators,<br />
-# with round duration of <roundDuration> (nodesSetup.json) miliseconds<br />
+# Start n instances in a group of <consensusGroupSize> (nodesSetup.json) from a total of <initialNodes>
+# (nodesSetup.json) validators, with round duration of <roundDuration> (nodesSetup.json) miliseconds
 
 # Private keys for validators (BLS):
 
