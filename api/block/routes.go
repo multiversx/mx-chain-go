@@ -45,14 +45,14 @@ func formattedRecentBlocks(headers []*external.BlockHeader) []blockResponse {
 func formatShardHeader(header *external.BlockHeader) blockResponse {
 	return blockResponse{
 		Nonce:    header.Nonce,
-		ShardID:  header.ShardID,
+		ShardID:  header.ShardId,
 		Hash:     hex.EncodeToString(header.Hash),
 		Proposer: hex.EncodeToString(header.ProposerPubKey),
 		// TODO: Add all validators
 		Validators:    []string{hex.EncodeToString(header.ProposerPubKey)},
 		PubKeyBitmap:  hex.EncodeToString(header.PubKeysBitmap),
 		Size:          header.BlockSize,
-		Timestamp:     header.Timestamp,
+		Timestamp:     header.TimeStamp,
 		TxCount:       header.TxCount,
 		StateRootHash: hex.EncodeToString(header.StateRootHash),
 		PrevHash:      hex.EncodeToString(header.PrevHash),
@@ -73,7 +73,7 @@ func RoutesForBlocksLists(router *gin.RouterGroup) {
 // Block returns a single blockResponse object containing information
 //  about the requested block associated with the provided hash
 func Block(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return

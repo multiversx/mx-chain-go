@@ -396,7 +396,7 @@ func TestExternalResolver_RetrieveShardBlockShouldWork(t *testing.T) {
 
 	ner, _ := external.NewExternalResolver(
 		&mock.ShardCoordinatorMock{
-			SelfIdField: sharding.MetachainShardId,
+			SelfShardId: sharding.MetachainShardId,
 		},
 		&mock.BlockChainMock{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
@@ -412,7 +412,7 @@ func TestExternalResolver_RetrieveShardBlockShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, defaultShardHeader.Nonce, shardBlock.BlockHeader.Nonce)
-	assert.Equal(t, defaultShardHeader.ShardId, shardBlock.BlockHeader.ShardID)
+	assert.Equal(t, defaultShardHeader.ShardId, shardBlock.BlockHeader.ShardId)
 	assert.Equal(t, defaultShardHeader.TxCount, shardBlock.BlockHeader.TxCount)
-	assert.Equal(t, defaultShardHeader.TimeStamp, shardBlock.BlockHeader.Timestamp)
+	assert.Equal(t, defaultShardHeader.TimeStamp, shardBlock.BlockHeader.TimeStamp)
 }

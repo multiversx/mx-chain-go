@@ -26,8 +26,8 @@ type errorResponse struct {
 
 type recentBlocksResponse struct {
 	errorResponse
-	//TODO fix this
-	//Blocks []external.RecentBlock `json:"blocks"`
+	Blocks      []*external.BlockHeader `json:"blocks"`
+	ShardHeader *external.BlockHeader   `json:"block"`
 }
 
 func init() {
@@ -102,12 +102,12 @@ func TestRecentBlocks_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 
 func TestRecentBlocks_ReturnsCorrectly(t *testing.T) {
 	t.Parallel()
-	recentBlocks := []external.RecentBlock{
+	recentBlocks := []*external.BlockHeader{
 		{Nonce: 0, Hash: make([]byte, 0), PrevHash: make([]byte, 0), StateRootHash: make([]byte, 0)},
 		{Nonce: 0, Hash: make([]byte, 0), PrevHash: make([]byte, 0), StateRootHash: make([]byte, 0)},
 	}
 	facade := mock.Facade{
-		RecentNotarizedBlocksHandler: func(maxShardHeadersNum int) (blocks []external.RecentBlock, e error) {
+		RecentNotarizedBlocksHandler: func(maxShardHeadersNum int) (blocks []*external.BlockHeader, e error) {
 			return recentBlocks, nil
 		},
 	}
@@ -128,7 +128,7 @@ func TestRecentBlocks_ReturnsErrorWhenRecentBlocksErrors(t *testing.T) {
 	t.Parallel()
 	errMessage := "recent blocks error"
 	facade := mock.Facade{
-		RecentNotarizedBlocksHandler: func(maxShardHeadersNum int) (blocks []external.RecentBlock, e error) {
+		RecentNotarizedBlocksHandler: func(maxShardHeadersNum int) (blocks []*external.BlockHeader, e error) {
 			return nil, errors.New(errMessage)
 		},
 	}
@@ -170,7 +170,7 @@ func TestBlock_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	statusRsp := errorResponse{}
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
+	assert.Equal(t, apiErrors.ErrInvalidAppContext.Error(), statusRsp.Error)
 }
 
 func TestBlock_ReturnsCorrectly(t *testing.T) {
@@ -207,7 +207,7 @@ func TestBlock_KeyNotFoundShouldReturnPageNotFound(t *testing.T) {
 	testBlockHashHex := []byte("aaee")
 	facade := mock.Facade{
 		RetrieveShardBlockHandler: func(blockHash []byte) (info *external.ShardBlockInfo, e error) {
-			return &external.ShardBlockInfo{}, errs.New("not found")
+			return &external.ShardBlockInfo{}, errors.New("not found")
 		},
 	}
 
@@ -227,7 +227,7 @@ func TestBlock_KeyIsNotHexShouldReturnServerError(t *testing.T) {
 	testBlockHashHex := []byte("aae_")
 	facade := mock.Facade{
 		RetrieveShardBlockHandler: func(blockHash []byte) (info *external.ShardBlockInfo, e error) {
-			return &external.ShardBlockInfo{}, errs.New("not found")
+			return &external.ShardBlockInfo{}, errors.New("not found")
 		},
 	}
 

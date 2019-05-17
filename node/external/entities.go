@@ -20,7 +20,7 @@ const (
 
 // BlockHeader is the entity used to hold relevant info about a recent block (notarized)
 type BlockHeader struct {
-	ShardID        uint32
+	ShardId        uint32
 	Nonce          uint64
 	Hash           []byte
 	PrevHash       []byte
@@ -28,7 +28,7 @@ type BlockHeader struct {
 	ProposerPubKey []byte
 	PubKeysBitmap  []byte
 	BlockSize      int64
-	Timestamp      uint64
+	TimeStamp      uint64
 	TxCount        uint32
 }
 
