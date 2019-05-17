@@ -1368,3 +1368,57 @@ func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
 	assert.Equal(t, node.ErrGenesisBlockNotInitialized, err)
 
 }
+
+func TestNode_CreateMetaGenesisBlockShouldCreateSaveAndStoreMetaBlock(t *testing.T) {
+	t.Parallel()
+
+	var savedHeader *block.MetaBlock
+	var storedHeaderValues []byte
+	var storedHeaderKey []byte
+	var storedHeaderHash []byte
+
+	testMarshalizer := &mock.MarshalizerFake{}
+	testHasher := &mock.HasherFake{}
+
+	chainHandler := &mock.ChainHandlerStub{
+		SetGenesisHeaderCalled: func(gb data.HeaderHandler) error {
+			savedHeader = gb.(*block.MetaBlock)
+			return nil
+		},
+		SetGenesisHeaderHashCalled: func(hash []byte) {
+			storedHeaderHash = hash
+		},
+	}
+	storageService := &mock.ChainStorerMock{
+		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+			storedHeaderKey = key
+			storedHeaderValues = value
+			return nil
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(testMarshalizer),
+		node.WithHasher(testHasher),
+		node.WithBlockChain(chainHandler),
+		node.WithDataStore(storageService),
+	)
+
+	err := n.CreateMetaGenesisBlock()
+
+	assert.Nil(t, err)
+	assert.NotNil(t, savedHeader)
+	assert.NotNil(t, storedHeaderValues)
+	assert.NotNil(t, storedHeaderKey)
+	assert.NotNil(t, storedHeaderHash)
+
+	assert.Equal(t, uint64(0), savedHeader.Nonce)
+	assert.Equal(t, uint32(0), savedHeader.Round)
+
+	//test saved data matches
+	marshalizedSavedHeader, _ := testMarshalizer.Marshal(savedHeader)
+	assert.Equal(t, marshalizedSavedHeader, storedHeaderValues)
+	savedHeaderHash := testHasher.Compute(string(marshalizedSavedHeader))
+	assert.Equal(t, savedHeaderHash, storedHeaderHash)
+	assert.Equal(t, savedHeaderHash, storedHeaderKey)
+}
