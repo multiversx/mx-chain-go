@@ -224,7 +224,7 @@ func TestConsensusBNOnlyTestValidatorsAtLimit(t *testing.T) {
 
 	select {
 	case <-chDone:
-	case <-time.After(180 * time.Second):
+	case <-time.After(300 * time.Second):
 		mutex.Lock()
 		fmt.Println("combined map: \n", combinedMap)
 		assert.Fail(t, "consensus too slow, not working")
@@ -341,7 +341,7 @@ func TestConsensusBLSFullTest(t *testing.T) {
 
 	select {
 	case <-chDone:
-	case <-time.After(180 * time.Second):
+	case <-time.After(40 * time.Second):
 		mutex.Lock()
 		fmt.Println("combined map: \n", combinedMap)
 		assert.Fail(t, "consensus too slow, not working")
@@ -411,7 +411,7 @@ func TestConsensusBLSOnlyTestValidatorsAtLimit(t *testing.T) {
 
 	select {
 	case <-chDone:
-	case <-time.After(180 * time.Second):
+	case <-time.After(300 * time.Second):
 		mutex.Lock()
 		fmt.Println("combined map: \n", combinedMap)
 		assert.Fail(t, "consensus too slow, not working")
