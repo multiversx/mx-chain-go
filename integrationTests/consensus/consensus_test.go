@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint64, numCommBlock uint32) ([]*testNode, p2p.Messenger, *sync.Map) {
+func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint64, consensusType string) ([]*testNode, p2p.Messenger, *sync.Map) {
 	fmt.Println("Step 1. Setup nodes...")
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
@@ -26,6 +26,7 @@ func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint
 		int(consensusSize),
 		roundTime,
 		getConnectableAddress(advertiser),
+		consensusType,
 	)
 	displayAndStartNodes(nodes)
 
@@ -112,7 +113,7 @@ func TestConsensusBNFullTest(t *testing.T) {
 	numInvalid := uint32(0)
 	roundTime := uint64(4000)
 	numCommBlock := uint32(10)
-	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, numCommBlock)
+	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, bnConsensusType)
 
 	mutex := &sync.Mutex{}
 	defer func() {
@@ -153,10 +154,10 @@ func TestConsensusBNFullTest(t *testing.T) {
 
 	select {
 	case <-chDone:
-	case <-time.After(180 * time.Second):
+	case <-time.After(40 * time.Second):
 		mutex.Lock()
 		fmt.Println("combined map: \n", combinedMap)
-		assert.Fail(t, "consensus too slow, not working %d %d")
+		assert.Fail(t, "consensus too slow, not working.")
 		mutex.Unlock()
 		return
 	}
@@ -172,7 +173,7 @@ func TestConsensusBNOnlyTestValidatorsAtLimit(t *testing.T) {
 	numInvalid := uint32(6)
 	roundTime := uint64(4000)
 	numCommBlock := uint32(10)
-	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, numCommBlock)
+	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, bnConsensusType)
 
 	mutex := &sync.Mutex{}
 	defer func() {
@@ -226,7 +227,7 @@ func TestConsensusBNOnlyTestValidatorsAtLimit(t *testing.T) {
 	case <-time.After(180 * time.Second):
 		mutex.Lock()
 		fmt.Println("combined map: \n", combinedMap)
-		assert.Fail(t, "consensus too slow, not working %d %d")
+		assert.Fail(t, "consensus too slow, not working")
 		mutex.Unlock()
 		return
 	}
@@ -241,7 +242,194 @@ func TestConsensusBNNotEnoughValidators(t *testing.T) {
 	consensusSize := uint32(21)
 	numInvalid := uint32(7)
 	roundTime := uint64(4000)
-	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, 10)
+	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, bnConsensusType)
+
+	mutex := &sync.Mutex{}
+	defer func() {
+		advertiser.Close()
+		for _, n := range nodes {
+			n.node.Stop()
+		}
+		mutex.Lock()
+		mutex.Unlock()
+	}()
+
+	// delay for bootstrapping and topic announcement
+	fmt.Println("Start consensus...")
+	time.Sleep(time.Second * 1)
+
+	maxNonce := uint64(0)
+	minNonce := ^uint64(0)
+	for _, n := range nodes {
+		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+			n.blkProcessor.NrCommitBlockCalled++
+			_ = blockChain.SetCurrentBlockHeader(header)
+			_ = blockChain.SetCurrentBlockBody(body)
+
+			mutex.Lock()
+			if maxNonce < header.GetNonce() {
+				maxNonce = header.GetNonce()
+			}
+
+			if minNonce < header.GetNonce() {
+				minNonce = header.GetNonce()
+			}
+			mutex.Unlock()
+
+			return nil
+		}
+		_ = n.node.StartConsensus()
+	}
+
+	waitTime := time.Second * 60
+	fmt.Println("Run for 60 seconds...")
+	time.Sleep(waitTime)
+
+	mutex.Lock()
+	assert.Equal(t, uint64(0), maxNonce)
+	mutex.Unlock()
+}
+
+func TestConsensusBLSFullTest(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numNodes := uint32(21)
+	consensusSize := uint32(21)
+	numInvalid := uint32(0)
+	roundTime := uint64(4000)
+	numCommBlock := uint32(10)
+	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
+
+	mutex := &sync.Mutex{}
+	defer func() {
+		advertiser.Close()
+		for _, n := range nodes {
+			n.node.Stop()
+		}
+		mutex.Lock()
+		mutex.Unlock()
+	}()
+
+	// delay for bootstrapping and topic announcement
+	fmt.Println("Start consensus...")
+	time.Sleep(time.Second * 1)
+
+	combinedMap := make(map[uint32]uint64)
+	totalCalled := 0
+
+	for _, n := range nodes {
+		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+			n.blkProcessor.NrCommitBlockCalled++
+			_ = blockChain.SetCurrentBlockHeader(header)
+			_ = blockChain.SetCurrentBlockBody(body)
+
+			mutex.Lock()
+			combinedMap[header.GetRound()] = header.GetNonce()
+			totalCalled += 1
+			mutex.Unlock()
+
+			return nil
+		}
+		_ = n.node.StartConsensus()
+	}
+
+	time.Sleep(time.Second * 20)
+	chDone := make(chan bool, 0)
+	go checkBlockProposedEveryRound(numCommBlock, combinedMap, mutex, chDone, t)
+
+	select {
+	case <-chDone:
+	case <-time.After(180 * time.Second):
+		mutex.Lock()
+		fmt.Println("combined map: \n", combinedMap)
+		assert.Fail(t, "consensus too slow, not working")
+		mutex.Unlock()
+		return
+	}
+}
+
+func TestConsensusBLSOnlyTestValidatorsAtLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numNodes := uint32(21)
+	consensusSize := uint32(21)
+	numInvalid := uint32(6)
+	roundTime := uint64(4000)
+	numCommBlock := uint32(10)
+	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
+
+	mutex := &sync.Mutex{}
+	defer func() {
+		advertiser.Close()
+		for _, n := range nodes {
+			n.node.Stop()
+		}
+		mutex.Lock()
+		mutex.Unlock()
+	}()
+
+	// delay for bootstrapping and topic announcement
+	fmt.Println("Start consensus...")
+	time.Sleep(time.Second * 1)
+
+	combinedMap := make(map[uint64]uint32)
+	totalCalled := 0
+	maxNonce := uint64(0)
+	minNonce := ^uint64(0)
+	for _, n := range nodes {
+		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+			n.blkProcessor.NrCommitBlockCalled++
+			_ = blockChain.SetCurrentBlockHeader(header)
+			_ = blockChain.SetCurrentBlockBody(body)
+
+			mutex.Lock()
+			combinedMap[header.GetNonce()] = header.GetRound()
+			totalCalled += 1
+
+			if maxNonce < header.GetNonce() {
+				maxNonce = header.GetNonce()
+			}
+
+			if minNonce < header.GetNonce() {
+				minNonce = header.GetNonce()
+			}
+
+			mutex.Unlock()
+
+			return nil
+		}
+		_ = n.node.StartConsensus()
+	}
+
+	time.Sleep(time.Second * 20)
+	chDone := make(chan bool, 0)
+	go checkBlockProposedForEachNonce(numCommBlock, combinedMap, &minNonce, &maxNonce, mutex, chDone, t)
+
+	select {
+	case <-chDone:
+	case <-time.After(180 * time.Second):
+		mutex.Lock()
+		fmt.Println("combined map: \n", combinedMap)
+		assert.Fail(t, "consensus too slow, not working")
+		mutex.Unlock()
+		return
+	}
+}
+
+func TestConsensusBLSNotEnoughValidators(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numNodes := uint32(21)
+	consensusSize := uint32(21)
+	numInvalid := uint32(8)
+	roundTime := uint64(4000)
+	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
 
 	mutex := &sync.Mutex{}
 	defer func() {

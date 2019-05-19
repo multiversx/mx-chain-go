@@ -5,7 +5,8 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
-	"math/big"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"math/rand"
 	"strings"
 	"sync"
@@ -44,6 +45,9 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 )
+
+const blsConsensusType = "bls"
+const bnConsensusType = "bn"
 
 var r *rand.Rand
 
@@ -178,29 +182,6 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	return dPool
 }
 
-func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
-	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	metaHdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
-
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	shardHdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-
-	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
-	mbPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
-	dPool, _ := dataPool.NewMetaDataPool(
-		metaHdrPool,
-		mbPool,
-		shardHdrPool,
-		metaHdrNonces,
-	)
-
-	return dPool
-}
-
 func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
@@ -229,6 +210,13 @@ func initialPrivPubKeys(numConsensus int) ([]crypto.PrivateKey, []crypto.PublicK
 	return privKeys, pubKeys, testKeyGen
 }
 
+func createHasher(consensusType string) hashing.Hasher {
+	if consensusType == blsConsensusType {
+		return blake2b.Blake2b{HashSize: 16}
+	}
+	return blake2b.Blake2b{}
+}
+
 func createConsensusOnlyNode(
 	shardCoordinator sharding.Coordinator,
 	shardId uint32,
@@ -239,29 +227,21 @@ func createConsensusOnlyNode(
 	privKey crypto.PrivateKey,
 	pubKeys []crypto.PublicKey,
 	testKeyGen crypto.KeyGenerator,
+	consensusType string,
 ) (
 	*node.Node,
 	p2p.Messenger,
 	*mock.BlockProcessorMock,
 	data.ChainHandler) {
 
+	testHasher := createHasher(consensusType)
+	testMarshalizer := &marshal.JsonMarshalizer{}
+	testAddressConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
+
 	messenger := createMessengerWithKadDht(context.Background(), initialAddr)
 	rootHash := []byte("roothash")
 
 	blockProcessor := &mock.BlockProcessorMock{
-		CreateGenesisBlockCalled: func(balances map[string]*big.Int) (handler data.HeaderHandler, e error) {
-			header := &dataBlock.Header{
-				Nonce:         0,
-				ShardId:       shardId,
-				BlockBodyType: dataBlock.StateBlock,
-				Signature:     rootHash,
-				RootHash:      rootHash,
-				PrevRandSeed:  rootHash,
-				RandSeed:      rootHash,
-			}
-
-			return header, nil
-		},
 		ProcessBlockCalled: func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 			_ = blockChain.SetCurrentBlockHeader(header)
 			_ = blockChain.SetCurrentBlockBody(body)
@@ -288,8 +268,22 @@ func createConsensusOnlyNode(
 		_ = blockChain.SetCurrentBlockBody(body)
 		return nil
 	}
-	blockProcessor.Marshalizer = &marshal.JsonMarshalizer{}
+	blockProcessor.Marshalizer = testMarshalizer
 	blockChain := createTestBlockChain()
+
+	header := &dataBlock.Header{
+		Nonce:         0,
+		ShardId:       shardId,
+		BlockBodyType: dataBlock.StateBlock,
+		Signature:     rootHash,
+		RootHash:      rootHash,
+		PrevRandSeed:  rootHash,
+		RandSeed:      rootHash,
+	}
+
+	blockChain.SetGenesisHeader(header)
+	hdrMarshalized, _ := testMarshalizer.Marshal(header)
+	blockChain.SetGenesisHeaderHash(testHasher.Compute(string(hdrMarshalized)))
 
 	startTime := int64(0)
 
@@ -330,10 +324,6 @@ func createConsensusOnlyNode(
 	testMultiSig := mock.NewMultiSigner(uint32(consensusSize))
 	_ = testMultiSig.Reset(inPubKeys[shardId], uint16(selfId))
 
-	testHasher := sha256.Sha256{}
-	testMarshalizer := &marshal.JsonMarshalizer{}
-	testAddressConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-
 	accntAdapter := createAccountsDB(testMarshalizer)
 
 	n, err := node.NewNode(
@@ -362,6 +352,7 @@ func createConsensusOnlyNode(
 		node.WithDataPool(createTestShardDataPool()),
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
+		node.WithConsensusType(consensusType),
 	)
 
 	if err != nil {
@@ -376,6 +367,7 @@ func createNodes(
 	consensusSize int,
 	roundTime uint64,
 	serviceID string,
+	consensusType string,
 ) []*testNode {
 
 	privKeys, pubKeys, testKeyGen := initialPrivPubKeys(nodesPerShard)
@@ -398,6 +390,7 @@ func createNodes(
 			privKeys[i],
 			pubKeys,
 			testKeyGen,
+			consensusType,
 		)
 
 		testNode.node = n
