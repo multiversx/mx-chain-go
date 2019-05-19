@@ -1,6 +1,9 @@
 package metablock
 
 import (
+	"context"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -71,12 +74,17 @@ func (shi *ShardHeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P
 }
 
 func (shi *ShardHeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHeader) {
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 6*time.Second)
+	defer cancel()
+
+	if !shi.hdrInterceptorBase.CheckHeaderForCurrentShard(hdrIntercepted) {
+		return
+	}
+
 	isHeaderInStorage, _ := shi.storer.Has(hdrIntercepted.Hash())
 	if isHeaderInStorage {
 		log.Debug("intercepted block header already processed")
-		return
-	}
-	if !shi.hdrInterceptorBase.CheckHeaderForCurrentShard(hdrIntercepted) {
 		return
 	}
 

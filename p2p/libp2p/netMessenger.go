@@ -30,6 +30,7 @@ const DirectSendID = protocol.ID("/directsend/1.0.0")
 
 const refreshPeersOnTopic = time.Second * 60
 const ttlPeersOnTopic = time.Second * 120
+const timeoutGoRoutines = time.Second * 6
 
 var log = logger.DefaultLogger()
 
@@ -369,6 +370,10 @@ func (netMes *networkMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadBal
 // BroadcastOnChannelBlocking tries to send a byte buffer onto a topic using provided channel
 // It is a blocking method. It needs to be launch on a go routine
 func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, timeoutGoRoutines)
+	defer cancel()
+
 	sendable := &p2p.SendableData{
 		Buff:  buff,
 		Topic: topic,

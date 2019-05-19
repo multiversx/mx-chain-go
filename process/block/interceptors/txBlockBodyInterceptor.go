@@ -1,6 +1,8 @@
 package interceptors
 
 import (
+	"context"
+
 	blockData "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -92,6 +94,10 @@ func (tbbi *TxBlockBodyInterceptor) ProcessReceivedMessage(message p2p.MessageP2
 }
 
 func (tbbi *TxBlockBodyInterceptor) processBlockBody(txBlockBody *block.InterceptedTxBlockBody, blockBody blockData.Body) {
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, process.TimeoutGoRoutines)
+	defer cancel()
+
 	isBlockInStorage, _ := tbbi.storer.Has(txBlockBody.Hash())
 	if isBlockInStorage {
 		log.Debug("intercepted block body already processed")

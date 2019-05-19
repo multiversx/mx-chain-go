@@ -1,6 +1,8 @@
 package transaction
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
@@ -146,6 +148,10 @@ func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte))
 }
 
 func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, process.TimeoutGoRoutines)
+	defer cancel()
+
 	//TODO should remove this as it is expensive
 	isTxInStorage, _ := txi.txStorer.Has(tx.Hash())
 	if isTxInStorage {

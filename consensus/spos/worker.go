@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -14,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
+
+const timeoutGoRoutines = 6 * time.Second
 
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
@@ -288,7 +291,13 @@ func (wrk *Worker) checkSignature(cnsDta *consensus.Message) error {
 }
 
 func (wrk *Worker) executeReceivedMessages(cnsDta *consensus.Message) {
+	// cancel routine if it takes too long to execute and free resources
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, timeoutGoRoutines)
+	defer cancel()
+
 	wrk.mutReceivedMessages.Lock()
+	defer wrk.mutReceivedMessages.Unlock()
 
 	msgType := consensus.MessageType(cnsDta.MsgType)
 	cnsDataList := wrk.receivedMessages[msgType]
@@ -305,8 +314,6 @@ func (wrk *Worker) executeReceivedMessages(cnsDta *consensus.Message) {
 		cleanedCnsDtaList := wrk.getCleanedList(cnsDataList)
 		wrk.receivedMessages[i] = cleanedCnsDtaList
 	}
-
-	wrk.mutReceivedMessages.Unlock()
 }
 
 func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
