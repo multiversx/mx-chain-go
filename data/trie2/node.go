@@ -34,23 +34,23 @@ type node interface {
 }
 
 type branchNode struct {
-	EncodedChildren [nrOfChildren][]byte
+	EncodedChildren [nrOfChildren][]byte `capid:"0"`
 	children        [nrOfChildren]node
 	hash            []byte
 	dirty           bool
 }
 
 type extensionNode struct {
-	Key          []byte
-	EncodedChild []byte
+	Key          []byte `capid:"0"`
+	EncodedChild []byte `capid:"1"`
 	child        node
 	hash         []byte
 	dirty        bool
 }
 
 type leafNode struct {
-	Key   []byte
-	Value []byte
+	Key   []byte `capid:"0"`
+	Value []byte `capid:"1"`
 	hash  []byte
 	dirty bool
 }

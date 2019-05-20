@@ -854,7 +854,7 @@ func BenchmarkPatriciaMerkleTree_Prove(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
 
-	nrValuesInTrie := 3000000
+	nrValuesInTrie := 1000000
 	values := make([][]byte, nrValuesInTrie)
 
 	for i := 0; i < nrValuesInTrie; i++ {

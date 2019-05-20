@@ -2,11 +2,53 @@ package trie2
 
 import (
 	"bytes"
+	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/capnp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	capn "github.com/glycerine/go-capnproto"
 )
+
+// Save saves the serialized data of a leaf node into a stream through Capnp protocol
+func (ln *leafNode) Save(w io.Writer) error {
+	seg := capn.NewBuffer(nil)
+	leafNodeGoToCapn(seg, ln)
+	_, err := seg.WriteTo(w)
+	return err
+}
+
+// Load loads the data from the stream into a leaf node object through Capnp protocol
+func (ln *leafNode) Load(r io.Reader) error {
+	capMsg, err := capn.ReadFromStream(r, nil)
+	if err != nil {
+		return err
+	}
+	z := capnp.ReadRootLeafNodeCapn(capMsg)
+	leafNodeCapnToGo(z, ln)
+	return nil
+}
+
+func leafNodeGoToCapn(seg *capn.Segment, src *leafNode) capnp.LeafNodeCapn {
+	dest := capnp.AutoNewLeafNodeCapn(seg)
+
+	dest.SetKey(src.Key)
+	dest.SetValue(src.Value)
+
+	return dest
+}
+
+func leafNodeCapnToGo(src capnp.LeafNodeCapn, dest *leafNode) *leafNode {
+	if dest == nil {
+		dest = &leafNode{}
+	}
+
+	dest.Value = src.Value()
+	dest.Key = src.Key()
+
+	return dest
+}
 
 func newLeafNode(key, value []byte) *leafNode {
 	return &leafNode{

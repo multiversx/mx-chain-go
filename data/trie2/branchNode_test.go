@@ -11,7 +11,7 @@ import (
 )
 
 func getTestMarshAndHasher() (marshal.Marshalizer, hashing.Hasher) {
-	marsh := marshal.JsonMarshalizer{}
+	marsh := &marshal.CapnpMarshalizer{}
 	hasher := keccak.Keccak{}
 	return marsh, hasher
 }
@@ -102,7 +102,7 @@ func TestBranchNode_setHash(t *testing.T) {
 
 func TestBranchNode_setRootHash(t *testing.T) {
 	db, _ := memorydb.New()
-	marsh := marshal.JsonMarshalizer{}
+	marsh := &marshal.CapnpMarshalizer{}
 	hsh := keccak.Keccak{}
 
 	tr1, _ := NewTrie(db, marsh, hsh)

@@ -2,11 +2,53 @@ package trie2
 
 import (
 	"bytes"
+	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/capnp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	capn "github.com/glycerine/go-capnproto"
 )
+
+// Save saves the serialized data of an extension node into a stream through Capnp protocol
+func (en *extensionNode) Save(w io.Writer) error {
+	seg := capn.NewBuffer(nil)
+	extensionNodeGoToCapn(seg, en)
+	_, err := seg.WriteTo(w)
+	return err
+}
+
+// Load loads the data from the stream into an extension node object through Capnp protocol
+func (en *extensionNode) Load(r io.Reader) error {
+	capMsg, err := capn.ReadFromStream(r, nil)
+	if err != nil {
+		return err
+	}
+	z := capnp.ReadRootExtensionNodeCapn(capMsg)
+	extensionNodeCapnToGo(z, en)
+	return nil
+}
+
+func extensionNodeGoToCapn(seg *capn.Segment, src *extensionNode) capnp.ExtensionNodeCapn {
+	dest := capnp.AutoNewExtensionNodeCapn(seg)
+
+	dest.SetKey(src.Key)
+	dest.SetEncodedChild(src.EncodedChild)
+
+	return dest
+}
+
+func extensionNodeCapnToGo(src capnp.ExtensionNodeCapn, dest *extensionNode) *extensionNode {
+	if dest == nil {
+		dest = &extensionNode{}
+	}
+
+	dest.EncodedChild = src.EncodedChild()
+	dest.Key = src.Key()
+
+	return dest
+}
 
 func newExtensionNode(key []byte, child node) *extensionNode {
 	return &extensionNode{

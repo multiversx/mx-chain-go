@@ -1,11 +1,63 @@
 package trie2
 
 import (
+	"bytes"
+	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/capnp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	capn "github.com/glycerine/go-capnproto"
 )
+
+// Save saves the serialized data of a branch node into a stream through Capnp protocol
+func (bn *branchNode) Save(w io.Writer) error {
+	seg := capn.NewBuffer(nil)
+	branchNodeGoToCapn(seg, bn)
+	_, err := seg.WriteTo(w)
+	return err
+}
+
+// Load loads the data from the stream into a branch node object through Capnp protocol
+func (bn *branchNode) Load(r io.Reader) error {
+	capMsg, err := capn.ReadFromStream(r, nil)
+	if err != nil {
+		return err
+	}
+	z := capnp.ReadRootBranchNodeCapn(capMsg)
+	branchNodeCapnToGo(z, bn)
+	return nil
+}
+
+func branchNodeGoToCapn(seg *capn.Segment, src *branchNode) capnp.BranchNodeCapn {
+	dest := capnp.AutoNewBranchNodeCapn(seg)
+
+	children := seg.NewDataList(len(src.EncodedChildren))
+	for i := range src.EncodedChildren {
+		children.Set(i, src.EncodedChildren[i])
+	}
+	dest.SetEncodedChildren(children)
+
+	return dest
+}
+
+func branchNodeCapnToGo(src capnp.BranchNodeCapn, dest *branchNode) *branchNode {
+	if dest == nil {
+		dest = &branchNode{}
+	}
+
+	for i := 0; i < nrOfChildren; i++ {
+		child := src.EncodedChildren().At(i)
+		if bytes.Equal(child, []byte{}) {
+			dest.EncodedChildren[i] = nil
+		} else {
+			dest.EncodedChildren[i] = child
+		}
+
+	}
+	return dest
+}
 
 func (bn *branchNode) getHash() []byte {
 	return bn.hash
