@@ -148,5 +148,6 @@
    DurationInSecToConsiderUnresponsive = 60
 
 # Consensus type which will be used (the current implementation can manage "bn" and "bls")
+# When consensus type is "bls" the multisig hasher type should be "blake2b"
 [Consensus]
    Type = "bls"

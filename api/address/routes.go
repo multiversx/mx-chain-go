@@ -10,8 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Handler interface defines methods that can be used from `elrondFacade` context variable
-type Handler interface {
+// FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
+type FacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
 	GetAccount(address string) (*state.Account, error)
 }
@@ -31,9 +31,9 @@ func Routes(router *gin.RouterGroup) {
 }
 
 // GetAccount returns an accountResponse containing information
-//  about the account corelated with provided address
+//  about the account correlated with provided address
 func GetAccount(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
@@ -50,7 +50,7 @@ func GetAccount(c *gin.Context) {
 
 // GetBalance returns the balance for the address parameter
 func GetBalance(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return

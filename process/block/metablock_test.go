@@ -274,7 +274,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 		func(shardID uint32, hdrHash []byte) {},
 	)
 	err := mp.ProcessBlock(&blockchain.MetaChain{}, &block.MetaBlock{}, nil, haveTime)
-	assert.Equal(t, process.ErrNilMiniBlocks, err)
+	assert.Equal(t, process.ErrNilBlockBody, err)
 }
 
 func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {

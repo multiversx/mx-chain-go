@@ -6,6 +6,7 @@ import (
 )
 
 type ShardCoordinatorMock struct {
+	SelfShardId uint32
 }
 
 func (scm ShardCoordinatorMock) NumberOfShards() uint32 {
@@ -16,12 +17,13 @@ func (scm ShardCoordinatorMock) ComputeId(address state.AddressContainer) uint32
 	panic("implement me")
 }
 
-func (scm ShardCoordinatorMock) SetSelfId(shardId uint32) error {
-	panic("implement me")
+func (scm ShardCoordinatorMock) SetSelfShardId(shardId uint32) error {
+	scm.SelfShardId = shardId
+	return nil
 }
 
 func (scm ShardCoordinatorMock) SelfId() uint32 {
-	return 0
+	return scm.SelfShardId
 }
 
 func (scm ShardCoordinatorMock) SameShard(firstAddress, secondAddress state.AddressContainer) bool {

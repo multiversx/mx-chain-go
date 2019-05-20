@@ -14,6 +14,7 @@ type TpsBenchmark struct {
 	activeNodes           uint32
 	roundTime             uint64
 	blockNumber           uint64
+	roundNumber           uint64
 	peakTPS               float64
 	averageBlockTxCount   *big.Int
 	lastBlockTxCount      uint32
@@ -29,7 +30,7 @@ type shardStatistics struct {
 	shardID               uint32
 	roundTime             uint64
 	averageTPS            *big.Int
-	peakTPS				  float64
+	peakTPS               float64
 	lastBlockTxCount      uint32
 	averageBlockTxCount   uint32
 	currentBlockNonce     uint64
@@ -46,17 +47,17 @@ func NewTPSBenchmark(nrOfShards uint32, roundDuration uint64) (*TpsBenchmark, er
 	shardStats := make(map[uint32]*shardStatistics, 0)
 	for i := uint32(0); i < nrOfShards; i++ {
 		shardStats[i] = &shardStatistics{
-			roundTime: roundDuration,
+			roundTime:             roundDuration,
 			totalProcessedTxCount: big.NewInt(0),
 		}
 	}
 	return &TpsBenchmark{
-		nrOfShards: nrOfShards,
-		roundTime: roundDuration,
-		shardStatistics: shardStats,
-		missingNonces: make(map[uint64]struct{}, 0),
+		nrOfShards:            nrOfShards,
+		roundTime:             roundDuration,
+		shardStatistics:       shardStats,
+		missingNonces:         make(map[uint64]struct{}, 0),
 		totalProcessedTxCount: big.NewInt(0),
-		averageBlockTxCount: big.NewInt(0),
+		averageBlockTxCount:   big.NewInt(0),
 	}, nil
 }
 
@@ -73,6 +74,11 @@ func (s *TpsBenchmark) RoundTime() uint64 {
 // BlockNumber returns the last processed block number
 func (s *TpsBenchmark) BlockNumber() uint64 {
 	return s.blockNumber
+}
+
+// RoundNumber returns the round index for this benchmark object
+func (s *TpsBenchmark) RoundNumber() uint64 {
+	return s.roundNumber
 }
 
 // AverageBlockTxCount returns an average of the tx/block
@@ -194,6 +200,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 		}
 
 		s.blockNumber = header.Nonce
+		s.roundNumber = uint64(header.Round)
 		s.lastBlockTxCount = header.TxCount
 		s.totalProcessedTxCount.Add(s.totalProcessedTxCount, big.NewInt(int64(header.TxCount)))
 		s.averageBlockTxCount.Quo(s.totalProcessedTxCount, big.NewInt(int64(header.Nonce)))
@@ -214,13 +221,13 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 		newAverageTPS := big.NewInt(0).Quo(newTotalProcessedTxCount, roundsPassed)
 
 		updatedShardStats := &shardStatistics{
-			shardID: shardInfo.ShardId,
-			roundTime: s.roundTime,
-			currentBlockNonce: header.Nonce,
+			shardID:               shardInfo.ShardId,
+			roundTime:             s.roundTime,
+			currentBlockNonce:     header.Nonce,
 			totalProcessedTxCount: newTotalProcessedTxCount,
 
-			averageTPS: newAverageTPS,
-			peakTPS: shardPeakTPS,
+			averageTPS:       newAverageTPS,
+			peakTPS:          shardPeakTPS,
 			lastBlockTxCount: header.TxCount,
 		}
 

@@ -444,6 +444,7 @@ func createMetaNetNode(
 		testMultiSig,
 		dPool,
 		&mock.ChronologyValidatorMock{},
+		nil,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {

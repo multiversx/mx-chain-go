@@ -468,7 +468,7 @@ func logError(err error) {
 	}
 }
 
-func startNodeServer(handler node.Handler) *gin.Engine {
+func startNodeServer(handler node.FacadeHandler) *gin.Engine {
 	server := startNodeServerWithFacade(handler)
 	return server
 }
