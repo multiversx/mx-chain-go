@@ -2,16 +2,31 @@ package consensus
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/stretchr/testify/assert"
 )
+
+func encodeAddress(address []byte) string {
+	return hex.EncodeToString(address)
+}
+
+func getPkEncoded(pubKey crypto.PublicKey) string {
+	pk, err := pubKey.ToByteArray()
+	if err != nil {
+		return err.Error()
+	}
+
+	return encodeAddress(pk)
+}
 
 func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint64, consensusType string) ([]*testNode, p2p.Messenger, *sync.Map) {
 	fmt.Println("Step 1. Setup nodes...")
@@ -33,7 +48,14 @@ func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint
 	if numInvalid < numNodes {
 		for i := uint32(0); i < numInvalid; i++ {
 			nodes[i].blkProcessor.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+				fmt.Println("process block invalid ", header.GetRound(), header.GetNonce(), getPkEncoded(nodes[i].pk))
 				return process.ErrInvalidBlockHash
+			}
+			nodes[i].blkProcessor.CreateBlockHeaderCalled = func(body data.BodyHandler, round int32, haveTime func() bool) (handler data.HeaderHandler, e error) {
+				return nil, process.ErrAccountStateDirty
+			}
+			nodes[i].blkProcessor.CreateBlockCalled = func(round int32, haveTime func() bool) (handler data.BodyHandler, e error) {
+				return nil, process.ErrWrongTypeAssertion
 			}
 		}
 	}
@@ -108,8 +130,8 @@ func TestConsensusBNFullTest(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numNodes := uint32(21)
-	consensusSize := uint32(21)
+	numNodes := uint32(4)
+	consensusSize := uint32(4)
 	numInvalid := uint32(0)
 	roundTime := uint64(4000)
 	numCommBlock := uint32(10)
@@ -168,9 +190,9 @@ func TestConsensusBNNotEnoughValidators(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numNodes := uint32(21)
-	consensusSize := uint32(21)
-	numInvalid := uint32(7)
+	numNodes := uint32(4)
+	consensusSize := uint32(4)
+	numInvalid := uint32(2)
 	roundTime := uint64(4000)
 	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, bnConsensusType)
 
@@ -225,8 +247,8 @@ func TestConsensusBLSFullTest(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numNodes := uint32(21)
-	consensusSize := uint32(21)
+	numNodes := uint32(4)
+	consensusSize := uint32(4)
 	numInvalid := uint32(0)
 	roundTime := uint64(4000)
 	numCommBlock := uint32(10)
@@ -285,9 +307,9 @@ func TestConsensusBLSNotEnoughValidators(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numNodes := uint32(21)
-	consensusSize := uint32(21)
-	numInvalid := uint32(8)
+	numNodes := uint32(4)
+	consensusSize := uint32(4)
+	numInvalid := uint32(2)
 	roundTime := uint64(4000)
 	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
 
