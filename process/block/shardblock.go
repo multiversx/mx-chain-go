@@ -562,7 +562,7 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 				return err
 			}
 			sp.dataPool.MetaBlocks().Remove(metaBlockKey)
-			log.Info(fmt.Sprintf("metablock with nonce %d was processed completly\n", hdr.GetNonce()))
+			log.Info(fmt.Sprintf("metablock with nonce %d was processed completly and removed from pool\n", hdr.GetNonce()))
 		}
 	}
 
@@ -768,6 +768,36 @@ func (sp *shardProcessor) processAndRemoveBadTransaction(
 	return err
 }
 
+func (sp *shardProcessor) requestBlockTransactionsForMiniBlock(mb *block.MiniBlock) int {
+	requestedTxs := 0
+	missingTxsForMiniBlock := sp.computeMissingTxsForMiniBlock(mb)
+
+	if sp.OnRequestTransaction != nil {
+		for _, txHash := range missingTxsForMiniBlock {
+			requestedTxs++
+			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
+			go sp.OnRequestTransaction(mb.SenderShardID, txHash)
+		}
+	}
+
+	return requestedTxs
+}
+
+func (sp *shardProcessor) computeMissingTxsForMiniBlock(mb *block.MiniBlock) [][]byte {
+	missingTransactions := make([][]byte, 0)
+
+	for j := 0; j < len(mb.TxHashes); j++ {
+		txHash := mb.TxHashes[j]
+		tx := sp.getTransactionFromPool(mb.SenderShardID, mb.ReceiverShardID, txHash)
+
+		if tx == nil {
+			missingTransactions = append(missingTransactions, txHash)
+		}
+	}
+
+	return missingTransactions
+}
+
 func (sp *shardProcessor) getAllTxsFromMiniBlock(
 	mb *block.MiniBlock,
 	haveTime func() bool,
@@ -920,6 +950,11 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 				return miniBlocks, nrTxAdded, nil
 			}
 
+			requestedTxs := sp.requestBlockTransactionsForMiniBlock(miniBlock)
+			if requestedTxs > 0 {
+				continue
+			}
+
 			err := sp.processMiniBlockComplete(miniBlock, round, haveTime)
 			if err != nil {
 				continue
@@ -931,10 +966,10 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			processedMbs++
 		}
 
-		if processedMbs > 0 && processedMbs >= len(crossMiniBlockHashes) {
-			log.Info(fmt.Sprintf("All miniblocks with destination in current shard, from meta header with nonce %d, were successfully processed\n",
-				hdr.GetNonce()))
-		}
+		//if processedMbs > 0 && processedMbs >= len(crossMiniBlockHashes) {
+		//	log.Info(fmt.Sprintf("All miniblocks with destination in current shard, from meta header with nonce %d, were successfully processed\n",
+		//		hdr.GetNonce()))
+		//}
 	}
 
 	return miniBlocks, nrTxAdded, nil

@@ -38,6 +38,10 @@ func (sp *shardProcessor) RequestBlockTransactions(body block.Body) int {
 	return sp.requestBlockTransactions(body)
 }
 
+func (sp *shardProcessor) RequestBlockTransactionsForMiniBlock(mb *block.MiniBlock) int {
+	return sp.requestBlockTransactionsForMiniBlock(mb)
+}
+
 func (sp *shardProcessor) WaitForTxHashes(waitTime time.Duration) {
 	sp.waitForTxHashes(waitTime)
 }
