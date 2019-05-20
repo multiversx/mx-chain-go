@@ -156,7 +156,7 @@ VERSION:
 	// numOfNodes defines a flag that specifies the maximum number of nodes which will be used from the initialNodes
 	numOfNodes = cli.Uint64Flag{
 		Name:  "num-of-nodes",
-		Usage: "Number of nodes specifies the maximum number nodes which will be used from initialNodes list exposed in nodesSetup.json file",
+		Usage: "Number of nodes specifies the maximum number of nodes which will be used from initialNodes list exposed in nodesSetup.json file",
 		Value: math.MaxUint64,
 	}
 
