@@ -140,21 +140,21 @@ VERSION:
 		Usage: "Profiling mode. Available options: cpu, mem, mutex, block",
 		Value: "",
 	}
-	// txSignSkIndex defines a flag that specify the 0-th based index of the private key to be used from initialBalancesSk.pem file
+	// txSignSkIndex defines a flag that specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file
 	txSignSkIndex = cli.IntFlag{
 		Name:  "tx-sign-sk-index",
 		Usage: "Single sign private key index specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file.",
 		Value: 0,
 	}
-	// skIndex defines a flag that specify the 0-th based index of the private key to be used from initialNodesSk.pem file
+	// skIndex defines a flag that specifies the 0-th based index of the private key to be used from initialNodesSk.pem file
 	skIndex = cli.IntFlag{
 		Name:  "sk-index",
 		Usage: "Private key index specifies the 0-th based index of the private key to be used from initialNodesSk.pem file.",
 		Value: 0,
 	}
 
-	// numOfNodes defines a flag that specify the maximum number of nodes which will be used from the initialNodes
-	numOfNodes = cli.Uint64Flag {
+	// numOfNodes defines a flag that specifies the maximum number of nodes which will be used from the initialNodes
+	numOfNodes = cli.Uint64Flag{
 		Name:  "num-of-nodes",
 		Usage: "Number of nodes specifies the maximum number nodes which will be used from initialNodes list exposed in nodesSetup.json file",
 		Value: math.MaxUint64,
