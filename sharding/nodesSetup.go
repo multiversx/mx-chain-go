@@ -34,12 +34,16 @@ type NodesSetup struct {
 }
 
 // NewNodesSetup creates a new decoded nodes structure from json config file
-func NewNodesSetup(nodesFilePath string) (*NodesSetup, error) {
+func NewNodesSetup(nodesFilePath string, numOfNodes uint64) (*NodesSetup, error) {
 	nodes := &NodesSetup{}
 
 	err := core.LoadJsonFile(nodes, nodesFilePath, log)
 	if err != nil {
 		return nil, err
+	}
+
+	if numOfNodes < uint64(len(nodes.InitialNodes)) {
+		nodes.InitialNodes = nodes.InitialNodes[:numOfNodes]
 	}
 
 	err = nodes.processConfig()

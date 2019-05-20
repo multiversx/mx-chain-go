@@ -131,24 +131,33 @@ func createNodesSetupTwoShard6NodesMeta() *sharding.NodesSetup {
 }
 
 func TestNodesSetup_NewNodesSetupWrongFile(t *testing.T) {
-	ns, err := sharding.NewNodesSetup("")
+	ns, err := sharding.NewNodesSetup("", 0xFFFFFFFFFFFFFFFF)
 
 	assert.Nil(t, ns)
 	assert.NotNil(t, err)
 }
 
 func TestNodesSetup_NewNodesSetupWrongDataInFile(t *testing.T) {
-	ns, err := sharding.NewNodesSetup("mock/invalidNodesMock.json")
+	ns, err := sharding.NewNodesSetup("mock/invalidNodesSetupMock.json", 0xFFFFFFFFFFFFFFFF)
 
 	assert.Nil(t, ns)
 	assert.Equal(t, sharding.ErrNegativeOrZeroConsensusGroupSize, err)
 }
 
 func TestNodesSetup_NewNodesShouldWork(t *testing.T) {
-	ns, err := sharding.NewNodesSetup("mock/nodesMock.json")
+	ns, err := sharding.NewNodesSetup("mock/nodesSetupMock.json", 0xFFFFFFFFFFFFFFFF)
 
 	assert.NotNil(t, ns)
 	assert.Nil(t, err)
+	assert.Equal(t, 5, len(ns.InitialNodes))
+}
+
+func TestNodesSetup_NewNodesShouldTrimInitialNodesList(t *testing.T) {
+	ns, err := sharding.NewNodesSetup("mock/nodesSetupMock.json", 2)
+
+	assert.NotNil(t, ns)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(ns.InitialNodes))
 }
 
 func TestNodesSetup_InitialNodesPubKeysFromNil(t *testing.T) {
