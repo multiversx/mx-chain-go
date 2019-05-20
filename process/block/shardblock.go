@@ -771,7 +771,6 @@ func (sp *shardProcessor) processAndRemoveBadTransaction(
 func (sp *shardProcessor) requestBlockTransactionsForMiniBlock(mb *block.MiniBlock) int {
 	requestedTxs := 0
 	missingTxsForMiniBlock := sp.computeMissingTxsForMiniBlock(mb)
-
 	if sp.OnRequestTransaction != nil {
 		for _, txHash := range missingTxsForMiniBlock {
 			requestedTxs++
@@ -785,11 +784,8 @@ func (sp *shardProcessor) requestBlockTransactionsForMiniBlock(mb *block.MiniBlo
 
 func (sp *shardProcessor) computeMissingTxsForMiniBlock(mb *block.MiniBlock) [][]byte {
 	missingTransactions := make([][]byte, 0)
-
-	for j := 0; j < len(mb.TxHashes); j++ {
-		txHash := mb.TxHashes[j]
+	for _, txHash := range mb.TxHashes {
 		tx := sp.getTransactionFromPool(mb.SenderShardID, mb.ReceiverShardID, txHash)
-
 		if tx == nil {
 			missingTransactions = append(missingTransactions, txHash)
 		}
