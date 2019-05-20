@@ -120,6 +120,18 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	assert.Equal(t, tr1.root.getHash(), tr2.root.getHash())
 }
 
+func TestBranchNode_setRootHashCollapsedNode(t *testing.T) {
+	t.Parallel()
+	_, collapsedBn := getBnAndCollapsedBn()
+	marsh, hasher := getTestMarshAndHasher()
+
+	hash, _ := encodeNodeAndGetHash(collapsedBn, marsh, hasher)
+
+	err := collapsedBn.setRootHash(marsh, hasher)
+	assert.Nil(t, err)
+	assert.Equal(t, hash, collapsedBn.hash)
+}
+
 func TestBranchNode_setHashEmptyNode(t *testing.T) {
 	t.Parallel()
 	marsh, hasher := getTestMarshAndHasher()

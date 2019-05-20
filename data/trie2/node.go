@@ -9,7 +9,7 @@ import (
 
 const nrOfChildren = 17
 const firstByte = 0
-const maxTrieLevelAfterCommit = 5
+const maxTrieLevelAfterCommit = 6
 
 type node interface {
 	getHash() []byte
