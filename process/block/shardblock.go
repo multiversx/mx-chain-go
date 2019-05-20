@@ -630,8 +630,6 @@ func (sp *shardProcessor) receivedTransaction(txHash []byte) {
 // upon receiving, it parses the new metablock and requests miniblocks and transactions
 // which destination is the current shard
 func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
-	log.Info(fmt.Sprintf("received metablock with hash %s from network\n", toB64(metaBlockHash)))
-
 	metaBlockCache := sp.dataPool.MetaBlocks()
 	if metaBlockCache == nil {
 		return
@@ -652,7 +650,9 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		return
 	}
 
-	log.Info(fmt.Sprintf("received metablock with nonce %d from network\n", hdr.GetNonce()))
+	log.Info(fmt.Sprintf("received metablock with hash %s and nonce %d from network\n",
+		toB64(metaBlockHash),
+		hdr.GetNonce()))
 
 	// TODO: validate the metaheader, through metaprocessor and save only headers with nonce higher than current
 	crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
@@ -923,14 +923,12 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 		// get mini block hashes which contain cross shard txs with destination in self shard
 		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
-		processedMbs := 0
 		for key := range crossMiniBlockHashes {
 			if !haveTime() {
 				break
 			}
 
 			if hdr.GetMiniBlockProcessed([]byte(key)) {
-				processedMbs++
 				continue
 			}
 
@@ -963,13 +961,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			// all txs processed, add to processed miniblocks
 			miniBlocks = append(miniBlocks, miniBlock)
 			nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
-			processedMbs++
 		}
-
-		//if processedMbs > 0 && processedMbs >= len(crossMiniBlockHashes) {
-		//	log.Info(fmt.Sprintf("All miniblocks with destination in current shard, from meta header with nonce %d, were successfully processed\n",
-		//		hdr.GetNonce()))
-		//}
 	}
 
 	return miniBlocks, nrTxAdded, nil
