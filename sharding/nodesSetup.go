@@ -163,7 +163,6 @@ func (ns *NodesSetup) InitialNodesPubKeysForShard(shardId uint32) ([]string, err
 	if ns.allNodesPubKeys[shardId] == nil {
 		return nil, ErrShardIdOutOfRange
 	}
-
 	if len(ns.allNodesPubKeys[shardId]) == 0 {
 		return nil, ErrNoPubKeys
 	}
