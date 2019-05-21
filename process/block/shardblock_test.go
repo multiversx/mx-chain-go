@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -428,7 +429,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		func(destShardID uint32, txHash []byte) {},
 	)
 	go func() {
-		sp.ChRcvAllTxs <- true
+		sp.ChRcvAllTxs() <- true
 	}()
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -588,7 +589,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		func(destShardID uint32, txHash []byte) {},
 	)
 	go func() {
-		sp.ChRcvAllTxs <- true
+		sp.ChRcvAllTxs() <- true
 	}()
 	// should return err
 	err2 := sp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -654,7 +655,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		func(destShardID uint32, txHash []byte) {},
 	)
 	go func() {
-		sp.ChRcvAllTxs <- true
+		sp.ChRcvAllTxs() <- true
 	}()
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -1109,6 +1110,8 @@ func TestShardProcessor_GetTransactionFromPool(t *testing.T) {
 
 func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
 	t.Parallel()
+	var wg sync.WaitGroup
+	txRequested := 0
 	tdp := initDataPool()
 	sp, _ := blproc.NewShardProcessor(
 		tdp,
@@ -1120,20 +1123,57 @@ func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
+			txRequested++
+			wg.Done()
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
 	shardId := uint32(1)
-	txHash1 := []byte("tx1_hash1")
+	txHash1 := []byte("tx_hash1")
+	txHash2 := []byte("tx_hash2")
 	body := make(block.Body, 0)
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
+	txHashes = append(txHashes, txHash2)
 	mBlk := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
 	body = append(body, &mBlk)
-	//TODO refactor the test
-	if sp.RequestBlockTransactions(body) > 0 {
-		sp.WaitForTxHashes(haveTime())
-	}
+	wg.Add(2)
+	sp.RequestBlockTransactions(body)
+	wg.Wait()
+	assert.Equal(t, 2, txRequested)
+}
+
+func TestShardProcessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testing.T) {
+	t.Parallel()
+	var wg sync.WaitGroup
+	txRequested := 0
+	tdp := initDataPool()
+	sp, _ := blproc.NewShardProcessor(
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		initAccountsMock(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+			txRequested++
+			wg.Done()
+		},
+		func(destShardID uint32, txHash []byte) {},
+	)
+	shardId := uint32(1)
+	txHash1 := []byte("tx_hash1")
+	txHash2 := []byte("tx_hash2")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash1)
+	txHashes = append(txHashes, txHash2)
+	mb := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
+	wg.Add(2)
+	sp.RequestBlockTransactionsForMiniBlock(&mb)
+	wg.Wait()
+	assert.Equal(t, 2, txRequested)
 }
 
 func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {

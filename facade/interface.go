@@ -60,5 +60,6 @@ type NodeWrapper interface {
 
 // ExternalResolver defines what functionality can be exposed to an external component (REST API, RPC, etc.)
 type ExternalResolver interface {
-	RecentNotarizedBlocks(maxShardHeadersNum int) ([]external.RecentBlock, error)
+	RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error)
+	RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error)
 }

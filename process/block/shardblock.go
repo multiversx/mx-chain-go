@@ -30,13 +30,13 @@ type shardProcessor struct {
 	*baseProcessor
 	dataPool             dataRetriever.PoolsHolder
 	txProcessor          process.TransactionProcessor
-	ChRcvAllTxs          chan bool
-	OnRequestTransaction func(shardID uint32, txHash []byte)
+	chRcvAllTxs          chan bool
+	onRequestTransaction func(shardID uint32, txHash []byte)
 	mutRequestedTxHashes sync.RWMutex
 	requestedTxHashes    map[string]bool
 	mutCrossTxsForBlock  sync.RWMutex
 	crossTxsForBlock     map[string]*transaction.Transaction
-	OnRequestMiniBlock   func(shardId uint32, mbHash []byte)
+	onRequestMiniBlock   func(shardId uint32, mbHash []byte)
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -94,8 +94,8 @@ func NewShardProcessor(
 		txProcessor:   txProcessor,
 	}
 
-	bp.ChRcvAllTxs = make(chan bool)
-	bp.OnRequestTransaction = requestTransactionHandler
+	bp.chRcvAllTxs = make(chan bool)
+	bp.onRequestTransaction = requestTransactionHandler
 
 	transactionPool := bp.dataPool.Transactions()
 	if transactionPool == nil {
@@ -103,7 +103,7 @@ func NewShardProcessor(
 	}
 	transactionPool.RegisterHandler(bp.receivedTransaction)
 
-	bp.OnRequestMiniBlock = requestMiniBlockHandler
+	bp.onRequestMiniBlock = requestMiniBlockHandler
 	bp.requestedTxHashes = make(map[string]bool)
 	bp.crossTxsForBlock = make(map[string]*transaction.Transaction)
 
@@ -562,6 +562,7 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 				return err
 			}
 			sp.dataPool.MetaBlocks().Remove(metaBlockKey)
+			log.Info(fmt.Sprintf("metablock with nonce %d was processed completly and removed from pool\n", hdr.GetNonce()))
 		}
 	}
 
@@ -616,7 +617,7 @@ func (sp *shardProcessor) receivedTransaction(txHash []byte) {
 		sp.mutRequestedTxHashes.Unlock()
 
 		if lenReqTxHashes == 0 {
-			sp.ChRcvAllTxs <- true
+			sp.chRcvAllTxs <- true
 		}
 
 		return
@@ -649,13 +650,17 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		return
 	}
 
+	log.Info(fmt.Sprintf("received metablock with hash %s and nonce %d from network\n",
+		toB64(metaBlockHash),
+		hdr.GetNonce()))
+
 	// TODO: validate the metaheader, through metaprocessor and save only headers with nonce higher than current
 	crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 	for key, senderShardId := range crossMiniBlockHashes {
 		miniVal, _ := miniBlockCache.Peek([]byte(key))
 		if miniVal == nil {
 			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-			go sp.OnRequestMiniBlock(senderShardId, []byte(key))
+			go sp.onRequestMiniBlock(senderShardId, []byte(key))
 		}
 	}
 }
@@ -688,7 +693,7 @@ func (sp *shardProcessor) receivedMiniBlock(miniBlockHash []byte) {
 		tx := sp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
 		if tx == nil {
 			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-			go sp.OnRequestTransaction(miniBlock.SenderShardID, txHash)
+			go sp.onRequestTransaction(miniBlock.SenderShardID, txHash)
 		}
 	}
 }
@@ -700,14 +705,12 @@ func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
 	missingTxsForShards := sp.computeMissingTxsForShards(body)
 	sp.requestedTxHashes = make(map[string]bool)
 
-	if sp.OnRequestTransaction != nil {
-		for shardId, txHashes := range missingTxsForShards {
-			for _, txHash := range txHashes {
-				requestedTxs++
-				sp.requestedTxHashes[string(txHash)] = true
-				//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-				go sp.OnRequestTransaction(shardId, txHash)
-			}
+	for shardId, txHashes := range missingTxsForShards {
+		for _, txHash := range txHashes {
+			requestedTxs++
+			sp.requestedTxHashes[string(txHash)] = true
+			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
+			go sp.onRequestTransaction(shardId, txHash)
 		}
 	}
 
@@ -761,6 +764,27 @@ func (sp *shardProcessor) processAndRemoveBadTransaction(
 	}
 
 	return err
+}
+
+func (sp *shardProcessor) requestBlockTransactionsForMiniBlock(mb *block.MiniBlock) int {
+	missingTxsForMiniBlock := sp.computeMissingTxsForMiniBlock(mb)
+	for _, txHash := range missingTxsForMiniBlock {
+		go sp.onRequestTransaction(mb.SenderShardID, txHash)
+	}
+
+	return len(missingTxsForMiniBlock)
+}
+
+func (sp *shardProcessor) computeMissingTxsForMiniBlock(mb *block.MiniBlock) [][]byte {
+	missingTransactions := make([][]byte, 0)
+	for _, txHash := range mb.TxHashes {
+		tx := sp.getTransactionFromPool(mb.SenderShardID, mb.ReceiverShardID, txHash)
+		if tx == nil {
+			missingTransactions = append(missingTransactions, txHash)
+		}
+	}
+
+	return missingTransactions
 }
 
 func (sp *shardProcessor) getAllTxsFromMiniBlock(
@@ -888,14 +912,12 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 		// get mini block hashes which contain cross shard txs with destination in self shard
 		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
-		processedMbs := 0
 		for key := range crossMiniBlockHashes {
 			if !haveTime() {
 				break
 			}
 
 			if hdr.GetMiniBlockProcessed([]byte(key)) {
-				processedMbs++
 				continue
 			}
 
@@ -915,6 +937,11 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 				return miniBlocks, nrTxAdded, nil
 			}
 
+			requestedTxs := sp.requestBlockTransactionsForMiniBlock(miniBlock)
+			if requestedTxs > 0 {
+				continue
+			}
+
 			err := sp.processMiniBlockComplete(miniBlock, round, haveTime)
 			if err != nil {
 				continue
@@ -923,12 +950,6 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			// all txs processed, add to processed miniblocks
 			miniBlocks = append(miniBlocks, miniBlock)
 			nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
-			processedMbs++
-		}
-
-		if processedMbs > 0 && processedMbs >= len(crossMiniBlockHashes) {
-			log.Info(fmt.Sprintf("All miniblocks with destination in current shard, from meta header with nonce %d, were successfully processed\n",
-				hdr.GetNonce()))
 		}
 	}
 
@@ -1117,7 +1138,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 
 func (sp *shardProcessor) waitForTxHashes(waitTime time.Duration) error {
 	select {
-	case <-sp.ChRcvAllTxs:
+	case <-sp.chRcvAllTxs:
 		return nil
 	case <-time.After(waitTime):
 		return process.ErrTimeIsOut
