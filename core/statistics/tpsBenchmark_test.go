@@ -294,7 +294,6 @@ func TestTpsBenchmark_Concurrent(t *testing.T) {
 	wg.Add(2)
 
 	go func() {
-
 		shardData := block.ShardData{
 			ShardId: 1,
 			HeaderHash: []byte{1},
@@ -325,7 +324,6 @@ func TestTpsBenchmark_Concurrent(t *testing.T) {
 	}()
 
 	go func() {
-
 		shardData2 := block.ShardData{
 			ShardId: 1,
 			HeaderHash: []byte{1},
@@ -358,5 +356,47 @@ func TestTpsBenchmark_Concurrent(t *testing.T) {
 	wg.Wait()
 
 	bigTxCount := big.NewInt(int64(txCount))
+	assert.Equal(t, bigTxCount, tpsBenchmark.TotalProcessedTxCount())
+}
+
+func TestTpsBenchmark_ZeroTxMetaBlockAndShardHeader(t *testing.T) {
+	t.Parallel()
+
+	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 4)
+
+	shardData := block.ShardData{
+		ShardId: 0,
+		HeaderHash: []byte{1},
+		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
+		TxCount: 0,
+	}
+	metaBlock := &block.MetaBlock{
+		Nonce: 1,
+		Round: 2,
+		TxCount: 0,
+		ShardInfo: []block.ShardData{shardData},
+	}
+
+	tpsBenchmark.Update(metaBlock)
+
+	bigTxCount := big.NewInt(0)
+	assert.Equal(t, bigTxCount, tpsBenchmark.TotalProcessedTxCount())
+}
+
+func TestTpsBenchmark_ZeroTxMetaBlockAndEmptyShardHeader(t *testing.T) {
+	t.Parallel()
+
+	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 4)
+	
+	metaBlock := &block.MetaBlock{
+		Nonce: 1,
+		Round: 2,
+		TxCount: 0,
+		ShardInfo: []block.ShardData{},
+	}
+
+	tpsBenchmark.Update(metaBlock)
+
+	bigTxCount := big.NewInt(0)
 	assert.Equal(t, bigTxCount, tpsBenchmark.TotalProcessedTxCount())
 }

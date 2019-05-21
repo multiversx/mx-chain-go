@@ -212,8 +212,9 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 		}
 
 		shardPeakTPS := shardStat.peakTPS
-		if currentTPS > shardStat.peakTPS {
-			shardPeakTPS = currentTPS
+		currentShardTPS := float64(uint64(shardInfo.TxCount) / s.roundTime)
+		if currentShardTPS > shardStat.peakTPS {
+			shardPeakTPS = currentShardTPS
 		}
 
 		bigTxCount := big.NewInt(int64(shardInfo.TxCount))
