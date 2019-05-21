@@ -30,13 +30,13 @@ type shardProcessor struct {
 	*baseProcessor
 	dataPool             dataRetriever.PoolsHolder
 	txProcessor          process.TransactionProcessor
-	ChRcvAllTxs          chan bool
-	OnRequestTransaction func(shardID uint32, txHash []byte)
+	chRcvAllTxs          chan bool
+	onRequestTransaction func(shardID uint32, txHash []byte)
 	mutRequestedTxHashes sync.RWMutex
 	requestedTxHashes    map[string]bool
 	mutCrossTxsForBlock  sync.RWMutex
 	crossTxsForBlock     map[string]*transaction.Transaction
-	OnRequestMiniBlock   func(shardId uint32, mbHash []byte)
+	onRequestMiniBlock   func(shardId uint32, mbHash []byte)
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -94,8 +94,8 @@ func NewShardProcessor(
 		txProcessor:   txProcessor,
 	}
 
-	bp.ChRcvAllTxs = make(chan bool)
-	bp.OnRequestTransaction = requestTransactionHandler
+	bp.chRcvAllTxs = make(chan bool)
+	bp.onRequestTransaction = requestTransactionHandler
 
 	transactionPool := bp.dataPool.Transactions()
 	if transactionPool == nil {
@@ -103,7 +103,7 @@ func NewShardProcessor(
 	}
 	transactionPool.RegisterHandler(bp.receivedTransaction)
 
-	bp.OnRequestMiniBlock = requestMiniBlockHandler
+	bp.onRequestMiniBlock = requestMiniBlockHandler
 	bp.requestedTxHashes = make(map[string]bool)
 	bp.crossTxsForBlock = make(map[string]*transaction.Transaction)
 
@@ -617,7 +617,7 @@ func (sp *shardProcessor) receivedTransaction(txHash []byte) {
 		sp.mutRequestedTxHashes.Unlock()
 
 		if lenReqTxHashes == 0 {
-			sp.ChRcvAllTxs <- true
+			sp.chRcvAllTxs <- true
 		}
 
 		return
@@ -660,7 +660,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		miniVal, _ := miniBlockCache.Peek([]byte(key))
 		if miniVal == nil {
 			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-			go sp.OnRequestMiniBlock(senderShardId, []byte(key))
+			go sp.onRequestMiniBlock(senderShardId, []byte(key))
 		}
 	}
 }
@@ -693,7 +693,7 @@ func (sp *shardProcessor) receivedMiniBlock(miniBlockHash []byte) {
 		tx := sp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
 		if tx == nil {
 			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-			go sp.OnRequestTransaction(miniBlock.SenderShardID, txHash)
+			go sp.onRequestTransaction(miniBlock.SenderShardID, txHash)
 		}
 	}
 }
@@ -705,14 +705,12 @@ func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
 	missingTxsForShards := sp.computeMissingTxsForShards(body)
 	sp.requestedTxHashes = make(map[string]bool)
 
-	if sp.OnRequestTransaction != nil {
-		for shardId, txHashes := range missingTxsForShards {
-			for _, txHash := range txHashes {
-				requestedTxs++
-				sp.requestedTxHashes[string(txHash)] = true
-				//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-				go sp.OnRequestTransaction(shardId, txHash)
-			}
+	for shardId, txHashes := range missingTxsForShards {
+		for _, txHash := range txHashes {
+			requestedTxs++
+			sp.requestedTxHashes[string(txHash)] = true
+			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
+			go sp.onRequestTransaction(shardId, txHash)
 		}
 	}
 
@@ -769,16 +767,12 @@ func (sp *shardProcessor) processAndRemoveBadTransaction(
 }
 
 func (sp *shardProcessor) requestBlockTransactionsForMiniBlock(mb *block.MiniBlock) int {
-	requestedTxs := 0
 	missingTxsForMiniBlock := sp.computeMissingTxsForMiniBlock(mb)
-	if sp.OnRequestTransaction != nil {
-		for _, txHash := range missingTxsForMiniBlock {
-			requestedTxs++
-			go sp.OnRequestTransaction(mb.SenderShardID, txHash)
-		}
+	for _, txHash := range missingTxsForMiniBlock {
+		go sp.onRequestTransaction(mb.SenderShardID, txHash)
 	}
 
-	return requestedTxs
+	return len(missingTxsForMiniBlock)
 }
 
 func (sp *shardProcessor) computeMissingTxsForMiniBlock(mb *block.MiniBlock) [][]byte {
@@ -1144,7 +1138,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 
 func (sp *shardProcessor) waitForTxHashes(waitTime time.Duration) error {
 	select {
-	case <-sp.ChRcvAllTxs:
+	case <-sp.chRcvAllTxs:
 		return nil
 	case <-time.After(waitTime):
 		return process.ErrTimeIsOut

@@ -429,7 +429,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		func(destShardID uint32, txHash []byte) {},
 	)
 	go func() {
-		sp.ChRcvAllTxs <- true
+		sp.ChRcvAllTxs() <- true
 	}()
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -589,7 +589,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		func(destShardID uint32, txHash []byte) {},
 	)
 	go func() {
-		sp.ChRcvAllTxs <- true
+		sp.ChRcvAllTxs() <- true
 	}()
 	// should return err
 	err2 := sp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -655,7 +655,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		func(destShardID uint32, txHash []byte) {},
 	)
 	go func() {
-		sp.ChRcvAllTxs <- true
+		sp.ChRcvAllTxs() <- true
 	}()
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -1129,16 +1129,18 @@ func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
 		func(destShardID uint32, txHash []byte) {},
 	)
 	shardId := uint32(1)
-	txHash1 := []byte("tx1_hash1")
+	txHash1 := []byte("tx1_hash")
+	txHash2 := []byte("tx2_hash")
 	body := make(block.Body, 0)
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
+	txHashes = append(txHashes, txHash2)
 	mBlk := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
 	body = append(body, &mBlk)
-	wg.Add(1)
+	wg.Add(2)
 	sp.RequestBlockTransactions(body)
 	wg.Wait()
-	assert.Equal(t, 1, txRequested)
+	assert.Equal(t, 2, txRequested)
 }
 
 func TestShardProcessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testing.T) {
@@ -1162,14 +1164,16 @@ func TestShardProcessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testi
 		func(destShardID uint32, txHash []byte) {},
 	)
 	shardId := uint32(1)
-	txHash1 := []byte("tx1_hash1")
+	txHash1 := []byte("tx_hash1")
+	txHash2 := []byte("tx_hash2")
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
+	txHashes = append(txHashes, txHash2)
 	mb := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
-	wg.Add(1)
+	wg.Add(2)
 	sp.RequestBlockTransactionsForMiniBlock(&mb)
 	wg.Wait()
-	assert.Equal(t, 1, txRequested)
+	assert.Equal(t, 2, txRequested)
 }
 
 func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
