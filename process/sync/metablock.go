@@ -216,7 +216,8 @@ func (boot *MetaBootstrap) SyncBlock() error {
 		return boot.rounder.TimeDuration()
 	}
 
-	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, nil, haveTime)
+	blockBody := &block.MetaBlockBody{}
+	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 	if err != nil {
 		isForkDetected := err == process.ErrInvalidBlockHash || err == process.ErrRootStateMissmatch
 		if isForkDetected {
@@ -228,7 +229,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 		return err
 	}
 
-	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, nil)
+	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
 	if err != nil {
 		return err
 	}

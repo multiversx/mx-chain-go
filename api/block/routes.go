@@ -32,17 +32,17 @@ type blockResponse struct {
 
 const recentBlocksCount = 20
 
-func formattedRecentBlocks(headers []*external.BlockHeader) []blockResponse {
+func convertRecentBlocks(headers []*external.BlockHeader) []blockResponse {
 	frb := make([]blockResponse, len(headers))
 
 	for index, header := range headers {
-		frb[index] = formatShardHeader(header)
+		frb[index] = convertShardHeader(header)
 	}
 
 	return frb
 }
 
-func formatShardHeader(header *external.BlockHeader) blockResponse {
+func convertShardHeader(header *external.BlockHeader) blockResponse {
 	return blockResponse{
 		Nonce:    header.Nonce,
 		ShardID:  header.ShardId,
@@ -97,7 +97,7 @@ func Block(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"block": formatShardHeader(&headerInfo.BlockHeader)})
+	c.JSON(http.StatusOK, gin.H{"block": convertShardHeader(&headerInfo.BlockHeader)})
 }
 
 // RecentBlocks returns a list of blockResponse objects containing most
@@ -115,5 +115,5 @@ func RecentBlocks(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"blocks": formattedRecentBlocks(recentBlocks)})
+	c.JSON(http.StatusOK, gin.H{"blocks": convertRecentBlocks(recentBlocks)})
 }

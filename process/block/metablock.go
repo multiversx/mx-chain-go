@@ -36,7 +36,7 @@ type metaProcessor struct {
 	*baseProcessor
 	dataPool dataRetriever.MetaPoolsHolder
 
-	OnRequestShardHeaderHandler   func(shardId uint32, mbHash []byte)
+	onRequestShardHeaderHandler   func(shardId uint32, mbHash []byte)
 	requestedShardHeaderHashes    map[string]bool
 	mutRequestedShardHeaderHashes sync.RWMutex
 
@@ -45,7 +45,7 @@ type metaProcessor struct {
 	nextKValidity         uint32
 	finalityAttestingHdrs []*block.Header
 
-	ChRcvAllHdrs chan bool
+	chRcvAllHdrs chan bool
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -95,7 +95,7 @@ func NewMetaProcessor(
 	mp := metaProcessor{
 		baseProcessor:               base,
 		dataPool:                    dataPool,
-		OnRequestShardHeaderHandler: requestHeaderHandler,
+		onRequestShardHeaderHandler: requestHeaderHandler,
 	}
 
 	mp.requestedShardHeaderHashes = make(map[string]bool)
@@ -103,7 +103,7 @@ func NewMetaProcessor(
 	headerPool := mp.dataPool.ShardHeaders()
 	headerPool.RegisterHandler(mp.receivedHeader)
 
-	mp.ChRcvAllHdrs = make(chan bool)
+	mp.chRcvAllHdrs = make(chan bool)
 
 	mp.finalityAttestingHdrs = make([]*block.Header, 0)
 	mp.nextKValidity = blockFinality
@@ -280,7 +280,7 @@ func (mp *metaProcessor) CreateBlockBody(round int32, haveTime func() bool) (dat
 func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int32, haveTime func() time.Duration) error {
 	hdrPool := mp.dataPool.ShardHeaders()
 
-	msg := "The following miniblock hashes weere successfully processed: "
+	msg := ""
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
@@ -306,7 +306,9 @@ func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int3
 		}
 	}
 
-	log.Info(fmt.Sprintf("%s\n", msg))
+	if len(msg) > 0 {
+		log.Info(fmt.Sprintf("The following miniblocks hashes were successfully processed:%s\n", msg))
+	}
 
 	return nil
 }
@@ -729,7 +731,7 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 		mp.mutRequestedShardHeaderHashes.Unlock()
 
 		if lenReqHeadersHashes == 0 {
-			mp.ChRcvAllHdrs <- true
+			mp.chRcvAllHdrs <- true
 		}
 
 		return
@@ -741,22 +743,18 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
 	mp.mutRequestedShardHeaderHashes.Lock()
 
-	requestedHeaders := 0
 	missingHeaderHashes := mp.computeMissingHeaders(header)
 	mp.requestedShardHeaderHashes = make(map[string]bool)
 
-	if mp.OnRequestShardHeaderHandler != nil {
-		for shardId, headerHash := range missingHeaderHashes {
-			requestedHeaders++
-			mp.requestedShardHeaderHashes[string(headerHash)] = true
-			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-			go mp.OnRequestShardHeaderHandler(shardId, headerHash)
-		}
+	for shardId, headerHash := range missingHeaderHashes {
+		mp.requestedShardHeaderHashes[string(headerHash)] = true
+		//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
+		go mp.onRequestShardHeaderHandler(shardId, headerHash)
 	}
 
 	mp.mutRequestedShardHeaderHashes.Unlock()
 
-	return requestedHeaders
+	return len(missingHeaderHashes)
 }
 
 func (mp *metaProcessor) computeMissingHeaders(header *block.MetaBlock) map[uint32][]byte {
@@ -966,7 +964,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round i
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 	select {
-	case <-mp.ChRcvAllHdrs:
+	case <-mp.chRcvAllHdrs:
 		return nil
 	case <-time.After(waitTime):
 		return process.ErrTimeIsOut

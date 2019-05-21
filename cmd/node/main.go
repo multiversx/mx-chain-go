@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -131,7 +132,7 @@ VERSION:
 	port = cli.IntFlag{
 		Name:  "port",
 		Usage: "Port number on which the application will start",
-		Value: 32000,
+		Value: 0,
 	}
 	// profileMode defines a flag for profiling the binary
 	profileMode = cli.StringFlag{
@@ -139,17 +140,29 @@ VERSION:
 		Usage: "Profiling mode. Available options: cpu, mem, mutex, block",
 		Value: "",
 	}
-	// txSignSkIndex defines a flag that specify the 0-th based index of the private key to be used from initialBalancesSk.pem file
+	// txSignSkIndex defines a flag that specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file
 	txSignSkIndex = cli.IntFlag{
 		Name:  "tx-sign-sk-index",
-		Usage: "Single sign private key index specify the 0-th based index of the private key to be used from initialBalancesSk.pem file.",
+		Usage: "Single sign private key index specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file.",
 		Value: 0,
 	}
-	// skIndex defines a flag that specify the 0-th based index of the private key to be used from initialNodesSk.pem file
+	// skIndex defines a flag that specifies the 0-th based index of the private key to be used from initialNodesSk.pem file
 	skIndex = cli.IntFlag{
 		Name:  "sk-index",
-		Usage: "Private key index specify the 0-th based index of the private key to be used from initialNodesSk.pem file.",
+		Usage: "Private key index specifies the 0-th based index of the private key to be used from initialNodesSk.pem file.",
 		Value: 0,
+	}
+	// numOfNodes defines a flag that specifies the maximum number of nodes which will be used from the initialNodes
+	numOfNodes = cli.Uint64Flag{
+		Name:  "num-of-nodes",
+		Usage: "Number of nodes specifies the maximum number of nodes which will be used from initialNodes list exposed in nodesSetup.json file",
+		Value: math.MaxUint64,
+	}
+	// storageCleanup defines a flag for choosing the option of starting the node from scratch. If it is not set (false)
+	// it starts from the last state stored on disk
+	storageCleanup = cli.BoolFlag{
+		Name:  "storage-cleanup",
+		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk",
 	}
 
 	configurationFile        = "./config/config.toml"
@@ -229,7 +242,7 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, nodesFile, port, txSignSk, sk, profileMode, txSignSkIndex, skIndex}
+	app.Flags = []cli.Flag{genesisFile, nodesFile, port, txSignSk, sk, profileMode, txSignSkIndex, skIndex, numOfNodes, storageCleanup}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -296,12 +309,6 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
 	}
-	uniqueID = strconv.Itoa(p2pConfig.Node.Port)
-
-	err = os.RemoveAll(config.DefaultPath() + uniqueID)
-	if err != nil {
-		return err
-	}
 
 	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name))
 	if err != nil {
@@ -309,7 +316,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(genesisFile.Name)))
 
-	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name))
+	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name), ctx.GlobalUint64(numOfNodes.Name))
 	if err != nil {
 		return err
 	}
@@ -340,16 +347,28 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		skIndex.Name,
 		initialNodesSkPemFile,
 		suite)
-
 	if err != nil {
 		return err
 	}
-
 	log.Info("Starting with public key: " + getPkEncoded(pubKey))
 
 	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
+	}
+
+	publicKey, err := pubKey.ToByteArray()
+	if err != nil {
+		return err
+	}
+
+	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
+	if storageCleanup {
+		uniqueID = core.GetTrimmedPk(hex.EncodeToString(publicKey))
+		err = os.RemoveAll(config.DefaultPath() + uniqueID)
+		if err != nil {
+			return err
+		}
 	}
 
 	var currentNode *node.Node
@@ -1127,8 +1146,8 @@ func createNetMessenger(
 	randReader io.Reader,
 ) (p2p.Messenger, error) {
 
-	if p2pConfig.Node.Port <= 0 {
-		return nil, errors.New("cannot start node on port <= 0")
+	if p2pConfig.Node.Port < 0 {
+		return nil, errors.New("cannot start node on port < 0")
 	}
 
 	pDiscoveryFactory := factoryP2P.NewPeerDiscovererCreator(*p2pConfig)

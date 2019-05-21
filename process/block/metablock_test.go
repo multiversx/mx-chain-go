@@ -274,7 +274,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 		func(shardID uint32, hdrHash []byte) {},
 	)
 	err := mp.ProcessBlock(&blockchain.MetaChain{}, &block.MetaBlock{}, nil, haveTime)
-	assert.Equal(t, process.ErrNilMiniBlocks, err)
+	assert.Equal(t, process.ErrNilBlockBody, err)
 }
 
 func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
@@ -449,7 +449,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	mp.SetLastNotarizedHeadersSlice(map[uint32]data.HeaderHandler{0: &block.Header{Nonce: 0, Round: 0}})
 
 	go func() {
-		mp.ChRcvAllHdrs <- true
+		mp.ChRcvAllHdrs() <- true
 	}()
 
 	// should return err
