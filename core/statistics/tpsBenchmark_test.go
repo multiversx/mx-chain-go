@@ -11,6 +11,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func updateTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark, txCount uint32) {
+	shardData := block.ShardData{
+		ShardId: 1,
+		HeaderHash: []byte{1},
+		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
+		TxCount: txCount,
+	}
+	metaBlock := &block.MetaBlock{
+		Nonce: 1,
+		Round: 2,
+		TxCount: txCount,
+		ShardInfo: []block.ShardData{shardData},
+	}
+	tpsBenchmark.Update(metaBlock)
+
+	_ = tpsBenchmark.ActiveNodes()
+	_ = tpsBenchmark.RoundTime()
+	_ = tpsBenchmark.BlockNumber()
+	_ = tpsBenchmark.RoundNumber()
+	_ = tpsBenchmark.AverageBlockTxCount()
+	_ = tpsBenchmark.LastBlockTxCount()
+	_ = tpsBenchmark.TotalProcessedTxCount()
+	_ = tpsBenchmark.LiveTPS()
+	_ = tpsBenchmark.PeakTPS()
+	_ = tpsBenchmark.NrOfShards()
+	_ = tpsBenchmark.ShardStatistics()
+}
 
 func TestTpsBenchmark_NewTPSBenchmarkReturnsErrorOnInvalidDuration(t *testing.T) {
 	t.Parallel()
@@ -294,62 +321,12 @@ func TestTpsBenchmark_Concurrent(t *testing.T) {
 	wg.Add(2)
 
 	go func() {
-		shardData := block.ShardData{
-			ShardId: 1,
-			HeaderHash: []byte{1},
-			ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
-			TxCount: txCount,
-		}
-		metaBlock := &block.MetaBlock{
-			Nonce: 1,
-			Round: 2,
-			TxCount: txCount,
-			ShardInfo: []block.ShardData{shardData},
-		}
-		tpsBenchmark.Update(metaBlock)
-
-		_ = tpsBenchmark.ActiveNodes()
-		_ = tpsBenchmark.RoundTime()
-		_ = tpsBenchmark.BlockNumber()
-		_ = tpsBenchmark.RoundNumber()
-		_ = tpsBenchmark.AverageBlockTxCount()
-		_ = tpsBenchmark.LastBlockTxCount()
-		_ = tpsBenchmark.TotalProcessedTxCount()
-		_ = tpsBenchmark.LiveTPS()
-		_ = tpsBenchmark.PeakTPS()
-		_ = tpsBenchmark.NrOfShards()
-		_ = tpsBenchmark.ShardStatistics()
-
+		updateTpsBenchmark(tpsBenchmark, txCount)
 		wg.Done()
 	}()
 
 	go func() {
-		shardData2 := block.ShardData{
-			ShardId: 1,
-			HeaderHash: []byte{1},
-			ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
-			TxCount: txCount,
-		}
-		metaBlock2 := &block.MetaBlock{
-			Nonce: 1,
-			Round: 2,
-			TxCount: txCount,
-			ShardInfo: []block.ShardData{shardData2},
-		}
-		tpsBenchmark.Update(metaBlock2)
-
-		_ = tpsBenchmark.ActiveNodes()
-		_ = tpsBenchmark.RoundTime()
-		_ = tpsBenchmark.BlockNumber()
-		_ = tpsBenchmark.RoundNumber()
-		_ = tpsBenchmark.AverageBlockTxCount()
-		_ = tpsBenchmark.LastBlockTxCount()
-		_ = tpsBenchmark.TotalProcessedTxCount()
-		_ = tpsBenchmark.LiveTPS()
-		_ = tpsBenchmark.PeakTPS()
-		_ = tpsBenchmark.NrOfShards()
-		_ = tpsBenchmark.ShardStatistics()
-
+		updateTpsBenchmark(tpsBenchmark, txCount)
 		wg.Done()
 	}()
 
@@ -387,7 +364,7 @@ func TestTpsBenchmark_ZeroTxMetaBlockAndEmptyShardHeader(t *testing.T) {
 	t.Parallel()
 
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 4)
-	
+
 	metaBlock := &block.MetaBlock{
 		Nonce: 1,
 		Round: 2,
