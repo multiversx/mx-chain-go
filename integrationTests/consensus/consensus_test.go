@@ -70,7 +70,7 @@ func checkBlockProposedEveryRound(numCommBlock uint32, combinedMap map[uint32]ui
 		minRound := ^uint32(0)
 		maxRound := uint32(0)
 		if uint32(len(combinedMap)) >= numCommBlock {
-			for k, _ := range combinedMap {
+			for k := range combinedMap {
 				if k > maxRound {
 					maxRound = k
 				}
@@ -92,31 +92,6 @@ func checkBlockProposedEveryRound(numCommBlock uint32, combinedMap map[uint32]ui
 				mutex.Unlock()
 				return
 			}
-		}
-
-		mutex.Unlock()
-
-		time.Sleep(time.Second * 2)
-	}
-}
-
-func checkBlockProposedForEachNonce(numCommBlock uint32, combinedMap map[uint64]uint32, minNonce, maxNonce *uint64,
-	mutex *sync.Mutex, chDone chan bool, t *testing.T) {
-	for {
-		mutex.Lock()
-
-		if *maxNonce > uint64(numCommBlock) {
-			for i := *minNonce; i <= *maxNonce; i++ {
-				if _, ok := combinedMap[i]; !ok {
-					assert.Fail(t, "consensus not reached in each round")
-					fmt.Println("combined map: \n", combinedMap)
-					mutex.Unlock()
-					return
-				}
-			}
-			chDone <- true
-			mutex.Unlock()
-			return
 		}
 
 		mutex.Unlock()
@@ -170,13 +145,14 @@ func TestConsensusBNFullTest(t *testing.T) {
 		_ = n.node.StartConsensus()
 	}
 
-	time.Sleep(time.Second * 20)
 	chDone := make(chan bool, 0)
 	go checkBlockProposedEveryRound(numCommBlock, combinedMap, mutex, chDone, t)
 
+	extraTime := uint32(2)
+	endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
 	select {
 	case <-chDone:
-	case <-time.After(40 * time.Second):
+	case <-time.After(endTime):
 		mutex.Lock()
 		fmt.Println("combined map: \n", combinedMap)
 		assert.Fail(t, "consensus too slow, not working.")
@@ -287,13 +263,14 @@ func TestConsensusBLSFullTest(t *testing.T) {
 		_ = n.node.StartConsensus()
 	}
 
-	time.Sleep(time.Second * 20)
 	chDone := make(chan bool, 0)
 	go checkBlockProposedEveryRound(numCommBlock, combinedMap, mutex, chDone, t)
 
+	extraTime := uint32(2)
+	endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
 	select {
 	case <-chDone:
-	case <-time.After(40 * time.Second):
+	case <-time.After(endTime):
 		mutex.Lock()
 		fmt.Println("combined map: \n", combinedMap)
 		assert.Fail(t, "consensus too slow, not working")
