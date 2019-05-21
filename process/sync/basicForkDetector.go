@@ -14,7 +14,7 @@ type headerInfo struct {
 	nonce       uint64
 	round       uint32
 	hash        []byte
-	isProcessed bool
+	isCommitted bool
 }
 
 type forkInfo struct {
@@ -56,7 +56,7 @@ func NewBasicForkDetector(rounder consensus.Rounder,
 }
 
 // AddHeader method adds a new header to headers map
-func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, isCommitted bool) error {
 	if header == nil {
 		return ErrNilHeader
 	}
@@ -69,7 +69,7 @@ func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, 
 		return err
 	}
 
-	if isProcessed {
+	if isCommitted {
 		// create a check point and remove all the past headers
 		bfd.mutFork.Lock()
 		bfd.fork.lastCheckpointNonce = bfd.fork.checkpointNonce
@@ -85,7 +85,7 @@ func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, 
 		nonce:       header.GetNonce(),
 		round:       header.GetRound(),
 		hash:        hash,
-		isProcessed: isProcessed,
+		isCommitted: isCommitted,
 	})
 
 	probableHighestNonce := bfd.computeProbableHighestNonce()
@@ -230,11 +230,11 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 
 	for _, hdrInfoStored := range hdrInfos {
 		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) {
-			if !hdrInfoStored.isProcessed && hdrInfo.isProcessed {
+			if !hdrInfoStored.isCommitted && hdrInfo.isCommitted {
 				// if the stored and received headers processed at the same time have equal hashes, that the old record
 				// will be replaced with the processed one. This nonce is marked at bootsrapping as processed, but as it
 				// is also received through broadcasting, the system stores as received.
-				hdrInfoStored.isProcessed = true
+				hdrInfoStored.isCommitted = true
 			}
 			return
 		}
@@ -261,7 +261,7 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64) {
 		lowestRoundInForkNonce = math.MaxUint32
 
 		for i := 0; i < len(hdrInfos); i++ {
-			if hdrInfos[i].isProcessed {
+			if hdrInfos[i].isCommitted {
 				selfHdrInfo = hdrInfos[i]
 				continue
 			}

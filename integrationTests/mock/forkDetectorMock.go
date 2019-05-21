@@ -6,7 +6,7 @@ import (
 
 // ForkDetectorMock is a mock implementation for the ForkDetector interface
 type ForkDetectorMock struct {
-	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, isProcessed bool) error
+	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, isCommitted bool) error
 	RemoveHeadersCalled             func(nonce uint64, hash []byte)
 	CheckForkCalled                 func() (bool, uint64)
 	GetHighestFinalBlockNonceCalled func() uint64
@@ -14,8 +14,8 @@ type ForkDetectorMock struct {
 }
 
 // AddHeader is a mock implementation for AddHeader
-func (f *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-	return f.AddHeaderCalled(header, hash, isProcessed)
+func (f *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+	return f.AddHeaderCalled(header, hash, isCommitted)
 }
 
 // RemoveHeaders is a mock implementation for RemoveHeaders

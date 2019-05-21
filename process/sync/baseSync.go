@@ -250,10 +250,10 @@ func emptyChannel(ch chan bool) {
 func isSigned(header data.HeaderHandler) bool {
 	// TODO: Later, here it should be done a more complex verification (signature for this round matches with the bitmap,
 	// and validators which signed here, were in this round consensus group)
-	bitmap := header.GetPubKeysBitmap()
-	isBitmapEmpty := bytes.Equal(bitmap, make([]byte, len(bitmap)))
+	randSeed := header.GetRandSeed()
+	isRandSeedEmpty := bytes.Equal(randSeed, make([]byte, len(randSeed)))
 
-	return !isBitmapEmpty
+	return !isRandSeedEmpty
 }
 
 func toB64(buff []byte) string {

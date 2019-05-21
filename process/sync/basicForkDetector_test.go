@@ -94,7 +94,7 @@ func TestBasicForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 	assert.Equal(t, hdr1.Nonce, bfd.CheckpointNonce())
 }
 
-func TestBasicForkDetector_AddHeaderPresentShouldRewriteIsProcessed(t *testing.T) {
+func TestBasicForkDetector_AddHeaderPresentShouldRewriteIsCommitted(t *testing.T) {
 	t.Parallel()
 	hdr1 := &block.Header{PubKeysBitmap: []byte("X")}
 	hash := []byte("hash1")
@@ -109,7 +109,7 @@ func TestBasicForkDetector_AddHeaderPresentShouldRewriteIsProcessed(t *testing.T
 	hInfos := bfd.GetHeaders(0)
 	assert.Equal(t, 1, len(hInfos))
 	assert.Equal(t, hash, hInfos[0].Hash())
-	assert.Equal(t, true, hInfos[0].IsProcessed())
+	assert.Equal(t, true, hInfos[0].IsCommitted())
 }
 
 func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testing.T) {

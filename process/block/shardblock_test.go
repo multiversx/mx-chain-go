@@ -835,7 +835,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
 				return nil
 			},
 		},
@@ -927,7 +927,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		},
 	}
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
 			return nil
 		},
 	}
@@ -1009,7 +1009,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 	forkDetectorAddCalled := false
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
 			if header == hdr {
 				forkDetectorAddCalled = true
 				return nil

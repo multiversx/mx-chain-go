@@ -216,7 +216,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return err
 	}
 
-	log.Debug(fmt.Sprintf("received %s from %s\n", wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.
+	log.Info(fmt.Sprintf("received %s from %s\n", wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.
 		MsgType)),
 		hex.EncodeToString(cnsDta.PubKey)))
 

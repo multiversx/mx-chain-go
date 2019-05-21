@@ -88,8 +88,8 @@ func (hi *headerInfo) Hash() []byte {
 	return hi.hash
 }
 
-func (hi *headerInfo) IsProcessed() bool {
-	return hi.isProcessed
+func (hi *headerInfo) IsCommitted() bool {
+	return hi.isCommitted
 }
 
 func (boot *ShardBootstrap) NotifySyncStateListeners() {

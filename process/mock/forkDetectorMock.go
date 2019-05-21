@@ -5,15 +5,15 @@ import (
 )
 
 type ForkDetectorMock struct {
-	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, isProcessed bool) error
+	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, isCommitted bool) error
 	RemoveHeadersCalled             func(nonce uint64, hash []byte)
 	CheckForkCalled                 func() (bool, uint64)
 	GetHighestFinalBlockNonceCalled func() uint64
 	ProbableHighestNonceCalled      func() uint64
 }
 
-func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-	return fdm.AddHeaderCalled(header, hash, isProcessed)
+func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+	return fdm.AddHeaderCalled(header, hash, isCommitted)
 }
 
 func (fdm *ForkDetectorMock) RemoveHeaders(nonce uint64, hash []byte) {

@@ -1387,9 +1387,9 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-		if isProcessed {
-			return errors.New("processed")
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+		if isCommitted {
+			return errors.New("committed")
 		}
 
 		if !bytes.Equal(hash, addedHash) {
@@ -1441,9 +1441,9 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddTo
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-		if isProcessed {
-			return errors.New("processed")
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+		if isCommitted {
+			return errors.New("committed")
 		}
 
 		if !bytes.Equal(hash, addedHash) {
