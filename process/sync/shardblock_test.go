@@ -237,9 +237,6 @@ func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.For
 		ProbableHighestNonceCalled: func() uint64 {
 			return uint64(0)
 		},
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-			return nil
-		},
 	}
 }
 
@@ -2003,7 +2000,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
-			RandSeed: []byte{1},
+			RandSeed: []byte("X"),
 			Nonce:    newHdrNonce,
 		}
 	}
