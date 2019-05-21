@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/random"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
@@ -125,6 +126,7 @@ func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier st
 		rcf.messenger,
 		identifier,
 		rcf.marshalizer,
+		&random.IntRandomizerConcurrentSafe{},
 	)
 	if err != nil {
 		return nil, err
@@ -166,6 +168,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 		rcf.messenger,
 		identifier,
 		rcf.marshalizer,
+		&random.IntRandomizerConcurrentSafe{},
 	)
 	if err != nil {
 		return nil, err
