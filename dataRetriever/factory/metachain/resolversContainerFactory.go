@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/random"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
@@ -18,6 +19,7 @@ type resolversContainerFactory struct {
 	marshalizer              marshal.Marshalizer
 	dataPools                dataRetriever.MetaPoolsHolder
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	intRandomizer            dataRetriever.IntRandomizer
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -56,6 +58,7 @@ func NewResolversContainerFactory(
 		marshalizer:              marshalizer,
 		dataPools:                dataPools,
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
+		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
 	}, nil
 }
 
@@ -125,6 +128,7 @@ func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier st
 		rcf.messenger,
 		identifier,
 		rcf.marshalizer,
+		rcf.intRandomizer,
 	)
 	if err != nil {
 		return nil, err
@@ -166,6 +170,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 		rcf.messenger,
 		identifier,
 		rcf.marshalizer,
+		rcf.intRandomizer,
 	)
 	if err != nil {
 		return nil, err

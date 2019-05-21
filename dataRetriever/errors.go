@@ -157,3 +157,6 @@ var ErrNilMetaBlockNoncesPool = errors.New("nil meta block nonces data pool")
 
 // ErrNoSuchStorageUnit defines the error for using an invalid storage unit
 var ErrNoSuchStorageUnit = errors.New("no such unit type")
+
+// ErrNilRandomizer signals that a nil randomizer has been provided
+var ErrNilRandomizer = errors.New("nil randomizer")
