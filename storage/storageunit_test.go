@@ -2,6 +2,7 @@ package storage_test
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -536,14 +537,47 @@ func TestCreateDBFromConfWrongType(t *testing.T) {
 	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
 }
 
-func TestCreateDBFromConfWrongFileName(t *testing.T) {
+func TestCreateDBFromConfWrongFileNameLvlDB(t *testing.T) {
 	persister, err := storage.NewDB(storage.LvlDB, "")
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
 }
 
-func TestCreateDBFromConfOk(t *testing.T) {
-	persister, err := storage.NewDB(storage.LvlDB, "tmp")
+func TestCreateDBFromConfWrongFileNameBoltDB(t *testing.T) {
+	persister, err := storage.NewDB(storage.BoltDB, "")
+	assert.NotNil(t, err, "error expected")
+	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
+}
+
+func TestCreateDBFromConfWrongFileNameBadgerDB(t *testing.T) {
+	persister, err := storage.NewDB(storage.BadgerDB, "")
+	assert.NotNil(t, err, "error expected")
+	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
+}
+
+func TestCreateDBFromConfLvlDBOk(t *testing.T) {
+	dir, err := ioutil.TempDir("", "leveldb_temp")
+	persister, err := storage.NewDB(storage.LvlDB, dir)
+	assert.Nil(t, err, "no error expected")
+	assert.NotNil(t, persister, "valid persister expected but got nil")
+
+	err = persister.Destroy()
+	assert.Nil(t, err, "no error expected destroying the persister")
+}
+
+func TestCreateDBFromConfBoltDBOk(t *testing.T) {
+	dir, err := ioutil.TempDir("", "leveldb_temp")
+	persister, err := storage.NewDB(storage.BoltDB, dir)
+	assert.Nil(t, err, "no error expected")
+	assert.NotNil(t, persister, "valid persister expected but got nil")
+
+	err = persister.Destroy()
+	assert.Nil(t, err, "no error expected destroying the persister")
+}
+
+func TestCreateDBFromConfBadgerDBOk(t *testing.T) {
+	dir, err := ioutil.TempDir("", "leveldb_temp")
+	persister, err := storage.NewDB(storage.BadgerDB, dir)
 	assert.Nil(t, err, "no error expected")
 	assert.NotNil(t, persister, "valid persister expected but got nil")
 
@@ -620,7 +654,7 @@ func TestNewStorageUnit_FromConfWrongDBConfig(t *testing.T) {
 	assert.Nil(t, storer, "storer expected to be nil but got %s", storer)
 }
 
-func TestNewStorageUnit_FromConfOk(t *testing.T) {
+func TestNewStorageUnit_FromConfLvlDBOk(t *testing.T) {
 	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
 		Size: 10,
 		Type: storage.LRUCache,
@@ -638,7 +672,43 @@ func TestNewStorageUnit_FromConfOk(t *testing.T) {
 	assert.Nil(t, err, "no error expected destroying the persister")
 }
 
-func TestNewStorageUnit_WithBlankBloomFilterShouldWork(t *testing.T) {
+func TestNewStorageUnit_FromConfBoltDBOk(t *testing.T) {
+	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
+		Size: 10,
+		Type: storage.LRUCache,
+	}, storage.DBConfig{
+		FilePath: "Blocks",
+		Type:     storage.BoltDB,
+	}, storage.BloomConfig{
+		Size:     2048,
+		HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv},
+	})
+
+	assert.Nil(t, err, "no error expected but got %s", err)
+	assert.NotNil(t, storer, "valid storer expected but got nil")
+	err = storer.DestroyUnit()
+	assert.Nil(t, err, "no error expected destroying the persister")
+}
+
+func TestNewStorageUnit_FromConfBadgerDBOk(t *testing.T) {
+	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
+		Size: 10,
+		Type: storage.LRUCache,
+	}, storage.DBConfig{
+		FilePath: "Blocks",
+		Type:     storage.BadgerDB,
+	}, storage.BloomConfig{
+		Size:     2048,
+		HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv},
+	})
+
+	assert.Nil(t, err, "no error expected but got %s", err)
+	assert.NotNil(t, storer, "valid storer expected but got nil")
+	err = storer.DestroyUnit()
+	assert.Nil(t, err, "no error expected destroying the persister")
+}
+
+func TestNewStorageUnit_WithBlankBloomFilterShouldWorkLvlDB(t *testing.T) {
 	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
 		Size: 10,
 		Type: storage.LRUCache,
@@ -654,7 +724,39 @@ func TestNewStorageUnit_WithBlankBloomFilterShouldWork(t *testing.T) {
 	assert.Nil(t, err, "no error expected destroying the persister")
 }
 
-func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilter(t *testing.T) {
+func TestNewStorageUnit_WithBlankBloomFilterShouldWorkBoltDB(t *testing.T) {
+	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
+		Size: 10,
+		Type: storage.LRUCache,
+	}, storage.DBConfig{
+		FilePath: "Blocks",
+		Type:     storage.BoltDB,
+	}, storage.BloomConfig{})
+
+	assert.Nil(t, err, "no error expected but got %s", err)
+	assert.NotNil(t, storer, "valid storer expected but got nil")
+	assert.Nil(t, storer.GetBlomFilter())
+	err = storer.DestroyUnit()
+	assert.Nil(t, err, "no error expected destroying the persister")
+}
+
+func TestNewStorageUnit_WithBlankBloomFilterShouldWorkBadgerDB(t *testing.T) {
+	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
+		Size: 10,
+		Type: storage.LRUCache,
+	}, storage.DBConfig{
+		FilePath: "Blocks",
+		Type:     storage.BadgerDB,
+	}, storage.BloomConfig{})
+
+	assert.Nil(t, err, "no error expected but got %s", err)
+	assert.NotNil(t, storer, "valid storer expected but got nil")
+	assert.Nil(t, storer.GetBlomFilter())
+	err = storer.DestroyUnit()
+	assert.Nil(t, err, "no error expected destroying the persister")
+}
+
+func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterLvlDB(t *testing.T) {
 	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
 		Size: 10,
 		Type: storage.LRUCache,
@@ -673,13 +775,83 @@ func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilter(t *testing.
 	assert.Nil(t, err, "no error expected destroying the persister")
 }
 
-func TestNewStorageUnit_WithInvalidConfigBloomFilterShouldErr(t *testing.T) {
+func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterBoltDB(t *testing.T) {
+	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
+		Size: 10,
+		Type: storage.LRUCache,
+	}, storage.DBConfig{
+		FilePath: "Blocks",
+		Type:     storage.BoltDB,
+	}, storage.BloomConfig{
+		Size:     2048,
+		HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv},
+	})
+
+	assert.Nil(t, err, "no error expected but got %s", err)
+	assert.NotNil(t, storer, "valid storer expected but got nil")
+	assert.NotNil(t, storer.GetBlomFilter())
+	err = storer.DestroyUnit()
+	assert.Nil(t, err, "no error expected destroying the persister")
+}
+
+func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterBadgerDB(t *testing.T) {
+	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
+		Size: 10,
+		Type: storage.LRUCache,
+	}, storage.DBConfig{
+		FilePath: "Blocks",
+		Type:     storage.BadgerDB,
+	}, storage.BloomConfig{
+		Size:     2048,
+		HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv},
+	})
+
+	assert.Nil(t, err, "no error expected but got %s", err)
+	assert.NotNil(t, storer, "valid storer expected but got nil")
+	assert.NotNil(t, storer.GetBlomFilter())
+	err = storer.DestroyUnit()
+	assert.Nil(t, err, "no error expected destroying the persister")
+}
+
+func TestNewStorageUnit_WithInvalidConfigBloomFilterLvlDBShouldErr(t *testing.T) {
 	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
 		Size: 10,
 		Type: storage.LRUCache,
 	}, storage.DBConfig{
 		FilePath: "Blocks",
 		Type:     storage.LvlDB,
+	}, storage.BloomConfig{
+		Size:     2048,
+		HashFunc: []storage.HasherType{storage.Keccak, storage.HasherType("invalid"), storage.Fnv},
+	})
+
+	assert.Equal(t, "hash type not supported", err.Error())
+	assert.Nil(t, storer)
+}
+
+func TestNewStorageUnit_WithInvalidConfigBloomFilterBoltDBShouldErr(t *testing.T) {
+	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
+		Size: 10,
+		Type: storage.LRUCache,
+	}, storage.DBConfig{
+		FilePath: "Blocks",
+		Type:     storage.BoltDB,
+	}, storage.BloomConfig{
+		Size:     2048,
+		HashFunc: []storage.HasherType{storage.Keccak, storage.HasherType("invalid"), storage.Fnv},
+	})
+
+	assert.Equal(t, "hash type not supported", err.Error())
+	assert.Nil(t, storer)
+}
+
+func TestNewStorageUnit_WithInvalidConfigBloomFilterBadgerDBShouldErr(t *testing.T) {
+	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
+		Size: 10,
+		Type: storage.LRUCache,
+	}, storage.DBConfig{
+		FilePath: "Blocks",
+		Type:     storage.BadgerDB,
 	}, storage.BloomConfig{
 		Size:     2048,
 		HashFunc: []storage.HasherType{storage.Keccak, storage.HasherType("invalid"), storage.Fnv},

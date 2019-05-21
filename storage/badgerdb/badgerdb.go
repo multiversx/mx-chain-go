@@ -106,7 +106,6 @@ func (s *DB) Remove(key []byte) error {
 
 // Destroy removes the storage medium stored data
 func (s *DB) Destroy() error {
-	_ = s.db.Close()
 	err := os.RemoveAll(s.path)
 	return err
 }

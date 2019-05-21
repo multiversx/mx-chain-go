@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/badgerdb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/boltdb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 )
@@ -39,6 +40,7 @@ const (
 const (
 	LvlDB    DBType = "LvlDB"
 	BadgerDB DBType = "BadgerDB"
+	BoltDB   DBType = "BoltDB"
 )
 
 const (
@@ -349,6 +351,8 @@ func NewDB(dbType DBType, path string) (Persister, error) {
 		db, err = leveldb.NewDB(path)
 	case BadgerDB:
 		db, err = badgerdb.NewDB(path)
+	case BoltDB:
+		db, err = boltdb.NewDB(path)
 	default:
 		return nil, errNotSupportedDBType
 	}
