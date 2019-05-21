@@ -9,6 +9,7 @@ require (
 	github.com/btcsuite/btcd v0.0.0-20190315201642-aa6e0f35703c
 	github.com/cornelk/hashmap v1.0.1-0.20190121140111-33e58823eb9d
 	github.com/davecgh/go-spew v1.1.1
+	github.com/dgraph-io/badger v1.5.5-0.20190226225317-8115aed38f8f
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
 	github.com/gin-gonic/gin v1.3.0
 	github.com/glycerine/go-capnproto v0.0.0-20190118050403-2d07de3aa7fc
@@ -31,8 +32,6 @@ require (
 	github.com/libp2p/go-libp2p-peerstore v0.0.1
 	github.com/libp2p/go-libp2p-protocol v0.0.1
 	github.com/libp2p/go-libp2p-pubsub v0.0.3
-	github.com/libp2p/go-libp2p-transport-upgrader v0.0.1
-	github.com/libp2p/go-tcp-transport v0.0.1
 	github.com/mr-tron/base58 v1.1.1
 	github.com/multiformats/go-multiaddr v0.0.2
 	github.com/multiformats/go-multistream v0.0.1

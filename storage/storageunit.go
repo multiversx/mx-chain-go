@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/badgerdb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
@@ -36,7 +37,8 @@ const (
 // LvlDB currently the only supported DBs
 // More to be added
 const (
-	LvlDB DBType = "LvlDB"
+	LvlDB    DBType = "LvlDB"
+	BadgerDB DBType = "BadgerDB"
 )
 
 const (
@@ -348,6 +350,8 @@ func NewDB(dbType DBType, path string) (Persister, error) {
 	switch dbType {
 	case LvlDB:
 		db, err = leveldb.NewDB(path)
+	case BadgerDB:
+		db, err = badgerdb.NewDB(path)
 	default:
 		return nil, errNotSupportedDBType
 	}
