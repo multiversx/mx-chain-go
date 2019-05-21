@@ -1129,8 +1129,8 @@ func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
 		func(destShardID uint32, txHash []byte) {},
 	)
 	shardId := uint32(1)
-	txHash1 := []byte("tx1_hash")
-	txHash2 := []byte("tx2_hash")
+	txHash1 := []byte("tx_hash1")
+	txHash2 := []byte("tx_hash2")
 	body := make(block.Body, 0)
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
