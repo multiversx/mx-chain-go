@@ -225,14 +225,10 @@ func TestMetaProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-		return nil
-	}
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
 		mdp,
-		forkDetectorMock,
+		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
@@ -267,14 +263,10 @@ func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-		return nil
-	}
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
 		mdp,
-		forkDetectorMock,
+		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
@@ -320,17 +312,13 @@ func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		RootHash:      []byte("roothash"),
 	}
 	body := &block.MetaBlockBody{}
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-		return nil
-	}
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revToSnapshot,
 		},
 		mdp,
-		forkDetectorMock,
+		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
@@ -347,14 +335,10 @@ func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-		return nil
-	}
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
 		mdp,
-		forkDetectorMock,
+		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
@@ -375,14 +359,10 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-		return nil
-	}
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
 		mdp,
-		forkDetectorMock,
+		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
@@ -406,14 +386,10 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-		return nil
-	}
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{},
 		mdp,
-		forkDetectorMock,
+		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
@@ -456,10 +432,6 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	rootHashCalled := func() []byte {
 		return []byte("rootHashX")
 	}
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-		return nil
-	}
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.AccountsStub{
 			JournalLenCalled:       journalLen,
@@ -467,7 +439,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 			RootHashCalled:         rootHashCalled,
 		},
 		mdp,
-		forkDetectorMock,
+		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},

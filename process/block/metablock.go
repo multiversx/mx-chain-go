@@ -145,11 +145,6 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
-	errNotCritical := mp.addHeaderToForkMechanism(headerHandler)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-	}
-
 	err := mp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err

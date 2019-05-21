@@ -23,6 +23,7 @@ type Worker struct {
 	blockProcessor   process.BlockProcessor
 	bootstraper      process.Bootstrapper
 	consensusState   *ConsensusState
+	forkDetector     process.ForkDetector
 	keyGenerator     crypto.KeyGenerator
 	marshalizer      marshal.Marshalizer
 	privateKey       crypto.PrivateKey
@@ -49,6 +50,7 @@ func NewWorker(
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	consensusState *ConsensusState,
+	forkDetector process.ForkDetector,
 	keyGenerator crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 	privateKey crypto.PrivateKey,
@@ -63,6 +65,7 @@ func NewWorker(
 		blockProcessor,
 		bootstraper,
 		consensusState,
+		forkDetector,
 		keyGenerator,
 		marshalizer,
 		privateKey,
@@ -81,6 +84,7 @@ func NewWorker(
 		blockProcessor:   blockProcessor,
 		bootstraper:      bootstraper,
 		consensusState:   consensusState,
+		forkDetector:     forkDetector,
 		keyGenerator:     keyGenerator,
 		marshalizer:      marshalizer,
 		privateKey:       privateKey,
@@ -107,6 +111,7 @@ func checkNewWorkerParams(
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	consensusState *ConsensusState,
+	forkDetector process.ForkDetector,
 	keyGenerator crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 	privateKey crypto.PrivateKey,
@@ -127,6 +132,9 @@ func checkNewWorkerParams(
 	}
 	if consensusState == nil {
 		return ErrNilConsensusState
+	}
+	if forkDetector == nil {
+		return ErrNilForkDetector
 	}
 	if keyGenerator == nil {
 		return ErrNilKeyGenerator
@@ -218,8 +226,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return err
 	}
 
+	msgType := consensus.MessageType(cnsDta.MsgType)
+
 	log.Debug(fmt.Sprintf("received %s from %s for consensus message with with header hash %s and round %d\n",
-		wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.MsgType)),
+		wrk.consensusService.GetStringValue(msgType),
 		core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
 		base64.StdEncoding.EncodeToString(cnsDta.BlockHeaderHash),
 		cnsDta.RoundIndex,
@@ -245,6 +255,15 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		//in this case should return nil but do not process the message
 		//nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
 		return nil
+	}
+
+	if wrk.consensusService.IsMessageWithBlockHeader(msgType) {
+		headerHash := cnsDta.BlockHeaderHash
+		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
+		errNotCritical = wrk.forkDetector.AddHeader(header, headerHash, false)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
 	}
 
 	go wrk.executeReceivedMessages(cnsDta)

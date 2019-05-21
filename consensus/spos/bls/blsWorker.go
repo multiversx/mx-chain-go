@@ -60,3 +60,8 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 
 	return false
 }
+
+//IsMessageWithBlockHeader returns if the current messageType is about block header
+func (wrk *worker) IsMessageWithBlockHeader(msgType consensus.MessageType) bool {
+	return msgType == MtBlockHeader
+}

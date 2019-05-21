@@ -362,9 +362,10 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
+	uniqueID = core.GetTrimmedPk(hex.EncodeToString(publicKey))
+
 	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanup {
-		uniqueID = core.GetTrimmedPk(hex.EncodeToString(publicKey))
 		err = os.RemoveAll(config.DefaultPath() + uniqueID)
 		if err != nil {
 			return err

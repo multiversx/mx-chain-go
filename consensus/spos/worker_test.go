@@ -31,11 +31,18 @@ func broadcastBlock(txBlockBody data.BodyHandler, header data.HeaderHandler) err
 
 func initWorker() *spos.Worker {
 	blockProcessor := &mock.BlockProcessorMock{
+		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
+			return nil
+		},
 		RevertAccountStateCalled: func() {
 		},
 	}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+		return nil
+	}
 	keyGeneratorMock, privateKeyMock, _ := mock.InitKeys()
 	marshalizerMock := mock.MarshalizerMock{}
 	rounderMock := initRounderMock()
@@ -56,6 +63,7 @@ func initWorker() *spos.Worker {
 		blockProcessor,
 		bootstraperMock,
 		consensusState,
+		forkDetectorMock,
 		keyGeneratorMock,
 		marshalizerMock,
 		privateKeyMock,
@@ -86,6 +94,7 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -97,6 +106,7 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 		blockProcessor,
 		bootstraperMock,
 		consensusState,
+		forkDetectorMock,
 		keyGeneratorMock,
 		marshalizerMock,
 		privateKeyMock,
@@ -115,6 +125,7 @@ func TestWorker_NewWorkerBlockprocessorNilShouldFail(t *testing.T) {
 	t.Parallel()
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -127,6 +138,7 @@ func TestWorker_NewWorkerBlockprocessorNilShouldFail(t *testing.T) {
 		nil,
 		bootstraperMock,
 		consensusState,
+		forkDetectorMock,
 		keyGeneratorMock,
 		marshalizerMock,
 		privateKeyMock,
@@ -145,6 +157,7 @@ func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -158,6 +171,7 @@ func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 		blockProcessor,
 		nil,
 		consensusState,
+		forkDetectorMock,
 		keyGeneratorMock,
 		marshalizerMock,
 		privateKeyMock,
@@ -176,6 +190,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
+	forkDetectorMock := &mock.ForkDetectorMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -189,6 +204,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 		blockProcessor,
 		bootstraperMock,
 		nil,
+		forkDetectorMock,
 		keyGeneratorMock,
 		marshalizerMock,
 		privateKeyMock,
@@ -203,11 +219,12 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
-func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
+	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	rounderMock := initRounderMock()
@@ -220,6 +237,40 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 		blockProcessor,
 		bootstraperMock,
 		consensusState,
+		nil,
+		keyGeneratorMock,
+		marshalizerMock,
+		privateKeyMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+		broadcastBlock,
+		sendMessage,
+	)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilForkDetector, err)
+}
+
+func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
+	t.Parallel()
+	blockProcessor := &mock.BlockProcessorMock{}
+	bootstraperMock := &mock.BootstraperMock{}
+	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+	bnService, _ := bn.NewConsensusService()
+
+	wrk, err := spos.NewWorker(
+		bnService,
+		blockProcessor,
+		bootstraperMock,
+		consensusState,
+		forkDetectorMock,
 		nil,
 		marshalizerMock,
 		privateKeyMock,
@@ -239,6 +290,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	rounderMock := initRounderMock()
@@ -251,6 +303,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		blockProcessor,
 		bootstraperMock,
 		consensusState,
+		forkDetectorMock,
 		keyGeneratorMock,
 		nil,
 		privateKeyMock,
@@ -270,6 +323,7 @@ func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	rounderMock := initRounderMock()
@@ -282,6 +336,7 @@ func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 		blockProcessor,
 		bootstraperMock,
 		consensusState,
+		forkDetectorMock,
 		keyGeneratorMock,
 		marshalizerMock,
 		nil,
@@ -301,6 +356,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -313,6 +369,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 		blockProcessor,
 		bootstraperMock,
 		consensusState,
+		forkDetectorMock,
 		keyGeneratorMock,
 		marshalizerMock,
 		privateKeyMock,
@@ -332,6 +389,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -344,6 +402,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 		blockProcessor,
 		bootstraperMock,
 		consensusState,
+		forkDetectorMock,
 		keyGeneratorMock,
 		marshalizerMock,
 		privateKeyMock,
@@ -363,6 +422,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -375,6 +435,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 		blockProcessor,
 		bootstraperMock,
 		consensusState,
+		forkDetectorMock,
 		keyGeneratorMock,
 		marshalizerMock,
 		privateKeyMock,
@@ -394,6 +455,7 @@ func TestWorker_NewWorkerBroadcastBlockNilShouldFail(t *testing.T) {
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -407,6 +469,7 @@ func TestWorker_NewWorkerBroadcastBlockNilShouldFail(t *testing.T) {
 		blockProcessor,
 		bootstraperMock,
 		consensusState,
+		forkDetectorMock,
 		keyGeneratorMock,
 		marshalizerMock,
 		privateKeyMock,
@@ -426,6 +489,7 @@ func TestWorker_NewWorkerSendMessageNilShouldFail(t *testing.T) {
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -439,6 +503,7 @@ func TestWorker_NewWorkerSendMessageNilShouldFail(t *testing.T) {
 		blockProcessor,
 		bootstraperMock,
 		consensusState,
+		forkDetectorMock,
 		keyGeneratorMock,
 		marshalizerMock,
 		privateKeyMock,
@@ -458,6 +523,7 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -471,6 +537,7 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 		blockProcessor,
 		bootstraperMock,
 		consensusState,
+		forkDetectorMock,
 		keyGeneratorMock,
 		marshalizerMock,
 		privateKeyMock,
@@ -754,7 +821,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(bn.MtBlockBody),
+		int(bn.MtBlockHeader),
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
@@ -762,7 +829,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
 	time.Sleep(time.Second)
 
-	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
+	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bn.MtBlockHeader]))
 	assert.Nil(t, err)
 }
 

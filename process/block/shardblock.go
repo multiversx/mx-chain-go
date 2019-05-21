@@ -134,11 +134,6 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
-	errNotCritical := sp.addHeaderToForkMechanism(headerHandler)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-	}
-
 	err := sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err

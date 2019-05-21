@@ -112,26 +112,6 @@ func (bp *baseProcessor) checkBlockValidity(
 	return nil
 }
 
-// addHeaderToForkMechanism adds the given header to the fork detector as a non committed header
-func (bp *baseProcessor) addHeaderToForkMechanism(headerHandler data.HeaderHandler) error {
-	if headerHandler == nil {
-		return process.ErrNilBlockHeader
-	}
-
-	buff, err := bp.marshalizer.Marshal(headerHandler)
-	if err != nil {
-		return err
-	}
-
-	headerHash := bp.hasher.Compute(string(buff))
-	err = bp.forkDetector.AddHeader(headerHandler, headerHash, false)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // verifyStateRoot verifies the state root hash given as parameter against the
 // Merkle trie root hash stored for accounts and returns if equal or not
 func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
