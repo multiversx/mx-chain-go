@@ -134,17 +134,15 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
+	errNotCritical := sp.addHeaderToForkMechanism(headerHandler)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
 	err := sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
-
-	buff, err := sp.marshalizer.Marshal(headerHandler)
-	if err != nil {
-		return err
-	}
-
-	headerHash := sp.hasher.Compute(string(buff))
 
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
@@ -191,11 +189,6 @@ func (sp *shardProcessor) ProcessBlock(
 	if !sp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateMissmatch
 		return err
-	}
-
-	errNotCritical := sp.forkDetector.AddHeader(header, headerHash, false)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
 	}
 
 	return nil

@@ -145,17 +145,15 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
+	errNotCritical := mp.addHeaderToForkMechanism(headerHandler)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
 	err := mp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
-
-	buff, err := mp.marshalizer.Marshal(headerHandler)
-	if err != nil {
-		return err
-	}
-
-	headerHash := mp.hasher.Compute(string(buff))
 
 	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
@@ -211,11 +209,6 @@ func (mp *metaProcessor) ProcessBlock(
 	if !mp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateMissmatch
 		return err
-	}
-
-	errNotCritical := mp.forkDetector.AddHeader(header, headerHash, false)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
 	}
 
 	return nil

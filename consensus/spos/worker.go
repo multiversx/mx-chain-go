@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -217,9 +218,12 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return err
 	}
 
-	log.Info(fmt.Sprintf("received %s from %s\n", wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.
-		MsgType)),
-		core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey))))
+	log.Debug(fmt.Sprintf("received %s from %s for consensus message with with header hash %s and round %d\n",
+		wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.MsgType)),
+		core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
+		base64.StdEncoding.EncodeToString(cnsDta.BlockHeaderHash),
+		cnsDta.RoundIndex,
+	))
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
