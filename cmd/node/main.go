@@ -308,8 +308,10 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with nodes config from: %s", ctx.GlobalString(nodesFile.Name)))
 
-	syncer := ntp.NewSyncTime(time.Hour)
+	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, time.Hour)
 	go syncer.StartSync()
+
+	log.Info(fmt.Sprintf("NTP average clock offset: %s", syncer.ClockOffset()))
 
 	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
 	if nodesConfig.StartTime == 0 {
@@ -319,6 +321,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 
 	startTime := time.Unix(nodesConfig.StartTime, 0)
+
+	log.Info(fmt.Sprintf("Start time formatted: %s", startTime.Format("Mon Jan 2 15:04:05 MST 2006")))
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
 
 	suite, err := getSuite(generalConfig)

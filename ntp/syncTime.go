@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/beevik/ntp"
 	beevikntp "github.com/beevik/ntp"
 )
@@ -22,14 +23,14 @@ type NTPOptions struct {
 }
 
 // NewNTPOptions creates a new NTPOptions object.
-func NewNTPOptions() NTPOptions {
+func NewNTPOptions(ntpConfig config.NTPConfig) NTPOptions {
 	// TODO Read these values from configurations.
 	return NTPOptions{
-		Host:         "127.0.0.1",
-		Port:         1123,
-		Version:      0,
+		Host:         ntpConfig.Host,
+		Port:         ntpConfig.Port,
+		Version:      ntpConfig.Version,
 		LocalAddress: "",
-		Timeout:      0}
+		Timeout:      ntpConfig.Timeout}
 }
 
 // queryNTP wraps beevikntp.QueryWithOptions, in order to use NTPOptions, which
@@ -48,12 +49,17 @@ type syncTime struct {
 	mut         sync.RWMutex
 	clockOffset time.Duration
 	syncPeriod  time.Duration
+	ntpOptions  NTPOptions
 	query       func(options NTPOptions) (*ntp.Response, error)
 }
 
 // NewSyncTime creates a syncTime object
-func NewSyncTime(syncPeriod time.Duration) *syncTime {
-	s := syncTime{clockOffset: 0, syncPeriod: syncPeriod, query: queryNTP}
+func NewSyncTime(ntpConfig config.NTPConfig, syncPeriod time.Duration) *syncTime {
+	s := syncTime{
+		clockOffset: 0,
+		syncPeriod:  syncPeriod,
+		query:       queryNTP,
+		ntpOptions:  NewNTPOptions(ntpConfig)}
 	return &s
 }
 
@@ -74,11 +80,14 @@ func (s *syncTime) sync() {
 		succeededRequests := 0
 
 		for i := 0; i < totalRequests; i++ {
-			r, err := s.query(NewNTPOptions())
+			r, err := s.query(s.ntpOptions)
 
 			if err != nil {
+				fmt.Println("NTP Error: %s", err)
 				continue
 			}
+
+			fmt.Println(fmt.Sprintf("NTP reading: %s", r.Time.Format("Mon Jan 2 15:04:05 MST 2006")))
 
 			succeededRequests++
 			clockOffsetSum += r.ClockOffset
