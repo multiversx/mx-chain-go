@@ -85,8 +85,8 @@ func (s *syncTime) sync() {
 		}
 
 		if succeededRequests > 0 {
-			averrageClockOffset := time.Duration(int64(clockOffsetSum) / int64(succeededRequests))
-			s.setClockOffset(averrageClockOffset)
+			averageClockOffset := time.Duration(int64(clockOffsetSum) / int64(succeededRequests))
+			s.setClockOffset(averageClockOffset)
 		}
 	}
 }
