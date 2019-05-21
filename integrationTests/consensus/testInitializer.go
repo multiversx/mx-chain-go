@@ -28,8 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/consensus/mock"
-	integrationMock "github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
@@ -186,7 +185,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &integrationMock.AccountsFactoryStub{
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
 			return state.NewAccount(address, tracker)
 		},
