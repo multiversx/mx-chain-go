@@ -63,14 +63,32 @@ func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint
 	return nodes, advertiser, concMap
 }
 
-func checkBlockProposedEveryRound(numCommBlock uint32, combinedMap map[uint32]uint64, mutex *sync.Mutex, chDone chan bool, t *testing.T) {
+func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRoundMap map[uint32]uint64, totalCalled *int) {
+	for _, n := range nodes {
+		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+			n.blkProcessor.NrCommitBlockCalled++
+			_ = blockChain.SetCurrentBlockHeader(header)
+			_ = blockChain.SetCurrentBlockBody(body)
+
+			mutex.Lock()
+			nonceForRoundMap[header.GetRound()] = header.GetNonce()
+			*totalCalled += 1
+			mutex.Unlock()
+
+			return nil
+		}
+		_ = n.node.StartConsensus()
+	}
+}
+
+func checkBlockProposedEveryRound(numCommBlock uint32, nonceForRoundMap map[uint32]uint64, mutex *sync.Mutex, chDone chan bool, t *testing.T) {
 	for {
 		mutex.Lock()
 
 		minRound := ^uint32(0)
 		maxRound := uint32(0)
-		if uint32(len(combinedMap)) >= numCommBlock {
-			for k := range combinedMap {
+		if uint32(len(nonceForRoundMap)) >= numCommBlock {
+			for k := range nonceForRoundMap {
 				if k > maxRound {
 					maxRound = k
 				}
@@ -81,9 +99,9 @@ func checkBlockProposedEveryRound(numCommBlock uint32, combinedMap map[uint32]ui
 
 			if maxRound-minRound >= numCommBlock {
 				for i := minRound; i <= maxRound; i++ {
-					if _, ok := combinedMap[i]; !ok {
+					if _, ok := nonceForRoundMap[i]; !ok {
 						assert.Fail(t, "consensus not reached in each round")
-						fmt.Println("combined map: \n", combinedMap)
+						fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
 						mutex.Unlock()
 						return
 					}
@@ -118,35 +136,18 @@ func TestConsensusBNFullTest(t *testing.T) {
 		for _, n := range nodes {
 			n.node.Stop()
 		}
-		mutex.Lock()
-		mutex.Unlock()
 	}()
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second * 1)
 
-	combinedMap := make(map[uint32]uint64)
+	nonceForRoundMap := make(map[uint32]uint64)
 	totalCalled := 0
-
-	for _, n := range nodes {
-		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
-			n.blkProcessor.NrCommitBlockCalled++
-			_ = blockChain.SetCurrentBlockHeader(header)
-			_ = blockChain.SetCurrentBlockBody(body)
-
-			mutex.Lock()
-			combinedMap[header.GetRound()] = header.GetNonce()
-			totalCalled += 1
-			mutex.Unlock()
-
-			return nil
-		}
-		_ = n.node.StartConsensus()
-	}
+	startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
 
 	chDone := make(chan bool, 0)
-	go checkBlockProposedEveryRound(numCommBlock, combinedMap, mutex, chDone, t)
+	go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
 
 	extraTime := uint32(2)
 	endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
@@ -154,7 +155,7 @@ func TestConsensusBNFullTest(t *testing.T) {
 	case <-chDone:
 	case <-time.After(endTime):
 		mutex.Lock()
-		fmt.Println("combined map: \n", combinedMap)
+		fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
 		assert.Fail(t, "consensus too slow, not working.")
 		mutex.Unlock()
 		return
@@ -178,43 +179,22 @@ func TestConsensusBNNotEnoughValidators(t *testing.T) {
 		for _, n := range nodes {
 			n.node.Stop()
 		}
-		mutex.Lock()
-		mutex.Unlock()
 	}()
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second * 1)
 
-	maxNonce := uint64(0)
-	minNonce := ^uint64(0)
-	for _, n := range nodes {
-		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
-			n.blkProcessor.NrCommitBlockCalled++
-			_ = blockChain.SetCurrentBlockHeader(header)
-			_ = blockChain.SetCurrentBlockBody(body)
-
-			mutex.Lock()
-			if maxNonce < header.GetNonce() {
-				maxNonce = header.GetNonce()
-			}
-
-			if minNonce < header.GetNonce() {
-				minNonce = header.GetNonce()
-			}
-			mutex.Unlock()
-
-			return nil
-		}
-		_ = n.node.StartConsensus()
-	}
+	nonceForRoundMap := make(map[uint32]uint64)
+	totalCalled := 0
+	startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
 
 	waitTime := time.Second * 60
 	fmt.Println("Run for 60 seconds...")
 	time.Sleep(waitTime)
 
 	mutex.Lock()
-	assert.Equal(t, uint64(0), maxNonce)
+	assert.Equal(t, 0, totalCalled)
 	mutex.Unlock()
 }
 
@@ -236,35 +216,18 @@ func TestConsensusBLSFullTest(t *testing.T) {
 		for _, n := range nodes {
 			n.node.Stop()
 		}
-		mutex.Lock()
-		mutex.Unlock()
 	}()
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second * 1)
 
-	combinedMap := make(map[uint32]uint64)
+	nonceForRoundMap := make(map[uint32]uint64)
 	totalCalled := 0
-
-	for _, n := range nodes {
-		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
-			n.blkProcessor.NrCommitBlockCalled++
-			_ = blockChain.SetCurrentBlockHeader(header)
-			_ = blockChain.SetCurrentBlockBody(body)
-
-			mutex.Lock()
-			combinedMap[header.GetRound()] = header.GetNonce()
-			totalCalled += 1
-			mutex.Unlock()
-
-			return nil
-		}
-		_ = n.node.StartConsensus()
-	}
+	startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
 
 	chDone := make(chan bool, 0)
-	go checkBlockProposedEveryRound(numCommBlock, combinedMap, mutex, chDone, t)
+	go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
 
 	extraTime := uint32(2)
 	endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
@@ -272,7 +235,7 @@ func TestConsensusBLSFullTest(t *testing.T) {
 	case <-chDone:
 	case <-time.After(endTime):
 		mutex.Lock()
-		fmt.Println("combined map: \n", combinedMap)
+		fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
 		assert.Fail(t, "consensus too slow, not working")
 		mutex.Unlock()
 		return
@@ -296,42 +259,21 @@ func TestConsensusBLSNotEnoughValidators(t *testing.T) {
 		for _, n := range nodes {
 			n.node.Stop()
 		}
-		mutex.Lock()
-		mutex.Unlock()
 	}()
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second * 1)
 
-	maxNonce := uint64(0)
-	minNonce := ^uint64(0)
-	for _, n := range nodes {
-		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
-			n.blkProcessor.NrCommitBlockCalled++
-			_ = blockChain.SetCurrentBlockHeader(header)
-			_ = blockChain.SetCurrentBlockBody(body)
-
-			mutex.Lock()
-			if maxNonce < header.GetNonce() {
-				maxNonce = header.GetNonce()
-			}
-
-			if minNonce < header.GetNonce() {
-				minNonce = header.GetNonce()
-			}
-			mutex.Unlock()
-
-			return nil
-		}
-		_ = n.node.StartConsensus()
-	}
+	nonceForRoundMap := make(map[uint32]uint64)
+	totalCalled := 0
+	startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
 
 	waitTime := time.Second * 60
 	fmt.Println("Run for 60 seconds...")
 	time.Sleep(waitTime)
 
 	mutex.Lock()
-	assert.Equal(t, uint64(0), maxNonce)
+	assert.Equal(t, 0, totalCalled)
 	mutex.Unlock()
 }
