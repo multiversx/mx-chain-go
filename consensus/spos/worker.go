@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -218,7 +219,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	log.Info(fmt.Sprintf("received %s from %s\n", wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.
 		MsgType)),
-		hex.EncodeToString(cnsDta.PubKey)))
+		core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey))))
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
