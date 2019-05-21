@@ -1,6 +1,7 @@
 package trie2
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -11,7 +12,7 @@ import (
 )
 
 func getTestMarshAndHasher() (marshal.Marshalizer, hashing.Hasher) {
-	marsh := &marshal.CapnpMarshalizer{}
+	marsh := marshal.JsonMarshalizer{}
 	hasher := keccak.Keccak{}
 	return marsh, hasher
 }
@@ -102,7 +103,7 @@ func TestBranchNode_setHash(t *testing.T) {
 
 func TestBranchNode_setRootHash(t *testing.T) {
 	db, _ := memorydb.New()
-	marsh := &marshal.CapnpMarshalizer{}
+	marsh := marshal.JsonMarshalizer{}
 	hsh := keccak.Keccak{}
 
 	tr1, _ := NewTrie(db, marsh, hsh)
@@ -686,4 +687,48 @@ func TestBranchNode_isEmptyOrNil(t *testing.T) {
 
 	bn = nil
 	assert.Equal(t, ErrNilNode, bn.isEmptyOrNil())
+}
+
+func emptyTrie() Trie {
+	db, _ := memorydb.New()
+	tr, _ := NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
+	return tr
+}
+
+func BenchmarkDecodeBranchNode(b *testing.B) {
+	tr := emptyTrie()
+	hsh := keccak.Keccak{}
+
+	nrValuesInTrie := 100000
+	values := make([][]byte, nrValuesInTrie)
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		values[i] = hsh.Compute(strconv.Itoa(i))
+		tr.Update(values[i], values[i])
+	}
+
+	proof, _ := tr.Prove(values[0])
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		decodeNode(proof[0], marshal.JsonMarshalizer{})
+	}
+}
+
+func BenchmarkMarshallNodeCapnp(b *testing.B) {
+	bn, _ := getBnAndCollapsedBn()
+	marsh := &marshal.CapnpMarshalizer{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		marsh.Marshal(bn)
+	}
+}
+
+func BenchmarkMarshallNodeJson(b *testing.B) {
+	bn, _ := getBnAndCollapsedBn()
+	marsh := marshal.JsonMarshalizer{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		marsh.Marshal(bn)
+	}
 }

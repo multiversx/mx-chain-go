@@ -13,7 +13,7 @@ import (
 
 func initTrieMultipleValues(nr int) (trie2.Trie, [][]byte) {
 	db, _ := memorydb.New()
-	tr, _ := trie2.NewTrie(db, &marshal.CapnpMarshalizer{}, keccak.Keccak{})
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
 
 	var values [][]byte
 	hsh := keccak.Keccak{}
@@ -29,7 +29,7 @@ func initTrieMultipleValues(nr int) (trie2.Trie, [][]byte) {
 
 func initTrie() trie2.Trie {
 	db, _ := memorydb.New()
-	tr, _ := trie2.NewTrie(db, &marshal.CapnpMarshalizer{}, keccak.Keccak{})
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
 
 	tr.Update([]byte("doe"), []byte("reindeer"))
 	tr.Update([]byte("dog"), []byte("puppy"))
@@ -39,7 +39,7 @@ func initTrie() trie2.Trie {
 }
 
 func TestNewTrieWithNilDB(t *testing.T) {
-	tr, err := trie2.NewTrie(nil, &marshal.CapnpMarshalizer{}, keccak.Keccak{})
+	tr, err := trie2.NewTrie(nil, marshal.JsonMarshalizer{}, keccak.Keccak{})
 
 	assert.Nil(t, tr)
 	assert.NotNil(t, err)
@@ -55,7 +55,7 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 
 func TestNewTrieWithNilHasher(t *testing.T) {
 	db, _ := memorydb.New()
-	tr, err := trie2.NewTrie(db, &marshal.CapnpMarshalizer{}, nil)
+	tr, err := trie2.NewTrie(db, marshal.JsonMarshalizer{}, nil)
 
 	assert.Nil(t, tr)
 	assert.NotNil(t, err)
@@ -72,7 +72,7 @@ func TestPatriciaMerkleTree_Get(t *testing.T) {
 
 func TestPatriciaMerkleTree_GetEmptyTrie(t *testing.T) {
 	db, _ := memorydb.New()
-	tr, _ := trie2.NewTrie(db, &marshal.CapnpMarshalizer{}, keccak.Keccak{})
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
 
 	val, err := tr.Get([]byte("dog"))
 	assert.Equal(t, trie2.ErrNilNode, err)
@@ -120,7 +120,7 @@ func TestPatriciaMerkleTree_Delete(t *testing.T) {
 
 func TestPatriciaMerkleTree_DeleteEmptyTrie(t *testing.T) {
 	db, _ := memorydb.New()
-	tr, _ := trie2.NewTrie(db, &marshal.CapnpMarshalizer{}, keccak.Keccak{})
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
 
 	err := tr.Delete([]byte("dog"))
 	assert.Nil(t, err)
@@ -136,7 +136,7 @@ func TestPatriciaMerkleTree_Root(t *testing.T) {
 
 func TestPatriciaMerkleTree_NilRoot(t *testing.T) {
 	db, _ := memorydb.New()
-	tr, _ := trie2.NewTrie(db, &marshal.CapnpMarshalizer{}, keccak.Keccak{})
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
 
 	root, err := tr.Root()
 	assert.Equal(t, trie2.ErrNilNode, err)
@@ -164,7 +164,7 @@ func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
 
 func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {
 	db, _ := memorydb.New()
-	tr, _ := trie2.NewTrie(db, &marshal.CapnpMarshalizer{}, keccak.Keccak{})
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
 
 	proof, err := tr.Prove([]byte("dog"))
 	assert.Nil(t, proof)
@@ -246,7 +246,7 @@ func TestPatriciaMerkleTree_CommitAfterCommit(t *testing.T) {
 
 func TestPatriciaMerkleTree_CommitEmptyRoot(t *testing.T) {
 	db, _ := memorydb.New()
-	tr, _ := trie2.NewTrie(db, &marshal.CapnpMarshalizer{}, keccak.Keccak{})
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
 
 	err := tr.Commit()
 	assert.Equal(t, trie2.ErrNilNode, err)
@@ -298,7 +298,7 @@ func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
 
 func emptyTrie() trie2.Trie {
 	db, _ := memorydb.New()
-	tr, _ := trie2.NewTrie(db, &marshal.CapnpMarshalizer{}, keccak.Keccak{})
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
 	return tr
 }
 
