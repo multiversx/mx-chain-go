@@ -26,11 +26,16 @@ type Facade struct {
 	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, value *big.Int, code string, signature []byte) (*transaction.Transaction, error)
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
-	RecentNotarizedBlocksHandler                   func(maxShardHeadersNum int) ([]external.RecentBlock, error)
+	RecentNotarizedBlocksHandler                   func(maxShardHeadersNum int) ([]*external.BlockHeader, error)
+	RetrieveShardBlockHandler                      func(blockHash []byte) (*external.ShardBlockInfo, error)
 }
 
-func (f *Facade) RecentNotarizedBlocks(maxShardHeadersNum int) ([]external.RecentBlock, error) {
+func (f *Facade) RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error) {
 	return f.RecentNotarizedBlocksHandler(maxShardHeadersNum)
+}
+
+func (f *Facade) RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error) {
+	return f.RetrieveShardBlockHandler(blockHash)
 }
 
 // IsNodeRunning is the mock implementation of a handler's IsNodeRunning method
