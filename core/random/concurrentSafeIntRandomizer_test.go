@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIntRandomizerConcurrentSafe_IntnConcurrent(t *testing.T) {
-	ircs := &IntRandomizerConcurrentSafe{}
+func TestConcurrentSafeIntRandomizer_IntnConcurrent(t *testing.T) {
+	csir := &ConcurrentSafeIntRandomizer{}
 
 	defer func() {
 		r := recover()
@@ -21,7 +21,7 @@ func TestIntRandomizerConcurrentSafe_IntnConcurrent(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		go func(idx int) {
 			for {
-				_, err := ircs.Intn(idx + 1)
+				_, err := csir.Intn(idx + 1)
 				assert.Nil(t, err)
 
 				time.Sleep(time.Millisecond)
