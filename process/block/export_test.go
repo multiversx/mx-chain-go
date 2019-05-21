@@ -38,6 +38,10 @@ func (sp *shardProcessor) RequestBlockTransactions(body block.Body) int {
 	return sp.requestBlockTransactions(body)
 }
 
+func (sp *shardProcessor) RequestBlockTransactionsForMiniBlock(mb *block.MiniBlock) int {
+	return sp.requestBlockTransactionsForMiniBlock(mb)
+}
+
 func (sp *shardProcessor) WaitForTxHashes(waitTime time.Duration) {
 	sp.waitForTxHashes(waitTime)
 }
@@ -98,6 +102,10 @@ func (sp *shardProcessor) RemoveMetaBlockFromPool(body block.Body) error {
 
 func (sp *shardProcessor) RemoveTxBlockFromPools(blockBody block.Body) error {
 	return sp.removeTxBlockFromPools(blockBody)
+}
+
+func (sp *shardProcessor) ChRcvAllTxs() chan bool {
+	return sp.chRcvAllTxs
 }
 
 func (mp *metaProcessor) GetShardHeaderFromPool(shardID uint32, headerHash []byte) (data.HeaderHandler, error) {
@@ -174,4 +182,8 @@ func (mp *metaProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 
 func (mp *metaProcessor) IsShardHeaderValidFinal(currHdr *block.Header, lastHdr *block.Header, sortedShardHdrs []*block.Header) (bool, []uint32) {
 	return mp.isShardHeaderValidFinal(currHdr, lastHdr, sortedShardHdrs)
+}
+
+func (mp *metaProcessor) ChRcvAllHdrs() chan bool {
+	return mp.chRcvAllHdrs
 }
