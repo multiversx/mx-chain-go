@@ -774,7 +774,6 @@ func (sp *shardProcessor) requestBlockTransactionsForMiniBlock(mb *block.MiniBlo
 	if sp.OnRequestTransaction != nil {
 		for _, txHash := range missingTxsForMiniBlock {
 			requestedTxs++
-			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
 			go sp.OnRequestTransaction(mb.SenderShardID, txHash)
 		}
 	}
