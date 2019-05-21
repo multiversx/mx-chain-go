@@ -6,22 +6,54 @@ import (
 	"time"
 
 	"github.com/beevik/ntp"
+	beevikntp "github.com/beevik/ntp"
 )
 
 // totalRequests defines the number of requests made to determine an accurate clock offset
 const totalRequests = 10
+
+// NTPOptions defines configuration options for an NTP query
+type NTPOptions struct {
+	Host         string
+	Version      int
+	LocalAddress string
+	Timeout      time.Duration
+	Port         int
+}
+
+// NewNTPOptions creates a new NTPOptions object.
+func NewNTPOptions() NTPOptions {
+	// TODO Read these values from configurations.
+	return NTPOptions{
+		Host:         "127.0.0.1",
+		Port:         1123,
+		Version:      0,
+		LocalAddress: "",
+		Timeout:      0}
+}
+
+// queryNTP wraps beevikntp.QueryWithOptions, in order to use NTPOptions, which
+// contains both Host and Port, unlike beevikntp.QueryOptions.
+func queryNTP(options NTPOptions) (*ntp.Response, error) {
+	queryOptions := beevikntp.QueryOptions{
+		Timeout:      options.Timeout,
+		Version:      options.Version,
+		LocalAddress: options.LocalAddress,
+		Port:         options.Port}
+	return beevikntp.QueryWithOptions(options.Host, queryOptions)
+}
 
 // syncTime defines an object for time synchronization
 type syncTime struct {
 	mut         sync.RWMutex
 	clockOffset time.Duration
 	syncPeriod  time.Duration
-	query       func(host string) (*ntp.Response, error)
+	query       func(options NTPOptions) (*ntp.Response, error)
 }
 
 // NewSyncTime creates a syncTime object
-func NewSyncTime(syncPeriod time.Duration, query func(host string) (*ntp.Response, error)) *syncTime {
-	s := syncTime{clockOffset: 0, syncPeriod: syncPeriod, query: query}
+func NewSyncTime(syncPeriod time.Duration) *syncTime {
+	s := syncTime{clockOffset: 0, syncPeriod: syncPeriod, query: queryNTP}
 	return &s
 }
 
@@ -42,7 +74,7 @@ func (s *syncTime) sync() {
 		succeededRequests := 0
 
 		for i := 0; i < totalRequests; i++ {
-			r, err := s.query("time.google.com")
+			r, err := s.query(NewNTPOptions())
 
 			if err != nil {
 				continue
