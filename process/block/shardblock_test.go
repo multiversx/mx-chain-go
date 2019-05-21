@@ -260,6 +260,10 @@ func TestNewShardProcessor_OkValsShouldWork(t *testing.T) {
 func TestShardProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+		return nil
+	}
 	sp, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
@@ -268,7 +272,7 @@ func TestShardProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 		&mock.TxProcessorMock{},
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		forkDetectorMock,
 		func(destShardID uint32, txHash []byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -302,6 +306,10 @@ func TestShardProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 func TestShardProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+		return nil
+	}
 	sp, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
@@ -310,7 +318,7 @@ func TestShardProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 		&mock.TxProcessorMock{},
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		forkDetectorMock,
 		func(destShardID uint32, txHash []byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -356,6 +364,10 @@ func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		RootHash:      []byte("roothash"),
 	}
 	body := make(block.Body, 0)
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+		return nil
+	}
 	sp, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
@@ -367,7 +379,7 @@ func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 			RevertToSnapshotCalled: revToSnapshot,
 		},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		forkDetectorMock,
 		func(destShardID uint32, txHash []byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -411,6 +423,10 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	rootHashCalled := func() []byte {
 		return []byte("rootHash")
 	}
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+		return nil
+	}
 	sp, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
@@ -423,7 +439,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			RootHashCalled:         rootHashCalled,
 		},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		forkDetectorMock,
 		func(destShardID uint32, txHash []byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -439,6 +455,10 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 func TestShardProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+		return nil
+	}
 	sp, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
@@ -447,7 +467,7 @@ func TestShardProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 		&mock.TxProcessorMock{},
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		forkDetectorMock,
 		func(destShardID uint32, txHash []byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -469,6 +489,10 @@ func TestShardProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 func TestShardProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+		return nil
+	}
 	sp, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
@@ -477,7 +501,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 		&mock.TxProcessorMock{},
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		forkDetectorMock,
 		func(destShardID uint32, txHash []byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -499,6 +523,10 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+		return nil
+	}
 	sp, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
@@ -507,7 +535,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 		&mock.TxProcessorMock{},
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		forkDetectorMock,
 		func(destShardID uint32, txHash []byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -571,6 +599,10 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	rootHashCalled := func() []byte {
 		return []byte("rootHash")
 	}
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+		return nil
+	}
 	sp, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
@@ -583,7 +615,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			RootHashCalled:         rootHashCalled,
 		},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		forkDetectorMock,
 		func(destShardID uint32, txHash []byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -637,6 +669,10 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	rootHashCalled := func() []byte {
 		return []byte("rootHashX")
 	}
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+		return nil
+	}
 	sp, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
@@ -649,7 +685,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 			RootHashCalled:         rootHashCalled,
 		},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		forkDetectorMock,
 		func(destShardID uint32, txHash []byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
