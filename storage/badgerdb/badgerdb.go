@@ -72,7 +72,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 }
 
 // Has returns true if the given key is present in the persistance medium
-func (s *DB) Has(key []byte) (bool, error) {
+func (s *DB) Has(key []byte) error {
 	err := s.db.View(func(txn *badger.Txn) error {
 		_, err := txn.Get(key)
 
@@ -83,11 +83,7 @@ func (s *DB) Has(key []byte) (bool, error) {
 		return nil
 	})
 
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
+	return err
 }
 
 // Init initializes the storage medium and prepares it for usage

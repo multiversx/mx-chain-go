@@ -55,8 +55,18 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 }
 
 // Has returns true if the given key is present in the persistance medium
-func (s *DB) Has(key []byte) (bool, error) {
-	return s.db.Has(key, nil)
+func (s *DB) Has(key []byte) error {
+	has, err := s.db.Has(key, nil)
+
+	if err == nil && has {
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return errors.New("Key not found")
 }
 
 // Init initializes the storage medium and prepares it for usage

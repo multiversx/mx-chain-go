@@ -64,20 +64,19 @@ func TestHasPresent(t *testing.T) {
 
 	assert.Nil(t, err, "error saving in db")
 
-	has, err := ldb.Has(key)
+	err = ldb.Has(key)
 
-	assert.Nil(t, err, "error not expected but got %s", err)
-	assert.True(t, has, "value expected but not found")
+	assert.Nil(t, err)
 }
 
 func TestHasNotPresent(t *testing.T) {
 	key := []byte("key4")
 	ldb := createBadgerDb(t)
 
-	has, err := ldb.Has(key)
+	err := ldb.Has(key)
 
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Key not found")
-	assert.False(t, has, "value not expected but found")
 }
 
 func TestRemovePresent(t *testing.T) {
@@ -92,9 +91,10 @@ func TestRemovePresent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	has, err := ldb.Has(key)
+	err = ldb.Has(key)
 
-	assert.False(t, has, "element not expected as already deleted")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Key not found")
 }
 
 func TestRemoveNotPresent(t *testing.T) {

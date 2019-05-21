@@ -112,10 +112,9 @@ func TestPutNotPresent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.True(t, has, "expected to find key %s, but not found", key)
 }
 
 func TestPutNotPresentWithNilBloomFilter(t *testing.T) {
@@ -125,10 +124,9 @@ func TestPutNotPresentWithNilBloomFilter(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.True(t, has, "expected to find key %s, but not found", key)
 }
 
 func TestPutNotPresentCache(t *testing.T) {
@@ -140,10 +138,9 @@ func TestPutNotPresentCache(t *testing.T) {
 
 	s.ClearCache()
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.True(t, has, "expected to find key %s, but not found", key)
 }
 
 func TestPutNotPresentCacheWithNilBloomFilter(t *testing.T) {
@@ -155,10 +152,9 @@ func TestPutNotPresentCacheWithNilBloomFilter(t *testing.T) {
 
 	s.ClearCache()
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.True(t, has, "expected to find key %s, but not found", key)
+	assert.Nil(t, err, "expected to find key %s, but not found", key)
 }
 
 func TestPutPresent(t *testing.T) {
@@ -262,19 +258,19 @@ func TestGetPresentWithNilBloomFilter(t *testing.T) {
 func TestHasNotPresent(t *testing.T) {
 	key := []byte("key6")
 	s := initStorageUnitWithBloomFilter(t, 10)
-	has, err := s.Has(key)
+	err := s.Has(key)
 
-	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.False(t, has, "not expected to find value")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Key not found")
 }
 
 func TestHasNotPresentWithNilBloomFilter(t *testing.T) {
 	key := []byte("key6")
 	s := initStorageUnitWithNilBloomFilter(t, 10)
-	has, err := s.Has(key)
+	err := s.Has(key)
 
-	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.False(t, has, "not expected to find value")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Key not found")
 }
 
 func TestHasNotPresentCache(t *testing.T) {
@@ -286,10 +282,9 @@ func TestHasNotPresentCache(t *testing.T) {
 
 	s.ClearCache()
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find key but not found")
 }
 
 func TestHasNotPresentCacheWithNilBloomFilter(t *testing.T) {
@@ -301,10 +296,9 @@ func TestHasNotPresentCacheWithNilBloomFilter(t *testing.T) {
 
 	s.ClearCache()
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find key but not found")
 }
 
 func TestHasPresent(t *testing.T) {
@@ -314,10 +308,9 @@ func TestHasPresent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find key but not found")
 }
 
 func TestHasPresentWithNilBloomFilter(t *testing.T) {
@@ -327,38 +320,31 @@ func TestHasPresentWithNilBloomFilter(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find key but not found")
 }
 
 func TestHasOrAddNotPresent(t *testing.T) {
 	key, val := []byte("key9"), []byte("value9")
 	s := initStorageUnitWithBloomFilter(t, 10)
-	has, err := s.HasOrAdd(key, val)
+	err := s.HasOrAdd(key, val)
+
+	assert.Nil(t, err)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.False(t, has, "not expected to find value")
-
-	has, err = s.Has(key)
-
-	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find key but not found")
 }
 
 func TestHasOrAddNotPresentWithNilBloomFilter(t *testing.T) {
 	key, val := []byte("key9"), []byte("value9")
 	s := initStorageUnitWithNilBloomFilter(t, 10)
-	has, err := s.HasOrAdd(key, val)
+	err := s.HasOrAdd(key, val)
+
+	assert.Nil(t, err)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.False(t, has, "not expected to find value")
-
-	has, err = s.Has(key)
-
-	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find key but not found")
 }
 
 func TestHasOrAddNotPresentCache(t *testing.T) {
@@ -368,10 +354,9 @@ func TestHasOrAddNotPresentCache(t *testing.T) {
 
 	s.ClearCache()
 
-	has, err := s.HasOrAdd(key, val)
+	err = s.HasOrAdd(key, val)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find value")
 }
 
 func TestHasOrAddNotPresentCacheWithNilBloomFilter(t *testing.T) {
@@ -381,32 +366,29 @@ func TestHasOrAddNotPresentCacheWithNilBloomFilter(t *testing.T) {
 
 	s.ClearCache()
 
-	has, err := s.HasOrAdd(key, val)
+	err = s.HasOrAdd(key, val)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find value")
 }
 
 func TestHasOrAddPresent(t *testing.T) {
 	key, val := []byte("key11"), []byte("value11")
 	s := initStorageUnitWithBloomFilter(t, 10)
-	err := s.Put(key, val)
+	_ = s.Put(key, val)
 
-	has, err := s.HasOrAdd(key, val)
+	err := s.HasOrAdd(key, val)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find value")
 }
 
 func TestHasOrAddPresentWithNilBloomFilter(t *testing.T) {
 	key, val := []byte("key11"), []byte("value11")
 	s := initStorageUnitWithNilBloomFilter(t, 10)
-	err := s.Put(key, val)
+	_ = s.Put(key, val)
 
-	has, err := s.HasOrAdd(key, val)
+	err := s.HasOrAdd(key, val)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find value")
 }
 
 func TestDeleteNotPresent(t *testing.T) {
@@ -431,20 +413,19 @@ func TestDeleteNotPresentCache(t *testing.T) {
 	err := s.Put(key, val)
 	assert.Nil(t, err, "Could not put value in storage unit")
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find key")
 
 	s.ClearCache()
 
 	err = s.Remove(key)
 	assert.Nil(t, err, "expected no error, but got %s", err)
 
-	has, err = s.Has(key)
+	err = s.Has(key)
 
-	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.False(t, has, "not expected to find value")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Key not found")
 }
 
 func TestDeleteNotPresentCacheWithNilBloomFilter(t *testing.T) {
@@ -453,20 +434,19 @@ func TestDeleteNotPresentCacheWithNilBloomFilter(t *testing.T) {
 	err := s.Put(key, val)
 	assert.Nil(t, err, "Could not put value in storage unit")
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find key")
 
 	s.ClearCache()
 
 	err = s.Remove(key)
 	assert.Nil(t, err, "expected no error, but got %s", err)
 
-	has, err = s.Has(key)
+	err = s.Has(key)
 
-	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.False(t, has, "not expected to find value")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Key not found")
 }
 
 func TestDeletePresent(t *testing.T) {
@@ -475,19 +455,18 @@ func TestDeletePresent(t *testing.T) {
 	err := s.Put(key, val)
 	assert.Nil(t, err, "Could not put value in storage unit")
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find key")
 
 	err = s.Remove(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
 
-	has, err = s.Has(key)
+	err = s.Has(key)
 
-	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.False(t, has, "not expected to find value")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Key not found")
 }
 
 func TestDeletePresentWithNilBloomFilter(t *testing.T) {
@@ -496,19 +475,18 @@ func TestDeletePresentWithNilBloomFilter(t *testing.T) {
 	err := s.Put(key, val)
 	assert.Nil(t, err, "Could not put value in storage unit")
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.True(t, has, "expected to find key")
 
 	err = s.Remove(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
 
-	has, err = s.Has(key)
+	err = s.Has(key)
 
-	assert.Nil(t, err, "expected no error, but got %s", err)
-	assert.False(t, has, "not expected to find value")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Key not found")
 }
 
 func TestClearCacheNotAffectPersist(t *testing.T) {
@@ -518,10 +496,9 @@ func TestClearCacheNotAffectPersist(t *testing.T) {
 	assert.Nil(t, err, "Could not put value in storage unit")
 	s.ClearCache()
 
-	has, err := s.Has(key)
+	err = s.Has(key)
 
 	assert.Nil(t, err, "no error expected, but got %s", err)
-	assert.True(t, has, "expected to find key")
 }
 
 func TestDestroyUnitNoError(t *testing.T) {

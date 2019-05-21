@@ -2,8 +2,9 @@ package dataRetriever_test
 
 import (
 	"errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
 	"github.com/stretchr/testify/assert"
@@ -14,21 +15,19 @@ func TestHas_ErrorWhenStorerIsMissing(t *testing.T) {
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
-	has, err := b.Has(2, []byte("whatever"))
-	assert.False(t, has)
+	err := b.Has(2, []byte("whatever"))
 	assert.Equal(t, dataRetriever.ErrNoSuchStorageUnit, err)
 }
 
 func TestHas_ReturnsCorrectly(t *testing.T) {
 	s := &mock.StorerStub{}
-	s.HasCalled = func(key []byte) (b bool, e error) {
-		return true, nil
+	s.HasCalled = func(key []byte) error {
+		return nil
 	}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
-	has, err := b.Has(1, []byte("whatever"))
-	assert.True(t, has)
+	err := b.Has(1, []byte("whatever"))
 	assert.Nil(t, err)
 }
 

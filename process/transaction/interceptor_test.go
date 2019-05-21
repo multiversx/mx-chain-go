@@ -415,8 +415,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 	}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{
-		HasCalled: func(key []byte) (b bool, e error) {
-			return false, nil
+		HasCalled: func(key []byte) error {
+			return errors.New("Key not found")
 		},
 	}
 	signer := &mock.SignerMock{
@@ -550,8 +550,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) (bool, error) {
-		return false, nil
+	storer.HasCalled = func(key []byte) error {
+		return errors.New("Key not found")
 	}
 	signer := &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
@@ -684,8 +684,8 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 		return pubKey, nil
 	}
 	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) (bool, error) {
-		return true, nil
+	storer.HasCalled = func(key []byte) error {
+		return nil
 	}
 
 	multiSharder := mock.NewMultipleShardsCoordinatorMock()
