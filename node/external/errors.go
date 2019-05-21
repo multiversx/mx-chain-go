@@ -28,3 +28,6 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
 // ErrNilProposerResolver is raised when a valid proposer resolver is expected but nil used
 var ErrNilProposerResolver = errors.New("proposer validator is nil")
+
+// ErrNilHash signals that a nil hash has been provided
+var ErrNilHash = errors.New("nil hash")
