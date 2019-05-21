@@ -5,7 +5,7 @@ type HeaderHandlerStub struct {
 }
 
 func (hhs *HeaderHandlerStub) GetNonce() uint64 {
-	panic("implement me")
+	return 1
 }
 
 func (hhs *HeaderHandlerStub) GetEpoch() uint32 {
