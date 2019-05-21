@@ -237,6 +237,9 @@ func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.For
 		ProbableHighestNonceCalled: func() uint64 {
 			return uint64(0)
 		},
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+			return nil
+		},
 	}
 }
 
@@ -874,7 +877,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	t.Parallel()
 
-	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
+	hdr := block.Header{Nonce: 1, RandSeed: []byte("X")}
 	blockBodyUnit := &mock.StorerStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			return nil, nil
@@ -1337,7 +1340,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 	ebm := createBlockProcessor()
 
-	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
+	hdr := block.Header{Nonce: 1, RandSeed: []byte("X")}
 	blkc := mock.BlockChainMock{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
@@ -2000,8 +2003,8 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
-			PubKeysBitmap: []byte{1},
-			Nonce:         newHdrNonce,
+			RandSeed: []byte{1},
+			Nonce:    newHdrNonce,
 		}
 	}
 

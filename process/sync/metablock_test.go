@@ -664,7 +664,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	t.Parallel()
 
-	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
+	hdr := block.MetaBlock{Nonce: 1, RandSeed: []byte("X")}
 
 	store := createMetaStore()
 
@@ -1013,7 +1013,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 
 	ebm := createMetaBlockProcessor()
 
-	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
+	hdr := block.MetaBlock{Nonce: 1, RandSeed: []byte("X")}
 	blkc := mock.BlockChainMock{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
@@ -1612,8 +1612,8 @@ func TestMetaBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.MetaBlock{
-			PubKeysBitmap: []byte{1},
-			Nonce:         newHdrNonce,
+			RandSeed: []byte("X"),
+			Nonce:    newHdrNonce,
 		}
 	}
 
