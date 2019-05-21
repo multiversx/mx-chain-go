@@ -17,7 +17,12 @@ import (
 func TestNewTopicResolverSender_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trs, err := topicResolverSender.NewTopicResolverSender(nil, "topic", &mock.MarshalizerMock{})
+	trs, err := topicResolverSender.NewTopicResolverSender(
+		nil,
+		"topic",
+		&mock.MarshalizerMock{},
+		&mock.IntRandomizerMock{},
+	)
 
 	assert.Nil(t, trs)
 	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
@@ -26,10 +31,29 @@ func TestNewTopicResolverSender_NilMessengerShouldErr(t *testing.T) {
 func TestNewTopicResolverSender_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trs, err := topicResolverSender.NewTopicResolverSender(&mock.MessageHandlerStub{}, "topic", nil)
+	trs, err := topicResolverSender.NewTopicResolverSender(
+		&mock.MessageHandlerStub{},
+		"topic",
+		nil,
+		&mock.IntRandomizerMock{},
+	)
 
 	assert.Nil(t, trs)
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
+}
+
+func TestNewTopicResolverSender_NilRandomizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	trs, err := topicResolverSender.NewTopicResolverSender(
+		&mock.MessageHandlerStub{},
+		"topic",
+		&mock.MarshalizerMock{},
+		nil,
+	)
+
+	assert.Nil(t, trs)
+	assert.Equal(t, dataRetriever.ErrNilRandomizer, err)
 }
 
 func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
@@ -38,7 +62,9 @@ func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
 	trs, err := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{},
 		"topic",
-		&mock.MarshalizerMock{})
+		&mock.MarshalizerMock{},
+		&mock.IntRandomizerMock{},
+	)
 
 	assert.NotNil(t, trs)
 	assert.Nil(t, err)
@@ -58,7 +84,9 @@ func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *test
 			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
 				return nil, errExpected
 			},
-		})
+		},
+		&mock.IntRandomizerMock{},
+	)
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
 
@@ -76,6 +104,7 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 		},
 		"topic",
 		&mock.MarshalizerMock{},
+		&mock.IntRandomizerMock{},
 	)
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
@@ -104,6 +133,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 		},
 		"topic",
 		&mock.MarshalizerMock{},
+		&mock.IntRandomizerMock{},
 	)
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
@@ -134,6 +164,7 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 		},
 		"topic",
 		&mock.MarshalizerMock{},
+		&mock.IntRandomizerMock{},
 	)
 
 	err := trs.Send(buffToSend, pID1)
@@ -147,8 +178,9 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 func TestSelectRandomPeers_ConnectedPeersLen0ShoudRetEmpty(t *testing.T) {
 	t.Parallel()
 
-	selectedPeers := topicResolverSender.SelectRandomPeers(make([]p2p.PeerID, 0), 0, nil)
+	selectedPeers, err := topicResolverSender.SelectRandomPeers(make([]p2p.PeerID, 0), 0, nil)
 
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(selectedPeers))
 }
 
@@ -157,8 +189,9 @@ func TestSelectRandomPeers_ConnectedPeersLenSmallerThanRequiredShoudRetListTest1
 
 	connectedPeers := []p2p.PeerID{p2p.PeerID("peer 1"), p2p.PeerID("peer 2")}
 
-	selectedPeers := topicResolverSender.SelectRandomPeers(connectedPeers, 3, nil)
+	selectedPeers, err := topicResolverSender.SelectRandomPeers(connectedPeers, 3, nil)
 
+	assert.Nil(t, err)
 	assert.Equal(t, connectedPeers, selectedPeers)
 }
 
@@ -167,8 +200,9 @@ func TestSelectRandomPeers_ConnectedPeersLenSmallerThanRequiredShoudRetListTest2
 
 	connectedPeers := []p2p.PeerID{p2p.PeerID("peer 1"), p2p.PeerID("peer 2")}
 
-	selectedPeers := topicResolverSender.SelectRandomPeers(connectedPeers, 2, nil)
+	selectedPeers, err := topicResolverSender.SelectRandomPeers(connectedPeers, 2, nil)
 
+	assert.Nil(t, err)
 	assert.Equal(t, connectedPeers, selectedPeers)
 }
 
@@ -181,14 +215,14 @@ func TestSelectRandomPeers_ConnectedPeersTestRandomizerRepeat0ThreeTimes(t *test
 	idxGenerated := 0
 
 	mr := &mock.IntRandomizerMock{
-		IntnCalled: func(n int) int {
+		IntnCalled: func(n int) (int, error) {
 			val := valuesGenerated[idxGenerated]
 			idxGenerated++
-			return val
+			return val, nil
 		},
 	}
 
-	selectedPeers := topicResolverSender.SelectRandomPeers(connectedPeers, 2, mr)
+	selectedPeers, _ := topicResolverSender.SelectRandomPeers(connectedPeers, 2, mr)
 
 	//since iterating a map does not guarantee the order, we have to search in any combination possible
 	foundPeer0 := false
@@ -216,14 +250,14 @@ func TestSelectRandomPeers_ConnectedPeersTestRandomizerRepeat2TwoTimes(t *testin
 	idxGenerated := 0
 
 	mr := &mock.IntRandomizerMock{
-		IntnCalled: func(n int) int {
+		IntnCalled: func(n int) (int, error) {
 			val := valuesGenerated[idxGenerated]
 			idxGenerated++
-			return val
+			return val, nil
 		},
 	}
 
-	selectedPeers := topicResolverSender.SelectRandomPeers(connectedPeers, 2, mr)
+	selectedPeers, _ := topicResolverSender.SelectRandomPeers(connectedPeers, 2, mr)
 
 	//since iterating a map does not guarantee the order, we have to search in any combination possible
 	foundPeer0 := false
