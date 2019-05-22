@@ -58,13 +58,11 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 
 	err := s.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(key)
-
 		if err != nil {
 			return err
 		}
 
 		value, err = item.ValueCopy(nil)
-
 		if err != nil {
 			return err
 		}
@@ -83,7 +81,6 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 func (s *DB) Has(key []byte) error {
 	err := s.db.View(func(txn *badger.Txn) error {
 		_, err := txn.Get(key)
-
 		if err != nil {
 			return err
 		}

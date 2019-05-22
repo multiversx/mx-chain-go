@@ -54,13 +54,11 @@ func (s *DB) Put(key, val []byte) error {
 // Get returns the value associated to the key
 func (s *DB) Get(key []byte) ([]byte, error) {
 	has, err := s.db.Has(key, nil)
-
 	if err != nil || !has {
 		return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
 	}
 
 	data, err := s.db.Get(key, nil)
-
 	if err == leveldb.ErrNotFound {
 		return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
 	}
@@ -71,13 +69,12 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 // Has returns true if the given key is present in the persistance medium
 func (s *DB) Has(key []byte) error {
 	has, err := s.db.Has(key, nil)
-
-	if err == nil && has {
-		return nil
-	}
-
 	if err != nil {
 		return err
+	}
+
+	if has {
+		return nil
 	}
 
 	return errors.New("Key not found")

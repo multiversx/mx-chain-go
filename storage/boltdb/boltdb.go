@@ -79,12 +79,12 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(s.parentFolder))
 		v := b.Get(key)
-
 		if v == nil {
 			return errors.New("Key not found")
 		}
 
 		val = append([]byte{}, v...)
+
 		return nil
 	})
 
@@ -96,7 +96,6 @@ func (s *DB) Has(key []byte) error {
 	return s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(s.parentFolder))
 		v := b.Get(key)
-
 		if v == nil {
 			return errors.New("Key not found")
 		}
