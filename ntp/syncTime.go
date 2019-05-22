@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/beevik/ntp"
-	beevikntp "github.com/beevik/ntp"
 )
 
 // totalRequests defines the number of requests made to determine an accurate clock offset
@@ -36,13 +35,13 @@ func NewNTPOptions(ntpConfig config.NTPConfig) NTPOptions {
 // queryNTP wraps beevikntp.QueryWithOptions, in order to use NTPOptions, which
 // contains both Host and Port, unlike beevikntp.QueryOptions.
 func queryNTP(options NTPOptions) (*ntp.Response, error) {
-	queryOptions := beevikntp.QueryOptions{
+	queryOptions := ntp.QueryOptions{
 		Timeout:      options.Timeout,
 		Version:      options.Version,
 		LocalAddress: options.LocalAddress,
 		Port:         options.Port}
 	fmt.Println(fmt.Sprintf("NTP Request to %s:%d", options.Host, options.Port))
-	return beevikntp.QueryWithOptions(options.Host, queryOptions)
+	return ntp.QueryWithOptions(options.Host, queryOptions)
 }
 
 // syncTime defines an object for time synchronization
