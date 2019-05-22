@@ -21,6 +21,17 @@ type NTPOptions struct {
 	Port         int
 }
 
+// NewNTPGoogleConfig creates an NTPConfig object that configures NTP to use
+// time.google.com. This is a useful default for tests, for example, to avoid
+// loading a configuration file just to have an NTPConfig.
+func NewNTPGoogleConfig() config.NTPConfig {
+	return config.NTPConfig{
+		Host:    "time.google.com",
+		Port:    123,
+		Version: 0,
+		Timeout: 0}
+}
+
 // NewNTPOptions creates a new NTPOptions object.
 func NewNTPOptions(ntpConfig config.NTPConfig) NTPOptions {
 	return NTPOptions{
