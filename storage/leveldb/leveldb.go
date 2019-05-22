@@ -7,7 +7,10 @@ import (
 	"os"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 )
+
+const maxOpenFilesPerTable = 50
 
 // DB holds a pointer to the leveldb database and the path to where it is stored.
 type DB struct {
@@ -18,7 +21,10 @@ type DB struct {
 // NewDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
 func NewDB(path string) (s *DB, err error) {
-	db, err := leveldb.OpenFile(path, nil)
+	options := &opt.Options{
+		OpenFilesCacheCapacity: maxOpenFilesPerTable,
+	}
+	db, err := leveldb.OpenFile(path, options)
 
 	if err != nil {
 		return nil, err
