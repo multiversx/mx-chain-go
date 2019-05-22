@@ -308,7 +308,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with nodes config from: %s", ctx.GlobalString(nodesFile.Name)))
 
-	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, time.Hour)
+	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, time.Hour, nil)
 	go syncer.StartSync()
 
 	log.Info(fmt.Sprintf("NTP average clock offset: %s", syncer.ClockOffset()))

@@ -53,12 +53,20 @@ type syncTime struct {
 	query       func(options NTPOptions) (*ntp.Response, error)
 }
 
-// NewSyncTime creates a syncTime object
-func NewSyncTime(ntpConfig config.NTPConfig, syncPeriod time.Duration) *syncTime {
+// NewSyncTime creates a syncTime object. The customQueryFunc argument allows
+// the caller to set a different NTP-querying callback, if desired. If set to
+// nil, then the default queryNTP is used.
+func NewSyncTime(ntpConfig config.NTPConfig, syncPeriod time.Duration, customQueryFunc func(options NTPOptions) (*ntp.Response, error)) *syncTime {
+	var queryFunc func(options NTPOptions) (*ntp.Response, error)
+	if customQueryFunc == nil {
+		queryFunc = queryNTP
+	} else {
+		queryFunc = customQueryFunc
+	}
 	s := syncTime{
 		clockOffset: 0,
 		syncPeriod:  syncPeriod,
-		query:       queryNTP,
+		query:       queryFunc,
 		ntpOptions:  NewNTPOptions(ntpConfig)}
 	return &s
 }
@@ -83,7 +91,7 @@ func (s *syncTime) sync() {
 			r, err := s.query(s.ntpOptions)
 
 			if err != nil {
-				fmt.Println("NTP Error: %s", err)
+				fmt.Println(fmt.Sprintf("NTP Error: %s", err))
 				continue
 			}
 
