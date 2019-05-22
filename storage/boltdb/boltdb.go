@@ -19,8 +19,7 @@ type DB struct {
 // NewDB is a constructor for the boltdb persister
 // It creates the files in the location given as parameter
 func NewDB(path string) (s *DB, err error) {
-	os.MkdirAll(path, 0777)
-
+	err = os.MkdirAll(path, 0777)
 	if err != nil {
 		return nil, err
 	}

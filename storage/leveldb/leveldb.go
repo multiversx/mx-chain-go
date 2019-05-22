@@ -18,6 +18,11 @@ type DB struct {
 // NewDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
 func NewDB(path string) (s *DB, err error) {
+	err = os.MkdirAll(path, 0777)
+	if err != nil {
+		return nil, err
+	}
+
 	db, err := leveldb.OpenFile(path, nil)
 
 	if err != nil {

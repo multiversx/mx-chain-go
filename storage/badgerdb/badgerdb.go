@@ -16,13 +16,17 @@ type DB struct {
 // NewDB is a constructor for the badger persister
 // It creates the files in the location given as parameter
 func NewDB(path string) (s *DB, err error) {
-	os.MkdirAll(path, 0777)
 	opts := badger.DefaultOptions
 	opts.Dir = path
 	opts.ValueDir = path
 	opts.ValueLogLoadingMode = options.FileIO
-	db, err := badger.Open(opts)
 
+	err = os.MkdirAll(path, 0777)
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err
 	}
