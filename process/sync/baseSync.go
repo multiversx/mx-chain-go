@@ -262,8 +262,8 @@ func isRandomSeedValid(header data.HeaderHandler) bool {
 	// seed signed by the proposer of this round)
 	prevRandSeed := header.GetPrevRandSeed()
 	randSeed := header.GetRandSeed()
-	isPrevRandSeedNilOrEmpty := prevRandSeed == nil || len(prevRandSeed) == 0
-	isRandSeedNilOrEmpty := randSeed == nil || len(randSeed) == 0
+	isPrevRandSeedNilOrEmpty := len(prevRandSeed) == 0
+	isRandSeedNilOrEmpty := len(randSeed) == 0
 
 	return !isPrevRandSeedNilOrEmpty && !isRandSeedNilOrEmpty
 }
