@@ -118,17 +118,13 @@ func checkBlockProposedEveryRound(numCommBlock uint32, nonceForRoundMap map[uint
 	}
 }
 
-func TestConsensusBNFullTest(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
+func runFullConsensusTest(t *testing.T, consensusType string) {
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(0)
 	roundTime := uint64(4000)
 	numCommBlock := uint32(10)
-	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, bnConsensusType)
+	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
 	mutex := &sync.Mutex{}
 	defer func() {
@@ -162,11 +158,23 @@ func TestConsensusBNFullTest(t *testing.T) {
 	}
 }
 
-func TestConsensusBNNotEnoughValidators(t *testing.T) {
+func TestConsensusBNFullTest(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
+	runFullConsensusTest(t, bnConsensusType)
+}
+
+func TestConsensusBLSFullTest(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runFullConsensusTest(t, blsConsensusType)
+}
+
+func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
@@ -198,48 +206,12 @@ func TestConsensusBNNotEnoughValidators(t *testing.T) {
 	mutex.Unlock()
 }
 
-func TestConsensusBLSFullTest(t *testing.T) {
+func TestConsensusBNNotEnoughValidators(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	numNodes := uint32(4)
-	consensusSize := uint32(4)
-	numInvalid := uint32(0)
-	roundTime := uint64(4000)
-	numCommBlock := uint32(10)
-	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
-
-	mutex := &sync.Mutex{}
-	defer func() {
-		advertiser.Close()
-		for _, n := range nodes {
-			n.node.Stop()
-		}
-	}()
-
-	// delay for bootstrapping and topic announcement
-	fmt.Println("Start consensus...")
-	time.Sleep(time.Second * 1)
-
-	nonceForRoundMap := make(map[uint32]uint64)
-	totalCalled := 0
-	startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
-
-	chDone := make(chan bool, 0)
-	go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
-
-	extraTime := uint32(2)
-	endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
-	select {
-	case <-chDone:
-	case <-time.After(endTime):
-		mutex.Lock()
-		fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
-		assert.Fail(t, "consensus too slow, not working")
-		mutex.Unlock()
-		return
-	}
+	runConsensusWithNotEnoughValidators(t, bnConsensusType)
 }
 
 func TestConsensusBLSNotEnoughValidators(t *testing.T) {
@@ -247,33 +219,5 @@ func TestConsensusBLSNotEnoughValidators(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numNodes := uint32(4)
-	consensusSize := uint32(4)
-	numInvalid := uint32(2)
-	roundTime := uint64(4000)
-	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
-
-	mutex := &sync.Mutex{}
-	defer func() {
-		advertiser.Close()
-		for _, n := range nodes {
-			n.node.Stop()
-		}
-	}()
-
-	// delay for bootstrapping and topic announcement
-	fmt.Println("Start consensus...")
-	time.Sleep(time.Second * 1)
-
-	nonceForRoundMap := make(map[uint32]uint64)
-	totalCalled := 0
-	startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
-
-	waitTime := time.Second * 60
-	fmt.Println("Run for 60 seconds...")
-	time.Sleep(waitTime)
-
-	mutex.Lock()
-	assert.Equal(t, 0, totalCalled)
-	mutex.Unlock()
+	runConsensusWithNotEnoughValidators(t, blsConsensusType)
 }

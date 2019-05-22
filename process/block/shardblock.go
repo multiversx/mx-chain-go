@@ -36,7 +36,11 @@ type shardProcessor struct {
 	requestedTxHashes    map[string]bool
 	mutCrossTxsForBlock  sync.RWMutex
 	crossTxsForBlock     map[string]*transaction.Transaction
-	onRequestMiniBlock   func(shardId uint32, mbHash []byte)
+
+	mutLastNotarizedHdrs sync.RWMutex
+	lastNotarizedHdrs    mapShardLastHeaders
+
+	onRequestMiniBlock func(shardId uint32, mbHash []byte)
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -866,6 +870,15 @@ func (sp *shardProcessor) processMiniBlockComplete(
 		}
 	}
 	return err
+}
+
+func (sp *shardProcessor) getOrderedMetablocks() ([]*block.MetaBlock, error) {
+	metaBlockCache := sp.dataPool.MetaBlocks()
+	if metaBlockCache == nil {
+		return nil, process.ErrNilMetaBlockPool
+	}
+
+	return nil, nil
 }
 
 // full verification through metachain header
