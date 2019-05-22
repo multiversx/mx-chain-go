@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,7 +41,7 @@ func initWorker() *spos.Worker {
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
 		return nil
 	}
 	keyGeneratorMock, privateKeyMock, _ := mock.InitKeys()

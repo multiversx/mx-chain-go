@@ -88,7 +88,7 @@ func (boot *baseBootstrap) processReceivedHeader(header data.HeaderHandler, head
 		header.GetNonce(),
 		toB64(headerHash)))
 
-	err := boot.forkDetector.AddHeader(header, headerHash, false)
+	err := boot.forkDetector.AddHeader(header, headerHash, process.BHReceived)
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -250,10 +250,22 @@ func emptyChannel(ch chan bool) {
 func isSigned(header data.HeaderHandler) bool {
 	// TODO: Later, here it should be done a more complex verification (signature for this round matches with the bitmap,
 	// and validators which signed here, were in this round consensus group)
-	randSeed := header.GetRandSeed()
-	isRandSeedEmpty := bytes.Equal(randSeed, make([]byte, len(randSeed)))
+	bitmap := header.GetPubKeysBitmap()
+	isBitmapEmpty := bytes.Equal(bitmap, make([]byte, len(bitmap)))
 
-	return !isRandSeedEmpty
+	return !isBitmapEmpty
+}
+
+// isRandomSeedValid verifies if the random seed is valid (equal with a signed previous rand seed)
+func isRandomSeedValid(header data.HeaderHandler) bool {
+	// TODO: Later, here should be done a more complex verification (random seed should be equal with the previous rand
+	// seed signed by the proposer of this round)
+	prevRandSeed := header.GetPrevRandSeed()
+	randSeed := header.GetRandSeed()
+	isPrevRandSeedNilOrEmpty := prevRandSeed == nil || len(prevRandSeed) == 0
+	isRandSeedNilOrEmpty := randSeed == nil || len(randSeed) == 0
+
+	return !isPrevRandSeedNilOrEmpty && !isRandSeedNilOrEmpty
 }
 
 func toB64(buff []byte) string {

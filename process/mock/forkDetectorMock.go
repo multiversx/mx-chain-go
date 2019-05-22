@@ -2,18 +2,19 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 type ForkDetectorMock struct {
-	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, isCommitted bool) error
+	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error
 	RemoveHeadersCalled             func(nonce uint64, hash []byte)
 	CheckForkCalled                 func() (bool, uint64)
 	GetHighestFinalBlockNonceCalled func() uint64
 	ProbableHighestNonceCalled      func() uint64
 }
 
-func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-	return fdm.AddHeaderCalled(header, hash, isCommitted)
+func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+	return fdm.AddHeaderCalled(header, hash, state)
 }
 
 func (fdm *ForkDetectorMock) RemoveHeaders(nonce uint64, hash []byte) {

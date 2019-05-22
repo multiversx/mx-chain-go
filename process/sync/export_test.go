@@ -2,6 +2,7 @@ package sync
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 func (boot *ShardBootstrap) RequestHeader(nonce uint64) {
@@ -68,8 +69,8 @@ func (bfd *basicForkDetector) SetLastCheckpointRound(round int32) {
 	bfd.fork.lastCheckpointRound = round
 }
 
-func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header) error {
-	return bfd.checkBlockValidity(header)
+func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header, state process.BlockHeaderState) error {
+	return bfd.checkBlockValidity(header, state)
 }
 
 func (bfd *basicForkDetector) RemovePastHeaders() {
@@ -88,8 +89,8 @@ func (hi *headerInfo) Hash() []byte {
 	return hi.hash
 }
 
-func (hi *headerInfo) IsCommitted() bool {
-	return hi.isCommitted
+func (hi *headerInfo) GetBlockHeaderState() process.BlockHeaderState {
+	return hi.state
 }
 
 func (boot *ShardBootstrap) NotifySyncStateListeners() {

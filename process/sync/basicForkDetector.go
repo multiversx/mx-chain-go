@@ -11,10 +11,10 @@ import (
 )
 
 type headerInfo struct {
-	nonce       uint64
-	round       uint32
-	hash        []byte
-	isCommitted bool
+	nonce uint64
+	round uint32
+	hash  []byte
+	state process.BlockHeaderState
 }
 
 type forkInfo struct {
@@ -56,7 +56,7 @@ func NewBasicForkDetector(rounder consensus.Rounder,
 }
 
 // AddHeader method adds a new header to headers map
-func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, isCommitted bool) error {
+func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
 	if header == nil {
 		return ErrNilHeader
 	}
@@ -64,12 +64,12 @@ func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, 
 		return ErrNilHash
 	}
 
-	err := bfd.checkBlockValidity(header)
+	err := bfd.checkBlockValidity(header, state)
 	if err != nil {
 		return err
 	}
 
-	if isCommitted {
+	if state == process.BHProcessed {
 		// create a check point and remove all the past headers
 		bfd.mutFork.Lock()
 		bfd.fork.lastCheckpointNonce = bfd.fork.checkpointNonce
@@ -82,10 +82,10 @@ func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, 
 	}
 
 	bfd.append(&headerInfo{
-		nonce:       header.GetNonce(),
-		round:       header.GetRound(),
-		hash:        hash,
-		isCommitted: isCommitted,
+		nonce: header.GetNonce(),
+		round: header.GetRound(),
+		hash:  hash,
+		state: state,
 	})
 
 	probableHighestNonce := bfd.computeProbableHighestNonce()
@@ -98,7 +98,7 @@ func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, 
 	return nil
 }
 
-func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler) error {
+func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
 	bfd.mutFork.RLock()
 	roundDif := int32(header.GetRound()) - bfd.fork.lastCheckpointRound
 	nonceDif := int64(header.GetNonce() - bfd.fork.lastCheckpointNonce)
@@ -116,8 +116,15 @@ func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler) erro
 	if int64(roundDif) < nonceDif {
 		return ErrHigherNonceInBlock
 	}
-	if !isSigned(header) {
-		return ErrBlockIsNotSigned
+	if state == process.BHProposed {
+		if !isRandomSeedValid(header) {
+			return ErrRandomSeedNotValid
+		}
+	}
+	if state == process.BHReceived || state == process.BHProcessed {
+		if !isSigned(header) {
+			return ErrBlockIsNotSigned
+		}
 	}
 
 	return nil
@@ -230,11 +237,11 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 
 	for _, hdrInfoStored := range hdrInfos {
 		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) {
-			if !hdrInfoStored.isCommitted && hdrInfo.isCommitted {
+			if hdrInfoStored.state != process.BHProcessed && hdrInfo.state == process.BHProcessed {
 				// if the stored and received headers processed at the same time have equal hashes, that the old record
 				// will be replaced with the processed one. This nonce is marked at bootsrapping as processed, but as it
 				// is also received through broadcasting, the system stores as received.
-				hdrInfoStored.isCommitted = true
+				hdrInfoStored.state = process.BHProcessed
 			}
 			return
 		}
@@ -261,7 +268,7 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64) {
 		lowestRoundInForkNonce = math.MaxUint32
 
 		for i := 0; i < len(hdrInfos); i++ {
-			if hdrInfos[i].isCommitted {
+			if hdrInfos[i].state == process.BHProcessed {
 				selfHdrInfo = hdrInfos[i]
 				continue
 			}

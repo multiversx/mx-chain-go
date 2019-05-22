@@ -664,7 +664,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	t.Parallel()
 
-	hdr := block.MetaBlock{Nonce: 1, RandSeed: []byte("X")}
+	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
 
 	store := createMetaStore()
 
@@ -1013,7 +1013,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 
 	ebm := createMetaBlockProcessor()
 
-	hdr := block.MetaBlock{Nonce: 1, RandSeed: []byte("X")}
+	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
 	blkc := mock.BlockChainMock{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
@@ -1387,9 +1387,9 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-		if isCommitted {
-			return errors.New("committed")
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		if state == process.BHProcessed {
+			return errors.New("processed")
 		}
 
 		if !bytes.Equal(hash, addedHash) {
@@ -1441,9 +1441,9 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddTo
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-		if isCommitted {
-			return errors.New("committed")
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		if state == process.BHProcessed {
+			return errors.New("processed")
 		}
 
 		if !bytes.Equal(hash, addedHash) {
@@ -1612,8 +1612,8 @@ func TestMetaBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.MetaBlock{
-			RandSeed: []byte("X"),
-			Nonce:    newHdrNonce,
+			PubKeysBitmap: []byte("X"),
+			Nonce:         newHdrNonce,
 		}
 	}
 

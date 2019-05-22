@@ -874,7 +874,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	t.Parallel()
 
-	hdr := block.Header{Nonce: 1, RandSeed: []byte("X")}
+	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
 	blockBodyUnit := &mock.StorerStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			return nil, nil
@@ -1337,7 +1337,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 	ebm := createBlockProcessor()
 
-	hdr := block.Header{Nonce: 1, RandSeed: []byte("X")}
+	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
 	blkc := mock.BlockChainMock{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
@@ -1775,9 +1775,9 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-		if isCommitted {
-			return errors.New("committed")
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		if state == process.BHProcessed {
+			return errors.New("processed")
 		}
 
 		if !bytes.Equal(hash, addedHash) {
@@ -1829,9 +1829,9 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isCommitted bool) error {
-		if isCommitted {
-			return errors.New("committed")
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		if state == process.BHProcessed {
+			return errors.New("processed")
 		}
 
 		if !bytes.Equal(hash, addedHash) {
@@ -2000,8 +2000,8 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
-			RandSeed: []byte("X"),
-			Nonce:    newHdrNonce,
+			PubKeysBitmap: []byte("X"),
+			Nonce:         newHdrNonce,
 		}
 	}
 
