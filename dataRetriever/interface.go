@@ -81,7 +81,7 @@ type TopicMessageHandler interface {
 
 // IntRandomizer interface provides functionality over generating integer numbers
 type IntRandomizer interface {
-	Intn(n int) int
+	Intn(n int) (int, error)
 }
 
 type StorageType uint8
