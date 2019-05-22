@@ -44,6 +44,7 @@ type TypeConfig struct {
 	Type string `json:"type"`
 }
 
+// NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
 	Host    string
 	Port    int
