@@ -41,6 +41,7 @@ func queryNTP(options NTPOptions) (*ntp.Response, error) {
 		Version:      options.Version,
 		LocalAddress: options.LocalAddress,
 		Port:         options.Port}
+	fmt.Println(fmt.Sprintf("NTP Request to %s:%d", options.Host, options.Port))
 	return beevikntp.QueryWithOptions(options.Host, queryOptions)
 }
 
