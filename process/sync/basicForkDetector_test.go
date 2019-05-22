@@ -382,3 +382,32 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 	rounderMock.RoundIndex = 106
 	assert.Equal(t, uint64(10), bfd.ProbableHighestNonce())
 }
+
+func TestBasicForkDetector_GetProbableHighestNonce(t *testing.T) {
+	rounderMock := &mock.RounderMock{RoundIndex: 100}
+	bfd, _ := sync.NewBasicForkDetector(rounderMock)
+
+	hdr1 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
+	hash1 := []byte("hash1")
+	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed)
+	hInfos := bfd.GetHeaders(1)
+	assert.Equal(t, uint64(1), bfd.GetProbableHighestNonce(hInfos))
+
+	hdr2 := &block.Header{Nonce: 2, Round: 2, PubKeysBitmap: []byte("X")}
+	hash2 := []byte("hash2")
+	_ = bfd.AddHeader(hdr2, hash2, process.BHReceived)
+	hInfos = bfd.GetHeaders(2)
+	assert.Equal(t, uint64(2), bfd.GetProbableHighestNonce(hInfos))
+
+	hdr3 := &block.Header{Nonce: 3, Round: 3, PrevRandSeed: []byte("X"), RandSeed: []byte("X")}
+	hash3 := []byte("hash3")
+	_ = bfd.AddHeader(hdr3, hash3, process.BHProposed)
+	hInfos = bfd.GetHeaders(3)
+	assert.Equal(t, uint64(2), bfd.GetProbableHighestNonce(hInfos))
+
+	hdr4 := &block.Header{Nonce: 3, Round: 3, PubKeysBitmap: []byte("X")}
+	hash4 := []byte("hash4")
+	_ = bfd.AddHeader(hdr4, hash4, process.BHReceived)
+	hInfos = bfd.GetHeaders(3)
+	assert.Equal(t, uint64(3), bfd.GetProbableHighestNonce(hInfos))
+}

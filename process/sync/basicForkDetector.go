@@ -179,7 +179,8 @@ func (bfd *basicForkDetector) computeProbableHighestNonce() uint64 {
 	bfd.mutFork.RUnlock()
 
 	bfd.mutHeaders.RLock()
-	for nonce := range bfd.headers {
+	for _, headersInfo := range bfd.headers {
+		nonce := bfd.getProbableHighestNonce(headersInfo)
 		if nonce <= probableHighestNonce {
 			continue
 		}
@@ -188,6 +189,27 @@ func (bfd *basicForkDetector) computeProbableHighestNonce() uint64 {
 	bfd.mutHeaders.RUnlock()
 
 	return probableHighestNonce
+}
+
+func (bfd *basicForkDetector) getProbableHighestNonce(headersInfo []*headerInfo) uint64 {
+	maxNonce := uint64(0)
+
+	for _, headerInfo := range headersInfo {
+		nonce := headerInfo.nonce
+		// if header stored state is BHProposed, then the probable highest nonce should be set to its nonce-1, because
+		// at that point the consensus was not achieved on this block and the only certainty is that the probable
+		// highest nonce is nonce-1 on which this proposed block is constructed. This approach would avoid a situation
+		// in which a proposed block on which the consensus would not be achieved would set all the nodes in sync mode,
+		// because of the probable highest nonce set with its nonce instead of nonce-1.
+		if headerInfo.state == process.BHProposed {
+			nonce--
+		}
+		if nonce > maxNonce {
+			maxNonce = nonce
+		}
+	}
+
+	return maxNonce
 }
 
 // RemoveHeaders removes all the stored headers with a given nonce
