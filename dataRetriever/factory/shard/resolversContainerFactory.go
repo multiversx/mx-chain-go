@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/random"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
@@ -18,6 +19,7 @@ type resolversContainerFactory struct {
 	marshalizer              marshal.Marshalizer
 	dataPools                dataRetriever.PoolsHolder
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	intRandomizer            dataRetriever.IntRandomizer
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -56,6 +58,7 @@ func NewResolversContainerFactory(
 		marshalizer:              marshalizer,
 		dataPools:                dataPools,
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
+		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
 	}, nil
 }
 
@@ -166,6 +169,7 @@ func (rcf *resolversContainerFactory) createOneTxResolver(identifier string) (da
 		rcf.messenger,
 		identifier,
 		rcf.marshalizer,
+		rcf.intRandomizer,
 	)
 	if err != nil {
 		return nil, err
@@ -200,6 +204,7 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 		rcf.messenger,
 		identifierHdr,
 		rcf.marshalizer,
+		rcf.intRandomizer,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -269,6 +274,7 @@ func (rcf *resolversContainerFactory) createOneMiniBlocksResolver(identifier str
 		rcf.messenger,
 		identifier,
 		rcf.marshalizer,
+		rcf.intRandomizer,
 	)
 	if err != nil {
 		return nil, err
@@ -304,6 +310,7 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolver() ([]strin
 		rcf.messenger,
 		identifierPeerCh,
 		rcf.marshalizer,
+		rcf.intRandomizer,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -343,6 +350,7 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 		rcf.messenger,
 		identifierHdr,
 		rcf.marshalizer,
+		rcf.intRandomizer,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -384,6 +392,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 		rcf.messenger,
 		identifierHdr,
 		rcf.marshalizer,
+		rcf.intRandomizer,
 	)
 	if err != nil {
 		return nil, nil, err
