@@ -249,18 +249,16 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return ErrInvalidSignature
 	}
 
-	var errNotCritical error
-
 	if wrk.consensusService.IsMessageWithBlockHeader(msgType) {
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
-		errNotCritical = wrk.forkDetector.AddHeader(header, headerHash, false)
+		errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, false)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 		}
 	}
 
-	errNotCritical = wrk.checkSelfState(cnsDta)
+	errNotCritical := wrk.checkSelfState(cnsDta)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 		//in this case should return nil but do not process the message

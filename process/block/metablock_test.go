@@ -887,10 +887,8 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	}
 
 	header := createMetaBlockHeader()
-	//TODO refactor the test
-	if mp.RequestBlockHeaders(header) > 0 {
-		mp.WaitForBlockHeaders(haveTime())
-	}
+	hdrsRequested := mp.RequestBlockHeaders(header)
+	assert.Equal(t, 1, hdrsRequested)
 }
 
 func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *testing.T) {
