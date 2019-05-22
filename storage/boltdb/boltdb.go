@@ -19,19 +19,19 @@ type DB struct {
 // NewDB is a constructor for the boltdb persister
 // It creates the files in the location given as parameter
 func NewDB(path string) (s *DB, err error) {
-	os.Mkdir(path, 0777)
+	os.MkdirAll(path, 0777)
 
 	if err != nil {
 		return nil, err
 	}
 	// create a filename
-	file := fmt.Sprintf("%s/%s", path, "data.db")
-	db, err := bolt.Open(file, 0666, nil)
+	fPath := filepath.Join(path, "data.db")
+	db, err := bolt.Open(fPath, 0666, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	dir := filepath.Dir(file)
+	dir := filepath.Dir(fPath)
 	parentFolder := filepath.Base(dir)
 	fmt.Println("Parent Folder: ", parentFolder)
 
