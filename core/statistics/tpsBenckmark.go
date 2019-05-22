@@ -10,6 +10,7 @@ import (
 
 // TpsBenchmark will calculate statistics for the network activity
 type TpsBenchmark struct {
+	mut                   sync.RWMutex
 	nrOfShards            uint32
 	activeNodes           uint32
 	roundTime             uint64
@@ -19,9 +20,7 @@ type TpsBenchmark struct {
 	averageBlockTxCount   *big.Int
 	lastBlockTxCount      uint32
 	totalProcessedTxCount *big.Int
-	shardStatisticsMut    sync.RWMutex
 	shardStatistics       map[uint32]*shardStatistics
-	shardStatisticsLock   sync.RWMutex
 	missingNonces         map[uint64]struct{}
 	missingNoncesLock     sync.RWMutex
 }
@@ -113,15 +112,15 @@ func (s *TpsBenchmark) NrOfShards() uint32 {
 
 // ShardStatistics returns the current statistical state for a given shard
 func (s *TpsBenchmark) ShardStatistics() map[uint32]*shardStatistics {
-	s.shardStatisticsMut.RLock()
-	defer s.shardStatisticsMut.RUnlock()
+	s.mut.RLock()
+	defer s.mut.RUnlock()
 	return s.shardStatistics
 }
 
 // ShardStatistic returns the current statistical state for a given shard
 func (s *TpsBenchmark) ShardStatistic(shardID uint32) *shardStatistics {
-	s.shardStatisticsMut.RLock()
-	defer s.shardStatisticsMut.RUnlock()
+	s.mut.RLock()
+	defer s.mut.RUnlock()
 
 	ss, ok := s.shardStatistics[shardID]
 	if !ok {
@@ -143,10 +142,12 @@ func (s *TpsBenchmark) isMissingNonce(nonce uint64) bool {
 }
 
 func (s *TpsBenchmark) isMetaBlockRelevant(mb *block.MetaBlock) bool {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
 	if mb == nil {
 		return false
 	}
-	if mb.Nonce < s.blockNumber && !s.isMissingNonce(mb.Nonce) {
+	if mb.Nonce <= s.blockNumber && !s.isMissingNonce(mb.Nonce) {
 		return false
 	}
 	if len(mb.ShardInfo) < 1 {
@@ -190,8 +191,19 @@ func (s *TpsBenchmark) setAverageTxCountForRound(round uint64) {
 }
 
 func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
-	s.shardStatisticsMut.Lock()
-	defer s.shardStatisticsMut.Unlock()
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	s.blockNumber = header.Nonce
+	s.roundNumber = uint64(header.Round)
+	s.lastBlockTxCount = header.TxCount
+	s.totalProcessedTxCount.Add(s.totalProcessedTxCount, big.NewInt(int64(header.TxCount)))
+	s.averageBlockTxCount.Quo(s.totalProcessedTxCount, big.NewInt(int64(header.Nonce)))
+
+	currentTPS := float64(uint64(header.TxCount) / s.roundTime)
+	if currentTPS > s.peakTPS {
+		s.peakTPS = currentTPS
+	}
 
 	for _, shardInfo := range header.ShardInfo {
 		shardStat, ok := s.shardStatistics[shardInfo.ShardId]
@@ -199,20 +211,10 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 			return core.ErrInvalidShardId
 		}
 
-		s.blockNumber = header.Nonce
-		s.roundNumber = uint64(header.Round)
-		s.lastBlockTxCount = header.TxCount
-		s.totalProcessedTxCount.Add(s.totalProcessedTxCount, big.NewInt(int64(header.TxCount)))
-		s.averageBlockTxCount.Quo(s.totalProcessedTxCount, big.NewInt(int64(header.Nonce)))
-
-		currentTPS := float64(uint64(header.TxCount) / s.roundTime)
-		if currentTPS > s.peakTPS {
-			s.peakTPS = currentTPS
-		}
-
 		shardPeakTPS := shardStat.peakTPS
-		if currentTPS > shardStat.peakTPS {
-			shardPeakTPS = currentTPS
+		currentShardTPS := float64(uint64(shardInfo.TxCount) / s.roundTime)
+		if currentShardTPS > shardStat.peakTPS {
+			shardPeakTPS = currentShardTPS
 		}
 
 		bigTxCount := big.NewInt(int64(shardInfo.TxCount))

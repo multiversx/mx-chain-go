@@ -449,7 +449,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	mp.SetLastNotarizedHeadersSlice(map[uint32]data.HeaderHandler{0: &block.Header{Nonce: 0, Round: 0}})
 
 	go func() {
-		mp.ChRcvAllHdrs <- true
+		mp.ChRcvAllHdrs() <- true
 	}()
 
 	// should return err

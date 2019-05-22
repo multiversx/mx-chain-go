@@ -214,11 +214,13 @@ $ go test ./...
 # 21: 0098f7634d7327139848a0f6ad926051596e5a0f692adfb671ab02092b77181d
 
 # Ex1:
-for i in $(seq 0 20)
+numOfNodes=10
+for i in $(seq 1 $numOfNodes)
 do
+index=$(( $i - 1 ))
 offset=23000
-port=$(( $offset + $i ))
-gnome-terminal -- ./node -port $port -tx-sign-sk-index $i -sk-index $i
+port=$(( $offset + $index ))
+gnome-terminal -- ./node -port $port -tx-sign-sk-index $index -sk-index $index -num-of-nodes $numOfNodes
 done
 
 # Ex2:
