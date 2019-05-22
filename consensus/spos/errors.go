@@ -138,3 +138,6 @@ var ErrNilBroadCastBlock = errors.New("broadCastBlock is nil")
 
 // ErrNilSendMessage is raised when a valid sendMessage function is expected but nil used
 var ErrNilSendMessage = errors.New("sendMessage is nil")
+
+// ErrNilForkDetector is raised when a valid fork detector is expected but nil used
+var ErrNilForkDetector = errors.New("fork detector is nil")

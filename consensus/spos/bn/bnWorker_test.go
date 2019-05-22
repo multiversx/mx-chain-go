@@ -234,3 +234,15 @@ func TestWorker_GetSubroundName(t *testing.T) {
 	r = service.GetSubroundName(-1)
 	assert.Equal(t, "Undefined subround", r)
 }
+
+func TestWorker_IsMessageWithBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bn.NewConsensusService()
+
+	ret := service.IsMessageWithBlockHeader(bn.MtBlockBody)
+	assert.False(t, ret)
+
+	ret = service.IsMessageWithBlockHeader(bn.MtBlockHeader)
+	assert.True(t, ret)
+}

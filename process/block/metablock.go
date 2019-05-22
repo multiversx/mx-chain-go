@@ -434,7 +434,7 @@ func (mp *metaProcessor) CommitBlock(
 		log.Info(errNotCritical.Error())
 	}
 
-	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, true)
+	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
@@ -1043,7 +1043,7 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 
 		if shardData.ShardMiniBlockHeaders == nil || len(shardData.ShardMiniBlockHeaders) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
-				"", "ShardMiniBlockHeaders", "<NIL> or <EMPTY>"}))
+				"", "ShardMiniBlockHeaders", "<EMPTY>"}))
 		}
 
 		shardMBHeaderCounterMutex.Lock()
@@ -1055,7 +1055,7 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 			if j == 0 || j >= len(shardData.ShardMiniBlockHeaders)-1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
-					fmt.Sprintf("ShardMiniBlockHeaderHash %d", j+1),
+					fmt.Sprintf("ShardMiniBlockHeaderHash_%d", j+1),
 					toB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
