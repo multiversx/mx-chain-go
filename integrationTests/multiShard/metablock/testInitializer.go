@@ -53,7 +53,7 @@ var r *rand.Rand
 var testHasher = sha256.Sha256{}
 var testMarshalizer = &marshal.JsonMarshalizer{}
 var testAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
-var testMultiSig = mock.NewMultiSigner()
+var testMultiSig = mock.NewMultiSigner(1)
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
