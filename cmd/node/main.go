@@ -129,6 +129,12 @@ VERSION:
 		Usage: "The main configuration file to load",
 		Value: "./config/config.toml",
 	}
+	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
+	p2pConfigurationFile = cli.StringFlag{
+		Name:  "p2pconfig",
+		Usage: "The configuration file for P2P",
+		Value: "./config/p2p.toml",
+	}
 	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
 	withUI = cli.BoolTFlag{
 		Name:  "with-ui",
@@ -171,7 +177,6 @@ VERSION:
 		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk",
 	}
 
-	p2pConfigurationFile     = "./config/p2p.toml"
 	initialBalancesSkPemFile = "./config/initialBalancesSk.pem"
 	initialNodesSkPemFile    = "./config/initialNodesSk.pem"
 
@@ -247,7 +252,7 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, nodesFile, port, configurationFile, txSignSk, sk, profileMode, txSignSkIndex, skIndex, numOfNodes, storageCleanup}
+	app.Flags = []cli.Flag{genesisFile, nodesFile, port, configurationFile, p2pConfigurationFile, txSignSk, sk, profileMode, txSignSkIndex, skIndex, numOfNodes, storageCleanup}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -307,11 +312,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFileName))
 
-	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFile)
+	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
+	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFile))
+	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFileName))
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
 	}
