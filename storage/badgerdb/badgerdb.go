@@ -7,6 +7,9 @@ import (
 	"github.com/dgraph-io/badger/options"
 )
 
+// read + write + execute for owner only
+const rwxOwner = 0700
+
 // DB holds a pointer to the badger database and the path to where it is stored.
 type DB struct {
 	db   *badger.DB
@@ -21,7 +24,7 @@ func NewDB(path string) (s *DB, err error) {
 	opts.ValueDir = path
 	opts.ValueLogLoadingMode = options.FileIO
 
-	err = os.MkdirAll(path, 0777)
+	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +114,7 @@ func (s *DB) Remove(key []byte) error {
 
 // Destroy removes the storage medium stored data
 func (s *DB) Destroy() error {
+	s.db.Close()
 	err := os.RemoveAll(s.path)
 	return err
 }

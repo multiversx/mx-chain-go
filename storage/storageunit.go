@@ -230,8 +230,6 @@ func (s *Unit) DestroyUnit() error {
 	}
 
 	s.cacher.Clear()
-	err := s.persister.Close()
-	log.LogIfError(err)
 	return s.persister.Destroy()
 }
 

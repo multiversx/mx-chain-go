@@ -9,6 +9,12 @@ import (
 	"github.com/boltdb/bolt"
 )
 
+// read + write + execute for owner only
+const rwxOwner = 0700
+
+// read + write for owner
+const rwOwner = 0600
+
 // DB holds a pointer to the boltdb database and the path to where it is stored.
 type DB struct {
 	db           *bolt.DB
@@ -19,13 +25,13 @@ type DB struct {
 // NewDB is a constructor for the boltdb persister
 // It creates the files in the location given as parameter
 func NewDB(path string) (s *DB, err error) {
-	err = os.MkdirAll(path, 0777)
+	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
 	}
 	// create a filename
 	fPath := filepath.Join(path, "data.db")
-	db, err := bolt.Open(fPath, 0666, nil)
+	db, err := bolt.Open(fPath, rwOwner, nil)
 	if err != nil {
 		return nil, err
 	}

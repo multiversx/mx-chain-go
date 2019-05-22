@@ -12,6 +12,9 @@ import (
 
 const maxOpenFilesPerTable = 50
 
+// read + write + execute for owner only
+const rwxOwner = 0700
+
 // DB holds a pointer to the leveldb database and the path to where it is stored.
 type DB struct {
 	db   *leveldb.DB
@@ -21,7 +24,7 @@ type DB struct {
 // NewDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
 func NewDB(path string) (s *DB, err error) {
-	err = os.MkdirAll(path, 0777)
+	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
 	}
