@@ -23,7 +23,6 @@ type NTPOptions struct {
 
 // NewNTPOptions creates a new NTPOptions object.
 func NewNTPOptions(ntpConfig config.NTPConfig) NTPOptions {
-	// TODO Read these values from configurations.
 	return NTPOptions{
 		Host:         ntpConfig.Host,
 		Port:         ntpConfig.Port,
