@@ -56,6 +56,7 @@ type TxResponse struct {
 	Hash        string `json:"hash"`
 	BlockNumber uint64 `json:"blockNumber"`
 	BlockHash   string `json:"blockHash"`
+	Timestamp   uint64 `json:"timestamp"`
 }
 
 // Routes defines transaction related routes
@@ -227,6 +228,7 @@ func buildDummyRecentTransactions() []TxResponse {
 			"0x3213894328492",
 			10,
 			"0x000000000",
+			1558361492,
 		})
 	}
 	return txs

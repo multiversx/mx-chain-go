@@ -1,9 +1,6 @@
 package topicResolverSender
 
 import (
-	"math/rand"
-	"time"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -22,7 +19,7 @@ type topicResolverSender struct {
 	messenger   dataRetriever.MessageHandler
 	marshalizer marshal.Marshalizer
 	topicName   string
-	rnd         *rand.Rand
+	randomizer  dataRetriever.IntRandomizer
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
@@ -30,20 +27,24 @@ func NewTopicResolverSender(
 	messenger dataRetriever.MessageHandler,
 	topicName string,
 	marshalizer marshal.Marshalizer,
+	randomizer dataRetriever.IntRandomizer,
 ) (*topicResolverSender, error) {
+
 	if messenger == nil {
 		return nil, dataRetriever.ErrNilMessenger
 	}
-
 	if marshalizer == nil {
 		return nil, dataRetriever.ErrNilMarshalizer
+	}
+	if randomizer == nil {
+		return nil, dataRetriever.ErrNilRandomizer
 	}
 
 	resolver := &topicResolverSender{
 		messenger:   messenger,
 		topicName:   topicName,
 		marshalizer: marshalizer,
-		rnd:         rand.New(rand.NewSource(time.Now().UnixNano())),
+		randomizer:  randomizer,
 	}
 
 	return resolver, nil
@@ -58,7 +59,10 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 	}
 
 	topicToSendRequest := trs.topicName + topicRequestSuffix
-	peersToSend := selectRandomPeers(trs.messenger.ConnectedPeersOnTopic(topicToSendRequest), NumPeersToQuery, trs.rnd)
+	peersToSend, err := selectRandomPeers(trs.messenger.ConnectedPeersOnTopic(topicToSendRequest), NumPeersToQuery, trs.randomizer)
+	if err != nil {
+		return err
+	}
 	if len(peersToSend) == 0 {
 		return dataRetriever.ErrNoConnectedPeerToSendRequest
 	}
@@ -91,21 +95,25 @@ func (trs *topicResolverSender) TopicRequestSuffix() string {
 	return topicRequestSuffix
 }
 
-func selectRandomPeers(connectedPeers []p2p.PeerID, peersToSend int, randomizer dataRetriever.IntRandomizer) []p2p.PeerID {
+func selectRandomPeers(connectedPeers []p2p.PeerID, peersToSend int, randomizer dataRetriever.IntRandomizer) ([]p2p.PeerID, error) {
 	selectedPeers := make([]p2p.PeerID, 0)
 
 	if len(connectedPeers) == 0 {
-		return selectedPeers
+		return selectedPeers, nil
 	}
 
 	if len(connectedPeers) <= peersToSend {
-		return connectedPeers
+		return connectedPeers, nil
 	}
 
 	uniqueIndexes := make(map[int]struct{})
 	//generating peersToSend number of unique indexes
 	for len(uniqueIndexes) < peersToSend {
-		newIndex := randomizer.Intn(len(connectedPeers))
+		newIndex, err := randomizer.Intn(len(connectedPeers))
+		if err != nil {
+			return nil, err
+		}
+
 		uniqueIndexes[newIndex] = struct{}{}
 	}
 
@@ -113,5 +121,5 @@ func selectRandomPeers(connectedPeers []p2p.PeerID, peersToSend int, randomizer 
 		selectedPeers = append(selectedPeers, connectedPeers[index])
 	}
 
-	return selectedPeers
+	return selectedPeers, nil
 }
