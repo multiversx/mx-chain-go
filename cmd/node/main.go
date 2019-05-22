@@ -123,6 +123,12 @@ VERSION:
 		Usage: "Private key that the node will load on startup and will sign blocks",
 		Value: "",
 	}
+	// configurationFile defines a flag for the path to the main toml configuration file
+	configurationFile = cli.StringFlag{
+		Name:  "config",
+		Usage: "The main configuration file to load",
+		Value: "./config/config.toml",
+	}
 	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
 	withUI = cli.BoolTFlag{
 		Name:  "with-ui",
@@ -165,7 +171,6 @@ VERSION:
 		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk",
 	}
 
-	configurationFile        = "./config/config.toml"
 	p2pConfigurationFile     = "./config/p2p.toml"
 	initialBalancesSkPemFile = "./config/initialBalancesSk.pem"
 	initialNodesSkPemFile    = "./config/initialNodesSk.pem"
@@ -242,7 +247,7 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, nodesFile, port, txSignSk, sk, profileMode, txSignSkIndex, skIndex, numOfNodes, storageCleanup}
+	app.Flags = []cli.Flag{genesisFile, nodesFile, port, configurationFile, txSignSk, sk, profileMode, txSignSkIndex, skIndex, numOfNodes, storageCleanup}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -295,11 +300,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	generalConfig, err := loadMainConfig(configurationFile, log)
+	configurationFileName := ctx.GlobalString(configurationFile.Name)
+	generalConfig, err := loadMainConfig(configurationFileName, log)
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFile))
+	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFileName))
 
 	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFile)
 	if err != nil {
