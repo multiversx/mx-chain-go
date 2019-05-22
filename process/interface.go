@@ -75,7 +75,7 @@ type Bootstrapper interface {
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error
+	AddHeader(header data.HeaderHandler, hash []byte, state BlockHeaderState) error
 	RemoveHeaders(nonce uint64, hash []byte)
 	CheckFork() (bool, uint64)
 	GetHighestFinalBlockNonce() uint64

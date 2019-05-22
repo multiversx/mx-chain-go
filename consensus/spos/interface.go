@@ -55,6 +55,8 @@ type ConsensusService interface {
 	GetMessageRange() []consensus.MessageType
 	//CanProceed returns if the current messageType can proceed further if previous subrounds finished
 	CanProceed(*ConsensusState, consensus.MessageType) bool
+	//IsMessageWithBlockHeader returns if the current messageType is about block header
+	IsMessageWithBlockHeader(consensus.MessageType) bool
 }
 
 //SubroundsFactory encapsulates the methods specifically for a subrounds factory type (bls, bn)
