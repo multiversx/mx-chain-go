@@ -79,6 +79,8 @@ type WorkerHandler interface {
 	Extend(subroundId int)
 	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
 	GetConsensusStateChangedChannel() chan bool
-	//BroadcastBlock ge
+	//BroadcastBlock does a broadcast of the blockBody and blockHeader
 	BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error
+	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
+	ExecuteStoredMessages()
 }
