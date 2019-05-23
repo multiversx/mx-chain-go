@@ -410,6 +410,10 @@ func (n *Node) getBroadcastHeader() func(data.HeaderHandler) error {
 		return n.BroadcastShardHeader
 	}
 
+	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return n.BroadcastMetaHeader
+	}
+
 	return nil
 }
 
@@ -819,6 +823,11 @@ func (n *Node) BroadcastMetaBlock(blockBody data.BodyHandler, header data.Header
 
 	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
 
+	return nil
+}
+
+// BroadcastMetaHeader will send on metachain topics the header
+func (n *Node) BroadcastMetaHeader(header data.HeaderHandler) error {
 	return nil
 }
 

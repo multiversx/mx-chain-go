@@ -1467,6 +1467,7 @@ func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 //GetUnnotarisedHeaders gets all the headers which are not notarized in metachain yet
 func (sp *shardProcessor) GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler {
 	sp.mutUnnotarisedHeaders.RLock()
+
 	hdrs := make([]data.HeaderHandler, 0)
 	for hash := range sp.unnotarisedHeaders {
 		if bytes.Equal(blockChain.GetCurrentBlockHeaderHash(), []byte(hash)) {
