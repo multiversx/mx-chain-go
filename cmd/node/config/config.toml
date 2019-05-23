@@ -97,22 +97,26 @@
 
 [MetaHeaderNoncesDataPool]
     Size = 100000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 100
 
 [TxDataPool]
     Size = 100000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 100
 
 [ShardHeadersDataPool]
     Size = 10000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 100
 
 [MiniBlockHeaderHashesDataPool]
     Size = 10000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 100
 
 [MetaBlockBodyDataPool]
-    Size = 10000
+    Size = 1000
     Type = "LRU"
 
 [Logger]

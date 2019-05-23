@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/badgerdb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/boltdb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/fifocache"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 )
@@ -32,7 +33,8 @@ type HasherType string
 
 // LRUCache is currently the only supported Cache type
 const (
-	LRUCache CacheType = "LRU"
+	LRUCache         CacheType = "LRU"
+	FIFOShardedCache CacheType = "FIFOSharded"
 )
 
 // LvlDB currently the only supported DBs
@@ -61,8 +63,9 @@ type UnitConfig struct {
 
 // CacheConfig holds the configurable elements of a cache
 type CacheConfig struct {
-	Size uint32
-	Type CacheType
+	Size   uint32
+	Type   CacheType
+	Shards uint32
 }
 
 // DBConfig holds the configurable elements of a database
@@ -297,7 +300,7 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		}
 	}()
 
-	cache, err = NewCache(cacheConf.Type, cacheConf.Size)
+	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards)
 	if err != nil {
 		return nil, err
 	}
@@ -320,13 +323,19 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 }
 
 //NewCache creates a new cache from a cache config
-func NewCache(cacheType CacheType, size uint32) (Cacher, error) {
+func NewCache(cacheType CacheType, size uint32, params ...interface{}) (Cacher, error) {
 	var cacher Cacher
 	var err error
 
 	switch cacheType {
 	case LRUCache:
 		cacher, err = lrucache.NewCache(int(size))
+	case FIFOShardedCache:
+		shardCount, ok := params[0].(uint32)
+		if !ok {
+			return nil, errMissingOrInvalidParameter
+		}
+		cacher, err = fifocache.NewShardedCache(int(size), int(shardCount))
 		// add other implementations if required
 	default:
 		return nil, errNotSupportedCacheType
