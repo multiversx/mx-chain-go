@@ -64,10 +64,9 @@ func TestHasPresent(t *testing.T) {
 
 	assert.Nil(t, err, "error saving in db")
 
-	has, err := mdb.Has(key)
+	err = mdb.Has(key)
 
 	assert.Nil(t, err, "error not expected but got %s", err)
-	assert.True(t, has, "value expected but not found")
 }
 
 func TestHasNotPresent(t *testing.T) {
@@ -76,10 +75,10 @@ func TestHasNotPresent(t *testing.T) {
 
 	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	has, err := mdb.Has(key)
+	err = mdb.Has(key)
 
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.False(t, has, "value not expected but found")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Key not found")
 }
 
 func TestDeletePresent(t *testing.T) {
@@ -96,9 +95,10 @@ func TestDeletePresent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	has, err := mdb.Has(key)
+	err = mdb.Has(key)
 
-	assert.False(t, has, "element not expected as already deleted")
+	assert.NotNil(t, err, "element not expected as already deleted")
+	assert.Contains(t, err.Error(), "Key not found")
 }
 
 func TestDeleteNotPresent(t *testing.T) {

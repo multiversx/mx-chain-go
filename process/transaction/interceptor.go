@@ -146,7 +146,8 @@ func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte))
 }
 
 func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
-	isTxInStorage, _ := txi.txStorer.Has(tx.Hash())
+	err := txi.txStorer.Has(tx.Hash())
+	isTxInStorage := err == nil
 	if isTxInStorage {
 		log.Debug("intercepted tx already processed")
 		return
