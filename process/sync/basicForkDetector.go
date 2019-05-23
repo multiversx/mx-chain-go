@@ -290,6 +290,11 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64) {
 		lowestRoundInForkNonce = math.MaxUint32
 
 		for i := 0; i < len(hdrInfos); i++ {
+			// Proposed blocks received do not count for fork choice, as they are not valid until the consensus
+			// is achieved. They should be received afterwards through sync mechanism.
+			if hdrInfos[i].state == process.BHProposed {
+				continue
+			}
 			if hdrInfos[i].state == process.BHProcessed {
 				selfHdrInfo = hdrInfos[i]
 				continue
