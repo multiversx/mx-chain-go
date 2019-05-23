@@ -516,7 +516,7 @@ func TestDestroyUnitWithNilBloomFilterNoError(t *testing.T) {
 
 func TestCreateCacheFromConfWrongType(t *testing.T) {
 
-	cacher, err := storage.NewCache("NotLRU", 100)
+	cacher, err := storage.NewCache("NotLRU", 100, 1)
 
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, cacher, "cacher expected to be nil, but got %s", cacher)
@@ -524,7 +524,7 @@ func TestCreateCacheFromConfWrongType(t *testing.T) {
 
 func TestCreateCacheFromConfOK(t *testing.T) {
 
-	cacher, err := storage.NewCache(storage.LRUCache, 10)
+	cacher, err := storage.NewCache(storage.LRUCache, 10, 1)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, cacher, "valid cacher expected but got nil")

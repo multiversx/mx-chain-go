@@ -1437,7 +1437,7 @@ func TestSortTxByNonce_NilCacherShouldErr(t *testing.T) {
 
 func TestSortTxByNonce_EmptyCacherShouldReturnEmpty(t *testing.T) {
 	t.Parallel()
-	cacher, _ := storage.NewCache(storage.LRUCache, 100)
+	cacher, _ := storage.NewCache(storage.LRUCache, 100, 1)
 	transactions, txHashes, err := blproc.SortTxByNonce(cacher)
 	assert.Equal(t, 0, len(transactions))
 	assert.Equal(t, 0, len(txHashes))
@@ -1446,7 +1446,7 @@ func TestSortTxByNonce_EmptyCacherShouldReturnEmpty(t *testing.T) {
 
 func TestSortTxByNonce_OneTxShouldWork(t *testing.T) {
 	t.Parallel()
-	cacher, _ := storage.NewCache(storage.LRUCache, 100)
+	cacher, _ := storage.NewCache(storage.LRUCache, 100, 1)
 	hash, tx := createRandTx(r)
 	cacher.HasOrAdd(hash, tx)
 	transactions, txHashes, err := blproc.SortTxByNonce(cacher)
@@ -1535,7 +1535,7 @@ func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
 		{Nonce: 2, Signature: []byte("sig4")},
 		{Nonce: 3, Signature: []byte("sig5")},
 	}
-	cache, _ := storage.NewCache(storage.LRUCache, uint32(len(transactions)))
+	cache, _ := storage.NewCache(storage.LRUCache, uint32(len(transactions)), 1)
 	for _, tx := range transactions {
 		marshalizer := &mock.MarshalizerMock{}
 		buffTx, _ := marshalizer.Marshal(tx)
@@ -1568,7 +1568,7 @@ func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
 }
 
 func genCacherTransactionsHashes(noOfTx int) (storage.Cacher, []*transaction.Transaction, [][]byte) {
-	cacher, _ := storage.NewCache(storage.LRUCache, uint32(noOfTx))
+	cacher, _ := storage.NewCache(storage.LRUCache, uint32(noOfTx), 1)
 	genHashes := make([][]byte, 0)
 	genTransactions := make([]*transaction.Transaction, 0)
 	for i := 0; i < noOfTx; i++ {

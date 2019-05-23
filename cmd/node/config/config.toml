@@ -98,22 +98,22 @@
 [MetaHeaderNoncesDataPool]
     Size = 100000
     Type = "FIFOSharded"
-    Shards = 100
+    Shards = 128
 
 [TxDataPool]
     Size = 100000
     Type = "FIFOSharded"
-    Shards = 100
+    Shards = 128
 
 [ShardHeadersDataPool]
     Size = 10000
     Type = "FIFOSharded"
-    Shards = 100
+    Shards = 128
 
 [MiniBlockHeaderHashesDataPool]
     Size = 10000
     Type = "FIFOSharded"
-    Shards = 100
+    Shards = 128
 
 [MetaBlockBodyDataPool]
     Size = 1000

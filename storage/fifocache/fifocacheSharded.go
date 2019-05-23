@@ -58,11 +58,7 @@ func (c *FIFOShardedCache) RegisterHandler(handler func(key []byte)) {
 
 // Get looks up a key's value from the cache.
 func (c *FIFOShardedCache) Get(key []byte) (value interface{}, ok bool) {
-	v, ok := c.cache.Get(string(key))
-	if ok == false {
-		return nil, ok
-	}
-	return v, ok
+	return c.cache.Get(string(key))
 }
 
 // Has checks if a key is in the cache, without updating the
@@ -74,13 +70,7 @@ func (c *FIFOShardedCache) Has(key []byte) bool {
 // Peek returns the key value (or undefined if not found) without updating
 // the "recently used"-ness of the key.
 func (c *FIFOShardedCache) Peek(key []byte) (value interface{}, ok bool) {
-	v, ok := c.cache.Get(string(key))
-
-	if ok == false {
-		return nil, ok
-	}
-
-	return v, ok
+	return c.cache.Get(string(key))
 }
 
 // HasOrAdd checks if a key is in the cache  without updating the
@@ -88,9 +78,8 @@ func (c *FIFOShardedCache) Peek(key []byte) (value interface{}, ok bool) {
 // Returns whether found and whether an eviction occurred.
 func (c *FIFOShardedCache) HasOrAdd(key []byte, value interface{}) (found, evicted bool) {
 	added := c.cache.SetIfAbsent(string(key), value)
-	found = !added
 
-	if !found {
+	if added {
 		c.callAddedDataHandlers(key)
 	}
 
@@ -113,6 +102,7 @@ func (c *FIFOShardedCache) Remove(key []byte) {
 // RemoveOldest removes the oldest item from the cache.
 func (c *FIFOShardedCache) RemoveOldest() {
 	// nothing to do, oldest is automatically removed when adding a new item.
+	log.Warn("remove oldest item not done, oldest item will be automatically cleared on reaching capacity")
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest.

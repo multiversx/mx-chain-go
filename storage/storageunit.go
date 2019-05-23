@@ -323,7 +323,8 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 }
 
 //NewCache creates a new cache from a cache config
-func NewCache(cacheType CacheType, size uint32, params ...interface{}) (Cacher, error) {
+//TODO: add a cacher factory or a cacheConfig param instead
+func NewCache(cacheType CacheType, size uint32, shards uint32) (Cacher, error) {
 	var cacher Cacher
 	var err error
 
@@ -331,11 +332,7 @@ func NewCache(cacheType CacheType, size uint32, params ...interface{}) (Cacher, 
 	case LRUCache:
 		cacher, err = lrucache.NewCache(int(size))
 	case FIFOShardedCache:
-		shardCount, ok := params[0].(uint32)
-		if !ok {
-			return nil, errMissingOrInvalidParameter
-		}
-		cacher, err = fifocache.NewShardedCache(int(size), int(shardCount))
+		cacher, err = fifocache.NewShardedCache(int(size), int(shards))
 		if err != nil {
 			return nil, err
 		}
