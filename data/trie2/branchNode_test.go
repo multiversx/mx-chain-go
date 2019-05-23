@@ -12,7 +12,7 @@ import (
 )
 
 func getTestMarshAndHasher() (marshal.Marshalizer, hashing.Hasher) {
-	marsh := marshal.JsonMarshalizer{}
+	marsh := &marshal.ProtobufMarshalizer{}
 	hasher := keccak.Keccak{}
 	return marsh, hasher
 }
@@ -108,7 +108,7 @@ func TestBranchNode_setHash(t *testing.T) {
 
 func TestBranchNode_setRootHash(t *testing.T) {
 	db, _ := memorydb.New()
-	marsh := marshal.JsonMarshalizer{}
+	marsh := &marshal.ProtobufMarshalizer{}
 	hsh := keccak.Keccak{}
 
 	tr1, _ := NewTrie(db, marsh, hsh)
@@ -700,7 +700,7 @@ func TestBranchNode_isEmptyOrNil(t *testing.T) {
 
 func emptyTrie() Trie {
 	db, _ := memorydb.New()
-	tr, _ := NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
+	tr, _ := NewTrie(db, &marshal.ProtobufMarshalizer{}, keccak.Keccak{})
 	return tr
 }
 
@@ -720,7 +720,7 @@ func BenchmarkDecodeBranchNode(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		decodeNode(proof[0], marshal.JsonMarshalizer{})
+		decodeNode(proof[0], &marshal.ProtobufMarshalizer{})
 	}
 }
 

@@ -220,7 +220,7 @@ func (en *extensionNode) resolveCollapsed(pos byte, db DBWriteCacher, marshalize
 }
 
 func (en *extensionNode) isCollapsed() bool {
-	if en.child == nil && en.EncodedChild != nil {
+	if en.child == nil && len(en.EncodedChild) != 0 {
 		return true
 	}
 	return false

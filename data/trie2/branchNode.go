@@ -318,7 +318,7 @@ func (bn *branchNode) isCollapsed() bool {
 }
 
 func (bn *branchNode) isPosCollapsed(pos int) bool {
-	if bn.children[pos] == nil && bn.EncodedChildren[pos] != nil {
+	if bn.children[pos] == nil && len(bn.EncodedChildren[pos]) != 0 {
 		return true
 	}
 	return false
