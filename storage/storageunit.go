@@ -336,6 +336,9 @@ func NewCache(cacheType CacheType, size uint32, params ...interface{}) (Cacher, 
 			return nil, errMissingOrInvalidParameter
 		}
 		cacher, err = fifocache.NewShardedCache(int(size), int(shardCount))
+		if err != nil {
+			return nil, err
+		}
 		// add other implementations if required
 	default:
 		return nil, errNotSupportedCacheType
