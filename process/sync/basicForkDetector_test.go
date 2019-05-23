@@ -238,6 +238,21 @@ func TestBasicForkDetector_CheckForkHeaderProcessedShouldReturnFalseWhenLowestRo
 	assert.Equal(t, 1, len(hInfos))
 }
 
+func TestBasicForkDetector_CheckForkShouldNotConsiderProposedBlocks(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{RoundIndex: 100}
+	bfd, _ := sync.NewBasicForkDetector(rounderMock)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")}, []byte("hash1"), process.BHProcessed)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, Round: 2, PrevRandSeed: []byte("X"), RandSeed: []byte("X")}, []byte("hash2"), process.BHProposed)
+
+	hInfos := bfd.GetHeaders(1)
+	assert.Equal(t, 2, len(hInfos))
+
+	forkDetected, lowestForkNonce := bfd.CheckFork()
+	assert.False(t, forkDetected)
+	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
+}
+
 func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
