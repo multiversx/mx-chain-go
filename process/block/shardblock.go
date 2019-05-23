@@ -1473,6 +1473,11 @@ func (sp *shardProcessor) GetUnnotarisedHeaders(blockChain data.ChainHandler) []
 		if bytes.Equal(blockChain.GetCurrentBlockHeaderHash(), []byte(hash)) {
 			continue
 		}
+		if blockChain.GetCurrentBlockHeader() != nil {
+			if bytes.Equal(blockChain.GetCurrentBlockHeader().GetPrevHash(), []byte(hash)) {
+				continue
+			}
+		}
 		hdr := sp.getHeader([]byte(hash))
 		if hdr == nil {
 			continue
