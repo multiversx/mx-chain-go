@@ -229,10 +229,13 @@ func (boot *MetaBootstrap) SyncBlock() error {
 		return err
 	}
 
+	timeBefore := time.Now()
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
 	if err != nil {
 		return err
 	}
+	timeAfter := time.Now()
+	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
 
 	log.Info(fmt.Sprintf("block with nonce %d was synced successfully\n", hdr.Nonce))
 	return nil
