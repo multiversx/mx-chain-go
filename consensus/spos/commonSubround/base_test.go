@@ -112,3 +112,7 @@ func getSubroundName(subroundId int) string {
 		return "Undefined subround"
 	}
 }
+
+// executeStoredMessages tries to execute all the messages received which are valid for execution
+func executeStoredMessages() {
+}
