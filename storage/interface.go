@@ -7,7 +7,7 @@ type Persister interface {
 	// Get gets the value associated to the key
 	Get(key []byte) ([]byte, error)
 	// Has returns true if the given key is present in the persistance medium
-	Has(key []byte) (bool, error)
+	Has(key []byte) error
 	// Init initializes the persistance medium and prepares it for usage
 	Init() error
 	// Close closes the files/resources associated to the persistance medium
@@ -64,8 +64,8 @@ type BloomFilter interface {
 type Storer interface {
 	Put(key, data []byte) error
 	Get(key []byte) ([]byte, error)
-	Has(key []byte) (bool, error)
-	HasOrAdd(key []byte, value []byte) (bool, error)
+	Has(key []byte) error
+	HasOrAdd(key []byte, value []byte) error
 	Remove(key []byte) error
 	ClearCache()
 	DestroyUnit() error

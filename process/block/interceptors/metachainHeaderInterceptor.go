@@ -117,7 +117,8 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 }
 
 func (mhi *MetachainHeaderInterceptor) processMetaHeader(metaHdrIntercepted *block.InterceptedMetaHeader) {
-	isHeaderInStorage, _ := mhi.storer.Has(metaHdrIntercepted.Hash())
+	err := mhi.storer.Has(metaHdrIntercepted.Hash())
+	isHeaderInStorage := err == nil
 	if isHeaderInStorage {
 		log.Debug("intercepted meta block header already processed")
 		return
