@@ -297,3 +297,9 @@ var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to c
 
 // ErrLastNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
 var ErrLastNotarizedHdrsSliceIsNil = errors.New("last notarized shard headers slice is nil")
+
+// ErrLastNotarizedMetaHdrIsNil signals that the slice holding last notarized headers does not have data from metachain
+var ErrLastNotarizedMetaHdrIsNil = errors.New("last notarized meta header is nil")
+
+// ErrNoNewMetablocks signals that no new metablocks are in the pool
+var ErrNoNewMetablocks = errors.New("there is no new metablocks")

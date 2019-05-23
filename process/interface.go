@@ -15,7 +15,7 @@ type TransactionProcessor interface {
 	SCHandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
 	SetSCHandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error)
 
-	ProcessTransaction(transaction *transaction.Transaction, round int32) error
+	ProcessTransaction(transaction *transaction.Transaction, round uint32) error
 }
 
 // BlockProcessor is the main interface for block execution engine
@@ -23,9 +23,9 @@ type BlockProcessor interface {
 	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
-	CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	CreateBlockHeader(body data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error)
+	CreateBlockHeader(body data.BodyHandler, round uint32, haveTime func() bool) (data.HeaderHandler, error)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler

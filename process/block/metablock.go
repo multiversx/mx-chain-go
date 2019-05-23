@@ -1,7 +1,6 @@
 package block
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
 	"sort"
@@ -29,8 +28,6 @@ const blockFinality = 0
 
 // TODO: change block finality to 1, add resolvers and pool for prevhash and integration test.
 
-type mapShardLastHeaders map[uint32]*block.Header
-
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
@@ -40,8 +37,6 @@ type metaProcessor struct {
 	requestedShardHeaderHashes    map[string]bool
 	mutRequestedShardHeaderHashes sync.RWMutex
 
-	mutLastNotarizedHdrs  sync.RWMutex
-	lastNotarizedHdrs     mapShardLastHeaders
 	nextKValidity         uint32
 	finalityAttestingHdrs []*block.Header
 
@@ -111,28 +106,6 @@ func NewMetaProcessor(
 	return &mp, nil
 }
 
-// SetLastNotarizedHeadersSlice sets the shard headers blocks in lastNotarizedHdrs.
-// This is done when starting a new epoch so metachain can use it when validating next shard header blocks
-func (mp *metaProcessor) SetLastNotarizedHeadersSlice(shardHeaderBlocks map[uint32]data.HeaderHandler) error {
-	mp.mutLastNotarizedHdrs.Lock()
-	defer mp.mutLastNotarizedHdrs.Unlock()
-
-	if shardHeaderBlocks == nil {
-		return process.ErrNilHeadersBlocks
-	}
-
-	mp.lastNotarizedHdrs = make(mapShardLastHeaders, mp.shardCoordinator.NumberOfShards())
-	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		var ok bool
-		mp.lastNotarizedHdrs[i], ok = shardHeaderBlocks[i].(*block.Header)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-	}
-
-	return nil
-}
-
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
 func (mp *metaProcessor) ProcessBlock(
 	chainHandler data.ChainHandler,
@@ -196,7 +169,7 @@ func (mp *metaProcessor) ProcessBlock(
 		}
 	}()
 
-	err = mp.processBlockHeaders(header, int32(header.Round), haveTime)
+	err = mp.processBlockHeaders(header, header.Round, haveTime)
 	if err != nil {
 		return err
 	}
@@ -273,11 +246,11 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 }
 
 // CreateBlockBody creates block body of metachain
-func (mp *metaProcessor) CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error) {
+func (mp *metaProcessor) CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error) {
 	return &block.MetaBlockBody{}, nil
 }
 
-func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int32, haveTime func() time.Duration) error {
+func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint32, haveTime func() time.Duration) error {
 	hdrPool := mp.dataPool.ShardHeaders()
 
 	msg := ""
@@ -474,7 +447,7 @@ func (mp *metaProcessor) createLastNotarizedHdrs(header *block.MetaBlock) error 
 			return err
 		}
 
-		if mp.lastNotarizedHdrs[header.ShardId].Nonce < header.Nonce {
+		if mp.lastNotarizedHdrs[header.ShardId].GetNonce() < header.Nonce {
 			mp.lastNotarizedHdrs[header.ShardId] = header
 		}
 	}
@@ -572,13 +545,13 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 	}
 
 	for index, lastVerifiedHdr := range highestNonceHdrs {
-		if index != lastVerifiedHdr.ShardId {
+		if index != lastVerifiedHdr.GetShardID() {
 			return process.ErrShardIdMissmatch
 		}
 
 		// verify if there are "K" block after current to make this one final
 		nextBlocksVerified := uint32(0)
-		shId := lastVerifiedHdr.ShardId
+		shId := lastVerifiedHdr.GetShardID()
 		for i := 0; i < len(sortedHdrPerShard[shId]); i++ {
 			if nextBlocksVerified >= mp.nextKValidity {
 				break
@@ -600,52 +573,6 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 		if nextBlocksVerified < mp.nextKValidity {
 			return process.ErrHeaderNotFinal
 		}
-	}
-
-	return nil
-}
-
-func (mp *metaProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
-	if prevHdr == nil {
-		return process.ErrNilBlockHeader
-	}
-	if currHdr == nil {
-		return process.ErrNilBlockHeader
-	}
-
-	// special case with genesis nonce - 0
-	if currHdr.GetNonce() == 0 {
-		if prevHdr.GetNonce() != 0 {
-			return process.ErrWrongNonceInBlock
-		}
-		// block with nonce 0 was already saved
-		if prevHdr.GetRootHash() != nil {
-			return process.ErrWrongNonceInBlock
-		}
-		return nil
-	}
-
-	//TODO: add verification if rand seed was calculated good add other verification
-	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
-	if prevHdr.GetRound() > currHdr.GetRound() {
-		return process.ErrLowShardHeaderRound
-	}
-
-	if currHdr.GetNonce() != prevHdr.GetNonce()+1 {
-		return process.ErrWrongNonceInBlock
-	}
-
-	prevHeaderHash, err := mp.computeHeaderHash(prevHdr)
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
-		return process.ErrRandSeedMismatch
-	}
-
-	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		return process.ErrInvalidBlockHash
 	}
 
 	return nil
@@ -775,7 +702,7 @@ func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
 	headerHash []byte,
 	shardMiniBlockHeader *block.ShardMiniBlockHeader,
 	hdrPool storage.Cacher,
-	round int32,
+	round uint32,
 	shardId uint32,
 ) error {
 
@@ -788,7 +715,7 @@ func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
 
 func (mp *metaProcessor) createShardInfo(
 	maxMiniBlockHdrsInBlock uint32,
-	round int32,
+	round uint32,
 	haveTime func() bool,
 ) ([]block.ShardData, error) {
 
@@ -843,7 +770,13 @@ func (mp *metaProcessor) createShardInfo(
 
 	for index := range orderedHdrs {
 		shId := orderedHdrs[index].ShardId
-		isFinal, attestingHdrIds := mp.isShardHeaderValidFinal(orderedHdrs[index], lastPushedHdr[shId], sortedHdrPerShard[shId])
+
+		lastHdr, ok := lastPushedHdr[shId].(*block.Header)
+		if !ok {
+			continue
+		}
+
+		isFinal, attestingHdrIds := mp.isShardHeaderValidFinal(orderedHdrs[index], lastHdr, sortedHdrPerShard[shId])
 		if !isFinal {
 			continue
 		}
@@ -935,7 +868,7 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 }
 
 // CreateBlockHeader creates a miniblock header list given a block body
-func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error) {
+func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint32, haveTime func() bool) (data.HeaderHandler, error) {
 	// TODO: add PrevRandSeed and RandSeed when BLS signing is completed
 	header := &block.MetaBlock{
 		ShardInfo:    make([]block.ShardData, 0),
@@ -1085,18 +1018,13 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
-type hashAndBlock struct {
-	hdr  *block.Header
-	hash []byte
-}
-
 func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte, map[uint32][]*block.Header, error) {
 	hdrStore := mp.dataPool.ShardHeaders()
 	if hdrStore == nil {
 		return nil, nil, nil, process.ErrNilCacher
 	}
 
-	hashAndBlockMap := make(map[uint32][]*hashAndBlock, mp.shardCoordinator.NumberOfShards())
+	hashAndBlockMap := make(map[uint32][]*hashAndHdr, mp.shardCoordinator.NumberOfShards())
 	headersMap := make(map[uint32][]*block.Header)
 	headers := make([]*block.Header, 0)
 	hdrHashes := make([][]byte, 0)
@@ -1139,7 +1067,7 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 		}
 
 		hashAndBlockMap[currShardId] = append(hashAndBlockMap[currShardId],
-			&hashAndBlock{hdr: hdr, hash: key})
+			&hashAndHdr{hdr: hdr, hash: key})
 	}
 	mp.mutLastNotarizedHdrs.RUnlock()
 
@@ -1169,9 +1097,14 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 				continue
 			}
 
-			headers = append(headers, hdrsForShard[i].hdr)
+			hdr, ok := hdrsForShard[i].hdr.(*block.Header)
+			if !ok {
+				continue
+			}
+
+			headers = append(headers, hdr)
 			hdrHashes = append(hdrHashes, hdrsForShard[i].hash)
-			headersMap[shardId] = append(headersMap[shardId], hdrsForShard[i].hdr)
+			headersMap[shardId] = append(headersMap[shardId], hdr)
 		}
 	}
 

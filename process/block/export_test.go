@@ -88,16 +88,17 @@ func (sp *shardProcessor) IsTxHashRequested(txHash []byte) bool {
 	return found
 }
 
-func (sp *shardProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, round int32, haveTime func() bool) error {
+func (sp *shardProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, round uint32, haveTime func() bool) error {
 	return sp.processMiniBlockComplete(miniBlock, round, haveTime)
 }
 
-func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
+func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, round uint32, haveTime func() bool) (block.Body, error) {
 	return sp.createMiniBlocks(noShards, maxTxInBlock, round, haveTime)
 }
 
 func (sp *shardProcessor) RemoveMetaBlockFromPool(body block.Body) error {
-	return sp.removeMetaBlockFromPool(body)
+	_, err := sp.removeMetaBlockFromPool(body)
+	return err
 }
 
 func (sp *shardProcessor) RemoveTxBlockFromPools(blockBody block.Body) error {
@@ -152,11 +153,11 @@ func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
 	return found
 }
 
-func (mp *metaProcessor) CreateShardInfo(maxMiniBlocksInBlock uint32, round int32, haveTime func() bool) ([]block.ShardData, error) {
+func (mp *metaProcessor) CreateShardInfo(maxMiniBlocksInBlock uint32, round uint32, haveTime func() bool) ([]block.ShardData, error) {
 	return mp.createShardInfo(maxMiniBlocksInBlock, round, haveTime)
 }
 
-func (mp *metaProcessor) LastNotarizedHdrs() map[uint32]*block.Header {
+func (mp *metaProcessor) LastNotarizedHdrs() map[uint32]data.HeaderHandler {
 	return mp.lastNotarizedHdrs
 }
 

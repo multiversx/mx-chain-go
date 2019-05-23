@@ -276,6 +276,7 @@ func createNetNode(
 			}
 		},
 	)
+	_ = blockProcessor.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator), true)
 
 	n, err := node.NewNode(
 		node.WithMessenger(messenger),
@@ -644,7 +645,7 @@ func createMetaNetNode(
 		store,
 		func(shardId uint32, hdrHash []byte) {},
 	)
-	_ = blkProc.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator))
+	_ = blkProc.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator), true)
 	tn.blkProcessor = blkProc
 
 	n, err := node.NewNode(
@@ -698,6 +699,8 @@ func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.
 		genesisBlocks[shardId] = createGenesisBlock(shardId)
 	}
 
+	genesisBlocks[sharding.MetachainShardId] = createGenesisMetaBlock()
+
 	return genesisBlocks
 }
 
@@ -709,6 +712,19 @@ func createGenesisBlock(shardId uint32) *dataBlock.Header {
 		RandSeed:      rootHash,
 		PrevRandSeed:  rootHash,
 		ShardId:       shardId,
+		PubKeysBitmap: rootHash,
+		RootHash:      rootHash,
+		PrevHash:      rootHash,
+	}
+}
+
+func createGenesisMetaBlock() *dataBlock.MetaBlock {
+	return &dataBlock.MetaBlock{
+		Nonce:         0,
+		Round:         0,
+		Signature:     rootHash,
+		RandSeed:      rootHash,
+		PrevRandSeed:  rootHash,
 		PubKeysBitmap: rootHash,
 		RootHash:      rootHash,
 		PrevHash:      rootHash,

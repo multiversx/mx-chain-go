@@ -383,7 +383,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	tdp := initDataPool()
 	txHash := []byte("tx_hash1")
 	// invalid transaction
-	txProcess := func(transaction *transaction.Transaction, round int32) error {
+	txProcess := func(transaction *transaction.Transaction, round uint32) error {
 		return process.ErrHigherNonceInTransaction
 	}
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
@@ -535,7 +535,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	tdp := initDataPool()
 	txHash := []byte("tx_hash1")
 	err := errors.New("process block transaction error")
-	txProcess := func(transaction *transaction.Transaction, round int32) error {
+	txProcess := func(transaction *transaction.Transaction, round uint32) error {
 		return err
 	}
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
@@ -601,7 +601,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	t.Parallel()
 	tdp := initDataPool()
 	txHash := []byte("tx_hash1")
-	txProcess := func(transaction *transaction.Transaction, round int32) error {
+	txProcess := func(transaction *transaction.Transaction, round uint32) error {
 		return nil
 	}
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
@@ -1037,6 +1037,8 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
+	sp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewOneShardCoordinatorMock()), true)
+
 	txCache := &mock.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(txHash, key) {
@@ -1111,7 +1113,7 @@ func TestShardProcessor_GetTransactionFromPool(t *testing.T) {
 func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
 	t.Parallel()
 	var wg sync.WaitGroup
-	txRequested := 0
+	txRequested := int32(0)
 	tdp := initDataPool()
 	sp, _ := blproc.NewShardProcessor(
 		tdp,
@@ -1123,7 +1125,7 @@ func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
-			txRequested++
+			atomic.AddInt32(&txRequested, 1)
 			wg.Done()
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1140,13 +1142,13 @@ func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
 	wg.Add(2)
 	sp.RequestBlockTransactions(body)
 	wg.Wait()
-	assert.Equal(t, 2, txRequested)
+	assert.Equal(t, int32(2), atomic.LoadInt32(&txRequested))
 }
 
 func TestShardProcessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testing.T) {
 	t.Parallel()
 	var wg sync.WaitGroup
-	txRequested := 0
+	txRequested := int32(0)
 	tdp := initDataPool()
 	sp, _ := blproc.NewShardProcessor(
 		tdp,
@@ -1158,7 +1160,7 @@ func TestShardProcessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testi
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
-			txRequested++
+			atomic.AddInt32(&txRequested, 1)
 			wg.Done()
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1173,7 +1175,7 @@ func TestShardProcessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testi
 	wg.Add(2)
 	sp.RequestBlockTransactionsForMiniBlock(&mb)
 	wg.Wait()
-	assert.Equal(t, 2, txRequested)
+	assert.Equal(t, int32(2), atomic.LoadInt32(&txRequested))
 }
 
 func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
@@ -1244,7 +1246,7 @@ func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	//process transaction. return nil for no error
-	procTx := func(transaction *transaction.Transaction, round int32) error {
+	procTx := func(transaction *transaction.Transaction, round uint32) error {
 		return nil
 	}
 	tpm := mock.TxProcessorMock{
@@ -2110,7 +2112,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 			}
 		},
 	)
-
+	bp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewOneShardCoordinatorMock()), true)
 	bp.ReceivedMetaBlock(metaBlockHash)
 
 	//we have to wait to be sure txHash1Requested is not incremented by a late call
@@ -2176,7 +2178,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		hasher,
 		marshalizer,
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round int32) error {
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
 				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 				if bytes.Equal(transaction.Data, txHash1) {
 					tx1ExecutionResult = transaction.Nonce
@@ -2270,7 +2272,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		hasher,
 		marshalizer,
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round int32) error {
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
 				if bytes.Equal(transaction.Data, txHash2) {
 					return errTxProcessor
 				}
@@ -2351,7 +2353,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		hasher,
 		marshalizer,
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round int32) error {
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
 				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 				if bytes.Equal(transaction.Data, txHash1) {
 					tx1ExecutionResult = transaction.Nonce

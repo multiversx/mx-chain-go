@@ -759,6 +759,18 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	shardsGenesisBlocks, err := generateGenesisHeadersForInit(
+		nodesConfig,
+		genesisConfig,
+		shardCoordinator,
+		addressConverter,
+		hasher,
+		marshalizer,
+	)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	blockProcessor, err := block.NewShardProcessor(
 		datapool,
 		store,
@@ -771,9 +783,13 @@ func createShardNode(
 		createRequestHandler(resolversFinder, factory.TransactionTopic, log),
 		createRequestHandler(resolversFinder, factory.MiniBlocksTopic, log),
 	)
-
 	if err != nil {
 		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
+	}
+
+	err = blockProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks, nodesConfig.MetaChainActive)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	nd, err := node.NewNode(
@@ -1039,7 +1055,7 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
-	shardsGenesisBlocks, err := generateGenesisHeadersForMetachainInit(
+	shardsGenesisBlocks, err := generateGenesisHeadersForInit(
 		nodesConfig,
 		genesisConfig,
 		shardCoordinator,
@@ -1065,7 +1081,7 @@ func createMetaNode(
 		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
-	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks)
+	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks, nodesConfig.MetaChainActive)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1627,7 +1643,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func generateGenesisHeadersForMetachainInit(
+func generateGenesisHeadersForInit(
 	nodesSetup *sharding.NodesSetup,
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
@@ -1679,6 +1695,15 @@ func generateGenesisHeadersForMetachainInit(
 		}
 
 		shardsGenesisBlocks[shardId] = genesisBlock
+	}
+
+	if nodesSetup.IsMetaChainActive() {
+		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesPubKeys())
+		if err != nil {
+			return nil, err
+		}
+
+		shardsGenesisBlocks[sharding.MetachainShardId] = genesisBlock
 	}
 
 	return shardsGenesisBlocks, nil
