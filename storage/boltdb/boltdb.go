@@ -15,6 +15,8 @@ const rwxOwner = 0700
 // read + write for owner
 const rwOwner = 0600
 
+var errKeyNotFound = errors.New("Key not found")
+
 // DB holds a pointer to the boltdb database and the path to where it is stored.
 type DB struct {
 	db           *bolt.DB
@@ -80,7 +82,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 		b := tx.Bucket([]byte(s.parentFolder))
 		v := b.Get(key)
 		if v == nil {
-			return errors.New("Key not found")
+			return errKeyNotFound
 		}
 
 		val = append([]byte{}, v...)
@@ -97,7 +99,7 @@ func (s *DB) Has(key []byte) error {
 		b := tx.Bucket([]byte(s.parentFolder))
 		v := b.Get(key)
 		if v == nil {
-			return errors.New("Key not found")
+			return errKeyNotFound
 		}
 
 		return nil

@@ -1,9 +1,7 @@
 package leveldb
 
 import (
-	"encoding/base64"
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -14,6 +12,8 @@ const maxOpenFilesPerTable = 50
 
 // read + write + execute for owner only
 const rwxOwner = 0700
+
+var errKeyNotFound = errors.New("Key not found")
 
 // DB holds a pointer to the leveldb database and the path to where it is stored.
 type DB struct {
@@ -55,12 +55,12 @@ func (s *DB) Put(key, val []byte) error {
 func (s *DB) Get(key []byte) ([]byte, error) {
 	has, err := s.db.Has(key, nil)
 	if err != nil || !has {
-		return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
+		return nil, errKeyNotFound
 	}
 
 	data, err := s.db.Get(key, nil)
 	if err == leveldb.ErrNotFound {
-		return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
+		return nil, errKeyNotFound
 	}
 
 	return data, nil
@@ -77,7 +77,7 @@ func (s *DB) Has(key []byte) error {
 		return nil
 	}
 
-	return errors.New("Key not found")
+	return errKeyNotFound
 }
 
 // Init initializes the storage medium and prepares it for usage
