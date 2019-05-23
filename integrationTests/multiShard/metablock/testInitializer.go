@@ -37,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
@@ -53,7 +54,7 @@ var r *rand.Rand
 var testHasher = sha256.Sha256{}
 var testMarshalizer = &marshal.JsonMarshalizer{}
 var testAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
-var testMultiSig = mock.NewMultiSigner()
+var testMultiSig = mock.NewMultiSigner(1)
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -310,7 +311,7 @@ func createShardNetNode(
 		accntAdapter,
 		shardCoordinator,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -466,7 +467,7 @@ func createMetaNetNode(
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {

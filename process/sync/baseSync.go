@@ -88,7 +88,7 @@ func (boot *baseBootstrap) processReceivedHeader(header data.HeaderHandler, head
 		header.GetNonce(),
 		toB64(headerHash)))
 
-	err := boot.forkDetector.AddHeader(header, headerHash, false)
+	err := boot.forkDetector.AddHeader(header, headerHash, process.BHReceived)
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -254,6 +254,18 @@ func isSigned(header data.HeaderHandler) bool {
 	isBitmapEmpty := bytes.Equal(bitmap, make([]byte, len(bitmap)))
 
 	return !isBitmapEmpty
+}
+
+// isRandomSeedValid verifies if the random seed is valid (equal with a signed previous rand seed)
+func isRandomSeedValid(header data.HeaderHandler) bool {
+	// TODO: Later, here should be done a more complex verification (random seed should be equal with the previous rand
+	// seed signed by the proposer of this round)
+	prevRandSeed := header.GetPrevRandSeed()
+	randSeed := header.GetRandSeed()
+	isPrevRandSeedNilOrEmpty := len(prevRandSeed) == 0
+	isRandSeedNilOrEmpty := len(randSeed) == 0
+
+	return !isPrevRandSeedNilOrEmpty && !isRandSeedNilOrEmpty
 }
 
 func toB64(buff []byte) string {

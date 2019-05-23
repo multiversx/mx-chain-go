@@ -56,7 +56,7 @@ var r *rand.Rand
 var testHasher = sha256.Sha256{}
 var testMarshalizer = &marshal.JsonMarshalizer{}
 var testAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
-var testMultiSig = mock.NewMultiSigner()
+var testMultiSig = mock.NewMultiSigner(1)
 var rootHash = []byte("root hash")
 
 func init() {
@@ -244,7 +244,7 @@ func createNetNode(
 		accntAdapter,
 		shardCoordinator,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -632,7 +632,7 @@ func createMetaNetNode(
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {

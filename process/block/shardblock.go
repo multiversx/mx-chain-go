@@ -480,7 +480,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, true)
+	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
@@ -1336,11 +1336,11 @@ func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.L
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 
-		part := fmt.Sprintf("TxBody_%d", miniBlock.ReceiverShardID)
+		part := fmt.Sprintf("MiniBlock_%d", miniBlock.ReceiverShardID)
 
 		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
-				part, "", "<NIL> or <EMPTY>"}))
+				part, "", "<EMPTY>"}))
 		}
 
 		txCounterMutex.Lock()
@@ -1352,7 +1352,7 @@ func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.L
 			if j == 0 || j >= len(miniBlock.TxHashes)-1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
-					fmt.Sprintf("Tx blockBodyHash %d", j+1),
+					fmt.Sprintf("TxHash_%d", j+1),
 					toB64(miniBlock.TxHashes[j])}))
 
 				part = ""

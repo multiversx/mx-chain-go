@@ -1,12 +1,14 @@
 package spos
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -21,6 +23,7 @@ type Worker struct {
 	blockProcessor   process.BlockProcessor
 	bootstraper      process.Bootstrapper
 	consensusState   *ConsensusState
+	forkDetector     process.ForkDetector
 	keyGenerator     crypto.KeyGenerator
 	marshalizer      marshal.Marshalizer
 	privateKey       crypto.PrivateKey
@@ -47,6 +50,7 @@ func NewWorker(
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	consensusState *ConsensusState,
+	forkDetector process.ForkDetector,
 	keyGenerator crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 	privateKey crypto.PrivateKey,
@@ -61,6 +65,7 @@ func NewWorker(
 		blockProcessor,
 		bootstraper,
 		consensusState,
+		forkDetector,
 		keyGenerator,
 		marshalizer,
 		privateKey,
@@ -79,6 +84,7 @@ func NewWorker(
 		blockProcessor:   blockProcessor,
 		bootstraper:      bootstraper,
 		consensusState:   consensusState,
+		forkDetector:     forkDetector,
 		keyGenerator:     keyGenerator,
 		marshalizer:      marshalizer,
 		privateKey:       privateKey,
@@ -105,6 +111,7 @@ func checkNewWorkerParams(
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	consensusState *ConsensusState,
+	forkDetector process.ForkDetector,
 	keyGenerator crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 	privateKey crypto.PrivateKey,
@@ -125,6 +132,9 @@ func checkNewWorkerParams(
 	}
 	if consensusState == nil {
 		return ErrNilConsensusState
+	}
+	if forkDetector == nil {
+		return ErrNilForkDetector
 	}
 	if keyGenerator == nil {
 		return ErrNilKeyGenerator
@@ -216,9 +226,14 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return err
 	}
 
-	log.Debug(fmt.Sprintf("received %s from %s\n", wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.
-		MsgType)),
-		hex.EncodeToString(cnsDta.PubKey)))
+	msgType := consensus.MessageType(cnsDta.MsgType)
+
+	log.Debug(fmt.Sprintf("received %s from %s for consensus message with with header hash %s and round %d\n",
+		wrk.consensusService.GetStringValue(msgType),
+		core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
+		base64.StdEncoding.EncodeToString(cnsDta.BlockHeaderHash),
+		cnsDta.RoundIndex,
+	))
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
@@ -232,6 +247,15 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
 		return ErrInvalidSignature
+	}
+
+	if wrk.consensusService.IsMessageWithBlockHeader(msgType) {
+		headerHash := cnsDta.BlockHeaderHash
+		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
+		errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
 	}
 
 	errNotCritical := wrk.checkSelfState(cnsDta)

@@ -12,7 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/badgerdb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/boltdb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 )
@@ -36,7 +38,9 @@ const (
 // LvlDB currently the only supported DBs
 // More to be added
 const (
-	LvlDB DBType = "LvlDB"
+	LvlDB    DBType = "LvlDB"
+	BadgerDB DBType = "BadgerDB"
+	BoltDB   DBType = "BoltDB"
 )
 
 const (
@@ -142,44 +146,40 @@ func (s *Unit) Get(key []byte) ([]byte, error) {
 // Has checks if the key is in the Unit.
 // It first checks the cache. If it is not found, it checks the bloom filter
 // and if present it checks the db
-func (s *Unit) Has(key []byte) (bool, error) {
+func (s *Unit) Has(key []byte) error {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
 	has := s.cacher.Has(key)
 	if has {
-		return has, nil
+		return nil
 	}
 
 	if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
 		return s.persister.Has(key)
 	}
 
-	return false, nil
+	return errors.New("Key not found")
 }
 
 // HasOrAdd checks if the key is present in the storage and if not adds it.
 // it updates the cache either way
 // it returns if the value was originally found
-func (s *Unit) HasOrAdd(key []byte, value []byte) (bool, error) {
+func (s *Unit) HasOrAdd(key []byte, value []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	has := s.cacher.Has(key)
 	if has {
-		return has, nil
+		return nil
 	}
 
 	if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
-		has, err := s.persister.Has(key)
+		err := s.persister.Has(key)
 		if err != nil {
-			return has, err
-		}
+			//add it to the cache
+			s.cacher.Put(key, value)
 
-		//add it to the cache
-		s.cacher.Put(key, value)
-
-		if !has {
 			// add it also to the persistance unit
 			err = s.persister.Put(key, value)
 			if err != nil {
@@ -187,7 +187,8 @@ func (s *Unit) HasOrAdd(key []byte, value []byte) (bool, error) {
 				s.cacher.Remove(key)
 			}
 		}
-		return has, err
+
+		return err
 	}
 
 	s.cacher.Put(key, value)
@@ -195,12 +196,12 @@ func (s *Unit) HasOrAdd(key []byte, value []byte) (bool, error) {
 	err := s.persister.Put(key, value)
 	if err != nil {
 		s.cacher.Remove(key)
-		return false, err
+		return err
 	}
 
 	s.bloomFilter.Add(key)
 
-	return false, err
+	return nil
 }
 
 // Remove removes the data associated to the given key from both cache and persistance medium
@@ -229,8 +230,6 @@ func (s *Unit) DestroyUnit() error {
 	}
 
 	s.cacher.Clear()
-	err := s.persister.Close()
-	log.LogIfError(err)
 	return s.persister.Destroy()
 }
 
@@ -348,6 +347,10 @@ func NewDB(dbType DBType, path string) (Persister, error) {
 	switch dbType {
 	case LvlDB:
 		db, err = leveldb.NewDB(path)
+	case BadgerDB:
+		db, err = badgerdb.NewDB(path)
+	case BoltDB:
+		db, err = boltdb.NewDB(path)
 	default:
 		return nil, errNotSupportedDBType
 	}

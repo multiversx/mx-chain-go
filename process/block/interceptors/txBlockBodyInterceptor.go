@@ -92,7 +92,8 @@ func (tbbi *TxBlockBodyInterceptor) ProcessReceivedMessage(message p2p.MessageP2
 }
 
 func (tbbi *TxBlockBodyInterceptor) processBlockBody(txBlockBody *block.InterceptedTxBlockBody, blockBody blockData.Body) {
-	isBlockInStorage, _ := tbbi.storer.Has(txBlockBody.Hash())
+	err := tbbi.storer.Has(txBlockBody.Hash())
+	isBlockInStorage := err == nil
 	if isBlockInStorage {
 		log.Debug("intercepted block body already processed")
 		return

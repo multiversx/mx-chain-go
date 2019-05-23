@@ -1,23 +1,23 @@
-package leveldb_test
+package boltdb_test
 
 import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/boltdb"
 	"github.com/stretchr/testify/assert"
 )
 
-func createLevelDb(t *testing.T) (p *leveldb.DB) {
+func createBoltDb(t *testing.T) (p *boltdb.DB) {
 	dir, err := ioutil.TempDir("", "leveldb_temp")
-	lvdb, err := leveldb.NewDB(dir)
+	bDB, err := boltdb.NewDB(dir)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
-	return lvdb
+	return bDB
 }
 
 func TestInitNoError(t *testing.T) {
-	ldb := createLevelDb(t)
+	ldb := createBoltDb(t)
 
 	err := ldb.Init()
 
@@ -26,7 +26,7 @@ func TestInitNoError(t *testing.T) {
 
 func TestPutNoError(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
-	ldb := createLevelDb(t)
+	ldb := createBoltDb(t)
 
 	err := ldb.Put(key, val)
 
@@ -35,7 +35,7 @@ func TestPutNoError(t *testing.T) {
 
 func TestGetPresent(t *testing.T) {
 	key, val := []byte("key1"), []byte("value1")
-	ldb := createLevelDb(t)
+	ldb := createBoltDb(t)
 
 	err := ldb.Put(key, val)
 
@@ -49,7 +49,7 @@ func TestGetPresent(t *testing.T) {
 
 func TestGetNotPresent(t *testing.T) {
 	key := []byte("key2")
-	ldb := createLevelDb(t)
+	ldb := createBoltDb(t)
 
 	v, err := ldb.Get(key)
 
@@ -58,7 +58,7 @@ func TestGetNotPresent(t *testing.T) {
 
 func TestHasPresent(t *testing.T) {
 	key, val := []byte("key3"), []byte("value3")
-	ldb := createLevelDb(t)
+	ldb := createBoltDb(t)
 
 	err := ldb.Put(key, val)
 
@@ -71,7 +71,7 @@ func TestHasPresent(t *testing.T) {
 
 func TestHasNotPresent(t *testing.T) {
 	key := []byte("key4")
-	ldb := createLevelDb(t)
+	ldb := createBoltDb(t)
 
 	err := ldb.Has(key)
 
@@ -81,7 +81,7 @@ func TestHasNotPresent(t *testing.T) {
 
 func TestRemovePresent(t *testing.T) {
 	key, val := []byte("key5"), []byte("value5")
-	ldb := createLevelDb(t)
+	ldb := createBoltDb(t)
 
 	err := ldb.Put(key, val)
 
@@ -99,7 +99,7 @@ func TestRemovePresent(t *testing.T) {
 
 func TestRemoveNotPresent(t *testing.T) {
 	key := []byte("key6")
-	ldb := createLevelDb(t)
+	ldb := createBoltDb(t)
 
 	err := ldb.Remove(key)
 
@@ -107,7 +107,7 @@ func TestRemoveNotPresent(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	ldb := createLevelDb(t)
+	ldb := createBoltDb(t)
 
 	err := ldb.Close()
 
@@ -115,7 +115,7 @@ func TestClose(t *testing.T) {
 }
 
 func TestDestroy(t *testing.T) {
-	ldb := createLevelDb(t)
+	ldb := createBoltDb(t)
 
 	err := ldb.Destroy()
 

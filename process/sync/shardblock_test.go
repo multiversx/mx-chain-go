@@ -1775,8 +1775,8 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-		if isProcessed {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
 
@@ -1829,8 +1829,8 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-		if isProcessed {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
 
@@ -2000,7 +2000,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
-			PubKeysBitmap: []byte{1},
+			PubKeysBitmap: []byte("X"),
 			Nonce:         newHdrNonce,
 		}
 	}
