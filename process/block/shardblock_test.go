@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"math/rand"
 	"reflect"
 	"sync/atomic"
@@ -2654,4 +2655,104 @@ func TestShardProcessor_DecodeBlockHeader(t *testing.T) {
 	dcdHdr = sp.DecodeBlockHeader(message)
 	assert.Equal(t, hdr, dcdHdr)
 	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
+}
+
+func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := initDataPool()
+
+	shardNr := uint32(5)
+	sp, _ := blproc.NewShardProcessor(
+		dataPool,
+		&mock.ChainStorerMock{},
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{},
+		initAccountsMock(),
+		mock.NewMultiShardsCoordinatorMock(shardNr),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+		func(destShardID uint32, txHash []byte) {},
+	)
+	sp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)), true)
+
+	prevRandSeed := []byte("prevrand")
+	currRandSeed := []byte("currrand")
+	lastNodesHdrs := sp.LastNotarizedHdrs()
+	lastHdr := &block.MetaBlock{Round: 9,
+		Nonce:    44,
+		RandSeed: prevRandSeed}
+	lastNodesHdrs[sharding.MetachainShardId] = lastHdr
+
+	//put the existing headers inside datapool
+
+	//header shard 0
+	prevHash, _ := sp.ComputeHeaderHash(lastNodesHdrs[sharding.MetachainShardId].(*block.MetaBlock))
+	prevHdr := &block.MetaBlock{
+		Round:        10,
+		Nonce:        45,
+		PrevRandSeed: prevRandSeed,
+		RandSeed:     currRandSeed,
+		PrevHash:     prevHash,
+		RootHash:     []byte("prevRootHash")}
+
+	prevHash, _ = sp.ComputeHeaderHash(prevHdr)
+	currHdr := &block.MetaBlock{
+		Round:        11,
+		Nonce:        46,
+		PrevRandSeed: currRandSeed,
+		RandSeed:     []byte("nextrand"),
+		PrevHash:     prevHash,
+		RootHash:     []byte("currRootHash")}
+
+	err := sp.IsHdrConstructionValid(nil, prevHdr)
+	assert.Equal(t, err, process.ErrNilBlockHeader)
+
+	err = sp.IsHdrConstructionValid(currHdr, nil)
+	assert.Equal(t, err, process.ErrNilBlockHeader)
+
+	currHdr.Nonce = 0
+	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrWrongNonceInBlock)
+
+	currHdr.Nonce = 0
+	prevHdr.Nonce = 0
+	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrWrongNonceInBlock)
+
+	currHdr.Nonce = 0
+	prevHdr.Nonce = 0
+	prevHdr.RootHash = nil
+	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Nil(t, err)
+
+	currHdr.Nonce = 46
+	prevHdr.Nonce = 45
+	prevHdr.Round = currHdr.Round + 1
+	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrLowShardHeaderRound)
+
+	prevHdr.Round = currHdr.Round - 1
+	currHdr.Nonce = prevHdr.Nonce + 2
+	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrWrongNonceInBlock)
+
+	currHdr.Nonce = prevHdr.Nonce + 1
+	prevHdr.RandSeed = []byte("randomwrong")
+	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrRandSeedMismatch)
+
+	prevHdr.RandSeed = currRandSeed
+	currHdr.PrevHash = []byte("wronghash")
+	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrInvalidBlockHash)
+
+	currHdr.PrevHash = prevHash
+	prevHdr.RootHash = []byte("prevRootHash")
+	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Nil(t, err)
 }

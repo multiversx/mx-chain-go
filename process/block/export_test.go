@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -10,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-func (bp *baseProcessor) ComputeHeaderHash(hdr *block.Header) ([]byte, error) {
+func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
 	return bp.computeHeaderHash(hdr)
 }
 
@@ -157,8 +158,8 @@ func (mp *metaProcessor) CreateShardInfo(maxMiniBlocksInBlock uint32, round uint
 	return mp.createShardInfo(maxMiniBlocksInBlock, round, haveTime)
 }
 
-func (mp *metaProcessor) LastNotarizedHdrs() map[uint32]data.HeaderHandler {
-	return mp.lastNotarizedHdrs
+func (bp *baseProcessor) LastNotarizedHdrs() map[uint32]data.HeaderHandler {
+	return bp.lastNotarizedHdrs
 }
 
 func (mp *metaProcessor) SetNextKValidity(val uint32) {
@@ -177,8 +178,8 @@ func (mp *metaProcessor) CheckShardHeadersFinality(header *block.MetaBlock, high
 	return mp.checkShardHeadersFinality(header, highestNonceHdrs)
 }
 
-func (mp *metaProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
-	return mp.isHdrConstructionValid(currHdr, prevHdr)
+func (bp *baseProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
+	return bp.isHdrConstructionValid(currHdr, prevHdr)
 }
 
 func (mp *metaProcessor) IsShardHeaderValidFinal(currHdr *block.Header, lastHdr *block.Header, sortedShardHdrs []*block.Header) (bool, []uint32) {
@@ -187,4 +188,8 @@ func (mp *metaProcessor) IsShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 
 func (mp *metaProcessor) ChRcvAllHdrs() chan bool {
 	return mp.chRcvAllHdrs
+}
+
+func NewBaseProcessor(shardCord sharding.Coordinator) *baseProcessor {
+	return &baseProcessor{shardCoordinator: shardCord}
 }

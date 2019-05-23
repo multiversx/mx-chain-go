@@ -275,24 +275,24 @@ func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]da
 	defer bp.mutLastNotarizedHdrs.Unlock()
 
 	if startHeaders == nil {
-		return process.ErrNilHeadersBlocks
+		return process.ErrLastNotarizedHdrsSliceIsNil
 	}
 
 	bp.lastNotarizedHdrs = make(mapShardLastHeaders, bp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < bp.shardCoordinator.NumberOfShards(); i++ {
-		var ok bool
-		bp.lastNotarizedHdrs[i], ok = startHeaders[i].(*block.Header)
+		hdr, ok := startHeaders[i].(*block.Header)
 		if !ok {
 			return process.ErrWrongTypeAssertion
 		}
+		bp.lastNotarizedHdrs[i] = hdr
 	}
 
 	if metaChainActive {
-		var ok bool
-		bp.lastNotarizedHdrs[sharding.MetachainShardId], ok = startHeaders[sharding.MetachainShardId].(*block.MetaBlock)
+		hdr, ok := startHeaders[sharding.MetachainShardId].(*block.MetaBlock)
 		if !ok {
 			return process.ErrWrongTypeAssertion
 		}
+		bp.lastNotarizedHdrs[sharding.MetachainShardId] = hdr
 	}
 
 	return nil

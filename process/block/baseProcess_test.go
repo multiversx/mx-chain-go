@@ -3,6 +3,7 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -456,4 +457,88 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 func TestBlockPorcessor_DisplayHeaderShouldWork(t *testing.T) {
 	lines := blproc.DisplayHeader(&block.Header{})
 	assert.Equal(t, 10, len(lines))
+}
+
+func TestBaseProcessor_SetLastNotarizedHeadersSliceNil(t *testing.T) {
+	base := blproc.NewBaseProcessor(mock.NewOneShardCoordinatorMock())
+
+	err := base.SetLastNotarizedHeadersSlice(nil, false)
+
+	assert.Equal(t, process.ErrLastNotarizedHdrsSliceIsNil, err)
+}
+
+func TestBaseProcessor_SetLastNotarizedHeadersSliceNotEnoughHeaders(t *testing.T) {
+	base := blproc.NewBaseProcessor(mock.NewOneShardCoordinatorMock())
+
+	err := base.SetLastNotarizedHeadersSlice(make(map[uint32]data.HeaderHandler, 0), false)
+
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestBaseProcessor_SetLastNotarizedHeadersSliceOneShardWrongType(t *testing.T) {
+	base := blproc.NewBaseProcessor(mock.NewOneShardCoordinatorMock())
+
+	lastNotHdrs := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	lastNotHdrs[0] = &block.MetaBlock{}
+	err := base.SetLastNotarizedHeadersSlice(lastNotHdrs, true)
+
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestBaseProcessor_SetLastNotarizedHeadersSliceOneShardGood(t *testing.T) {
+	base := blproc.NewBaseProcessor(mock.NewOneShardCoordinatorMock())
+
+	lastNotHdrs := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	err := base.SetLastNotarizedHeadersSlice(lastNotHdrs, true)
+
+	assert.Nil(t, err)
+}
+
+func TestBaseProcessor_SetLastNotarizedHeadersSliceOneShardMetaMissing(t *testing.T) {
+	base := blproc.NewBaseProcessor(mock.NewOneShardCoordinatorMock())
+
+	lastNotHdrs := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	lastNotHdrs[sharding.MetachainShardId] = nil
+	err := base.SetLastNotarizedHeadersSlice(lastNotHdrs, true)
+
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestBaseProcessor_SetLastNotarizedHeadersSliceOneShardMetaWrongType(t *testing.T) {
+	base := blproc.NewBaseProcessor(mock.NewOneShardCoordinatorMock())
+
+	lastNotHdrs := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	lastNotHdrs[sharding.MetachainShardId] = &block.Header{}
+	err := base.SetLastNotarizedHeadersSlice(lastNotHdrs, true)
+
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestBaseProcessor_SetLastNotarizedHeadersSliceMultiShardGood(t *testing.T) {
+	base := blproc.NewBaseProcessor(mock.NewMultiShardsCoordinatorMock(5))
+
+	lastNotHdrs := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(5))
+	err := base.SetLastNotarizedHeadersSlice(lastNotHdrs, true)
+
+	assert.Nil(t, err)
+}
+
+func TestBaseProcessor_SetLastNotarizedHeadersSliceMultiShardWithoutMeta(t *testing.T) {
+	base := blproc.NewBaseProcessor(mock.NewMultiShardsCoordinatorMock(5))
+
+	lastNotHdrs := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(5))
+	lastNotHdrs[sharding.MetachainShardId] = nil
+	err := base.SetLastNotarizedHeadersSlice(lastNotHdrs, false)
+
+	assert.Nil(t, err)
+}
+
+func TestBaseProcessor_SetLastNotarizedHeadersSliceMultiShardNotEnough(t *testing.T) {
+	base := blproc.NewBaseProcessor(mock.NewMultiShardsCoordinatorMock(5))
+
+	lastNotHdrs := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(4))
+	lastNotHdrs[sharding.MetachainShardId] = nil
+	err := base.SetLastNotarizedHeadersSlice(lastNotHdrs, false)
+
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
