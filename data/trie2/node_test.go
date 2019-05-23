@@ -3,6 +3,8 @@ package trie2
 import (
 	"testing"
 
+	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/stretchr/testify/assert"
 )
@@ -44,10 +46,11 @@ func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 	t.Parallel()
 	marsh, hasher := getTestMarshAndHasher()
 
-	var encChildren [nrOfChildren][]byte
+	encChildren := make([][]byte, nrOfChildren)
 	encChildren[1] = []byte("dog")
 	encChildren[10] = []byte("doge")
-	bn := &branchNode{EncodedChildren: encChildren}
+	bn := newEmptyBranchNode()
+	bn.EncodedChildren = encChildren
 
 	encNode, _ := marsh.Marshal(bn)
 	encNode = append(encNode, branch)
@@ -61,7 +64,7 @@ func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 	t.Parallel()
 	marsh, hasher := getTestMarshAndHasher()
-	en := &extensionNode{Key: []byte{2}, EncodedChild: []byte("doge")}
+	en := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte{2}, EncodedChild: []byte("doge")}}
 
 	encNode, _ := marsh.Marshal(en)
 	encNode = append(encNode, extension)
@@ -75,7 +78,7 @@ func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
 	t.Parallel()
 	marsh, hasher := getTestMarshAndHasher()
-	ln := &leafNode{Key: []byte{100, 111, 103}, Value: []byte("dog")}
+	ln := newLeafNode([]byte{100, 111, 103}, []byte("dog"))
 
 	encNode, _ := marsh.Marshal(ln)
 	encNode = append(encNode, leaf)

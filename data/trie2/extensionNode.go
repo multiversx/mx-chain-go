@@ -5,6 +5,8 @@ import (
 	"io"
 	"sync"
 
+	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/capnp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -52,11 +54,13 @@ func extensionNodeCapnToGo(src capnp.ExtensionNodeCapn, dest *extensionNode) *ex
 
 func newExtensionNode(key []byte, child node) *extensionNode {
 	return &extensionNode{
-		Key:          key,
-		EncodedChild: nil,
-		child:        child,
-		hash:         nil,
-		dirty:        true,
+		CollapsedEn: protobuf.CollapsedEn{
+			Key:          key,
+			EncodedChild: nil,
+		},
+		child: child,
+		hash:  nil,
+		dirty: true,
 	}
 }
 
@@ -292,8 +296,7 @@ func (en *extensionNode) insert(n *leafNode, db DBWriteCacher, marshalizer marsh
 		return true, newExtensionNode(en.Key, newNode), nil
 	}
 	// Otherwise branch out at the index where they differ.
-	branch := &branchNode{}
-	branch.dirty = true
+	branch := newEmptyBranchNode()
 	oldChildPos := en.Key[keyMatchLen]
 	newChildPos := n.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {

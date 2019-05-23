@@ -3,19 +3,22 @@ package trie2
 import (
 	"testing"
 
+	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/stretchr/testify/assert"
 )
 
 func getLn() *leafNode {
-	return &leafNode{Key: []byte("dog"), Value: []byte("dog"), dirty: true}
+	return newLeafNode([]byte("dog"), []byte("dog"))
 }
 
 func TestLeafNode_newLeafNode(t *testing.T) {
 	t.Parallel()
 	expectedLn := &leafNode{
-		Key:   []byte("dog"),
-		Value: []byte("dog"),
+		CollapsedLn: protobuf.CollapsedLn{
+			Key:   []byte("dog"),
+			Value: []byte("dog"),
+		},
 		hash:  nil,
 		dirty: true,
 	}
@@ -297,7 +300,7 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	db, _ := memorydb.New()
 	ln := getLn()
 
-	node := &leafNode{Key: []byte{100, 111, 103}, Value: []byte("dogs")}
+	node := newLeafNode([]byte{100, 111, 103}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, err := ln.insert(node, db, marsh)
@@ -310,8 +313,8 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()
-	ln := &leafNode{Key: []byte{2, 100, 111, 103}, Value: []byte{100, 111, 103}}
-	node := &leafNode{Key: []byte{3, 4, 5}, Value: []byte{3, 4, 5}}
+	ln := newLeafNode([]byte{2, 100, 111, 103}, []byte{100, 111, 103})
+	node := newLeafNode([]byte{3, 4, 5}, []byte{3, 4, 5})
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, err := ln.insert(node, db, marsh)
@@ -326,7 +329,7 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()
 	var ln *leafNode
-	node := &leafNode{Key: []byte{0, 2, 3}, Value: []byte("dogs")}
+	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, err := ln.insert(node, db, marsh)
@@ -361,8 +364,8 @@ func TestLeafNode_deleteNotPresent(t *testing.T) {
 
 func TestLeafNode_reduceNode(t *testing.T) {
 	t.Parallel()
-	ln := &leafNode{Key: []byte{100, 111, 103}}
-	expected := &leafNode{Key: []byte{2, 100, 111, 103}, dirty: true}
+	ln := &leafNode{CollapsedLn: protobuf.CollapsedLn{Key: []byte{100, 111, 103}}}
+	expected := &leafNode{CollapsedLn: protobuf.CollapsedLn{Key: []byte{2, 100, 111, 103}}, dirty: true}
 	node := ln.reduceNode(2)
 	assert.Equal(t, expected, node)
 }

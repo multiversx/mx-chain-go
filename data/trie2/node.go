@@ -3,6 +3,8 @@ package trie2
 import (
 	"sync"
 
+	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
@@ -34,23 +36,21 @@ type node interface {
 }
 
 type branchNode struct {
-	EncodedChildren [nrOfChildren][]byte `capid:"0"`
-	children        [nrOfChildren]node
-	hash            []byte
-	dirty           bool
+	protobuf.CollapsedBn
+	children []node
+	hash     []byte
+	dirty    bool
 }
 
 type extensionNode struct {
-	Key          []byte `capid:"0"`
-	EncodedChild []byte `capid:"1"`
-	child        node
-	hash         []byte
-	dirty        bool
+	protobuf.CollapsedEn
+	child node
+	hash  []byte
+	dirty bool
 }
 
 type leafNode struct {
-	Key   []byte `capid:"0"`
-	Value []byte `capid:"1"`
+	protobuf.CollapsedLn
 	hash  []byte
 	dirty bool
 }
@@ -169,7 +169,7 @@ func getEmptyNodeOfType(t byte) (node, error) {
 	case leaf:
 		decNode = &leafNode{}
 	case branch:
-		decNode = &branchNode{}
+		decNode = newEmptyBranchNode()
 	default:
 		return nil, ErrInvalidNode
 	}

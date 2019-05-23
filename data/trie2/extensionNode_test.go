@@ -3,6 +3,8 @@ package trie2
 import (
 	"testing"
 
+	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/stretchr/testify/assert"
 )
@@ -10,10 +12,10 @@ import (
 func getEnAndCollapsedEn() (*extensionNode, *extensionNode) {
 	marsh, hasher := getTestMarshAndHasher()
 	child, collapsedChild := getBnAndCollapsedBn()
-	en := &extensionNode{Key: []byte("d"), child: child, dirty: true}
+	en := newExtensionNode([]byte("d"), child)
 
 	childHash, _ := encodeNodeAndGetHash(collapsedChild, marsh, hasher)
-	collapsedEn := &extensionNode{Key: []byte("d"), EncodedChild: childHash}
+	collapsedEn := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte("d"), EncodedChild: childHash}}
 	return en, collapsedEn
 }
 
@@ -21,11 +23,13 @@ func TestExtensionNode_newExtensionNode(t *testing.T) {
 	t.Parallel()
 	bn, _ := getBnAndCollapsedBn()
 	expectedEn := &extensionNode{
-		Key:          []byte("dog"),
-		EncodedChild: nil,
-		child:        bn,
-		hash:         nil,
-		dirty:        true,
+		CollapsedEn: protobuf.CollapsedEn{
+			Key:          []byte("dog"),
+			EncodedChild: nil,
+		},
+		child: bn,
+		hash:  nil,
+		dirty: true,
 	}
 	en := newExtensionNode([]byte("dog"), bn)
 	assert.Equal(t, expectedEn, en)
@@ -337,7 +341,7 @@ func TestExtensionNode_isCollapsed(t *testing.T) {
 	assert.True(t, collapsedEn.isCollapsed())
 	assert.False(t, en.isCollapsed())
 
-	collapsedEn.child = &leafNode{Key: []byte("og"), Value: []byte("dog"), dirty: true}
+	collapsedEn.child = newLeafNode([]byte("og"), []byte("dog"))
 	assert.False(t, collapsedEn.isCollapsed())
 }
 
@@ -446,7 +450,7 @@ func TestExtensionNode_insert(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()
 	en, _ := getEnAndCollapsedEn()
-	node := &leafNode{Key: []byte{100, 15, 5, 6}, Value: []byte("dogs")}
+	node := newLeafNode([]byte{100, 15, 5, 6}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, err := en.insert(node, db, marsh)
@@ -460,7 +464,7 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()
 	en, collapsedEn := getEnAndCollapsedEn()
-	node := &leafNode{Key: []byte{100, 15, 5, 6}, Value: []byte("dogs")}
+	node := newLeafNode([]byte{100, 15, 5, 6}, []byte("dogs"))
 	marsh, hasher := getTestMarshAndHasher()
 	en.setHash(marsh, hasher)
 	en.commit(0, db, marsh, hasher)
@@ -476,7 +480,7 @@ func TestExtensionNode_insertInNilNode(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()
 	var en *extensionNode
-	node := &leafNode{Key: []byte{0, 2, 3}, Value: []byte("dogs")}
+	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, err := en.insert(node, db, marsh)
@@ -557,8 +561,8 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 
 func TestExtensionNode_reduceNode(t *testing.T) {
 	t.Parallel()
-	en := &extensionNode{Key: []byte{100, 111, 103}}
-	expected := &extensionNode{Key: []byte{2, 100, 111, 103}, dirty: true}
+	en := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte{100, 111, 103}}}
+	expected := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte{2, 100, 111, 103}}, dirty: true}
 	node := en.reduceNode(2)
 	assert.Equal(t, expected, node)
 }

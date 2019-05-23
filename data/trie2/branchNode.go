@@ -5,6 +5,8 @@ import (
 	"io"
 	"sync"
 
+	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/capnp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -44,7 +46,7 @@ func branchNodeGoToCapn(seg *capn.Segment, src *branchNode) capnp.BranchNodeCapn
 
 func branchNodeCapnToGo(src capnp.BranchNodeCapn, dest *branchNode) *branchNode {
 	if dest == nil {
-		dest = &branchNode{}
+		dest = newEmptyBranchNode()
 	}
 
 	for i := 0; i < nrOfChildren; i++ {
@@ -57,6 +59,20 @@ func branchNodeCapnToGo(src capnp.BranchNodeCapn, dest *branchNode) *branchNode 
 
 	}
 	return dest
+}
+
+func newEmptyBranchNode() *branchNode {
+	children := make([]node, nrOfChildren)
+	EncChildren := make([][]byte, nrOfChildren)
+
+	return &branchNode{
+		CollapsedBn: protobuf.CollapsedBn{
+			EncodedChildren: EncChildren,
+		},
+		children: children,
+		hash:     nil,
+		dirty:    true,
+	}
 }
 
 func (bn *branchNode) getHash() []byte {
@@ -451,7 +467,7 @@ func (bn *branchNode) reduceNode(pos int) node {
 }
 
 func getChildPosition(n *branchNode) (nrOfChildren int, childPos int) {
-	for i := range &n.children {
+	for i := range n.children {
 		if n.children[i] != nil || n.EncodedChildren[i] != nil {
 			nrOfChildren++
 			childPos = i
