@@ -318,19 +318,21 @@ func (wrk *Worker) executeReceivedMessages(cnsDta *consensus.Message) {
 	cnsDataList := wrk.receivedMessages[msgType]
 	cnsDataList = append(cnsDataList, cnsDta)
 	wrk.receivedMessages[msgType] = cnsDataList
+	wrk.executeStoredMessages()
 
+	wrk.mutReceivedMessages.Unlock()
+}
+
+func (wrk *Worker) executeStoredMessages() {
 	for _, i := range wrk.consensusService.GetMessageRange() {
-		cnsDataList = wrk.receivedMessages[i]
+		cnsDataList := wrk.receivedMessages[i]
 		if len(cnsDataList) == 0 {
 			continue
 		}
-
 		wrk.executeMessage(cnsDataList)
 		cleanedCnsDtaList := wrk.getCleanedList(cnsDataList)
 		wrk.receivedMessages[i] = cleanedCnsDtaList
 	}
-
-	wrk.mutReceivedMessages.Unlock()
 }
 
 func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
@@ -434,16 +436,6 @@ func (wrk *Worker) BroadcastBlock(body data.BodyHandler, header data.HeaderHandl
 //ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.mutReceivedMessages.Lock()
-
-	for _, i := range wrk.consensusService.GetMessageRange() {
-		cnsDataList := wrk.receivedMessages[i]
-		if len(cnsDataList) == 0 {
-			continue
-		}
-		wrk.executeMessage(cnsDataList)
-		cleanedCnsDtaList := wrk.getCleanedList(cnsDataList)
-		wrk.receivedMessages[i] = cleanedCnsDtaList
-	}
-
+	wrk.executeStoredMessages()
 	wrk.mutReceivedMessages.Unlock()
 }
