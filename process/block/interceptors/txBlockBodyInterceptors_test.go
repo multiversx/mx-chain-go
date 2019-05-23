@@ -184,8 +184,8 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing
 
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{
-		HasCalled: func(key []byte) (b bool, e error) {
-			return false, nil
+		HasCalled: func(key []byte) error {
+			return errors.New("Key not found")
 		},
 	}
 

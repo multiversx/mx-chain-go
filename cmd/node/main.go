@@ -576,7 +576,7 @@ func createShardNode(
 
 	tr, err := getTrie(config.AccountsTrieStorage, hasher)
 	if err != nil {
-		return nil, nil, nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, nil, errors.New("error creating trie: " + err.Error())
 	}
 
 	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
@@ -869,7 +869,7 @@ func createMetaNode(
 
 	tr, err := getTrie(config.AccountsTrieStorage, hasher)
 	if err != nil {
-		return nil, nil, nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, nil, errors.New("error creating trie: " + err.Error())
 	}
 
 	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
@@ -1103,7 +1103,7 @@ func createMetaNode(
 		node.WithTxSingleSigner(txSingleSigner),
 	)
 	if err != nil {
-		return nil, nil, nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, nil, errors.New("error creating meta-node: " + err.Error())
 	}
 
 	externalResolver, err := external.NewExternalResolver(
@@ -1237,12 +1237,12 @@ func getTrie(cfg config.StorageConfig, hasher hashing.Hasher) (*trie.Trie, error
 		getBloomFromConfig(cfg.Bloom),
 	)
 	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
+		return nil, errors.New("error creating accountsTrieStorage: " + err.Error())
 	}
 
 	dbWriteCache, err := trie.NewDBWriteCache(accountsTrieStorage)
 	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
+		return nil, errors.New("error creating dbWriteCache: " + err.Error())
 	}
 
 	return trie.NewTrie(make([]byte, 32), dbWriteCache, hasher)

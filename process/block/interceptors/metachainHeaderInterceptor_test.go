@@ -307,8 +307,8 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 	metachainHeaders := &mock.CacherStub{}
 	metachainHeadersNonces := &mock.Uint64CacherStub{}
 	metachainStorer := &mock.StorerStub{
-		HasCalled: func(key []byte) (b bool, e error) {
-			return false, nil
+		HasCalled: func(key []byte) error {
+			return errors.New("Key not found")
 		},
 	}
 	multisigner := mock.NewMultiSigner()
@@ -390,8 +390,8 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 	metachainHeaders := &mock.CacherStub{}
 	metachainHeadersNonces := &mock.Uint64CacherStub{}
 	metachainStorer := &mock.StorerStub{
-		HasCalled: func(key []byte) (b bool, e error) {
-			return true, nil
+		HasCalled: func(key []byte) error {
+			return nil
 		},
 	}
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(

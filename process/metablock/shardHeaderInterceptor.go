@@ -71,7 +71,8 @@ func (shi *ShardHeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P
 }
 
 func (shi *ShardHeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHeader) {
-	isHeaderInStorage, _ := shi.storer.Has(hdrIntercepted.Hash())
+	err := shi.storer.Has(hdrIntercepted.Hash())
+	isHeaderInStorage := err == nil
 	if isHeaderInStorage {
 		log.Debug("intercepted block header already processed")
 		return
