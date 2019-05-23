@@ -37,6 +37,10 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
 		return &block.Header{}
 	}
+	blockProcessorMock.GetUnnotarisedHeadersCalled = func(blockChain data.ChainHandler) []data.HeaderHandler {
+		return make([]data.HeaderHandler, 0)
+	}
+
 	return blockProcessorMock
 }
 

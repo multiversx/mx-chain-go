@@ -156,6 +156,10 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
+	if leader == sr.SelfPubKey() {
+		//sr.BlockProcessor().
+	}
+
 	// execute stored messages which were received in this new round but before this initialisation
 	go sr.executeStoredMessages()
 

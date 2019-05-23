@@ -21,6 +21,7 @@ type BlockProcessorMock struct {
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
+	GetUnnotarisedHeadersCalled      func(blockChain data.ChainHandler) []data.HeaderHandler
 }
 
 // ProcessBlock mocks pocessing a block
@@ -85,4 +86,8 @@ func (blProcMock BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHa
 	}
 
 	return &header
+}
+
+func (blProcMock BlockProcessorMock) GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler {
+	return blProcMock.GetUnnotarisedHeadersCalled(blockChain)
 }

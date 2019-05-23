@@ -106,6 +106,9 @@ var ErrNilSendConsensusMessageFunction = errors.New("send consnensus message fun
 // ErrNilBroadcastBlockFunction is raised when a valid broadcast block function is expected but nil used
 var ErrNilBroadcastBlockFunction = errors.New("broadcast block function is nil")
 
+// ErrNilBroadcastHeaderFunction is raised when a valid broadcast header function is expected but nil used
+var ErrNilBroadcastHeaderFunction = errors.New("broadcast header function is nil")
+
 // ErrNilChannel is raised when a valid channel is expected but nil used
 var ErrNilChannel = errors.New("channel is nil")
 
@@ -135,6 +138,9 @@ var ErrNilHeader = errors.New("header is nil")
 
 // ErrNilBroadCastBlock is raised when a valid broadcastBlock function is expected but nil used
 var ErrNilBroadCastBlock = errors.New("broadCastBlock is nil")
+
+// ErrNilBroadCastHeader is raised when a valid broadcastHeader function is expected but nil used
+var ErrNilBroadCastHeader = errors.New("broadCastHeader is nil")
 
 // ErrNilSendMessage is raised when a valid sendMessage function is expected but nil used
 var ErrNilSendMessage = errors.New("sendMessage is nil")

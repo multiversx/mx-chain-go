@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"sync"
@@ -28,15 +29,17 @@ const maxTransactionsInBlock = 15000
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
-	dataPool             dataRetriever.PoolsHolder
-	txProcessor          process.TransactionProcessor
-	chRcvAllTxs          chan bool
-	onRequestTransaction func(shardID uint32, txHash []byte)
-	mutRequestedTxHashes sync.RWMutex
-	requestedTxHashes    map[string]bool
-	mutCrossTxsForBlock  sync.RWMutex
-	crossTxsForBlock     map[string]*transaction.Transaction
-	onRequestMiniBlock   func(shardId uint32, mbHash []byte)
+	dataPool              dataRetriever.PoolsHolder
+	txProcessor           process.TransactionProcessor
+	chRcvAllTxs           chan bool
+	onRequestTransaction  func(shardID uint32, txHash []byte)
+	mutRequestedTxHashes  sync.RWMutex
+	requestedTxHashes     map[string]bool
+	mutCrossTxsForBlock   sync.RWMutex
+	crossTxsForBlock      map[string]*transaction.Transaction
+	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
+	mutUnnotarisedHeaders sync.RWMutex
+	unnotarisedHeaders    map[string]struct{}
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -106,6 +109,7 @@ func NewShardProcessor(
 	bp.onRequestMiniBlock = requestMiniBlockHandler
 	bp.requestedTxHashes = make(map[string]bool)
 	bp.crossTxsForBlock = make(map[string]*transaction.Transaction)
+	bp.unnotarisedHeaders = make(map[string]struct{})
 
 	metaBlockPool := bp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
@@ -492,6 +496,10 @@ func (sp *shardProcessor) CommitBlock(
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 
+	sp.mutUnnotarisedHeaders.Lock()
+	sp.unnotarisedHeaders[string(headerHash)] = struct{}{}
+	sp.mutUnnotarisedHeaders.Unlock()
+
 	// write data to log
 	go sp.displayShardBlock(header, body)
 
@@ -550,8 +558,18 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 		}
 
 		// TODO: the final block should be given by metachain
-		blockIsFinal := hdr.GetNonce() <= sp.forkDetector.GetHighestFinalBlockNonce()
-		if processedAll && blockIsFinal {
+		//blockIsFinal := hdr.GetNonce() <= sp.forkDetector.GetHighestFinalBlockNonce()
+		//if processedAll && blockIsFinal {
+		if processedAll {
+			mb := metaBlock.(*block.MetaBlock)
+			for _, shardData := range mb.ShardInfo {
+				if shardData.ShardId == sp.shardCoordinator.SelfId() {
+					sp.mutUnnotarisedHeaders.Lock()
+					delete(sp.unnotarisedHeaders, string(shardData.HeaderHash))
+					sp.mutUnnotarisedHeaders.Unlock()
+				}
+			}
+
 			// metablock was processed adn finalized
 			buff, err := sp.marshalizer.Marshal(hdr)
 			if err != nil {
@@ -1444,4 +1462,74 @@ func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	}
 
 	return &header
+}
+
+//GetUnnotarisedHeaders gets all the headers which are not notarized in metachain yet
+func (sp *shardProcessor) GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler {
+	sp.mutUnnotarisedHeaders.RLock()
+	hdrs := make([]data.HeaderHandler, 0)
+	for hash := range sp.unnotarisedHeaders {
+		if bytes.Equal(blockChain.GetCurrentBlockHeaderHash(), []byte(hash)) {
+			continue
+		}
+		hdr := sp.getHeader([]byte(hash))
+		if hdr == nil {
+			continue
+		}
+
+		hdrs = append(hdrs, hdr)
+	}
+
+	sp.mutUnnotarisedHeaders.RUnlock()
+
+	return hdrs
+}
+
+func (sp *shardProcessor) getHeader(hash []byte) *block.Header {
+	hdr := sp.getHeaderFromPool(hash)
+	if hdr != nil {
+		return hdr
+	}
+
+	return sp.getHeaderFromStorage(hash)
+}
+
+func (sp *shardProcessor) getHeaderFromPool(hash []byte) *block.Header {
+	hdr, ok := sp.dataPool.Headers().Peek(hash)
+	if !ok {
+		log.Info(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		return nil
+	}
+
+	header, ok := hdr.(*block.Header)
+	if !ok {
+		log.Info(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		return nil
+	}
+
+	return header
+}
+
+func (sp *shardProcessor) getHeaderFromStorage(hash []byte) *block.Header {
+	headerStore := sp.store.GetStorer(dataRetriever.BlockHeaderUnit)
+
+	if headerStore == nil {
+		log.Info(process.ErrNilHeadersStorage.Error())
+		return nil
+	}
+
+	buffHeader, err := headerStore.Get(hash)
+	if err != nil {
+		log.Info(err.Error())
+		return nil
+	}
+
+	header := &block.Header{}
+	err = sp.marshalizer.Unmarshal(header, buffHeader)
+	if err != nil {
+		log.Info(err.Error())
+		return nil
+	}
+
+	return header
 }

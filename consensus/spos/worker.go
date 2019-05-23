@@ -37,8 +37,9 @@ type Worker struct {
 	executeMessageChannel        chan *consensus.Message
 	consensusStateChangedChannel chan bool
 
-	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error
-	sendMessage    func(consensus *consensus.Message)
+	broadcastBlock  func(data.BodyHandler, data.HeaderHandler) error
+	broadcastHeader func(data.HeaderHandler) error
+	sendMessage     func(consensus *consensus.Message)
 
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
@@ -58,6 +59,7 @@ func NewWorker(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
+	broadcastHeader func(data.HeaderHandler) error,
 	sendMessage func(consensus *consensus.Message),
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
@@ -73,6 +75,7 @@ func NewWorker(
 		shardCoordinator,
 		singleSigner,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 	if err != nil {
@@ -92,6 +95,7 @@ func NewWorker(
 		shardCoordinator: shardCoordinator,
 		singleSigner:     singleSigner,
 		broadcastBlock:   broadcastBlock,
+		broadcastHeader:  broadcastHeader,
 		sendMessage:      sendMessage,
 	}
 
@@ -119,6 +123,7 @@ func checkNewWorkerParams(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
+	broadcastHeader func(data.HeaderHandler) error,
 	sendMessage func(consensus *consensus.Message),
 ) error {
 	if consensusService == nil {
@@ -156,6 +161,9 @@ func checkNewWorkerParams(
 	}
 	if broadcastBlock == nil {
 		return ErrNilBroadCastBlock
+	}
+	if broadcastHeader == nil {
+		return ErrNilBroadCastHeader
 	}
 	if sendMessage == nil {
 		return ErrNilSendMessage
@@ -431,6 +439,11 @@ func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 //BroadcastBlock does a broadcast of the blockBody and blockHeader
 func (wrk *Worker) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
 	return wrk.broadcastBlock(body, header)
+}
+
+//BroadcastHeader does a broadcast of the blockHeader
+func (wrk *Worker) BroadcastHeader(header data.HeaderHandler) error {
+	return wrk.broadcastHeader(header)
 }
 
 //ExecuteStoredMessages tries to execute all the messages received which are valid for execution

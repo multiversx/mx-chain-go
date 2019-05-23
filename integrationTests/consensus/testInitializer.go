@@ -260,6 +260,9 @@ func createConsensusOnlyNode(
 			mrsTxs := make(map[uint32][][]byte)
 			return mrsData, mrsTxs, nil
 		},
+		GetUnnotarisedHeadersCalled: func(blockChain data.ChainHandler) []data.HeaderHandler {
+			return make([]data.HeaderHandler, 0)
+		},
 	}
 
 	blockProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {

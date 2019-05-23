@@ -1232,3 +1232,9 @@ func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 
 	return &header
 }
+
+//GetUnnotarisedHeaders gets all the headers which are not notarized in metachain yet
+func (mp *metaProcessor) GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler {
+	hdrs := make([]data.HeaderHandler, 0)
+	return hdrs
+}

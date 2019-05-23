@@ -81,6 +81,8 @@ type WorkerHandler interface {
 	GetConsensusStateChangedChannel() chan bool
 	//BroadcastBlock does a broadcast of the blockBody and blockHeader
 	BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error
+	//BroadcastHeader does a broadcast of the blockHeader
+	BroadcastHeader(header data.HeaderHandler) error
 	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 	ExecuteStoredMessages()
 }

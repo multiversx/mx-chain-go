@@ -158,15 +158,20 @@ func (boot *ShardBootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 	headerStore := boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
 
 	if headerStore == nil {
-		log.Error(process.ErrNilHeadersStorage.Error())
+		log.Debug(process.ErrNilHeadersStorage.Error())
 		return nil
 	}
 
-	buffHeader, _ := headerStore.Get(hash)
-	header := &block.Header{}
-	err := boot.marshalizer.Unmarshal(header, buffHeader)
+	buffHeader, err := headerStore.Get(hash)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug(err.Error())
+		return nil
+	}
+
+	header := &block.Header{}
+	err = boot.marshalizer.Unmarshal(header, buffHeader)
+	if err != nil {
+		log.Debug(err.Error())
 		return nil
 	}
 

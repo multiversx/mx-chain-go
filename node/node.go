@@ -243,6 +243,7 @@ func (n *Node) StartConsensus() error {
 		n.shardCoordinator,
 		n.singleSigner,
 		n.getBroadcastBlock(),
+		n.getBroadcastHeader(),
 		n.sendMessage,
 	)
 	if err != nil {
@@ -399,6 +400,14 @@ func (n *Node) getBroadcastBlock() func(data.BodyHandler, data.HeaderHandler) er
 
 	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
 		return n.BroadcastMetaBlock
+	}
+
+	return nil
+}
+
+func (n *Node) getBroadcastHeader() func(data.HeaderHandler) error {
+	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
+		return n.BroadcastShardHeader
 	}
 
 	return nil
@@ -723,6 +732,29 @@ func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.Heade
 				n.shardCoordinator.CommunicationIdentifier(k), txsBuff)
 		}
 	}
+
+	return nil
+}
+
+// BroadcastShardHeader will send on metachain topics the header
+func (n *Node) BroadcastShardHeader(header data.HeaderHandler) error {
+	if header == nil {
+		return ErrNilBlockHeader
+	}
+
+	msgHeader, err := n.marshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	if !n.isMetachainActive {
+		return errors.New("metachain is not active")
+	}
+
+	shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
+		n.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
+
+	go n.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
 
 	return nil
 }

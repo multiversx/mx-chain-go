@@ -29,6 +29,7 @@ type BlockProcessor interface {
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
+	GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

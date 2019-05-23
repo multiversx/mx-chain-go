@@ -34,6 +34,7 @@ func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bn.Sub
 	srEndRound, _ := bn.NewSubroundEndRound(
 		sr,
 		broadcastBlock,
+		broadcastHeader,
 		extend,
 	)
 
@@ -50,6 +51,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 	srEndRound, err := bn.NewSubroundEndRound(
 		nil,
 		broadcastBlock,
+		broadcastHeader,
 		extend,
 	)
 
@@ -80,6 +82,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
 		broadcastBlock,
+		broadcastHeader,
 		extend,
 	)
 
@@ -110,6 +113,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
 		broadcastBlock,
+		broadcastHeader,
 		extend,
 	)
 
@@ -140,6 +144,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
 		broadcastBlock,
+		broadcastHeader,
 		extend,
 	)
 
@@ -170,6 +175,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
 		broadcastBlock,
+		broadcastHeader,
 		extend,
 	)
 
@@ -200,6 +206,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
 		broadcastBlock,
+		broadcastHeader,
 		extend,
 	)
 
@@ -230,6 +237,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
 		broadcastBlock,
+		broadcastHeader,
 		extend,
 	)
 
@@ -260,11 +268,43 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastBlockFunctionShouldFail
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
 		nil,
+		broadcastHeader,
 		extend,
 	)
 
 	assert.Nil(t, srEndRound)
 	assert.Equal(t, spos.ErrNilBroadcastBlockFunction, err)
+}
+
+func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastHeaderFunctionShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+
+	sr, _ := spos.NewSubround(
+		int(bn.SrSignature),
+		int(bn.SrEndRound),
+		-1,
+		int64(85*roundTimeDuration/100),
+		int64(95*roundTimeDuration/100),
+		"(END_ROUND)",
+		consensusState,
+		ch,
+		container,
+	)
+
+	srEndRound, err := bn.NewSubroundEndRound(
+		sr,
+		broadcastBlock,
+		nil,
+		extend,
+	)
+
+	assert.Nil(t, srEndRound)
+	assert.Equal(t, spos.ErrNilBroadcastHeaderFunction, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
@@ -290,6 +330,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
 		broadcastBlock,
+		broadcastHeader,
 		extend,
 	)
 

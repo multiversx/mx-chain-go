@@ -30,6 +30,11 @@ func broadcastBlock(txBlockBody data.BodyHandler, header data.HeaderHandler) err
 	return nil
 }
 
+func broadcastHeader(header data.HeaderHandler) error {
+	fmt.Println(header)
+	return nil
+}
+
 func initWorker() *spos.Worker {
 	blockProcessor := &mock.BlockProcessorMock{
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
@@ -72,6 +77,7 @@ func initWorker() *spos.Worker {
 		shardCoordinatorMock,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage)
 
 	return sposWorker
@@ -115,6 +121,7 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 
@@ -147,6 +154,7 @@ func TestWorker_NewWorkerBlockprocessorNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 
@@ -180,6 +188,7 @@ func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 
@@ -213,6 +222,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 
@@ -246,6 +256,7 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 
@@ -279,6 +290,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 
@@ -312,6 +324,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 
@@ -345,6 +358,7 @@ func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 
@@ -378,6 +392,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 
@@ -411,6 +426,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 		nil,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 
@@ -444,6 +460,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		nil,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 
@@ -478,11 +495,47 @@ func TestWorker_NewWorkerBroadcastBlockNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		nil,
+		broadcastHeader,
 		sendMessage,
 	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBroadCastBlock, err)
+}
+
+func TestWorker_NewWorkerBroadcastHeaderNilShouldFail(t *testing.T) {
+	t.Parallel()
+	blockProcessor := &mock.BlockProcessorMock{}
+	bootstraperMock := &mock.BootstraperMock{}
+	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+	bnService, _ := bn.NewConsensusService()
+
+	wrk, err := spos.NewWorker(
+		bnService,
+		blockProcessor,
+		bootstraperMock,
+		consensusState,
+		forkDetectorMock,
+		keyGeneratorMock,
+		marshalizerMock,
+		privateKeyMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+		broadcastBlock,
+		nil,
+		sendMessage,
+	)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilBroadCastHeader, err)
 }
 
 func TestWorker_NewWorkerSendMessageNilShouldFail(t *testing.T) {
@@ -512,6 +565,7 @@ func TestWorker_NewWorkerSendMessageNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		nil,
 	)
 
@@ -546,6 +600,7 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 
