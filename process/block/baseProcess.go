@@ -227,9 +227,11 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 	})
 
 	for i := 0; i < len(processedHdrs); i++ {
-		if bp.lastNotarizedHdrs[shardId].GetNonce() < processedHdrs[i].GetNonce() {
-			bp.lastNotarizedHdrs[shardId] = processedHdrs[i]
+		err := bp.isHdrConstructionValid(processedHdrs[i], bp.lastNotarizedHdrs[shardId])
+		if err != nil {
+			continue
 		}
+		bp.lastNotarizedHdrs[shardId] = processedHdrs[i]
 	}
 
 	return nil
