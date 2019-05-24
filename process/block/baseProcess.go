@@ -300,6 +300,42 @@ func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]da
 	return nil
 }
 
+func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler, shardId uint32, maxNonce uint64) error {
+	prevHdr, err := bp.getLastNotarizedHdr(shardId)
+	if err != nil {
+		return err
+	}
+
+	if len(sortedHdrs) == 0 {
+		return process.ErrNoSortedHdrsForShard
+	}
+
+	missingNonces := make([]uint64, 0)
+	for i := 0; i < len(sortedHdrs); i++ {
+		currHdr := sortedHdrs[i]
+
+		if i > 0 {
+			prevHdr = sortedHdrs[i-1]
+		}
+
+		if currHdr.GetNonce()-prevHdr.GetNonce() > 1 {
+			for j := prevHdr.GetNonce(); j < currHdr.GetNonce(); j++ {
+				missingNonces = append(missingNonces, j)
+			}
+		}
+	}
+
+	for _, nonce := range missingNonces {
+		if nonce > maxNonce {
+			return nil
+		}
+
+		// do the request here
+	}
+
+	return nil
+}
+
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	lines := make([]*display.LineData, 0)
 

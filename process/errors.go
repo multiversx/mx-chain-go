@@ -303,3 +303,6 @@ var ErrLastNotarizedMetaHdrIsNil = errors.New("last notarized meta header is nil
 
 // ErrNoNewMetablocks signals that no new metablocks are in the pool
 var ErrNoNewMetablocks = errors.New("there is no new metablocks")
+
+// ErrNoSortedHdrsForShard signals that there are no sorted hdrs in pool
+var ErrNoSortedHdrsForShard = errors.New("no sorted headers in pool")

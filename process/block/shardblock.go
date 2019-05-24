@@ -186,6 +186,31 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound(), header.GetNonce())
+
+	return nil
+}
+
+func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32, nonce uint64) error {
+	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
+	if err != nil {
+		return err
+	}
+
+	sortedHdrs := make([]data.HeaderHandler, 0)
+	for i := 0; i < len(orderedMetaBlocks); i++ {
+		hdr, ok := orderedMetaBlocks[i].hdr.(*block.MetaBlock)
+		if !ok {
+			continue
+		}
+		sortedHdrs = append(sortedHdrs, hdr)
+	}
+
+	err = sp.requestHeadersIfMissing(sortedHdrs, sharding.MetachainShardId, nonce)
+	if err != nil {
+		log.Info(err.Error())
+	}
+
 	return nil
 }
 
@@ -1210,6 +1235,8 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 		PrevRandSeed:     make([]byte, 0),
 		RandSeed:         make([]byte, 0),
 	}
+
+	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound(), header.GetNonce())
 
 	if bodyHandler == nil {
 		return header, nil

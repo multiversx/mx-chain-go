@@ -179,6 +179,31 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	go mp.checkAndRequestIfShardHeadersMissing(header.Round, header.Nonce)
+
+	return nil
+}
+
+func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint32, nonce uint64) error {
+	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(round)
+	if err != nil {
+		return err
+	}
+
+	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
+		// map from *block.Header to dataHandler
+		sortedHdrs := make([]data.HeaderHandler, 0)
+		for j := 0; j < len(sortedHdrPerShard[i]); j++ {
+			sortedHdrs = append(sortedHdrs, sortedHdrPerShard[i][j])
+		}
+
+		err := mp.requestHeadersIfMissing(sortedHdrs, i, nonce)
+		if err != nil {
+			log.Info(err.Error())
+			continue
+		}
+	}
+
 	return nil
 }
 
@@ -463,6 +488,7 @@ func (mp *metaProcessor) getSortedShardHdrsFromMetablock(header *block.MetaBlock
 		shardData := header.ShardInfo[i]
 		header, err := mp.getShardHeaderFromPool(shardData.ShardId, shardData.HeaderHash)
 		if header == nil {
+			go mp.onRequestShardHeaderHandler(shardData.ShardId, shardData.HeaderHash)
 			return nil, err
 		}
 
@@ -538,10 +564,6 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(header.GetRound())
 	if err != nil {
 		return err
-	}
-
-	if uint32(len(sortedHdrPerShard)) < mp.nextKValidity {
-		return process.ErrHeaderNotFinal
 	}
 
 	for index, lastVerifiedHdr := range highestNonceHdrs {
@@ -891,6 +913,8 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	header.PeerInfo = peerInfo
 	header.RootHash = mp.getRootHash()
 	header.TxCount = getTxCount(shardInfo)
+
+	go mp.checkAndRequestIfShardHeadersMissing(header.Round, header.Nonce)
 
 	return header, nil
 }
