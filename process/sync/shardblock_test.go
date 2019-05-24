@@ -145,7 +145,7 @@ func createStore() *mock.ChainStorerMock {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storage.NewCache(storage.LRUCache, 1000)
+	cache, _ := storage.NewCache(storage.LRUCache, 1000, 1)
 	return cache
 }
 

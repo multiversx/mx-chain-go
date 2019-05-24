@@ -1382,3 +1382,33 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 
 	assert.Equal(t, int32(1), atomic.LoadInt32(&executed))
 }
+
+func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
+	t.Parallel()
+	wrk := *initWorker()
+	blk := make(block.Body, 0)
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+	wrk.InitReceivedMessages()
+	cnsMsg := consensus.NewConsensusMessage(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+	msgType := consensus.MessageType(cnsMsg.MsgType)
+	cnsDataList := wrk.ReceivedMessages()[msgType]
+	cnsDataList = append(cnsDataList, cnsMsg)
+	wrk.SetReceivedMessages(msgType, cnsDataList)
+	wrk.ConsensusState().SetStatus(bn.SrStartRound, spos.SsFinished)
+
+	rcvMsg := wrk.ReceivedMessages()
+	assert.Equal(t, 1, len(rcvMsg[msgType]))
+
+	wrk.ExecuteStoredMessages()
+
+	rcvMsg = wrk.ReceivedMessages()
+	assert.Equal(t, 0, len(rcvMsg[msgType]))
+}

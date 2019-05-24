@@ -18,6 +18,7 @@ type SubroundStartRound struct {
 	*spos.Subround
 	processingThresholdPercentage int
 	getSubroundName               func(subroundId int) string
+	executeStoredMessages         func()
 }
 
 // NewSubroundStartRound creates a SubroundStartRound object
@@ -26,6 +27,7 @@ func NewSubroundStartRound(
 	extend func(subroundId int),
 	processingThresholdPercentage int,
 	getSubroundName func(subroundId int) string,
+	executeStoredMessages func(),
 ) (*SubroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
@@ -38,6 +40,7 @@ func NewSubroundStartRound(
 		baseSubround,
 		processingThresholdPercentage,
 		getSubroundName,
+		executeStoredMessages,
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -152,6 +155,9 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
+
+	// execute stored messages which were received in this new round but before this initialisation
+	go sr.executeStoredMessages()
 
 	return true
 }
