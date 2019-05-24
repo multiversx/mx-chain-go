@@ -29,7 +29,7 @@ func createDummyAddress() state.AddressContainer {
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10)
+	cache, _ := storage.NewCache(storage.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
 
 	unit, _ := storage.NewStorageUnit(cache, persist)

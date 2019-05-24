@@ -1312,8 +1312,9 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 
 func getCacherFromConfig(cfg config.CacheConfig) storage.CacheConfig {
 	return storage.CacheConfig{
-		Size: cfg.Size,
-		Type: storage.CacheType(cfg.Type),
+		Size:   cfg.Size,
+		Type:   storage.CacheType(cfg.Type),
+		Shards: cfg.Shards,
 	}
 }
 
@@ -1344,52 +1345,63 @@ func createShardDataPoolFromConfig(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.PoolsHolder, error) {
 
+	fmt.Println("creatingShardDataPool from config")
+
 	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
+		fmt.Println("error creating txpool")
 		return nil, err
 	}
 
 	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
-	hdrPool, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrPool, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating hdrpool")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating metaBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.BlockHeaderNoncesDataPool)
-	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating hdrNoncesCacher")
 		return nil, err
 	}
 	hdrNonces, err := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
+		fmt.Println("error creating hdrNonces")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
-	txBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	txBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating txBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.PeerBlockBodyDataPool)
-	peerChangeBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	peerChangeBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
-	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating metaBlockNoncesCacher")
 		return nil, err
 	}
 	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
+		fmt.Println("error creating metaBlockNonces")
 		return nil, err
 	}
 
@@ -1407,7 +1419,8 @@ func createShardDataPoolFromConfig(
 func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error) {
 	badBlockCache, err := storage.NewCache(
 		storage.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size)
+		config.BadBlocksCache.Size,
+		config.BadBlocksCache.Shards)
 	if err != nil {
 		return nil, err
 	}
@@ -1502,29 +1515,34 @@ func createMetaDataPoolFromConfig(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.MetaPoolsHolder, error) {
 	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating metaBlockBody")
 		return nil, err
 	}
 
 	miniBlockHashes, err := shardedData.NewShardedData(getCacherFromConfig(config.MiniBlockHeaderHashesDataPool))
 	if err != nil {
+		fmt.Println("error creating miniBlockHashes")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.ShardHeadersDataPool)
-	shardHeaders, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	shardHeaders, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating shardHeaders")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
-	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating metaBlockNoncesCacher")
 		return nil, err
 	}
 	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
+		fmt.Println("error creating metaBlockNonces")
 		return nil, err
 	}
 
@@ -1534,7 +1552,8 @@ func createMetaDataPoolFromConfig(
 func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, error) {
 	badBlockCache, err := storage.NewCache(
 		storage.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size)
+		config.BadBlocksCache.Size,
+		config.BadBlocksCache.Shards)
 	if err != nil {
 		return nil, err
 	}
@@ -1723,7 +1742,7 @@ func generateInMemoryAccountsAdapter(
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10)
+	cache, _ := storage.NewCache(storage.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
 
 	unit, _ := storage.NewStorageUnit(cache, persist)
