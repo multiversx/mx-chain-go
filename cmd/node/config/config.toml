@@ -4,6 +4,10 @@
    # value will be given as string. For example: "0", "1", "15", "metachain"
    DestinationShardAsObserver = "0"
 
+[Explorer]
+    Enabled = true
+    IndexerURL = "http://localhost:9200"
+
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Size = 1000

@@ -10,44 +10,48 @@ services:
     ports:
       - 8080:8080
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:6.0.0
-    container_name: elasticsearch
-    hostname: elasticsearch
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.1.0
+    container_name: es01
     environment:
+      - node.name=es01
+      - discovery.seed_hosts=es02
       - cluster.name=elrond-cluster
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms9g -Xmx9g"
+      - cluster.initial_master_nodes=es01,es02
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
-      - esdata:/usr/share/elasticsearch/data
-      - ./elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./esdata/node1:/usr/share/elasticsearch/data
+      - ./docker/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
     ports:
       - 9200:9200
-    networks:
-      - bcoin
+#    networks:
+#      - elrond
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:6.0.0
-    container_name: kibana
-    hostname: kibana
+  es02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.1.0
+    container_name: es02
+    environment:
+      - node.name=es02
+      - discovery.seed_hosts=es01
+      - cluster.name=elrond-cluster
+      - bootstrap.memory_lock=true
+      - cluster.initial_master_nodes=es01,es02
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     volumes:
-      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
-    ports:
-      - 5601:5601
-    networks:
-      - bcoin
+      - ./esdata/node2:/usr/share/elasticsearch/data
+      - ./docker/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
 
-  head:
-    image: mobz/elasticsearch-head:5
-    container_name: head
-    ports:
-      - 9100:9100
-    networks:
-      - bcoin
+#   networks:
+#     - elrond
   filebeat:
     build: docker/filebeat
     environment:
@@ -58,3 +62,8 @@ services:
     - ./docker/filebeat/filebeat.yml:/filebeat.yml
     - ./docker/filebeat/logstash-beats.crt:/etc/pki/tls/certs/logstash-beats.crt
     - ${ELROND_LOG_LOCATION}:/elogs
+
+#networks:
+#  elrond:
+#    external:
+#      name: "elrond"

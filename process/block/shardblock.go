@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -28,6 +29,7 @@ const maxTransactionsInBlock = 15000
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
+	core                 core.Core
 	dataPool             dataRetriever.PoolsHolder
 	txProcessor          process.TransactionProcessor
 	chRcvAllTxs          chan bool
@@ -41,6 +43,7 @@ type shardProcessor struct {
 
 // NewShardProcessor creates a new shardProcessor object
 func NewShardProcessor(
+	core core.Core,
 	dataPool dataRetriever.PoolsHolder,
 	store dataRetriever.StorageService,
 	hasher hashing.Hasher,
@@ -49,6 +52,7 @@ func NewShardProcessor(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	forkDetector process.ForkDetector,
+
 	requestTransactionHandler func(shardId uint32, txHash []byte),
 	requestMiniBlockHandler func(shardId uint32, miniblockHash []byte),
 ) (*shardProcessor, error) {
@@ -61,6 +65,10 @@ func NewShardProcessor(
 		store)
 	if err != nil {
 		return nil, err
+	}
+
+	if core == nil {
+		return nil, process.ErrNilCore
 	}
 
 	if dataPool == nil {
@@ -89,6 +97,7 @@ func NewShardProcessor(
 	}
 
 	bp := shardProcessor{
+		core:          core,
 		baseProcessor: base,
 		dataPool:      dataPool,
 		txProcessor:   txProcessor,
@@ -187,6 +196,19 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	return nil
+}
+
+func (sp *shardProcessor) indexBlockIfNeeded(body block.Body, header *block.Header, txPool map[string]*transaction.Transaction) {
+	if sp.core.Indexer() == nil {
+		return
+	}
+
+	if len(body) == 0 {
+		return
+	}
+	fmt.Println("elasticsearch starting goroutine to save block")
+
+	go sp.core.Indexer().SaveBlock(body, header, txPool)
 }
 
 // removeTxBlockFromPools removes transactions and miniblocks from associated pools
@@ -394,6 +416,8 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	tempTxPool := make(map[string]*transaction.Transaction)
+
 	buff, err := sp.marshalizer.Marshal(headerHandler)
 	if err != nil {
 		return err
@@ -448,6 +472,8 @@ func (sp *shardProcessor) CommitBlock(
 				return err
 			}
 
+			tempTxPool[string(txHash)] = tx
+
 			buff, err = sp.marshalizer.Marshal(tx)
 			if err != nil {
 				return err
@@ -491,6 +517,8 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
+
+	sp.indexBlockIfNeeded(body, header, tempTxPool)
 
 	// write data to log
 	go sp.displayShardBlock(header, body)

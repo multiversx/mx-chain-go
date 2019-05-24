@@ -297,3 +297,6 @@ var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to c
 
 // ErrLastNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
 var ErrLastNotarizedHdrsSliceIsNil = errors.New("last notarized shard headers slice is nil")
+
+// ErrNilCore signals that the injected core is nil
+var ErrNilCore = errors.New("nil core handler")

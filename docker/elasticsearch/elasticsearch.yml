@@ -14,13 +14,13 @@
 #
 # Use a descriptive name for your cluster:
 #
-cluster.name: btc-cluster
+cluster.name: elrond-cluster
 #
 # ------------------------------------ Node ------------------------------------
 #
 # Use a descriptive name for the node:
 #
-node.name: es-node-1
+#node.name: es-node-1
 #
 # Add custom attributes to the node:
 #
@@ -52,7 +52,7 @@ bootstrap.memory_lock: true
 #
 # Set the bind address to a specific IP (IPv4 or IPv6):
 #
-network.host: es-node-1
+network.host: 0.0.0.0
 #
 # Set a custom port for HTTP:
 #
@@ -65,7 +65,7 @@ network.host: es-node-1
 # Pass an initial list of hosts to perform discovery when new node is started:
 # The default list of hosts is ["127.0.0.1", "[::1]"]
 #
-discovery.zen.ping.unicast.hosts: ["bitcoin.westeurope.cloudapp.azure.com"]
+#discovery.zen.ping.unicast.hosts: ["bitcoin.westeurope.cloudapp.azure.com"]
 #
 # Prevent the "split brain" by configuring the majority of nodes (total number of master-eligible nodes / 2 + 1):
 #

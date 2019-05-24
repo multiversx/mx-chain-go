@@ -78,6 +78,7 @@ type Config struct {
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
+	Explorer        ExplorerConfig
 }
 
 // NodeConfig will hold basic p2p settings
@@ -125,4 +126,10 @@ type HeartbeatConfig struct {
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
+}
+
+// ExplorerConfig will hold the configuration for the explorer indexer
+type ExplorerConfig struct {
+	Enabled bool
+	IndexerURL string
 }

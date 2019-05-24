@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/indexer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
@@ -232,6 +233,13 @@ type mockProposerResolver struct {
 func (mockProposerResolver) ResolveProposer(shardId uint32, roundIndex uint32, prevRandomSeed []byte) ([]byte, error) {
 	return []byte("mocked proposer"), nil
 }
+
+// dbIndexer will hold the database indexer. Defined globally so it can be initialised only in
+//  certain conditions. If those conditions will not be met, it will stay as nil
+var dbIndexer core.Indexer
+// coreServiceContainer is defined globally so it can be injected with appropriate
+//  params depending on the type of node we are starting
+var coreServiceContainer core.Core
 
 func main() {
 	log := logger.DefaultLogger()
@@ -759,7 +767,20 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	if config.Explorer.Enabled {
+		dbIndexer, err = indexer.NewElasticIndexer(config.Explorer.IndexerURL, marshalizer, hasher, log)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	}
+
+	coreServiceContainer, err = core.NewServiceContainer(core.WithIndexer(dbIndexer))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	blockProcessor, err := block.NewShardProcessor(
+		coreServiceContainer,
 		datapool,
 		store,
 		hasher,
