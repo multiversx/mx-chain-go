@@ -1086,6 +1086,7 @@ func createMetaNode(
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(
+		coreServiceContainer,
 		accountsAdapter,
 		metaDatapool,
 		forkDetector,

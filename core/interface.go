@@ -15,5 +15,5 @@ type Core interface {
 // This could be an elasticsearch intex, a MySql database or any other external services.
 type Indexer interface {
 	SaveBlock(body block.Body, header *block.Header, txPool map[string]*transaction.Transaction)
-	//SaveMetaBlock(metaBlock *block.MetaBlock, headerPool map[string]*block.Header)
+	SaveMetaBlock(metaBlock *block.MetaBlock, headerPool map[string]*block.Header)
 }
