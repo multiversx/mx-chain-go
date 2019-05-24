@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -34,22 +36,22 @@ type mapShardLastHeaders map[uint32]*block.Header
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	dataPool dataRetriever.MetaPoolsHolder
-
+	core                          core.Core
+	dataPool                      dataRetriever.MetaPoolsHolder
 	onRequestShardHeaderHandler   func(shardId uint32, mbHash []byte)
 	requestedShardHeaderHashes    map[string]bool
 	mutRequestedShardHeaderHashes sync.RWMutex
-
-	mutLastNotarizedHdrs  sync.RWMutex
-	lastNotarizedHdrs     mapShardLastHeaders
-	nextKValidity         uint32
-	finalityAttestingHdrs []*block.Header
+	mutLastNotarizedHdrs          sync.RWMutex
+	lastNotarizedHdrs             mapShardLastHeaders
+	nextKValidity                 uint32
+	finalityAttestingHdrs         []*block.Header
 
 	chRcvAllHdrs chan bool
 }
 
 // NewMetaProcessor creates a new metaProcessor object
 func NewMetaProcessor(
+	core core.Core,
 	accounts state.AccountsAdapter,
 	dataPool dataRetriever.MetaPoolsHolder,
 	forkDetector process.ForkDetector,
@@ -69,7 +71,9 @@ func NewMetaProcessor(
 	if err != nil {
 		return nil, err
 	}
-
+	if core == nil {
+		return nil, process.ErrNilCore
+	}
 	if dataPool == nil {
 		return nil, process.ErrNilDataPoolHolder
 	}
@@ -93,6 +97,7 @@ func NewMetaProcessor(
 	}
 
 	mp := metaProcessor{
+		core:                        core,
 		baseProcessor:               base,
 		dataPool:                    dataPool,
 		onRequestShardHeaderHandler: requestHeaderHandler,
@@ -207,6 +212,19 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	return nil
+}
+
+func (sp *metaProcessor) indexBlockIfNeeded(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) {
+	if sp.core.Indexer() == nil {
+		return
+	}
+
+	if metaBlock == nil {
+		return
+	}
+	fmt.Println("elasticsearch starting goroutine to save block")
+
+	go sp.core.Indexer().SaveMetaBlock(metaBlock, headerPool)
 }
 
 // removeBlockInfoFromPool removes the block info from associated pools
@@ -327,6 +345,8 @@ func (mp *metaProcessor) CommitBlock(
 		}
 	}()
 
+	tempHeaderPool := make(map[string]*block.Header)
+
 	err = checkForNils(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
@@ -396,6 +416,8 @@ func (mp *metaProcessor) CommitBlock(
 			return err
 		}
 
+		tempHeaderPool[string(shardData.HeaderHash)] = header
+
 		buff, err = mp.marshalizer.Marshal(header)
 		if err != nil {
 			return err
@@ -438,6 +460,8 @@ func (mp *metaProcessor) CommitBlock(
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
+
+	mp.indexBlockIfNeeded(header, tempHeaderPool)
 
 	go mp.displayMetaBlock(header)
 
