@@ -79,7 +79,8 @@ func (hi *HeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHead
 		return
 	}
 
-	isHeaderInStorage, _ := hi.hdrInterceptorBase.storer.Has(hdrIntercepted.Hash())
+	err := hi.hdrInterceptorBase.storer.Has(hdrIntercepted.Hash())
+	isHeaderInStorage := err == nil
 	if isHeaderInStorage {
 		log.Debug("intercepted block header already processed")
 		return
