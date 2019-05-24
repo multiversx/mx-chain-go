@@ -477,7 +477,7 @@ func (sp *shardProcessor) CommitBlock(
 	sp.unnotarisedHeaders[header.Nonce] = &headerInfo{header: header, broadcastInRound: 0}
 	sp.mutUnnotarisedHeaders.Unlock()
 
-	log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s was committed successfully\n",
+	log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been committed successfully\n",
 		header.Nonce,
 		toB64(headerHash)))
 
@@ -1520,7 +1520,7 @@ func (sp *shardProcessor) getHeaderFromPool(hash []byte) *block.Header {
 
 	header, ok := hdr.(*block.Header)
 	if !ok {
-		log.Error(fmt.Sprintf("type assertion error\n"))
+		log.Debug(fmt.Sprintf("data with hash %s is not header\n", toB64(hash)))
 		return nil
 	}
 

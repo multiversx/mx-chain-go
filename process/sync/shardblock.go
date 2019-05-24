@@ -147,7 +147,7 @@ func (boot *ShardBootstrap) getHeaderFromPool(hash []byte) *block.Header {
 
 	header, ok := hdr.(*block.Header)
 	if !ok {
-		log.Error(fmt.Sprintf("type assertion error\n"))
+		log.Debug(fmt.Sprintf("data with hash %s is not header\n", toB64(hash)))
 		return nil
 	}
 
@@ -301,7 +301,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 	timeAfter := time.Now()
 	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
 
-	log.Info(fmt.Sprintf("block with nonce %d was synced successfully\n", hdr.Nonce))
+	log.Info(fmt.Sprintf("block with nonce %d has been synced successfully\n", hdr.Nonce))
 	return nil
 }
 
@@ -315,13 +315,13 @@ func (boot *ShardBootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.He
 
 	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", toB64(hash)))
 		return nil
 	}
 
 	header, ok := hdr.(*block.Header)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Debug(fmt.Sprintf("data with hash %s is not header\n", toB64(hash)))
 		return nil
 	}
 
@@ -362,7 +362,7 @@ func (boot *ShardBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.H
 func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 	buff, err := boot.marshalizer.Marshal(hashes)
 	if err != nil {
-		log.Error("Could not marshal MiniBlock hashes: ", err.Error())
+		log.Error("could not marshal MiniBlock hashes: ", err.Error())
 		return
 	}
 

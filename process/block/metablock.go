@@ -307,7 +307,7 @@ func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int3
 	}
 
 	if len(msg) > 0 {
-		log.Info(fmt.Sprintf("The following miniblocks hashes were successfully processed:%s\n", msg))
+		log.Info(fmt.Sprintf("the following miniblocks hashes were successfully processed:%s\n", msg))
 	}
 
 	return nil

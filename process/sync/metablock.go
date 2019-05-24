@@ -125,13 +125,13 @@ func (boot *MetaBootstrap) getHeader(hash []byte) *block.MetaBlock {
 func (boot *MetaBootstrap) getHeaderFromPool(hash []byte) *block.MetaBlock {
 	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", toB64(hash)))
 		return nil
 	}
 
 	header, ok := hdr.(*block.MetaBlock)
 	if !ok {
-		log.Debug(fmt.Sprintf("data with hash %v is not metablock\n", hash))
+		log.Debug(fmt.Sprintf("data with hash %s is not metablock\n", toB64(hash)))
 		return nil
 	}
 
@@ -237,7 +237,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 	timeAfter := time.Now()
 	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
 
-	log.Info(fmt.Sprintf("block with nonce %d was synced successfully\n", hdr.Nonce))
+	log.Info(fmt.Sprintf("block with nonce %d has been synced successfully\n", hdr.Nonce))
 	return nil
 }
 
@@ -251,13 +251,13 @@ func (boot *MetaBootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.Met
 
 	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", toB64(hash)))
 		return nil
 	}
 
 	header, ok := hdr.(*block.MetaBlock)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Debug(fmt.Sprintf("data with hash %s is not metablock\n", toB64(hash)))
 		return nil
 	}
 
