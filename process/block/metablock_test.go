@@ -2099,7 +2099,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 	err := mp.CheckShardHeadersFinality(nil, lastNodesHdrs)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 
-	// should work for empty highest nonce hdrs - no hdrs added this round to metablock
+	// should work for empty highest nonce hdrs - no hdrs added this broadcastInRound to metablock
 	err = mp.CheckShardHeadersFinality(metaHdr, nil)
 	assert.Nil(t, err)
 

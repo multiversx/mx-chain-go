@@ -91,6 +91,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	fmt.Println("Step 6. Proposer disseminates header, block body and miniblocks...")
 	proposerNode.node.BroadcastShardBlock(blockBody, blockHeader)
+	proposerNode.node.BroadcastShardHeader(blockHeader)
 	fmt.Println("Delaying for disseminating miniblocks and header...")
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
@@ -151,6 +152,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 		body, header := proposeBlock(t, receiverProposer)
 		receiverProposer.node.BroadcastShardBlock(body, header)
+		receiverProposer.node.BroadcastShardHeader(header)
 	}
 	fmt.Println("Delaying for disseminating miniblocks and headers...")
 	time.Sleep(time.Second * 5)

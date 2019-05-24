@@ -25,6 +25,11 @@ var txsTotalProcessed = 0
 
 const maxTransactionsInBlock = 15000
 
+type headerInfo struct {
+	header           *block.Header
+	broadcastInRound uint32
+}
+
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
@@ -37,8 +42,8 @@ type shardProcessor struct {
 	mutCrossTxsForBlock   sync.RWMutex
 	crossTxsForBlock      map[string]*transaction.Transaction
 	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
-	mutUnnotarisedHeaders sync.RWMutex
-	unnotarisedHeaders    map[string]struct{}
+	mutUnnotarisedHeaders sync.Mutex
+	unnotarisedHeaders    map[uint64]*headerInfo
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -108,7 +113,7 @@ func NewShardProcessor(
 	bp.onRequestMiniBlock = requestMiniBlockHandler
 	bp.requestedTxHashes = make(map[string]bool)
 	bp.crossTxsForBlock = make(map[string]*transaction.Transaction)
-	bp.unnotarisedHeaders = make(map[string]struct{})
+	bp.unnotarisedHeaders = make(map[uint64]*headerInfo)
 
 	metaBlockPool := bp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
@@ -469,7 +474,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.mutUnnotarisedHeaders.Lock()
-	sp.unnotarisedHeaders[string(headerHash)] = struct{}{}
+	sp.unnotarisedHeaders[header.Nonce] = &headerInfo{header: header, broadcastInRound: 0}
 	sp.mutUnnotarisedHeaders.Unlock()
 
 	log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s was committed successfully\n",
@@ -568,11 +573,11 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 			for _, shardData := range mb.ShardInfo {
 				if shardData.ShardId == sp.shardCoordinator.SelfId() {
 					header := sp.getHeader(shardData.HeaderHash)
-					log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s was notarised by metachain\n",
+					log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been notarised by metachain\n",
 						header.GetNonce(),
 						toB64(shardData.HeaderHash)))
 					sp.mutUnnotarisedHeaders.Lock()
-					delete(sp.unnotarisedHeaders, string(shardData.HeaderHash))
+					delete(sp.unnotarisedHeaders, header.Nonce)
 					sp.mutUnnotarisedHeaders.Unlock()
 				}
 			}
@@ -587,7 +592,7 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 				return err
 			}
 			sp.dataPool.MetaBlocks().Remove(metaBlockKey)
-			log.Info(fmt.Sprintf("metablock with nonce %d was processed completly and removed from pool\n",
+			log.Info(fmt.Sprintf("metablock with nonce %d has been processed completly and removed from pool\n",
 				hdr.GetNonce()))
 		}
 	}
@@ -1474,31 +1479,25 @@ func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 
 //GetUnnotarisedHeaders gets all the headers which are not notarized in metachain yet
 func (sp *shardProcessor) GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler {
-	sp.mutUnnotarisedHeaders.RLock()
+	sp.mutUnnotarisedHeaders.Lock()
 
 	hdrs := make([]data.HeaderHandler, 0)
-	for hash := range sp.unnotarisedHeaders {
-		//if bytes.Equal(blockChain.GetCurrentBlockHeaderHash(), []byte(hash)) {
-		//	continue
-		//}
-		//if blockChain.GetCurrentBlockHeader() != nil {
-		//	if bytes.Equal(blockChain.GetCurrentBlockHeader().GetPrevHash(), []byte(hash)) {
-		//		continue
-		//	}
-		//}
-		hdr := sp.getHeader([]byte(hash))
-		if hdr == nil {
+	for nonce, hInfo := range sp.unnotarisedHeaders {
+		if hInfo.header.Nonce > sp.forkDetector.GetHighestFinalBlockNonce() {
 			continue
 		}
 
-		if blockChain.GetCurrentBlockHeader().GetNonce() <= hdr.Nonce+2 {
+		round := blockChain.GetCurrentBlockHeader().GetRound()
+		if hInfo.broadcastInRound >= round-process.MaxRoundsGap {
 			continue
 		}
 
-		hdrs = append(hdrs, hdr)
+		sp.unnotarisedHeaders[nonce] = &headerInfo{header: hInfo.header, broadcastInRound: round}
+
+		hdrs = append(hdrs, hInfo.header)
 	}
 
-	sp.mutUnnotarisedHeaders.RUnlock()
+	sp.mutUnnotarisedHeaders.Unlock()
 
 	return hdrs
 }
@@ -1515,7 +1514,7 @@ func (sp *shardProcessor) getHeader(hash []byte) *block.Header {
 func (sp *shardProcessor) getHeaderFromPool(hash []byte) *block.Header {
 	hdr, ok := sp.dataPool.Headers().Peek(hash)
 	if !ok {
-		log.Info(fmt.Sprintf("header with hash %s not found in headers cache\n", toB64(hash)))
+		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", toB64(hash)))
 		return nil
 	}
 
