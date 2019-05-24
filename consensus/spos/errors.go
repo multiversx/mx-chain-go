@@ -91,6 +91,9 @@ var ErrNilValidatorGroupSelector = errors.New("validator group selector is nil")
 // ErrNilChronologyHandler is raised when a valid chronology handler is expected but nil used
 var ErrNilChronologyHandler = errors.New("chronology handler is nil")
 
+// ErrNilForkDetectorHandler is raised when a valid fork detector handler is expected but nil used
+var ErrNilForkDetectorHandler = errors.New("fork detector handler is nil")
+
 // ErrNilRounder is raised when a valid rounder is expected but nil used
 var ErrNilRounder = errors.New("rounder is nil")
 
@@ -105,9 +108,6 @@ var ErrNilSendConsensusMessageFunction = errors.New("send consnensus message fun
 
 // ErrNilBroadcastBlockFunction is raised when a valid broadcast block function is expected but nil used
 var ErrNilBroadcastBlockFunction = errors.New("broadcast block function is nil")
-
-// ErrNilBroadcastHeaderFunction is raised when a valid broadcast header function is expected but nil used
-var ErrNilBroadcastHeaderFunction = errors.New("broadcast header function is nil")
 
 // ErrNilChannel is raised when a valid channel is expected but nil used
 var ErrNilChannel = errors.New("channel is nil")

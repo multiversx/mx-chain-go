@@ -22,6 +22,8 @@ type ConsensusCoreHandler interface {
 	BootStrapper() process.Bootstrapper
 	// Chronology gets the ChronologyHandler stored in the ConsensusCore
 	Chronology() consensus.ChronologyHandler
+	// ForkDetector gets the ForkDetector stored in the ConsensusCore
+	ForkDetector() process.ForkDetector
 	// Hasher gets the Hasher stored in the ConsensusCore
 	Hasher() hashing.Hasher
 	// Marshalizer gets the Marshalizer stored in the ConsensusCore

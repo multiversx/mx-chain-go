@@ -1238,3 +1238,12 @@ func (mp *metaProcessor) GetUnnotarisedHeaders(blockChain data.ChainHandler) []d
 	hdrs := make([]data.HeaderHandler, 0)
 	return hdrs
 }
+
+//SetBroadcastRound sets the round in which the header with the given nonce has been broadcast to metachain
+func (mp *metaProcessor) SetBroadcastRound(nonce uint64, round int32) {
+}
+
+//GetBroadcastRound gets the round in which the header with given nonce has been broadcast to metachain
+func (mp *metaProcessor) GetBroadcastRound(nonce uint64) int32 {
+	return 0
+}

@@ -30,6 +30,8 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler
+	SetBroadcastRound(nonce uint64, round int32)
+	GetBroadcastRound(nonce uint64) int32
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

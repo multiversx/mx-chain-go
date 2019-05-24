@@ -21,6 +21,8 @@ type BlockProcessorMock struct {
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	GetUnnotarisedHeadersCalled      func(blockChain data.ChainHandler) []data.HeaderHandler
+	SetBroadcastRoundCalled          func(nonce uint64, round int32)
+	GetBroadcastRoundCalled          func(nonce uint64) int32
 }
 
 // SetOnRequestTransaction mocks setting request transaction call back function
@@ -75,4 +77,12 @@ func (blProcMock BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHa
 
 func (blProcMock BlockProcessorMock) GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler {
 	return blProcMock.GetUnnotarisedHeadersCalled(blockChain)
+}
+
+func (blProcMock BlockProcessorMock) SetBroadcastRound(nonce uint64, round int32) {
+	blProcMock.SetBroadcastRoundCalled(nonce, round)
+}
+
+func (blProcMock BlockProcessorMock) GetBroadcastRound(nonce uint64) int32 {
+	return blProcMock.GetBroadcastRoundCalled(nonce)
 }

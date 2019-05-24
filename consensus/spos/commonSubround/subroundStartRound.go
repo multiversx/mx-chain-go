@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 )
 
 var log = logger.DefaultLogger()
@@ -19,6 +19,7 @@ type SubroundStartRound struct {
 	processingThresholdPercentage int
 	getSubroundName               func(subroundId int) string
 	executeStoredMessages         func()
+	broadcastHeader               func(data.HeaderHandler) error
 }
 
 // NewSubroundStartRound creates a SubroundStartRound object
@@ -28,6 +29,7 @@ func NewSubroundStartRound(
 	processingThresholdPercentage int,
 	getSubroundName func(subroundId int) string,
 	executeStoredMessages func(),
+	broadcastHeader func(data.HeaderHandler) error,
 ) (*SubroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
@@ -41,6 +43,7 @@ func NewSubroundStartRound(
 		processingThresholdPercentage,
 		getSubroundName,
 		executeStoredMessages,
+		broadcastHeader,
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -55,7 +58,6 @@ func checkNewSubroundStartRoundParams(
 	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
-
 	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
@@ -157,7 +159,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	if leader == sr.SelfPubKey() {
-		//sr.BlockProcessor().
+		sr.broadcastUnnotarisedBlocks()
 	}
 
 	// execute stored messages which were received in this new round but before this initialisation
@@ -196,4 +198,30 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 	sr.SetConsensusGroup(nextConsensusGroup)
 
 	return nil
+}
+
+func (sr *SubroundStartRound) broadcastUnnotarisedBlocks() {
+	// broadcast unnotarised headers to metachain
+	headers := sr.BlockProcessor().GetUnnotarisedHeaders(sr.Blockchain())
+	for _, header := range headers {
+		if header.GetNonce() > sr.ForkDetector().GetHighestFinalBlockNonce() {
+			continue
+		}
+
+		brodcastRound := sr.BlockProcessor().GetBroadcastRound(header.GetNonce())
+		if brodcastRound >= sr.RoundIndex-spos.MaxRoundsGap {
+			continue
+		}
+
+		sr.BlockProcessor().SetBroadcastRound(header.GetNonce(), sr.RoundIndex)
+
+		err := sr.broadcastHeader(header)
+		if err != nil {
+			log.Error(err.Error())
+		} else {
+			log.Info(fmt.Sprintf("%sStep 0: Unnotarised header with nonce %d has been broadcast to metachain\n",
+				sr.SyncTimer().FormattedCurrentTime(),
+				header.GetNonce()))
+		}
+	}
 }

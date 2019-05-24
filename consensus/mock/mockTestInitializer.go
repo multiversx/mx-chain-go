@@ -101,6 +101,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	bootstraperMock := &BootstraperMock{}
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
+	forkDetectorMock := &ForkDetectorMock{}
 	hasherMock := HasherMock{}
 	marshalizerMock := MarshalizerMock{}
 	blsPrivateKeyMock := &PrivateKeyMock{}
@@ -120,6 +121,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		blockProcessorMock,
 		bootstraperMock,
 		chronologyHandlerMock,
+		forkDetectorMock,
 		hasherMock,
 		marshalizerMock,
 		blsPrivateKeyMock,

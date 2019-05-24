@@ -1,9 +1,11 @@
 package commonSubround_test
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
@@ -115,4 +117,9 @@ func getSubroundName(subroundId int) string {
 
 // executeStoredMessages tries to execute all the messages received which are valid for execution
 func executeStoredMessages() {
+}
+
+func broadcastHeader(header data.HeaderHandler) error {
+	fmt.Println(header)
+	return nil
 }

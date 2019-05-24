@@ -11,21 +11,18 @@ import (
 type subroundEndRound struct {
 	*spos.Subround
 
-	broadcastBlock  func(data.BodyHandler, data.HeaderHandler) error
-	broadcastHeader func(data.HeaderHandler) error
+	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
 	baseSubround *spos.Subround,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
-	broadcastHeader func(data.HeaderHandler) error,
 	extend func(subroundId int),
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
 		broadcastBlock,
-		broadcastHeader,
 	)
 	if err != nil {
 		return nil, err
@@ -34,7 +31,6 @@ func NewSubroundEndRound(
 	srEndRound := subroundEndRound{
 		baseSubround,
 		broadcastBlock,
-		broadcastHeader,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -46,7 +42,6 @@ func NewSubroundEndRound(
 func checkNewSubroundEndRoundParams(
 	baseSubround *spos.Subround,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
-	broadcastHeader func(data.HeaderHandler) error,
 ) error {
 	if baseSubround == nil {
 		return spos.ErrNilSubround
@@ -56,9 +51,6 @@ func checkNewSubroundEndRoundParams(
 	}
 	if broadcastBlock == nil {
 		return spos.ErrNilBroadcastBlockFunction
-	}
-	if broadcastHeader == nil {
-		return spos.ErrNilBroadcastHeaderFunction
 	}
 
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
@@ -104,19 +96,6 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	}
 
 	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been committed and broadcast\n", sr.SyncTimer().FormattedCurrentTime()))
-
-	// broadcast unnotarised headers to metachain
-	headers := sr.BlockProcessor().GetUnnotarisedHeaders(sr.Blockchain())
-	for _, header := range headers {
-		err = sr.broadcastHeader(header)
-		if err != nil {
-			log.Error(err.Error())
-		} else {
-			log.Info(fmt.Sprintf("%sStep 6: Unnotarised header with nonce %d has been broadcast to metachain\n",
-				sr.SyncTimer().FormattedCurrentTime(),
-				header.GetNonce()))
-		}
-	}
 
 	actionMsg := "synchronized"
 	if sr.IsSelfLeaderInCurrentRound() {

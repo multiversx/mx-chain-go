@@ -113,6 +113,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		processingThresholdPercent,
 		getSubroundName,
 		fct.worker.ExecuteStoredMessages,
+		fct.worker.BroadcastHeader,
 	)
 	if err != nil {
 		return err
@@ -209,7 +210,6 @@ func (fct *factory) generateEndRoundSubround() error {
 	subroundEndRound, err := NewSubroundEndRound(
 		subround,
 		fct.worker.BroadcastBlock,
-		fct.worker.BroadcastHeader,
 		fct.worker.Extend,
 	)
 	if err != nil {

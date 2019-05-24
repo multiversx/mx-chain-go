@@ -265,6 +265,7 @@ func (n *Node) StartConsensus() error {
 		n.blockProcessor,
 		bootstrapper,
 		chronologyHandler,
+		n.forkDetector,
 		n.hasher,
 		n.marshalizer,
 		n.privKey,

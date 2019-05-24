@@ -11,7 +11,3 @@ const (
 	// BHProposed defines ID of a proposed block header
 	BHProposed
 )
-
-// MaxRoundsGap defines the maximum expected gap in terms of rounds, between metachain and shardchain, after which
-// a block committed and broadcast from shardchain would be visible as notarized in metachain
-const MaxRoundsGap = 3

@@ -16,6 +16,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container.Chronology() == nil {
 		return ErrNilChronologyHandler
 	}
+	if container.ForkDetector() == nil {
+		return ErrNilForkDetectorHandler
+	}
 	if container.Hasher() == nil {
 		return ErrNilHasher
 	}

@@ -27,7 +27,7 @@ const maxTransactionsInBlock = 15000
 
 type headerInfo struct {
 	header           *block.Header
-	broadcastInRound uint32
+	broadcastInRound int32
 }
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
@@ -42,7 +42,7 @@ type shardProcessor struct {
 	mutCrossTxsForBlock   sync.RWMutex
 	crossTxsForBlock      map[string]*transaction.Transaction
 	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
-	mutUnnotarisedHeaders sync.Mutex
+	mutUnnotarisedHeaders sync.RWMutex
 	unnotarisedHeaders    map[uint64]*headerInfo
 }
 
@@ -565,21 +565,10 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 			}
 		}
 
-		// TODO: the final block should be given by metachain
-		//blockIsFinal := hdr.GetNonce() <= sp.forkDetector.GetHighestFinalBlockNonce()
-		//if processedAll && blockIsFinal {
 		if processedAll {
-			mb := metaBlock.(*block.MetaBlock)
-			for _, shardData := range mb.ShardInfo {
-				if shardData.ShardId == sp.shardCoordinator.SelfId() {
-					header := sp.getHeader(shardData.HeaderHash)
-					log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been notarised by metachain\n",
-						header.GetNonce(),
-						toB64(shardData.HeaderHash)))
-					sp.mutUnnotarisedHeaders.Lock()
-					delete(sp.unnotarisedHeaders, header.Nonce)
-					sp.mutUnnotarisedHeaders.Unlock()
-				}
+			mb, ok := metaBlock.(*block.MetaBlock)
+			if ok {
+				sp.removeNotarisedHeaders(mb)
 			}
 
 			// metablock was processed adn finalized
@@ -1482,24 +1471,36 @@ func (sp *shardProcessor) GetUnnotarisedHeaders(blockChain data.ChainHandler) []
 	sp.mutUnnotarisedHeaders.Lock()
 
 	hdrs := make([]data.HeaderHandler, 0)
-	for nonce, hInfo := range sp.unnotarisedHeaders {
-		if hInfo.header.Nonce > sp.forkDetector.GetHighestFinalBlockNonce() {
-			continue
-		}
-
-		round := blockChain.GetCurrentBlockHeader().GetRound()
-		if hInfo.broadcastInRound >= round-process.MaxRoundsGap {
-			continue
-		}
-
-		sp.unnotarisedHeaders[nonce] = &headerInfo{header: hInfo.header, broadcastInRound: round}
-
+	for _, hInfo := range sp.unnotarisedHeaders {
 		hdrs = append(hdrs, hInfo.header)
 	}
 
 	sp.mutUnnotarisedHeaders.Unlock()
 
 	return hdrs
+}
+
+//SetBroadcastRound sets the round in which the header with the given nonce has been broadcast to metachain
+func (sp *shardProcessor) SetBroadcastRound(nonce uint64, round int32) {
+	sp.mutUnnotarisedHeaders.Lock()
+	hInfo := sp.unnotarisedHeaders[nonce]
+	if hInfo != nil {
+		sp.unnotarisedHeaders[nonce] = &headerInfo{header: hInfo.header, broadcastInRound: round}
+	}
+	sp.mutUnnotarisedHeaders.Unlock()
+}
+
+//GetBroadcastRound gets the round in which the header with given nonce has been broadcast to metachain
+func (sp *shardProcessor) GetBroadcastRound(nonce uint64) int32 {
+	sp.mutUnnotarisedHeaders.RLock()
+	hInfo := sp.unnotarisedHeaders[nonce]
+	sp.mutUnnotarisedHeaders.RUnlock()
+
+	if hInfo == nil {
+		return 0
+	}
+
+	return hInfo.broadcastInRound
 }
 
 func (sp *shardProcessor) getHeader(hash []byte) *block.Header {
@@ -1549,4 +1550,25 @@ func (sp *shardProcessor) getHeaderFromStorage(hash []byte) *block.Header {
 	}
 
 	return header
+}
+
+func (sp *shardProcessor) removeNotarisedHeaders(metaBlock *block.MetaBlock) {
+	for _, shardData := range metaBlock.ShardInfo {
+		if shardData.ShardId != sp.shardCoordinator.SelfId() {
+			continue
+		}
+
+		header := sp.getHeader(shardData.HeaderHash)
+		if header == nil {
+			continue
+		}
+
+		log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been notarised by metachain\n",
+			header.GetNonce(),
+			toB64(shardData.HeaderHash)))
+
+		sp.mutUnnotarisedHeaders.Lock()
+		delete(sp.unnotarisedHeaders, header.Nonce)
+		sp.mutUnnotarisedHeaders.Unlock()
+	}
 }
