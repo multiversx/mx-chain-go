@@ -232,7 +232,6 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	wg.Add(noOfTx)
 
 	chDone := make(chan struct{})
-
 	go func() {
 		wg.Wait()
 		chDone <- struct{}{}

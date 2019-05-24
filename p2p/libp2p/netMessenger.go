@@ -367,7 +367,7 @@ func (netMes *networkMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadBal
 }
 
 // BroadcastOnChannelBlocking tries to send a byte buffer onto a topic using provided channel
-// It is a blocking method. It needs to be launch on a go routine
+// It is a blocking method. It needs to be launched on a go routine
 func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
 	sendable := &p2p.SendableData{
 		Buff:  buff,
