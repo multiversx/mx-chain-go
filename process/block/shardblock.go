@@ -24,6 +24,7 @@ var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
 const maxTransactionsInBlock = 15000
+const maxTxsToRequest = 100
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
@@ -31,7 +32,7 @@ type shardProcessor struct {
 	dataPool             dataRetriever.PoolsHolder
 	txProcessor          process.TransactionProcessor
 	chRcvAllTxs          chan bool
-	onRequestTransaction func(shardID uint32, txHash []byte)
+	onRequestTransaction func(shardID uint32, txHashes [][]byte)
 	mutRequestedTxHashes sync.RWMutex
 	requestedTxHashes    map[string]bool
 	mutCrossTxsForBlock  sync.RWMutex
@@ -49,7 +50,7 @@ func NewShardProcessor(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	forkDetector process.ForkDetector,
-	requestTransactionHandler func(shardId uint32, txHash []byte),
+	requestTransactionHandler func(shardId uint32, txHashes [][]byte),
 	requestMiniBlockHandler func(shardId uint32, miniblockHash []byte),
 ) (*shardProcessor, error) {
 
@@ -688,13 +689,30 @@ func (sp *shardProcessor) receivedMiniBlock(miniBlockHash []byte) {
 		return
 	}
 
-	// request transactions
+	requestedTxs := make([][]byte, 0)
 	for _, txHash := range miniBlock.TxHashes {
 		tx := sp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
 		if tx == nil {
-			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-			go sp.onRequestTransaction(miniBlock.SenderShardID, txHash)
+			requestedTxs = append(requestedTxs, txHash)
 		}
+	}
+
+	sp.sendTxRequestsInBatches(requestedTxs, miniBlock.SenderShardID)
+}
+
+func (sp *shardProcessor) sendTxRequestsInBatches(hashes [][]byte, shardId uint32) {
+	requestBuffer := make([][]byte, 0)
+	for _, txHash := range hashes {
+		requestBuffer = append(requestBuffer, txHash)
+
+		if len(requestBuffer) >= maxTxsToRequest {
+			sp.onRequestTransaction(shardId, requestBuffer)
+			requestBuffer = make([][]byte, 0)
+		}
+	}
+	if len(requestBuffer) > 0 {
+		//remaining
+		sp.onRequestTransaction(shardId, requestBuffer)
 	}
 }
 
@@ -706,12 +724,12 @@ func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
 	sp.requestedTxHashes = make(map[string]bool)
 
 	for shardId, txHashes := range missingTxsForShards {
+		requestedTxs += len(txHashes)
 		for _, txHash := range txHashes {
-			requestedTxs++
 			sp.requestedTxHashes[string(txHash)] = true
-			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-			go sp.onRequestTransaction(shardId, txHash)
 		}
+
+		sp.sendTxRequestsInBatches(txHashes, shardId)
 	}
 
 	sp.mutRequestedTxHashes.Unlock()
@@ -768,9 +786,7 @@ func (sp *shardProcessor) processAndRemoveBadTransaction(
 
 func (sp *shardProcessor) requestBlockTransactionsForMiniBlock(mb *block.MiniBlock) int {
 	missingTxsForMiniBlock := sp.computeMissingTxsForMiniBlock(mb)
-	for _, txHash := range missingTxsForMiniBlock {
-		go sp.onRequestTransaction(mb.SenderShardID, txHash)
-	}
+	sp.sendTxRequestsInBatches(missingTxsForMiniBlock, mb.SenderShardID)
 
 	return len(missingTxsForMiniBlock)
 }

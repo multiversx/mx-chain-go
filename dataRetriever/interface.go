@@ -204,3 +204,8 @@ type StorageService interface {
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
 }
+
+// SliceSplitter can split a large slice of byte slices in chunks and automatically send them
+type SliceSplitter interface {
+	SendDataInChunks(data [][]byte, sendHandler func(buff []byte) error, maxPacketSize int) error
+}

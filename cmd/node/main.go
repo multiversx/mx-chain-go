@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/splitters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
@@ -44,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
 	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -685,6 +687,11 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	sliceSplitter, err := splitters.NewSliceSplitter(marshalizer)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	txSignKeyGen, txSignPrivKey, txSignPubKey, err := getSigningParams(
 		ctx,
 		log,
@@ -731,6 +738,7 @@ func createShardNode(
 		marshalizer,
 		datapool,
 		uint64ByteSliceConverter,
+		sliceSplitter,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -769,7 +777,7 @@ func createShardNode(
 		accountsAdapter,
 		shardCoordinator,
 		forkDetector,
-		createRequestHandler(resolversFinder, factory.TransactionTopic, log),
+		createTxRequestHandler(resolversFinder, factory.TransactionTopic, log),
 		createRequestHandler(resolversFinder, factory.MiniBlocksTopic, log),
 	)
 
@@ -1123,6 +1131,22 @@ func createMetaNode(
 	}
 
 	return nd, externalResolver, tpsBenchmark, nil
+}
+
+func createTxRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, txHashes [][]byte) {
+	return func(destShardID uint32, txHashes [][]byte) {
+		log.Debug(fmt.Sprintf("Requesting %d transactions from shard %d from network...\n", len(txHashes), destShardID))
+		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		err = resolver.(*resolvers.TxResolver).RequestDataFromHashArray(txHashes)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
 }
 
 func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, txHash []byte) {

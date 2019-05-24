@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/splitters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
@@ -29,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -197,6 +199,7 @@ func createNetNode(
 	blkc := createTestShardChain()
 	store := createTestShardStore()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
+	sliceSplitter, _ := splitters.NewSliceSplitter(testMarshalizer)
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -224,6 +227,7 @@ func createNetNode(
 		testMarshalizer,
 		dPool,
 		uint64Converter,
+		sliceSplitter,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
@@ -251,14 +255,14 @@ func createNetNode(
 				return 0
 			},
 		},
-		func(destShardID uint32, txHash []byte) {
+		func(destShardID uint32, txHashes [][]byte) {
 			resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
 			if err != nil {
 				fmt.Println(err.Error())
 				return
 			}
 
-			err = resolver.RequestDataFromHash(txHash)
+			err = resolver.(*resolvers.TxResolver).RequestDataFromHashArray(txHashes)
 			if err != nil {
 				fmt.Println(err.Error())
 			}
