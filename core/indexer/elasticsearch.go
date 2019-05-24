@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -19,7 +17,7 @@ import (
 
 const txBulkSize = 2500
 const txIndex = "transactions"
-const metaBlockIndex = "metablock-index"
+const blockIndex = "blocks"
 
 type elasticIndexer struct {
 	db          *elasticsearch.Client
@@ -189,110 +187,66 @@ func (ei *elasticIndexer) SaveMetaBlock(metaBlock *block.MetaBlock, headerPool m
 func (ei *elasticIndexer) saveMetaBlock(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) {
 	var buff bytes.Buffer
 
-	blockMarshal, _ := ei.marshalizer.Marshal(metaBlock)
-	blockHash := ei.hasher.Compute(string(blockMarshal))
-	blockSize := len(blockMarshal)
+	blocks := ei.buildBlocks(metaBlock, headerPool)
 
-	mb := Block{
-		Hash:          hex.EncodeToString(blockHash),
-		Nonce:         metaBlock.Nonce,
-		PrevHash:      hex.EncodeToString(metaBlock.PrevHash),
-		Proposer:      "test",
-		PubKeyBitmap:  hex.EncodeToString(metaBlock.PubKeysBitmap),
-		ShardID:       sharding.MetachainShardId,
-		Size:          int64(blockSize),
-		StateRootHash: hex.EncodeToString(metaBlock.RootHash),
-		Timestamp:     metaBlock.TimeStamp,
-		TxCount:       metaBlock.TxCount,
-		Validators:    []string{"validators"},
+	for _, block := range blocks {
+
+		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, block.Hash, "\n"))
+		serializedBlock, err := json.Marshal(block)
+		if err != nil {
+			ei.logger.Warn("could not serialize block, will skip indexing: ", block.Hash)
+			continue
+		}
+		// append a newline foreach element
+		serializedBlock = append(serializedBlock, "\n"...)
+
+		buff.Grow(len(meta) + len(serializedBlock))
+		buff.Write(meta)
+		buff.Write(serializedBlock)
 	}
 
-	bulks := ei.buildHeaderBulks(metaBlock, headerPool)
+	res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(blockIndex))
+	buff.Reset()
 
-	for _, bulk := range bulks {
-		for _, tx := range bulk {
-			meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, tx.Hash, "\n"))
-			serializedTx, err := json.Marshal(tx)
-			if err != nil {
-				ei.logger.Warn("could not serialize transaction, will skip indexing: ", tx.Hash)
-				continue
-			}
-			// append a newline foreach element
-			serializedTx = append(serializedTx, "\n"...)
-
-			buff.Grow(len(meta) + len(serializedTx))
-			buff.Write(meta)
-			buff.Write(serializedTx)
-		}
-
-		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(txIndex))
-		buff.Reset()
-
-		if err != nil {
-			ei.logger.Warn("error indexing bulk of transactions")
-		}
-		if res.IsError() {
-			fmt.Println(res.String())
-			ei.logger.Warn("error from elasticsearch indexing bulk of transactions")
-		}
+	if err != nil {
+		ei.logger.Warn("error indexing blocks")
+	}
+	if res.IsError() {
+		fmt.Println(res.String())
+		ei.logger.Warn("error from elasticsearch indexing blocks")
 	}
 }
 
 // buildTransactionBulks creates bulks of maximum txBulkSize transactions to be indexed together
 //  using the elasticsearch bulk API
-func (ei *elasticIndexer) buildHeaderBulks(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) []block.Header {
-	processedTxCount := 0
+func (ei *elasticIndexer) buildBlocks(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) []*Block {
+
 	blocks := make([]*Block, 0)
 
-	blockMarshal, _ := ei.marshalizer.Marshal(metaBlock)
-	blockHash := ei.hasher.Compute(string(blockMarshal))
+	//blockMarshal, _ := ei.marshalizer.Marshal(metaBlock)
+	//blockHash := ei.hasher.Compute(string(blockMarshal))
 
 	for _, shardData := range metaBlock.ShardInfo {
 		headerHash := string(shardData.HeaderHash)
 		headerRaw := *headerPool[headerHash]
 
-		blocks = append(blocks, Block{
+		//TODO: add real size
+		headerMarshal, _ := ei.marshalizer.Marshal(headerRaw)
+		headerSize := len(headerMarshal)
+
+		blocks = append(blocks, &Block{
 			Hash:          headerHash,
 			TxCount:       headerRaw.TxCount,
 			Timestamp:     headerRaw.TimeStamp,
-			StateRootHash: headerRaw.RootHash,
-			Size:          128,
-			//headerRaw.
+			StateRootHash: hex.EncodeToString(headerRaw.RootHash),
+			Size:          int64(headerSize),
+			ShardID:       shardData.ShardId,
+			PubKeyBitmap:  hex.EncodeToString(headerRaw.PubKeysBitmap),
+			Nonce:         headerRaw.Nonce,
+			PrevHash:      hex.EncodeToString(headerRaw.PrevHash),
 		})
 
-		mbMarshal, err := ei.marshalizer.Marshal(shardData)
-		if err != nil {
-			ei.logger.Warn("could not marshal miniblock")
-			continue
-		}
-		mbHash := ei.hasher.Compute(string(mbMarshal))
-
-		for _, txHash := range shardData.ShardMiniBlockHeaders {
-			processedTxCount++
-			currentBulk := processedTxCount / txBulkSize
-			currentTx, ok := txPool[string(txHash)]
-			if !ok {
-				ei.logger.Warn("elasticsearch could not find tx hash in pool")
-				continue
-			}
-
-			blocks[currentBulk] = append(blocks[currentBulk], Transaction{
-				Hash:          hex.EncodeToString(txHash),
-				MBHash:        hex.EncodeToString(mbHash),
-				BlockHash:     hex.EncodeToString(blockHash),
-				Nonce:         currentTx.Nonce,
-				Value:         currentTx.Value,
-				Receiver:      hex.EncodeToString(currentTx.RcvAddr),
-				Sender:        hex.EncodeToString(currentTx.SndAddr),
-				ReceiverShard: shardData.ReceiverShardID,
-				SenderShard:   shardData.SenderShardID,
-				GasPrice:      currentTx.GasPrice,
-				GasLimit:      currentTx.GasLimit,
-				Data:          hex.EncodeToString(currentTx.Data),
-				Signature:     hex.EncodeToString(currentTx.Signature),
-				Timestamp:     header.TimeStamp,
-			})
-		}
 	}
+
 	return blocks
 }
