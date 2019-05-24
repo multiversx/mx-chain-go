@@ -156,7 +156,6 @@ func (n *Node) Stop() error {
 		return err
 	}
 
-	n.messenger = nil
 	return nil
 }
 
@@ -240,6 +239,7 @@ func (n *Node) StartConsensus() error {
 		n.blockProcessor,
 		bootstrapper,
 		consensusState,
+		n.forkDetector,
 		n.keyGen,
 		n.marshalizer,
 		n.privKey,

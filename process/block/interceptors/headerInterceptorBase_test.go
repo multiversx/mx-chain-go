@@ -227,8 +227,8 @@ func TestHeaderInterceptorBase_ParseReceivedMessageValsOkShouldWork(t *testing.T
 		},
 	}
 	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) (bool, error) {
-		return false, nil
+	storer.HasCalled = func(key []byte) error {
+		return errors.New("Key not found")
 	}
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		marshalizer,

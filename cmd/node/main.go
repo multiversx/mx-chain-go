@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -140,16 +141,16 @@ VERSION:
 		Usage: "Profiling mode. Available options: cpu, mem, mutex, block",
 		Value: "",
 	}
-	// txSignSkIndex defines a flag that specify the 0-th based index of the private key to be used from initialBalancesSk.pem file
+	// txSignSkIndex defines a flag that specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file
 	txSignSkIndex = cli.IntFlag{
 		Name:  "tx-sign-sk-index",
-		Usage: "Single sign private key index specify the 0-th based index of the private key to be used from initialBalancesSk.pem file.",
+		Usage: "Single sign private key index specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file.",
 		Value: 0,
 	}
-	// skIndex defines a flag that specify the 0-th based index of the private key to be used from initialNodesSk.pem file
+	// skIndex defines a flag that specifies the 0-th based index of the private key to be used from initialNodesSk.pem file
 	skIndex = cli.IntFlag{
 		Name:  "sk-index",
-		Usage: "Private key index specify the 0-th based index of the private key to be used from initialNodesSk.pem file.",
+		Usage: "Private key index specifies the 0-th based index of the private key to be used from initialNodesSk.pem file.",
 		Value: 0,
 	}
 	// gopsEn used to enable diagnosis of running go processes
@@ -157,6 +158,18 @@ VERSION:
 		Name:  "gops-enable",
 		Usage: "Enables gops over the process.",
 		Value: 0,
+	}
+	// numOfNodes defines a flag that specifies the maximum number of nodes which will be used from the initialNodes
+	numOfNodes = cli.Uint64Flag{
+		Name:  "num-of-nodes",
+		Usage: "Number of nodes specifies the maximum number of nodes which will be used from initialNodes list exposed in nodesSetup.json file",
+		Value: math.MaxUint64,
+	}
+	// storageCleanup defines a flag for choosing the option of starting the node from scratch. If it is not set (false)
+	// it starts from the last state stored on disk
+	storageCleanup = cli.BoolFlag{
+		Name:  "storage-cleanup",
+		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk",
 	}
 
 	configurationFile        = "./config/config.toml"
@@ -236,7 +249,7 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, nodesFile, port, txSignSk, sk, profileMode, txSignSkIndex, skIndex, gopsEn}
+	app.Flags = []cli.Flag{genesisFile, nodesFile, port, txSignSk, sk, profileMode, txSignSkIndex, skIndex, numOfNodes, storageCleanup, gopsEn}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -312,7 +325,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(genesisFile.Name)))
 
-	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name))
+	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name), ctx.GlobalUint64(numOfNodes.Name))
 	if err != nil {
 		return err
 	}
@@ -359,9 +372,13 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 
 	uniqueID = core.GetTrimmedPk(hex.EncodeToString(publicKey))
-	err = os.RemoveAll(config.DefaultPath() + uniqueID)
-	if err != nil {
-		return err
+
+	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
+	if storageCleanup {
+		err = os.RemoveAll(config.DefaultPath() + uniqueID)
+		if err != nil {
+			return err
+		}
 	}
 
 	var currentNode *node.Node
@@ -581,7 +598,7 @@ func createShardNode(
 
 	tr, err := getTrie(config.AccountsTrieStorage, hasher)
 	if err != nil {
-		return nil, nil, nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, nil, errors.New("error creating trie: " + err.Error())
 	}
 
 	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
@@ -874,7 +891,7 @@ func createMetaNode(
 
 	tr, err := getTrie(config.AccountsTrieStorage, hasher)
 	if err != nil {
-		return nil, nil, nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, nil, errors.New("error creating trie: " + err.Error())
 	}
 
 	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
@@ -1108,7 +1125,7 @@ func createMetaNode(
 		node.WithTxSingleSigner(txSingleSigner),
 	)
 	if err != nil {
-		return nil, nil, nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, nil, errors.New("error creating meta-node: " + err.Error())
 	}
 
 	externalResolver, err := external.NewExternalResolver(
@@ -1242,12 +1259,12 @@ func getTrie(cfg config.StorageConfig, hasher hashing.Hasher) (*trie.Trie, error
 		getBloomFromConfig(cfg.Bloom),
 	)
 	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
+		return nil, errors.New("error creating accountsTrieStorage: " + err.Error())
 	}
 
 	dbWriteCache, err := trie.NewDBWriteCache(accountsTrieStorage)
 	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
+		return nil, errors.New("error creating dbWriteCache: " + err.Error())
 	}
 
 	return trie.NewTrie(make([]byte, 32), dbWriteCache, hasher)
@@ -1293,8 +1310,9 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 
 func getCacherFromConfig(cfg config.CacheConfig) storage.CacheConfig {
 	return storage.CacheConfig{
-		Size: cfg.Size,
-		Type: storage.CacheType(cfg.Type),
+		Size:   cfg.Size,
+		Type:   storage.CacheType(cfg.Type),
+		Shards: cfg.Shards,
 	}
 }
 
@@ -1325,52 +1343,63 @@ func createShardDataPoolFromConfig(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.PoolsHolder, error) {
 
+	fmt.Println("creatingShardDataPool from config")
+
 	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
+		fmt.Println("error creating txpool")
 		return nil, err
 	}
 
 	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
-	hdrPool, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrPool, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating hdrpool")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating metaBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.BlockHeaderNoncesDataPool)
-	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating hdrNoncesCacher")
 		return nil, err
 	}
 	hdrNonces, err := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
+		fmt.Println("error creating hdrNonces")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
-	txBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	txBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating txBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.PeerBlockBodyDataPool)
-	peerChangeBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	peerChangeBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
-	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating metaBlockNoncesCacher")
 		return nil, err
 	}
 	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
+		fmt.Println("error creating metaBlockNonces")
 		return nil, err
 	}
 
@@ -1388,7 +1417,8 @@ func createShardDataPoolFromConfig(
 func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error) {
 	badBlockCache, err := storage.NewCache(
 		storage.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size)
+		config.BadBlocksCache.Size,
+		config.BadBlocksCache.Shards)
 	if err != nil {
 		return nil, err
 	}
@@ -1483,29 +1513,34 @@ func createMetaDataPoolFromConfig(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.MetaPoolsHolder, error) {
 	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating metaBlockBody")
 		return nil, err
 	}
 
 	miniBlockHashes, err := shardedData.NewShardedData(getCacherFromConfig(config.MiniBlockHeaderHashesDataPool))
 	if err != nil {
+		fmt.Println("error creating miniBlockHashes")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.ShardHeadersDataPool)
-	shardHeaders, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	shardHeaders, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating shardHeaders")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
-	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating metaBlockNoncesCacher")
 		return nil, err
 	}
 	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
+		fmt.Println("error creating metaBlockNonces")
 		return nil, err
 	}
 
@@ -1515,7 +1550,8 @@ func createMetaDataPoolFromConfig(
 func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, error) {
 	badBlockCache, err := storage.NewCache(
 		storage.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size)
+		config.BadBlocksCache.Size,
+		config.BadBlocksCache.Shards)
 	if err != nil {
 		return nil, err
 	}
@@ -1704,7 +1740,7 @@ func generateInMemoryAccountsAdapter(
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10)
+	cache, _ := storage.NewCache(storage.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
 
 	unit, _ := storage.NewStorageUnit(cache, persist)

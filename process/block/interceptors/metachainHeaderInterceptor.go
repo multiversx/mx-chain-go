@@ -1,8 +1,6 @@
 package interceptors
 
 import (
-	"context"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
@@ -119,11 +117,8 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 }
 
 func (mhi *MetachainHeaderInterceptor) processMetaHeader(metaHdrIntercepted *block.InterceptedMetaHeader) {
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, process.TimeoutGoRoutines)
-	defer cancel()
-
-	isHeaderInStorage, _ := mhi.storer.Has(metaHdrIntercepted.Hash())
+	err := mhi.storer.Has(metaHdrIntercepted.Hash())
+	isHeaderInStorage := err == nil
 	if isHeaderInStorage {
 		log.Debug("intercepted meta block header already processed")
 		return

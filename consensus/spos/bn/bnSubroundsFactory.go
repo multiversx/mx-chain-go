@@ -132,6 +132,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.worker.Extend,
 		processingThresholdPercent,
 		getSubroundName,
+		fct.worker.ExecuteStoredMessages,
 	)
 
 	if err != nil {

@@ -428,7 +428,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		func(destShardID uint32, txHash []byte) {},
 	)
 	go func() {
-		sp.ChRcvAllTxs <- true
+		sp.ChRcvAllTxs() <- true
 	}()
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -588,7 +588,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		func(destShardID uint32, txHash []byte) {},
 	)
 	go func() {
-		sp.ChRcvAllTxs <- true
+		sp.ChRcvAllTxs() <- true
 	}()
 	// should return err
 	err2 := sp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -654,7 +654,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		func(destShardID uint32, txHash []byte) {},
 	)
 	go func() {
-		sp.ChRcvAllTxs <- true
+		sp.ChRcvAllTxs() <- true
 	}()
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -834,7 +834,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
 				return nil
 			},
 		},
@@ -926,7 +926,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		},
 	}
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
 			return nil
 		},
 	}
@@ -1008,7 +1008,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 	forkDetectorAddCalled := false
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
 			if header == hdr {
 				forkDetectorAddCalled = true
 				return nil
@@ -1119,21 +1119,46 @@ func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {
-		},
+		func(destShardID uint32, txHash []byte) {},
 		func(destShardID uint32, txHash []byte) {},
 	)
 	shardId := uint32(1)
-	txHash1 := []byte("tx1_hash1")
+	txHash1 := []byte("tx_hash1")
+	txHash2 := []byte("tx_hash2")
 	body := make(block.Body, 0)
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
+	txHashes = append(txHashes, txHash2)
 	mBlk := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
 	body = append(body, &mBlk)
-	//TODO refactor the test
-	if sp.RequestBlockTransactions(body) > 0 {
-		sp.WaitForTxHashes(haveTime())
-	}
+	txsRequested := sp.RequestBlockTransactions(body)
+	assert.Equal(t, 2, txsRequested)
+}
+
+func TestShardProcessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testing.T) {
+	t.Parallel()
+	tdp := initDataPool()
+	sp, _ := blproc.NewShardProcessor(
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		initAccountsMock(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, txHash []byte) {},
+	)
+	shardId := uint32(1)
+	txHash1 := []byte("tx_hash1")
+	txHash2 := []byte("tx_hash2")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash1)
+	txHashes = append(txHashes, txHash2)
+	mb := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
+	txsRequested := sp.RequestBlockTransactionsForMiniBlock(&mb)
+	assert.Equal(t, 2, txsRequested)
 }
 
 func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
@@ -1412,7 +1437,7 @@ func TestSortTxByNonce_NilCacherShouldErr(t *testing.T) {
 
 func TestSortTxByNonce_EmptyCacherShouldReturnEmpty(t *testing.T) {
 	t.Parallel()
-	cacher, _ := storage.NewCache(storage.LRUCache, 100)
+	cacher, _ := storage.NewCache(storage.LRUCache, 100, 1)
 	transactions, txHashes, err := blproc.SortTxByNonce(cacher)
 	assert.Equal(t, 0, len(transactions))
 	assert.Equal(t, 0, len(txHashes))
@@ -1421,7 +1446,7 @@ func TestSortTxByNonce_EmptyCacherShouldReturnEmpty(t *testing.T) {
 
 func TestSortTxByNonce_OneTxShouldWork(t *testing.T) {
 	t.Parallel()
-	cacher, _ := storage.NewCache(storage.LRUCache, 100)
+	cacher, _ := storage.NewCache(storage.LRUCache, 100, 1)
 	hash, tx := createRandTx(r)
 	cacher.HasOrAdd(hash, tx)
 	transactions, txHashes, err := blproc.SortTxByNonce(cacher)
@@ -1510,7 +1535,7 @@ func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
 		{Nonce: 2, Signature: []byte("sig4")},
 		{Nonce: 3, Signature: []byte("sig5")},
 	}
-	cache, _ := storage.NewCache(storage.LRUCache, uint32(len(transactions)))
+	cache, _ := storage.NewCache(storage.LRUCache, uint32(len(transactions)), 1)
 	for _, tx := range transactions {
 		marshalizer := &mock.MarshalizerMock{}
 		buffTx, _ := marshalizer.Marshal(tx)
@@ -1543,7 +1568,7 @@ func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
 }
 
 func genCacherTransactionsHashes(noOfTx int) (storage.Cacher, []*transaction.Transaction, [][]byte) {
-	cacher, _ := storage.NewCache(storage.LRUCache, uint32(noOfTx))
+	cacher, _ := storage.NewCache(storage.LRUCache, uint32(noOfTx), 1)
 	genHashes := make([][]byte, 0)
 	genTransactions := make([]*transaction.Transaction, 0)
 	for i := 0; i < noOfTx; i++ {

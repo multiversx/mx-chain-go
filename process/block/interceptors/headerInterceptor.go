@@ -1,8 +1,6 @@
 package interceptors
 
 import (
-	"context"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -77,10 +75,6 @@ func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) erro
 }
 
 func (hi *HeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHeader) {
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, process.TimeoutGoRoutines)
-	defer cancel()
-
 	if !hi.hdrInterceptorBase.CheckHeaderForCurrentShard(hdrIntercepted) {
 		return
 	}

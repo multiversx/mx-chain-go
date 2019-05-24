@@ -36,7 +36,7 @@ type metaProcessor struct {
 	*baseProcessor
 	dataPool dataRetriever.MetaPoolsHolder
 
-	OnRequestShardHeaderHandler   func(shardId uint32, mbHash []byte)
+	onRequestShardHeaderHandler   func(shardId uint32, mbHash []byte)
 	requestedShardHeaderHashes    map[string]bool
 	mutRequestedShardHeaderHashes sync.RWMutex
 
@@ -45,7 +45,7 @@ type metaProcessor struct {
 	nextKValidity         uint32
 	finalityAttestingHdrs []*block.Header
 
-	ChRcvAllHdrs chan bool
+	chRcvAllHdrs chan bool
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -95,7 +95,7 @@ func NewMetaProcessor(
 	mp := metaProcessor{
 		baseProcessor:               base,
 		dataPool:                    dataPool,
-		OnRequestShardHeaderHandler: requestHeaderHandler,
+		onRequestShardHeaderHandler: requestHeaderHandler,
 	}
 
 	mp.requestedShardHeaderHashes = make(map[string]bool)
@@ -103,7 +103,7 @@ func NewMetaProcessor(
 	headerPool := mp.dataPool.ShardHeaders()
 	headerPool.RegisterHandler(mp.receivedHeader)
 
-	mp.ChRcvAllHdrs = make(chan bool)
+	mp.chRcvAllHdrs = make(chan bool)
 
 	mp.finalityAttestingHdrs = make([]*block.Header, 0)
 	mp.nextKValidity = blockFinality
@@ -434,7 +434,7 @@ func (mp *metaProcessor) CommitBlock(
 		log.Info(errNotCritical.Error())
 	}
 
-	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, true)
+	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
@@ -731,7 +731,7 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 		mp.mutRequestedShardHeaderHashes.Unlock()
 
 		if lenReqHeadersHashes == 0 {
-			mp.ChRcvAllHdrs <- true
+			mp.chRcvAllHdrs <- true
 		}
 
 		return
@@ -743,22 +743,18 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
 	mp.mutRequestedShardHeaderHashes.Lock()
 
-	requestedHeaders := 0
 	missingHeaderHashes := mp.computeMissingHeaders(header)
 	mp.requestedShardHeaderHashes = make(map[string]bool)
 
-	if mp.OnRequestShardHeaderHandler != nil {
-		for shardId, headerHash := range missingHeaderHashes {
-			requestedHeaders++
-			mp.requestedShardHeaderHashes[string(headerHash)] = true
-			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-			go mp.OnRequestShardHeaderHandler(shardId, headerHash)
-		}
+	for shardId, headerHash := range missingHeaderHashes {
+		mp.requestedShardHeaderHashes[string(headerHash)] = true
+		//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
+		go mp.onRequestShardHeaderHandler(shardId, headerHash)
 	}
 
 	mp.mutRequestedShardHeaderHashes.Unlock()
 
-	return requestedHeaders
+	return len(missingHeaderHashes)
 }
 
 func (mp *metaProcessor) computeMissingHeaders(header *block.MetaBlock) map[uint32][]byte {
@@ -968,7 +964,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round i
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 	select {
-	case <-mp.ChRcvAllHdrs:
+	case <-mp.chRcvAllHdrs:
 		return nil
 	case <-time.After(waitTime):
 		return process.ErrTimeIsOut
@@ -1047,7 +1043,7 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 
 		if shardData.ShardMiniBlockHeaders == nil || len(shardData.ShardMiniBlockHeaders) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
-				"", "ShardMiniBlockHeaders", "<NIL> or <EMPTY>"}))
+				"", "ShardMiniBlockHeaders", "<EMPTY>"}))
 		}
 
 		shardMBHeaderCounterMutex.Lock()
@@ -1059,7 +1055,7 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 			if j == 0 || j >= len(shardData.ShardMiniBlockHeaders)-1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
-					fmt.Sprintf("ShardMiniBlockHeaderHash %d", j+1),
+					fmt.Sprintf("ShardMiniBlockHeaderHash_%d", j+1),
 					toB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{

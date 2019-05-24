@@ -37,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
@@ -53,7 +54,7 @@ var r *rand.Rand
 var testHasher = sha256.Sha256{}
 var testMarshalizer = &marshal.JsonMarshalizer{}
 var testAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
-var testMultiSig = mock.NewMultiSigner()
+var testMultiSig = mock.NewMultiSigner(1)
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -76,7 +77,7 @@ type testNode struct {
 //------- Common
 
 func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10)
+	cache, _ := storage.NewCache(storage.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
 
 	unit, _ := storage.NewStorageUnit(cache, persist)
@@ -192,7 +193,7 @@ func createNodes(
 
 func createTestShardChain() *blockchain.BlockChain {
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
+	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
 	)
@@ -215,22 +216,22 @@ func createTestShardStore() dataRetriever.StorageService {
 func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
-	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
 
@@ -310,7 +311,7 @@ func createShardNetNode(
 		accntAdapter,
 		shardCoordinator,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -370,7 +371,7 @@ func createShardNetNode(
 
 func createTestMetaChain() data.ChainHandler {
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
+	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
 	metaChain, _ := blockchain.NewMetaChain(
 		badBlockCache,
 	)
@@ -391,16 +392,16 @@ func createTestMetaStore() dataRetriever.StorageService {
 
 func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 10000, Type: storage.LRUCache}
 	miniblockHashes, _ := shardedData.NewShardedData(cacherCfg)
 
 	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	shardHeaders, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	shardHeaders, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	metaBlockNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	metaBlockNonces, _ := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
 	dPool, _ := dataPool.NewMetaDataPool(
@@ -466,7 +467,7 @@ func createMetaNetNode(
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {

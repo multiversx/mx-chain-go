@@ -1,8 +1,6 @@
 package interceptors
 
 import (
-	"context"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -82,11 +80,8 @@ func (pbbi *PeerBlockBodyInterceptor) ProcessReceivedMessage(message p2p.Message
 }
 
 func (pbbi *PeerBlockBodyInterceptor) processPeerChangeBlockBody(peerChBlockBody *block.InterceptedPeerBlockBody) {
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, process.TimeoutGoRoutines)
-	defer cancel()
-
-	isBlockInStorage, _ := pbbi.storer.Has(peerChBlockBody.Hash())
+	err := pbbi.storer.Has(peerChBlockBody.Hash())
+	isBlockInStorage := err == nil
 	if isBlockInStorage {
 		log.Debug("intercepted peer change block body already processed")
 		return

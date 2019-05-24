@@ -169,6 +169,11 @@ func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 }
 
 // RecentNotarizedBlocks computes last notarized [maxShardHeadersNum] shard headers (by metachain node)
-func (ef *ElrondNodeFacade) RecentNotarizedBlocks(maxShardHeadersNum int) ([]external.RecentBlock, error) {
+func (ef *ElrondNodeFacade) RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error) {
 	return ef.resolver.RecentNotarizedBlocks(maxShardHeadersNum)
+}
+
+// RetrieveShardBlock retrieves a shard block info containing header and transactions
+func (ef *ElrondNodeFacade) RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error) {
+	return ef.resolver.RetrieveShardBlock(blockHash)
 }
