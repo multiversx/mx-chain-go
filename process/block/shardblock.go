@@ -1,7 +1,6 @@
 package block
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"sync"
@@ -469,6 +468,14 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	sp.mutUnnotarisedHeaders.Lock()
+	sp.unnotarisedHeaders[string(headerHash)] = struct{}{}
+	sp.mutUnnotarisedHeaders.Unlock()
+
+	log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s was committed successfully\n",
+		header.Nonce,
+		toB64(headerHash)))
+
 	errNotCritical := sp.removeTxBlockFromPools(body)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
@@ -495,10 +502,6 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
-
-	sp.mutUnnotarisedHeaders.Lock()
-	sp.unnotarisedHeaders[string(headerHash)] = struct{}{}
-	sp.mutUnnotarisedHeaders.Unlock()
 
 	// write data to log
 	go sp.displayShardBlock(header, body)
@@ -564,6 +567,10 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 			mb := metaBlock.(*block.MetaBlock)
 			for _, shardData := range mb.ShardInfo {
 				if shardData.ShardId == sp.shardCoordinator.SelfId() {
+					header := sp.getHeader(shardData.HeaderHash)
+					log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s was notarised by metachain\n",
+						header.GetNonce(),
+						toB64(shardData.HeaderHash)))
 					sp.mutUnnotarisedHeaders.Lock()
 					delete(sp.unnotarisedHeaders, string(shardData.HeaderHash))
 					sp.mutUnnotarisedHeaders.Unlock()
@@ -580,7 +587,8 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 				return err
 			}
 			sp.dataPool.MetaBlocks().Remove(metaBlockKey)
-			log.Info(fmt.Sprintf("metablock with nonce %d was processed completly and removed from pool\n", hdr.GetNonce()))
+			log.Info(fmt.Sprintf("metablock with nonce %d was processed completly and removed from pool\n",
+				hdr.GetNonce()))
 		}
 	}
 
@@ -1470,16 +1478,20 @@ func (sp *shardProcessor) GetUnnotarisedHeaders(blockChain data.ChainHandler) []
 
 	hdrs := make([]data.HeaderHandler, 0)
 	for hash := range sp.unnotarisedHeaders {
-		if bytes.Equal(blockChain.GetCurrentBlockHeaderHash(), []byte(hash)) {
-			continue
-		}
-		if blockChain.GetCurrentBlockHeader() != nil {
-			if bytes.Equal(blockChain.GetCurrentBlockHeader().GetPrevHash(), []byte(hash)) {
-				continue
-			}
-		}
+		//if bytes.Equal(blockChain.GetCurrentBlockHeaderHash(), []byte(hash)) {
+		//	continue
+		//}
+		//if blockChain.GetCurrentBlockHeader() != nil {
+		//	if bytes.Equal(blockChain.GetCurrentBlockHeader().GetPrevHash(), []byte(hash)) {
+		//		continue
+		//	}
+		//}
 		hdr := sp.getHeader([]byte(hash))
 		if hdr == nil {
+			continue
+		}
+
+		if blockChain.GetCurrentBlockHeader().GetNonce() <= hdr.Nonce+2 {
 			continue
 		}
 
@@ -1503,13 +1515,13 @@ func (sp *shardProcessor) getHeader(hash []byte) *block.Header {
 func (sp *shardProcessor) getHeaderFromPool(hash []byte) *block.Header {
 	hdr, ok := sp.dataPool.Headers().Peek(hash)
 	if !ok {
-		log.Info(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Info(fmt.Sprintf("header with hash %s not found in headers cache\n", toB64(hash)))
 		return nil
 	}
 
 	header, ok := hdr.(*block.Header)
 	if !ok {
-		log.Info(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Error(fmt.Sprintf("type assertion error\n"))
 		return nil
 	}
 
@@ -1520,20 +1532,20 @@ func (sp *shardProcessor) getHeaderFromStorage(hash []byte) *block.Header {
 	headerStore := sp.store.GetStorer(dataRetriever.BlockHeaderUnit)
 
 	if headerStore == nil {
-		log.Info(process.ErrNilHeadersStorage.Error())
+		log.Error(process.ErrNilHeadersStorage.Error())
 		return nil
 	}
 
 	buffHeader, err := headerStore.Get(hash)
 	if err != nil {
-		log.Info(err.Error())
+		log.Debug(err.Error())
 		return nil
 	}
 
 	header := &block.Header{}
 	err = sp.marshalizer.Unmarshal(header, buffHeader)
 	if err != nil {
-		log.Info(err.Error())
+		log.Error(err.Error())
 		return nil
 	}
 

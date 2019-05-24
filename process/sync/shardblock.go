@@ -141,13 +141,13 @@ func (boot *ShardBootstrap) getHeader(hash []byte) *block.Header {
 func (boot *ShardBootstrap) getHeaderFromPool(hash []byte) *block.Header {
 	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", toB64(hash)))
 		return nil
 	}
 
 	header, ok := hdr.(*block.Header)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Error(fmt.Sprintf("type assertion error\n"))
 		return nil
 	}
 
@@ -158,7 +158,7 @@ func (boot *ShardBootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 	headerStore := boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
 
 	if headerStore == nil {
-		log.Debug(process.ErrNilHeadersStorage.Error())
+		log.Error(process.ErrNilHeadersStorage.Error())
 		return nil
 	}
 
@@ -171,7 +171,7 @@ func (boot *ShardBootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 	header := &block.Header{}
 	err = boot.marshalizer.Unmarshal(header, buffHeader)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Error(err.Error())
 		return nil
 	}
 

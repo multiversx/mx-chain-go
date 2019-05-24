@@ -702,22 +702,6 @@ func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.Heade
 	go n.messenger.Broadcast(factory.MiniBlocksTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
-	if !n.isMetachainActive {
-		//TODO - remove this when metachain is fully tested. Should remove only "if" branch,
-		// the "else" branch should not be removed
-		msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
-		if err != nil {
-			return err
-		}
-
-		go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
-	} else {
-		shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
-			n.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
-
-		go n.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
-	}
-
 	for k, v := range msgMapBlockBody {
 		go n.messenger.Broadcast(factory.MiniBlocksTopic+
 			n.shardCoordinator.CommunicationIdentifier(k), v)
@@ -752,13 +736,20 @@ func (n *Node) BroadcastShardHeader(header data.HeaderHandler) error {
 	}
 
 	if !n.isMetachainActive {
-		return errors.New("metachain is not active")
+		//TODO - remove this when metachain is fully tested. Should remove only "if" branch,
+		// the "else" branch should not be removed
+		msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
+		if err != nil {
+			return err
+		}
+
+		go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
+	} else {
+		shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
+			n.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
+
+		go n.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
 	}
-
-	shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
-		n.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
-
-	go n.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
 
 	return nil
 }

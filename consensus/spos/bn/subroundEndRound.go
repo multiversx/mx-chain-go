@@ -87,15 +87,13 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	// broadcast unnotarised headers to metachain
 	headers := sr.BlockProcessor().GetUnnotarisedHeaders(sr.Blockchain())
 	for _, header := range headers {
-		if header.GetNonce() >= sr.ConsensusState.Header.GetNonce()-10 {
-			err = sr.broadcastHeader(header)
-			if err != nil {
-				log.Error(err.Error())
-			} else {
-				log.Info(fmt.Sprintf("%sStep 3: Unnotarised header with nonce %d has been broadcasted to metachain\n",
-					sr.SyncTimer().FormattedCurrentTime(),
-					header.GetNonce()))
-			}
+		err = sr.broadcastHeader(header)
+		if err != nil {
+			log.Error(err.Error())
+		} else {
+			log.Info(fmt.Sprintf("%sStep 3: Unnotarised header with nonce %d has been broadcasted to metachain\n",
+				sr.SyncTimer().FormattedCurrentTime(),
+				header.GetNonce()))
 		}
 	}
 
