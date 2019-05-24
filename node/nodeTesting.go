@@ -6,12 +6,13 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/splitters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 )
 
+//TODO convert this const into a var and read it from config when this code moves to another binary
 const maxBulkTransactionSize = 2 << 17 //128KB bulks
 
 //TODO move this funcs in a new benchmarking/stress-test binary
@@ -38,7 +39,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	mutErrFound := sync.Mutex{}
 	var errFound error
 
-	sliceSplitter, err := splitters.NewSliceSplitter(n.marshalizer)
+	dataPacker, err := partitioning.NewSizeDataPacker(n.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -83,18 +84,18 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
 	fmt.Printf("Identifier: %s\n", identifier)
 
-	err = sliceSplitter.SendDataInChunks(
-		transactions,
-		func(buff []byte) error {
-			n.messenger.BroadcastOnChannel(
-				SendTransactionsPipe,
-				identifier,
-				buff,
-			)
-			return nil
-		},
-		maxBulkTransactionSize,
-	)
+	packets, err := dataPacker.PackDataInChunks(transactions, maxBulkTransactionSize)
+	if err != nil {
+		return err
+	}
+
+	for _, buff := range packets {
+		n.messenger.BroadcastOnChannel(
+			SendTransactionsPipe,
+			identifier,
+			buff,
+		)
+	}
 
 	return nil
 }

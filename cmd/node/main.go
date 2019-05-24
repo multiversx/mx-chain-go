@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/splitters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
@@ -82,6 +82,7 @@ const (
 	blsHashSize        = 16
 	blsConsensusType   = "bls"
 	bnConsensusType    = "bn"
+	maxTxsToRequest    = 100
 )
 
 var (
@@ -687,7 +688,7 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	sliceSplitter, err := splitters.NewSliceSplitter(marshalizer)
+	dataPacker, err := partitioning.NewSizeDataPacker(marshalizer)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -738,7 +739,7 @@ func createShardNode(
 		marshalizer,
 		datapool,
 		uint64ByteSliceConverter,
-		sliceSplitter,
+		dataPacker,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1142,10 +1143,27 @@ func createTxRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseT
 			return
 		}
 
-		err = resolver.(*resolvers.TxResolver).RequestDataFromHashArray(txHashes)
-		if err != nil {
-			log.Debug(err.Error())
+		txResolver, ok := resolver.(*resolvers.TxResolver)
+		if !ok {
+			log.Error("wrong assertion type when creating transaction resolver")
+			return
 		}
+
+		go func() {
+			dataSplit := &partitioning.DataSplit{}
+			sliceBatches, err := dataSplit.SplitDataInChunks(txHashes, maxTxsToRequest)
+			if err != nil {
+				log.Error("error requesting transactions: " + err.Error())
+				return
+			}
+
+			for _, batch := range sliceBatches {
+				err = txResolver.RequestDataFromHashArray(batch)
+				if err != nil {
+					log.Debug("error requesting tx batch: " + err.Error())
+				}
+			}
+		}()
 	}
 }
 

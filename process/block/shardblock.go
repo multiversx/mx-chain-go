@@ -24,7 +24,6 @@ var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
 const maxTransactionsInBlock = 15000
-const maxTxsToRequest = 100
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
@@ -89,38 +88,38 @@ func NewShardProcessor(
 		shardCoordinator: shardCoordinator,
 	}
 
-	bp := shardProcessor{
+	sp := shardProcessor{
 		baseProcessor: base,
 		dataPool:      dataPool,
 		txProcessor:   txProcessor,
 	}
 
-	bp.chRcvAllTxs = make(chan bool)
-	bp.onRequestTransaction = requestTransactionHandler
+	sp.chRcvAllTxs = make(chan bool)
+	sp.onRequestTransaction = requestTransactionHandler
 
-	transactionPool := bp.dataPool.Transactions()
+	transactionPool := sp.dataPool.Transactions()
 	if transactionPool == nil {
 		return nil, process.ErrNilTransactionPool
 	}
-	transactionPool.RegisterHandler(bp.receivedTransaction)
+	transactionPool.RegisterHandler(sp.receivedTransaction)
 
-	bp.onRequestMiniBlock = requestMiniBlockHandler
-	bp.requestedTxHashes = make(map[string]bool)
-	bp.crossTxsForBlock = make(map[string]*transaction.Transaction)
+	sp.onRequestMiniBlock = requestMiniBlockHandler
+	sp.requestedTxHashes = make(map[string]bool)
+	sp.crossTxsForBlock = make(map[string]*transaction.Transaction)
 
-	metaBlockPool := bp.dataPool.MetaBlocks()
+	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
 		return nil, process.ErrNilMetaBlockPool
 	}
-	metaBlockPool.RegisterHandler(bp.receivedMetaBlock)
+	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
 
-	miniBlockPool := bp.dataPool.MiniBlocks()
+	miniBlockPool := sp.dataPool.MiniBlocks()
 	if miniBlockPool == nil {
 		return nil, process.ErrNilMiniBlockPool
 	}
-	miniBlockPool.RegisterHandler(bp.receivedMiniBlock)
+	miniBlockPool.RegisterHandler(sp.receivedMiniBlock)
 
-	return &bp, nil
+	return &sp, nil
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -697,23 +696,7 @@ func (sp *shardProcessor) receivedMiniBlock(miniBlockHash []byte) {
 		}
 	}
 
-	sp.sendTxRequestsInBatches(requestedTxs, miniBlock.SenderShardID)
-}
-
-func (sp *shardProcessor) sendTxRequestsInBatches(hashes [][]byte, shardId uint32) {
-	requestBuffer := make([][]byte, 0)
-	for _, txHash := range hashes {
-		requestBuffer = append(requestBuffer, txHash)
-
-		if len(requestBuffer) >= maxTxsToRequest {
-			sp.onRequestTransaction(shardId, requestBuffer)
-			requestBuffer = make([][]byte, 0)
-		}
-	}
-	if len(requestBuffer) > 0 {
-		//remaining
-		sp.onRequestTransaction(shardId, requestBuffer)
-	}
+	sp.onRequestTransaction(miniBlock.SenderShardID, requestedTxs)
 }
 
 func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
@@ -729,7 +712,7 @@ func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
 			sp.requestedTxHashes[string(txHash)] = true
 		}
 
-		sp.sendTxRequestsInBatches(txHashes, shardId)
+		sp.onRequestTransaction(shardId, txHashes)
 	}
 
 	sp.mutRequestedTxHashes.Unlock()
@@ -786,7 +769,7 @@ func (sp *shardProcessor) processAndRemoveBadTransaction(
 
 func (sp *shardProcessor) requestBlockTransactionsForMiniBlock(mb *block.MiniBlock) int {
 	missingTxsForMiniBlock := sp.computeMissingTxsForMiniBlock(mb)
-	sp.sendTxRequestsInBatches(missingTxsForMiniBlock, mb.SenderShardID)
+	sp.onRequestTransaction(mb.SenderShardID, missingTxsForMiniBlock)
 
 	return len(missingTxsForMiniBlock)
 }

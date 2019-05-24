@@ -16,5 +16,5 @@ var ErrNilMarshalizer = errors.New("nil marshalizer provided")
 // ErrInvalidValue signals that a nil value has been provided
 var ErrInvalidValue = errors.New("invalid value provided")
 
-// ErrNilSendHandler signals that a nil send handler pointer has been provided
-var ErrNilSendHandler = errors.New("nil send handler provided")
+// ErrNilInputData signals that a nil data has been provided
+var ErrNilInputData = errors.New("nil input data")

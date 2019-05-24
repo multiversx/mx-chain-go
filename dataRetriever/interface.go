@@ -205,7 +205,7 @@ type StorageService interface {
 	Destroy() error
 }
 
-// SliceSplitter can split a large slice of byte slices in chunks and automatically send them
-type SliceSplitter interface {
-	SendDataInChunks(data [][]byte, sendHandler func(buff []byte) error, maxPacketSize int) error
+// DataPacker can split a large slice of byte slices in smaller packets
+type DataPacker interface {
+	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
 }

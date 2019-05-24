@@ -47,4 +47,4 @@ var ErrNilBlockBody = errors.New("nil block body")
 var ErrMiniBlockEmpty = errors.New("mini block is empty")
 
 // ErrWrongTypeAssertion signals that wrong type was provided
-var ErrWrongTypeAssertion = errors.New("Wrong type assertion")
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")

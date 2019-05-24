@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/splitters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
@@ -199,7 +199,7 @@ func createNetNode(
 	blkc := createTestShardChain()
 	store := createTestShardStore()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	sliceSplitter, _ := splitters.NewSliceSplitter(testMarshalizer)
+	dataPacker, _ := partitioning.NewSizeDataPacker(testMarshalizer)
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -227,7 +227,7 @@ func createNetNode(
 		testMarshalizer,
 		dPool,
 		uint64Converter,
-		sliceSplitter,
+		dataPacker,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)

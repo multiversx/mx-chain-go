@@ -22,7 +22,7 @@ func TestNewTxResolver_NilResolverShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilResolverSender, err)
@@ -37,7 +37,7 @@ func TestNewTxResolver_NilTxPoolShouldErr(t *testing.T) {
 		nil,
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilTxDataPool, err)
@@ -52,7 +52,7 @@ func TestNewTxResolver_NilTxStorageShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		nil,
 		&mock.MarshalizerMock{},
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilTxStorage, err)
@@ -67,14 +67,14 @@ func TestNewTxResolver_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		nil,
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 	assert.Nil(t, txRes)
 }
 
-func TestNewTxResolver_NilSliceSplitterShouldErr(t *testing.T) {
+func TestNewTxResolver_NilDataPackerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	res := &mock.TopicResolverSenderStub{}
@@ -87,7 +87,7 @@ func TestNewTxResolver_NilSliceSplitterShouldErr(t *testing.T) {
 		nil,
 	)
 
-	assert.Equal(t, dataRetriever.ErrNilSliceSplitter, err)
+	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
 	assert.Nil(t, txRes)
 }
 
@@ -101,7 +101,7 @@ func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -118,7 +118,7 @@ func TestTxResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	err := txRes.ProcessReceivedMessage(nil)
@@ -136,7 +136,7 @@ func TestTxResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		marshalizer,
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.NonceType, Value: []byte("aaa")})
@@ -158,7 +158,7 @@ func TestTxResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		marshalizer,
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: nil})
@@ -199,7 +199,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolShouldSearchAndSend(t *te
 		txPool,
 		&mock.StorerStub{},
 		marshalizer,
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("aaa")})
@@ -244,7 +244,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetN
 		txPool,
 		&mock.StorerStub{},
 		marshalizerStub,
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	data, _ := marshalizerMock.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("aaa")})
@@ -292,7 +292,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 		txPool,
 		txStorage,
 		marshalizer,
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("aaa")})
@@ -333,7 +333,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 		txPool,
 		txStorage,
 		marshalizer,
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("aaa")})
@@ -382,14 +382,14 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsShouldCal
 		txPool,
 		&mock.StorerStub{},
 		marshalizer,
-		&mock.SliceSplitterStub{
-			SendDataInChunksCalled: func(data [][]byte, sendHandler func(buff []byte) error, maxPacketSize int) error {
+		&mock.DataPackerStub{
+			PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
 				if len(data) != 2 {
-					return errors.New("should have been 2 data pieces")
+					return nil, errors.New("should have been 2 data pieces")
 				}
 
 				sendSliceWasCalled = true
-				return nil
+				return make([][]byte, 0), nil
 			},
 		},
 	)
@@ -425,7 +425,7 @@ func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	assert.Nil(t, txRes.RequestDataFromHash(buffRequested))
@@ -457,7 +457,7 @@ func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		marshalizer,
-		&mock.SliceSplitterStub{},
+		&mock.DataPackerStub{},
 	)
 
 	buff, _ := marshalizer.Marshal(buffRequested)

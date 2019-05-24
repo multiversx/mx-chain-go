@@ -7,16 +7,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-// MaxBuffToSendBulkTransactions represents max buffer size to send in bytes
-var MaxBuffToSendBulkTransactions = 2 << 17 //128KB
+// maxBuffToSendBulkTransactions represents max buffer size to send in bytes
+var maxBuffToSendBulkTransactions = 2 << 17 //128KB
 
 // TxResolver is a wrapper over Resolver that is specialized in resolving transaction requests
 type TxResolver struct {
 	dataRetriever.TopicResolverSender
-	txPool        dataRetriever.ShardedDataCacherNotifier
-	txStorage     storage.Storer
-	marshalizer   marshal.Marshalizer
-	sliceSplitter dataRetriever.SliceSplitter
+	txPool      dataRetriever.ShardedDataCacherNotifier
+	txStorage   storage.Storer
+	marshalizer marshal.Marshalizer
+	dataPacker  dataRetriever.DataPacker
 }
 
 // NewTxResolver creates a new transaction resolver
@@ -25,7 +25,7 @@ func NewTxResolver(
 	txPool dataRetriever.ShardedDataCacherNotifier,
 	txStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
-	sliceSplitter dataRetriever.SliceSplitter,
+	dataPacker dataRetriever.DataPacker,
 ) (*TxResolver, error) {
 
 	if senderResolver == nil {
@@ -40,8 +40,8 @@ func NewTxResolver(
 	if marshalizer == nil {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if sliceSplitter == nil {
-		return nil, dataRetriever.ErrNilSliceSplitter
+	if dataPacker == nil {
+		return nil, dataRetriever.ErrNilDataPacker
 	}
 
 	txResolver := &TxResolver{
@@ -49,7 +49,7 @@ func NewTxResolver(
 		txPool:              txPool,
 		txStorage:           txStorage,
 		marshalizer:         marshalizer,
-		sliceSplitter:       sliceSplitter,
+		dataPacker:          dataPacker,
 	}
 
 	return txResolver, nil
@@ -68,18 +68,18 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return dataRetriever.ErrNilValue
 	}
 
-	if rd.Type == dataRetriever.HashType {
+	switch rd.Type {
+	case dataRetriever.HashType:
 		buff, err := txRes.resolveTxRequestByHash(rd.Value)
 		if err != nil {
 			return err
 		}
 		return txRes.Send(buff, message.Peer())
-	}
-	if rd.Type == dataRetriever.HashArrayType {
+	case dataRetriever.HashArrayType:
 		return txRes.resolveTxRequestByHashArray(rd.Value, message.Peer())
+	default:
+		return dataRetriever.ErrRequestTypeNotImplemented
 	}
-
-	return dataRetriever.ErrRequestTypeNotImplemented
 }
 
 func (txRes *TxResolver) resolveTxRequestByHash(hash []byte) ([]byte, error) {
@@ -133,15 +133,16 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 		txsBuffSlice = append(txsBuffSlice, tx)
 	}
 
-	err = txRes.sliceSplitter.SendDataInChunks(
-		txsBuffSlice,
-		func(buff []byte) error {
-			return txRes.Send(buff, pid)
-		},
-		MaxBuffToSendBulkTransactions,
-	)
+	buffsToSend, err := txRes.dataPacker.PackDataInChunks(txsBuffSlice, maxBuffToSendBulkTransactions)
 
-	return err
+	for _, buff := range buffsToSend {
+		err = txRes.Send(buff, pid)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // RequestDataFromHash requests a transaction from other peers having input the tx hash
