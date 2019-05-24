@@ -39,6 +39,8 @@ type baseProcessor struct {
 
 	mutLastNotarizedHdrs sync.RWMutex
 	lastNotarizedHdrs    mapShardLastHeaders
+
+	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 }
 
 func checkForNils(
@@ -56,6 +58,15 @@ func checkForNils(
 	if bodyHandler == nil {
 		return process.ErrNilBlockBody
 	}
+	return nil
+}
+
+// SetOnRequestHeaderHandlerByNonce sets request handler to ask for missing headers by nonce
+func (bp *baseProcessor) SetOnRequestHeaderHandlerByNonce(requestHandler func(shardId uint32, nonce uint64)) error {
+	if requestHandler == nil {
+		return process.ErrNilRequestHeaderHandlerByNonce
+	}
+	bp.onRequestHeaderHandlerByNonce = requestHandler
 	return nil
 }
 
@@ -331,6 +342,11 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 		}
 
 		// do the request here
+		if bp.onRequestHeaderHandlerByNonce == nil {
+			return process.ErrNilRequestHeaderHandlerByNonce
+		}
+
+		go bp.onRequestHeaderHandlerByNonce(shardId, nonce)
 	}
 
 	return nil

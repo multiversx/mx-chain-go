@@ -277,6 +277,9 @@ var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 // ErrNilRequestHeaderHandler signals that a nil header request handler func was provided
 var ErrNilRequestHeaderHandler = errors.New("nil request header handler")
 
+// ErrNilRequestHeaderHandlerByNonce signals that a nil header request handler by nonce func was provided
+var ErrNilRequestHeaderHandlerByNonce = errors.New("nil request header handler by nonce")
+
 // ErrLowShardHeaderRound signals that shard header round is too low for processing
 var ErrLowShardHeaderRound = errors.New("shard header round is lower than last committed for this shard")
 
@@ -289,17 +292,11 @@ var ErrHeaderNotFinal = errors.New("header in metablock is not final")
 // ErrShardIdMissmatch signals shard ID does not match expectations
 var ErrShardIdMissmatch = errors.New("shard ID missmatch")
 
-// ErrNilHeadersBlocks signals that a nil shard genesis headers map has been provided
-var ErrNilHeadersBlocks = errors.New("nil genesis headers blocks map")
-
 // ErrMintAddressNotInThisShard signals that the mint address does not belong to current shard
 var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
 
 // ErrLastNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
 var ErrLastNotarizedHdrsSliceIsNil = errors.New("last notarized shard headers slice is nil")
-
-// ErrLastNotarizedMetaHdrIsNil signals that the slice holding last notarized headers does not have data from metachain
-var ErrLastNotarizedMetaHdrIsNil = errors.New("last notarized meta header is nil")
 
 // ErrNoNewMetablocks signals that no new metablocks are in the pool
 var ErrNoNewMetablocks = errors.New("there is no new metablocks")
