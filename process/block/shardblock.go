@@ -477,7 +477,7 @@ func (sp *shardProcessor) CommitBlock(
 	sp.unnotarisedHeaders[header.Nonce] = &headerInfo{header: header, broadcastInRound: 0}
 	sp.mutUnnotarisedHeaders.Unlock()
 
-	log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s was committed successfully\n",
+	log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been committed successfully\n",
 		header.Nonce,
 		toB64(headerHash)))
 
