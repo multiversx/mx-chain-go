@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
@@ -81,6 +82,7 @@ const (
 	blsHashSize        = 16
 	blsConsensusType   = "bls"
 	bnConsensusType    = "bn"
+	maxTxsToRequest    = 100
 )
 
 var (
@@ -686,6 +688,11 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	dataPacker, err := partitioning.NewSizeDataPacker(marshalizer)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	txSignKeyGen, txSignPrivKey, txSignPubKey, err := getSigningParams(
 		ctx,
 		log,
@@ -732,6 +739,7 @@ func createShardNode(
 		marshalizer,
 		datapool,
 		uint64ByteSliceConverter,
+		dataPacker,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -782,7 +790,7 @@ func createShardNode(
 		accountsAdapter,
 		shardCoordinator,
 		forkDetector,
-		createRequestHandler(resolversFinder, factory.TransactionTopic, log),
+		createTxRequestHandler(resolversFinder, factory.TransactionTopic, log),
 		createRequestHandler(resolversFinder, factory.MiniBlocksTopic, log),
 	)
 	if err != nil {
@@ -1150,6 +1158,39 @@ func createMetaNode(
 	}
 
 	return nd, externalResolver, tpsBenchmark, nil
+}
+
+func createTxRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, txHashes [][]byte) {
+	return func(destShardID uint32, txHashes [][]byte) {
+		log.Debug(fmt.Sprintf("Requesting %d transactions from shard %d from network...\n", len(txHashes), destShardID))
+		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		txResolver, ok := resolver.(*resolvers.TxResolver)
+		if !ok {
+			log.Error("wrong assertion type when creating transaction resolver")
+			return
+		}
+
+		go func() {
+			dataSplit := &partitioning.DataSplit{}
+			sliceBatches, err := dataSplit.SplitDataInChunks(txHashes, maxTxsToRequest)
+			if err != nil {
+				log.Error("error requesting transactions: " + err.Error())
+				return
+			}
+
+			for _, batch := range sliceBatches {
+				err = txResolver.RequestDataFromHashArray(batch)
+				if err != nil {
+					log.Debug("error requesting tx batch: " + err.Error())
+				}
+			}
+		}()
+	}
 }
 
 func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, txHash []byte) {

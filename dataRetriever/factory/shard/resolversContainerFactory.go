@@ -20,6 +20,7 @@ type resolversContainerFactory struct {
 	dataPools                dataRetriever.PoolsHolder
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	intRandomizer            dataRetriever.IntRandomizer
+	dataPacker               dataRetriever.DataPacker
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -30,6 +31,7 @@ func NewResolversContainerFactory(
 	marshalizer marshal.Marshalizer,
 	dataPools dataRetriever.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+	dataPacker dataRetriever.DataPacker,
 ) (*resolversContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -50,6 +52,9 @@ func NewResolversContainerFactory(
 	if uint64ByteSliceConverter == nil {
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
+	if dataPacker == nil {
+		return nil, dataRetriever.ErrNilDataPacker
+	}
 
 	return &resolversContainerFactory{
 		shardCoordinator:         shardCoordinator,
@@ -59,6 +64,7 @@ func NewResolversContainerFactory(
 		dataPools:                dataPools,
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
 		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
+		dataPacker:               dataPacker,
 	}, nil
 }
 
@@ -180,6 +186,7 @@ func (rcf *resolversContainerFactory) createOneTxResolver(identifier string) (da
 		rcf.dataPools.Transactions(),
 		txStorer,
 		rcf.marshalizer,
+		rcf.dataPacker,
 	)
 	if err != nil {
 		return nil, err

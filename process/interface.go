@@ -128,3 +128,8 @@ type TopicMessageHandler interface {
 type ChronologyValidator interface {
 	ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error
 }
+
+// DataPacker can split a large slice of byte slices in smaller packets
+type DataPacker interface {
+	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
+}

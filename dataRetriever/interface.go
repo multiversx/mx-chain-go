@@ -204,3 +204,8 @@ type StorageService interface {
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
 }
+
+// DataPacker can split a large slice of byte slices in smaller packets
+type DataPacker interface {
+	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
+}
