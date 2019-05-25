@@ -31,7 +31,7 @@ type shardProcessor struct {
 	dataPool             dataRetriever.PoolsHolder
 	txProcessor          process.TransactionProcessor
 	chRcvAllTxs          chan bool
-	onRequestTransaction func(shardID uint32, txHash []byte)
+	onRequestTransaction func(shardID uint32, txHashes [][]byte)
 	mutRequestedTxHashes sync.RWMutex
 	requestedTxHashes    map[string]bool
 	mutCrossTxsForBlock  sync.RWMutex
@@ -49,7 +49,7 @@ func NewShardProcessor(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	forkDetector process.ForkDetector,
-	requestTransactionHandler func(shardId uint32, txHash []byte),
+	requestTransactionHandler func(shardId uint32, txHashes [][]byte),
 	requestMiniBlockHandler func(shardId uint32, miniblockHash []byte),
 ) (*shardProcessor, error) {
 
@@ -88,38 +88,38 @@ func NewShardProcessor(
 		shardCoordinator: shardCoordinator,
 	}
 
-	bp := shardProcessor{
+	sp := shardProcessor{
 		baseProcessor: base,
 		dataPool:      dataPool,
 		txProcessor:   txProcessor,
 	}
 
-	bp.chRcvAllTxs = make(chan bool)
-	bp.onRequestTransaction = requestTransactionHandler
+	sp.chRcvAllTxs = make(chan bool)
+	sp.onRequestTransaction = requestTransactionHandler
 
-	transactionPool := bp.dataPool.Transactions()
+	transactionPool := sp.dataPool.Transactions()
 	if transactionPool == nil {
 		return nil, process.ErrNilTransactionPool
 	}
-	transactionPool.RegisterHandler(bp.receivedTransaction)
+	transactionPool.RegisterHandler(sp.receivedTransaction)
 
-	bp.onRequestMiniBlock = requestMiniBlockHandler
-	bp.requestedTxHashes = make(map[string]bool)
-	bp.crossTxsForBlock = make(map[string]*transaction.Transaction)
+	sp.onRequestMiniBlock = requestMiniBlockHandler
+	sp.requestedTxHashes = make(map[string]bool)
+	sp.crossTxsForBlock = make(map[string]*transaction.Transaction)
 
-	metaBlockPool := bp.dataPool.MetaBlocks()
+	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
 		return nil, process.ErrNilMetaBlockPool
 	}
-	metaBlockPool.RegisterHandler(bp.receivedMetaBlock)
+	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
 
-	miniBlockPool := bp.dataPool.MiniBlocks()
+	miniBlockPool := sp.dataPool.MiniBlocks()
 	if miniBlockPool == nil {
 		return nil, process.ErrNilMiniBlockPool
 	}
-	miniBlockPool.RegisterHandler(bp.receivedMiniBlock)
+	miniBlockPool.RegisterHandler(sp.receivedMiniBlock)
 
-	return &bp, nil
+	return &sp, nil
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -688,14 +688,15 @@ func (sp *shardProcessor) receivedMiniBlock(miniBlockHash []byte) {
 		return
 	}
 
-	// request transactions
+	requestedTxs := make([][]byte, 0)
 	for _, txHash := range miniBlock.TxHashes {
 		tx := sp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
 		if tx == nil {
-			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-			go sp.onRequestTransaction(miniBlock.SenderShardID, txHash)
+			requestedTxs = append(requestedTxs, txHash)
 		}
 	}
+
+	sp.onRequestTransaction(miniBlock.SenderShardID, requestedTxs)
 }
 
 func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
@@ -706,12 +707,12 @@ func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
 	sp.requestedTxHashes = make(map[string]bool)
 
 	for shardId, txHashes := range missingTxsForShards {
+		requestedTxs += len(txHashes)
 		for _, txHash := range txHashes {
-			requestedTxs++
 			sp.requestedTxHashes[string(txHash)] = true
-			//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-			go sp.onRequestTransaction(shardId, txHash)
 		}
+
+		sp.onRequestTransaction(shardId, txHashes)
 	}
 
 	sp.mutRequestedTxHashes.Unlock()
@@ -768,9 +769,7 @@ func (sp *shardProcessor) processAndRemoveBadTransaction(
 
 func (sp *shardProcessor) requestBlockTransactionsForMiniBlock(mb *block.MiniBlock) int {
 	missingTxsForMiniBlock := sp.computeMissingTxsForMiniBlock(mb)
-	for _, txHash := range missingTxsForMiniBlock {
-		go sp.onRequestTransaction(mb.SenderShardID, txHash)
-	}
+	sp.onRequestTransaction(mb.SenderShardID, missingTxsForMiniBlock)
 
 	return len(missingTxsForMiniBlock)
 }

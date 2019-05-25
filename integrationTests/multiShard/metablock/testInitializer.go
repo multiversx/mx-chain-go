@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
@@ -271,6 +272,7 @@ func createShardNetNode(
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, uint64(time.Second*4))
 	addConverter, _ := addressConverters.NewPlainAddressConverter(32, "")
+	dataPacker, _ := partitioning.NewSizeDataPacker(testMarshalizer)
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -298,6 +300,7 @@ func createShardNetNode(
 		testMarshalizer,
 		dPool,
 		uint64Converter,
+		dataPacker,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
@@ -318,7 +321,7 @@ func createShardNetNode(
 				return 0
 			},
 		},
-		func(shardId uint32, txHash []byte) {
+		func(shardId uint32, txHash [][]byte) {
 
 		},
 		func(shardId uint32, miniblockHash []byte) {
