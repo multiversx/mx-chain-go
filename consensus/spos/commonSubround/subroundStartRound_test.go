@@ -18,6 +18,7 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (*commonSubround.S
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		executeStoredMessages,
 	)
 
 	return startRound, err
@@ -47,6 +48,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) *c
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		executeStoredMessages,
 	)
 
 	return srStartRound
@@ -65,6 +67,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testin
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		executeStoredMessages,
 	)
 
 	assert.Nil(t, srStartRound)
