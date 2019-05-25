@@ -556,8 +556,8 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) ([]data.Heade
 			return processedMetaHdrs, process.ErrNilMetaBlockHeader
 		}
 
-		hdr, _ := metaBlock.(data.HeaderHandler)
-		if hdr == nil {
+		hdr, ok := metaBlock.(*block.MetaBlock)
+		if !ok {
 			return processedMetaHdrs, process.ErrWrongTypeAssertion
 		}
 

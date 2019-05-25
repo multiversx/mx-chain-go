@@ -235,7 +235,7 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 	}()
 
 	sort.Slice(processedHdrs, func(i, j int) bool {
-		return processedHdrs[i].GetNonce() < processedHdrs[i].GetNonce()
+		return processedHdrs[i].GetNonce() < processedHdrs[j].GetNonce()
 	})
 
 	for i := 0; i < len(processedHdrs); i++ {

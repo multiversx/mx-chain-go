@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"math/rand"
 	"reflect"
@@ -1037,7 +1039,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
-	sp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewOneShardCoordinatorMock()), true)
+	_ = sp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewOneShardCoordinatorMock()), true)
 
 	txCache := &mock.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -2108,7 +2110,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 			}
 		},
 	)
-	bp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewOneShardCoordinatorMock()), true)
+	_ = bp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewOneShardCoordinatorMock()), true)
 	bp.ReceivedMetaBlock(metaBlockHash)
 
 	//we have to wait to be sure txHash1Requested is not incremented by a late call
@@ -2688,7 +2690,7 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
-	sp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)), true)
+	_ = sp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)), true)
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
@@ -2769,11 +2771,15 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 
 func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	t.Parallel()
-	t.Skip()
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := initDataPool()
+	dataPool := mock.NewPoolsHolderFake()
+	forkDetector := &mock.ForkDetectorMock{}
+	highNonce := uint64(500)
+	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
+		return highNonce
+	}
 
 	shardNr := uint32(5)
 	sp, _ := blproc.NewShardProcessor(
@@ -2784,12 +2790,12 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 		&mock.TxProcessorMock{},
 		initAccountsMock(),
 		mock.NewMultiShardsCoordinatorMock(shardNr),
-		&mock.ForkDetectorMock{},
+		forkDetector,
 		func(destShardID uint32, txHash [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
-	sp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)), true)
+	_ = sp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)), true)
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
@@ -2829,7 +2835,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	// test header not in pool and defer called
 	processedMetaHdrs, err := sp.RemoveMetaBlockFromPool(shardBlock)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.Nil(t, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
@@ -2865,10 +2871,236 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	assert.Equal(t, currHdr, lastNodesHdrs[sharding.MetachainShardId])
 }
 
+func createShardData(hasher hashing.Hasher, marshalizer marshal.Marshalizer, miniBlocks []block.MiniBlock) []block.ShardData {
+	shardData := make([]block.ShardData, len(miniBlocks))
+	for i := 0; i < len(miniBlocks); i++ {
+		marshaled, _ := marshalizer.Marshal(miniBlocks[i])
+		hashed := hasher.Compute(string(marshaled))
+
+		shardMBHeader := block.ShardMiniBlockHeader{
+			ReceiverShardId: miniBlocks[i].ReceiverShardID,
+			SenderShardId:   miniBlocks[i].SenderShardID,
+			TxCount:         uint32(len(miniBlocks[i].TxHashes)),
+			Hash:            hashed,
+		}
+		shardMBHeaders := make([]block.ShardMiniBlockHeader, 0)
+		shardMBHeaders = append(shardMBHeaders, shardMBHeader)
+
+		shardData[0].ShardId = miniBlocks[i].SenderShardID
+		shardData[0].TxCount = 10
+		shardData[0].HeaderHash = []byte("headerHash")
+		shardData[0].ShardMiniBlockHeaders = shardMBHeaders
+	}
+
+	return shardData
+}
+
 func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *testing.T) {
 	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+	forkDetector := &mock.ForkDetectorMock{}
+	highNonce := uint64(500)
+	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
+		return highNonce
+	}
+
+	shardNr := uint32(5)
+	sp, _ := blproc.NewShardProcessor(
+		dataPool,
+		&mock.ChainStorerMock{},
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{},
+		initAccountsMock(),
+		mock.NewMultiShardsCoordinatorMock(shardNr),
+		forkDetector,
+		func(destShardID uint32, txHash [][]byte) {
+		},
+		func(destShardID uint32, txHash []byte) {},
+	)
+	_ = sp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)), true)
+
+	prevRandSeed := []byte("prevrand")
+	currRandSeed := []byte("currrand")
+	lastNodesHdrs := sp.LastNotarizedHdrs()
+	firstNonce := uint64(44)
+
+	lastHdr := &block.MetaBlock{Round: 9,
+		Nonce:    firstNonce,
+		RandSeed: prevRandSeed}
+	lastNodesHdrs[sharding.MetachainShardId] = lastHdr
+
+	shardBlock := make(block.Body, 0)
+	txHash := []byte("txhash")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock1 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+	}
+	miniblock2 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   2,
+		TxHashes:        txHashes,
+	}
+	miniblock3 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   3,
+		TxHashes:        txHashes,
+	}
+	miniblock4 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   4,
+		TxHashes:        txHashes,
+	}
+	shardBlock = append(shardBlock, &miniblock1, &miniblock2, &miniblock3)
+
+	miniBlocks := make([]block.MiniBlock, 0)
+	miniBlocks = append(miniBlocks, miniblock1, miniblock2)
+	//header shard 0
+	prevHash, _ := sp.ComputeHeaderHash(lastNodesHdrs[sharding.MetachainShardId].(*block.MetaBlock))
+	prevHdr := &block.MetaBlock{
+		Round:        10,
+		Nonce:        45,
+		PrevRandSeed: prevRandSeed,
+		RandSeed:     currRandSeed,
+		PrevHash:     prevHash,
+		RootHash:     []byte("prevRootHash"),
+		ShardInfo:    createShardData(hasher, marshalizer, miniBlocks)}
+
+	miniBlocks = make([]block.MiniBlock, 0)
+	miniBlocks = append(miniBlocks, miniblock3, miniblock4)
+	prevHash, _ = sp.ComputeHeaderHash(prevHdr)
+	currHdr := &block.MetaBlock{
+		Round:        11,
+		Nonce:        46,
+		PrevRandSeed: currRandSeed,
+		RandSeed:     []byte("nextrand"),
+		PrevHash:     prevHash,
+		RootHash:     []byte("currRootHash"),
+		ShardInfo:    createShardData(hasher, marshalizer, miniBlocks)}
+	currHash, _ := sp.ComputeHeaderHash(currHdr)
+	prevHash, _ = sp.ComputeHeaderHash(prevHdr)
+
+	// put headers in pool
+	dataPool.MetaBlocks().Put(currHash, currHdr)
+	dataPool.MetaBlocks().Put(prevHash, prevHdr)
+
+	processedMetaHdrs, err := sp.RemoveMetaBlockFromPool(shardBlock)
+	assert.Nil(t, err)
+
+	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+
+	assert.Nil(t, err)
+	lastNodesHdrs = sp.LastNotarizedHdrs()
+	assert.Equal(t, prevHdr, lastNodesHdrs[sharding.MetachainShardId])
 }
 
 func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testing.T) {
 	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+	forkDetector := &mock.ForkDetectorMock{}
+	highNonce := uint64(500)
+	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
+		return highNonce
+	}
+
+	shardNr := uint32(5)
+	sp, _ := blproc.NewShardProcessor(
+		dataPool,
+		&mock.ChainStorerMock{},
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{},
+		initAccountsMock(),
+		mock.NewMultiShardsCoordinatorMock(shardNr),
+		forkDetector,
+		func(destShardID uint32, txHash [][]byte) {
+		},
+		func(destShardID uint32, txHash []byte) {},
+	)
+	_ = sp.SetLastNotarizedHeadersSlice(createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)), true)
+
+	prevRandSeed := []byte("prevrand")
+	currRandSeed := []byte("currrand")
+	lastNodesHdrs := sp.LastNotarizedHdrs()
+	firstNonce := uint64(44)
+
+	lastHdr := &block.MetaBlock{Round: 9,
+		Nonce:    firstNonce,
+		RandSeed: prevRandSeed}
+	lastNodesHdrs[sharding.MetachainShardId] = lastHdr
+
+	shardBlock := make(block.Body, 0)
+	txHash := []byte("txhash")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock1 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+	}
+	miniblock2 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   2,
+		TxHashes:        txHashes,
+	}
+	miniblock3 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   3,
+		TxHashes:        txHashes,
+	}
+	miniblock4 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   4,
+		TxHashes:        txHashes,
+	}
+	shardBlock = append(shardBlock, &miniblock1, &miniblock2, &miniblock3, &miniblock4)
+
+	miniBlocks := make([]block.MiniBlock, 0)
+	miniBlocks = append(miniBlocks, miniblock1, miniblock2)
+	//header shard 0
+	prevHash, _ := sp.ComputeHeaderHash(lastNodesHdrs[sharding.MetachainShardId].(*block.MetaBlock))
+	prevHdr := &block.MetaBlock{
+		Round:        10,
+		Nonce:        45,
+		PrevRandSeed: prevRandSeed,
+		RandSeed:     currRandSeed,
+		PrevHash:     prevHash,
+		RootHash:     []byte("prevRootHash"),
+		ShardInfo:    createShardData(hasher, marshalizer, miniBlocks)}
+
+	miniBlocks = make([]block.MiniBlock, 0)
+	miniBlocks = append(miniBlocks, miniblock3, miniblock4)
+	prevHash, _ = sp.ComputeHeaderHash(prevHdr)
+	currHdr := &block.MetaBlock{
+		Round:        11,
+		Nonce:        46,
+		PrevRandSeed: currRandSeed,
+		RandSeed:     []byte("nextrand"),
+		PrevHash:     prevHash,
+		RootHash:     []byte("currRootHash"),
+		ShardInfo:    createShardData(hasher, marshalizer, miniBlocks)}
+	currHash, _ := sp.ComputeHeaderHash(currHdr)
+	prevHash, _ = sp.ComputeHeaderHash(prevHdr)
+
+	// put headers in pool
+	dataPool.MetaBlocks().Put(currHash, currHdr)
+	dataPool.MetaBlocks().Put(prevHash, prevHdr)
+
+	processedMetaHdrs, err := sp.RemoveMetaBlockFromPool(shardBlock)
+	assert.Nil(t, err)
+
+	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+
+	assert.Nil(t, err)
+	lastNodesHdrs = sp.LastNotarizedHdrs()
+	assert.Equal(t, currHdr, lastNodesHdrs[sharding.MetachainShardId])
 }
