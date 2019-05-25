@@ -2684,7 +2684,7 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 		initAccountsMock(),
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {
+		func(destShardID uint32, txHash [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
@@ -2785,7 +2785,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 		initAccountsMock(),
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {
+		func(destShardID uint32, txHash [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
