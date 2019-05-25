@@ -115,6 +115,11 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
 	}
 
+	if sr.Rounder().Index() < 0 {
+		log.Error("invalid round, round must be always > 0")
+		return false
+	}
+
 	blockBody, err := sr.BlockProcessor().CreateBlockBody(
 		uint32(sr.Rounder().Index()),
 		haveTimeInCurrentSubround,

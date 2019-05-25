@@ -63,6 +63,7 @@ func checkForNils(
 
 // SetOnRequestHeaderHandlerByNonce sets request handler to ask for missing headers by nonce
 func (bp *baseProcessor) SetOnRequestHeaderHandlerByNonce(requestHandler func(shardId uint32, nonce uint64)) error {
+	//TODO: do this on constructor as it is a must to for blockprocessor to work
 	if requestHandler == nil {
 		return process.ErrNilRequestHeaderHandlerByNonce
 	}
@@ -178,7 +179,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 		return nil
 	}
 
-	//TODO: add verification if rand seed was calculated good add other verification
+	//TODO: add verification if rand seed was correctly computed add other verification
 	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
 	if prevHdr.GetRound() > currHdr.GetRound() {
 		return process.ErrLowShardHeaderRound
@@ -284,6 +285,7 @@ func (bp *baseProcessor) getLastNotarizedHdr(shardId uint32) (data.HeaderHandler
 // and shard can validate the next meta header
 func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
 	//TODO: protect this to be called only once at genesis time
+	//TODO: do this on constructor as it is a must to for blockprocessor to work
 	bp.mutLastNotarizedHdrs.Lock()
 	defer bp.mutLastNotarizedHdrs.Unlock()
 

@@ -460,6 +460,8 @@ func TestBlockPorcessor_DisplayHeaderShouldWork(t *testing.T) {
 }
 
 func TestBaseProcessor_SetLastNotarizedHeadersSliceNil(t *testing.T) {
+	t.Parallel()
+
 	base := blproc.NewBaseProcessor(mock.NewOneShardCoordinatorMock())
 
 	err := base.SetLastNotarizedHeadersSlice(nil, false)
@@ -468,6 +470,8 @@ func TestBaseProcessor_SetLastNotarizedHeadersSliceNil(t *testing.T) {
 }
 
 func TestBaseProcessor_SetLastNotarizedHeadersSliceNotEnoughHeaders(t *testing.T) {
+	t.Parallel()
+
 	base := blproc.NewBaseProcessor(mock.NewOneShardCoordinatorMock())
 
 	err := base.SetLastNotarizedHeadersSlice(make(map[uint32]data.HeaderHandler, 0), false)
@@ -476,6 +480,8 @@ func TestBaseProcessor_SetLastNotarizedHeadersSliceNotEnoughHeaders(t *testing.T
 }
 
 func TestBaseProcessor_SetLastNotarizedHeadersSliceOneShardWrongType(t *testing.T) {
+	t.Parallel()
+
 	base := blproc.NewBaseProcessor(mock.NewOneShardCoordinatorMock())
 
 	lastNotHdrs := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
@@ -486,6 +492,8 @@ func TestBaseProcessor_SetLastNotarizedHeadersSliceOneShardWrongType(t *testing.
 }
 
 func TestBaseProcessor_SetLastNotarizedHeadersSliceOneShardGood(t *testing.T) {
+	t.Parallel()
+
 	base := blproc.NewBaseProcessor(mock.NewOneShardCoordinatorMock())
 
 	lastNotHdrs := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
@@ -495,6 +503,8 @@ func TestBaseProcessor_SetLastNotarizedHeadersSliceOneShardGood(t *testing.T) {
 }
 
 func TestBaseProcessor_SetLastNotarizedHeadersSliceOneShardMetaMissing(t *testing.T) {
+	t.Parallel()
+
 	base := blproc.NewBaseProcessor(mock.NewOneShardCoordinatorMock())
 
 	lastNotHdrs := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
@@ -505,6 +515,8 @@ func TestBaseProcessor_SetLastNotarizedHeadersSliceOneShardMetaMissing(t *testin
 }
 
 func TestBaseProcessor_SetLastNotarizedHeadersSliceOneShardMetaWrongType(t *testing.T) {
+	t.Parallel()
+
 	base := blproc.NewBaseProcessor(mock.NewOneShardCoordinatorMock())
 
 	lastNotHdrs := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
@@ -515,6 +527,8 @@ func TestBaseProcessor_SetLastNotarizedHeadersSliceOneShardMetaWrongType(t *test
 }
 
 func TestBaseProcessor_SetLastNotarizedHeadersSliceMultiShardGood(t *testing.T) {
+	t.Parallel()
+
 	base := blproc.NewBaseProcessor(mock.NewMultiShardsCoordinatorMock(5))
 
 	lastNotHdrs := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(5))
@@ -524,6 +538,8 @@ func TestBaseProcessor_SetLastNotarizedHeadersSliceMultiShardGood(t *testing.T) 
 }
 
 func TestBaseProcessor_SetLastNotarizedHeadersSliceMultiShardWithoutMeta(t *testing.T) {
+	t.Parallel()
+
 	base := blproc.NewBaseProcessor(mock.NewMultiShardsCoordinatorMock(5))
 
 	lastNotHdrs := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(5))
@@ -534,6 +550,8 @@ func TestBaseProcessor_SetLastNotarizedHeadersSliceMultiShardWithoutMeta(t *test
 }
 
 func TestBaseProcessor_SetLastNotarizedHeadersSliceMultiShardNotEnough(t *testing.T) {
+	t.Parallel()
+
 	base := blproc.NewBaseProcessor(mock.NewMultiShardsCoordinatorMock(5))
 
 	lastNotHdrs := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(4))
