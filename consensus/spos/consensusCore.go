@@ -18,7 +18,6 @@ type ConsensusCore struct {
 	blockProcessor         process.BlockProcessor
 	bootstraper            process.Bootstrapper
 	chronologyHandler      consensus.ChronologyHandler
-	forkDetector           process.ForkDetector
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
 	blsPrivateKey          crypto.PrivateKey
@@ -36,7 +35,6 @@ func NewConsensusCore(
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	chronologyHandler consensus.ChronologyHandler,
-	forkDetector process.ForkDetector,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	blsPrivateKey crypto.PrivateKey,
@@ -52,7 +50,6 @@ func NewConsensusCore(
 		blockProcessor,
 		bootstraper,
 		chronologyHandler,
-		forkDetector,
 		hasher,
 		marshalizer,
 		blsPrivateKey,
@@ -90,11 +87,6 @@ func (cc *ConsensusCore) BootStrapper() process.Bootstrapper {
 // Chronology gets the ChronologyHandler stored in the ConsensusCore
 func (cc *ConsensusCore) Chronology() consensus.ChronologyHandler {
 	return cc.chronologyHandler
-}
-
-// ForkDetector gets the ForkDetector stored in the ConsensusCore
-func (cc *ConsensusCore) ForkDetector() process.ForkDetector {
-	return cc.forkDetector
 }
 
 // Hasher gets the Hasher stored in the ConsensusCore

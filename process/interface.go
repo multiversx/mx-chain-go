@@ -29,9 +29,6 @@ type BlockProcessor interface {
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
-	GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler
-	SetBroadcastRound(nonce uint64, round int32)
-	GetBroadcastRound(nonce uint64) int32
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -135,4 +132,13 @@ type ChronologyValidator interface {
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
+}
+
+// BlocksTracker defines the functionality to track all the notarised blocks
+type BlocksTracker interface {
+	UnnotarisedBlocks() []data.HeaderHandler
+	RemoveNotarisedBlocks(headerHandler data.HeaderHandler)
+	AddBlock(headerHandler data.HeaderHandler)
+	SetBlockBroadcastRound(nonce uint64, round int32)
+	BlockBroadcastRound(nonce uint64) int32
 }

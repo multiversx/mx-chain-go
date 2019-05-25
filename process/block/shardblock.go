@@ -25,25 +25,19 @@ var txsTotalProcessed = 0
 
 const maxTransactionsInBlock = 15000
 
-type headerInfo struct {
-	header           *block.Header
-	broadcastInRound int32
-}
-
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
-	dataPool              dataRetriever.PoolsHolder
-	txProcessor           process.TransactionProcessor
-	chRcvAllTxs           chan bool
+	dataPool             dataRetriever.PoolsHolder
+	txProcessor          process.TransactionProcessor
+	blocksTracker        process.BlocksTracker
+	chRcvAllTxs          chan bool
 	onRequestTransaction func(shardID uint32, txHashes [][]byte)
-	mutRequestedTxHashes  sync.RWMutex
-	requestedTxHashes     map[string]bool
-	mutCrossTxsForBlock   sync.RWMutex
-	crossTxsForBlock      map[string]*transaction.Transaction
-	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
-	mutUnnotarisedHeaders sync.RWMutex
-	unnotarisedHeaders    map[uint64]*headerInfo
+	mutRequestedTxHashes sync.RWMutex
+	requestedTxHashes    map[string]bool
+	mutCrossTxsForBlock  sync.RWMutex
+	crossTxsForBlock     map[string]*transaction.Transaction
+	onRequestMiniBlock   func(shardId uint32, mbHash []byte)
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -56,6 +50,7 @@ func NewShardProcessor(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	forkDetector process.ForkDetector,
+	blocksTracker process.BlocksTracker,
 	requestTransactionHandler func(shardId uint32, txHashes [][]byte),
 	requestMiniBlockHandler func(shardId uint32, miniblockHash []byte),
 ) (*shardProcessor, error) {
@@ -65,7 +60,8 @@ func NewShardProcessor(
 		forkDetector,
 		hasher,
 		marshalizer,
-		store)
+		store,
+		shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -76,8 +72,8 @@ func NewShardProcessor(
 	if txProcessor == nil {
 		return nil, process.ErrNilTxProcessor
 	}
-	if shardCoordinator == nil {
-		return nil, process.ErrNilShardCoordinator
+	if blocksTracker == nil {
+		return nil, process.ErrNilBlocksTracker
 	}
 	if requestTransactionHandler == nil {
 		return nil, process.ErrNilTransactionHandler
@@ -99,6 +95,7 @@ func NewShardProcessor(
 		baseProcessor: base,
 		dataPool:      dataPool,
 		txProcessor:   txProcessor,
+		blocksTracker: blocksTracker,
 	}
 
 	sp.chRcvAllTxs = make(chan bool)
@@ -113,7 +110,6 @@ func NewShardProcessor(
 	sp.onRequestMiniBlock = requestMiniBlockHandler
 	sp.requestedTxHashes = make(map[string]bool)
 	sp.crossTxsForBlock = make(map[string]*transaction.Transaction)
-	sp.unnotarisedHeaders = make(map[uint64]*headerInfo)
 
 	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
@@ -473,13 +469,11 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	sp.mutUnnotarisedHeaders.Lock()
-	sp.unnotarisedHeaders[header.Nonce] = &headerInfo{header: header, broadcastInRound: 0}
-	sp.mutUnnotarisedHeaders.Unlock()
+	sp.blocksTracker.AddBlock(header)
 
 	log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been committed successfully\n",
 		header.Nonce,
-		toB64(headerHash)))
+		process.ToB64(headerHash)))
 
 	errNotCritical := sp.removeTxBlockFromPools(body)
 	if errNotCritical != nil {
@@ -566,12 +560,9 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 		}
 
 		if processedAll {
-			mb, ok := metaBlock.(*block.MetaBlock)
-			if ok {
-				sp.removeNotarisedHeaders(mb)
-			}
+			sp.blocksTracker.RemoveNotarisedBlocks(hdr)
 
-			// metablock was processed adn finalized
+			// metablock was processed and finalized
 			buff, err := sp.marshalizer.Marshal(hdr)
 			if err != nil {
 				return err
@@ -671,7 +662,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	}
 
 	log.Info(fmt.Sprintf("received metablock with hash %s and nonce %d from network\n",
-		toB64(metaBlockHash),
+		process.ToB64(metaBlockHash),
 		hdr.GetNonce()))
 
 	// TODO: validate the metaheader, through metaprocessor and save only headers with nonce higher than current
@@ -1195,7 +1186,7 @@ func (sp *shardProcessor) displayLogInfo(
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\n"+
 		"Total txs processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n\n"+
 		"Total shards: %d. Current shard id: %d\n",
-		toB64(headerHash),
+		process.ToB64(headerHash),
 		txsTotalProcessed,
 		txsCurrentBlockProcessed,
 		sp.getNrTxsWithDst(header.ShardId),
@@ -1263,7 +1254,7 @@ func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.L
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
 					fmt.Sprintf("TxHash_%d", j+1),
-					toB64(miniBlock.TxHashes[j])}))
+					process.ToB64(miniBlock.TxHashes[j])}))
 
 				part = ""
 			} else if j == 1 {
@@ -1463,111 +1454,4 @@ func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	}
 
 	return &header
-}
-
-//GetUnnotarisedHeaders gets all the headers which are not notarized in metachain yet
-func (sp *shardProcessor) GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler {
-	sp.mutUnnotarisedHeaders.Lock()
-
-	hdrs := make([]data.HeaderHandler, 0)
-	for _, hInfo := range sp.unnotarisedHeaders {
-		hdrs = append(hdrs, hInfo.header)
-	}
-
-	sp.mutUnnotarisedHeaders.Unlock()
-
-	return hdrs
-}
-
-//SetBroadcastRound sets the round in which the header with the given nonce has been broadcast to metachain
-func (sp *shardProcessor) SetBroadcastRound(nonce uint64, round int32) {
-	sp.mutUnnotarisedHeaders.Lock()
-	hInfo := sp.unnotarisedHeaders[nonce]
-	if hInfo != nil {
-		sp.unnotarisedHeaders[nonce] = &headerInfo{header: hInfo.header, broadcastInRound: round}
-	}
-	sp.mutUnnotarisedHeaders.Unlock()
-}
-
-//GetBroadcastRound gets the round in which the header with given nonce has been broadcast to metachain
-func (sp *shardProcessor) GetBroadcastRound(nonce uint64) int32 {
-	sp.mutUnnotarisedHeaders.RLock()
-	hInfo := sp.unnotarisedHeaders[nonce]
-	sp.mutUnnotarisedHeaders.RUnlock()
-
-	if hInfo == nil {
-		return 0
-	}
-
-	return hInfo.broadcastInRound
-}
-
-func (sp *shardProcessor) getHeader(hash []byte) *block.Header {
-	hdr := sp.getHeaderFromPool(hash)
-	if hdr != nil {
-		return hdr
-	}
-
-	return sp.getHeaderFromStorage(hash)
-}
-
-func (sp *shardProcessor) getHeaderFromPool(hash []byte) *block.Header {
-	hdr, ok := sp.dataPool.Headers().Peek(hash)
-	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", toB64(hash)))
-		return nil
-	}
-
-	header, ok := hdr.(*block.Header)
-	if !ok {
-		log.Debug(fmt.Sprintf("data with hash %s is not header\n", toB64(hash)))
-		return nil
-	}
-
-	return header
-}
-
-func (sp *shardProcessor) getHeaderFromStorage(hash []byte) *block.Header {
-	headerStore := sp.store.GetStorer(dataRetriever.BlockHeaderUnit)
-
-	if headerStore == nil {
-		log.Error(process.ErrNilHeadersStorage.Error())
-		return nil
-	}
-
-	buffHeader, err := headerStore.Get(hash)
-	if err != nil {
-		log.Debug(err.Error())
-		return nil
-	}
-
-	header := &block.Header{}
-	err = sp.marshalizer.Unmarshal(header, buffHeader)
-	if err != nil {
-		log.Error(err.Error())
-		return nil
-	}
-
-	return header
-}
-
-func (sp *shardProcessor) removeNotarisedHeaders(metaBlock *block.MetaBlock) {
-	for _, shardData := range metaBlock.ShardInfo {
-		if shardData.ShardId != sp.shardCoordinator.SelfId() {
-			continue
-		}
-
-		header := sp.getHeader(shardData.HeaderHash)
-		if header == nil {
-			continue
-		}
-
-		log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been notarised by metachain\n",
-			header.GetNonce(),
-			toB64(shardData.HeaderHash)))
-
-		sp.mutUnnotarisedHeaders.Lock()
-		delete(sp.unnotarisedHeaders, header.Nonce)
-		sp.mutUnnotarisedHeaders.Unlock()
-	}
 }

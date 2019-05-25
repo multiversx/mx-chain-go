@@ -1,12 +1,9 @@
 package commonSubround_test
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
 
@@ -119,7 +116,5 @@ func getSubroundName(subroundId int) string {
 func executeStoredMessages() {
 }
 
-func broadcastHeader(header data.HeaderHandler) error {
-	fmt.Println(header)
-	return nil
+func broadcastUnnotarisedBlocks() {
 }

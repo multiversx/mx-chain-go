@@ -20,14 +20,6 @@ type BlockProcessorMock struct {
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
-	GetUnnotarisedHeadersCalled      func(blockChain data.ChainHandler) []data.HeaderHandler
-	SetBroadcastRoundCalled          func(nonce uint64, round int32)
-	GetBroadcastRoundCalled          func(nonce uint64) int32
-}
-
-// SetOnRequestTransaction mocks setting request transaction call back function
-func (blProcMock *BlockProcessorMock) SetOnRequestTransaction(f func(destShardID uint32, txHash []byte)) {
-	blProcMock.SetOnRequestTransactionCalled(f)
 }
 
 // ProcessBlock mocks pocessing a block
@@ -43,11 +35,6 @@ func (blProcMock *BlockProcessorMock) CommitBlock(blockChain data.ChainHandler, 
 // RevertAccountState mocks revert of the accounts state
 func (blProcMock *BlockProcessorMock) RevertAccountState() {
 	blProcMock.RevertAccountStateCalled()
-}
-
-// CreateGenesisBlock mocks the creation of a genesis block body
-func (blProcMock *BlockProcessorMock) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
-	return blProcMock.CreateGenesisBlockCalled(balances)
 }
 
 // CreateTxBlockBody mocks the creation of a transaction block body
@@ -73,16 +60,4 @@ func (blProcMock BlockProcessorMock) DecodeBlockBody(dta []byte) data.BodyHandle
 
 func (blProcMock BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return blProcMock.DecodeBlockHeaderCalled(dta)
-}
-
-func (blProcMock BlockProcessorMock) GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler {
-	return blProcMock.GetUnnotarisedHeadersCalled(blockChain)
-}
-
-func (blProcMock BlockProcessorMock) SetBroadcastRound(nonce uint64, round int32) {
-	blProcMock.SetBroadcastRoundCalled(nonce, round)
-}
-
-func (blProcMock BlockProcessorMock) GetBroadcastRound(nonce uint64) int32 {
-	return blProcMock.GetBroadcastRoundCalled(nonce)
 }

@@ -64,6 +64,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/track"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -769,6 +770,11 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	blockTracker, err := track.NewShardBlock(datapool, marshalizer, shardCoordinator, store)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	blockProcessor, err := block.NewShardProcessor(
 		datapool,
 		store,
@@ -778,6 +784,7 @@ func createShardNode(
 		accountsAdapter,
 		shardCoordinator,
 		forkDetector,
+		blockTracker,
 		createTxRequestHandler(resolversFinder, factory.TransactionTopic, log),
 		createRequestHandler(resolversFinder, factory.MiniBlocksTopic, log),
 	)
@@ -800,6 +807,7 @@ func createShardNode(
 		node.WithConsensusGroupSize(int(nodesConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(blockProcessor),
+		node.WithBlockTracker(blockTracker),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(rounder),
 		node.WithDataPool(datapool),
@@ -1049,6 +1057,11 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
+	blockTracker, err := track.NewMetaBlock()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	shardsGenesisBlocks, err := generateGenesisHeadersForMetachainInit(
 		nodesConfig,
 		genesisConfig,
@@ -1093,6 +1106,7 @@ func createMetaNode(
 		node.WithConsensusGroupSize(int(nodesConfig.MetaChainConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(metaProcessor),
+		node.WithBlockTracker(blockTracker),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(rounder),
 		node.WithMetaDataPool(metaDatapool),

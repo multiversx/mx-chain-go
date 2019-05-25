@@ -57,9 +57,6 @@ func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint
 			nodes[i].blkProcessor.CreateBlockCalled = func(round int32, haveTime func() bool) (handler data.BodyHandler, e error) {
 				return nil, process.ErrWrongTypeAssertion
 			}
-			nodes[i].blkProcessor.GetUnnotarisedHeadersCalled = func(blockChain data.ChainHandler) []data.HeaderHandler {
-				return make([]data.HeaderHandler, 0)
-			}
 		}
 	}
 

@@ -187,6 +187,9 @@ var ErrNilTxStorage = errors.New("nil transaction storage")
 // ErrNilStorage signals that a nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
 
+// ErrNilBlocksTracker signals that a nil blocks tracker has been provided
+var ErrNilBlocksTracker = errors.New("nil blocks tracker")
+
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
 

@@ -20,9 +20,6 @@ type BlockProcessorStub struct {
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
-	GetUnnotarisedHeadersCalled      func(blockChain data.ChainHandler) []data.HeaderHandler
-	SetBroadcastRoundCalled          func(nonce uint64, round int32)
-	GetBroadcastRoundCalled          func(nonce uint64) int32
 }
 
 // ProcessBlock mocks pocessing a block
@@ -68,16 +65,4 @@ func (blProcMock BlockProcessorStub) DecodeBlockBody(dta []byte) data.BodyHandle
 
 func (blProcMock BlockProcessorStub) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return blProcMock.DecodeBlockHeaderCalled(dta)
-}
-
-func (blProcMock BlockProcessorStub) GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler {
-	return blProcMock.GetUnnotarisedHeadersCalled(blockChain)
-}
-
-func (blProcMock BlockProcessorStub) SetBroadcastRound(nonce uint64, round int32) {
-	blProcMock.SetBroadcastRoundCalled(nonce, round)
-}
-
-func (blProcMock BlockProcessorStub) GetBroadcastRound(nonce uint64) int32 {
-	return blProcMock.GetBroadcastRoundCalled(nonce)
 }

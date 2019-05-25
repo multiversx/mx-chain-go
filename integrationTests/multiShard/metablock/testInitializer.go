@@ -321,6 +321,12 @@ func createShardNetNode(
 				return 0
 			},
 		},
+		&mock.BlocksTrackerMock{
+			AddBlockCalled: func(headerHandler data.HeaderHandler) {
+			},
+			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) {
+			},
+		},
 		func(shardId uint32, txHash [][]byte) {
 
 		},

@@ -22,8 +22,6 @@ type ConsensusCoreHandler interface {
 	BootStrapper() process.Bootstrapper
 	// Chronology gets the ChronologyHandler stored in the ConsensusCore
 	Chronology() consensus.ChronologyHandler
-	// ForkDetector gets the ForkDetector stored in the ConsensusCore
-	ForkDetector() process.ForkDetector
 	// Hasher gets the Hasher stored in the ConsensusCore
 	Hasher() hashing.Hasher
 	// Marshalizer gets the Marshalizer stored in the ConsensusCore
@@ -83,8 +81,8 @@ type WorkerHandler interface {
 	GetConsensusStateChangedChannel() chan bool
 	//BroadcastBlock does a broadcast of the blockBody and blockHeader
 	BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error
-	//BroadcastHeader does a broadcast of the blockHeader
-	BroadcastHeader(header data.HeaderHandler) error
 	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 	ExecuteStoredMessages()
+	//BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet
+	BroadcastUnnotarisedBlocks()
 }

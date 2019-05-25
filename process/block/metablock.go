@@ -65,7 +65,8 @@ func NewMetaProcessor(
 		forkDetector,
 		hasher,
 		marshalizer,
-		store)
+		store,
+		shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -78,9 +79,6 @@ func NewMetaProcessor(
 	}
 	if requestHeaderHandler == nil {
 		return nil, process.ErrNilRequestHeaderHandler
-	}
-	if shardCoordinator == nil {
-		return nil, process.ErrNilShardCoordinator
 	}
 
 	base := &baseProcessor{
@@ -302,7 +300,7 @@ func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int3
 				return err
 			}
 
-			msg = fmt.Sprintf("%s\n%s", msg, toB64(shardMiniBlockHeader.Hash))
+			msg = fmt.Sprintf("%s\n%s", msg, process.ToB64(shardMiniBlockHeader.Hash))
 		}
 	}
 
@@ -1000,7 +998,7 @@ func (mp *metaProcessor) displayLogInfo(
 	shardMBHeaderCounterMutex.RLock()
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal shard MB headers "+
 		"processed until now: %d. Total shard MB headers processed for this block: %d. Total shard headers remained in pool: %d\n",
-		toB64(headerHash),
+		process.ToB64(headerHash),
 		shardMBHeadersTotalProcessed,
 		shardMBHeadersCurrentBlockProcessed,
 		mp.getHeadersCountInPool())
@@ -1056,7 +1054,7 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
 					fmt.Sprintf("ShardMiniBlockHeaderHash_%d", j+1),
-					toB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
+					process.ToB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
@@ -1231,19 +1229,4 @@ func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	}
 
 	return &header
-}
-
-//GetUnnotarisedHeaders gets all the headers which are not notarized in metachain yet
-func (mp *metaProcessor) GetUnnotarisedHeaders(blockChain data.ChainHandler) []data.HeaderHandler {
-	hdrs := make([]data.HeaderHandler, 0)
-	return hdrs
-}
-
-//SetBroadcastRound sets the round in which the header with the given nonce has been broadcast to metachain
-func (mp *metaProcessor) SetBroadcastRound(nonce uint64, round int32) {
-}
-
-//GetBroadcastRound gets the round in which the header with given nonce has been broadcast to metachain
-func (mp *metaProcessor) GetBroadcastRound(nonce uint64) int32 {
-	return 0
 }

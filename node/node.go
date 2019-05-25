@@ -64,9 +64,10 @@ type Node struct {
 	roundDuration            uint64
 	consensusGroupSize       int
 	messenger                P2PMessenger
-	syncer                   ntp.SyncTimer
+	syncTimer                ntp.SyncTimer
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
+	blockTracker             process.BlocksTracker
 	genesisTime              time.Time
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
@@ -233,6 +234,7 @@ func (n *Node) StartConsensus() error {
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blockProcessor,
+		n.blockTracker,
 		bootstrapper,
 		consensusState,
 		n.forkDetector,
@@ -242,6 +244,7 @@ func (n *Node) StartConsensus() error {
 		n.rounder,
 		n.shardCoordinator,
 		n.singleSigner,
+		n.syncTimer,
 		n.getBroadcastBlock(),
 		n.getBroadcastHeader(),
 		n.sendMessage,
@@ -265,7 +268,6 @@ func (n *Node) StartConsensus() error {
 		n.blockProcessor,
 		bootstrapper,
 		chronologyHandler,
-		n.forkDetector,
 		n.hasher,
 		n.marshalizer,
 		n.privKey,
@@ -273,7 +275,7 @@ func (n *Node) StartConsensus() error {
 		n.multiSigner,
 		n.rounder,
 		n.shardCoordinator,
-		n.syncer,
+		n.syncTimer,
 		validatorGroupSelector)
 	if err != nil {
 		return err
@@ -385,7 +387,7 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 	chr, err := chronology.NewChronology(
 		n.genesisTime,
 		rounder,
-		n.syncer)
+		n.syncTimer)
 
 	if err != nil {
 		return nil, err

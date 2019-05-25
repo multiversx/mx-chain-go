@@ -23,11 +23,6 @@ func broadcastBlock(txBlockBody data.BodyHandler, header data.HeaderHandler) err
 	return nil
 }
 
-func broadcastHeader(header data.HeaderHandler) error {
-	fmt.Println(header)
-	return nil
-}
-
 func extend(subroundId int) {
 	fmt.Println(subroundId)
 }

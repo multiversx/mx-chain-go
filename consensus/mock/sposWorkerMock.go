@@ -17,6 +17,7 @@ type SposWorkerMock struct {
 	GetBroadcastBlockCalled                func(data.BodyHandler, data.HeaderHandler) error
 	GetBroadcastHeaderCalled               func(data.HeaderHandler) error
 	ExecuteStoredMessagesCalled            func()
+	BroadcastUnnotarisedBlocksCalled       func()
 }
 
 func (sposWorkerMock *SposWorkerMock) AddReceivedMessageCall(messageType consensus.MessageType,
@@ -54,4 +55,8 @@ func (sposWorkerMock *SposWorkerMock) BroadcastHeader(header data.HeaderHandler)
 
 func (sposWorkerMock *SposWorkerMock) ExecuteStoredMessages() {
 	sposWorkerMock.ExecuteStoredMessagesCalled()
+}
+
+func (sposWorkerMock *SposWorkerMock) BroadcastUnnotarisedBlocks() {
+	sposWorkerMock.BroadcastUnnotarisedBlocksCalled()
 }

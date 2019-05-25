@@ -12,7 +12,6 @@ func initConsensusDataContainer() *ConsensusCore {
 	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	forkDetectorMock := &mock.ForkDetectorMock{}
 	blsPrivateKeyMock := &mock.PrivateKeyMock{}
 	blsSingleSignerMock := &mock.SingleSignerMock{}
 	multiSignerMock := mock.NewMultiSigner()
@@ -28,7 +27,6 @@ func initConsensusDataContainer() *ConsensusCore {
 		blockProcessor:         blockProcessorMock,
 		bootstraper:            bootstraperMock,
 		chronologyHandler:      chronologyHandlerMock,
-		forkDetector:           forkDetectorMock,
 		hasher:                 hasherMock,
 		marshalizer:            marshalizerMock,
 		blsPrivateKey:          blsPrivateKeyMock,

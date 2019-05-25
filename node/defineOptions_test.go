@@ -388,7 +388,7 @@ func TestWithSyncer_NilSyncerShouldErr(t *testing.T) {
 	opt := WithSyncer(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.syncer)
+	assert.Nil(t, node.syncTimer)
 	assert.Equal(t, ErrNilSyncTimer, err)
 }
 
@@ -402,7 +402,7 @@ func TestWithSyncer_ShouldWork(t *testing.T) {
 	opt := WithSyncer(sync)
 	err := opt(node)
 
-	assert.True(t, node.syncer == sync)
+	assert.True(t, node.syncTimer == sync)
 	assert.Nil(t, err)
 }
 
@@ -433,7 +433,7 @@ func TestWithBlockProcessor_NilProcessorShouldErr(t *testing.T) {
 	opt := WithBlockProcessor(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.syncer)
+	assert.Nil(t, node.syncTimer)
 	assert.Equal(t, ErrNilBlockProcessor, err)
 }
 

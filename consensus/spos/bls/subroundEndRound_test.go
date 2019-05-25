@@ -323,9 +323,6 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	) error {
 		return blockchain.ErrHeaderUnitNil
 	}
-	blProcMock.GetUnnotarisedHeadersCalled = func(blockChain data.ChainHandler) []data.HeaderHandler {
-		return make([]data.HeaderHandler, 0)
-	}
 
 	container.SetBlockProcessor(blProcMock)
 	sr.Header = &block.Header{}

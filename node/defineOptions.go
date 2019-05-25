@@ -180,13 +180,13 @@ func WithConsensusGroupSize(consensusGroupSize int) Option {
 	}
 }
 
-// WithSyncer sets up the syncer option for the Node
+// WithSyncer sets up the syncTimer option for the Node
 func WithSyncer(syncer ntp.SyncTimer) Option {
 	return func(n *Node) error {
 		if syncer == nil {
 			return ErrNilSyncTimer
 		}
-		n.syncer = syncer
+		n.syncTimer = syncer
 		return nil
 	}
 }
@@ -209,6 +209,17 @@ func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 			return ErrNilBlockProcessor
 		}
 		n.blockProcessor = blockProcessor
+		return nil
+	}
+}
+
+// WithBlockTracker sets up the block tracker option for the Node
+func WithBlockTracker(blockTracker process.BlocksTracker) Option {
+	return func(n *Node) error {
+		if blockTracker == nil {
+			return ErrNilBlockTracker
+		}
+		n.blockTracker = blockTracker
 		return nil
 	}
 }
