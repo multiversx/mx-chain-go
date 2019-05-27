@@ -237,6 +237,7 @@ func (mockProposerResolver) ResolveProposer(shardId uint32, roundIndex uint32, p
 // dbIndexer will hold the database indexer. Defined globally so it can be initialised only in
 //  certain conditions. If those conditions will not be met, it will stay as nil
 var dbIndexer core.Indexer
+
 // coreServiceContainer is defined globally so it can be injected with appropriate
 //  params depending on the type of node we are starting
 var coreServiceContainer core.Core
@@ -1060,6 +1061,18 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
+	if config.Explorer.Enabled {
+		dbIndexer, err = indexer.NewElasticIndexer(config.Explorer.IndexerURL, marshalizer, hasher, log)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	}
+
+	coreServiceContainer, err = core.NewServiceContainer(core.WithIndexer(dbIndexer))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	shardsGenesisBlocks, err := generateGenesisHeadersForMetachainInit(
 		nodesConfig,
 		genesisConfig,
@@ -1073,6 +1086,7 @@ func createMetaNode(
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(
+		coreServiceContainer,
 		accountsAdapter,
 		metaDatapool,
 		forkDetector,
