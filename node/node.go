@@ -98,6 +98,7 @@ type Node struct {
 
 	isRunning         bool
 	isMetachainActive bool
+	txStorageSize     uint32
 }
 
 // ApplyOptions can set up different configurable options of a Node instance

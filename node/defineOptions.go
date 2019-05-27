@@ -369,3 +369,11 @@ func WithConsensusType(consensusType string) Option {
 		return nil
 	}
 }
+
+// WithTxStorageSize sets up a txStorageSize option for the Node
+func WithTxStorageSize(txStorageSize uint32) Option {
+	return func(n *Node) error {
+		n.txStorageSize = txStorageSize
+		return nil
+	}
+}

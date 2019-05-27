@@ -831,6 +831,7 @@ func createShardNode(
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(txSingleSigner),
 		node.WithActiveMetachain(nodesConfig.MetaChainActive),
+		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 	)
 	if err != nil {
 		return nil, nil, nil, errors.New("error creating node: " + err.Error())
@@ -1129,6 +1130,7 @@ func createMetaNode(
 		node.WithResolversFinder(resolversFinder),
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(txSingleSigner),
+		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 	)
 	if err != nil {
 		return nil, nil, nil, errors.New("error creating meta-node: " + err.Error())

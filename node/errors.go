@@ -111,3 +111,9 @@ var ErrWrongValues = errors.New("wrong values for heartbeat parameters")
 
 // ErrGenesisBlockNotInitialized signals that genesis block is not initialized
 var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized")
+
+// ErrNilTransactionPool signals that a nil transaction pool was used
+var ErrNilTransactionPool = errors.New("nil transaction pool")
+
+// ErrTooManyTransactionsInPool signals that are too many transactions in pool
+var ErrTooManyTransactionsInPool = errors.New("too many transactions in pool")

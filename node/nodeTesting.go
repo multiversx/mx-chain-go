@@ -22,25 +22,36 @@ const maxBulkTransactionSize = 2 << 17 //128KB bulks
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
 // of transactions to be processed. It is mainly used for demo purposes
 func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTx uint64) error {
-	//TODO: Remove this hack later when throttle is done
-	if n.shardCoordinator.SelfId() != sharding.MetachainShardId {
-		txPool := n.dataPool.Transactions()
-		if txPool == nil {
-			return process.ErrNilTransactionPool
-		}
-
-		for i := uint32(0); i < n.shardCoordinator.NumberOfShards(); i++ {
-			strCache := process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), i)
-			txStore := txPool.ShardDataStore(strCache)
-			if uint64(txStore.Len())+noOfTx > 50000 {
-				return errors.New("too many txs in pool")
-			}
-		}
-	}
-
 	err := n.generateBulkTransactionsChecks(noOfTx)
 	if err != nil {
 		return err
+	}
+
+	//TODO: Remove this approach later, when throttle is done
+	if n.shardCoordinator.SelfId() != sharding.MetachainShardId {
+		txPool := n.dataPool.Transactions()
+		if txPool == nil {
+			return ErrNilTransactionPool
+		}
+
+		maxNoOfTx := uint64(0)
+		for i := uint32(0); i < n.shardCoordinator.NumberOfShards(); i++ {
+			strCache := process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), i)
+			txStore := txPool.ShardDataStore(strCache)
+			if txStore == nil {
+				continue
+			}
+
+			if uint64(txStore.Len())+noOfTx >= uint64(n.txStorageSize) {
+				maxNoOfTx = uint64(n.txStorageSize) - uint64(txStore.Len()) - 1
+				if noOfTx > maxNoOfTx {
+					noOfTx = maxNoOfTx
+					if noOfTx <= 0 {
+						return ErrTooManyTransactionsInPool
+					}
+				}
+			}
+		}
 	}
 
 	newNonce, senderAddressBytes, recvAddressBytes, senderShardId, err := n.generateBulkTransactionsPrepareParams(receiverHex)
