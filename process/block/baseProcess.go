@@ -205,17 +205,16 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	return nil
 }
 
-func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
-	bp.mutLastNotarizedHdrs.Lock()
-	defer bp.mutLastNotarizedHdrs.Unlock()
-
-	if bp.lastNotarizedHdrs == nil {
-		return process.ErrLastNotarizedHdrsSliceIsNil
+func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderHandler) error {
+	if shardId > bp.shardCoordinator.NumberOfShards() && shardId != sharding.MetachainShardId {
+		return process.ErrShardIdMissmatch
 	}
 
-	hdr := bp.lastNotarizedHdrs[shardId]
-	if hdr == nil {
-		return process.ErrLastNotarizedHdrsSliceIsNil
+	if shardId < bp.shardCoordinator.NumberOfShards() {
+		_, ok := hdr.(*block.Header)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
 	}
 
 	if shardId == sharding.MetachainShardId {
@@ -225,9 +224,24 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 		}
 	}
 
-	tmpLastNotarized := hdr
+	return nil
+}
 
-	var err error
+func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
+	bp.mutLastNotarizedHdrs.Lock()
+	defer bp.mutLastNotarizedHdrs.Unlock()
+
+	if bp.lastNotarizedHdrs == nil {
+		return process.ErrLastNotarizedHdrsSliceIsNil
+	}
+
+	err := bp.checkHeaderTypeCorrect(shardId, bp.lastNotarizedHdrs[shardId])
+	if err != nil {
+		return err
+	}
+
+	tmpLastNotarized := bp.lastNotarizedHdrs[shardId]
+
 	defer func() {
 		if err != nil {
 			bp.lastNotarizedHdrs[shardId] = tmpLastNotarized
@@ -239,8 +253,13 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 	})
 
 	for i := 0; i < len(processedHdrs); i++ {
-		err := bp.isHdrConstructionValid(processedHdrs[i], bp.lastNotarizedHdrs[shardId])
+		err = bp.checkHeaderTypeCorrect(shardId, processedHdrs[i])
 		if err != nil {
+			return err
+		}
+
+		errNotCritical := bp.isHdrConstructionValid(processedHdrs[i], bp.lastNotarizedHdrs[shardId])
+		if errNotCritical != nil {
 			continue
 		}
 		bp.lastNotarizedHdrs[shardId] = processedHdrs[i]
@@ -327,8 +346,16 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 	for i := 0; i < len(sortedHdrs); i++ {
 		currHdr := sortedHdrs[i]
 
+		if currHdr == nil {
+			continue
+		}
+
 		if i > 0 {
 			prevHdr = sortedHdrs[i-1]
+		}
+
+		if prevHdr == nil {
+			continue
 		}
 
 		if currHdr.GetNonce()-prevHdr.GetNonce() > 1 {

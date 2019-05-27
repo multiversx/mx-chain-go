@@ -1,6 +1,8 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"time"
 
@@ -159,6 +161,14 @@ func (mp *metaProcessor) CreateShardInfo(maxMiniBlocksInBlock uint32, round uint
 
 func (bp *baseProcessor) LastNotarizedHdrs() map[uint32]data.HeaderHandler {
 	return bp.lastNotarizedHdrs
+}
+
+func (bp *baseProcessor) SetMarshalizer(marshal marshal.Marshalizer) {
+	bp.marshalizer = marshal
+}
+
+func (bp *baseProcessor) SetHasher(hasher hashing.Hasher) {
+	bp.hasher = hasher
 }
 
 func (mp *metaProcessor) SetNextKValidity(val uint32) {
