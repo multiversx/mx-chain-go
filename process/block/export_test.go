@@ -108,10 +108,6 @@ func (sp *shardProcessor) ChRcvAllTxs() chan bool {
 	return sp.chRcvAllTxs
 }
 
-func (mp *metaProcessor) GetShardHeaderFromPool(shardID uint32, headerHash []byte) (data.HeaderHandler, error) {
-	return mp.getShardHeaderFromPool(shardID, headerHash)
-}
-
 func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) int {
 	return mp.requestBlockHeaders(header)
 }

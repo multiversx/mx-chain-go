@@ -125,6 +125,28 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
+func TestSubroundStartRound_NewSubroundStartRoundNilBroadcastUnnotarisedBlocksFunctionShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+
+	sr, _ := defaultSubround(consensusState, ch, container)
+
+	srStartRound, err := commonSubround.NewSubroundStartRound(
+		sr,
+		extend,
+		processingThresholdPercent,
+		getSubroundName,
+		executeStoredMessages,
+		nil,
+	)
+
+	assert.Nil(t, srStartRound)
+	assert.Equal(t, spos.ErrNilBroadcastUnnotarisedBlocks, err)
+}
+
 func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 

@@ -20,6 +20,14 @@ func (wrk *Worker) SetBlockProcessor(blockProcessor process.BlockProcessor) {
 	wrk.blockProcessor = blockProcessor
 }
 
+func (wrk *Worker) BlockTracker() process.BlocksTracker {
+	return wrk.blockTracker
+}
+
+func (wrk *Worker) SetBlockTracker(blockTracker process.BlocksTracker) {
+	wrk.blockTracker = blockTracker
+}
+
 func (wrk *Worker) Bootstraper() process.Bootstrapper {
 	return wrk.bootstraper
 }
@@ -34,6 +42,14 @@ func (wrk *Worker) ConsensusState() *ConsensusState {
 
 func (wrk *Worker) SetConsensusState(consensusState *ConsensusState) {
 	wrk.consensusState = consensusState
+}
+
+func (wrk *Worker) ForkDetector() process.ForkDetector {
+	return wrk.forkDetector
+}
+
+func (wrk *Worker) SetForkDetector(forkDetector process.ForkDetector) {
+	wrk.forkDetector = forkDetector
 }
 
 func (wrk *Worker) KeyGenerator() crypto.KeyGenerator {
@@ -128,6 +144,10 @@ func (wrk *Worker) SetSendMessage(sendMessage func(consensus *consensus.Message)
 	wrk.sendMessage = sendMessage
 }
 
-func (wrk *Worker) SetBroadCastBlock(broadcastBlock func(data.BodyHandler, data.HeaderHandler) error) {
+func (wrk *Worker) SetBroadcastBlock(broadcastBlock func(data.BodyHandler, data.HeaderHandler) error) {
 	wrk.broadcastBlock = broadcastBlock
+}
+
+func (wrk *Worker) SetBroadcastHeader(broadcastHeader func(data.HeaderHandler) error) {
+	wrk.broadcastHeader = broadcastHeader
 }

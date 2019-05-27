@@ -177,10 +177,10 @@ func checkNewWorkerParams(
 		return ErrNilSyncTimer
 	}
 	if broadcastBlock == nil {
-		return ErrNilBroadCastBlock
+		return ErrNilBroadcastBlock
 	}
 	if broadcastHeader == nil {
-		return ErrNilBroadCastHeader
+		return ErrNilBroadcastHeader
 	}
 	if sendMessage == nil {
 		return ErrNilSendMessage
@@ -471,16 +471,17 @@ func (wrk *Worker) BroadcastUnnotarisedBlocks() {
 			continue
 		}
 
-		wrk.blockTracker.SetBlockBroadcastRound(header.GetNonce(), wrk.consensusState.RoundIndex)
-
 		err := wrk.broadcastHeader(header)
 		if err != nil {
 			log.Error(err.Error())
-		} else {
-			log.Info(fmt.Sprintf("%sStep 0: Unnotarised header with nonce %d has been broadcast to metachain\n",
-				wrk.syncTimer.FormattedCurrentTime(),
-				header.GetNonce()))
+			continue
 		}
+
+		wrk.blockTracker.SetBlockBroadcastRound(header.GetNonce(), wrk.consensusState.RoundIndex)
+
+		log.Info(fmt.Sprintf("%sStep 0: Unnotarised header with nonce %d has been broadcast to metachain\n",
+			wrk.syncTimer.FormattedCurrentTime(),
+			header.GetNonce()))
 	}
 }
 

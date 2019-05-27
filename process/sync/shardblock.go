@@ -129,56 +129,13 @@ func NewShardBootstrap(
 	return &boot, nil
 }
 
-func (boot *ShardBootstrap) getHeader(hash []byte) *block.Header {
-	hdr := boot.getHeaderFromPool(hash)
-	if hdr != nil {
-		return hdr
-	}
-
-	return boot.getHeaderFromStorage(hash)
-}
-
-func (boot *ShardBootstrap) getHeaderFromPool(hash []byte) *block.Header {
-	hdr, ok := boot.headers.Peek(hash)
-	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", process.ToB64(hash)))
-		return nil
-	}
-
-	header, ok := hdr.(*block.Header)
-	if !ok {
-		log.Debug(fmt.Sprintf("data with hash %s is not header\n", process.ToB64(hash)))
-		return nil
-	}
-
-	return header
-}
-
-func (boot *ShardBootstrap) getHeaderFromStorage(hash []byte) *block.Header {
-	headerStore := boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
-	if headerStore == nil {
-		log.Error(process.ErrNilHeadersStorage.Error())
-		return nil
-	}
-
-	buffHeader, err := headerStore.Get(hash)
+func (boot *ShardBootstrap) receivedHeaders(headerHash []byte) {
+	header, err := process.GetShardHeader(headerHash, boot.headers, boot.marshalizer, boot.store)
 	if err != nil {
 		log.Debug(err.Error())
-		return nil
+		return
 	}
 
-	header := &block.Header{}
-	err = boot.marshalizer.Unmarshal(header, buffHeader)
-	if err != nil {
-		log.Error(err.Error())
-		return nil
-	}
-
-	return header
-}
-
-func (boot *ShardBootstrap) receivedHeaders(headerHash []byte) {
-	header := boot.getHeader(headerHash)
 	boot.processReceivedHeader(header, headerHash)
 }
 

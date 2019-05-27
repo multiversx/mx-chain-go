@@ -10,14 +10,6 @@ func (boot *ShardBootstrap) RequestHeader(nonce uint64) {
 	boot.requestHeader(nonce)
 }
 
-func (boot *ShardBootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
-	return boot.getHeaderFromPoolHavingNonce(nonce)
-}
-
-func (boot *MetaBootstrap) GetHeaderFromPool(nonce uint64) *block.MetaBlock {
-	return boot.getHeaderFromPoolHavingNonce(nonce)
-}
-
 func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) interface{} {
 	return boot.miniBlockResolver.GetMiniBlocks(hashes)
 }
@@ -28,6 +20,14 @@ func (boot *MetaBootstrap) ReceivedHeaders(key []byte) {
 
 func (boot *ShardBootstrap) ReceivedHeaders(key []byte) {
 	boot.receivedHeaders(key)
+}
+
+func (boot *ShardBootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
+	return boot.getHeaderFromPoolHavingNonce(nonce)
+}
+
+func (boot *MetaBootstrap) GetHeaderFromPool(nonce uint64) *block.MetaBlock {
+	return boot.getHeaderFromPoolHavingNonce(nonce)
 }
 
 func (boot *ShardBootstrap) ForkChoice() error {

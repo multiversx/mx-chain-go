@@ -23,6 +23,10 @@ func (sr *SubroundStartRound) InitCurrentRound() bool {
 	return sr.initCurrentRound()
 }
 
+func (sr *SubroundStartRound) SetBroadcastUnnotarisedBlocks(broadcastUnnotarisedBlocks func()) {
+	sr.broadcastUnnotarisedBlocks = broadcastUnnotarisedBlocks
+}
+
 // subroundBlock
 
 func (sr *SubroundBlock) BlockChain() data.ChainHandler {

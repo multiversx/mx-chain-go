@@ -836,27 +836,6 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
-func TestMetaProcessor_GetHeaderFromPool(t *testing.T) {
-	t.Parallel()
-
-	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		func(shardID uint32, hdrHash []byte) {},
-	)
-	hdrHash := []byte("hdr_hash1")
-	hdr, err := mp.GetShardHeaderFromPool(0, hdrHash)
-	assert.Nil(t, err)
-	assert.NotNil(t, hdr)
-	assert.Equal(t, uint64(1), hdr.GetNonce())
-}
-
 func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	t.Parallel()
 
@@ -2099,7 +2078,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 	err := mp.CheckShardHeadersFinality(nil, lastNodesHdrs)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 
-	// should work for empty highest nonce hdrs - no hdrs added this broadcastInRound to metablock
+	// should work for empty highest nonce hdrs - no hdrs added this round to metablock
 	err = mp.CheckShardHeadersFinality(metaHdr, nil)
 	assert.Nil(t, err)
 

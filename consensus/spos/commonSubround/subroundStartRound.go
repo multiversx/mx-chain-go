@@ -32,6 +32,7 @@ func NewSubroundStartRound(
 ) (*SubroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
+		broadcastUnnotarisedBlocks,
 	)
 	if err != nil {
 		return nil, err
@@ -53,12 +54,16 @@ func NewSubroundStartRound(
 
 func checkNewSubroundStartRoundParams(
 	baseSubround *spos.Subround,
+	broadcastUnnotarisedBlocks func(),
 ) error {
 	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
+	}
+	if broadcastUnnotarisedBlocks == nil {
+		return spos.ErrNilBroadcastUnnotarisedBlocks
 	}
 
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)

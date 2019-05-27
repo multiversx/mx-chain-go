@@ -1617,10 +1617,10 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	account := &mock.AccountsStub{}
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
-
+	store := createStore()
 	bs, _ := sync.NewShardBootstrap(
 		pools,
-		createStore(),
+		store,
 		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},

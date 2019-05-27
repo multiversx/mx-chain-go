@@ -389,7 +389,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
-		header, err := mp.getShardHeaderFromPool(shardData.ShardId, shardData.HeaderHash)
+		header, err := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
 		if header == nil {
 			return err
 		}
@@ -450,7 +450,7 @@ func (mp *metaProcessor) createLastNotarizedHdrs(header *block.MetaBlock) error 
 		return process.ErrLastNotarizedHdrsSliceIsNil
 	}
 
-	// save the last headers with the highest broadcastInRound per shard
+	// save the last headers with the highest round per shard
 	tmpNotedHdrs := make(mapShardLastHeaders, mp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
 		tmpNotedHdrs[i] = mp.lastNotarizedHdrs[i]
@@ -467,7 +467,7 @@ func (mp *metaProcessor) createLastNotarizedHdrs(header *block.MetaBlock) error 
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
-		header, err := mp.getShardHeaderFromPool(shardData.ShardId, shardData.HeaderHash)
+		header, err := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
 		if header == nil {
 			return err
 		}
@@ -486,7 +486,7 @@ func (mp *metaProcessor) getSortedShardHdrsFromMetablock(header *block.MetaBlock
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
-		header, err := mp.getShardHeaderFromPool(shardData.ShardId, shardData.HeaderHash)
+		header, err := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
 		if header == nil {
 			return nil, err
 		}
@@ -695,26 +695,6 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 	return false, nil
 }
 
-// getHeaderFromPool gets the header from a given shard id and a given header hash
-func (mp *metaProcessor) getShardHeaderFromPool(shardID uint32, headerHash []byte) (*block.Header, error) {
-	headerPool := mp.dataPool.ShardHeaders()
-	if headerPool == nil {
-		return nil, process.ErrNilHeadersDataPool
-	}
-
-	val, ok := headerPool.Peek(headerHash)
-	if !ok {
-		return nil, process.ErrMissingHeader
-	}
-
-	header, ok := val.(*block.Header)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	return header, nil
-}
-
 // receivedHeader is a call back function which is called when a new header
 // is added in the headers pool
 func (mp *metaProcessor) receivedHeader(headerHash []byte) {
@@ -760,7 +740,7 @@ func (mp *metaProcessor) computeMissingHeaders(header *block.MetaBlock) map[uint
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
-		header, _ := mp.getShardHeaderFromPool(shardData.ShardId, shardData.HeaderHash)
+		header, _ := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
 		if header == nil {
 			missingHeaders[shardData.ShardId] = shardData.HeaderHash
 		}

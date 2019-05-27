@@ -20,8 +20,8 @@ type headerInfo struct {
 	broadcastInRound int32
 }
 
-// shardBlock implements NotarisedBlocksTracker interface which tracks notarised blocks
-type shardBlock struct {
+// shardBlockTracker implements NotarisedBlocksTracker interface which tracks notarised blocks
+type shardBlockTracker struct {
 	dataPool         dataRetriever.PoolsHolder
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
@@ -31,14 +31,13 @@ type shardBlock struct {
 	unnotarisedHeaders    map[uint64]*headerInfo
 }
 
-// NewShardBlock creates a new shardBlock object
-func NewShardBlock(
+// NewShardBlockTracker creates a new shardBlockTracker object
+func NewShardBlockTracker(
 	dataPool dataRetriever.PoolsHolder,
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
-) (*shardBlock, error) {
-
+) (*shardBlockTracker, error) {
 	err := checkTrackerNilParameters(
 		dataPool,
 		marshalizer,
@@ -48,16 +47,16 @@ func NewShardBlock(
 		return nil, err
 	}
 
-	sb := shardBlock{
+	sbt := shardBlockTracker{
 		dataPool:         dataPool,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
 		store:            store,
 	}
 
-	sb.unnotarisedHeaders = make(map[uint64]*headerInfo)
+	sbt.unnotarisedHeaders = make(map[uint64]*headerInfo)
 
-	return &sb, nil
+	return &sbt, nil
 }
 
 // checkTrackerNilParameters will check the imput parameters for nil values
@@ -67,7 +66,6 @@ func checkTrackerNilParameters(
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
 ) error {
-
 	if dataPool == nil {
 		return process.ErrNilDataPoolHolder
 	}
@@ -85,124 +83,77 @@ func checkTrackerNilParameters(
 }
 
 // AddBlock adds new block to be tracked
-func (sb *shardBlock) AddBlock(headerHandler data.HeaderHandler) {
-	sb.mutUnnotarisedHeaders.Lock()
-	sb.unnotarisedHeaders[headerHandler.GetNonce()] = &headerInfo{header: headerHandler, broadcastInRound: 0}
-	sb.mutUnnotarisedHeaders.Unlock()
+func (sbt *shardBlockTracker) AddBlock(headerHandler data.HeaderHandler) {
+	sbt.mutUnnotarisedHeaders.Lock()
+	sbt.unnotarisedHeaders[headerHandler.GetNonce()] = &headerInfo{header: headerHandler, broadcastInRound: 0}
+	sbt.mutUnnotarisedHeaders.Unlock()
 }
 
 // RemoveNotarisedBlocks removes all the blocks which already have been notarised
-func (sb *shardBlock) RemoveNotarisedBlocks(headerHandler data.HeaderHandler) {
+func (sbt *shardBlockTracker) RemoveNotarisedBlocks(headerHandler data.HeaderHandler) error {
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
-		log.Debug(fmt.Sprintf("wrong type assertion: expected MetaBlock\n"))
-		return
+		return process.ErrWrongTypeAssertion
 	}
 
 	for _, shardData := range metaBlock.ShardInfo {
-		if shardData.ShardId != sb.shardCoordinator.SelfId() {
+		if shardData.ShardId != sbt.shardCoordinator.SelfId() {
 			continue
 		}
 
-		header := sb.getHeader(shardData.HeaderHash)
-		if header == nil {
+		header, err := process.GetShardHeader(shardData.HeaderHash, sbt.dataPool.Headers(), sbt.marshalizer, sbt.store)
+		if err != nil {
 			continue
 		}
 
-		log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been notarised by metachain\n",
+		log.Info(fmt.Sprintf("shardBlockTracker with nonce %d and hash %s has been notarised by metachain\n",
 			header.GetNonce(),
 			process.ToB64(shardData.HeaderHash)))
 
-		sb.mutUnnotarisedHeaders.Lock()
-		delete(sb.unnotarisedHeaders, header.Nonce)
-		sb.mutUnnotarisedHeaders.Unlock()
+		sbt.mutUnnotarisedHeaders.Lock()
+		delete(sbt.unnotarisedHeaders, header.Nonce)
+		sbt.mutUnnotarisedHeaders.Unlock()
 	}
+
+	return nil
 }
 
 // UnnotarisedBlocks gets all the blocks which are not notarised yet
-func (sb *shardBlock) UnnotarisedBlocks() []data.HeaderHandler {
-	sb.mutUnnotarisedHeaders.RLock()
+func (sbt *shardBlockTracker) UnnotarisedBlocks() []data.HeaderHandler {
+	sbt.mutUnnotarisedHeaders.RLock()
 
 	hdrs := make([]data.HeaderHandler, 0)
-	for _, hInfo := range sb.unnotarisedHeaders {
+	for _, hInfo := range sbt.unnotarisedHeaders {
 		hdrs = append(hdrs, hInfo.header)
 	}
 
-	sb.mutUnnotarisedHeaders.RUnlock()
+	sbt.mutUnnotarisedHeaders.RUnlock()
 
 	return hdrs
 }
 
 // SetBlockBroadcastRound sets the round in which the block with the given nonce has been broadcast
-func (sb *shardBlock) SetBlockBroadcastRound(nonce uint64, round int32) {
-	sb.mutUnnotarisedHeaders.Lock()
+func (sbt *shardBlockTracker) SetBlockBroadcastRound(nonce uint64, round int32) {
+	sbt.mutUnnotarisedHeaders.Lock()
 
-	hInfo := sb.unnotarisedHeaders[nonce]
+	hInfo := sbt.unnotarisedHeaders[nonce]
 	if hInfo != nil {
-		sb.unnotarisedHeaders[nonce] = &headerInfo{header: hInfo.header, broadcastInRound: round}
+		hInfo.broadcastInRound = round
+		sbt.unnotarisedHeaders[nonce] = hInfo
 	}
 
-	sb.mutUnnotarisedHeaders.Unlock()
+	sbt.mutUnnotarisedHeaders.Unlock()
 }
 
 // BlockBroadcastRound gets the round in which the block with given nonce has been broadcast
-func (sb *shardBlock) BlockBroadcastRound(nonce uint64) int32 {
-	sb.mutUnnotarisedHeaders.RLock()
-	hInfo := sb.unnotarisedHeaders[nonce]
-	sb.mutUnnotarisedHeaders.RUnlock()
+func (sbt *shardBlockTracker) BlockBroadcastRound(nonce uint64) int32 {
+	sbt.mutUnnotarisedHeaders.RLock()
+	hInfo := sbt.unnotarisedHeaders[nonce]
+	sbt.mutUnnotarisedHeaders.RUnlock()
 
 	if hInfo == nil {
 		return 0
 	}
 
 	return hInfo.broadcastInRound
-}
-
-func (sb *shardBlock) getHeader(hash []byte) *block.Header {
-	hdr := sb.getHeaderFromPool(hash)
-	if hdr != nil {
-		return hdr
-	}
-
-	return sb.getHeaderFromStorage(hash)
-}
-
-func (sb *shardBlock) getHeaderFromPool(hash []byte) *block.Header {
-	hdr, ok := sb.dataPool.Headers().Peek(hash)
-	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", process.ToB64(hash)))
-		return nil
-	}
-
-	header, ok := hdr.(*block.Header)
-	if !ok {
-		log.Debug(fmt.Sprintf("data with hash %s is not header\n", process.ToB64(hash)))
-		return nil
-	}
-
-	return header
-}
-
-func (sb *shardBlock) getHeaderFromStorage(hash []byte) *block.Header {
-	headerStore := sb.store.GetStorer(dataRetriever.BlockHeaderUnit)
-
-	if headerStore == nil {
-		log.Error(process.ErrNilHeadersStorage.Error())
-		return nil
-	}
-
-	buffHeader, err := headerStore.Get(hash)
-	if err != nil {
-		log.Debug(err.Error())
-		return nil
-	}
-
-	header := &block.Header{}
-	err = sb.marshalizer.Unmarshal(header, buffHeader)
-	if err != nil {
-		log.Error(err.Error())
-		return nil
-	}
-
-	return header
 }

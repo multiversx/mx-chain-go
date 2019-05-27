@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
@@ -167,7 +166,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Pub keys bitmap",
-		toHex(headerHandler.GetPubKeysBitmap())}))
+		process.ToHex(headerHandler.GetPubKeysBitmap())}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Signature",
@@ -177,13 +176,6 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		"Root hash",
 		process.ToB64(headerHandler.GetRootHash())}))
 	return lines
-}
-
-func toHex(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return "0x" + hex.EncodeToString(buff)
 }
 
 // checkProcessorNilParameters will check the imput parameters for nil values

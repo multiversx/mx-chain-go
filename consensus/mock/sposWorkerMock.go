@@ -49,10 +49,6 @@ func (sposWorkerMock *SposWorkerMock) BroadcastBlock(body data.BodyHandler, head
 	return sposWorkerMock.GetBroadcastBlockCalled(body, header)
 }
 
-func (sposWorkerMock *SposWorkerMock) BroadcastHeader(header data.HeaderHandler) error {
-	return sposWorkerMock.GetBroadcastHeaderCalled(header)
-}
-
 func (sposWorkerMock *SposWorkerMock) ExecuteStoredMessages() {
 	sposWorkerMock.ExecuteStoredMessagesCalled()
 }

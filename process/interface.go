@@ -137,7 +137,7 @@ type DataPacker interface {
 // BlocksTracker defines the functionality to track all the notarised blocks
 type BlocksTracker interface {
 	UnnotarisedBlocks() []data.HeaderHandler
-	RemoveNotarisedBlocks(headerHandler data.HeaderHandler)
+	RemoveNotarisedBlocks(headerHandler data.HeaderHandler) error
 	AddBlock(headerHandler data.HeaderHandler)
 	SetBlockBroadcastRound(nonce uint64, round int32)
 	BlockBroadcastRound(nonce uint64) int32

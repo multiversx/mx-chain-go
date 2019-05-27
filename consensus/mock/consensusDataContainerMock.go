@@ -16,7 +16,6 @@ type ConsensusCoreMock struct {
 	blockProcessor         process.BlockProcessor
 	bootstraper            process.Bootstrapper
 	chronologyHandler      consensus.ChronologyHandler
-	forkDetector           process.ForkDetector
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
 	blsPrivateKey          crypto.PrivateKey
@@ -42,10 +41,6 @@ func (cdc *ConsensusCoreMock) BootStrapper() process.Bootstrapper {
 
 func (cdc *ConsensusCoreMock) Chronology() consensus.ChronologyHandler {
 	return cdc.chronologyHandler
-}
-
-func (cdc *ConsensusCoreMock) ForkDetector() process.ForkDetector {
-	return cdc.forkDetector
 }
 
 func (cdc *ConsensusCoreMock) Hasher() hashing.Hasher {
@@ -90,10 +85,6 @@ func (cdc *ConsensusCoreMock) SetBootStrapper(bootstraper process.Bootstrapper) 
 
 func (cdc *ConsensusCoreMock) SetChronology(chronologyHandler consensus.ChronologyHandler) {
 	cdc.chronologyHandler = chronologyHandler
-}
-
-func (cdc *ConsensusCoreMock) SetForkDetector(forkDetector process.ForkDetector) {
-	cdc.forkDetector = forkDetector
 }
 
 func (cdc *ConsensusCoreMock) SetHasher(hasher hashing.Hasher) {

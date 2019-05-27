@@ -255,7 +255,8 @@ func main() {
 		},
 	}
 
-	// set the maximum allowed OS threads (not go routines) which can run in the same time
+	//TODO: The next line should be removed when the write in batches is done
+	// set the maximum allowed OS threads (not go routines) which can run in the same time (the default is 10000)
 	debug.SetMaxThreads(100000)
 
 	app.Action = func(c *cli.Context) error {
@@ -774,7 +775,7 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	blockTracker, err := track.NewShardBlock(datapool, marshalizer, shardCoordinator, store)
+	blockTracker, err := track.NewShardBlockTracker(datapool, marshalizer, shardCoordinator, store)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1061,7 +1062,7 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
-	blockTracker, err := track.NewMetaBlock()
+	blockTracker, err := track.NewMetaBlockTracker()
 	if err != nil {
 		return nil, nil, nil, err
 	}

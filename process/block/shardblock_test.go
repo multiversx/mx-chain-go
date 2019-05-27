@@ -2545,7 +2545,8 @@ func TestShardProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
 			},
 		},
 		&mock.BlocksTrackerMock{
-			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) {
+			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
+				return nil
 			},
 		},
 		func(destShardID uint32, txHashes [][]byte) {},

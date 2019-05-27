@@ -559,6 +559,8 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 			}
 		}
 
+		//TODO: Should be add here a condition that allows the remove of metachain blocks from pool, only if they are
+		//final in metachain
 		if processedAll {
 			sp.blocksTracker.RemoveNotarisedBlocks(hdr)
 

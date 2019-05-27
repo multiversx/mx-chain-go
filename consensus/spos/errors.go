@@ -94,9 +94,6 @@ var ErrNilValidatorGroupSelector = errors.New("validator group selector is nil")
 // ErrNilChronologyHandler is raised when a valid chronology handler is expected but nil used
 var ErrNilChronologyHandler = errors.New("chronology handler is nil")
 
-// ErrNilForkDetectorHandler is raised when a valid fork detector handler is expected but nil used
-var ErrNilForkDetectorHandler = errors.New("fork detector handler is nil")
-
 // ErrNilRounder is raised when a valid rounder is expected but nil used
 var ErrNilRounder = errors.New("rounder is nil")
 
@@ -139,11 +136,14 @@ var ErrNilBlsSingleSigner = errors.New("BLS single signer should not be nil")
 // ErrNilHeader is raised when an expected header is nil
 var ErrNilHeader = errors.New("header is nil")
 
-// ErrNilBroadCastBlock is raised when a valid broadcastBlock function is expected but nil used
-var ErrNilBroadCastBlock = errors.New("broadCastBlock is nil")
+// ErrNilBroadcastBlock is raised when a valid broadcastBlock function is expected but nil used
+var ErrNilBroadcastBlock = errors.New("broadcastBlock is nil")
 
-// ErrNilBroadCastHeader is raised when a valid broadcastHeader function is expected but nil used
-var ErrNilBroadCastHeader = errors.New("broadCastHeader is nil")
+// ErrNilBroadcastHeader is raised when a valid broadcastHeader function is expected but nil used
+var ErrNilBroadcastHeader = errors.New("broadcastHeader is nil")
+
+// ErrNilBroadcastUnnotarisedBlocks is raised when a valid broadcastUnnotarisedBlocks function is expected but nil used
+var ErrNilBroadcastUnnotarisedBlocks = errors.New("broadcastUnnotarisedBlocks is nil")
 
 // ErrNilSendMessage is raised when a valid sendMessage function is expected but nil used
 var ErrNilSendMessage = errors.New("sendMessage is nil")
