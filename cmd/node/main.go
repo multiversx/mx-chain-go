@@ -1066,7 +1066,7 @@ func createMetaNode(
 		}
 	}
 
-	coreServiceContainer, err = core.NewServiceContainer(core.WithIndexer(dbIndexer))
+	coreServiceContainer, err = core.NewServiceContainer(core.WithIndexer(dbIndexer), core.WithTPSBenchmark(tpsBenchmark))
 	if err != nil {
 		return nil, nil, nil, err
 	}

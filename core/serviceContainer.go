@@ -2,6 +2,7 @@ package core
 
 type serviceContainer struct {
 	indexer Indexer
+	tpsBenchmark TPSBenchmark
 }
 
 // Option represents a functional configuration parameter that
@@ -26,10 +27,23 @@ func (sc *serviceContainer) Indexer() Indexer {
 	return sc.indexer
 }
 
+// TPSBenchmark returns the core package's tpsBenchmark
+func (sc *serviceContainer) TPSBenchmark() TPSBenchmark {
+	return sc.tpsBenchmark
+}
+
 // WithIndexer sets up the database indexer for the core serviceContainer
 func WithIndexer(indexer Indexer) Option {
 	return func(sc *serviceContainer) error {
 		sc.indexer = indexer
+		return nil
+	}
+}
+
+// WithTPSBenchmark sets up the tpsBenchmark object for the core serviceContainer
+func WithTPSBenchmark(tpsBenchmark TPSBenchmark) Option {
+	return func(sc *serviceContainer) error {
+		sc.tpsBenchmark = tpsBenchmark
 		return nil
 	}
 }
