@@ -276,24 +276,12 @@ func (bp *baseProcessor) getLastNotarizedHdr(shardId uint32) (data.HeaderHandler
 		return nil, process.ErrLastNotarizedHdrsSliceIsNil
 	}
 
+	err := bp.checkHeaderTypeCorrect(shardId, bp.lastNotarizedHdrs[shardId])
+	if err != nil {
+		return nil, err
+	}
+
 	hdr := bp.lastNotarizedHdrs[shardId]
-	if hdr == nil {
-		return nil, process.ErrLastNotarizedHdrsSliceIsNil
-	}
-
-	if shardId == sharding.MetachainShardId {
-		_, ok := hdr.(*block.MetaBlock)
-		if !ok {
-			return nil, process.ErrWrongTypeAssertion
-		}
-	}
-
-	if shardId < bp.shardCoordinator.NumberOfShards() {
-		_, ok := hdr.(*block.Header)
-		if !ok {
-			return nil, process.ErrWrongTypeAssertion
-		}
-	}
 
 	return hdr, nil
 
