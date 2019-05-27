@@ -20,7 +20,7 @@ cluster.name: elrond-cluster
 #
 # Use a descriptive name for the node:
 #
-#node.name: es-node-1
+node.name: elrond-es-node-1
 #
 # Add custom attributes to the node:
 #

@@ -214,8 +214,8 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
-func (sp *metaProcessor) indexBlockIfNeeded(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) {
-	if sp.core.Indexer() == nil {
+func (mp *metaProcessor) indexBlockIfNeeded(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) {
+	if mp.core.Indexer() == nil {
 		return
 	}
 
@@ -224,7 +224,7 @@ func (sp *metaProcessor) indexBlockIfNeeded(metaBlock *block.MetaBlock, headerPo
 	}
 	fmt.Println("elasticsearch starting goroutine to save block")
 
-	go sp.core.Indexer().SaveMetaBlock(metaBlock, headerPool)
+	//go mp.core.Indexer().SaveMetaBlock(metaBlock, headerPool)
 }
 
 // removeBlockInfoFromPool removes the block info from associated pools

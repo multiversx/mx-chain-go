@@ -202,9 +202,6 @@ func (sp *shardProcessor) indexBlockIfNeeded(body block.Body, header *block.Head
 	if sp.core.Indexer() == nil {
 		return
 	}
-	if len(body) == 0 {
-		return
-	}
 
 	go sp.core.Indexer().SaveBlock(body, header, txPool)
 }

@@ -769,7 +769,7 @@ func createShardNode(
 	}
 
 	if config.Explorer.Enabled {
-		dbIndexer, err = indexer.NewElasticIndexer(config.Explorer.IndexerURL, marshalizer, hasher, log)
+		dbIndexer, err = indexer.NewElasticIndexer(config.Explorer.IndexerURL, shardCoordinator, marshalizer, hasher, log)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -1062,7 +1062,7 @@ func createMetaNode(
 	}
 
 	if config.Explorer.Enabled {
-		dbIndexer, err = indexer.NewElasticIndexer(config.Explorer.IndexerURL, marshalizer, hasher, log)
+		dbIndexer, err = indexer.NewElasticIndexer(config.Explorer.IndexerURL, shardCoordinator, marshalizer, hasher, log)
 		if err != nil {
 			return nil, nil, nil, err
 		}
