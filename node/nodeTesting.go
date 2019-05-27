@@ -9,7 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 //TODO convert this const into a var and read it from config when this code moves to another binary
@@ -20,6 +22,22 @@ const maxBulkTransactionSize = 2 << 17 //128KB bulks
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
 // of transactions to be processed. It is mainly used for demo purposes
 func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTx uint64) error {
+	//TODO: Remove this hack later when throttle is done
+	if n.shardCoordinator.SelfId() != sharding.MetachainShardId {
+		txPool := n.dataPool.Transactions()
+		if txPool == nil {
+			return process.ErrNilTransactionPool
+		}
+
+		for i := uint32(0); i < n.shardCoordinator.NumberOfShards(); i++ {
+			strCache := process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), i)
+			txStore := txPool.ShardDataStore(strCache)
+			if uint64(txStore.Len())+noOfTx > 50000 {
+				return errors.New("too many txs in pool")
+			}
+		}
+	}
+
 	err := n.generateBulkTransactionsChecks(noOfTx)
 	if err != nil {
 		return err
