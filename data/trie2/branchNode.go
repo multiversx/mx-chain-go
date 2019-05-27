@@ -61,7 +61,7 @@ func branchNodeCapnToGo(src capnp.BranchNodeCapn, dest *branchNode) *branchNode 
 }
 
 func newEmptyBranchNode() *branchNode {
-	children := make([]node, nrOfChildren)
+	var children [nrOfChildren]node
 	EncChildren := make([][]byte, nrOfChildren)
 
 	return &branchNode{

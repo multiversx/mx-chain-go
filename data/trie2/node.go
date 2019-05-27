@@ -36,7 +36,7 @@ type node interface {
 
 type branchNode struct {
 	protobuf.CollapsedBn
-	children []node
+	children [nrOfChildren]node
 	hash     []byte
 	dirty    bool
 }

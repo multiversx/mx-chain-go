@@ -20,7 +20,7 @@ func getTestMarshAndHasher() (marshal.Marshalizer, hashing.Hasher) {
 func getBnAndCollapsedBn() (*branchNode, *branchNode) {
 	marsh, hasher := getTestMarshAndHasher()
 
-	children := make([]node, nrOfChildren)
+	var children [nrOfChildren]node
 	EncodedChildren := make([][]byte, nrOfChildren)
 
 	children[2] = newLeafNode([]byte("dog"), []byte("dog"))
@@ -586,7 +586,7 @@ func TestBranchNode_delete(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
-	children := make([]node, nrOfChildren)
+	var children [nrOfChildren]node
 	children[6] = newLeafNode([]byte("doe"), []byte("doe"))
 	children[13] = newLeafNode([]byte("doge"), []byte("doge"))
 	expectedBn := newEmptyBranchNode()
@@ -657,7 +657,7 @@ func TestBranchNode_deleteAndReduceBn(t *testing.T) {
 	db, _ := memorydb.New()
 	marsh, _ := getTestMarshAndHasher()
 
-	children := make([]node, nrOfChildren)
+	var children [nrOfChildren]node
 	children[2] = newLeafNode([]byte("dog"), []byte("dog"))
 	children[6] = newLeafNode([]byte("doe"), []byte("doe"))
 	bn := newEmptyBranchNode()
@@ -672,7 +672,7 @@ func TestBranchNode_deleteAndReduceBn(t *testing.T) {
 
 func TestBranchNode_reduceNode(t *testing.T) {
 	t.Parallel()
-	children := make([]node, nrOfChildren)
+	var children [nrOfChildren]node
 	children[2] = newLeafNode([]byte("dog"), []byte("dog"))
 	bn := newEmptyBranchNode()
 	bn.children = children
