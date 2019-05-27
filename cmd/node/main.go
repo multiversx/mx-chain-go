@@ -68,6 +68,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
@@ -1273,7 +1274,7 @@ func getPkEncoded(pubKey crypto.PublicKey) string {
 }
 
 func getTrie(cfg config.StorageConfig, hasher hashing.Hasher) (*trie.Trie, error) {
-	accountsTrieStorage, err := storage.NewStorageUnitFromConf(
+	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(cfg.Cache),
 		getDBFromConfig(cfg.DB),
 		getBloomFromConfig(cfg.Bloom),
@@ -1328,31 +1329,31 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 	return nil, errors.New("no marshalizer provided in config file")
 }
 
-func getCacherFromConfig(cfg config.CacheConfig) storage.CacheConfig {
-	return storage.CacheConfig{
+func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
+	return storageUnit.CacheConfig{
 		Size:   cfg.Size,
-		Type:   storage.CacheType(cfg.Type),
+		Type:   storageUnit.CacheType(cfg.Type),
 		Shards: cfg.Shards,
 	}
 }
 
-func getDBFromConfig(cfg config.DBConfig) storage.DBConfig {
-	return storage.DBConfig{
+func getDBFromConfig(cfg config.DBConfig) storageUnit.DBConfig {
+	return storageUnit.DBConfig{
 		FilePath: filepath.Join(config.DefaultPath()+uniqueID, cfg.FilePath),
-		Type:     storage.DBType(cfg.Type),
+		Type:     storageUnit.DBType(cfg.Type),
 	}
 }
 
-func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
-	var hashFuncs []storage.HasherType
+func getBloomFromConfig(cfg config.BloomFilterConfig) storageUnit.BloomConfig {
+	var hashFuncs []storageUnit.HasherType
 	if cfg.HashFunc != nil {
-		hashFuncs = make([]storage.HasherType, 0)
+		hashFuncs = make([]storageUnit.HasherType, 0)
 		for _, hf := range cfg.HashFunc {
-			hashFuncs = append(hashFuncs, storage.HasherType(hf))
+			hashFuncs = append(hashFuncs, storageUnit.HasherType(hf))
 		}
 	}
 
-	return storage.BloomConfig{
+	return storageUnit.BloomConfig{
 		Size:     cfg.Size,
 		HashFunc: hashFuncs,
 	}
@@ -1372,21 +1373,21 @@ func createShardDataPoolFromConfig(
 	}
 
 	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
-	hdrPool, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	hdrPool, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		fmt.Println("error creating hdrpool")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		fmt.Println("error creating metaBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.BlockHeaderNoncesDataPool)
-	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	hdrNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		fmt.Println("error creating hdrNoncesCacher")
 		return nil, err
@@ -1398,21 +1399,21 @@ func createShardDataPoolFromConfig(
 	}
 
 	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
-	txBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		fmt.Println("error creating txBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.PeerBlockBodyDataPool)
-	peerChangeBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		fmt.Println("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
-	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	metaBlockNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		fmt.Println("error creating metaBlockNoncesCacher")
 		return nil, err
@@ -1435,8 +1436,8 @@ func createShardDataPoolFromConfig(
 }
 
 func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error) {
-	badBlockCache, err := storage.NewCache(
-		storage.CacheType(config.BadBlocksCache.Type),
+	badBlockCache, err := storageUnit.NewCache(
+		storageUnit.CacheType(config.BadBlocksCache.Type),
 		config.BadBlocksCache.Size,
 		config.BadBlocksCache.Shards)
 	if err != nil {
@@ -1454,7 +1455,7 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 }
 
 func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
-	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit *storage.Unit
+	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit *storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -1478,7 +1479,7 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 		}
 	}()
 
-	txUnit, err = storage.NewStorageUnitFromConf(
+	txUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.TxStorage.Cache),
 		getDBFromConfig(config.TxStorage.DB),
 		getBloomFromConfig(config.TxStorage.Bloom))
@@ -1486,7 +1487,7 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 		return nil, err
 	}
 
-	miniBlockUnit, err = storage.NewStorageUnitFromConf(
+	miniBlockUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.MiniBlocksStorage.Cache),
 		getDBFromConfig(config.MiniBlocksStorage.DB),
 		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
@@ -1494,7 +1495,7 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 		return nil, err
 	}
 
-	peerBlockUnit, err = storage.NewStorageUnitFromConf(
+	peerBlockUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.PeerBlockBodyStorage.Cache),
 		getDBFromConfig(config.PeerBlockBodyStorage.DB),
 		getBloomFromConfig(config.PeerBlockBodyStorage.Bloom))
@@ -1502,7 +1503,7 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 		return nil, err
 	}
 
-	headerUnit, err = storage.NewStorageUnitFromConf(
+	headerUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.BlockHeaderStorage.Cache),
 		getDBFromConfig(config.BlockHeaderStorage.DB),
 		getBloomFromConfig(config.BlockHeaderStorage.Bloom))
@@ -1510,7 +1511,7 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 		return nil, err
 	}
 
-	metachainHeaderUnit, err = storage.NewStorageUnitFromConf(
+	metachainHeaderUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.MetaBlockStorage.Cache),
 		getDBFromConfig(config.MetaBlockStorage.DB),
 		getBloomFromConfig(config.MetaBlockStorage.Bloom))
@@ -1533,7 +1534,7 @@ func createMetaDataPoolFromConfig(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.MetaPoolsHolder, error) {
 	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		fmt.Println("error creating metaBlockBody")
 		return nil, err
@@ -1546,14 +1547,14 @@ func createMetaDataPoolFromConfig(
 	}
 
 	cacherCfg = getCacherFromConfig(config.ShardHeadersDataPool)
-	shardHeaders, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	shardHeaders, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		fmt.Println("error creating shardHeaders")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
-	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	metaBlockNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		fmt.Println("error creating metaBlockNoncesCacher")
 		return nil, err
@@ -1568,8 +1569,8 @@ func createMetaDataPoolFromConfig(
 }
 
 func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, error) {
-	badBlockCache, err := storage.NewCache(
-		storage.CacheType(config.BadBlocksCache.Type),
+	badBlockCache, err := storageUnit.NewCache(
+		storageUnit.CacheType(config.BadBlocksCache.Type),
 		config.BadBlocksCache.Size,
 		config.BadBlocksCache.Shards)
 	if err != nil {
@@ -1587,7 +1588,7 @@ func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, er
 }
 
 func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
-	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit *storage.Unit
+	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit *storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -1608,7 +1609,7 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 		}
 	}()
 
-	metaBlockUnit, err = storage.NewStorageUnitFromConf(
+	metaBlockUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.MetaBlockStorage.Cache),
 		getDBFromConfig(config.MetaBlockStorage.DB),
 		getBloomFromConfig(config.MetaBlockStorage.Bloom))
@@ -1616,7 +1617,7 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 		return nil, err
 	}
 
-	shardDataUnit, err = storage.NewStorageUnitFromConf(
+	shardDataUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.ShardDataStorage.Cache),
 		getDBFromConfig(config.ShardDataStorage.DB),
 		getBloomFromConfig(config.ShardDataStorage.Bloom))
@@ -1624,7 +1625,7 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 		return nil, err
 	}
 
-	peerDataUnit, err = storage.NewStorageUnitFromConf(
+	peerDataUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.PeerDataStorage.Cache),
 		getDBFromConfig(config.PeerDataStorage.DB),
 		getBloomFromConfig(config.PeerDataStorage.Bloom))
@@ -1632,7 +1633,7 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 		return nil, err
 	}
 
-	headerUnit, err = storage.NewStorageUnitFromConf(
+	headerUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.BlockHeaderStorage.Cache),
 		getDBFromConfig(config.BlockHeaderStorage.DB),
 		getBloomFromConfig(config.BlockHeaderStorage.Bloom))
@@ -1760,9 +1761,9 @@ func generateInMemoryAccountsAdapter(
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10, 1)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
 
-	unit, _ := storage.NewStorageUnit(cache, persist)
+	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 	return unit
 }

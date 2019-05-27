@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/boltdb/bolt"
 )
 
@@ -26,7 +27,7 @@ type DB struct {
 
 // NewDB is a constructor for the boltdb persister
 // It creates the files in the location given as parameter
-func NewDB(path string) (s *DB, err error) {
+func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err error) {
 	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
@@ -60,6 +61,9 @@ func NewDB(path string) (s *DB, err error) {
 		parentFolder: parentFolder,
 	}
 
+	dbStore.db.MaxBatchSize = batchDelaySeconds
+	dbStore.db.MaxBatchSize = maxBatchSize
+
 	return dbStore, nil
 }
 
@@ -91,6 +95,22 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	})
 
 	return val, err
+}
+
+// CreateBatch returns a batcher to be used for batch writing data to the database
+func (s *DB) CreateBatch() storage.Batcher {
+	return NewBatch(s)
+}
+
+// PutBatch writes the Batch data into the database
+func (s *DB) PutBatch(b storage.Batcher) error {
+	_, ok := b.(*Batch)
+	if !ok {
+		return storage.ErrInvalidBatch
+	}
+
+	// nothing to do, boltDB automatically flushes on max or time delay
+	return nil
 }
 
 // Has returns true if the given key is present in the persistance medium

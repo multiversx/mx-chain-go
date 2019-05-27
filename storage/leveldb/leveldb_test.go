@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/stretchr/testify/assert"
 )
@@ -76,7 +77,7 @@ func TestHasNotPresent(t *testing.T) {
 	err := ldb.Has(key)
 
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Key not found")
+	assert.Equal(t, err, storage.ErrKeyNotFound)
 }
 
 func TestRemovePresent(t *testing.T) {
@@ -94,7 +95,7 @@ func TestRemovePresent(t *testing.T) {
 	err = ldb.Has(key)
 
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Key not found")
+	assert.Equal(t, err, storage.ErrKeyNotFound)
 }
 
 func TestRemoveNotPresent(t *testing.T) {

@@ -4,16 +4,20 @@ import (
 	"errors"
 )
 
-var errNilPersister = errors.New("expected not nil persister")
+var ErrNilPersister = errors.New("expected not nil persister")
 
-var errNilCacher = errors.New("expected not nil cacher")
+var ErrNilCacher = errors.New("expected not nil cacher")
 
-var errNilBloomFilter = errors.New("expected not nil bloom filter")
+var ErrNilBloomFilter = errors.New("expected not nil bloom filter")
 
-var errNotSupportedCacheType = errors.New("not supported cache type")
+var ErrNotSupportedCacheType = errors.New("not supported cache type")
 
-var errMissingOrInvalidParameter = errors.New("parameter is missing or invalid")
+var ErrMissingOrInvalidParameter = errors.New("parameter is missing or invalid")
 
-var errNotSupportedDBType = errors.New("nit supported db type")
+var ErrNotSupportedDBType = errors.New("nit supported db type")
 
-var errNotSupportedHashType = errors.New("hash type not supported")
+var ErrNotSupportedHashType = errors.New("hash type not supported")
+
+var ErrKeyNotFound = errors.New("key not found")
+
+var ErrInvalidBatch = errors.New("batch is invalid")

@@ -6,8 +6,12 @@ type Persister interface {
 	Put(key, val []byte) error
 	// Get gets the value associated to the key
 	Get(key []byte) ([]byte, error)
-	// Has returns true if the given key is present in the persistance medium
+	// Has returns true if the given key is present in the persistance mediu
 	Has(key []byte) error
+	// CreateBatch returns a batcher to be used for batch writing data to the database
+	CreateBatch() Batcher
+	// PutBatch writes the Batch data into the database
+	PutBatch(b Batcher) error
 	// Init initializes the persistance medium and prepares it for usage
 	Init() error
 	// Close closes the files/resources associated to the persistance medium
@@ -16,6 +20,16 @@ type Persister interface {
 	Remove(key []byte) error
 	// Destroy removes the persistance medium stored data
 	Destroy() error
+}
+
+// Batcher allows to batch the data first then write the batch to the persister in one go
+type Batcher interface {
+	// Put inserts one entry - key, value pair - into the batch
+	Put(key []byte, val []byte) error
+	// Delete deletes the batch
+	Delete(key []byte) error
+	// Reset clears the contents of the batch
+	Reset()
 }
 
 // Cacher provides caching services

@@ -1,4 +1,4 @@
-package storage
+package storageUnit
 
 import (
 	"encoding/base64"
@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/badgerdb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/boltdb"
@@ -70,8 +71,10 @@ type CacheConfig struct {
 
 // DBConfig holds the configurable elements of a database
 type DBConfig struct {
-	FilePath string
-	Type     DBType
+	FilePath          string
+	Type              DBType
+	BatchDelaySeconds int
+	MaxBatchSize      int
 }
 
 // BloomConfig holds the configurable elements of a bloom filter
@@ -84,9 +87,9 @@ type BloomConfig struct {
 // holding the cache, persistance unit and bloom filter
 type Unit struct {
 	lock        sync.RWMutex
-	persister   Persister
-	cacher      Cacher
-	bloomFilter BloomFilter
+	persister   storage.Persister
+	cacher      storage.Cacher
+	bloomFilter storage.BloomFilter
 }
 
 // Put adds data to both cache and persistance medium and updates the bloom filter
@@ -238,12 +241,12 @@ func (s *Unit) DestroyUnit() error {
 
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given cacher and persister.
-func NewStorageUnit(c Cacher, p Persister) (*Unit, error) {
+func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
 	if p == nil {
-		return nil, errNilPersister
+		return nil, storage.ErrNilPersister
 	}
 	if c == nil {
-		return nil, errNilCacher
+		return nil, storage.ErrNilCacher
 	}
 
 	sUnit := &Unit{
@@ -262,15 +265,15 @@ func NewStorageUnit(c Cacher, p Persister) (*Unit, error) {
 
 // NewStorageUnitWithBloomFilter is the constructor for the storage unit, creating a new storage unit
 // from the given cacher, persister and bloom filter.
-func NewStorageUnitWithBloomFilter(c Cacher, p Persister, b BloomFilter) (*Unit, error) {
+func NewStorageUnitWithBloomFilter(c storage.Cacher, p storage.Persister, b storage.BloomFilter) (*Unit, error) {
 	if p == nil {
-		return nil, errNilPersister
+		return nil, storage.ErrNilPersister
 	}
 	if c == nil {
-		return nil, errNilCacher
+		return nil, storage.ErrNilCacher
 	}
 	if b == nil {
-		return nil, errNilBloomFilter
+		return nil, storage.ErrNilBloomFilter
 	}
 
 	sUnit := &Unit{
@@ -289,9 +292,9 @@ func NewStorageUnitWithBloomFilter(c Cacher, p Persister, b BloomFilter) (*Unit,
 
 // NewStorageUnitFromConf creates a new storage unit from a storage unit config
 func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterConf BloomConfig) (*Unit, error) {
-	var cache Cacher
-	var db Persister
-	var bf BloomFilter
+	var cache storage.Cacher
+	var db storage.Persister
+	var bf storage.BloomFilter
 	var err error
 
 	defer func() {
@@ -305,7 +308,7 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		return nil, err
 	}
 
-	db, err = NewDB(dbConf.Type, dbConf.FilePath)
+	db, err = NewDB(dbConf.Type, dbConf.FilePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize)
 	if err != nil {
 		return nil, err
 	}
@@ -324,8 +327,8 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 
 //NewCache creates a new cache from a cache config
 //TODO: add a cacher factory or a cacheConfig param instead
-func NewCache(cacheType CacheType, size uint32, shards uint32) (Cacher, error) {
-	var cacher Cacher
+func NewCache(cacheType CacheType, size uint32, shards uint32) (storage.Cacher, error) {
+	var cacher storage.Cacher
 	var err error
 
 	switch cacheType {
@@ -338,7 +341,7 @@ func NewCache(cacheType CacheType, size uint32, shards uint32) (Cacher, error) {
 		}
 		// add other implementations if required
 	default:
-		return nil, errNotSupportedCacheType
+		return nil, storage.ErrNotSupportedCacheType
 	}
 
 	if err != nil {
@@ -349,8 +352,8 @@ func NewCache(cacheType CacheType, size uint32, shards uint32) (Cacher, error) {
 }
 
 // NewDB creates a new database from database config
-func NewDB(dbType DBType, path string) (Persister, error) {
-	var db Persister
+func NewDB(dbType DBType, path string, batchDelaySeconds int, maxBatchSize int) (storage.Persister, error) {
+	var db storage.Persister
 	var err error
 
 	switch dbType {
@@ -359,9 +362,9 @@ func NewDB(dbType DBType, path string) (Persister, error) {
 	case BadgerDB:
 		db, err = badgerdb.NewDB(path)
 	case BoltDB:
-		db, err = boltdb.NewDB(path)
+		db, err = boltdb.NewDB(path, batchDelaySeconds, maxBatchSize)
 	default:
-		return nil, errNotSupportedDBType
+		return nil, storage.ErrNotSupportedDBType
 	}
 
 	if err != nil {
@@ -372,8 +375,8 @@ func NewDB(dbType DBType, path string) (Persister, error) {
 }
 
 // NewBloomFilter creates a new bloom filter from bloom filter config
-func NewBloomFilter(conf BloomConfig) (BloomFilter, error) {
-	var bf BloomFilter
+func NewBloomFilter(conf BloomConfig) (storage.BloomFilter, error) {
+	var bf storage.BloomFilter
 	var err error
 	var hashers []hashing.Hasher
 
@@ -404,6 +407,6 @@ func (h HasherType) NewHasher() (hashing.Hasher, error) {
 	case Fnv:
 		return fnv.Fnv{}, nil
 	default:
-		return nil, errNotSupportedHashType
+		return nil, storage.ErrNotSupportedHashType
 	}
 }

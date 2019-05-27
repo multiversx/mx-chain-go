@@ -10,7 +10,7 @@ import (
 
 func createBoltDb(t *testing.T) (p *boltdb.DB) {
 	dir, err := ioutil.TempDir("", "leveldb_temp")
-	bDB, err := boltdb.NewDB(dir)
+	bDB, err := boltdb.NewDB(dir, 10, 10)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
 	return bDB
