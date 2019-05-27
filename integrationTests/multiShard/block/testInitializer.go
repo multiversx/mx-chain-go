@@ -235,7 +235,7 @@ func createNetNode(
 	)
 
 	blockProcessor, _ := block.NewShardProcessor(
-		nil,
+		&mock.ServiceContainerMock{},
 		dPool,
 		store,
 		testHasher,
@@ -627,7 +627,7 @@ func createMetaNetNode(
 	resolvers, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 
 	blkProc, _ := block.NewMetaProcessor(
-		nil,
+		&mock.ServiceContainerMock{},
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{
