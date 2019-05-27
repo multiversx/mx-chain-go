@@ -125,13 +125,13 @@ func (boot *MetaBootstrap) getHeader(hash []byte) *block.MetaBlock {
 func (boot *MetaBootstrap) getHeaderFromPool(hash []byte) *block.MetaBlock {
 	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", toB64(hash)))
+		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", process.ToB64(hash)))
 		return nil
 	}
 
 	header, ok := hdr.(*block.MetaBlock)
 	if !ok {
-		log.Debug(fmt.Sprintf("data with hash %s is not metablock\n", toB64(hash)))
+		log.Debug(fmt.Sprintf("data with hash %s is not metablock\n", process.ToB64(hash)))
 		return nil
 	}
 
@@ -145,9 +145,14 @@ func (boot *MetaBootstrap) getHeaderFromStorage(hash []byte) *block.MetaBlock {
 		return nil
 	}
 
-	buffHeader, _ := headerStore.Get(hash)
+	buffHeader, err := headerStore.Get(hash)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
 	header := &block.MetaBlock{}
-	err := boot.marshalizer.Unmarshal(header, buffHeader)
+	err = boot.marshalizer.Unmarshal(header, buffHeader)
 	if err != nil {
 		log.Error(err.Error())
 		return nil
@@ -251,13 +256,13 @@ func (boot *MetaBootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.Met
 
 	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", toB64(hash)))
+		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", process.ToB64(hash)))
 		return nil
 	}
 
 	header, ok := hdr.(*block.MetaBlock)
 	if !ok {
-		log.Debug(fmt.Sprintf("data with hash %s is not metablock\n", toB64(hash)))
+		log.Debug(fmt.Sprintf("data with hash %s is not metablock\n", process.ToB64(hash)))
 		return nil
 	}
 
@@ -305,7 +310,7 @@ func (boot *MetaBootstrap) forkChoice() error {
 		}
 
 		msg := fmt.Sprintf("roll back to header with nonce %d and hash %s",
-			header.GetNonce()-1, toB64(header.GetPrevHash()))
+			header.GetNonce()-1, process.ToB64(header.GetPrevHash()))
 
 		isSigned := isSigned(header)
 		if isSigned {
@@ -383,10 +388,13 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 
 func (boot *MetaBootstrap) getPrevHeader(headerStore storage.Storer, header *block.MetaBlock) (*block.MetaBlock, error) {
 	prevHash := header.GetPrevHash()
-	buffHeader, _ := headerStore.Get(prevHash)
-	newHeader := &block.MetaBlock{}
+	buffHeader, err := headerStore.Get(prevHash)
+	if err != nil {
+		return nil, err
+	}
 
-	err := boot.marshalizer.Unmarshal(newHeader, buffHeader)
+	newHeader := &block.MetaBlock{}
+	err = boot.marshalizer.Unmarshal(newHeader, buffHeader)
 	if err != nil {
 		return nil, err
 	}

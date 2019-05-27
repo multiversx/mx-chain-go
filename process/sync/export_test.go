@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
@@ -119,4 +120,8 @@ func (boot *ShardBootstrap) SetForkNonce(nonce uint64) {
 
 func (boot *MetaBootstrap) SetForkNonce(nonce uint64) {
 	boot.forkNonce = nonce
+}
+
+func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	boot.processReceivedHeader(headerHandler, headerHash)
 }

@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -253,6 +254,9 @@ func main() {
 			Email: "contact@elrond.com",
 		},
 	}
+
+	// set the maximum allowed OS threads (not go routines) which can run in the same time
+	debug.SetMaxThreads(100000)
 
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
