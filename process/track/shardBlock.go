@@ -106,7 +106,7 @@ func (sbt *shardBlockTracker) RemoveNotarisedBlocks(headerHandler data.HeaderHan
 			continue
 		}
 
-		log.Info(fmt.Sprintf("shardBlockTracker with nonce %d and hash %s has been notarised by metachain\n",
+		log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been notarised by metachain\n",
 			header.GetNonce(),
 			process.ToB64(shardData.HeaderHash)))
 

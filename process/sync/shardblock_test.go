@@ -1617,10 +1617,10 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	account := &mock.AccountsStub{}
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
-	store := createStore()
+
 	bs, _ := sync.NewShardBootstrap(
 		pools,
-		store,
+		createStore(),
 		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
@@ -1633,7 +1633,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		account,
 	)
 
-	assert.Nil(t, bs.GetHeaderFromPool(0))
+	assert.Nil(t, bs.GetHeaderFromPoolHavingNonce(0))
 }
 
 func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
@@ -1695,7 +1695,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		account,
 	)
 
-	assert.True(t, hdr == bs.GetHeaderFromPool(0))
+	assert.True(t, hdr == bs.GetHeaderFromPoolHavingNonce(0))
 }
 
 func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
