@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )

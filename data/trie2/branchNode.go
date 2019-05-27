@@ -5,9 +5,8 @@ import (
 	"io"
 	"sync"
 
-	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/capnp"
+	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	capn "github.com/glycerine/go-capnproto"
@@ -298,7 +297,7 @@ func (bn *branchNode) resolveCollapsed(pos byte, db DBWriteCacher, marshalizer m
 	if childPosOutOfRange(pos) {
 		return ErrChildPosOutOfRange
 	}
-	if bn.EncodedChildren[pos] != nil {
+	if len(bn.EncodedChildren[pos]) != 0 {
 		child, err := getNodeFromDBAndDecode(bn.EncodedChildren[pos], db, marshalizer)
 		if err != nil {
 			return err
@@ -468,7 +467,7 @@ func (bn *branchNode) reduceNode(pos int) node {
 
 func getChildPosition(n *branchNode) (nrOfChildren int, childPos int) {
 	for i := range n.children {
-		if n.children[i] != nil || n.EncodedChildren[i] != nil {
+		if n.children[i] != nil || len(n.EncodedChildren[i]) != 0 {
 			nrOfChildren++
 			childPos = i
 		}
@@ -486,7 +485,7 @@ func (bn *branchNode) isEmptyOrNil() error {
 		return ErrNilNode
 	}
 	for i := range bn.children {
-		if bn.children[i] != nil || bn.EncodedChildren[i] != nil {
+		if bn.children[i] != nil || len(bn.EncodedChildren[i]) != 0 {
 			return nil
 		}
 	}

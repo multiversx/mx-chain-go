@@ -108,8 +108,7 @@ func TestBranchNode_setHash(t *testing.T) {
 
 func TestBranchNode_setRootHash(t *testing.T) {
 	db, _ := memorydb.New()
-	marsh := &marshal.ProtobufMarshalizer{}
-	hsh := keccak.Keccak{}
+	marsh, hsh := getTestMarshAndHasher()
 
 	tr1, _ := NewTrie(db, marsh, hsh)
 	tr2, _ := NewTrie(db, marsh, hsh)
@@ -267,7 +266,9 @@ func TestBranchNode_commit(t *testing.T) {
 
 	encNode, _ := db.Get(hash)
 	node, _ := decodeNode(encNode, marsh)
-	assert.Equal(t, collapsedBn, node)
+	h1, _ := encodeNodeAndGetHash(collapsedBn, marsh, hasher)
+	h2, _ := encodeNodeAndGetHash(node, marsh, hasher)
+	assert.Equal(t, h1, h2)
 }
 
 func TestBranchNode_commitEmptyNode(t *testing.T) {
@@ -470,12 +471,16 @@ func TestBranchNode_getNext(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()
 	bn, _ := getBnAndCollapsedBn()
-	marsh, _ := getTestMarshAndHasher()
+	marsh, hasher := getTestMarshAndHasher()
 	nextNode := newLeafNode([]byte("dog"), []byte("dog"))
 	key := []byte{2, 100, 111, 103}
 
 	node, key, err := bn.getNext(key, db, marsh)
-	assert.Equal(t, nextNode, node)
+
+	h1, _ := encodeNodeAndGetHash(nextNode, marsh, hasher)
+	h2, _ := encodeNodeAndGetHash(node, marsh, hasher)
+
+	assert.Equal(t, h1, h2)
 	assert.Equal(t, []byte{100, 111, 103}, key)
 	assert.Nil(t, err)
 }
@@ -579,7 +584,7 @@ func TestBranchNode_delete(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()
 	bn, _ := getBnAndCollapsedBn()
-	marsh, _ := getTestMarshAndHasher()
+	marsh, hasher := getTestMarshAndHasher()
 
 	children := make([]node, nrOfChildren)
 	children[6] = newLeafNode([]byte("doe"), []byte("doe"))
@@ -590,7 +595,10 @@ func TestBranchNode_delete(t *testing.T) {
 	dirty, newBn, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedBn, newBn)
+
+	expectedBn.setHash(marsh, hasher)
+	newBn.setHash(marsh, hasher)
+	assert.Equal(t, expectedBn.getHash(), newBn.getHash())
 }
 
 func TestBranchNode_deleteEmptyNode(t *testing.T) {
@@ -700,13 +708,14 @@ func TestBranchNode_isEmptyOrNil(t *testing.T) {
 
 func emptyTrie() Trie {
 	db, _ := memorydb.New()
-	tr, _ := NewTrie(db, &marshal.ProtobufMarshalizer{}, keccak.Keccak{})
+	marsh, hsh := getTestMarshAndHasher()
+	tr, _ := NewTrie(db, marsh, hsh)
 	return tr
 }
 
 func BenchmarkDecodeBranchNode(b *testing.B) {
 	tr := emptyTrie()
-	hsh := keccak.Keccak{}
+	marsh, hsh := getTestMarshAndHasher()
 
 	nrValuesInTrie := 100000
 	values := make([][]byte, nrValuesInTrie)
@@ -720,7 +729,7 @@ func BenchmarkDecodeBranchNode(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		decodeNode(proof[0], &marshal.ProtobufMarshalizer{})
+		decodeNode(proof[0], marsh)
 	}
 }
 

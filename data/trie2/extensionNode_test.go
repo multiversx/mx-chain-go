@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/stretchr/testify/assert"
 )
@@ -224,7 +223,10 @@ func TestExtensionNode_commit(t *testing.T) {
 
 	encNode, _ := db.Get(hash)
 	node, _ := decodeNode(encNode, marsh)
-	assert.Equal(t, collapsedEn, node)
+
+	h1, _ := encodeNodeAndGetHash(collapsedEn, marsh, hasher)
+	h2, _ := encodeNodeAndGetHash(node, marsh, hasher)
+	assert.Equal(t, h1, h2)
 }
 
 func TestExtensionNode_commitEmptyNode(t *testing.T) {
@@ -263,7 +265,10 @@ func TestExtensionNode_commitCollapsedNode(t *testing.T) {
 	encNode, _ := db.Get(hash)
 	node, _ := decodeNode(encNode, marsh)
 	collapsedEn.hash = nil
-	assert.Equal(t, collapsedEn, node)
+
+	h1, _ := encodeNodeAndGetHash(collapsedEn, marsh, hasher)
+	h2, _ := encodeNodeAndGetHash(node, marsh, hasher)
+	assert.Equal(t, h1, h2)
 }
 
 func TestExtensionNode_getEncodedNode(t *testing.T) {
@@ -311,7 +316,10 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 
 	err := collapsedEn.resolveCollapsed(0, db, marsh)
 	assert.Nil(t, err)
-	assert.Equal(t, resolved, collapsedEn.child)
+
+	h1, _ := encodeNodeAndGetHash(resolved, marsh, hasher)
+	h2, _ := encodeNodeAndGetHash(collapsedEn.child, marsh, hasher)
+	assert.Equal(t, h1, h2)
 }
 
 func TestExtensionNode_resolveCollapsedEmptyNode(t *testing.T) {

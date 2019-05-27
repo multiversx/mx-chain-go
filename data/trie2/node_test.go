@@ -149,7 +149,10 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 
 	node, err := getNodeFromDBAndDecode(nodeHash, db, marsh)
 	assert.Nil(t, err)
-	assert.Equal(t, collapsedBn, node)
+
+	h1, _ := encodeNodeAndGetHash(collapsedBn, marsh, hasher)
+	h2, _ := encodeNodeAndGetHash(node, marsh, hasher)
+	assert.Equal(t, h1, h2)
 }
 
 func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
@@ -165,7 +168,10 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 
 	node, err := getNodeFromDBAndDecode(nodeHash, db, marsh)
 	assert.Nil(t, err)
-	assert.Equal(t, collapsedEn, node)
+
+	h1, _ := encodeNodeAndGetHash(collapsedEn, marsh, hasher)
+	h2, _ := encodeNodeAndGetHash(node, marsh, hasher)
+	assert.Equal(t, h1, h2)
 }
 
 func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
@@ -270,7 +276,7 @@ func TestNode_hasValidHashNilNode(t *testing.T) {
 
 func TestNode_decodeNodeBranchNode(t *testing.T) {
 	t.Parallel()
-	marsh, _ := getTestMarshAndHasher()
+	marsh, hasher := getTestMarshAndHasher()
 	_, collapsedBn := getBnAndCollapsedBn()
 
 	encNode, _ := marsh.Marshal(collapsedBn)
@@ -278,12 +284,15 @@ func TestNode_decodeNodeBranchNode(t *testing.T) {
 
 	node, err := decodeNode(encNode, marsh)
 	assert.Nil(t, err)
-	assert.Equal(t, collapsedBn, node)
+
+	h1, _ := encodeNodeAndGetHash(collapsedBn, marsh, hasher)
+	h2, _ := encodeNodeAndGetHash(node, marsh, hasher)
+	assert.Equal(t, h1, h2)
 }
 
 func TestNode_decodeNodeExtensionNode(t *testing.T) {
 	t.Parallel()
-	marsh, _ := getTestMarshAndHasher()
+	marsh, hasher := getTestMarshAndHasher()
 	_, collapsedEn := getEnAndCollapsedEn()
 
 	encNode, _ := marsh.Marshal(collapsedEn)
@@ -291,12 +300,15 @@ func TestNode_decodeNodeExtensionNode(t *testing.T) {
 
 	node, err := decodeNode(encNode, marsh)
 	assert.Nil(t, err)
-	assert.Equal(t, collapsedEn, node)
+
+	h1, _ := encodeNodeAndGetHash(collapsedEn, marsh, hasher)
+	h2, _ := encodeNodeAndGetHash(node, marsh, hasher)
+	assert.Equal(t, h1, h2)
 }
 
 func TestNode_decodeNodeLeafNode(t *testing.T) {
 	t.Parallel()
-	marsh, _ := getTestMarshAndHasher()
+	marsh, hasher := getTestMarshAndHasher()
 	ln := getLn()
 
 	encNode, _ := marsh.Marshal(ln)
@@ -305,7 +317,10 @@ func TestNode_decodeNodeLeafNode(t *testing.T) {
 	node, err := decodeNode(encNode, marsh)
 	assert.Nil(t, err)
 	ln.dirty = false
-	assert.Equal(t, ln, node)
+
+	h1, _ := encodeNodeAndGetHash(ln, marsh, hasher)
+	h2, _ := encodeNodeAndGetHash(node, marsh, hasher)
+	assert.Equal(t, h1, h2)
 }
 
 func TestNode_decodeNodeInvalidNode(t *testing.T) {

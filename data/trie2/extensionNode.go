@@ -5,9 +5,8 @@ import (
 	"io"
 	"sync"
 
-	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/capnp"
+	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	capn "github.com/glycerine/go-capnproto"
@@ -361,7 +360,7 @@ func (en *extensionNode) isEmptyOrNil() error {
 	if en == nil {
 		return ErrNilNode
 	}
-	if en.child == nil && en.EncodedChild == nil {
+	if en.child == nil && len(en.EncodedChild) == 0 {
 		return ErrEmptyNode
 	}
 	return nil

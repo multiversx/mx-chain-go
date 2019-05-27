@@ -19,7 +19,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type CollapsedBn struct {
-	EncodedChildren      [][]byte `protobuf:"bytes,1,rep,name=EncodedChildren,proto3" json:"EncodedChildren,omitempty"`
+	EncodedChildren      [][]byte `protobuf:"bytes,1,rep,name=EncodedChildren,proto3" json:"EncodedChildren,omitempty" capid:"0"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -57,8 +57,8 @@ func (m *CollapsedBn) GetEncodedChildren() [][]byte {
 }
 
 type CollapsedEn struct {
-	Key                  []byte   `protobuf:"bytes,1,opt,name=Key,proto3" json:"Key,omitempty"`
-	EncodedChild         []byte   `protobuf:"bytes,2,opt,name=EncodedChild,proto3" json:"EncodedChild,omitempty"`
+	Key                  []byte   `protobuf:"bytes,1,opt,name=Key,proto3" json:"Key,omitempty" capid:"0"`
+	EncodedChild         []byte   `protobuf:"bytes,2,opt,name=EncodedChild,proto3" json:"EncodedChild,omitempty" capid:"1"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -103,8 +103,8 @@ func (m *CollapsedEn) GetEncodedChild() []byte {
 }
 
 type CollapsedLn struct {
-	Key                  []byte   `protobuf:"bytes,1,opt,name=Key,proto3" json:"Key,omitempty"`
-	Value                []byte   `protobuf:"bytes,2,opt,name=Value,proto3" json:"Value,omitempty"`
+	Key                  []byte   `protobuf:"bytes,1,opt,name=Key,proto3" json:"Key,omitempty" capid:"0"`
+	Value                []byte   `protobuf:"bytes,2,opt,name=Value,proto3" json:"Value,omitempty" capid:"1"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
