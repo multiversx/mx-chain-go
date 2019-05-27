@@ -10,7 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
@@ -268,7 +267,6 @@ func createShardNetNode(
 	blkc := createTestShardChain()
 	store := createTestShardStore()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, uint64(time.Second*4))
 	addConverter, _ := addressConverters.NewPlainAddressConverter(32, "")
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
@@ -283,7 +281,6 @@ func createShardNetNode(
 		dPool,
 		addConverter,
 		&mock.ChronologyValidatorMock{},
-		tpsBenchmark,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -302,6 +299,7 @@ func createShardNetNode(
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
 
 	blockProcessor, _ := block.NewShardProcessor(
+		nil,
 		dPool,
 		store,
 		testHasher,
@@ -444,7 +442,6 @@ func createMetaNetNode(
 		testMultiSig,
 		dPool,
 		&mock.ChronologyValidatorMock{},
-		nil,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -463,6 +460,7 @@ func createMetaNetNode(
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
 
 	blockProcessor, _ := block.NewMetaProcessor(
+		nil,
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{

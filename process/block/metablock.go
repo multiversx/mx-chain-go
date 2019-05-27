@@ -71,9 +71,9 @@ func NewMetaProcessor(
 	if err != nil {
 		return nil, err
 	}
-	if core == nil {
+	/*if core == nil {
 		return nil, process.ErrNilCore
-	}
+	}*/
 	if dataPool == nil {
 		return nil, process.ErrNilDataPoolHolder
 	}
@@ -215,7 +215,7 @@ func (mp *metaProcessor) ProcessBlock(
 }
 
 func (mp *metaProcessor) indexBlockIfNeeded(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) {
-	if mp.core.Indexer() == nil {
+	if mp.core == nil || mp.core.Indexer() == nil {
 		return
 	}
 

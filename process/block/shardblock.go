@@ -67,9 +67,9 @@ func NewShardProcessor(
 		return nil, err
 	}
 
-	if core == nil {
+	/*if core == nil {
 		return nil, process.ErrNilCore
-	}
+	}*/
 
 	if dataPool == nil {
 		return nil, process.ErrNilDataPoolHolder
@@ -199,7 +199,7 @@ func (sp *shardProcessor) ProcessBlock(
 }
 
 func (sp *shardProcessor) indexBlockIfNeeded(body block.Body, header *block.Header, txPool map[string]*transaction.Transaction) {
-	if sp.core.Indexer() == nil {
+	if sp.core == nil || sp.core.Indexer() == nil {
 		return
 	}
 

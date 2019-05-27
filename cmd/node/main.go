@@ -720,7 +720,6 @@ func createShardNode(
 		datapool,
 		addressConverter,
 		&nullChronologyValidator{},
-		tpsBenchmark,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1013,7 +1012,6 @@ func createMetaNode(
 		multiSigner,
 		metaDatapool,
 		&nullChronologyValidator{},
-		tpsBenchmark,
 	)
 	if err != nil {
 		return nil, nil, nil, err

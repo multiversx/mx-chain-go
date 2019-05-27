@@ -291,6 +291,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	bp, _ := blproc.NewShardProcessor(
+		nil,
 		tdp,
 		initStore(),
 		&mock.HasherMock{},
@@ -362,6 +363,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	store := initStore()
 
 	bp, _ := blproc.NewShardProcessor(
+		nil,
 		tdp,
 		store,
 		&mock.HasherStub{},
@@ -384,6 +386,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 	tdp := initDataPool()
 	marshalizer := &mock.MarshalizerStub{}
 	bp, _ := blproc.NewShardProcessor(
+		nil,
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -418,6 +421,7 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerStub{}
 	hasher := &mock.HasherStub{}
 	bp, _ := blproc.NewShardProcessor(
+		nil,
 		tdp,
 		initStore(),
 		hasher,
