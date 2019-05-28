@@ -250,10 +250,10 @@ func createConsensusOnlyNode(
 		},
 		RevertAccountStateCalled: func() {
 		},
-		CreateBlockCalled: func(round int32, haveTime func() bool) (handler data.BodyHandler, e error) {
+		CreateBlockCalled: func(round uint32, haveTime func() bool) (handler data.BodyHandler, e error) {
 			return &dataBlock.Body{}, nil
 		},
-		CreateBlockHeaderCalled: func(body data.BodyHandler, round int32, haveTime func() bool) (handler data.HeaderHandler, e error) {
+		CreateBlockHeaderCalled: func(body data.BodyHandler, round uint32, haveTime func() bool) (handler data.HeaderHandler, e error) {
 			return &dataBlock.Header{Round: uint32(round)}, nil
 		},
 		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, bytes2 map[uint32][][]byte, e error) {
@@ -270,6 +270,11 @@ func createConsensusOnlyNode(
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
+	blockTracker := &mock.BlocksTrackerMock{
+		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+			return make([]data.HeaderHandler, 0)
+		},
+	}
 	blockChain := createTestBlockChain()
 
 	header := &dataBlock.Header{
@@ -354,6 +359,7 @@ func createConsensusOnlyNode(
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
+		node.WithBlockTracker(blockTracker),
 	)
 
 	if err != nil {

@@ -325,6 +325,11 @@ func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.Mini
 	return dest
 }
 
+// GetShardId returns header shard id
+func (h *Header) GetShardID() uint32 {
+	return h.ShardId
+}
+
 // GetNonce returns header nonce
 func (h *Header) GetNonce() uint64 {
 	return h.Nonce

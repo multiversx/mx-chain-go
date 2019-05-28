@@ -2,12 +2,12 @@ package sync
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -78,17 +78,12 @@ func (boot *baseBootstrap) requestedHeaderNonce() *uint64 {
 	return boot.headerNonce
 }
 
-func (boot *baseBootstrap) processReceivedHeader(header data.HeaderHandler, headerHash []byte) {
-	if header == nil {
-		log.Info(ErrNilHeader.Error())
-		return
-	}
-
+func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n",
-		header.GetNonce(),
-		toB64(headerHash)))
+		headerHandler.GetNonce(),
+		core.ToB64(headerHash)))
 
-	err := boot.forkDetector.AddHeader(header, headerHash, process.BHReceived)
+	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived)
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -101,7 +96,7 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64) {
 
 	log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n",
 		nonce,
-		toB64(headerHash)))
+		core.ToB64(headerHash)))
 
 	n := boot.requestedHeaderNonce()
 	if n == nil {
@@ -266,12 +261,4 @@ func isRandomSeedValid(header data.HeaderHandler) bool {
 	isRandSeedNilOrEmpty := len(randSeed) == 0
 
 	return !isPrevRandSeedNilOrEmpty && !isRandSeedNilOrEmpty
-}
-
-func toB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-
-	return base64.StdEncoding.EncodeToString(buff)
 }

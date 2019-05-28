@@ -115,8 +115,13 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
 	}
 
+	if sr.Rounder().Index() < 0 {
+		log.Error("invalid round, round must be always > 0")
+		return false
+	}
+
 	blockBody, err := sr.BlockProcessor().CreateBlockBody(
-		sr.Rounder().Index(),
+		uint32(sr.Rounder().Index()),
 		haveTimeInCurrentSubround,
 	)
 	if err != nil {
@@ -198,7 +203,7 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 
 	hdr, err := sr.BlockProcessor().CreateBlockHeader(
 		sr.BlockBody,
-		sr.Rounder().Index(),
+		uint32(sr.Rounder().Index()),
 		haveTimeInCurrentSubround)
 	if err != nil {
 		return nil, err

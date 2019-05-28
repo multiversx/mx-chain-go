@@ -231,6 +231,7 @@ func createNetNode(
 		node.WithResolversFinder(resolversFinder),
 		node.WithDataStore(store),
 		node.WithTxSingleSigner(singleSigner),
+		node.WithTxStorageSize(100000),
 	)
 
 	return n, messenger, sk, resolversFinder
