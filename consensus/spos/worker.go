@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -21,6 +22,7 @@ import (
 type Worker struct {
 	consensusService ConsensusService
 	blockProcessor   process.BlockProcessor
+	blockTracker     process.BlocksTracker
 	bootstraper      process.Bootstrapper
 	consensusState   *ConsensusState
 	forkDetector     process.ForkDetector
@@ -30,6 +32,7 @@ type Worker struct {
 	rounder          consensus.Rounder
 	shardCoordinator sharding.Coordinator
 	singleSigner     crypto.SingleSigner
+	syncTimer        ntp.SyncTimer
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
@@ -37,8 +40,9 @@ type Worker struct {
 	executeMessageChannel        chan *consensus.Message
 	consensusStateChangedChannel chan bool
 
-	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error
-	sendMessage    func(consensus *consensus.Message)
+	broadcastBlock  func(data.BodyHandler, data.HeaderHandler) error
+	broadcastHeader func(data.HeaderHandler) error
+	sendMessage     func(consensus *consensus.Message)
 
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
@@ -48,6 +52,7 @@ type Worker struct {
 func NewWorker(
 	consensusService ConsensusService,
 	blockProcessor process.BlockProcessor,
+	blockTracker process.BlocksTracker,
 	bootstraper process.Bootstrapper,
 	consensusState *ConsensusState,
 	forkDetector process.ForkDetector,
@@ -57,12 +62,15 @@ func NewWorker(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
+	syncTimer ntp.SyncTimer,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
+	broadcastHeader func(data.HeaderHandler) error,
 	sendMessage func(consensus *consensus.Message),
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
 		consensusService,
 		blockProcessor,
+		blockTracker,
 		bootstraper,
 		consensusState,
 		forkDetector,
@@ -72,7 +80,9 @@ func NewWorker(
 		rounder,
 		shardCoordinator,
 		singleSigner,
+		syncTimer,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 	if err != nil {
@@ -82,6 +92,7 @@ func NewWorker(
 	wrk := Worker{
 		consensusService: consensusService,
 		blockProcessor:   blockProcessor,
+		blockTracker:     blockTracker,
 		bootstraper:      bootstraper,
 		consensusState:   consensusState,
 		forkDetector:     forkDetector,
@@ -91,7 +102,9 @@ func NewWorker(
 		rounder:          rounder,
 		shardCoordinator: shardCoordinator,
 		singleSigner:     singleSigner,
+		syncTimer:        syncTimer,
 		broadcastBlock:   broadcastBlock,
+		broadcastHeader:  broadcastHeader,
 		sendMessage:      sendMessage,
 	}
 
@@ -109,6 +122,7 @@ func NewWorker(
 func checkNewWorkerParams(
 	consensusService ConsensusService,
 	blockProcessor process.BlockProcessor,
+	blockTracker process.BlocksTracker,
 	bootstraper process.Bootstrapper,
 	consensusState *ConsensusState,
 	forkDetector process.ForkDetector,
@@ -118,7 +132,9 @@ func checkNewWorkerParams(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
+	syncTimer ntp.SyncTimer,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
+	broadcastHeader func(data.HeaderHandler) error,
 	sendMessage func(consensus *consensus.Message),
 ) error {
 	if consensusService == nil {
@@ -126,6 +142,9 @@ func checkNewWorkerParams(
 	}
 	if blockProcessor == nil {
 		return ErrNilBlockProcessor
+	}
+	if blockTracker == nil {
+		return ErrNilBlockTracker
 	}
 	if bootstraper == nil {
 		return ErrNilBlootstraper
@@ -154,8 +173,14 @@ func checkNewWorkerParams(
 	if singleSigner == nil {
 		return ErrNilSingleSigner
 	}
+	if syncTimer == nil {
+		return ErrNilSyncTimer
+	}
 	if broadcastBlock == nil {
-		return ErrNilBroadCastBlock
+		return ErrNilBroadcastBlock
+	}
+	if broadcastHeader == nil {
+		return ErrNilBroadcastHeader
 	}
 	if sendMessage == nil {
 		return ErrNilSendMessage
@@ -431,6 +456,33 @@ func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 //BroadcastBlock does a broadcast of the blockBody and blockHeader
 func (wrk *Worker) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
 	return wrk.broadcastBlock(body, header)
+}
+
+//BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet
+func (wrk *Worker) BroadcastUnnotarisedBlocks() {
+	headers := wrk.blockTracker.UnnotarisedBlocks()
+	for _, header := range headers {
+		if header.GetNonce() > wrk.forkDetector.GetHighestFinalBlockNonce() {
+			continue
+		}
+
+		brodcastRound := wrk.blockTracker.BlockBroadcastRound(header.GetNonce())
+		if brodcastRound >= wrk.consensusState.RoundIndex-MaxRoundsGap {
+			continue
+		}
+
+		err := wrk.broadcastHeader(header)
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		wrk.blockTracker.SetBlockBroadcastRound(header.GetNonce(), wrk.consensusState.RoundIndex)
+
+		log.Info(fmt.Sprintf("%sStep 0: Unnotarised header with nonce %d has been broadcast to metachain\n",
+			wrk.syncTimer.FormattedCurrentTime(),
+			header.GetNonce()))
+	}
 }
 
 //ExecuteStoredMessages tries to execute all the messages received which are valid for execution

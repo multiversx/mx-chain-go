@@ -64,9 +64,10 @@ type Node struct {
 	roundDuration            uint64
 	consensusGroupSize       int
 	messenger                P2PMessenger
-	syncer                   ntp.SyncTimer
+	syncTimer                ntp.SyncTimer
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
+	blockTracker             process.BlocksTracker
 	genesisTime              time.Time
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
@@ -97,6 +98,7 @@ type Node struct {
 
 	isRunning         bool
 	isMetachainActive bool
+	txStorageSize     uint32
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -233,6 +235,7 @@ func (n *Node) StartConsensus() error {
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blockProcessor,
+		n.blockTracker,
 		bootstrapper,
 		consensusState,
 		n.forkDetector,
@@ -242,7 +245,9 @@ func (n *Node) StartConsensus() error {
 		n.rounder,
 		n.shardCoordinator,
 		n.singleSigner,
+		n.syncTimer,
 		n.getBroadcastBlock(),
+		n.getBroadcastHeader(),
 		n.sendMessage,
 	)
 	if err != nil {
@@ -271,7 +276,7 @@ func (n *Node) StartConsensus() error {
 		n.multiSigner,
 		n.rounder,
 		n.shardCoordinator,
-		n.syncer,
+		n.syncTimer,
 		validatorGroupSelector)
 	if err != nil {
 		return err
@@ -383,7 +388,7 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 	chr, err := chronology.NewChronology(
 		n.genesisTime,
 		rounder,
-		n.syncer)
+		n.syncTimer)
 
 	if err != nil {
 		return nil, err
@@ -399,6 +404,18 @@ func (n *Node) getBroadcastBlock() func(data.BodyHandler, data.HeaderHandler) er
 
 	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
 		return n.BroadcastMetaBlock
+	}
+
+	return nil
+}
+
+func (n *Node) getBroadcastHeader() func(data.HeaderHandler) error {
+	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
+		return n.BroadcastShardHeader
+	}
+
+	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return n.BroadcastMetaHeader
 	}
 
 	return nil
@@ -689,22 +706,6 @@ func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.Heade
 	go n.messenger.Broadcast(factory.MiniBlocksTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
-	if !n.isMetachainActive {
-		//TODO - remove this when metachain is fully tested. Should remove only "if" branch,
-		// the "else" branch should not be removed
-		msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
-		if err != nil {
-			return err
-		}
-
-		go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
-	} else {
-		shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
-			n.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
-
-		go n.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
-	}
-
 	for k, v := range msgMapBlockBody {
 		go n.messenger.Broadcast(factory.MiniBlocksTopic+
 			n.shardCoordinator.CommunicationIdentifier(k), v)
@@ -722,6 +723,36 @@ func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.Heade
 			go n.messenger.Broadcast(factory.TransactionTopic+
 				n.shardCoordinator.CommunicationIdentifier(k), txsBuff)
 		}
+	}
+
+	return nil
+}
+
+// BroadcastShardHeader will send on metachain topics the header
+func (n *Node) BroadcastShardHeader(header data.HeaderHandler) error {
+	if header == nil {
+		return ErrNilBlockHeader
+	}
+
+	msgHeader, err := n.marshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	if !n.isMetachainActive {
+		//TODO - remove this when metachain is fully tested. Should remove only "if" branch,
+		// the "else" branch should not be removed
+		msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
+		if err != nil {
+			return err
+		}
+
+		go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
+	} else {
+		shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
+			n.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
+
+		go n.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
 	}
 
 	return nil
@@ -787,6 +818,11 @@ func (n *Node) BroadcastMetaBlock(blockBody data.BodyHandler, header data.Header
 
 	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
 
+	return nil
+}
+
+// BroadcastMetaHeader will send on metachain topics the header
+func (n *Node) BroadcastMetaHeader(headerHandler data.HeaderHandler) error {
 	return nil
 }
 

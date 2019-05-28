@@ -55,6 +55,8 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 	body, hdr := generateHeaderAndBody(senderShard)
 	err := nodes[0].node.BroadcastShardBlock(body, hdr)
 	assert.Nil(t, err)
+	err = nodes[0].node.BroadcastShardHeader(hdr)
+	assert.Nil(t, err)
 
 	for i := 0; i < 5; i++ {
 		fmt.Println(makeDisplayTable(nodes))

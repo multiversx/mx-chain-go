@@ -269,6 +269,11 @@ func createConsensusOnlyNode(
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
+	blockTracker := &mock.BlocksTrackerMock{
+		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+			return make([]data.HeaderHandler, 0)
+		},
+	}
 	blockChain := createTestBlockChain()
 
 	header := &dataBlock.Header{
@@ -353,6 +358,7 @@ func createConsensusOnlyNode(
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
+		node.WithBlockTracker(blockTracker),
 	)
 
 	if err != nil {

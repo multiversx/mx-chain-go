@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -30,6 +31,7 @@ type shardProcessor struct {
 	*baseProcessor
 	dataPool             dataRetriever.PoolsHolder
 	txProcessor          process.TransactionProcessor
+	blocksTracker        process.BlocksTracker
 	chRcvAllTxs          chan bool
 	onRequestTransaction func(shardID uint32, txHashes [][]byte)
 	mutRequestedTxHashes sync.RWMutex
@@ -49,6 +51,7 @@ func NewShardProcessor(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	forkDetector process.ForkDetector,
+	blocksTracker process.BlocksTracker,
 	requestTransactionHandler func(shardId uint32, txHashes [][]byte),
 	requestMiniBlockHandler func(shardId uint32, miniblockHash []byte),
 ) (*shardProcessor, error) {
@@ -58,7 +61,8 @@ func NewShardProcessor(
 		forkDetector,
 		hasher,
 		marshalizer,
-		store)
+		store,
+		shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +73,8 @@ func NewShardProcessor(
 	if txProcessor == nil {
 		return nil, process.ErrNilTxProcessor
 	}
-	if shardCoordinator == nil {
-		return nil, process.ErrNilShardCoordinator
+	if blocksTracker == nil {
+		return nil, process.ErrNilBlocksTracker
 	}
 	if requestTransactionHandler == nil {
 		return nil, process.ErrNilTransactionHandler
@@ -92,6 +96,7 @@ func NewShardProcessor(
 		baseProcessor: base,
 		dataPool:      dataPool,
 		txProcessor:   txProcessor,
+		blocksTracker: blocksTracker,
 	}
 
 	sp.chRcvAllTxs = make(chan bool)
@@ -465,6 +470,12 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	sp.blocksTracker.AddBlock(header)
+
+	log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been committed successfully\n",
+		header.Nonce,
+		core.ToB64(headerHash)))
+
 	errNotCritical := sp.removeTxBlockFromPools(body)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
@@ -549,10 +560,12 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 			}
 		}
 
-		// TODO: the final block should be given by metachain
-		blockIsFinal := hdr.GetNonce() <= sp.forkDetector.GetHighestFinalBlockNonce()
-		if processedAll && blockIsFinal {
-			// metablock was processed adn finalized
+		//TODO: Should be add here a condition that allows the remove of metachain blocks from pool, only if they are
+		//final in metachain
+		if processedAll {
+			sp.blocksTracker.RemoveNotarisedBlocks(hdr)
+
+			// metablock was processed and finalized
 			buff, err := sp.marshalizer.Marshal(hdr)
 			if err != nil {
 				return err
@@ -562,7 +575,8 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) error {
 				return err
 			}
 			sp.dataPool.MetaBlocks().Remove(metaBlockKey)
-			log.Info(fmt.Sprintf("metablock with nonce %d was processed completly and removed from pool\n", hdr.GetNonce()))
+			log.Info(fmt.Sprintf("metablock with nonce %d has been processed completly and removed from pool\n",
+				hdr.GetNonce()))
 		}
 	}
 
@@ -651,7 +665,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	}
 
 	log.Info(fmt.Sprintf("received metablock with hash %s and nonce %d from network\n",
-		toB64(metaBlockHash),
+		core.ToB64(metaBlockHash),
 		hdr.GetNonce()))
 
 	// TODO: validate the metaheader, through metaprocessor and save only headers with nonce higher than current
@@ -1175,7 +1189,7 @@ func (sp *shardProcessor) displayLogInfo(
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\n"+
 		"Total txs processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n\n"+
 		"Total shards: %d. Current shard id: %d\n",
-		toB64(headerHash),
+		core.ToB64(headerHash),
 		txsTotalProcessed,
 		txsCurrentBlockProcessed,
 		sp.getNrTxsWithDst(header.ShardId),
@@ -1243,7 +1257,7 @@ func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.L
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
 					fmt.Sprintf("TxHash_%d", j+1),
-					toB64(miniBlock.TxHashes[j])}))
+					core.ToB64(miniBlock.TxHashes[j])}))
 
 				part = ""
 			} else if j == 1 {

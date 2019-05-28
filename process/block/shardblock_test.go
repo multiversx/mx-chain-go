@@ -46,6 +46,7 @@ func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, mbHash []byte) {},
 	)
@@ -65,6 +66,7 @@ func TestNewShardProcessor_NilStoreShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, mbHash []byte) {},
 	)
@@ -84,6 +86,7 @@ func TestNewShardProcessor_NilHasherShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -104,6 +107,7 @@ func TestNewShardProcessor_NilMarshalizerShouldWork(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -124,6 +128,7 @@ func TestNewShardProcessor_NilTxProcessorShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -144,6 +149,7 @@ func TestNewShardProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 		nil,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -164,6 +170,7 @@ func TestNewShardProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		initAccountsMock(),
 		nil,
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -184,11 +191,33 @@ func TestNewShardProcessor_NilForkDetectorShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		nil,
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
 	assert.Equal(t, process.ErrNilForkDetector, err)
+	assert.Nil(t, sp)
+}
+
+func TestNewShardProcessor_NilBlocksTrackerShouldErr(t *testing.T) {
+	t.Parallel()
+	tdp := initDataPool()
+	sp, err := blproc.NewShardProcessor(
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		initAccountsMock(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		nil,
+		func(destShardID uint32, txHashes [][]byte) {
+		},
+		func(destShardID uint32, txHash []byte) {},
+	)
+	assert.Equal(t, process.ErrNilBlocksTracker, err)
 	assert.Nil(t, sp)
 }
 
@@ -204,6 +233,7 @@ func TestNewShardProcessor_NilRequestTransactionHandlerShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		nil,
 		func(destShardID uint32, txHash []byte) {},
 	)
@@ -226,6 +256,7 @@ func TestNewShardProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -246,6 +277,7 @@ func TestNewShardProcessor_OkValsShouldWork(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -268,6 +300,7 @@ func TestShardProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -289,6 +322,7 @@ func TestShardProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -310,6 +344,7 @@ func TestShardProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -330,6 +365,7 @@ func TestShardProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -367,6 +403,7 @@ func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -423,6 +460,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -447,6 +485,7 @@ func TestShardProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -477,6 +516,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -507,6 +547,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -583,6 +624,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -649,6 +691,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -680,6 +723,7 @@ func TestShardProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -729,6 +773,7 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -777,6 +822,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -838,6 +884,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 				return nil
 			},
 		},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -883,6 +930,7 @@ func TestShardProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -945,6 +993,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		fd,
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1032,6 +1081,10 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		fd,
+		&mock.BlocksTrackerMock{
+			AddBlockCalled: func(headerHandler data.HeaderHandler) {
+			},
+		},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1097,6 +1150,7 @@ func TestShardProcessor_GetTransactionFromPool(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1119,6 +1173,7 @@ func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, txHash []byte) {},
 	)
@@ -1147,6 +1202,7 @@ func TestShardProcessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testi
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, txHash []byte) {},
 	)
@@ -1180,6 +1236,7 @@ func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T
 		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1211,6 +1268,7 @@ func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1252,6 +1310,7 @@ func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
 		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1273,6 +1332,7 @@ func TestShardProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1294,6 +1354,7 @@ func TestShardProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1328,6 +1389,7 @@ func TestNode_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1417,6 +1479,7 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1600,6 +1663,7 @@ func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1623,6 +1687,7 @@ func TestShardProcessor_CreateBlockHeaderShouldErrWhenMarshalizerErrors(t *testi
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1662,6 +1727,7 @@ func TestShardProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1709,6 +1775,7 @@ func TestShardProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T)
 		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1750,6 +1817,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, txHash []byte) {},
 	)
@@ -1783,6 +1851,7 @@ func TestShardProcessor_MarshalizedDataWrongType(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1809,6 +1878,7 @@ func TestShardProcessor_MarshalizedDataNilInput(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1844,6 +1914,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -1900,6 +1971,7 @@ func TestShardProcessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, txHash []byte) {},
 	)
@@ -1943,6 +2015,7 @@ func TestShardProcessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, miniblockHash []byte) {},
 	)
@@ -2011,6 +2084,7 @@ func TestShardProcessor_ReceivedMiniBlockShouldRequestMissingTransactions(t *tes
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 			if containsHash(txHashes, txHash1) {
 				atomic.AddInt32(&txHash1Requested, 1)
@@ -2092,6 +2166,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, miniblockHash []byte) {
 			if bytes.Equal(miniBlockHash1, miniblockHash) {
@@ -2197,6 +2272,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, miniblockHash []byte) {},
 	)
@@ -2287,6 +2363,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, miniblockHash []byte) {},
 	)
@@ -2372,6 +2449,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, miniblockHash []byte) {},
 	)
@@ -2466,6 +2544,11 @@ func TestShardProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
 				return 0
 			},
 		},
+		&mock.BlocksTrackerMock{
+			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
+				return nil
+			},
+		},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, miniblockHash []byte) {},
 	)
@@ -2500,6 +2583,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockChain(t *testing.T
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -2521,6 +2605,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -2559,6 +2644,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {
@@ -2612,6 +2698,7 @@ func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -2642,6 +2729,7 @@ func TestShardProcessor_DecodeBlockHeader(t *testing.T) {
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},

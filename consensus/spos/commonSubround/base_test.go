@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
 
@@ -115,4 +114,7 @@ func getSubroundName(subroundId int) string {
 
 // executeStoredMessages tries to execute all the messages received which are valid for execution
 func executeStoredMessages() {
+}
+
+func broadcastUnnotarisedBlocks() {
 }

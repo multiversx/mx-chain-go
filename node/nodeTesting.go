@@ -9,11 +9,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 //TODO convert this const into a var and read it from config when this code moves to another binary
 const maxBulkTransactionSize = 2 << 17 //128KB bulks
+
+// maxLoadThresholdPercent specifies the max load percent accepted from txs storage size when generates new txs
+const maxLoadThresholdPercent = 70
 
 //TODO move this funcs in a new benchmarking/stress-test binary
 
@@ -23,6 +28,34 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	err := n.generateBulkTransactionsChecks(noOfTx)
 	if err != nil {
 		return err
+	}
+
+	//TODO: Remove this approach later, when throttle is done
+	if n.shardCoordinator.SelfId() != sharding.MetachainShardId {
+		txPool := n.dataPool.Transactions()
+		if txPool == nil {
+			return ErrNilTransactionPool
+		}
+
+		maxNoOfTx := uint64(0)
+		txStorageSize := uint64(n.txStorageSize) * maxLoadThresholdPercent / 100
+		for i := uint32(0); i < n.shardCoordinator.NumberOfShards(); i++ {
+			strCache := process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), i)
+			txStore := txPool.ShardDataStore(strCache)
+			if txStore == nil {
+				continue
+			}
+
+			if uint64(txStore.Len())+noOfTx > txStorageSize {
+				maxNoOfTx = txStorageSize - uint64(txStore.Len())
+				if noOfTx > maxNoOfTx {
+					noOfTx = maxNoOfTx
+					if noOfTx <= 0 {
+						return ErrTooManyTransactionsInPool
+					}
+				}
+			}
+		}
 	}
 
 	newNonce, senderAddressBytes, recvAddressBytes, senderShardId, err := n.generateBulkTransactionsPrepareParams(receiverHex)

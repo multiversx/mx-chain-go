@@ -37,6 +37,7 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
 		return &block.Header{}
 	}
+
 	return blockProcessorMock
 }
 

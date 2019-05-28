@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -64,6 +65,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/track"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -252,6 +254,10 @@ func main() {
 			Email: "contact@elrond.com",
 		},
 	}
+
+	//TODO: The next line should be removed when the write in batches is done
+	// set the maximum allowed OS threads (not go routines) which can run in the same time (the default is 10000)
+	debug.SetMaxThreads(100000)
 
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
@@ -769,6 +775,11 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	blockTracker, err := track.NewShardBlockTracker(datapool, marshalizer, shardCoordinator, store)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	blockProcessor, err := block.NewShardProcessor(
 		datapool,
 		store,
@@ -778,6 +789,7 @@ func createShardNode(
 		accountsAdapter,
 		shardCoordinator,
 		forkDetector,
+		blockTracker,
 		createTxRequestHandler(resolversFinder, factory.TransactionTopic, log),
 		createRequestHandler(resolversFinder, factory.MiniBlocksTopic, log),
 	)
@@ -800,6 +812,7 @@ func createShardNode(
 		node.WithConsensusGroupSize(int(nodesConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(blockProcessor),
+		node.WithBlockTracker(blockTracker),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(rounder),
 		node.WithDataPool(datapool),
@@ -818,6 +831,7 @@ func createShardNode(
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(txSingleSigner),
 		node.WithActiveMetachain(nodesConfig.MetaChainActive),
+		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 	)
 	if err != nil {
 		return nil, nil, nil, errors.New("error creating node: " + err.Error())
@@ -1049,6 +1063,11 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
+	blockTracker, err := track.NewMetaBlockTracker()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	shardsGenesisBlocks, err := generateGenesisHeadersForMetachainInit(
 		nodesConfig,
 		genesisConfig,
@@ -1093,6 +1112,7 @@ func createMetaNode(
 		node.WithConsensusGroupSize(int(nodesConfig.MetaChainConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(metaProcessor),
+		node.WithBlockTracker(blockTracker),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(rounder),
 		node.WithMetaDataPool(metaDatapool),
@@ -1110,6 +1130,7 @@ func createMetaNode(
 		node.WithResolversFinder(resolversFinder),
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(txSingleSigner),
+		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 	)
 	if err != nil {
 		return nil, nil, nil, errors.New("error creating meta-node: " + err.Error())

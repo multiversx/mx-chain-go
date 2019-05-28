@@ -133,3 +133,12 @@ type ChronologyValidator interface {
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
 }
+
+// BlocksTracker defines the functionality to track all the notarised blocks
+type BlocksTracker interface {
+	UnnotarisedBlocks() []data.HeaderHandler
+	RemoveNotarisedBlocks(headerHandler data.HeaderHandler) error
+	AddBlock(headerHandler data.HeaderHandler)
+	SetBlockBroadcastRound(nonce uint64, round int32)
+	BlockBroadcastRound(nonce uint64) int32
+}

@@ -22,11 +22,6 @@ type BlockProcessorMock struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 }
 
-// SetOnRequestTransaction mocks setting request transaction call back function
-func (blProcMock *BlockProcessorMock) SetOnRequestTransaction(f func(destShardID uint32, txHash []byte)) {
-	blProcMock.SetOnRequestTransactionCalled(f)
-}
-
 // ProcessBlock mocks pocessing a block
 func (blProcMock *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return blProcMock.ProcessBlockCalled(blockChain, header, body, haveTime)
@@ -40,11 +35,6 @@ func (blProcMock *BlockProcessorMock) CommitBlock(blockChain data.ChainHandler, 
 // RevertAccountState mocks revert of the accounts state
 func (blProcMock *BlockProcessorMock) RevertAccountState() {
 	blProcMock.RevertAccountStateCalled()
-}
-
-// CreateGenesisBlock mocks the creation of a genesis block body
-func (blProcMock *BlockProcessorMock) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
-	return blProcMock.CreateGenesisBlockCalled(balances)
 }
 
 // CreateTxBlockBody mocks the creation of a transaction block body

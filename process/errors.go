@@ -97,6 +97,9 @@ var ErrMissingTransaction = errors.New("missing transaction")
 // ErrMarshalWithoutSuccess signals that marshal some data was not done with success
 var ErrMarshalWithoutSuccess = errors.New("marshal without success")
 
+// ErrUnmarshalWithoutSuccess signals that unmarshal some data was not done with success
+var ErrUnmarshalWithoutSuccess = errors.New("unmarshal without success")
+
 // ErrRootStateMissmatch signals that persist some data was not done with success
 var ErrRootStateMissmatch = errors.New("root state does not match")
 
@@ -186,6 +189,9 @@ var ErrNilTxStorage = errors.New("nil transaction storage")
 
 // ErrNilStorage signals that a nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
+
+// ErrNilBlocksTracker signals that a nil blocks tracker has been provided
+var ErrNilBlocksTracker = errors.New("nil blocks tracker")
 
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
