@@ -2,6 +2,7 @@ package interceptors_test
 
 import (
 	"bytes"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -152,8 +153,8 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 		return
 	}
 	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) (bool, error) {
-		return false, nil
+	storer.HasCalled = func(key []byte) error {
+		return errors.New("Key not found")
 	}
 
 	hi, _ := interceptors.NewHeaderInterceptor(
@@ -230,8 +231,8 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 	}
 
 	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) (bool, error) {
-		return true, nil
+	storer.HasCalled = func(key []byte) error {
+		return nil
 	}
 
 	hi, _ := interceptors.NewHeaderInterceptor(
@@ -302,8 +303,8 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 		return
 	}
 	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) (bool, error) {
-		return false, nil
+	storer.HasCalled = func(key []byte) error {
+		return errors.New("Key not found")
 	}
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinator.CurrentShard = 2

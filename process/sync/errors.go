@@ -35,3 +35,6 @@ func (err ErrSignedBlock) Error() string {
 	return fmt.Sprintf("the current header with nonce %d is from a signed block\n",
 		err.CurrentNonce)
 }
+
+// ErrRandomSeedNotValid signals that the random seed is not valid
+var ErrRandomSeedNotValid = errors.New("random seed is not valid")

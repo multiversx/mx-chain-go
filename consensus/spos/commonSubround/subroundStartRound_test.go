@@ -18,6 +18,8 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (*commonSubround.S
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		executeStoredMessages,
+		broadcastUnnotarisedBlocks,
 	)
 
 	return startRound, err
@@ -47,6 +49,8 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) *c
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		executeStoredMessages,
+		broadcastUnnotarisedBlocks,
 	)
 
 	return srStartRound
@@ -65,6 +69,8 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testin
 		extend,
 		processingThresholdPercent,
 		getSubroundName,
+		executeStoredMessages,
+		broadcastUnnotarisedBlocks,
 	)
 
 	assert.Nil(t, srStartRound)
@@ -117,6 +123,28 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilConsensusState, err)
+}
+
+func TestSubroundStartRound_NewSubroundStartRoundNilBroadcastUnnotarisedBlocksFunctionShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+
+	sr, _ := defaultSubround(consensusState, ch, container)
+
+	srStartRound, err := commonSubround.NewSubroundStartRound(
+		sr,
+		extend,
+		processingThresholdPercent,
+		getSubroundName,
+		executeStoredMessages,
+		nil,
+	)
+
+	assert.Nil(t, srStartRound)
+	assert.Equal(t, spos.ErrNilBroadcastUnnotarisedBlocks, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *testing.T) {

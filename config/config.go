@@ -2,8 +2,9 @@ package config
 
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
-	Size uint32 `json:"size"`
-	Type string `json:"type"`
+	Size   uint32 `json:"size"`
+	Type   string `json:"type"`
+	Shards uint32 `json:"shards"`
 }
 
 // DBConfig will map the json db configuration

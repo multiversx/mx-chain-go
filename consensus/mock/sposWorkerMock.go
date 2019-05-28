@@ -15,6 +15,9 @@ type SposWorkerMock struct {
 	ExtendCalled                           func(subroundId int)
 	GetConsensusStateChangedChannelsCalled func() chan bool
 	GetBroadcastBlockCalled                func(data.BodyHandler, data.HeaderHandler) error
+	GetBroadcastHeaderCalled               func(data.HeaderHandler) error
+	ExecuteStoredMessagesCalled            func()
+	BroadcastUnnotarisedBlocksCalled       func()
 }
 
 func (sposWorkerMock *SposWorkerMock) AddReceivedMessageCall(messageType consensus.MessageType,
@@ -44,4 +47,12 @@ func (sposWorkerMock *SposWorkerMock) GetConsensusStateChangedChannel() chan boo
 
 func (sposWorkerMock *SposWorkerMock) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
 	return sposWorkerMock.GetBroadcastBlockCalled(body, header)
+}
+
+func (sposWorkerMock *SposWorkerMock) ExecuteStoredMessages() {
+	sposWorkerMock.ExecuteStoredMessagesCalled()
+}
+
+func (sposWorkerMock *SposWorkerMock) BroadcastUnnotarisedBlocks() {
+	sposWorkerMock.BroadcastUnnotarisedBlocksCalled()
 }

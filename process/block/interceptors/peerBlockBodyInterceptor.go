@@ -80,7 +80,8 @@ func (pbbi *PeerBlockBodyInterceptor) ProcessReceivedMessage(message p2p.Message
 }
 
 func (pbbi *PeerBlockBodyInterceptor) processPeerChangeBlockBody(peerChBlockBody *block.InterceptedPeerBlockBody) {
-	isBlockInStorage, _ := pbbi.storer.Has(peerChBlockBody.Hash())
+	err := pbbi.storer.Has(peerChBlockBody.Hash())
+	isBlockInStorage := err == nil
 	if isBlockInStorage {
 		log.Debug("intercepted peer change block body already processed")
 		return

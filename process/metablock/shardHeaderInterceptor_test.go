@@ -2,6 +2,7 @@ package metablock_test
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 	"time"
 
@@ -107,8 +108,8 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 		},
 	}
 	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) (bool, error) {
-		return false, nil
+	storer.HasCalled = func(key []byte) error {
+		return errors.New("Key not found")
 	}
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		marshalizer,
@@ -168,8 +169,8 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t 
 		},
 	}
 	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) (bool, error) {
-		return true, nil
+	storer.HasCalled = func(key []byte) error {
+		return nil
 	}
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		marshalizer,

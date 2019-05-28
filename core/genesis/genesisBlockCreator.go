@@ -59,6 +59,20 @@ func CreateShardGenesisBlockFromInitialBalances(
 	return header, err
 }
 
+func CreateMetaGenesisBlock(genesisTime uint64, initialPubKeys map[uint32][]string) (data.HeaderHandler, error) {
+	//TODO create the right metachain genesis block here
+	rootHash := []byte("root hash")
+	header := &block.MetaBlock{
+		RootHash:     rootHash,
+		PrevHash:     rootHash,
+		RandSeed:     rootHash,
+		PrevRandSeed: rootHash,
+	}
+	header.SetTimeStamp(genesisTime)
+
+	return header, nil
+}
+
 // setBalancesToTrie adds balances to trie
 func setBalancesToTrie(
 	accounts state.AccountsAdapter,

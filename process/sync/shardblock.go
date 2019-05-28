@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -129,52 +130,13 @@ func NewShardBootstrap(
 	return &boot, nil
 }
 
-func (boot *ShardBootstrap) getHeader(hash []byte) *block.Header {
-	hdr := boot.getHeaderFromPool(hash)
-	if hdr != nil {
-		return hdr
-	}
-
-	return boot.getHeaderFromStorage(hash)
-}
-
-func (boot *ShardBootstrap) getHeaderFromPool(hash []byte) *block.Header {
-	hdr, ok := boot.headers.Peek(hash)
-	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
-		return nil
-	}
-
-	header, ok := hdr.(*block.Header)
-	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
-		return nil
-	}
-
-	return header
-}
-
-func (boot *ShardBootstrap) getHeaderFromStorage(hash []byte) *block.Header {
-	headerStore := boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
-
-	if headerStore == nil {
-		log.Error(process.ErrNilHeadersStorage.Error())
-		return nil
-	}
-
-	buffHeader, _ := headerStore.Get(hash)
-	header := &block.Header{}
-	err := boot.marshalizer.Unmarshal(header, buffHeader)
-	if err != nil {
-		log.Error(err.Error())
-		return nil
-	}
-
-	return header
-}
-
 func (boot *ShardBootstrap) receivedHeaders(headerHash []byte) {
-	header := boot.getHeader(headerHash)
+	header, err := process.GetShardHeader(headerHash, boot.headers, boot.marshalizer, boot.store)
+	if err != nil {
+		log.Debug(err.Error())
+		return
+	}
+
 	boot.processReceivedHeader(header, headerHash)
 }
 
@@ -192,7 +154,7 @@ func (boot *ShardBootstrap) receivedBodyHash(hash []byte) {
 
 	boot.requestedHashes.SetReceivedHash(hash)
 	if boot.requestedHashes.ReceivedAll() {
-		log.Info(fmt.Sprintf("received requested txBlockBody with hash %s from network\n", toB64(hash)))
+		log.Info(fmt.Sprintf("received requested txBlockBody with hash %s from network\n", core.ToB64(hash)))
 		boot.setRequestedMiniBlocks(nil)
 		boot.chRcvMiniBlocks <- true
 	}
@@ -288,17 +250,20 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		return err
 	}
 
+	timeBefore := time.Now()
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
 	if err != nil {
 		return err
 	}
+	timeAfter := time.Now()
+	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
 
-	log.Info(fmt.Sprintf("block with nonce %d was synced successfully\n", hdr.Nonce))
+	log.Info(fmt.Sprintf("block with nonce %d has been synced successfully\n", hdr.Nonce))
 	return nil
 }
 
-// getHeaderFromPoolHavingNonce method returns the block header from a given nonce
-func (boot *ShardBootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.Header {
+// getHeaderFromPoolWithNonce method returns the block header from a given nonce
+func (boot *ShardBootstrap) getHeaderFromPoolWithNonce(nonce uint64) *block.Header {
 	hash, _ := boot.headersNonces.Get(nonce)
 	if hash == nil {
 		log.Debug(fmt.Sprintf("nonce %d not found in headers-nonces cache\n", nonce))
@@ -307,13 +272,13 @@ func (boot *ShardBootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.He
 
 	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", core.ToB64(hash)))
 		return nil
 	}
 
 	header, ok := hdr.(*block.Header)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Debug(fmt.Sprintf("data with hash %s is not header\n", core.ToB64(hash)))
 		return nil
 	}
 
@@ -335,13 +300,13 @@ func (boot *ShardBootstrap) requestHeader(nonce uint64) {
 // getHeaderWithNonce method gets the header with given nonce from pool, if it exist there,
 // and if not it will be requested from network
 func (boot *ShardBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Header, error) {
-	hdr := boot.getHeaderFromPoolHavingNonce(nonce)
+	hdr := boot.getHeaderFromPoolWithNonce(nonce)
 
 	if hdr == nil {
 		emptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
 		boot.waitForHeaderNonce()
-		hdr = boot.getHeaderFromPoolHavingNonce(nonce)
+		hdr = boot.getHeaderFromPoolWithNonce(nonce)
 		if hdr == nil {
 			return nil, process.ErrMissingHeader
 		}
@@ -354,14 +319,14 @@ func (boot *ShardBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.H
 func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 	buff, err := boot.marshalizer.Marshal(hashes)
 	if err != nil {
-		log.Error("Could not marshal MiniBlock hashes: ", err.Error())
+		log.Error("could not marshal MiniBlock hashes: ", err.Error())
 		return
 	}
 
 	boot.setRequestedMiniBlocks(hashes)
 	err = boot.miniBlockResolver.RequestDataFromHashArray(hashes)
 
-	log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(buff)))
+	log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", core.ToB64(buff)))
 	if err != nil {
 		log.Error(err.Error())
 	}
@@ -408,7 +373,7 @@ func (boot *ShardBootstrap) forkChoice() error {
 		}
 
 		msg := fmt.Sprintf("roll back to header with nonce %d and hash %s",
-			header.GetNonce()-1, toB64(header.GetPrevHash()))
+			header.GetNonce()-1, core.ToB64(header.GetPrevHash()))
 
 		isSigned := isSigned(header)
 		if isSigned {
@@ -502,10 +467,13 @@ func (boot *ShardBootstrap) rollback(header *block.Header) error {
 
 func (boot *ShardBootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {
 	prevHash := header.PrevHash
-	buffHeader, _ := headerStore.Get(prevHash)
-	newHeader := &block.Header{}
+	buffHeader, err := headerStore.Get(prevHash)
+	if err != nil {
+		return nil, err
+	}
 
-	err := boot.marshalizer.Unmarshal(newHeader, buffHeader)
+	newHeader := &block.Header{}
+	err = boot.marshalizer.Unmarshal(newHeader, buffHeader)
 	if err != nil {
 		return nil, err
 	}
