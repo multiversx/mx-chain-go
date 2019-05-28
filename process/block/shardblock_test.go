@@ -2774,6 +2774,7 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 		initAccountsMock(),
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHash [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -2879,6 +2880,11 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 		initAccountsMock(),
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		forkDetector,
+		&mock.BlocksTrackerMock{
+			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
+				return nil
+			},
+		},
 		func(destShardID uint32, txHash [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -3005,6 +3011,11 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 		initAccountsMock(),
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		forkDetector,
+		&mock.BlocksTrackerMock{
+			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
+				return nil
+			},
+		},
 		func(destShardID uint32, txHash [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -3110,6 +3121,11 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 		initAccountsMock(),
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		forkDetector,
+		&mock.BlocksTrackerMock{
+			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
+				return nil
+			},
+		},
 		func(destShardID uint32, txHash [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
