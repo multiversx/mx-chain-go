@@ -70,7 +70,7 @@ func (txProc *txProcessor) SetSCHandler(f func(accountsAdapter state.AccountsAda
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex int32) error {
+func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex uint32) error {
 	if tx == nil {
 		return process.ErrNilTransaction
 	}

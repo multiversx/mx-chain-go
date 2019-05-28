@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"math/big"
 	"testing"
 
@@ -105,6 +106,14 @@ func TestMetaBlock_GetEpoch(t *testing.T) {
 	}
 
 	assert.Equal(t, epoch, m.GetEpoch())
+}
+
+func TestMetaBlock_GetShard(t *testing.T) {
+	t.Parallel()
+
+	m := block.MetaBlock{}
+
+	assert.Equal(t, sharding.MetachainShardId, m.GetShardID())
 }
 
 func TestMetaBlock_GetNonce(t *testing.T) {

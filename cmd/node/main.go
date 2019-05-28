@@ -780,6 +780,18 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	shardsGenesisBlocks, err := generateGenesisHeadersForInit(
+		nodesConfig,
+		genesisConfig,
+		shardCoordinator,
+		addressConverter,
+		hasher,
+		marshalizer,
+	)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	blockProcessor, err := block.NewShardProcessor(
 		datapool,
 		store,
@@ -793,9 +805,18 @@ func createShardNode(
 		createTxRequestHandler(resolversFinder, factory.TransactionTopic, log),
 		createRequestHandler(resolversFinder, factory.MiniBlocksTopic, log),
 	)
-
 	if err != nil {
 		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
+	}
+
+	err = blockProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks, nodesConfig.MetaChainActive)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = blockProcessor.SetOnRequestHeaderHandlerByNonce(createHeaderRequestHandlerByNonce(resolversFinder, factory.MetachainBlocksTopic, log))
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	nd, err := node.NewNode(
@@ -1068,7 +1089,7 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
-	shardsGenesisBlocks, err := generateGenesisHeadersForMetachainInit(
+	shardsGenesisBlocks, err := generateGenesisHeadersForInit(
 		nodesConfig,
 		genesisConfig,
 		shardCoordinator,
@@ -1094,7 +1115,12 @@ func createMetaNode(
 		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
-	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks)
+	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks, nodesConfig.MetaChainActive)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = metaProcessor.SetOnRequestHeaderHandlerByNonce(createHeaderRequestHandlerByNonce(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1198,6 +1224,27 @@ func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTop
 		}
 
 		err = resolver.RequestDataFromHash(txHash)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
+}
+
+func createHeaderRequestHandlerByNonce(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
+	return func(destShardID uint32, nonce uint64) {
+		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
+		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		headerResolver, ok := resolver.(*resolvers.HeaderResolver)
+		if !ok {
+			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
+		}
+
+		headerResolver.RequestDataFromNonce(nonce)
 		if err != nil {
 			log.Debug(err.Error())
 		}
@@ -1710,7 +1757,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func generateGenesisHeadersForMetachainInit(
+func generateGenesisHeadersForInit(
 	nodesSetup *sharding.NodesSetup,
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
@@ -1762,6 +1809,15 @@ func generateGenesisHeadersForMetachainInit(
 		}
 
 		shardsGenesisBlocks[shardId] = genesisBlock
+	}
+
+	if nodesSetup.IsMetaChainActive() {
+		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesPubKeys())
+		if err != nil {
+			return nil, err
+		}
+
+		shardsGenesisBlocks[sharding.MetachainShardId] = genesisBlock
 	}
 
 	return shardsGenesisBlocks, nil
