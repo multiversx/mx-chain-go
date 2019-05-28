@@ -1277,6 +1277,7 @@ func createHeaderRequestHandlerByNonce(resolversFinder dataRetriever.ResolversFi
 		headerResolver, ok := resolver.(*resolvers.HeaderResolver)
 		if !ok {
 			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
+			return
 		}
 
 		err = headerResolver.RequestDataFromNonce(nonce)
