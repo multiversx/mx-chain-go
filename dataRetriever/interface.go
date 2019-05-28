@@ -8,6 +8,28 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
+// UnitType is the type for Storage unit identifiers
+type UnitType uint8
+
+const (
+	// TransactionUnit is the transactions storage unit identifier
+	TransactionUnit UnitType = 0
+	// MiniBlockUnit is the transaction block body storage unit identifier
+	MiniBlockUnit UnitType = 1
+	// PeerChangesUnit is the peer change block body storage unit identifier
+	PeerChangesUnit UnitType = 2
+	// BlockHeaderUnit is the Block Headers Storage unit identifier
+	BlockHeaderUnit UnitType = 3
+	// MetaBlockUnit is the metachain blocks storage unit identifier
+	MetaBlockUnit UnitType = 4
+	// MetaShardDataUnit is the metachain shard data unit identifier
+	MetaShardDataUnit UnitType = 5
+	// MetaPeerDataUnit is the metachain peer data unit identifier
+	MetaPeerDataUnit UnitType = 6
+	// HdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
+	HdrNonceHashDataUnit UnitType = 7
+)
+
 // Resolver defines what a data resolver should do
 type Resolver interface {
 	RequestDataFromHash(hash []byte) error
@@ -109,26 +131,6 @@ type DataRetriever interface {
 	// Request searches for data in specified storage level, if not present launches threads to search in network
 	Request(keys [][]byte, identifier string, level StorageType, haveTime func() time.Duration, callbackHandler func(key []byte)) (map[string]interface{}, [][]byte, error)
 }
-
-const (
-	// TransactionUnit is the transactions storage unit identifier
-	TransactionUnit UnitType = 0
-	// MiniBlockUnit is the transaction block body storage unit identifier
-	MiniBlockUnit UnitType = 1
-	// PeerChangesUnit is the peer change block body storage unit identifier
-	PeerChangesUnit UnitType = 2
-	// BlockHeaderUnit is the Block Headers Storage unit identifier
-	BlockHeaderUnit UnitType = 3
-	// MetaBlockUnit is the metachain blocks storage unit identifier
-	MetaBlockUnit UnitType = 4
-	// MetaShardDataUnit is the metachain shard data unit identifier
-	MetaShardDataUnit UnitType = 5
-	// MetaPeerDataUnit is the metachain peer data unit identifier
-	MetaPeerDataUnit UnitType = 6
-)
-
-// UnitType is the type for Storage unit identifiers
-type UnitType uint8
 
 // Notifier defines a way to register funcs that get called when something useful happens
 type Notifier interface {

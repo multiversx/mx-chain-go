@@ -49,6 +49,7 @@ type Config struct {
 	PeerBlockBodyStorage StorageConfig
 	BlockHeaderStorage   StorageConfig
 	TxStorage            StorageConfig
+	HdrNonceHashStorage  StorageConfig
 
 	ShardDataStorage StorageConfig
 	MetaBlockStorage StorageConfig

@@ -1475,7 +1475,7 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 }
 
 func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
-	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit *storage.Unit
+	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit, hdrHashNonce *storage.Unit
 	var err error
 
 	defer func() {
@@ -1495,6 +1495,9 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 			}
 			if metachainHeaderUnit != nil {
 				_ = metachainHeaderUnit.DestroyUnit()
+			}
+			if hdrHashNonce != nil {
+				_ = hdrHashNonce.DestroyUnit()
 			}
 		}
 	}()
@@ -1539,12 +1542,22 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 		return nil, err
 	}
 
+	hdrHashNonce, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.HdrNonceHashStorage.Cache),
+		getDBFromConfig(config.HdrNonceHashStorage.DB),
+		getBloomFromConfig(config.HdrNonceHashStorage.Bloom),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
 	store.AddStorer(dataRetriever.PeerChangesUnit, peerBlockUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaBlockUnit, metachainHeaderUnit)
+	store.AddStorer(dataRetriever.HdrNonceHashDataUnit, hdrHashNonce)
 
 	return store, err
 }
@@ -1608,7 +1621,7 @@ func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, er
 }
 
 func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
-	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit *storage.Unit
+	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, hdrHashNonce *storage.Unit
 	var err error
 
 	defer func() {
@@ -1625,6 +1638,9 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 			}
 			if headerUnit != nil {
 				_ = headerUnit.DestroyUnit()
+			}
+			if hdrHashNonce != nil {
+				_ = hdrHashNonce.DestroyUnit()
 			}
 		}
 	}()
@@ -1661,11 +1677,21 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 		return nil, err
 	}
 
+	hdrHashNonce, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.HdrNonceHashStorage.Cache),
+		getDBFromConfig(config.HdrNonceHashStorage.DB),
+		getBloomFromConfig(config.HdrNonceHashStorage.Bloom),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
 	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
+	store.AddStorer(dataRetriever.HdrNonceHashDataUnit, hdrHashNonce)
 
 	return store, err
 }

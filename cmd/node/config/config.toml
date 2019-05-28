@@ -60,6 +60,14 @@
         FilePath = "Transactions"
         Type = "LvlDB"
 
+[HdrNonceHashStorage]
+    [HdrNonceHashStorage.Cache]
+        Size = 100
+        Type = "LRU"
+    [HdrNonceHashStorage.DB]
+        FilePath = "HdrHashNonce"
+        Type = "LvlDB"
+
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
         Size = 100000
