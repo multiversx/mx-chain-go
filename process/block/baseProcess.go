@@ -2,12 +2,11 @@ package block
 
 import (
 	"bytes"
-	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"sort"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -99,7 +98,7 @@ func (bp *baseProcessor) checkBlockValidity(
 			}
 
 			log.Info(fmt.Sprintf("hash not match: local block hash is empty and node received block with previous hash %s\n",
-				toB64(headerHandler.GetPrevHash())))
+				core.ToB64(headerHandler.GetPrevHash())))
 
 			return process.ErrInvalidBlockHash
 		}
@@ -124,7 +123,7 @@ func (bp *baseProcessor) checkBlockValidity(
 
 	if !bytes.Equal(headerHandler.GetPrevHash(), prevHeaderHash) {
 		log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
-			toB64(prevHeaderHash), toB64(headerHandler.GetPrevHash())))
+			core.ToB64(prevHeaderHash), core.ToB64(headerHandler.GetPrevHash())))
 
 		return process.ErrInvalidBlockHash
 	}
@@ -391,42 +390,28 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Prev hash",
-		toB64(headerHandler.GetPrevHash())}))
+		core.ToB64(headerHandler.GetPrevHash())}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Prev rand seed",
-		toB64(headerHandler.GetPrevRandSeed())}))
+		core.ToB64(headerHandler.GetPrevRandSeed())}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Rand seed",
-		toB64(headerHandler.GetRandSeed())}))
+		core.ToB64(headerHandler.GetRandSeed())}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Pub keys bitmap",
-		toHex(headerHandler.GetPubKeysBitmap())}))
+		core.ToHex(headerHandler.GetPubKeysBitmap())}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Signature",
-		toB64(headerHandler.GetSignature())}))
+		core.ToB64(headerHandler.GetSignature())}))
 	lines = append(lines, display.NewLineData(true, []string{
 		"",
 		"Root hash",
-		toB64(headerHandler.GetRootHash())}))
+		core.ToB64(headerHandler.GetRootHash())}))
 	return lines
-}
-
-func toHex(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return "0x" + hex.EncodeToString(buff)
-}
-
-func toB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return base64.StdEncoding.EncodeToString(buff)
 }
 
 // checkProcessorNilParameters will check the imput parameters for nil values
@@ -436,6 +421,7 @@ func checkProcessorNilParameters(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
+	shardCoordinator sharding.Coordinator,
 ) error {
 
 	if accounts == nil {
@@ -452,6 +438,9 @@ func checkProcessorNilParameters(
 	}
 	if store == nil {
 		return process.ErrNilStorage
+	}
+	if shardCoordinator == nil {
+		return process.ErrNilShardCoordinator
 	}
 
 	return nil

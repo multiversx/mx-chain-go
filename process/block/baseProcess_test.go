@@ -300,6 +300,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -371,6 +372,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -393,6 +395,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},
@@ -427,6 +430,7 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
 		func(destShardID uint32, txHash []byte) {},

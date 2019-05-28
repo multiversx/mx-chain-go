@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -60,7 +61,8 @@ func NewMetaProcessor(
 		forkDetector,
 		hasher,
 		marshalizer,
-		store)
+		store,
+		shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -73,9 +75,6 @@ func NewMetaProcessor(
 	}
 	if requestHeaderHandler == nil {
 		return nil, process.ErrNilRequestHeaderHandler
-	}
-	if shardCoordinator == nil {
-		return nil, process.ErrNilShardCoordinator
 	}
 
 	base := &baseProcessor{
@@ -300,12 +299,12 @@ func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint
 				return err
 			}
 
-			msg = fmt.Sprintf("%s\n%s", msg, toB64(shardMiniBlockHeader.Hash))
+			msg = fmt.Sprintf("%s\n%s", msg, core.ToB64(shardMiniBlockHeader.Hash))
 		}
 	}
 
 	if len(msg) > 0 {
-		log.Info(fmt.Sprintf("The following miniblocks hashes were successfully processed:%s\n", msg))
+		log.Info(fmt.Sprintf("the following miniblocks hashes were successfully processed:%s\n", msg))
 	}
 
 	return nil
@@ -389,7 +388,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
-		header, err := mp.getShardHeaderFromPool(shardData.ShardId, shardData.HeaderHash)
+		header, err := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
 		if header == nil {
 			return err
 		}
@@ -467,7 +466,7 @@ func (mp *metaProcessor) createLastNotarizedHdrs(header *block.MetaBlock) error 
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
-		header, err := mp.getShardHeaderFromPool(shardData.ShardId, shardData.HeaderHash)
+		header, err := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
 		if header == nil {
 			return err
 		}
@@ -486,7 +485,7 @@ func (mp *metaProcessor) getSortedShardHdrsFromMetablock(header *block.MetaBlock
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
-		header, err := mp.getShardHeaderFromPool(shardData.ShardId, shardData.HeaderHash)
+		header, err := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
 		if header == nil {
 			go mp.onRequestShardHeaderHandler(shardData.ShardId, shardData.HeaderHash)
 			return nil, err
@@ -646,26 +645,6 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 	return false, nil
 }
 
-// getHeaderFromPool gets the header from a given shard id and a given header hash
-func (mp *metaProcessor) getShardHeaderFromPool(shardID uint32, headerHash []byte) (*block.Header, error) {
-	headerPool := mp.dataPool.ShardHeaders()
-	if headerPool == nil {
-		return nil, process.ErrNilHeadersDataPool
-	}
-
-	val, ok := headerPool.Peek(headerHash)
-	if !ok {
-		return nil, process.ErrMissingHeader
-	}
-
-	header, ok := val.(*block.Header)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	return header, nil
-}
-
 // receivedHeader is a call back function which is called when a new header
 // is added in the headers pool
 func (mp *metaProcessor) receivedHeader(headerHash []byte) {
@@ -711,7 +690,7 @@ func (mp *metaProcessor) computeMissingHeaders(header *block.MetaBlock) map[uint
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
-		header, _ := mp.getShardHeaderFromPool(shardData.ShardId, shardData.HeaderHash)
+		header, _ := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
 		if header == nil {
 			missingHeaders[shardData.ShardId] = shardData.HeaderHash
 		}
@@ -957,7 +936,7 @@ func (mp *metaProcessor) displayLogInfo(
 	shardMBHeaderCounterMutex.RLock()
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal shard MB headers "+
 		"processed until now: %d. Total shard MB headers processed for this block: %d. Total shard headers remained in pool: %d\n",
-		toB64(headerHash),
+		core.ToB64(headerHash),
 		shardMBHeadersTotalProcessed,
 		shardMBHeadersCurrentBlockProcessed,
 		mp.getHeadersCountInPool())
@@ -1013,7 +992,7 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
 					fmt.Sprintf("ShardMiniBlockHeaderHash_%d", j+1),
-					toB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
+					core.ToB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					"",

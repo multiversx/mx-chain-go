@@ -255,6 +255,13 @@ func createNetNode(
 				return 0
 			},
 		},
+		&mock.BlocksTrackerMock{
+			AddBlockCalled: func(headerHandler data.HeaderHandler) {
+			},
+			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
+				return nil
+			},
+		},
 		func(destShardID uint32, txHashes [][]byte) {
 			resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
 			if err != nil {
