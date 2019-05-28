@@ -96,6 +96,7 @@ func createMetaStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaPeerDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaShardDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.HdrNonceHashDataUnit, generateTestUnit())
 	return store
 }
 
@@ -766,7 +767,7 @@ func TestMetaBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 
 	r := bs.SyncBlock()
 
-	assert.Equal(t, process.ErrMissingHeader, r)
+	assert.Equal(t, process.ErrMissingHashForHeaderNonce, r)
 }
 
 func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
@@ -1295,7 +1296,8 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		account,
 	)
 
-	assert.Nil(t, bs.GetHeaderFromPoolWithNonce(0))
+	hdr, _ := bs.GetHeaderFromPoolWithNonce(0)
+	assert.Nil(t, hdr)
 }
 
 func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
@@ -1357,7 +1359,8 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		account,
 	)
 
-	assert.True(t, hdr == bs.GetHeaderFromPoolWithNonce(0))
+	hdr2, _ := bs.GetHeaderFromPoolWithNonce(0)
+	assert.True(t, hdr == hdr2)
 }
 
 //------- testing received headers

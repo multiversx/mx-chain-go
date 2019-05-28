@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -110,6 +111,9 @@ func NewMetaBootstrap(
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
+
+	//TODO: This should be injected when BlockProcessor will be refactored
+	boot.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
 	return &boot, nil
 }
@@ -250,27 +254,57 @@ func (boot *MetaBootstrap) SyncBlock() error {
 	return nil
 }
 
+func (boot *MetaBootstrap) getHeaderWithNonce(nonce uint64) (*block.MetaBlock, error) {
+	hdr, err := boot.getHeaderFromPoolWithNonce(nonce)
+	if err != nil {
+		hash, err := boot.getHeaderHashFromStorage(nonce)
+		if err != nil {
+			return nil, err
+		}
+
+		hdr, err = boot.getHeaderFromStorage(hash)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return hdr, err
+}
+
 // getHeaderFromPoolWithNonce method returns the block header from a given nonce
-func (boot *MetaBootstrap) getHeaderFromPoolWithNonce(nonce uint64) *block.MetaBlock {
+func (boot *MetaBootstrap) getHeaderFromPoolWithNonce(nonce uint64) (*block.MetaBlock, error) {
 	hash, _ := boot.headersNonces.Get(nonce)
 	if hash == nil {
-		log.Debug(fmt.Sprintf("nonce %d not found in headers-nonces cache\n", nonce))
-		return nil
+		return nil, process.ErrMissingHashForHeaderNonce
 	}
 
 	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", core.ToB64(hash)))
-		return nil
+		return nil, process.ErrMissingHeader
 	}
 
 	header, ok := hdr.(*block.MetaBlock)
 	if !ok {
-		log.Debug(fmt.Sprintf("data with hash %s is not metablock\n", core.ToB64(hash)))
-		return nil
+		return nil, process.ErrWrongTypeAssertion
 	}
 
-	return header
+	return header, nil
+}
+
+// getHeaderHashFromStorage method returns the block header hash from a given nonce
+func (boot *MetaBootstrap) getHeaderHashFromStorage(nonce uint64) ([]byte, error) {
+	headerStore := boot.store.GetStorer(dataRetriever.HdrNonceHashDataUnit)
+	if headerStore == nil {
+		return nil, process.ErrNilHeadersStorage
+	}
+
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	headerHash, err := headerStore.Get(nonceToByteSlice)
+	if err != nil {
+		return nil, process.ErrMissingHashForHeaderNonce
+	}
+
+	return headerHash, nil
 }
 
 // requestHeader method requests a block header from network when it is not found in the pool
@@ -288,15 +322,18 @@ func (boot *MetaBootstrap) requestHeader(nonce uint64) {
 // getHeaderWithNonce method gets the header with given nonce from pool, if it exist there,
 // and if not it will be requested from network
 func (boot *MetaBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.MetaBlock, error) {
-	hdr := boot.getHeaderFromPoolWithNonce(nonce)
+	hdr, err := boot.getHeaderWithNonce(nonce)
+	if err != nil {
+		return nil, err
+	}
 
 	if hdr == nil {
 		emptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
 		boot.waitForHeaderNonce()
-		hdr = boot.getHeaderFromPoolWithNonce(nonce)
-		if hdr == nil {
-			return nil, process.ErrMissingHeader
+		hdr, err = boot.getHeaderFromPoolWithNonce(nonce)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -351,6 +388,10 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 	if headerStore == nil {
 		return process.ErrNilHeadersStorage
 	}
+	headerNonceHashStore := boot.store.GetStorer(dataRetriever.HdrNonceHashDataUnit)
+	if headerNonceHashStore == nil {
+		return process.ErrNilHeadersNonceHashStorage
+	}
 
 	var err error
 	var newHeader *block.MetaBlock
@@ -381,7 +422,7 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 		return err
 	}
 
-	boot.cleanCachesOnRollback(header, headerStore)
+	boot.cleanCachesOnRollback(header, headerStore, headerNonceHashStore)
 	errNotCritical := boot.blkExecutor.RestoreBlockIntoPools(header, nil)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())

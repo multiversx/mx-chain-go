@@ -112,6 +112,9 @@ var ErrInvalidShardId = errors.New("invalid shard id")
 // ErrMissingHeader signals that header of the block is missing
 var ErrMissingHeader = errors.New("missing header")
 
+// ErrMissingHashForHeaderNonce signals that hash of the block is missing
+var ErrMissingHashForHeaderNonce = errors.New("missing hash for header nonce")
+
 // ErrMissingBody signals that body of the block is missing
 var ErrMissingBody = errors.New("missing body")
 
@@ -198,6 +201,9 @@ var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions poo
 
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
+
+// ErrNilHeadersNonceHashStorage signals that a nil header nonce hash storage has been provided
+var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 
 // ErrNilMetachainHeadersStorage signals that a nil metachain header storage has been provided
 var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")

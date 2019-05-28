@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -25,6 +26,7 @@ type baseProcessor struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	store            dataRetriever.StorageService
+	uint64Converter  typeConverters.Uint64ByteSliceConverter
 }
 
 func checkForNils(

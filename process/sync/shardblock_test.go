@@ -139,7 +139,11 @@ func createMockPools() *mock.PoolsHolderStub {
 func createStore() *mock.ChainStorerMock {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return nil, process.ErrMissingHeader
+				},
+			}
 		},
 	}
 }
@@ -165,6 +169,7 @@ func createFullStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.HdrNonceHashDataUnit, generateTestUnit())
 	return store
 }
 
@@ -982,7 +987,7 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 
 	r := bs.SyncBlock()
 
-	assert.Equal(t, process.ErrMissingHeader, r)
+	assert.Equal(t, process.ErrMissingHashForHeaderNonce, r)
 }
 
 func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
@@ -1633,7 +1638,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		account,
 	)
 
-	assert.Nil(t, bs.GetHeaderFromPoolWithNonce(0))
+	hdr, _ := bs.GetHeaderFromPoolWithNonce(0)
+	assert.Nil(t, hdr)
 }
 
 func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
@@ -1695,7 +1701,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		account,
 	)
 
-	assert.True(t, hdr == bs.GetHeaderFromPoolWithNonce(0))
+	hdr2, _ := bs.GetHeaderFromPoolWithNonce(0)
+	assert.True(t, hdr == hdr2)
 }
 
 func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {

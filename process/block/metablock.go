@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -106,6 +107,9 @@ func NewMetaProcessor(
 
 	mp.finalityAttestingHdrs = make([]*block.Header, 0)
 	mp.nextKValidity = blockFinality
+
+	//TODO: This should be injected when BlockProcessor will be refactored
+	mp.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
 	return &mp, nil
 }
@@ -338,6 +342,12 @@ func (mp *metaProcessor) CommitBlock(
 
 	headerHash := mp.hasher.Compute(string(buff))
 	err = mp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
+	if err != nil {
+		return err
+	}
+
+	nonceToByteSlice := mp.uint64Converter.ToByteSlice(headerHandler.GetNonce())
+	err = mp.store.Put(dataRetriever.HdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if err != nil {
 		return err
 	}

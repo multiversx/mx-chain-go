@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -62,6 +63,7 @@ type baseBootstrap struct {
 	mutRcvHdrInfo         sync.RWMutex
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
+	uint64Converter       typeConverters.Uint64ByteSliceConverter
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -182,10 +184,16 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) (has
 	return
 }
 
-func (boot *baseBootstrap) cleanCachesOnRollback(header data.HeaderHandler, headerStore storage.Storer) {
+func (boot *baseBootstrap) cleanCachesOnRollback(
+	header data.HeaderHandler,
+	headerStore storage.Storer,
+	headerNonceHashStore storage.Storer) {
+
 	hash := boot.removeHeaderFromPools(header)
 	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
 	_ = headerStore.Remove(hash)
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
+	_ = headerNonceHashStore.Remove(nonceToByteSlice)
 }
 
 // checkBootstrapNilParameters will check the imput parameters for nil values

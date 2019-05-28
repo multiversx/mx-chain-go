@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -123,6 +124,9 @@ func NewShardProcessor(
 		return nil, process.ErrNilMiniBlockPool
 	}
 	miniBlockPool.RegisterHandler(sp.receivedMiniBlock)
+
+	//TODO: This should be injected when BlockProcessor will be refactored
+	sp.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
 	return &sp, nil
 }
@@ -406,6 +410,12 @@ func (sp *shardProcessor) CommitBlock(
 
 	headerHash := sp.hasher.Compute(string(buff))
 	err = sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
+	if err != nil {
+		return err
+	}
+
+	nonceToByteSlice := sp.uint64Converter.ToByteSlice(headerHandler.GetNonce())
+	err = sp.store.Put(dataRetriever.HdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if err != nil {
 		return err
 	}
