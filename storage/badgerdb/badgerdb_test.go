@@ -10,7 +10,7 @@ import (
 
 func createBadgerDb(t *testing.T) (p *badgerdb.DB) {
 	dir, err := ioutil.TempDir("", "leveldb_temp")
-	bDB, err := badgerdb.NewDB(dir)
+	bDB, err := badgerdb.NewDB(dir, 10, 1)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
 	return bDB

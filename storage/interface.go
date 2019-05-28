@@ -8,10 +8,6 @@ type Persister interface {
 	Get(key []byte) ([]byte, error)
 	// Has returns true if the given key is present in the persistance mediu
 	Has(key []byte) error
-	// CreateBatch returns a batcher to be used for batch writing data to the database
-	CreateBatch() Batcher
-	// PutBatch writes the Batch data into the database
-	PutBatch(b Batcher) error
 	// Init initializes the persistance medium and prepares it for usage
 	Init() error
 	// Close closes the files/resources associated to the persistance medium

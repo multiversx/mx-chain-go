@@ -19,7 +19,7 @@ type DB struct {
 
 // NewDB is a constructor for the badger persister
 // It creates the files in the location given as parameter
-func NewDB(path string) (s *DB, err error) {
+func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err error) {
 	opts := badger.DefaultOptions
 	opts.Dir = path
 	opts.ValueDir = path
@@ -54,12 +54,12 @@ func (s *DB) Put(key, val []byte) error {
 }
 
 // CreateBatch returns a batcher to be used for batch writing data to the database
-func (s *DB) CreateBatch() storage.Batcher {
+func (s *DB) createBatch() storage.Batcher {
 	return NewBatch()
 }
 
 // PutBatch writes the Batch data into the database
-func (s *DB) PutBatch(b storage.Batcher) error {
+func (s *DB) putBatch(b storage.Batcher) error {
 	batch, ok := b.(*Batch)
 	if !ok {
 		return storage.ErrInvalidBatch

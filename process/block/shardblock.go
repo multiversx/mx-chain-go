@@ -438,6 +438,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	_ = headerNoncePool.Put(headerHandler.GetNonce(), headerHash)
 
+
 	for i := 0; i < len(body); i++ {
 		miniBlock := (body)[i]
 		for j := 0; j < len(miniBlock.TxHashes); j++ {

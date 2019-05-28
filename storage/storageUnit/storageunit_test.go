@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
@@ -261,7 +262,7 @@ func TestHasNotPresent(t *testing.T) {
 	err := s.Has(key)
 
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Key not found")
+	assert.Equal(t, err, storage.ErrKeyNotFound)
 }
 
 func TestHasNotPresentWithNilBloomFilter(t *testing.T) {
@@ -871,7 +872,7 @@ func initSUWithNilBloomFilter(cSize int) *storageUnit.Unit {
 		fmt.Println(err)
 	}
 
-	ldb, err1 := leveldb.NewDB(dir + "/levelDB")
+	ldb, err1 := leveldb.NewDB(dir + "/levelDB", 10, 10)
 	cache, err2 := lrucache.NewCache(cSize)
 
 	if err1 != nil {
@@ -897,7 +898,7 @@ func initSUWithBloomFilter(cSize int, bfSize uint) *storageUnit.Unit {
 		fmt.Println(err)
 	}
 
-	ldb, err1 := leveldb.NewDB(dir + "/levelDB")
+	ldb, err1 := leveldb.NewDB(dir + "/levelDB", 10, 10)
 	cache, err2 := lrucache.NewCache(cSize)
 	bf, err3 := bloom.NewFilter(bfSize, []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}})
 

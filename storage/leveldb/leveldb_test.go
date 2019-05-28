@@ -11,7 +11,7 @@ import (
 
 func createLevelDb(t *testing.T) (p *leveldb.DB) {
 	dir, err := ioutil.TempDir("", "leveldb_temp")
-	lvdb, err := leveldb.NewDB(dir)
+	lvdb, err := leveldb.NewDB(dir, 10, 1)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
 	return lvdb

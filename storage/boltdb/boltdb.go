@@ -98,12 +98,12 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 }
 
 // CreateBatch returns a batcher to be used for batch writing data to the database
-func (s *DB) CreateBatch() storage.Batcher {
+func (s *DB) createBatch() storage.Batcher {
 	return NewBatch(s)
 }
 
 // PutBatch writes the Batch data into the database
-func (s *DB) PutBatch(b storage.Batcher) error {
+func (s *DB) putBatch(b storage.Batcher) error {
 	_, ok := b.(*Batch)
 	if !ok {
 		return storage.ErrInvalidBatch

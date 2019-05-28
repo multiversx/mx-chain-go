@@ -87,6 +87,7 @@ type BloomConfig struct {
 // holding the cache, persistance unit and bloom filter
 type Unit struct {
 	lock        sync.RWMutex
+	batcher     storage.Batcher
 	persister   storage.Persister
 	cacher      storage.Cacher
 	bloomFilter storage.BloomFilter
@@ -165,7 +166,7 @@ func (s *Unit) Has(key []byte) error {
 		return s.persister.Has(key)
 	}
 
-	return errors.New("Key not found")
+	return storage.ErrKeyNotFound
 }
 
 // HasOrAdd checks if the key is present in the storage and if not adds it.
@@ -358,9 +359,9 @@ func NewDB(dbType DBType, path string, batchDelaySeconds int, maxBatchSize int) 
 
 	switch dbType {
 	case LvlDB:
-		db, err = leveldb.NewDB(path)
+		db, err = leveldb.NewDB(path, batchDelaySeconds, maxBatchSize)
 	case BadgerDB:
-		db, err = badgerdb.NewDB(path)
+		db, err = badgerdb.NewDB(path, batchDelaySeconds, maxBatchSize)
 	case BoltDB:
 		db, err = boltdb.NewDB(path, batchDelaySeconds, maxBatchSize)
 	default:
