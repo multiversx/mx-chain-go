@@ -22,6 +22,9 @@ var ErrNilAddressContainer = errors.New("nil AddressContainer")
 // ErrNilTransaction signals that an operation has been attempted to or with a nil transaction
 var ErrNilTransaction = errors.New("nil transaction")
 
+// ErrWrongTransaction signals that transaction is invalid
+var ErrWrongTransaction = errors.New("invalid transaction")
+
 // ErrNoVM signals that no SCHandler has been set
 var ErrNoVM = errors.New("no VM (hook not set)")
 

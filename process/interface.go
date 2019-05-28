@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -16,6 +17,11 @@ type TransactionProcessor interface {
 	SetSCHandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error)
 
 	ProcessTransaction(transaction *transaction.Transaction, round uint32) error
+}
+
+// SmartContractProcessor is the main interface for the smart contract caller engine
+type SmartContractProcessor interface {
+	ComputeTransactionType(transaction *transaction.Transaction) (smartContract.TransactionType, error)
 }
 
 // BlockProcessor is the main interface for block execution engine
