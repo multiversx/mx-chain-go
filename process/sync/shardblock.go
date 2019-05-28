@@ -132,10 +132,6 @@ func NewShardBootstrap(
 
 func (boot *ShardBootstrap) receivedHeaders(headerHash []byte) {
 	header, err := process.GetShardHeader(headerHash, boot.headers, boot.marshalizer, boot.store)
-	if header == nil {
-
-	}
-
 	if err != nil {
 		log.Debug(err.Error())
 		return

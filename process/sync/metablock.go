@@ -114,56 +114,56 @@ func NewMetaBootstrap(
 	return &boot, nil
 }
 
-func (boot *MetaBootstrap) getHeader(hash []byte) *block.MetaBlock {
-	hdr := boot.getHeaderFromPool(hash)
-	if hdr != nil {
-		return hdr
+func (boot *MetaBootstrap) getHeader(hash []byte) (*block.MetaBlock, error) {
+	hdr, err := boot.getHeaderFromPool(hash)
+	if err != nil {
+		hdr, err = boot.getHeaderFromStorage(hash)
 	}
 
-	return boot.getHeaderFromStorage(hash)
+	return hdr, nil
 }
 
-func (boot *MetaBootstrap) getHeaderFromPool(hash []byte) *block.MetaBlock {
+func (boot *MetaBootstrap) getHeaderFromPool(hash []byte) (*block.MetaBlock, error) {
 	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", core.ToB64(hash)))
-		return nil
+		return nil, process.ErrMissingHeader
 	}
 
 	header, ok := hdr.(*block.MetaBlock)
 	if !ok {
-		log.Debug(fmt.Sprintf("data with hash %s is not metablock\n", core.ToB64(hash)))
-		return nil
+		return nil, process.ErrWrongTypeAssertion
 	}
 
-	return header
+	return header, nil
 }
 
-func (boot *MetaBootstrap) getHeaderFromStorage(hash []byte) *block.MetaBlock {
+func (boot *MetaBootstrap) getHeaderFromStorage(hash []byte) (*block.MetaBlock, error) {
 	headerStore := boot.store.GetStorer(dataRetriever.MetaBlockUnit)
 	if headerStore == nil {
-		log.Error(process.ErrNilHeadersStorage.Error())
-		return nil
+		return nil, process.ErrNilHeadersStorage
 	}
 
 	buffHeader, err := headerStore.Get(hash)
 	if err != nil {
-		log.Error(err.Error())
-		return nil
+		return nil, process.ErrMissingHeader
 	}
 
 	header := &block.MetaBlock{}
 	err = boot.marshalizer.Unmarshal(header, buffHeader)
 	if err != nil {
-		log.Error(err.Error())
-		return nil
+		return nil, process.ErrUnmarshalWithoutSuccess
 	}
 
-	return header
+	return header, nil
 }
 
 func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
-	header := boot.getHeader(headerHash)
+	header, err := boot.getHeader(headerHash)
+	if err != nil {
+		log.Debug(err.Error())
+		return
+	}
+
 	boot.processReceivedHeader(header, headerHash)
 }
 

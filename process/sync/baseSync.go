@@ -79,12 +79,6 @@ func (boot *baseBootstrap) requestedHeaderNonce() *uint64 {
 }
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	_, ok := headerHandler.(data.HeaderHandler)
-	if !ok {
-		log.Info(ErrNilHeader.Error())
-		return
-	}
-
 	log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n",
 		headerHandler.GetNonce(),
 		core.ToB64(headerHash)))
