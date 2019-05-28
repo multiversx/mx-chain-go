@@ -215,6 +215,7 @@ func TestNewShardProcessor_NilBlocksTrackerShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	sp, err := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -2826,6 +2827,7 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 
 	shardNr := uint32(5)
 	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		dataPool,
 		&mock.ChainStorerMock{},
 		hasher,
@@ -2932,6 +2934,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	shardNr := uint32(5)
 	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		dataPool,
 		&mock.ChainStorerMock{},
 		hasher,
@@ -3063,6 +3066,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 
 	shardNr := uint32(5)
 	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		dataPool,
 		&mock.ChainStorerMock{},
 		hasher,
@@ -3173,6 +3177,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 
 	shardNr := uint32(5)
 	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		dataPool,
 		&mock.ChainStorerMock{},
 		hasher,

@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
 
@@ -20,7 +19,7 @@ type TpsBenchmark struct {
 	averageBlockTxCount   *big.Int
 	lastBlockTxCount      uint32
 	totalProcessedTxCount *big.Int
-	shardStatistics       map[uint32]core.ShardStatistic
+	shardStatistics       map[uint32]ShardStatistic
 	missingNonces         map[uint64]struct{}
 	missingNoncesLock     sync.RWMutex
 }
@@ -41,10 +40,10 @@ type ShardStatistics struct {
 // nrOfShards represents the total number of shards, roundDuration is the duration for a round in seconds
 func NewTPSBenchmark(nrOfShards uint32, roundDuration uint64) (*TpsBenchmark, error) {
 	if roundDuration == 0 {
-		return nil, core.ErrInvalidRoundDuration
+		return nil, ErrInvalidRoundDuration
 	}
 
-	shardStats := make(map[uint32]core.ShardStatistic, 0)
+	shardStats := make(map[uint32]ShardStatistic, 0)
 	for i := uint32(0); i < nrOfShards; i++ {
 		shardStats[i] = &ShardStatistics{
 			roundTime:             roundDuration,
@@ -112,14 +111,14 @@ func (s *TpsBenchmark) NrOfShards() uint32 {
 }
 
 // ShardStatistics returns the current statistical state for a given shard
-func (s *TpsBenchmark) ShardStatistics() map[uint32]core.ShardStatistic {
+func (s *TpsBenchmark) ShardStatistics() map[uint32]ShardStatistic {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 	return s.shardStatistics
 }
 
 // ShardStatistic returns the current statistical state for a given shard
-func (s *TpsBenchmark) ShardStatistic(shardID uint32) core.ShardStatistic {
+func (s *TpsBenchmark) ShardStatistic(shardID uint32) ShardStatistic {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
@@ -209,7 +208,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	for _, shardInfo := range header.ShardInfo {
 		shardStat, ok := s.shardStatistics[shardInfo.ShardId]
 		if !ok {
-			return core.ErrInvalidShardId
+			return ErrInvalidShardId
 		}
 
 		shardPeakTPS := shardStat.PeakTPS()

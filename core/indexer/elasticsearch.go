@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -41,7 +41,7 @@ type elasticIndexer struct {
 
 // NewElasticIndexer SHOULD UPDATE COMMENT
 func NewElasticIndexer(url string, shardCoordinator sharding.Coordinator, marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher, logger *logger.Logger) (core.Indexer, error) {
+	hasher hashing.Hasher, logger *logger.Logger) (Indexer, error) {
 	cfg := elasticsearch.Config{
 		Addresses: []string{url},
 	}
@@ -281,7 +281,7 @@ func (ei *elasticIndexer) SaveMetaBlock(metaBlock *block.MetaBlock, headerPool m
 }
 
 // UpdateTPS updates the tps and statistics into elasticsearch index
-func (ei *elasticIndexer) UpdateTPS(tpsBenchmark core.TPSBenchmark) {
+func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	if tpsBenchmark == nil {
 		ei.logger.Warn("update tps called, but the tpsBenchmark is nil")
 		return

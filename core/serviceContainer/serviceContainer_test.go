@@ -1,14 +1,14 @@
-package core_test
+package serviceContainer_test
 
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/serviceContainer"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestServiceContainer_NewServiceContainerEmpty(t *testing.T) {
-	sc, err := core.NewServiceContainer()
+	sc, err := serviceContainer.NewServiceContainer()
 	assert.Nil(t, err)
 	assert.NotNil(t, sc)
 	assert.Nil(t, sc.Indexer())

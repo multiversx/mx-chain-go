@@ -1,8 +1,13 @@
-package core
+package serviceContainer
+
+import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/indexer"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
+)
 
 type serviceContainer struct {
-	indexer Indexer
-	tpsBenchmark TPSBenchmark
+	indexer indexer.Indexer
+	tpsBenchmark statistics.TPSBenchmark
 }
 
 // Option represents a functional configuration parameter that
@@ -23,17 +28,17 @@ func NewServiceContainer(opts ...Option) (Core, error) {
 }
 
 // Indexer returns the core package's indexer
-func (sc *serviceContainer) Indexer() Indexer {
+func (sc *serviceContainer) Indexer() indexer.Indexer {
 	return sc.indexer
 }
 
 // TPSBenchmark returns the core package's tpsBenchmark
-func (sc *serviceContainer) TPSBenchmark() TPSBenchmark {
+func (sc *serviceContainer) TPSBenchmark() statistics.TPSBenchmark {
 	return sc.tpsBenchmark
 }
 
 // WithIndexer sets up the database indexer for the core serviceContainer
-func WithIndexer(indexer Indexer) Option {
+func WithIndexer(indexer indexer.Indexer) Option {
 	return func(sc *serviceContainer) error {
 		sc.indexer = indexer
 		return nil
@@ -41,7 +46,7 @@ func WithIndexer(indexer Indexer) Option {
 }
 
 // WithTPSBenchmark sets up the tpsBenchmark object for the core serviceContainer
-func WithTPSBenchmark(tpsBenchmark TPSBenchmark) Option {
+func WithTPSBenchmark(tpsBenchmark statistics.TPSBenchmark) Option {
 	return func(sc *serviceContainer) error {
 		sc.tpsBenchmark = tpsBenchmark
 		return nil

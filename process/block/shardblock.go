@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -29,7 +30,7 @@ const maxTransactionsInBlock = 15000
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
-	core                 core.Core
+	core                 serviceContainer.Core
 	dataPool             dataRetriever.PoolsHolder
 	txProcessor          process.TransactionProcessor
 	blocksTracker        process.BlocksTracker
@@ -44,7 +45,7 @@ type shardProcessor struct {
 
 // NewShardProcessor creates a new shardProcessor object
 func NewShardProcessor(
-	core core.Core,
+	core serviceContainer.Core,
 	dataPool dataRetriever.PoolsHolder,
 	store dataRetriever.StorageService,
 	hasher hashing.Hasher,

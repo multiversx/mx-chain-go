@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -32,7 +33,7 @@ const blockFinality = 0
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core                          core.Core
+	core                          serviceContainer.Core
 	dataPool                      dataRetriever.MetaPoolsHolder
 	onRequestShardHeaderHandler   func(shardId uint32, mbHash []byte)
 	requestedShardHeaderHashes    map[string]bool
@@ -46,7 +47,7 @@ type metaProcessor struct {
 
 // NewMetaProcessor creates a new metaProcessor object
 func NewMetaProcessor(
-	core core.Core,
+	core serviceContainer.Core,
 	accounts state.AccountsAdapter,
 	dataPool dataRetriever.MetaPoolsHolder,
 	forkDetector process.ForkDetector,

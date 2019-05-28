@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/indexer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
@@ -241,11 +242,11 @@ func (mockProposerResolver) ResolveProposer(shardId uint32, roundIndex uint32, p
 
 // dbIndexer will hold the database indexer. Defined globally so it can be initialised only in
 //  certain conditions. If those conditions will not be met, it will stay as nil
-var dbIndexer core.Indexer
+var dbIndexer indexer.Indexer
 
 // coreServiceContainer is defined globally so it can be injected with appropriate
 //  params depending on the type of node we are starting
-var coreServiceContainer core.Core
+var coreServiceContainer serviceContainer.Core
 
 func main() {
 	log := logger.DefaultLogger()
@@ -790,7 +791,7 @@ func createShardNode(
 		}
 	}
 
-	coreServiceContainer, err = core.NewServiceContainer(core.WithIndexer(dbIndexer))
+	coreServiceContainer, err = serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(dbIndexer))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1111,7 +1112,8 @@ func createMetaNode(
 		}
 	}
 
-	coreServiceContainer, err = core.NewServiceContainer(core.WithIndexer(dbIndexer), core.WithTPSBenchmark(tpsBenchmark))
+	coreServiceContainer, err = serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(dbIndexer),
+		serviceContainer.WithTPSBenchmark(tpsBenchmark))
 	if err != nil {
 		return nil, nil, nil, err
 	}
