@@ -1,9 +1,6 @@
 package process
 
 import (
-	"encoding/base64"
-	"encoding/hex"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -87,20 +84,4 @@ func GetShardHeaderFromStorage(
 	}
 
 	return header, nil
-}
-
-// ToB64 encodes the given buff to base64
-func ToB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return base64.StdEncoding.EncodeToString(buff)
-}
-
-// ToHex encodes the given buff to hex
-func ToHex(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return "0x" + hex.EncodeToString(buff)
 }

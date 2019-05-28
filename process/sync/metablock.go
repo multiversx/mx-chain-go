@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -125,13 +126,13 @@ func (boot *MetaBootstrap) getHeader(hash []byte) *block.MetaBlock {
 func (boot *MetaBootstrap) getHeaderFromPool(hash []byte) *block.MetaBlock {
 	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", process.ToB64(hash)))
+		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", core.ToB64(hash)))
 		return nil
 	}
 
 	header, ok := hdr.(*block.MetaBlock)
 	if !ok {
-		log.Debug(fmt.Sprintf("data with hash %s is not metablock\n", process.ToB64(hash)))
+		log.Debug(fmt.Sprintf("data with hash %s is not metablock\n", core.ToB64(hash)))
 		return nil
 	}
 
@@ -246,8 +247,8 @@ func (boot *MetaBootstrap) SyncBlock() error {
 	return nil
 }
 
-// getHeaderFromPoolHavingNonce method returns the block header from a given nonce
-func (boot *MetaBootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.MetaBlock {
+// getHeaderFromPoolWithNonce method returns the block header from a given nonce
+func (boot *MetaBootstrap) getHeaderFromPoolWithNonce(nonce uint64) *block.MetaBlock {
 	hash, _ := boot.headersNonces.Get(nonce)
 	if hash == nil {
 		log.Debug(fmt.Sprintf("nonce %d not found in headers-nonces cache\n", nonce))
@@ -256,13 +257,13 @@ func (boot *MetaBootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.Met
 
 	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
-		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", process.ToB64(hash)))
+		log.Debug(fmt.Sprintf("header with hash %s not found in headers cache\n", core.ToB64(hash)))
 		return nil
 	}
 
 	header, ok := hdr.(*block.MetaBlock)
 	if !ok {
-		log.Debug(fmt.Sprintf("data with hash %s is not metablock\n", process.ToB64(hash)))
+		log.Debug(fmt.Sprintf("data with hash %s is not metablock\n", core.ToB64(hash)))
 		return nil
 	}
 
@@ -284,13 +285,13 @@ func (boot *MetaBootstrap) requestHeader(nonce uint64) {
 // getHeaderWithNonce method gets the header with given nonce from pool, if it exist there,
 // and if not it will be requested from network
 func (boot *MetaBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.MetaBlock, error) {
-	hdr := boot.getHeaderFromPoolHavingNonce(nonce)
+	hdr := boot.getHeaderFromPoolWithNonce(nonce)
 
 	if hdr == nil {
 		emptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
 		boot.waitForHeaderNonce()
-		hdr = boot.getHeaderFromPoolHavingNonce(nonce)
+		hdr = boot.getHeaderFromPoolWithNonce(nonce)
 		if hdr == nil {
 			return nil, process.ErrMissingHeader
 		}
@@ -310,7 +311,7 @@ func (boot *MetaBootstrap) forkChoice() error {
 		}
 
 		msg := fmt.Sprintf("roll back to header with nonce %d and hash %s",
-			header.GetNonce()-1, process.ToB64(header.GetPrevHash()))
+			header.GetNonce()-1, core.ToB64(header.GetPrevHash()))
 
 		isSigned := isSigned(header)
 		if isSigned {

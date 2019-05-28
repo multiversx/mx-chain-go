@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -473,7 +474,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been committed successfully\n",
 		header.Nonce,
-		process.ToB64(headerHash)))
+		core.ToB64(headerHash)))
 
 	errNotCritical := sp.removeTxBlockFromPools(body)
 	if errNotCritical != nil {
@@ -664,7 +665,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	}
 
 	log.Info(fmt.Sprintf("received metablock with hash %s and nonce %d from network\n",
-		process.ToB64(metaBlockHash),
+		core.ToB64(metaBlockHash),
 		hdr.GetNonce()))
 
 	// TODO: validate the metaheader, through metaprocessor and save only headers with nonce higher than current
@@ -1188,7 +1189,7 @@ func (sp *shardProcessor) displayLogInfo(
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\n"+
 		"Total txs processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n\n"+
 		"Total shards: %d. Current shard id: %d\n",
-		process.ToB64(headerHash),
+		core.ToB64(headerHash),
 		txsTotalProcessed,
 		txsCurrentBlockProcessed,
 		sp.getNrTxsWithDst(header.ShardId),
@@ -1256,7 +1257,7 @@ func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.L
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
 					fmt.Sprintf("TxHash_%d", j+1),
-					process.ToB64(miniBlock.TxHashes[j])}))
+					core.ToB64(miniBlock.TxHashes[j])}))
 
 				part = ""
 			} else if j == 1 {

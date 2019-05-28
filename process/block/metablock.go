@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -300,7 +301,7 @@ func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round int3
 				return err
 			}
 
-			msg = fmt.Sprintf("%s\n%s", msg, process.ToB64(shardMiniBlockHeader.Hash))
+			msg = fmt.Sprintf("%s\n%s", msg, core.ToB64(shardMiniBlockHeader.Hash))
 		}
 	}
 
@@ -978,7 +979,7 @@ func (mp *metaProcessor) displayLogInfo(
 	shardMBHeaderCounterMutex.RLock()
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal shard MB headers "+
 		"processed until now: %d. Total shard MB headers processed for this block: %d. Total shard headers remained in pool: %d\n",
-		process.ToB64(headerHash),
+		core.ToB64(headerHash),
 		shardMBHeadersTotalProcessed,
 		shardMBHeadersCurrentBlockProcessed,
 		mp.getHeadersCountInPool())
@@ -1034,7 +1035,7 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
 					fmt.Sprintf("ShardMiniBlockHeaderHash_%d", j+1),
-					process.ToB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
+					core.ToB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					"",

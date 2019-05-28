@@ -729,13 +729,12 @@ func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.Heade
 }
 
 // BroadcastShardHeader will send on metachain topics the header
-func (n *Node) BroadcastShardHeader(headerHandler data.HeaderHandler) error {
-	_, ok := headerHandler.(data.HeaderHandler)
-	if !ok {
+func (n *Node) BroadcastShardHeader(header data.HeaderHandler) error {
+	if header == nil {
 		return ErrNilBlockHeader
 	}
 
-	msgHeader, err := n.marshalizer.Marshal(headerHandler)
+	msgHeader, err := n.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
@@ -743,7 +742,7 @@ func (n *Node) BroadcastShardHeader(headerHandler data.HeaderHandler) error {
 	if !n.isMetachainActive {
 		//TODO - remove this when metachain is fully tested. Should remove only "if" branch,
 		// the "else" branch should not be removed
-		msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(headerHandler, msgHeader)
+		msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
 		if err != nil {
 			return err
 		}

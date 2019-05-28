@@ -17,6 +17,9 @@ import (
 //TODO convert this const into a var and read it from config when this code moves to another binary
 const maxBulkTransactionSize = 2 << 17 //128KB bulks
 
+// maxLoadThresholdPercent specifies the max load percent accepted from txs storage size when generates new txs
+const maxLoadThresholdPercent = 70
+
 //TODO move this funcs in a new benchmarking/stress-test binary
 
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
@@ -35,6 +38,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		}
 
 		maxNoOfTx := uint64(0)
+		txStorageSize := uint64(n.txStorageSize) * maxLoadThresholdPercent / 100
 		for i := uint32(0); i < n.shardCoordinator.NumberOfShards(); i++ {
 			strCache := process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), i)
 			txStore := txPool.ShardDataStore(strCache)
@@ -42,8 +46,8 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 				continue
 			}
 
-			if uint64(txStore.Len())+noOfTx >= uint64(n.txStorageSize) {
-				maxNoOfTx = uint64(n.txStorageSize) - uint64(txStore.Len()) - 1
+			if uint64(txStore.Len())+noOfTx > txStorageSize {
+				maxNoOfTx = txStorageSize - uint64(txStore.Len())
 				if noOfTx > maxNoOfTx {
 					noOfTx = maxNoOfTx
 					if noOfTx <= 0 {

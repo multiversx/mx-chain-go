@@ -155,7 +155,7 @@ func TestGenerateAndSendBulkTransactions_TooManyTransactionsInPoolShouldErr(t *t
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 					return &mock.CacherStub{
 						LenCalled: func() int {
-							return 99999
+							return 70000
 						},
 					}
 				},
@@ -173,6 +173,10 @@ func TestGenerateAndSendBulkTransactions_TooManyTransactionsInPoolShouldErr(t *t
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithDataPool(dataPool),
 		node.WithTxStorageSize(100000),
+		node.WithMessenger(&mock.MessengerStub{
+			BroadcastOnChannelCalled: func(channel string, topic string, buff []byte) {
+			},
+		}),
 	)
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -86,7 +87,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 
 	log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n",
 		headerHandler.GetNonce(),
-		process.ToB64(headerHash)))
+		core.ToB64(headerHash)))
 
 	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived)
 	if err != nil {
@@ -101,7 +102,7 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64) {
 
 	log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n",
 		nonce,
-		process.ToB64(headerHash)))
+		core.ToB64(headerHash)))
 
 	n := boot.requestedHeaderNonce()
 	if n == nil {

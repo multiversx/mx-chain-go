@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -108,7 +109,7 @@ func (sbt *shardBlockTracker) RemoveNotarisedBlocks(headerHandler data.HeaderHan
 
 		log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been notarised by metachain\n",
 			header.GetNonce(),
-			process.ToB64(shardData.HeaderHash)))
+			core.ToB64(shardData.HeaderHash)))
 
 		sbt.mutUnnotarisedHeaders.Lock()
 		delete(sbt.unnotarisedHeaders, header.Nonce)

@@ -2,8 +2,6 @@ package process_test
 
 import (
 	"bytes"
-	"encoding/base64"
-	"encoding/hex"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -236,26 +234,4 @@ func TestGetShardHeaderFromStorageShouldWork(t *testing.T) {
 	header, err := process.GetShardHeaderFromStorage(hash, marshalizer, storageService)
 	assert.Nil(t, err)
 	assert.Equal(t, hdr, header)
-}
-
-func TestToB64ShouldReturnNil(t *testing.T) {
-	val := process.ToB64(nil)
-	assert.Equal(t, "<NIL>", val)
-}
-
-func TestToB64ShouldWork(t *testing.T) {
-	buff := []byte("test")
-	val := process.ToB64(buff)
-	assert.Equal(t, base64.StdEncoding.EncodeToString(buff), val)
-}
-
-func TestToHexShouldReturnNil(t *testing.T) {
-	val := process.ToHex(nil)
-	assert.Equal(t, "<NIL>", val)
-}
-
-func TestToHexShouldWork(t *testing.T) {
-	buff := []byte("test")
-	val := process.ToHex(buff)
-	assert.Equal(t, "0x"+hex.EncodeToString(buff), val)
 }
