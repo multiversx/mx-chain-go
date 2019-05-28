@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -13,6 +14,7 @@ import (
 // used by metachain nodes
 type ShardHeaderResolver struct {
 	*HeaderResolverBase
+	nonceConverter typeConverters.Uint64ByteSliceConverter
 }
 
 // NewShardHeaderResolver creates a new shard header resolver
@@ -21,7 +23,12 @@ func NewShardHeaderResolver(
 	headers storage.Cacher,
 	hdrStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
+	nonceConverter typeConverters.Uint64ByteSliceConverter,
 ) (*ShardHeaderResolver, error) {
+
+	if nonceConverter == nil {
+		return nil, dataRetriever.ErrNilNonceConverter
+	}
 
 	hdrResolverBase, err := NewHeaderResolverBase(
 		senderResolver,
@@ -33,7 +40,9 @@ func NewShardHeaderResolver(
 		return nil, err
 	}
 
-	return &ShardHeaderResolver{HeaderResolverBase: hdrResolverBase}, nil
+	return &ShardHeaderResolver{
+		HeaderResolverBase: hdrResolverBase,
+		nonceConverter:     nonceConverter}, nil
 }
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
@@ -58,4 +67,12 @@ func (shdrRes *ShardHeaderResolver) ProcessReceivedMessage(message p2p.MessageP2
 	}
 
 	return shdrRes.Send(buff, message.Peer())
+}
+
+// RequestDataFromNonce requests a header from other peers having input the hdr nonce
+func (shdrRes *ShardHeaderResolver) RequestDataFromNonce(nonce uint64) error {
+	return shdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
+		Type:  dataRetriever.NonceType,
+		Value: shdrRes.nonceConverter.ToByteSlice(nonce),
+	})
 }

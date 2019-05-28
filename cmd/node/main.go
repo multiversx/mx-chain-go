@@ -814,7 +814,7 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	err = blockProcessor.SetOnRequestHeaderHandlerByNonce(createHeaderRequestHandlerByNonce(resolversFinder, factory.MetachainBlocksTopic, log))
+	err = blockProcessor.SetOnRequestHeaderHandlerByNonce(createHeaderRequestHandlerByNonceShard(resolversFinder, factory.MetachainBlocksTopic, log))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1120,7 +1120,7 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
-	err = metaProcessor.SetOnRequestHeaderHandlerByNonce(createHeaderRequestHandlerByNonce(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
+	err = metaProcessor.SetOnRequestHeaderHandlerByNonce(createHeaderRequestHandlerByNonceMeta(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1230,7 +1230,29 @@ func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTop
 	}
 }
 
-func createHeaderRequestHandlerByNonce(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
+func createHeaderRequestHandlerByNonceMeta(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
+	return func(destShardID uint32, nonce uint64) {
+		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
+		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		headerResolver, ok := resolver.(*resolvers.ShardHeaderResolver)
+		if !ok {
+			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		err = headerResolver.RequestDataFromNonce(nonce)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
+}
+
+func createHeaderRequestHandlerByNonceShard(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
 	return func(destShardID uint32, nonce uint64) {
 		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
 		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
