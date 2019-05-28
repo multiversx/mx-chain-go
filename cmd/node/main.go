@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract"
 	"io"
 	"math"
 	"os"
@@ -630,7 +631,12 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
+	scProcessor, err := smartContract.NewSmartContractProcessor()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator, scProcessor)
 	if err != nil {
 		return nil, nil, nil, errors.New("could not create transaction processor: " + err.Error())
 	}

@@ -237,6 +237,7 @@ func createNetNode(
 		testAddressConverter,
 		testMarshalizer,
 		shardCoordinator,
+		&mock.SCProcessorMock{},
 	)
 
 	blockProcessor, _ := block.NewShardProcessor(

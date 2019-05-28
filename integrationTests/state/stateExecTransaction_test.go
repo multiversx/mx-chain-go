@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +32,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
-	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator)
+	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator, &mock.SCProcessorMock{})
 
 	nonce := uint64(6)
 	balance := big.NewInt(10000)
@@ -76,7 +76,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
-	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator)
+	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator, &mock.SCProcessorMock{})
 
 	nonce := uint64(6)
 	balance := big.NewInt(10000)
@@ -147,7 +147,7 @@ func testExecTransactionsMoreTxWithRevert(
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
-	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator)
+	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator, &mock.SCProcessorMock{})
 
 	txToGenerate := 15000
 

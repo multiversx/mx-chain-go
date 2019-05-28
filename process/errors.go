@@ -312,3 +312,6 @@ var ErrNoNewMetablocks = errors.New("there is no new metablocks")
 
 // ErrNoSortedHdrsForShard signals that there are no sorted hdrs in pool
 var ErrNoSortedHdrsForShard = errors.New("no sorted headers in pool")
+
+// ErrNilSmartContractProcessor signals that smart contract call executor is nil
+var ErrNilSmartContractProcessor = errors.New("smart contract processor is nil")
