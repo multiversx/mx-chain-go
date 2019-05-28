@@ -267,9 +267,10 @@ func (boot *ShardBootstrap) SyncBlock() error {
 }
 
 func (boot *ShardBootstrap) getHeaderWithNonce(nonce uint64) (*block.Header, error) {
+	var hash []byte
 	hdr, err := boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
-		hash, err := boot.getHeaderHashFromStorage(nonce)
+		hash, err = boot.getHeaderHashFromStorage(nonce)
 		if err != nil {
 			return nil, err
 		}
@@ -336,10 +337,6 @@ func (boot *ShardBootstrap) requestHeader(nonce uint64) {
 func (boot *ShardBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Header, error) {
 	hdr, err := boot.getHeaderWithNonce(nonce)
 	if err != nil {
-		return nil, err
-	}
-
-	if hdr == nil {
 		emptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
 		boot.waitForHeaderNonce()

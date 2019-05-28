@@ -255,9 +255,10 @@ func (boot *MetaBootstrap) SyncBlock() error {
 }
 
 func (boot *MetaBootstrap) getHeaderWithNonce(nonce uint64) (*block.MetaBlock, error) {
+	var hash []byte
 	hdr, err := boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
-		hash, err := boot.getHeaderHashFromStorage(nonce)
+		hash, err = boot.getHeaderHashFromStorage(nonce)
 		if err != nil {
 			return nil, err
 		}
@@ -324,10 +325,6 @@ func (boot *MetaBootstrap) requestHeader(nonce uint64) {
 func (boot *MetaBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.MetaBlock, error) {
 	hdr, err := boot.getHeaderWithNonce(nonce)
 	if err != nil {
-		return nil, err
-	}
-
-	if hdr == nil {
 		emptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
 		boot.waitForHeaderNonce()
