@@ -42,3 +42,21 @@ type Block struct {
 	StateRootHash string        `json:"stateRootHash"`
 	PrevHash      string        `json:"prevHash"`
 }
+
+// TPS is a structure containing all the fields that need to
+//  be saved for a shard statistic in the database
+type TPS struct {
+	LiveTPS               float64  `json:"liveTPS"`
+	PeakTPS               float64  `json:"peakTPS"`
+	NrOfShards            uint32   `json:"nrOfShards"`
+	NrOfNodes             uint32   `json:"nrOfNodes"`
+	BlockNumber           uint64   `json:"blockNumber"`
+	RoundNumber           uint64   `json:"roundNumber"`
+	RoundTime             uint64   `json:"roundTime"`
+	AverageBlockTxCount   *big.Int `json:"averageBlockTxCount"`
+	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
+	TotalProcessedTxCount *big.Int `json:"totalProcessedTxCount"`
+	ShardID               uint32   `json:"shardID"`
+	AverageTPS            *big.Int `json:"averageTPS"`
+	CurrentBlockNonce     uint64   `json:"currentBlockNonce"`
+}

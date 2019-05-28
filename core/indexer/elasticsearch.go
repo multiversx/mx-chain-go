@@ -5,7 +5,10 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"math/big"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
@@ -23,6 +26,10 @@ import (
 const txBulkSize = 2500
 const txIndex = "transactions"
 const blockIndex = "blocks"
+const tpsIndex = "tps"
+
+const metachainTpsDocID = "meta"
+const shardTpsDocIDPrefix = "shard"
 
 type elasticIndexer struct {
 	db               *elasticsearch.Client
@@ -46,12 +53,17 @@ func NewElasticIndexer(url string, shardCoordinator sharding.Coordinator, marsha
 	indexer := &elasticIndexer{es, shardCoordinator,
 		marshalizer, hasher, logger}
 
-	err = indexer.checkAndCreateIndex(blockIndex)
+	err = indexer.checkAndCreateIndex(blockIndex, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	err = indexer.checkAndCreateIndex(txIndex)
+	err = indexer.checkAndCreateIndex(txIndex, timestampMapping())
+	if err != nil {
+		return nil, err
+	}
+
+	err = indexer.checkAndCreateIndex(tpsIndex, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +71,7 @@ func NewElasticIndexer(url string, shardCoordinator sharding.Coordinator, marsha
 	return indexer, nil
 }
 
-func (ei *elasticIndexer) checkAndCreateIndex(index string) error {
+func (ei *elasticIndexer) checkAndCreateIndex(index string, body io.Reader) error {
 	res, err := ei.db.Indices.Exists([]string{index})
 	if err != nil {
 		return err
@@ -73,7 +85,7 @@ func (ei *elasticIndexer) checkAndCreateIndex(index string) error {
 	// A status code of 404 means the index does not exist so we create it
 	if res.StatusCode == http.StatusNotFound {
 		fmt.Println("Status code", res.String())
-		err = ei.createIndex(index)
+		err = ei.createIndex(index, body)
 		if err != nil {
 			return err
 		}
@@ -82,12 +94,25 @@ func (ei *elasticIndexer) checkAndCreateIndex(index string) error {
 	return nil
 }
 
-func (ei *elasticIndexer) createIndex(index string) error {
-	res, err := ei.db.Indices.Create(index)
+func (ei *elasticIndexer) createIndex(index string, body io.Reader) error {
+	var err error
+	var res *esapi.Response
+
+	if body != nil {
+		res, err = ei.db.Indices.Create(index,
+			ei.db.Indices.Create.WithBody(body))
+	} else {
+		res, err = ei.db.Indices.Create(index)
+	}
+
 	if err != nil {
 		return err
 	}
 	if res.IsError() {
+		// Resource already exists
+		if res.StatusCode == 400 {
+			return nil
+		}
 		ei.logger.Warn(res.String())
 		return ErrCannotCreateIndex
 	}
@@ -166,7 +191,7 @@ func (ei *elasticIndexer) saveTransactions(body block.Body, header *block.Header
 
 	for _, bulk := range bulks {
 		for _, tx := range bulk {
-			meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, txIndex, "\n"))
+			meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
 			serializedTx, err := json.Marshal(tx)
 			if err != nil {
 				ei.logger.Warn("could not serialize transaction, will skip indexing: ", tx.Hash)
@@ -181,6 +206,7 @@ func (ei *elasticIndexer) saveTransactions(body block.Body, header *block.Header
 		}
 
 		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(txIndex))
+		fmt.Println(res.String())
 		buff.Reset()
 
 		if err != nil {
@@ -251,79 +277,84 @@ func (ei *elasticIndexer) buildTransactionBulks(body block.Body, header *block.H
 
 // SaveMetaBlock will build
 func (ei *elasticIndexer) SaveMetaBlock(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) {
-	// Save Miniblocks
-	// Save Block
-	// Save Header
-	if metaBlock == nil {
-		fmt.Println("elasticsearch - no metaBlock")
+
+}
+
+// UpdateTPS updates the tps and statistics into elasticsearch index
+func (ei *elasticIndexer) UpdateTPS(tpsBenchmark core.TPSBenchmark) {
+	if tpsBenchmark == nil {
+		ei.logger.Warn("update tps called, but the tpsBenchmark is nil")
 		return
 	}
-	ei.saveMetaBlock(metaBlock, headerPool)
-}
 
-func (ei *elasticIndexer) saveMetaBlock(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) {
 	var buff bytes.Buffer
 
-	blocks := ei.buildBlocks(metaBlock, headerPool)
+	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, metachainTpsDocID, tpsIndex, "\n"))
+	generalInfo := TPS{
+		LiveTPS: tpsBenchmark.LiveTPS(),
+		PeakTPS: tpsBenchmark.PeakTPS(),
+		NrOfShards: tpsBenchmark.NrOfShards(),
+		// TODO: This value is still mocked, it should be removed if we cannot populate it correctly
+		NrOfNodes: 100,
+		BlockNumber: tpsBenchmark.BlockNumber(),
+		RoundNumber: tpsBenchmark.RoundNumber(),
+		RoundTime: tpsBenchmark.RoundTime(),
+		AverageBlockTxCount: tpsBenchmark.AverageBlockTxCount(),
+		LastBlockTxCount: tpsBenchmark.LastBlockTxCount(),
+		TotalProcessedTxCount: tpsBenchmark.TotalProcessedTxCount(),
+	}
 
-	for _, block := range blocks {
+	serializedInfo, err := json.Marshal(generalInfo)
+	if err != nil {
+		ei.logger.Warn("could not serialize tps info, will skip indexing tps this round")
+		return
+	}
+	// append a newline foreach element in the bulk we create
+	serializedInfo = append(serializedInfo, "\n"...)
 
-		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, block.Hash, "\n"))
-		serializedBlock, err := json.Marshal(block)
+	buff.Grow(len(meta) + len(serializedInfo))
+	buff.Write(meta)
+	buff.Write(serializedInfo)
+
+	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
+		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s%d", "_type" : "%s" } }%s`,
+			shardTpsDocIDPrefix, shardInfo.ShardID(), tpsIndex, "\n"))
+
+		bigTxCount := big.NewInt(int64(shardInfo.AverageBlockTxCount()))
+		shardTPS := TPS{
+			ShardID: shardInfo.ShardID(),
+			LiveTPS: shardInfo.LiveTPS(),
+			PeakTPS: shardInfo.PeakTPS(),
+			AverageTPS: shardInfo.AverageTPS(),
+			AverageBlockTxCount: bigTxCount,
+			CurrentBlockNonce: shardInfo.CurrentBlockNonce(),
+			LastBlockTxCount: shardInfo.LastBlockTxCount(),
+			TotalProcessedTxCount: shardInfo.TotalProcessedTxCount(),
+		}
+
+		serializedInfo, err := json.Marshal(shardTPS)
 		if err != nil {
-			ei.logger.Warn("could not serialize block, will skip indexing: ", block.Hash)
+			ei.logger.Warn("could not serialize tps info, will skip indexing tps this shard")
 			continue
 		}
-		// append a newline foreach element
-		serializedBlock = append(serializedBlock, "\n"...)
+		// append a newline foreach element in the bulk we create
+		serializedInfo = append(serializedInfo, "\n"...)
 
-		buff.Grow(len(meta) + len(serializedBlock))
+		buff.Grow(len(meta) + len(serializedInfo))
 		buff.Write(meta)
-		buff.Write(serializedBlock)
-	}
+		buff.Write(serializedInfo)
 
-	res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(blockIndex))
-	buff.Reset()
-
-	if err != nil {
-		ei.logger.Warn("error indexing blocks")
-	}
-	if res.IsError() {
-		fmt.Println(res.String())
-		ei.logger.Warn("error from elasticsearch indexing blocks")
+		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(tpsIndex))
+		if err != nil {
+			ei.logger.Warn("error indexing tps information")
+		}
+		if res.IsError() {
+			fmt.Println(res.String())
+			ei.logger.Warn("error from elasticsearch indexing tps information")
+		}
 	}
 }
 
-// buildTransactionBulks creates bulks of maximum txBulkSize transactions to be indexed together
-//  using the elasticsearch bulk API
-func (ei *elasticIndexer) buildBlocks(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) []*Block {
-
-	blocks := make([]*Block, 0)
-
-	//blockMarshal, _ := ei.marshalizer.Marshal(metaBlock)
-	//blockHash := ei.hasher.Compute(string(blockMarshal))
-
-	for _, shardData := range metaBlock.ShardInfo {
-		headerHash := string(shardData.HeaderHash)
-		headerRaw := *headerPool[headerHash]
-
-		//TODO: add real size
-		headerMarshal, _ := ei.marshalizer.Marshal(headerRaw)
-		headerSize := len(headerMarshal)
-
-		blocks = append(blocks, &Block{
-			Hash:          headerHash,
-			TxCount:       headerRaw.TxCount,
-			Timestamp:     time.Duration(headerRaw.TimeStamp),
-			StateRootHash: hex.EncodeToString(headerRaw.RootHash),
-			Size:          int64(headerSize),
-			ShardID:       shardData.ShardId,
-			PubKeyBitmap:  hex.EncodeToString(headerRaw.PubKeysBitmap),
-			Nonce:         headerRaw.Nonce,
-			PrevHash:      hex.EncodeToString(headerRaw.PrevHash),
-		})
-
-	}
-
-	return blocks
+func timestampMapping() io.Reader {
+	return strings.NewReader(`{"mappings": {"properties": {"timestamp": {"type": "date"}}}}`)
 }

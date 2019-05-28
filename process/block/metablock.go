@@ -219,12 +219,13 @@ func (mp *metaProcessor) indexBlockIfNeeded(metaBlock *block.MetaBlock, headerPo
 		return
 	}
 
-	if metaBlock == nil {
-		return
+	// Update tps benchmarks in the DB
+	tpsBenchmark := mp.core.TPSBenchmark()
+	if tpsBenchmark != nil {
+		go mp.core.Indexer().UpdateTPS(tpsBenchmark)
 	}
-	fmt.Println("elasticsearch starting goroutine to save block")
 
-	//go mp.core.Indexer().SaveMetaBlock(metaBlock, headerPool)
+	// maybe index metablocks also?
 }
 
 // removeBlockInfoFromPool removes the block info from associated pools
