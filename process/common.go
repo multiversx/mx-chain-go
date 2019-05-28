@@ -27,6 +27,9 @@ func GetShardHeader(
 	hdr, err := GetShardHeaderFromPool(hash, cacher)
 	if err != nil {
 		hdr, err = GetShardHeaderFromStorage(hash, marshalizer, storageService)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return hdr, err

@@ -118,9 +118,12 @@ func (boot *MetaBootstrap) getHeader(hash []byte) (*block.MetaBlock, error) {
 	hdr, err := boot.getHeaderFromPool(hash)
 	if err != nil {
 		hdr, err = boot.getHeaderFromStorage(hash)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return hdr, nil
+	return hdr, err
 }
 
 func (boot *MetaBootstrap) getHeaderFromPool(hash []byte) (*block.MetaBlock, error) {
