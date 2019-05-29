@@ -459,7 +459,14 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			RootHashCalled:         rootHashCalled,
 		},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		&mock.ForkDetectorMock{
+			ProbableHighestNonceCalled: func() uint64 {
+				return 0
+			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
+		},
 		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
@@ -546,7 +553,14 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 		&mock.TxProcessorMock{},
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		&mock.ForkDetectorMock{
+			ProbableHighestNonceCalled: func() uint64 {
+				return 0
+			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
+		},
 		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
@@ -623,7 +637,14 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			RootHashCalled:         rootHashCalled,
 		},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		&mock.ForkDetectorMock{
+			ProbableHighestNonceCalled: func() uint64 {
+				return 0
+			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
+		},
 		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
@@ -690,7 +711,14 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 			RootHashCalled:         rootHashCalled,
 		},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		&mock.ForkDetectorMock{
+			ProbableHighestNonceCalled: func() uint64 {
+				return 0
+			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
+		},
 		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {
 		},
@@ -808,6 +836,9 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	hdrUnit := &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			return errPersister
+		},
+		HasCalled: func(key []byte) error {
+			return nil
 		},
 	}
 	store := initStore()
@@ -1172,7 +1203,14 @@ func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
 		&mock.TxProcessorMock{},
 		initAccountsMock(),
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		&mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
+			ProbableHighestNonceCalled: func() uint64 {
+				return 0
+			},
+		},
 		&mock.BlocksTrackerMock{},
 		func(destShardID uint32, txHashes [][]byte) {},
 		func(destShardID uint32, txHash []byte) {},

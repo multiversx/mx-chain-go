@@ -255,6 +255,9 @@ func createNetNode(
 			GetHighestFinalBlockNonceCalled: func() uint64 {
 				return 0
 			},
+			ProbableHighestNonceCalled: func() uint64 {
+				return 0
+			},
 		},
 		&mock.BlocksTrackerMock{
 			AddBlockCalled: func(headerHandler data.HeaderHandler) {
@@ -647,6 +650,9 @@ func createMetaNetNode(
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
+			ProbableHighestNonceCalled: func() uint64 {
 				return 0
 			},
 		},
