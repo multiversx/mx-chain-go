@@ -18,6 +18,6 @@ func (at *atArgumentParser) GetCodeFromData(data []byte) ([]byte, error) {
 	return []byte(""), nil
 }
 
-func (at *atArgumentParser) GetFunctionFromData(data []byte) ([]byte, error) {
-	return []byte(""), nil
+func (at *atArgumentParser) GetFunctionFromData(data []byte) (string, error) {
+	return string(""), nil
 }

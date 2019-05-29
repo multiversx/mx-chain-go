@@ -63,7 +63,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return process.ErrWrongTransaction
 	}
 
-	vmInput, err := sc.createVMCallInput(tx, acntSrc, acntDst)
+	vmInput, err := sc.createVMCallInput(tx)
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSrc,
 		return process.ErrNoVM
 	}
 
-	vmInput, err := sc.createVMDeployInput(tx, acntSrc, acntDst)
+	vmInput, err := sc.createVMDeployInput(tx)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSrc,
 	return nil
 }
 
-func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) (*vmcommon.ContractCallInput, error) {
+func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction) (*vmcommon.ContractCallInput, error) {
 	vmInput, err := sc.createVMInput(tx)
 	if err != nil {
 		return nil, err
@@ -113,7 +113,7 @@ func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction, acntSrc, a
 
 	vmCallInput := &vmcommon.ContractCallInput{}
 	vmCallInput.VMInput = *vmInput
-	vmCallInput.Function, err = sc.argsParser.GetFunctionFromData()
+	vmCallInput.Function, err = sc.argsParser.GetFunctionFromData(tx.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction, acntSrc, a
 	return &vmcommon.ContractCallInput{}, nil
 }
 
-func (sc *scProcessor) createVMDeployInput(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) (*vmcommon.ContractCreateInput, error) {
+func (sc *scProcessor) createVMDeployInput(tx *transaction.Transaction) (*vmcommon.ContractCreateInput, error) {
 	vmInput, err := sc.createVMInput(tx)
 	if err != nil {
 		return nil, err
@@ -164,5 +164,6 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 }
 
 func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, acntSrc, acntDst state.AccountHandler) error {
+
 	return nil
 }
