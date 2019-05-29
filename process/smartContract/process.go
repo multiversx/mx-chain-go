@@ -42,5 +42,5 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	transaction *transaction.Transaction,
 	acntSrc, acntDst state.AccountHandler,
 ) error {
-	return nil
+	return process.ErrNoVM
 }
