@@ -5,10 +5,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-vm-common"
+	"math/big"
 )
 
 type scProcessor struct {
-	vm vmcommon.VMExecutionHandler
+	vm         vmcommon.VMExecutionHandler
+	argsParser *atArgumentParser
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
@@ -17,7 +19,9 @@ func NewSmartContractProcessor(vm vmcommon.VMExecutionHandler) (*scProcessor, er
 		return nil, process.ErrNoVM
 	}
 
-	return &scProcessor{vm: vm}, nil
+	argsParser := NewAtArgumentParser()
+
+	return &scProcessor{vm: vm, argsParser: argsParser}, nil
 }
 
 // ComputeTransactionType calculates the type of the transaction
@@ -51,6 +55,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 ) error {
 	if sc.vm == nil {
 		return process.ErrNoVM
+	}
+	if tx == nil {
+		return process.ErrNilTransaction
+	}
+	if acntDst.IsInterfaceNil() {
+		return process.ErrWrongTransaction
 	}
 
 	vmInput, err := sc.createVMCallInput(tx, acntSrc, acntDst)
@@ -96,11 +106,61 @@ func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSrc,
 }
 
 func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) (*vmcommon.ContractCallInput, error) {
+	vmInput, err := sc.createVMInput(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	vmCallInput := &vmcommon.ContractCallInput{}
+	vmCallInput.VMInput = *vmInput
+	vmCallInput.Function, err = sc.argsParser.GetFunctionFromData()
+	if err != nil {
+		return nil, err
+	}
+
+	vmCallInput.RecipientAddr = tx.RcvAddr
+
 	return &vmcommon.ContractCallInput{}, nil
 }
 
 func (sc *scProcessor) createVMDeployInput(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) (*vmcommon.ContractCreateInput, error) {
-	return &vmcommon.ContractCreateInput{}, nil
+	vmInput, err := sc.createVMInput(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	vmCreateInput := &vmcommon.ContractCreateInput{}
+	vmCreateInput.ContractCode, err = sc.argsParser.GetCodeFromData(tx.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	vmCreateInput.VMInput = *vmInput
+
+	return vmCreateInput, nil
+}
+
+func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMInput, error) {
+	var err error
+	vmInput := &vmcommon.VMInput{}
+
+	vmInput.CallerAddr = tx.SndAddr
+	vmInput.Arguments, err = sc.argsParser.CreateArguments(tx.Data)
+	if err != nil {
+		return nil, err
+	}
+	vmInput.CallValue = tx.Value
+	vmInput.GasPrice = big.NewInt(int64(tx.GasPrice))
+	vmInput.GasProvided = big.NewInt(int64(tx.GasLimit))
+
+	//TODO: change this when we know for what they are used.
+	scCallHeader := &vmcommon.SCCallHeader{}
+	scCallHeader.GasLimit = big.NewInt(0)
+	scCallHeader.Number = big.NewInt(0)
+	scCallHeader.Timestamp = big.NewInt(0)
+	scCallHeader.Beneficiary = big.NewInt(0)
+
+	return vmInput, nil
 }
 
 func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, acntSrc, acntDst state.AccountHandler) error {
