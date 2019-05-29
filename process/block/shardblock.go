@@ -409,6 +409,13 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	headerHash := sp.hasher.Compute(string(buff))
+
+	hadThisHeader := false
+	err = sp.store.Has(dataRetriever.BlockHeaderUnit, headerHash)
+	if err == nil {
+		hadThisHeader = true
+	}
+
 	err = sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
 	if err != nil {
 		return err
@@ -480,7 +487,9 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	sp.blocksTracker.AddBlock(header)
+	if !hadThisHeader {
+		sp.blocksTracker.AddBlock(header)
+	}
 
 	log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been committed successfully\n",
 		header.Nonce,
@@ -760,12 +769,50 @@ func (sp *shardProcessor) computeMissingTxsForShards(body block.Body) map[uint32
 			}
 		}
 
+		//TODO: This request should be managed by data retriever after it will be implemented (genericTransactionResolver.go)
+		nonceDiffernce := sp.forkDetector.ProbableHighestNonce() - sp.forkDetector.GetHighestFinalBlockNonce()
+		if len(currentShardMissingTransactions) > 0 && nonceDiffernce > blocksGapWhenUseStorage {
+			currentShardMissingTransactions = sp.getTransactionsFromStorer(
+				currentShardMissingTransactions,
+				miniBlock.SenderShardID,
+				miniBlock.ReceiverShardID)
+		}
+
 		if len(currentShardMissingTransactions) > 0 {
 			missingTxsForShard[miniBlock.SenderShardID] = currentShardMissingTransactions
 		}
 	}
 
 	return missingTxsForShard
+}
+
+func (sp *shardProcessor) getTransactionsFromStorer(txHashes [][]byte, senderShardID uint32, receiverShardID uint32) [][]byte {
+	transactionPool := sp.dataPool.Transactions()
+	if transactionPool == nil {
+		return txHashes
+	}
+
+	strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
+	currentShardMissingTransactions := make([][]byte, 0)
+
+	for _, txHash := range txHashes {
+		txBuff, err := sp.store.Get(dataRetriever.TransactionUnit, txHash)
+		if err != nil {
+			currentShardMissingTransactions = append(currentShardMissingTransactions, txHash)
+			continue
+		}
+
+		tx := transaction.Transaction{}
+		err = sp.marshalizer.Unmarshal(&tx, txBuff)
+		if err != nil {
+			currentShardMissingTransactions = append(currentShardMissingTransactions, txHash)
+			continue
+		}
+
+		transactionPool.AddData([]byte(txHash), &tx, strCache)
+	}
+
+	return currentShardMissingTransactions
 }
 
 func (sp *shardProcessor) processAndRemoveBadTransaction(

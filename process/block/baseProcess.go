@@ -19,6 +19,10 @@ import (
 
 var log = logger.DefaultLogger()
 
+// blocksGapWhenUseStorage defines the max gap difference between the last check point block nonce and the probable
+// highest nonce, under which the node stops using the storage when it tries to achieve the missed transactions
+const blocksGapWhenUseStorage = 10
+
 type baseProcessor struct {
 	shardCoordinator sharding.Coordinator
 	accounts         state.AccountsAdapter
