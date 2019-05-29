@@ -31,7 +31,11 @@ func (sc *scProcessor) ComputeTransactionType(
 		return 0, process.ErrWrongTransaction
 	}
 
-	if acntDst != nil && len(acntDst.GetCode()) > 0 {
+	if acntDst.IsInterfaceNil() {
+		return process.MoveBalance, nil
+	}
+
+	if len(acntDst.GetCode()) > 0 {
 		return process.SCInvoking, nil
 	}
 
