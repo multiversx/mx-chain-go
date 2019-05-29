@@ -506,13 +506,18 @@ func (sp *shardProcessor) CommitBlock(
 		log.Info(errNotCritical.Error())
 	}
 
-	processedMetaHdrs, errNotCritical := sp.removeMetaBlockFromPool(body)
+	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromPool(body)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
 
 	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	if err != nil {
+		return err
+	}
+
+	errNotCritical = sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
+	if errNotCritical != nil {
 		return err
 	}
 
@@ -540,7 +545,7 @@ func (sp *shardProcessor) CommitBlock(
 }
 
 // removeMetaBlockFromPool removes meta blocks from associated pool
-func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body) ([]data.HeaderHandler, error) {
 	if body == nil {
 		return nil, process.ErrNilTxBlockBody
 	}
@@ -591,32 +596,51 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) ([]data.Heade
 			}
 		}
 
-		//TODO: Should be add here a condition that allows the remove of metachain blocks from pool, only if they are
-		//final in metachain
 		if processedAll {
-			errNotCritical := sp.blocksTracker.RemoveNotarisedBlocks(hdr)
-			if errNotCritical != nil {
-				log.Debug(errNotCritical.Error())
-			}
-
-			// metablock was processed and finalized
-			buff, err := sp.marshalizer.Marshal(hdr)
-			if err != nil {
-				return processedMetaHdrs, err
-			}
-			err = sp.store.Put(dataRetriever.MetaBlockUnit, metaBlockKey, buff)
-			if err != nil {
-				return processedMetaHdrs, err
-			}
-			sp.dataPool.MetaBlocks().Remove(metaBlockKey)
-			log.Info(fmt.Sprintf("metablock with nonce %d has been processed completely and removed from pool\n",
-				hdr.GetNonce()))
-
 			processedMetaHdrs = append(processedMetaHdrs, hdr)
 		}
 	}
 
 	return processedMetaHdrs, nil
+}
+
+func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
+	lastNoterizedMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	if err != nil {
+		return err
+	}
+
+	// processedMetaHdrs is also sorted
+	for i := 0; i < len(processedMetaHdrs); i++ {
+		hdr := processedMetaHdrs[i]
+
+		// remove process finished
+		if hdr.GetNonce() > lastNoterizedMetaHdr.GetNonce() {
+			return nil
+		}
+
+		errNotCritical := sp.blocksTracker.RemoveNotarisedBlocks(hdr)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
+
+		// metablock was processed and finalized
+		buff, err := sp.marshalizer.Marshal(hdr)
+		if err != nil {
+			return err
+		}
+
+		key := sp.hasher.Compute(string(buff))
+		err = sp.store.Put(dataRetriever.MetaBlockUnit, key, buff)
+		if err != nil {
+			return err
+		}
+		sp.dataPool.MetaBlocks().Remove(key)
+		log.Info(fmt.Sprintf("metablock with nonce %d has been processed completely and removed from pool\n",
+			hdr.GetNonce()))
+	}
+
+	return nil
 }
 
 // getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
