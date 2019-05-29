@@ -1255,7 +1255,7 @@ func createShardHeaderByNonceRequestHandler(resolversFinder dataRetriever.Resolv
 func createMetaHeaderByNonceRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
 	return func(destShardID uint32, nonce uint64) {
 		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
-		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
+		resolver, err := resolversFinder.MetaChainResolver(baseTopic)
 		if err != nil {
 			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
 			return
