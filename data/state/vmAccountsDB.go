@@ -18,7 +18,7 @@ func NewVMAccountsDB(
 		return nil, ErrNilAccountsAdapter
 	}
 	if addrConv == nil {
-		return nil, ErrNilAddressContainer
+		return nil, ErrNilAddressConverter
 	}
 
 	return &VMAccountsDB{
@@ -86,7 +86,17 @@ func (vadb *VMAccountsDB) IsCodeEmpty(address []byte) (bool, error) {
 
 // GetCode retrieves the account's code
 func (vadb *VMAccountsDB) GetCode(address []byte) ([]byte, error) {
-	panic("implement me")
+	account, err := vadb.getAccountFromAddressBytes(address)
+	if err != nil {
+		return nil, err
+	}
+
+	code := account.GetCode()
+	if len(code) == 0 {
+		return nil, ErrEmptyCode
+	}
+
+	return code, nil
 }
 
 // GetBlockhash is deprecated
