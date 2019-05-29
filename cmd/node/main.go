@@ -814,7 +814,7 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	err = blockProcessor.SetOnRequestHeaderHandlerByNonce(createHeaderRequestHandlerByNonceForShard(resolversFinder, factory.MetachainBlocksTopic, log))
+	err = blockProcessor.SetOnRequestHeaderHandlerByNonce(createMetaHeaderByNonceRequestHandler(resolversFinder, factory.MetachainBlocksTopic, log))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1120,7 +1120,7 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
-	err = metaProcessor.SetOnRequestHeaderHandlerByNonce(createHeaderRequestHandlerByNonceForMeta(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
+	err = metaProcessor.SetOnRequestHeaderHandlerByNonce(createShardHeaderByNonceRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1230,7 +1230,7 @@ func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTop
 	}
 }
 
-func createHeaderRequestHandlerByNonceForMeta(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
+func createShardHeaderByNonceRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
 	return func(destShardID uint32, nonce uint64) {
 		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
 		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
@@ -1239,7 +1239,7 @@ func createHeaderRequestHandlerByNonceForMeta(resolversFinder dataRetriever.Reso
 			return
 		}
 
-		headerResolver, ok := resolver.(*resolvers.HeaderResolver)
+		headerResolver, ok := resolver.(*resolvers.ShardHeaderResolver)
 		if !ok {
 			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
 			return
@@ -1252,7 +1252,7 @@ func createHeaderRequestHandlerByNonceForMeta(resolversFinder dataRetriever.Reso
 	}
 }
 
-func createHeaderRequestHandlerByNonceForShard(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
+func createMetaHeaderByNonceRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
 	return func(destShardID uint32, nonce uint64) {
 		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
 		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
@@ -1261,7 +1261,7 @@ func createHeaderRequestHandlerByNonceForShard(resolversFinder dataRetriever.Res
 			return
 		}
 
-		headerResolver, ok := resolver.(*resolvers.ShardHeaderResolver)
+		headerResolver, ok := resolver.(*resolvers.HeaderResolver)
 		if !ok {
 			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
 			return
