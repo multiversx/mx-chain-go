@@ -15,7 +15,6 @@ const addFunc = "add"
 const getFunc = "get"
 
 var variableA = []byte("a")
-var retCodeFuncNotFound = big.NewInt(5)
 
 type VMFake struct {
 	blockchainHook vmcommon.BlockchainHook
@@ -83,7 +82,7 @@ func (vm *VMFake) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*
 
 	scOutputAccount := &vmcommon.OutputAccount{
 		Nonce:   big.NewInt(0),
-		Code:    string(input.ContractCode),
+		Code:    input.ContractCode,
 		Balance: input.CallValue,
 		Address: []byte(newSCAddr),
 		StorageUpdates: []*vmcommon.StorageUpdate{
@@ -102,7 +101,7 @@ func (vm *VMFake) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    big.NewInt(0),
 		Logs:            make([]*vmcommon.LogEntry, 0),
-		ReturnCode:      big.NewInt(0),
+		ReturnCode:      vmcommon.Ok,
 		ReturnData:      make([]*big.Int, 0),
 		TouchedAccounts: make([][]byte, 0),
 	}, nil
@@ -193,7 +192,7 @@ func (vm *VMFake) processAddFunc(input *vmcommon.ContractCallInput, value *big.I
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    big.NewInt(0),
 		Logs:            make([]*vmcommon.LogEntry, 0),
-		ReturnCode:      big.NewInt(0),
+		ReturnCode:      vmcommon.Ok,
 		ReturnData:      make([]*big.Int, 0),
 		TouchedAccounts: make([][]byte, 0),
 	}, nil
@@ -231,7 +230,7 @@ func (vm *VMFake) processGetFunc(input *vmcommon.ContractCallInput) (*vmcommon.V
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    big.NewInt(0),
 		Logs:            make([]*vmcommon.LogEntry, 0),
-		ReturnCode:      big.NewInt(0),
+		ReturnCode:      vmcommon.Ok,
 		ReturnData:      []*big.Int{currentValue},
 		TouchedAccounts: make([][]byte, 0),
 	}, nil
@@ -261,7 +260,7 @@ func (vm *VMFake) unavailableFunc(input *vmcommon.ContractCallInput) (*vmcommon.
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    big.NewInt(0),
 		Logs:            make([]*vmcommon.LogEntry, 0),
-		ReturnCode:      retCodeFuncNotFound,
+		ReturnCode:      vmcommon.FunctionNotFound,
 		ReturnData:      make([]*big.Int, 0),
 		TouchedAccounts: make([][]byte, 0),
 	}, nil
