@@ -29,7 +29,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator, &mock.SCProcessorMock{})
@@ -73,7 +73,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator, &mock.SCProcessorMock{})
@@ -144,7 +144,7 @@ func testExecTransactionsMoreTxWithRevert(
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator, &mock.SCProcessorMock{})
