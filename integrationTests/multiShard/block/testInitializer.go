@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
@@ -29,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -197,6 +199,7 @@ func createNetNode(
 	blkc := createTestShardChain()
 	store := createTestShardStore()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
+	dataPacker, _ := partitioning.NewSizeDataPacker(testMarshalizer)
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -224,6 +227,7 @@ func createNetNode(
 		testMarshalizer,
 		dPool,
 		uint64Converter,
+		dataPacker,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
@@ -251,14 +255,21 @@ func createNetNode(
 				return 0
 			},
 		},
-		func(destShardID uint32, txHash []byte) {
+		&mock.BlocksTrackerMock{
+			AddBlockCalled: func(headerHandler data.HeaderHandler) {
+			},
+			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
+				return nil
+			},
+		},
+		func(destShardID uint32, txHashes [][]byte) {
 			resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
 			if err != nil {
 				fmt.Println(err.Error())
 				return
 			}
 
-			err = resolver.RequestDataFromHash(txHash)
+			err = resolver.(*resolvers.TxResolver).RequestDataFromHashArray(txHashes)
 			if err != nil {
 				fmt.Println(err.Error())
 			}
@@ -276,6 +287,7 @@ func createNetNode(
 			}
 		},
 	)
+	_ = blockProcessor.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator), true)
 
 	n, err := node.NewNode(
 		node.WithMessenger(messenger),
@@ -644,7 +656,7 @@ func createMetaNetNode(
 		store,
 		func(shardId uint32, hdrHash []byte) {},
 	)
-	_ = blkProc.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator))
+	_ = blkProc.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator), true)
 	tn.blkProcessor = blkProc
 
 	n, err := node.NewNode(
@@ -698,6 +710,8 @@ func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.
 		genesisBlocks[shardId] = createGenesisBlock(shardId)
 	}
 
+	genesisBlocks[sharding.MetachainShardId] = createGenesisMetaBlock()
+
 	return genesisBlocks
 }
 
@@ -709,6 +723,19 @@ func createGenesisBlock(shardId uint32) *dataBlock.Header {
 		RandSeed:      rootHash,
 		PrevRandSeed:  rootHash,
 		ShardId:       shardId,
+		PubKeysBitmap: rootHash,
+		RootHash:      rootHash,
+		PrevHash:      rootHash,
+	}
+}
+
+func createGenesisMetaBlock() *dataBlock.MetaBlock {
+	return &dataBlock.MetaBlock{
+		Nonce:         0,
+		Round:         0,
+		Signature:     rootHash,
+		RandSeed:      rootHash,
+		PrevRandSeed:  rootHash,
 		PubKeysBitmap: rootHash,
 		RootHash:      rootHash,
 		PrevHash:      rootHash,

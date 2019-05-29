@@ -160,3 +160,9 @@ var ErrNoSuchStorageUnit = errors.New("no such unit type")
 
 // ErrNilRandomizer signals that a nil randomizer has been provided
 var ErrNilRandomizer = errors.New("nil randomizer")
+
+// ErrRequestTypeNotImplemented signals that a not implemented type of request has been received
+var ErrRequestTypeNotImplemented = errors.New("request type is not implemented")
+
+// ErrNilDataPacker signals that a nil data packer has been provided
+var ErrNilDataPacker = errors.New("nil data packer provided")

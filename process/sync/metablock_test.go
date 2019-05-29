@@ -1295,7 +1295,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		account,
 	)
 
-	assert.Nil(t, bs.GetHeaderFromPool(0))
+	assert.Nil(t, bs.GetHeaderFromPoolWithNonce(0))
 }
 
 func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
@@ -1357,7 +1357,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		account,
 	)
 
-	assert.True(t, hdr == bs.GetHeaderFromPool(0))
+	assert.True(t, hdr == bs.GetHeaderFromPoolWithNonce(0))
 }
 
 //------- testing received headers
