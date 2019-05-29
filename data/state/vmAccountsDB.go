@@ -29,12 +29,7 @@ func NewVMAccountsDB(
 
 // AccountExists checks if an account exists in provided AccountAdapter
 func (vadb *VMAccountsDB) AccountExists(address []byte) (bool, error) {
-	addr, err := vadb.addrConv.CreateAddressFromPublicKeyBytes(address)
-	if err != nil {
-		return false, err
-	}
-
-	_, err = vadb.accounts.GetExistingAccount(addr)
+	_, err := vadb.getAccountFromAddressBytes(address)
 	if err != nil {
 		if err == ErrAccNotFound {
 			return false, nil
@@ -44,23 +39,52 @@ func (vadb *VMAccountsDB) AccountExists(address []byte) (bool, error) {
 	return true, nil
 }
 
-// GetBalance returns the balance of an account
+// GetBalance returns the balance of a shard account
 func (vadb *VMAccountsDB) GetBalance(address []byte) (*big.Int, error) {
-	panic("implement me")
+	shardAccount, err := vadb.getShardAccountFromAddressBytes(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return shardAccount.Balance, nil
 }
 
+// GetNonce returns the nonce of a shard account
 func (vadb *VMAccountsDB) GetNonce(address []byte) (*big.Int, error) {
-	panic("implement me")
+	shardAccount, err := vadb.getShardAccountFromAddressBytes(address)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := big.NewInt(0)
+	nonce.SetUint64(shardAccount.Nonce)
+
+	return nonce, nil
 }
 
+// GetStorageData returns the storage value of a variable held in account's data trie
 func (vadb *VMAccountsDB) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
-	panic("implement me")
+	account, err := vadb.getAccountFromAddressBytes(accountAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	return account.DataTrieTracker().RetrieveValue(index)
 }
 
+// IsCodeEmpty returns if the code is empty
 func (vadb *VMAccountsDB) IsCodeEmpty(address []byte) (bool, error) {
-	panic("implement me")
+	account, err := vadb.getAccountFromAddressBytes(address)
+	if err != nil {
+		return false, err
+	}
+
+	isCodeEmpty := len(account.GetCode()) == 0
+	return isCodeEmpty, nil
+
 }
 
+// GetCode retrieves the account's code
 func (vadb *VMAccountsDB) GetCode(address []byte) ([]byte, error) {
 	panic("implement me")
 }
@@ -68,4 +92,27 @@ func (vadb *VMAccountsDB) GetCode(address []byte) ([]byte, error) {
 // GetBlockhash is deprecated
 func (vadb *VMAccountsDB) GetBlockhash(offset *big.Int) ([]byte, error) {
 	return nil, nil
+}
+
+func (vadb *VMAccountsDB) getAccountFromAddressBytes(address []byte) (AccountHandler, error) {
+	addr, err := vadb.addrConv.CreateAddressFromPublicKeyBytes(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return vadb.accounts.GetExistingAccount(addr)
+}
+
+func (vadb *VMAccountsDB) getShardAccountFromAddressBytes(address []byte) (*Account, error) {
+	account, err := vadb.getAccountFromAddressBytes(address)
+	if err != nil {
+		return nil, err
+	}
+
+	shardAccount, ok := account.(*Account)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return shardAccount, nil
 }
