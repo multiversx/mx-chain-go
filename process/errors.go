@@ -315,3 +315,6 @@ var ErrNoSortedHdrsForShard = errors.New("no sorted headers in pool")
 
 // ErrNilSmartContractProcessor signals that smart contract call executor is nil
 var ErrNilSmartContractProcessor = errors.New("smart contract processor is nil")
+
+// ErrWrongTransactionType signals transaction type is unknown
+var ErrWrongTransactionType = errors.New("unknown transaction type")

@@ -87,35 +87,40 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return err
 	}
 
-	if txType != process.MoveBalance {
+	switch txType {
+	case process.MoveBalance:
+		value := tx.Value
+		// is sender address in node shard
+		if acntSrc != nil {
+			err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = txProc.moveBalances(acntSrc, acntDst, value)
+		if err != nil {
+			return err
+		}
+
+		// is sender address in node shard
+		if acntSrc != nil {
+			err = txProc.increaseNonce(acntSrc)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	case process.SCDeployment:
+		err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, acntDst)
+		return err
+	case process.SCInvoking:
 		err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 		return err
 	}
 
-	value := tx.Value
-
-	// is sender address in node shard
-	if acntSrc != nil {
-		err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = txProc.moveBalances(acntSrc, acntDst, value)
-	if err != nil {
-		return err
-	}
-
-	// is sender address in node shard
-	if acntSrc != nil {
-		err = txProc.increaseNonce(acntSrc)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return process.ErrWrongTypeInContainer
 }
 
 func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
