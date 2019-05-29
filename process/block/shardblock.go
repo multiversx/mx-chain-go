@@ -594,7 +594,10 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) ([]data.Heade
 		//TODO: Should be add here a condition that allows the remove of metachain blocks from pool, only if they are
 		//final in metachain
 		if processedAll {
-			sp.blocksTracker.RemoveNotarisedBlocks(hdr)
+			errNotCritical := sp.blocksTracker.RemoveNotarisedBlocks(hdr)
+			if errNotCritical != nil {
+				log.Debug(errNotCritical.Error())
+			}
 
 			// metablock was processed and finalized
 			buff, err := sp.marshalizer.Marshal(hdr)
@@ -606,7 +609,7 @@ func (sp *shardProcessor) removeMetaBlockFromPool(body block.Body) ([]data.Heade
 				return processedMetaHdrs, err
 			}
 			sp.dataPool.MetaBlocks().Remove(metaBlockKey)
-			log.Info(fmt.Sprintf("metablock with nonce %d has been processed completly and removed from pool\n",
+			log.Info(fmt.Sprintf("metablock with nonce %d has been processed completely and removed from pool\n",
 				hdr.GetNonce()))
 
 			processedMetaHdrs = append(processedMetaHdrs, hdr)
@@ -966,7 +969,7 @@ func (sp *shardProcessor) getOrderedMetaBlocks(round uint32) ([]*hashAndHdr, err
 	}
 
 	sort.Slice(orderedMetaBlocks, func(i, j int) bool {
-		return orderedMetaBlocks[i].hdr.GetNonce() < orderedMetaBlocks[i].hdr.GetNonce()
+		return orderedMetaBlocks[i].hdr.GetNonce() < orderedMetaBlocks[j].hdr.GetNonce()
 	})
 
 	return orderedMetaBlocks, nil
