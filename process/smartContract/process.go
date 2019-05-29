@@ -1,16 +1,25 @@
 package smartContract
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-vm-common"
-	"math/big"
 )
 
 type scProcessor struct {
-	vm         vmcommon.VMExecutionHandler
-	argsParser *atArgumentParser
+	accounts         state.AccountsAdapter
+	adrConv          state.AddressConverter
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	shardCoordinator sharding.Coordinator
+	vm               vmcommon.VMExecutionHandler
+	argsParser       *atArgumentParser
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
