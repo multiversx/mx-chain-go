@@ -50,6 +50,5 @@ require (
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	go.dedis.ch/kyber/v3 v3.0.2
 	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c
-	gopkg.in/go-playground/assert.v1 v1.2.1
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
