@@ -97,22 +97,26 @@
 
 [MetaHeaderNoncesDataPool]
     Size = 100000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [TxDataPool]
     Size = 100000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [ShardHeadersDataPool]
     Size = 10000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [MiniBlockHeaderHashesDataPool]
     Size = 10000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [MetaBlockBodyDataPool]
-    Size = 10000
+    Size = 1000
     Type = "LRU"
 
 [Logger]
@@ -151,3 +155,9 @@
 # When consensus type is "bls" the multisig hasher type should be "blake2b"
 [Consensus]
    Type = "bls"
+
+[NTPConfig]
+   Host = "time.google.com"
+   Port = 123
+   Timeout = 0  # Setting 0 means 'use default value'
+   Version = 0  # Setting 0 means 'use default value'

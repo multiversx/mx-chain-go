@@ -61,6 +61,9 @@ var ErrNilMarshalizer = errors.New("marshalizer is nil")
 // ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
 var ErrNilBlockProcessor = errors.New("block processor is nil")
 
+// ErrNilBlockTracker is raised when a valid block tracker is expected but nil used
+var ErrNilBlockTracker = errors.New("block tracker is nil")
+
 // ErrNilBlootstraper is raised when a valid block processor is expected but nil used
 var ErrNilBlootstraper = errors.New("boostraper is nil")
 
@@ -133,8 +136,17 @@ var ErrNilBlsSingleSigner = errors.New("BLS single signer should not be nil")
 // ErrNilHeader is raised when an expected header is nil
 var ErrNilHeader = errors.New("header is nil")
 
-// ErrNilBroadCastBlock is raised when a valid broadcastBlock function is expected but nil used
-var ErrNilBroadCastBlock = errors.New("broadCastBlock is nil")
+// ErrNilBroadcastBlock is raised when a valid broadcastBlock function is expected but nil used
+var ErrNilBroadcastBlock = errors.New("broadcastBlock is nil")
+
+// ErrNilBroadcastHeader is raised when a valid broadcastHeader function is expected but nil used
+var ErrNilBroadcastHeader = errors.New("broadcastHeader is nil")
+
+// ErrNilBroadcastUnnotarisedBlocks is raised when a valid broadcastUnnotarisedBlocks function is expected but nil used
+var ErrNilBroadcastUnnotarisedBlocks = errors.New("broadcastUnnotarisedBlocks is nil")
 
 // ErrNilSendMessage is raised when a valid sendMessage function is expected but nil used
 var ErrNilSendMessage = errors.New("sendMessage is nil")
+
+// ErrNilForkDetector is raised when a valid fork detector is expected but nil used
+var ErrNilForkDetector = errors.New("fork detector is nil")

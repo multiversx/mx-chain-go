@@ -47,13 +47,16 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 }
 
 // Has returns true if the given key is present in the persistance medium, false otherwise
-func (s *DB) Has(key []byte) (bool, error) {
+func (s *DB) Has(key []byte) error {
 	s.mutx.RLock()
 	defer s.mutx.RUnlock()
 
 	_, ok := s.db[string(key)]
 
-	return ok, nil
+	if !ok {
+		return errors.New("Key not found")
+	}
+	return nil
 }
 
 // Init initializes the storage medium and prepares it for usage

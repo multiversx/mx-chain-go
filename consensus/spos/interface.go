@@ -55,6 +55,8 @@ type ConsensusService interface {
 	GetMessageRange() []consensus.MessageType
 	//CanProceed returns if the current messageType can proceed further if previous subrounds finished
 	CanProceed(*ConsensusState, consensus.MessageType) bool
+	//IsMessageWithBlockHeader returns if the current messageType is about block header
+	IsMessageWithBlockHeader(consensus.MessageType) bool
 }
 
 //SubroundsFactory encapsulates the methods specifically for a subrounds factory type (bls, bn)
@@ -77,6 +79,10 @@ type WorkerHandler interface {
 	Extend(subroundId int)
 	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
 	GetConsensusStateChangedChannel() chan bool
-	//BroadcastBlock ge
+	//BroadcastBlock does a broadcast of the blockBody and blockHeader
 	BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error
+	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
+	ExecuteStoredMessages()
+	//BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet
+	BroadcastUnnotarisedBlocks()
 }

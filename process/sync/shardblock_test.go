@@ -145,7 +145,7 @@ func createStore() *mock.ChainStorerMock {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storage.NewCache(storage.LRUCache, 1000)
+	cache, _ := storage.NewCache(storage.LRUCache, 1000, 1)
 	return cache
 }
 
@@ -1633,7 +1633,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		account,
 	)
 
-	assert.Nil(t, bs.GetHeaderFromPool(0))
+	assert.Nil(t, bs.GetHeaderFromPoolWithNonce(0))
 }
 
 func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
@@ -1695,7 +1695,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		account,
 	)
 
-	assert.True(t, hdr == bs.GetHeaderFromPool(0))
+	assert.True(t, hdr == bs.GetHeaderFromPoolWithNonce(0))
 }
 
 func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
@@ -1775,8 +1775,8 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-		if isProcessed {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
 
@@ -1829,8 +1829,8 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-		if isProcessed {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
 
@@ -2000,7 +2000,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
-			PubKeysBitmap: []byte{1},
+			PubKeysBitmap: []byte("X"),
 			Nonce:         newHdrNonce,
 		}
 	}

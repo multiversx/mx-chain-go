@@ -1,19 +1,21 @@
 package sync
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 func (boot *ShardBootstrap) RequestHeader(nonce uint64) {
 	boot.requestHeader(nonce)
 }
 
-func (boot *ShardBootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
-	return boot.getHeaderFromPoolHavingNonce(nonce)
+func (boot *ShardBootstrap) GetHeaderFromPoolWithNonce(nonce uint64) *block.Header {
+	return boot.getHeaderFromPoolWithNonce(nonce)
 }
 
-func (boot *MetaBootstrap) GetHeaderFromPool(nonce uint64) *block.MetaBlock {
-	return boot.getHeaderFromPoolHavingNonce(nonce)
+func (boot *MetaBootstrap) GetHeaderFromPoolWithNonce(nonce uint64) *block.MetaBlock {
+	return boot.getHeaderFromPoolWithNonce(nonce)
 }
 
 func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) interface{} {
@@ -68,8 +70,8 @@ func (bfd *basicForkDetector) SetLastCheckpointRound(round int32) {
 	bfd.fork.lastCheckpointRound = round
 }
 
-func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header) error {
-	return bfd.checkBlockValidity(header)
+func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header, state process.BlockHeaderState) error {
+	return bfd.checkBlockValidity(header, state)
 }
 
 func (bfd *basicForkDetector) RemovePastHeaders() {
@@ -84,12 +86,16 @@ func (bfd *basicForkDetector) ComputeProbableHighestNonce() uint64 {
 	return bfd.computeProbableHighestNonce()
 }
 
+func (bfd *basicForkDetector) GetProbableHighestNonce(headersInfo []*headerInfo) uint64 {
+	return bfd.getProbableHighestNonce(headersInfo)
+}
+
 func (hi *headerInfo) Hash() []byte {
 	return hi.hash
 }
 
-func (hi *headerInfo) IsProcessed() bool {
-	return hi.isProcessed
+func (hi *headerInfo) GetBlockHeaderState() process.BlockHeaderState {
+	return hi.state
 }
 
 func (boot *ShardBootstrap) NotifySyncStateListeners() {
@@ -114,4 +120,8 @@ func (boot *ShardBootstrap) SetForkNonce(nonce uint64) {
 
 func (boot *MetaBootstrap) SetForkNonce(nonce uint64) {
 	boot.forkNonce = nonce
+}
+
+func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	boot.processReceivedHeader(headerHandler, headerHash)
 }

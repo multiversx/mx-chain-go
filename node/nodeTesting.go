@@ -6,10 +6,19 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
+
+//TODO convert this const into a var and read it from config when this code moves to another binary
+const maxBulkTransactionSize = 2 << 17 //128KB bulks
+
+// maxLoadThresholdPercent specifies the max load percent accepted from txs storage size when generates new txs
+const maxLoadThresholdPercent = 70
 
 //TODO move this funcs in a new benchmarking/stress-test binary
 
@@ -19,6 +28,34 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	err := n.generateBulkTransactionsChecks(noOfTx)
 	if err != nil {
 		return err
+	}
+
+	//TODO: Remove this approach later, when throttle is done
+	if n.shardCoordinator.SelfId() != sharding.MetachainShardId {
+		txPool := n.dataPool.Transactions()
+		if txPool == nil {
+			return ErrNilTransactionPool
+		}
+
+		maxNoOfTx := uint64(0)
+		txStorageSize := uint64(n.txStorageSize) * maxLoadThresholdPercent / 100
+		for i := uint32(0); i < n.shardCoordinator.NumberOfShards(); i++ {
+			strCache := process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), i)
+			txStore := txPool.ShardDataStore(strCache)
+			if txStore == nil {
+				continue
+			}
+
+			if uint64(txStore.Len())+noOfTx > txStorageSize {
+				maxNoOfTx = txStorageSize - uint64(txStore.Len())
+				if noOfTx > maxNoOfTx {
+					noOfTx = maxNoOfTx
+					if noOfTx <= 0 {
+						return ErrTooManyTransactionsInPool
+					}
+				}
+			}
+		}
 	}
 
 	newNonce, senderAddressBytes, recvAddressBytes, senderShardId, err := n.generateBulkTransactionsPrepareParams(receiverHex)
@@ -35,9 +72,14 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	mutErrFound := sync.Mutex{}
 	var errFound error
 
+	dataPacker, err := partitioning.NewSizeDataPacker(n.marshalizer)
+	if err != nil {
+		return err
+	}
+
 	for nonce := newNonce; nonce < newNonce+noOfTx; nonce++ {
 		go func(crtNonce uint64) {
-			_, signedTxBuff, err := n.generateAndSignTx(
+			_, signedTxBuff, err := n.generateAndSignSingleTx(
 				crtNonce,
 				value,
 				recvAddressBytes,
@@ -75,13 +117,16 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
 	fmt.Printf("Identifier: %s\n", identifier)
 
-	for i := 0; i < len(transactions); i++ {
-		//TODO optimize this to send bulk transactions
-		// This should be made in future subtasks belonging to EN-1520 story
+	packets, err := dataPacker.PackDataInChunks(transactions, maxBulkTransactionSize)
+	if err != nil {
+		return err
+	}
+
+	for _, buff := range packets {
 		n.messenger.BroadcastOnChannel(
 			SendTransactionsPipe,
 			identifier,
-			transactions[i],
+			buff,
 		)
 	}
 
@@ -104,7 +149,7 @@ func (n *Node) GenerateAndSendBulkTransactionsOneByOne(receiverHex string, value
 	generated := 0
 	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
 	for nonce := newNonce; nonce < newNonce+noOfTx; nonce++ {
-		_, signedTxBuff, err := n.generateAndSignTx(
+		_, signedTxBuff, err := n.generateAndSignTxBuffArray(
 			nonce,
 			value,
 			recvAddressBytes,
@@ -192,7 +237,7 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string) (uint64
 	return newNonce, senderAddressBytes, receiverAddress.Bytes(), senderShardId, nil
 }
 
-func (n *Node) generateAndSignTx(
+func (n *Node) generateAndSignSingleTx(
 	nonce uint64,
 	value *big.Int,
 	rcvAddrBytes []byte,
@@ -231,12 +276,28 @@ func (n *Node) generateAndSignTx(
 		return nil, nil, err
 	}
 
+	return &tx, txBuff, err
+}
+
+func (n *Node) generateAndSignTxBuffArray(
+	nonce uint64,
+	value *big.Int,
+	rcvAddrBytes []byte,
+	sndAddrBytes []byte,
+	dataBytes []byte,
+) (*transaction.Transaction, []byte, error) {
+
+	tx, txBuff, err := n.generateAndSignSingleTx(nonce, value, rcvAddrBytes, sndAddrBytes, dataBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	signedMarshalizedTx, err := n.marshalizer.Marshal([][]byte{txBuff})
 	if err != nil {
 		return nil, nil, errors.New("could not marshal signed transaction")
 	}
 
-	return &tx, signedMarshalizedTx, nil
+	return tx, signedMarshalizedTx, nil
 }
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
@@ -268,7 +329,7 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	}
 	newNonce = acc.Nonce
 
-	tx, _, err := n.generateAndSignTx(
+	tx, _, err := n.generateAndSignTxBuffArray(
 		newNonce,
 		value,
 		receiverAddress.Bytes(),

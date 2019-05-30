@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
@@ -44,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
 	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -62,11 +65,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/track"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/profile"
@@ -80,6 +83,7 @@ const (
 	blsHashSize        = 16
 	blsConsensusType   = "bls"
 	bnConsensusType    = "bn"
+	maxTxsToRequest    = 100
 )
 
 var (
@@ -260,6 +264,10 @@ func main() {
 		},
 	}
 
+	//TODO: The next line should be removed when the write in batches is done
+	// set the maximum allowed OS threads (not go routines) which can run in the same time (the default is 10000)
+	debug.SetMaxThreads(100000)
+
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
 	}
@@ -334,8 +342,10 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with nodes config from: %s", ctx.GlobalString(nodesFile.Name)))
 
-	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
+	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, time.Hour, nil)
 	go syncer.StartSync()
+
+	log.Info(fmt.Sprintf("NTP average clock offset: %s", syncer.ClockOffset()))
 
 	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
 	if nodesConfig.StartTime == 0 {
@@ -345,6 +355,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 
 	startTime := time.Unix(nodesConfig.StartTime, 0)
+
+	log.Info(fmt.Sprintf("Start time formatted: %s", startTime.Format("Mon Jan 2 15:04:05 MST 2006")))
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
 
 	suite, err := getSuite(generalConfig)
@@ -374,9 +386,10 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
+	uniqueID = core.GetTrimmedPk(hex.EncodeToString(publicKey))
+
 	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanup {
-		uniqueID = core.GetTrimmedPk(hex.EncodeToString(publicKey))
 		err = os.RemoveAll(config.DefaultPath() + uniqueID)
 		if err != nil {
 			return err
@@ -587,7 +600,7 @@ func createShardNode(
 
 	tr, err := getTrie(config.AccountsTrieStorage, hasher)
 	if err != nil {
-		return nil, nil, nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, nil, errors.New("error creating trie: " + err.Error())
 	}
 
 	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
@@ -696,6 +709,11 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	dataPacker, err := partitioning.NewSizeDataPacker(marshalizer)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	txSignKeyGen, txSignPrivKey, txSignPubKey, err := getSigningParams(
 		ctx,
 		log,
@@ -742,6 +760,7 @@ func createShardNode(
 		marshalizer,
 		datapool,
 		uint64ByteSliceConverter,
+		dataPacker,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -771,6 +790,23 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	blockTracker, err := track.NewShardBlockTracker(datapool, marshalizer, shardCoordinator, store)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	shardsGenesisBlocks, err := generateGenesisHeadersForInit(
+		nodesConfig,
+		genesisConfig,
+		shardCoordinator,
+		addressConverter,
+		hasher,
+		marshalizer,
+	)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	blockProcessor, err := block.NewShardProcessor(
 		datapool,
 		store,
@@ -780,12 +816,22 @@ func createShardNode(
 		accountsAdapter,
 		shardCoordinator,
 		forkDetector,
-		createRequestHandler(resolversFinder, factory.TransactionTopic, log),
+		blockTracker,
+		createTxRequestHandler(resolversFinder, factory.TransactionTopic, log),
 		createRequestHandler(resolversFinder, factory.MiniBlocksTopic, log),
 	)
-
 	if err != nil {
 		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
+	}
+
+	err = blockProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks, nodesConfig.MetaChainActive)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = blockProcessor.SetOnRequestHeaderHandlerByNonce(createHeaderRequestHandlerByNonce(resolversFinder, factory.MetachainBlocksTopic, log))
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	nd, err := node.NewNode(
@@ -802,6 +848,7 @@ func createShardNode(
 		node.WithConsensusGroupSize(int(nodesConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(blockProcessor),
+		node.WithBlockTracker(blockTracker),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(rounder),
 		node.WithDataPool(datapool),
@@ -820,6 +867,7 @@ func createShardNode(
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(txSingleSigner),
 		node.WithActiveMetachain(nodesConfig.MetaChainActive),
+		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 	)
 	if err != nil {
 		return nil, nil, nil, errors.New("error creating node: " + err.Error())
@@ -880,7 +928,7 @@ func createMetaNode(
 
 	tr, err := getTrie(config.AccountsTrieStorage, hasher)
 	if err != nil {
-		return nil, nil, nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, nil, errors.New("error creating trie: " + err.Error())
 	}
 
 	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
@@ -1051,7 +1099,12 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
-	shardsGenesisBlocks, err := generateGenesisHeadersForMetachainInit(
+	blockTracker, err := track.NewMetaBlockTracker()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	shardsGenesisBlocks, err := generateGenesisHeadersForInit(
 		nodesConfig,
 		genesisConfig,
 		shardCoordinator,
@@ -1077,7 +1130,12 @@ func createMetaNode(
 		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
-	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks)
+	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks, nodesConfig.MetaChainActive)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = metaProcessor.SetOnRequestHeaderHandlerByNonce(createHeaderRequestHandlerByNonce(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1095,6 +1153,7 @@ func createMetaNode(
 		node.WithConsensusGroupSize(int(nodesConfig.MetaChainConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(metaProcessor),
+		node.WithBlockTracker(blockTracker),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(rounder),
 		node.WithMetaDataPool(metaDatapool),
@@ -1112,9 +1171,10 @@ func createMetaNode(
 		node.WithResolversFinder(resolversFinder),
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(txSingleSigner),
+		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 	)
 	if err != nil {
-		return nil, nil, nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, nil, errors.New("error creating meta-node: " + err.Error())
 	}
 
 	externalResolver, err := external.NewExternalResolver(
@@ -1136,6 +1196,39 @@ func createMetaNode(
 	return nd, externalResolver, tpsBenchmark, nil
 }
 
+func createTxRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, txHashes [][]byte) {
+	return func(destShardID uint32, txHashes [][]byte) {
+		log.Debug(fmt.Sprintf("Requesting %d transactions from shard %d from network...\n", len(txHashes), destShardID))
+		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		txResolver, ok := resolver.(*resolvers.TxResolver)
+		if !ok {
+			log.Error("wrong assertion type when creating transaction resolver")
+			return
+		}
+
+		go func() {
+			dataSplit := &partitioning.DataSplit{}
+			sliceBatches, err := dataSplit.SplitDataInChunks(txHashes, maxTxsToRequest)
+			if err != nil {
+				log.Error("error requesting transactions: " + err.Error())
+				return
+			}
+
+			for _, batch := range sliceBatches {
+				err = txResolver.RequestDataFromHashArray(batch)
+				if err != nil {
+					log.Debug("error requesting tx batch: " + err.Error())
+				}
+			}
+		}()
+	}
+}
+
 func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(destShardID uint32, txHash []byte) {
 		log.Debug(fmt.Sprintf("Requesting %s from shard %d with hash %s from network\n", baseTopic, destShardID, toB64(txHash)))
@@ -1146,6 +1239,27 @@ func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTop
 		}
 
 		err = resolver.RequestDataFromHash(txHash)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
+}
+
+func createHeaderRequestHandlerByNonce(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
+	return func(destShardID uint32, nonce uint64) {
+		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
+		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		headerResolver, ok := resolver.(*resolvers.HeaderResolver)
+		if !ok {
+			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
+		}
+
+		headerResolver.RequestDataFromNonce(nonce)
 		if err != nil {
 			log.Debug(err.Error())
 		}
@@ -1248,12 +1362,12 @@ func getTrie(cfg config.StorageConfig, hasher hashing.Hasher) (*trie.Trie, error
 		getBloomFromConfig(cfg.Bloom),
 	)
 	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
+		return nil, errors.New("error creating accountsTrieStorage: " + err.Error())
 	}
 
 	dbWriteCache, err := trie.NewDBWriteCache(accountsTrieStorage)
 	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
+		return nil, errors.New("error creating dbWriteCache: " + err.Error())
 	}
 
 	return trie.NewTrie(make([]byte, 32), dbWriteCache, hasher)
@@ -1299,8 +1413,9 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 
 func getCacherFromConfig(cfg config.CacheConfig) storage.CacheConfig {
 	return storage.CacheConfig{
-		Size: cfg.Size,
-		Type: storage.CacheType(cfg.Type),
+		Size:   cfg.Size,
+		Type:   storage.CacheType(cfg.Type),
+		Shards: cfg.Shards,
 	}
 }
 
@@ -1331,52 +1446,63 @@ func createShardDataPoolFromConfig(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.PoolsHolder, error) {
 
+	fmt.Println("creatingShardDataPool from config")
+
 	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
+		fmt.Println("error creating txpool")
 		return nil, err
 	}
 
 	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
-	hdrPool, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrPool, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating hdrpool")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating metaBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.BlockHeaderNoncesDataPool)
-	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating hdrNoncesCacher")
 		return nil, err
 	}
 	hdrNonces, err := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
+		fmt.Println("error creating hdrNonces")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
-	txBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	txBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating txBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.PeerBlockBodyDataPool)
-	peerChangeBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	peerChangeBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
-	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating metaBlockNoncesCacher")
 		return nil, err
 	}
 	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
+		fmt.Println("error creating metaBlockNonces")
 		return nil, err
 	}
 
@@ -1394,7 +1520,8 @@ func createShardDataPoolFromConfig(
 func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error) {
 	badBlockCache, err := storage.NewCache(
 		storage.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size)
+		config.BadBlocksCache.Size,
+		config.BadBlocksCache.Shards)
 	if err != nil {
 		return nil, err
 	}
@@ -1489,29 +1616,34 @@ func createMetaDataPoolFromConfig(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.MetaPoolsHolder, error) {
 	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
-	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating metaBlockBody")
 		return nil, err
 	}
 
 	miniBlockHashes, err := shardedData.NewShardedData(getCacherFromConfig(config.MiniBlockHeaderHashesDataPool))
 	if err != nil {
+		fmt.Println("error creating miniBlockHashes")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.ShardHeadersDataPool)
-	shardHeaders, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	shardHeaders, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating shardHeaders")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
-	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
+		fmt.Println("error creating metaBlockNoncesCacher")
 		return nil, err
 	}
 	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
+		fmt.Println("error creating metaBlockNonces")
 		return nil, err
 	}
 
@@ -1521,7 +1653,8 @@ func createMetaDataPoolFromConfig(
 func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, error) {
 	badBlockCache, err := storage.NewCache(
 		storage.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size)
+		config.BadBlocksCache.Size,
+		config.BadBlocksCache.Shards)
 	if err != nil {
 		return nil, err
 	}
@@ -1639,7 +1772,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func generateGenesisHeadersForMetachainInit(
+func generateGenesisHeadersForInit(
 	nodesSetup *sharding.NodesSetup,
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
@@ -1693,6 +1826,15 @@ func generateGenesisHeadersForMetachainInit(
 		shardsGenesisBlocks[shardId] = genesisBlock
 	}
 
+	if nodesSetup.IsMetaChainActive() {
+		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesPubKeys())
+		if err != nil {
+			return nil, err
+		}
+
+		shardsGenesisBlocks[sharding.MetachainShardId] = genesisBlock
+	}
+
 	return shardsGenesisBlocks, nil
 }
 
@@ -1710,7 +1852,7 @@ func generateInMemoryAccountsAdapter(
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10)
+	cache, _ := storage.NewCache(storage.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
 
 	unit, _ := storage.NewStorageUnit(cache, persist)

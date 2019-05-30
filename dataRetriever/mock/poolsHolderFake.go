@@ -20,15 +20,15 @@ type PoolsHolderFake struct {
 func NewPoolsHolderFake() *PoolsHolderFake {
 	phf := &PoolsHolderFake{}
 	phf.transactions, _ = shardedData.NewShardedData(storage.CacheConfig{Size: 10000, Type: storage.LRUCache})
-	phf.headers, _ = storage.NewCache(storage.LRUCache, 10000)
-	phf.metaBlocks, _ = storage.NewCache(storage.LRUCache, 10000)
-	cacheHdrNonces, _ := storage.NewCache(storage.LRUCache, 10000)
+	phf.headers, _ = storage.NewCache(storage.LRUCache, 10000, 1)
+	phf.metaBlocks, _ = storage.NewCache(storage.LRUCache, 10000, 1)
+	cacheHdrNonces, _ := storage.NewCache(storage.LRUCache, 10000, 1)
 	phf.hdrNonces, _ = dataPool.NewNonceToHashCacher(
 		cacheHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
-	phf.miniBlocks, _ = storage.NewCache(storage.LRUCache, 10000)
-	phf.peerChangesBlocks, _ = storage.NewCache(storage.LRUCache, 10000)
+	phf.miniBlocks, _ = storage.NewCache(storage.LRUCache, 10000, 1)
+	phf.peerChangesBlocks, _ = storage.NewCache(storage.LRUCache, 10000, 1)
 	return phf
 }
 

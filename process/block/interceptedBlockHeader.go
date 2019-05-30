@@ -44,7 +44,7 @@ func (inHdr *InterceptedHeader) Shard() uint32 {
 	return inHdr.ShardId
 }
 
-// GetHeader returns the Header pointer that holds the data
+// GetShardHeader returns the Header pointer that holds the data
 func (inHdr *InterceptedHeader) GetHeader() *block.Header {
 	return inHdr.Header
 }

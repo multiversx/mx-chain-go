@@ -1,9 +1,12 @@
 package config
 
+import "time"
+
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
-	Size uint32 `json:"size"`
-	Type string `json:"type"`
+	Size   uint32 `json:"size"`
+	Type   string `json:"type"`
+	Shards uint32 `json:"shards"`
 }
 
 // DBConfig will map the json db configuration
@@ -42,6 +45,14 @@ type TypeConfig struct {
 	Type string `json:"type"`
 }
 
+// NTPConfig will hold the configuration for NTP queries
+type NTPConfig struct {
+	Host    string
+	Port    int
+	Timeout time.Duration
+	Version int
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage    StorageConfig
@@ -78,6 +89,8 @@ type Config struct {
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
+
+	NTPConfig NTPConfig
 }
 
 // NodeConfig will hold basic p2p settings

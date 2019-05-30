@@ -15,7 +15,7 @@ type TransactionProcessor interface {
 	SCHandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
 	SetSCHandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error)
 
-	ProcessTransaction(transaction *transaction.Transaction, round int32) error
+	ProcessTransaction(transaction *transaction.Transaction, round uint32) error
 }
 
 // BlockProcessor is the main interface for block execution engine
@@ -23,9 +23,9 @@ type BlockProcessor interface {
 	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
-	CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	CreateBlockHeader(body data.BodyHandler, round int32, haveTime func() bool) (data.HeaderHandler, error)
+	CreateBlockHeader(body data.BodyHandler, round uint32, haveTime func() bool) (data.HeaderHandler, error)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
@@ -75,7 +75,7 @@ type Bootstrapper interface {
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error
+	AddHeader(header data.HeaderHandler, hash []byte, state BlockHeaderState) error
 	RemoveHeaders(nonce uint64, hash []byte)
 	CheckFork() (bool, uint64)
 	GetHighestFinalBlockNonce() uint64
@@ -127,4 +127,18 @@ type TopicMessageHandler interface {
 // from chronology point of view
 type ChronologyValidator interface {
 	ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error
+}
+
+// DataPacker can split a large slice of byte slices in smaller packets
+type DataPacker interface {
+	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
+}
+
+// BlocksTracker defines the functionality to track all the notarised blocks
+type BlocksTracker interface {
+	UnnotarisedBlocks() []data.HeaderHandler
+	RemoveNotarisedBlocks(headerHandler data.HeaderHandler) error
+	AddBlock(headerHandler data.HeaderHandler)
+	SetBlockBroadcastRound(nonce uint64, round int32)
+	BlockBroadcastRound(nonce uint64) int32
 }

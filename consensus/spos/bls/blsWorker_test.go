@@ -202,3 +202,15 @@ func TestWorker_GetStringValue(t *testing.T) {
 	r = service.GetStringValue(-1)
 	assert.Equal(t, bls.BlockDefaultStringValue, r)
 }
+
+func TestWorker_IsMessageWithBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	ret := service.IsMessageWithBlockHeader(bls.MtBlockBody)
+	assert.False(t, ret)
+
+	ret = service.IsMessageWithBlockHeader(bls.MtBlockHeader)
+	assert.True(t, ret)
+}

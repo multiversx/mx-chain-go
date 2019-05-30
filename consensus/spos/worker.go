@@ -1,15 +1,18 @@
 package spos
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -19,14 +22,17 @@ import (
 type Worker struct {
 	consensusService ConsensusService
 	blockProcessor   process.BlockProcessor
+	blockTracker     process.BlocksTracker
 	bootstraper      process.Bootstrapper
 	consensusState   *ConsensusState
+	forkDetector     process.ForkDetector
 	keyGenerator     crypto.KeyGenerator
 	marshalizer      marshal.Marshalizer
 	privateKey       crypto.PrivateKey
 	rounder          consensus.Rounder
 	shardCoordinator sharding.Coordinator
 	singleSigner     crypto.SingleSigner
+	syncTimer        ntp.SyncTimer
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
@@ -34,8 +40,9 @@ type Worker struct {
 	executeMessageChannel        chan *consensus.Message
 	consensusStateChangedChannel chan bool
 
-	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error
-	sendMessage    func(consensus *consensus.Message)
+	broadcastBlock  func(data.BodyHandler, data.HeaderHandler) error
+	broadcastHeader func(data.HeaderHandler) error
+	sendMessage     func(consensus *consensus.Message)
 
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
@@ -45,29 +52,37 @@ type Worker struct {
 func NewWorker(
 	consensusService ConsensusService,
 	blockProcessor process.BlockProcessor,
+	blockTracker process.BlocksTracker,
 	bootstraper process.Bootstrapper,
 	consensusState *ConsensusState,
+	forkDetector process.ForkDetector,
 	keyGenerator crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 	privateKey crypto.PrivateKey,
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
+	syncTimer ntp.SyncTimer,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
+	broadcastHeader func(data.HeaderHandler) error,
 	sendMessage func(consensus *consensus.Message),
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
 		consensusService,
 		blockProcessor,
+		blockTracker,
 		bootstraper,
 		consensusState,
+		forkDetector,
 		keyGenerator,
 		marshalizer,
 		privateKey,
 		rounder,
 		shardCoordinator,
 		singleSigner,
+		syncTimer,
 		broadcastBlock,
+		broadcastHeader,
 		sendMessage,
 	)
 	if err != nil {
@@ -77,15 +92,19 @@ func NewWorker(
 	wrk := Worker{
 		consensusService: consensusService,
 		blockProcessor:   blockProcessor,
+		blockTracker:     blockTracker,
 		bootstraper:      bootstraper,
 		consensusState:   consensusState,
+		forkDetector:     forkDetector,
 		keyGenerator:     keyGenerator,
 		marshalizer:      marshalizer,
 		privateKey:       privateKey,
 		rounder:          rounder,
 		shardCoordinator: shardCoordinator,
 		singleSigner:     singleSigner,
+		syncTimer:        syncTimer,
 		broadcastBlock:   broadcastBlock,
+		broadcastHeader:  broadcastHeader,
 		sendMessage:      sendMessage,
 	}
 
@@ -103,15 +122,19 @@ func NewWorker(
 func checkNewWorkerParams(
 	consensusService ConsensusService,
 	blockProcessor process.BlockProcessor,
+	blockTracker process.BlocksTracker,
 	bootstraper process.Bootstrapper,
 	consensusState *ConsensusState,
+	forkDetector process.ForkDetector,
 	keyGenerator crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 	privateKey crypto.PrivateKey,
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
+	syncTimer ntp.SyncTimer,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
+	broadcastHeader func(data.HeaderHandler) error,
 	sendMessage func(consensus *consensus.Message),
 ) error {
 	if consensusService == nil {
@@ -120,11 +143,17 @@ func checkNewWorkerParams(
 	if blockProcessor == nil {
 		return ErrNilBlockProcessor
 	}
+	if blockTracker == nil {
+		return ErrNilBlockTracker
+	}
 	if bootstraper == nil {
 		return ErrNilBlootstraper
 	}
 	if consensusState == nil {
 		return ErrNilConsensusState
+	}
+	if forkDetector == nil {
+		return ErrNilForkDetector
 	}
 	if keyGenerator == nil {
 		return ErrNilKeyGenerator
@@ -144,8 +173,14 @@ func checkNewWorkerParams(
 	if singleSigner == nil {
 		return ErrNilSingleSigner
 	}
+	if syncTimer == nil {
+		return ErrNilSyncTimer
+	}
 	if broadcastBlock == nil {
-		return ErrNilBroadCastBlock
+		return ErrNilBroadcastBlock
+	}
+	if broadcastHeader == nil {
+		return ErrNilBroadcastHeader
 	}
 	if sendMessage == nil {
 		return ErrNilSendMessage
@@ -216,9 +251,14 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return err
 	}
 
-	log.Debug(fmt.Sprintf("received %s from %s\n", wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.
-		MsgType)),
-		hex.EncodeToString(cnsDta.PubKey)))
+	msgType := consensus.MessageType(cnsDta.MsgType)
+
+	log.Debug(fmt.Sprintf("received %s from %s for consensus message with with header hash %s and round %d\n",
+		wrk.consensusService.GetStringValue(msgType),
+		core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
+		base64.StdEncoding.EncodeToString(cnsDta.BlockHeaderHash),
+		cnsDta.RoundIndex,
+	))
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
@@ -232,6 +272,15 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
 		return ErrInvalidSignature
+	}
+
+	if wrk.consensusService.IsMessageWithBlockHeader(msgType) {
+		headerHash := cnsDta.BlockHeaderHash
+		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
+		errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
 	}
 
 	errNotCritical := wrk.checkSelfState(cnsDta)
@@ -294,19 +343,21 @@ func (wrk *Worker) executeReceivedMessages(cnsDta *consensus.Message) {
 	cnsDataList := wrk.receivedMessages[msgType]
 	cnsDataList = append(cnsDataList, cnsDta)
 	wrk.receivedMessages[msgType] = cnsDataList
+	wrk.executeStoredMessages()
 
+	wrk.mutReceivedMessages.Unlock()
+}
+
+func (wrk *Worker) executeStoredMessages() {
 	for _, i := range wrk.consensusService.GetMessageRange() {
-		cnsDataList = wrk.receivedMessages[i]
+		cnsDataList := wrk.receivedMessages[i]
 		if len(cnsDataList) == 0 {
 			continue
 		}
-
 		wrk.executeMessage(cnsDataList)
 		cleanedCnsDtaList := wrk.getCleanedList(cnsDataList)
 		wrk.receivedMessages[i] = cleanedCnsDtaList
 	}
-
-	wrk.mutReceivedMessages.Unlock()
 }
 
 func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
@@ -405,4 +456,38 @@ func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 //BroadcastBlock does a broadcast of the blockBody and blockHeader
 func (wrk *Worker) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
 	return wrk.broadcastBlock(body, header)
+}
+
+//BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet
+func (wrk *Worker) BroadcastUnnotarisedBlocks() {
+	headers := wrk.blockTracker.UnnotarisedBlocks()
+	for _, header := range headers {
+		if header.GetNonce() > wrk.forkDetector.GetHighestFinalBlockNonce() {
+			continue
+		}
+
+		brodcastRound := wrk.blockTracker.BlockBroadcastRound(header.GetNonce())
+		if brodcastRound >= wrk.consensusState.RoundIndex-MaxRoundsGap {
+			continue
+		}
+
+		err := wrk.broadcastHeader(header)
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		wrk.blockTracker.SetBlockBroadcastRound(header.GetNonce(), wrk.consensusState.RoundIndex)
+
+		log.Info(fmt.Sprintf("%sStep 0: Unnotarised header with nonce %d has been broadcast to metachain\n",
+			wrk.syncTimer.FormattedCurrentTime(),
+			header.GetNonce()))
+	}
+}
+
+//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
+func (wrk *Worker) ExecuteStoredMessages() {
+	wrk.mutReceivedMessages.Lock()
+	wrk.executeStoredMessages()
+	wrk.mutReceivedMessages.Unlock()
 }

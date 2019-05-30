@@ -12,7 +12,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/badgerdb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/boltdb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/fifocache"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 )
@@ -30,13 +33,16 @@ type HasherType string
 
 // LRUCache is currently the only supported Cache type
 const (
-	LRUCache CacheType = "LRU"
+	LRUCache         CacheType = "LRU"
+	FIFOShardedCache CacheType = "FIFOSharded"
 )
 
 // LvlDB currently the only supported DBs
 // More to be added
 const (
-	LvlDB DBType = "LvlDB"
+	LvlDB    DBType = "LvlDB"
+	BadgerDB DBType = "BadgerDB"
+	BoltDB   DBType = "BoltDB"
 )
 
 const (
@@ -57,8 +63,9 @@ type UnitConfig struct {
 
 // CacheConfig holds the configurable elements of a cache
 type CacheConfig struct {
-	Size uint32
-	Type CacheType
+	Size   uint32
+	Type   CacheType
+	Shards uint32
 }
 
 // DBConfig holds the configurable elements of a database
@@ -142,44 +149,40 @@ func (s *Unit) Get(key []byte) ([]byte, error) {
 // Has checks if the key is in the Unit.
 // It first checks the cache. If it is not found, it checks the bloom filter
 // and if present it checks the db
-func (s *Unit) Has(key []byte) (bool, error) {
+func (s *Unit) Has(key []byte) error {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
 	has := s.cacher.Has(key)
 	if has {
-		return has, nil
+		return nil
 	}
 
 	if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
 		return s.persister.Has(key)
 	}
 
-	return false, nil
+	return errors.New("Key not found")
 }
 
 // HasOrAdd checks if the key is present in the storage and if not adds it.
 // it updates the cache either way
 // it returns if the value was originally found
-func (s *Unit) HasOrAdd(key []byte, value []byte) (bool, error) {
+func (s *Unit) HasOrAdd(key []byte, value []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	has := s.cacher.Has(key)
 	if has {
-		return has, nil
+		return nil
 	}
 
 	if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
-		has, err := s.persister.Has(key)
+		err := s.persister.Has(key)
 		if err != nil {
-			return has, err
-		}
+			//add it to the cache
+			s.cacher.Put(key, value)
 
-		//add it to the cache
-		s.cacher.Put(key, value)
-
-		if !has {
 			// add it also to the persistance unit
 			err = s.persister.Put(key, value)
 			if err != nil {
@@ -187,7 +190,8 @@ func (s *Unit) HasOrAdd(key []byte, value []byte) (bool, error) {
 				s.cacher.Remove(key)
 			}
 		}
-		return has, err
+
+		return err
 	}
 
 	s.cacher.Put(key, value)
@@ -195,12 +199,12 @@ func (s *Unit) HasOrAdd(key []byte, value []byte) (bool, error) {
 	err := s.persister.Put(key, value)
 	if err != nil {
 		s.cacher.Remove(key)
-		return false, err
+		return err
 	}
 
 	s.bloomFilter.Add(key)
 
-	return false, err
+	return nil
 }
 
 // Remove removes the data associated to the given key from both cache and persistance medium
@@ -229,8 +233,6 @@ func (s *Unit) DestroyUnit() error {
 	}
 
 	s.cacher.Clear()
-	err := s.persister.Close()
-	log.LogIfError(err)
 	return s.persister.Destroy()
 }
 
@@ -298,7 +300,7 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		}
 	}()
 
-	cache, err = NewCache(cacheConf.Type, cacheConf.Size)
+	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards)
 	if err != nil {
 		return nil, err
 	}
@@ -321,13 +323,19 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 }
 
 //NewCache creates a new cache from a cache config
-func NewCache(cacheType CacheType, size uint32) (Cacher, error) {
+//TODO: add a cacher factory or a cacheConfig param instead
+func NewCache(cacheType CacheType, size uint32, shards uint32) (Cacher, error) {
 	var cacher Cacher
 	var err error
 
 	switch cacheType {
 	case LRUCache:
 		cacher, err = lrucache.NewCache(int(size))
+	case FIFOShardedCache:
+		cacher, err = fifocache.NewShardedCache(int(size), int(shards))
+		if err != nil {
+			return nil, err
+		}
 		// add other implementations if required
 	default:
 		return nil, errNotSupportedCacheType
@@ -348,6 +356,10 @@ func NewDB(dbType DBType, path string) (Persister, error) {
 	switch dbType {
 	case LvlDB:
 		db, err = leveldb.NewDB(path)
+	case BadgerDB:
+		db, err = badgerdb.NewDB(path)
+	case BoltDB:
+		db, err = boltdb.NewDB(path)
 	default:
 		return nil, errNotSupportedDBType
 	}

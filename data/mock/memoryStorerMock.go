@@ -8,6 +8,7 @@ import (
 )
 
 var errMemoryStorerMock = errors.New("MemoryStorerMock generic error")
+var errKeyNotFound = errors.New("Key not found")
 
 type MemoryStorerMock struct {
 	db   map[string][]byte
@@ -47,21 +48,9 @@ func (msm *MemoryStorerMock) Get(key []byte) ([]byte, error) {
 	return nil, errors.New("not found")
 }
 
-func (msm *MemoryStorerMock) Has(key []byte) (bool, error) {
+func (msm *MemoryStorerMock) Has(key []byte) error {
 	if msm.Fail {
-		return false, errMemoryStorerMock
-	}
-
-	msm.lock.RLock()
-	defer msm.lock.RUnlock()
-
-	_, ok := msm.db[string(key)]
-	return ok, nil
-}
-
-func (msm *MemoryStorerMock) HasOrAdd(key []byte, value []byte) (bool, error) {
-	if msm.Fail {
-		return false, errMemoryStorerMock
+		return errMemoryStorerMock
 	}
 
 	msm.lock.RLock()
@@ -69,11 +58,26 @@ func (msm *MemoryStorerMock) HasOrAdd(key []byte, value []byte) (bool, error) {
 
 	_, ok := msm.db[string(key)]
 	if ok {
-		return true, nil
+		return nil
+	}
+	return errKeyNotFound
+}
+
+func (msm *MemoryStorerMock) HasOrAdd(key []byte, value []byte) error {
+	if msm.Fail {
+		return errMemoryStorerMock
+	}
+
+	msm.lock.RLock()
+	defer msm.lock.RUnlock()
+
+	_, ok := msm.db[string(key)]
+	if ok {
+		return nil
 	}
 
 	msm.db[string(key)] = encoding.CopyBytes(value)
-	return false, nil
+	return nil
 }
 
 func (msm *MemoryStorerMock) Remove(key []byte) error {

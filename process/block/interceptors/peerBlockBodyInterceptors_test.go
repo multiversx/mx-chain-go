@@ -118,8 +118,8 @@ func TestPeerBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testi
 
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{
-		HasCalled: func(key []byte) (b bool, e error) {
-			return false, nil
+		HasCalled: func(key []byte) error {
+			return errors.New("Key not found")
 		},
 	}
 
@@ -162,8 +162,8 @@ func TestPeerBlockBodyInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(
 
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{
-		HasCalled: func(key []byte) (b bool, e error) {
-			return true, nil
+		HasCalled: func(key []byte) error {
+			return nil
 		},
 	}
 

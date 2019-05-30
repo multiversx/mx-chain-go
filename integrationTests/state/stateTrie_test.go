@@ -307,7 +307,7 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 	_, err = adb.Commit()
 	assert.Nil(t, err)
 	hrCommit := base64.StdEncoding.EncodeToString(adb.RootHash())
-	fmt.Printf("State root - commited: %v\n", hrCommit)
+	fmt.Printf("State root - committed: %v\n", hrCommit)
 
 	//commit hash == account with balance
 	assert.Equal(t, hrCommit, hrWithBalance)
