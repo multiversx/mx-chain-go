@@ -51,10 +51,10 @@ func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint
 				fmt.Println("process block invalid ", header.GetRound(), header.GetNonce(), getPkEncoded(nodes[i].pk))
 				return process.ErrInvalidBlockHash
 			}
-			nodes[i].blkProcessor.CreateBlockHeaderCalled = func(body data.BodyHandler, round int32, haveTime func() bool) (handler data.HeaderHandler, e error) {
+			nodes[i].blkProcessor.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint32, haveTime func() bool) (handler data.HeaderHandler, e error) {
 				return nil, process.ErrAccountStateDirty
 			}
-			nodes[i].blkProcessor.CreateBlockCalled = func(round int32, haveTime func() bool) (handler data.BodyHandler, e error) {
+			nodes[i].blkProcessor.CreateBlockCalled = func(round uint32, haveTime func() bool) (handler data.BodyHandler, e error) {
 				return nil, process.ErrWrongTypeAssertion
 			}
 		}

@@ -117,7 +117,7 @@ func displayAndStartNodes(nodes []*testNode) {
 
 func createTestBlockChain() data.ChainHandler {
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
+	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
 	)
@@ -127,7 +127,7 @@ func createTestBlockChain() data.ChainHandler {
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10)
+	cache, _ := storage.NewCache(storage.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
 
 	unit, _ := storage.NewStorageUnit(cache, persist)
@@ -149,22 +149,22 @@ func createTestStore() dataRetriever.StorageService {
 func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
-	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
 
@@ -248,10 +248,10 @@ func createConsensusOnlyNode(
 		},
 		RevertAccountStateCalled: func() {
 		},
-		CreateBlockCalled: func(round int32, haveTime func() bool) (handler data.BodyHandler, e error) {
+		CreateBlockCalled: func(round uint32, haveTime func() bool) (handler data.BodyHandler, e error) {
 			return &dataBlock.Body{}, nil
 		},
-		CreateBlockHeaderCalled: func(body data.BodyHandler, round int32, haveTime func() bool) (handler data.HeaderHandler, e error) {
+		CreateBlockHeaderCalled: func(body data.BodyHandler, round uint32, haveTime func() bool) (handler data.HeaderHandler, e error) {
 			return &dataBlock.Header{Round: uint32(round)}, nil
 		},
 		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, bytes2 map[uint32][][]byte, e error) {
@@ -268,6 +268,11 @@ func createConsensusOnlyNode(
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
+	blockTracker := &mock.BlocksTrackerMock{
+		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+			return make([]data.HeaderHandler, 0)
+		},
+	}
 	blockChain := createTestBlockChain()
 
 	header := &dataBlock.Header{
@@ -352,6 +357,7 @@ func createConsensusOnlyNode(
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
+		node.WithBlockTracker(blockTracker),
 	)
 
 	if err != nil {

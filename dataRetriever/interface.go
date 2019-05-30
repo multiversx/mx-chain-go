@@ -1,10 +1,11 @@
 package dataRetriever
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"time"
 )
 
 // Resolver defines what a data resolver should do
@@ -192,7 +193,7 @@ type StorageService interface {
 	// AddStorer will add a new storer to the chain map
 	AddStorer(key UnitType, s storage.Storer)
 	// Has returns true if the key is found in the selected Unit or false otherwise
-	Has(unitType UnitType, key []byte) (bool, error)
+	Has(unitType UnitType, key []byte) error
 	// Get returns the value for the given key if found in the selected storage unit, nil otherwise
 	Get(unitType UnitType, key []byte) ([]byte, error)
 	// Put stores the key, value pair in the selected storage unit
@@ -202,4 +203,9 @@ type StorageService interface {
 	GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error)
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
+}
+
+// DataPacker can split a large slice of byte slices in smaller packets
+type DataPacker interface {
+	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
 }

@@ -16,7 +16,7 @@ func InitChronologyHandlerMock() consensus.ChronologyHandler {
 
 func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock := &BlockProcessorMock{}
-	blockProcessorMock.CreateBlockCalled = func(round int32, haveTime func() bool) (data.BodyHandler, error) {
+	blockProcessorMock.CreateBlockCalled = func(round uint32, haveTime func() bool) (data.BodyHandler, error) {
 		emptyBlock := make(block.Body, 0)
 
 		return emptyBlock, nil
@@ -28,7 +28,7 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
-	blockProcessorMock.CreateBlockHeaderCalled = func(body data.BodyHandler, round int32, haveTime func() bool) (header data.HeaderHandler, e error) {
+	blockProcessorMock.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint32, haveTime func() bool) (header data.HeaderHandler, e error) {
 		return &block.Header{RootHash: []byte{}}, nil
 	}
 	blockProcessorMock.DecodeBlockBodyCalled = func(dta []byte) data.BodyHandler {
@@ -37,6 +37,7 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
 		return &block.Header{}
 	}
+
 	return blockProcessorMock
 }
 

@@ -55,7 +55,7 @@ func verifyCacherConfig(cacherConfig storage.CacheConfig) error {
 
 // newShardStore is responsible for creating an empty shardStore
 func newShardStore(cacheId string, cacherConfig storage.CacheConfig) (*shardStore, error) {
-	cacher, err := storage.NewCache(cacherConfig.Type, cacherConfig.Size)
+	cacher, err := storage.NewCache(cacherConfig.Type, cacherConfig.Size, cacherConfig.Shards)
 	if err != nil {
 		return nil, err
 	}

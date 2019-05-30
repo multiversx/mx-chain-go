@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"io"
 	"math/big"
 
@@ -300,6 +301,11 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.TxCount = src.TxCount()
 
 	return dest
+}
+
+// GetShardId returns the metachain shard id
+func (m *MetaBlock) GetShardID() uint32 {
+	return sharding.MetachainShardId
 }
 
 // GetNonce return header nonce

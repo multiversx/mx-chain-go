@@ -14,7 +14,7 @@ func (scm ShardCoordinatorMock) NumberOfShards() uint32 {
 }
 
 func (scm ShardCoordinatorMock) ComputeId(address state.AddressContainer) uint32 {
-	panic("implement me")
+	return 0
 }
 
 func (scm ShardCoordinatorMock) SetSelfShardId(shardId uint32) error {
