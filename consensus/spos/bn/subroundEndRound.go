@@ -2,6 +2,7 @@ package bn
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -45,11 +46,9 @@ func checkNewSubroundEndRoundParams(
 	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
-
 	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
-
 	if broadcastBlock == nil {
 		return spos.ErrNilBroadcastBlockFunction
 	}
@@ -77,12 +76,16 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 
 	sr.Header.SetSignature(sig)
 
+	timeBefore := time.Now()
 	// Commit the block (commits also the account state)
 	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.ConsensusState.Header, sr.ConsensusState.BlockBody)
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
+	timeAfter := time.Now()
+
+	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
 
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
@@ -92,7 +95,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		log.Error(err.Error())
 	}
 
-	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been commited and broadcasted \n", sr.SyncTimer().FormattedCurrentTime()))
+	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been committed and broadcast\n", sr.SyncTimer().FormattedCurrentTime()))
 
 	actionMsg := "synchronized"
 	if sr.IsSelfLeaderInCurrentRound() {

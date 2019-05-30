@@ -115,6 +115,17 @@ func TestHeader_GetEpoch(t *testing.T) {
 	assert.Equal(t, epoch, h.GetEpoch())
 }
 
+func TestHeader_GetShard(t *testing.T) {
+	t.Parallel()
+
+	shardId := uint32(2)
+	h := block.Header{
+		ShardId: shardId,
+	}
+
+	assert.Equal(t, shardId, h.GetShardID())
+}
+
 func TestHeader_GetNonce(t *testing.T) {
 	t.Parallel()
 

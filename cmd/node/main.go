@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -68,11 +69,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/track"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/profile"
@@ -205,7 +206,9 @@ VERSION:
 	resolversFinder          dataRetriever.ResolversFinder
 	rounder                  consensus.Rounder
 	forkDetector             process.ForkDetector
-	blockProcessor           process.BlockProcessor
+	blockTracker             process.BlocksTracker
+	transactionProcessor     process.TransactionProcessor
+	shardsGenesisBlocks      map[uint32]data.HeaderHandler
 )
 
 type seedRandReader struct {
@@ -282,6 +285,10 @@ func main() {
 		},
 	}
 
+	//TODO: The next line should be removed when the write in batches is done
+	// set the maximum allowed OS threads (not go routines) which can run in the same time (the default is 10000)
+	debug.SetMaxThreads(100000)
+
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
 	}
@@ -354,8 +361,10 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with nodes config from: %s", ctx.GlobalString(nodesFile.Name)))
 
-	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
+	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, time.Hour, nil)
 	go syncer.StartSync()
+
+	log.Info(fmt.Sprintf("NTP average clock offset: %s", syncer.ClockOffset()))
 
 	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
 	if nodesConfig.StartTime == 0 {
@@ -365,6 +374,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 
 	startTime := time.Unix(nodesConfig.StartTime, 0)
+
+	log.Info(fmt.Sprintf("Start time formatted: %s", startTime.Format("Mon Jan 2 15:04:05 MST 2006")))
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
 
 	suite, err := getSuite(generalConfig)
@@ -765,12 +776,12 @@ func initDataComponentsForMetaNode(config *config.Config) error {
 	return nil
 }
 
-func initProcessComponentsShardNode(nodesConfig *sharding.NodesSetup, syncer ntp.SyncTimer,
-	shardCoordinator sharding.Coordinator, log *logger.Logger,
+func initProcessComponentsShardNode(nodesConfig *sharding.NodesSetup, genesisConfig *sharding.Genesis,
+	syncer ntp.SyncTimer, shardCoordinator sharding.Coordinator,
 ) error {
 	var err error
 
-	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
+	transactionProcessor, err = transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
 	if err != nil {
 		return errors.New("could not create transaction processor: " + err.Error())
 	}
@@ -842,21 +853,21 @@ func initProcessComponentsShardNode(nodesConfig *sharding.NodesSetup, syncer ntp
 		return err
 	}
 
-	blockProcessor, err = block.NewShardProcessor(
-		datapool,
-		store,
+	blockTracker, err = track.NewShardBlockTracker(datapool, marshalizer, shardCoordinator, store)
+	if err != nil {
+		return err
+	}
+
+	shardsGenesisBlocks, err = generateGenesisHeadersForInit(
+		nodesConfig,
+		genesisConfig,
+		shardCoordinator,
+		addressConverter,
 		hasher,
 		marshalizer,
-		transactionProcessor,
-		accountsAdapter,
-		shardCoordinator,
-		forkDetector,
-		createTxRequestHandler(resolversFinder, factory.TransactionTopic, log),
-		createRequestHandler(resolversFinder, factory.MiniBlocksTopic, log),
 	)
-
 	if err != nil {
-		return errors.New("could not create block processor: " + err.Error())
+		return err
 	}
 
 	return nil
@@ -968,7 +979,34 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	err = initProcessComponentsShardNode(nodesConfig, syncer, shardCoordinator, log)
+	err = initProcessComponentsShardNode(nodesConfig, genesisConfig, syncer, shardCoordinator)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	blockProcessor, err := block.NewShardProcessor(
+		datapool,
+		store,
+		hasher,
+		marshalizer,
+		transactionProcessor,
+		accountsAdapter,
+		shardCoordinator,
+		forkDetector,
+		blockTracker,
+		createTxRequestHandler(resolversFinder, factory.TransactionTopic, log),
+		createRequestHandler(resolversFinder, factory.MiniBlocksTopic, log),
+	)
+	if err != nil {
+		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
+	}
+
+	err = blockProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks, nodesConfig.MetaChainActive)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = blockProcessor.SetOnRequestHeaderHandlerByNonce(createMetaHeaderByNonceRequestHandler(resolversFinder, factory.MetachainBlocksTopic, log))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -989,6 +1027,7 @@ func createShardNode(
 		node.WithConsensusGroupSize(int(nodesConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(blockProcessor),
+		node.WithBlockTracker(blockTracker),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(rounder),
 		node.WithDataPool(datapool),
@@ -1007,6 +1046,7 @@ func createShardNode(
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(txSingleSigner),
 		node.WithActiveMetachain(nodesConfig.MetaChainActive),
+		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 	)
 	if err != nil {
 		return nil, nil, nil, errors.New("error creating node: " + err.Error())
@@ -1085,7 +1125,12 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
-	shardsGenesisBlocks, err := generateGenesisHeadersForMetachainInit(
+	blockTracker, err := track.NewMetaBlockTracker()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	shardsGenesisBlocks, err := generateGenesisHeadersForInit(
 		nodesConfig,
 		genesisConfig,
 		shardCoordinator,
@@ -1111,7 +1156,12 @@ func createMetaNode(
 		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
-	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks)
+	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks, nodesConfig.MetaChainActive)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = metaProcessor.SetOnRequestHeaderHandlerByNonce(createShardHeaderByNonceRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1131,6 +1181,7 @@ func createMetaNode(
 		node.WithConsensusGroupSize(int(nodesConfig.MetaChainConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(metaProcessor),
+		node.WithBlockTracker(blockTracker),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(rounder),
 		node.WithMetaDataPool(metaDatapool),
@@ -1148,6 +1199,7 @@ func createMetaNode(
 		node.WithResolversFinder(resolversFinder),
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(txSingleSigner),
+		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 	)
 	if err != nil {
 		return nil, nil, nil, errors.New("error creating meta-node: " + err.Error())
@@ -1215,6 +1267,50 @@ func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTop
 		}
 
 		err = resolver.RequestDataFromHash(txHash)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
+}
+
+func createShardHeaderByNonceRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
+	return func(destShardID uint32, nonce uint64) {
+		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
+		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		headerResolver, ok := resolver.(*resolvers.ShardHeaderResolver)
+		if !ok {
+			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		err = headerResolver.RequestDataFromNonce(nonce)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
+}
+
+func createMetaHeaderByNonceRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
+	return func(destShardID uint32, nonce uint64) {
+		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
+		resolver, err := resolversFinder.MetaChainResolver(baseTopic)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		headerResolver, ok := resolver.(*resolvers.HeaderResolver)
+		if !ok {
+			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		err = headerResolver.RequestDataFromNonce(nonce)
 		if err != nil {
 			log.Debug(err.Error())
 		}
@@ -1727,7 +1823,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func generateGenesisHeadersForMetachainInit(
+func generateGenesisHeadersForInit(
 	nodesSetup *sharding.NodesSetup,
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
@@ -1779,6 +1875,15 @@ func generateGenesisHeadersForMetachainInit(
 		}
 
 		shardsGenesisBlocks[shardId] = genesisBlock
+	}
+
+	if nodesSetup.IsMetaChainActive() {
+		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesPubKeys())
+		if err != nil {
+			return nil, err
+		}
+
+		shardsGenesisBlocks[sharding.MetachainShardId] = genesisBlock
 	}
 
 	return shardsGenesisBlocks, nil

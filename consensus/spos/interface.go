@@ -83,4 +83,6 @@ type WorkerHandler interface {
 	BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error
 	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 	ExecuteStoredMessages()
+	//BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet
+	BroadcastUnnotarisedBlocks()
 }
