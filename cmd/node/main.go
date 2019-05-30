@@ -256,7 +256,9 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, nodesFile, port, configurationFile, p2pConfigurationFile, txSignSk, sk, profileMode, txSignSkIndex, skIndex, numOfNodes, storageCleanup}
+	app.Flags = []cli.Flag{
+		genesisFile, nodesFile, port, configurationFile, p2pConfigurationFile, txSignSk, sk, profileMode,
+		txSignSkIndex, skIndex, numOfNodes, storageCleanup}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
