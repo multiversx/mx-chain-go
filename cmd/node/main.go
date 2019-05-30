@@ -180,9 +180,18 @@ VERSION:
 		Name:  "storage-cleanup",
 		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk",
 	}
-
-	initialBalancesSkPemFile = "./config/initialBalancesSk.pem"
-	initialNodesSkPemFile    = "./config/initialNodesSk.pem"
+	// initialBalancesSkPemFile defines a flag for the path to the ...
+	initialBalancesSkPemFile = cli.StringFlag{
+		Name:  "initBalancesSkPemFile",
+		Usage: "The file containing the secret keys which ...",
+		Value: "./config/initialBalancesSk.pem",
+	}
+	// initialNodesSkPemFile defines a flag for the path to the ...
+	initialNodesSkPemFile = cli.StringFlag{
+		Name:  "initNodesSkPemFile",
+		Usage: "The file containing the secret keys which ...",
+		Value: "./config/initialNodesSk.pem",
+	}
 
 	//TODO remove uniqueID
 	uniqueID = ""
@@ -258,7 +267,7 @@ func main() {
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile, nodesFile, port, configurationFile, p2pConfigurationFile, txSignSk, sk, profileMode,
-		txSignSkIndex, skIndex, numOfNodes, storageCleanup}
+		txSignSkIndex, skIndex, numOfNodes, storageCleanup, initialBalancesSkPemFile, initialNodesSkPemFile}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -366,12 +375,13 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
+	initialNodesSkPemFileName := ctx.GlobalString(initialNodesSkPemFile.Name)
 	keyGen, privKey, pubKey, err := getSigningParams(
 		ctx,
 		log,
 		sk.Name,
 		skIndex.Name,
-		initialNodesSkPemFile,
+		initialNodesSkPemFileName,
 		suite)
 	if err != nil {
 		return err
@@ -716,12 +726,13 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	initialBalancesSkPemFileName := ctx.GlobalString(initialBalancesSkPemFile.Name)
 	txSignKeyGen, txSignPrivKey, txSignPubKey, err := getSigningParams(
 		ctx,
 		log,
 		txSignSk.Name,
 		txSignSkIndex.Name,
-		initialBalancesSkPemFile,
+		initialBalancesSkPemFileName,
 		kyber.NewBlakeSHA256Ed25519())
 
 	if err != nil {
@@ -1024,12 +1035,13 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
+	initialBalancesSkPemFileName := ctx.GlobalString(initialBalancesSkPemFile.Name)
 	_, txSignPrivKey, txSignPubKey, err := getSigningParams(
 		ctx,
 		log,
 		txSignSk.Name,
 		txSignSkIndex.Name,
-		initialBalancesSkPemFile,
+		initialBalancesSkPemFileName,
 		kyber.NewBlakeSHA256Ed25519())
 
 	if err != nil {
