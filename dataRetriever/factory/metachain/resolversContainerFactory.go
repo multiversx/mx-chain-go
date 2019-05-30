@@ -109,7 +109,9 @@ func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, 
 	//wire up to topics: shardHeadersForMetachain_0_META, shardHeadersForMetachain_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierHeader := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(idx)
-		resolver, err := rcf.createOneShardHeaderResolver(identifierHeader)
+		excludePeersFromTopic := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+		resolver, err := rcf.createOneShardHeaderResolver(identifierHeader, excludePeersFromTopic)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -121,12 +123,13 @@ func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, 
 	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier string) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createOneShardHeaderResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
 	hdrStorer := rcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
-		identifier,
+		topic,
+		excludedTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)
@@ -147,7 +150,7 @@ func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier st
 
 	//add on the request topic
 	return rcf.createTopicAndAssignHandler(
-		identifier+resolverSender.TopicRequestSuffix(),
+		topic+resolverSender.TopicRequestSuffix(),
 		resolver,
 		false)
 }
@@ -170,6 +173,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifier,
+		"",
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)
