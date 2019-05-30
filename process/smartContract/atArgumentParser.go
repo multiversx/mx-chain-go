@@ -13,7 +13,7 @@ type atArgumentParser struct {
 }
 
 const atSep = "@"
-const base = 10
+const base = 16
 
 func NewAtArgumentParser() (process.ArgumentsParser, error) {
 	return &atArgumentParser{}, nil
@@ -21,7 +21,7 @@ func NewAtArgumentParser() (process.ArgumentsParser, error) {
 
 func (at *atArgumentParser) ParseData(data []byte) error {
 	splitString := strings.Split(string(data), atSep)
-	if len(splitString) == 0 {
+	if len(splitString) == 0 || len(splitString[0]) == 0 {
 		return process.ErrStringSplitFailed
 	}
 
