@@ -51,6 +51,10 @@ func (sc *scProcessor) ComputeTransactionType(
 		return 0, process.ErrWrongTransaction
 	}
 
+	if acntDst == nil {
+		return process.MoveBalance, nil
+	}
+
 	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 {
 		return process.SCInvoking, nil
 	}
@@ -69,8 +73,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	if tx == nil {
 		return process.ErrNilTransaction
 	}
-	if acntDst.IsInterfaceNil() {
-		return process.ErrWrongTransaction
+	if acntDst == nil {
+		return process.ErrNilSCDestAccount
+	}
+	if acntDst.IsInterfaceNil() || acntDst.GetCode() == nil {
+		return process.ErrNilSCDestAccount
 	}
 
 	err := sc.argsParser.ParseData(tx.Data)
@@ -100,6 +107,9 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error {
 	if sc.vm == nil {
 		return process.ErrNoVM
+	}
+	if len(tx.RcvAddr) != 0 {
+		return process.ErrWrongTransaction
 	}
 
 	err := sc.argsParser.ParseData(tx.Data)

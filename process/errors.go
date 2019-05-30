@@ -330,3 +330,6 @@ var ErrStringSplitFailed = errors.New("data splitting into arguments and code/fu
 
 // ErrNilArgumentParser signals that the argument parser is nil
 var ErrNilArgumentParser = errors.New("argument parser is nil")
+
+// ErrNilSCDestAccount signals that destination account is nil
+var ErrNilSCDestAccount = errors.New("nil destination SC account")
