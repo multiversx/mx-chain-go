@@ -72,7 +72,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/profile"
@@ -333,8 +332,10 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with nodes config from: %s", ctx.GlobalString(nodesFile.Name)))
 
-	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
+	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, time.Hour, nil)
 	go syncer.StartSync()
+
+	log.Info(fmt.Sprintf("NTP average clock offset: %s", syncer.ClockOffset()))
 
 	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
 	if nodesConfig.StartTime == 0 {
@@ -344,6 +345,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 
 	startTime := time.Unix(nodesConfig.StartTime, 0)
+
+	log.Info(fmt.Sprintf("Start time formatted: %s", startTime.Format("Mon Jan 2 15:04:05 MST 2006")))
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
 
 	suite, err := getSuite(generalConfig)
@@ -827,7 +830,7 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	err = blockProcessor.SetOnRequestHeaderHandlerByNonce(createHeaderRequestHandlerByNonce(resolversFinder, factory.MetachainBlocksTopic, log))
+	err = blockProcessor.SetOnRequestHeaderHandlerByNonce(createMetaHeaderByNonceRequestHandler(resolversFinder, factory.MetachainBlocksTopic, log))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1133,7 +1136,7 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
-	err = metaProcessor.SetOnRequestHeaderHandlerByNonce(createHeaderRequestHandlerByNonce(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
+	err = metaProcessor.SetOnRequestHeaderHandlerByNonce(createShardHeaderByNonceRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1243,7 +1246,7 @@ func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTop
 	}
 }
 
-func createHeaderRequestHandlerByNonce(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
+func createShardHeaderByNonceRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
 	return func(destShardID uint32, nonce uint64) {
 		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
 		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
@@ -1252,12 +1255,35 @@ func createHeaderRequestHandlerByNonce(resolversFinder dataRetriever.ResolversFi
 			return
 		}
 
+		headerResolver, ok := resolver.(*resolvers.ShardHeaderResolver)
+		if !ok {
+			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		err = headerResolver.RequestDataFromNonce(nonce)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
+}
+
+func createMetaHeaderByNonceRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
+	return func(destShardID uint32, nonce uint64) {
+		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
+		resolver, err := resolversFinder.MetaChainResolver(baseTopic)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
 		headerResolver, ok := resolver.(*resolvers.HeaderResolver)
 		if !ok {
 			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
+			return
 		}
 
-		headerResolver.RequestDataFromNonce(nonce)
+		err = headerResolver.RequestDataFromNonce(nonce)
 		if err != nil {
 			log.Debug(err.Error())
 		}
