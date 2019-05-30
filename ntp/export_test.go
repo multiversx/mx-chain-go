@@ -6,7 +6,7 @@ import (
 	"github.com/beevik/ntp"
 )
 
-func (s *syncTime) Query() func(host string) (*ntp.Response, error) {
+func (s *syncTime) Query() func(options NTPOptions) (*ntp.Response, error) {
 	return s.query
 }
 

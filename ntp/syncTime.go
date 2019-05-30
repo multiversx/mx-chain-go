@@ -5,23 +5,79 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/beevik/ntp"
 )
 
 // totalRequests defines the number of requests made to determine an accurate clock offset
 const totalRequests = 10
 
+// NTPOptions defines configuration options for an NTP query
+type NTPOptions struct {
+	Host         string
+	Version      int
+	LocalAddress string
+	Timeout      time.Duration
+	Port         int
+}
+
+// NewNTPGoogleConfig creates an NTPConfig object that configures NTP to use
+// time.google.com. This is a useful default for tests, for example, to avoid
+// loading a configuration file just to have an NTPConfig.
+func NewNTPGoogleConfig() config.NTPConfig {
+	return config.NTPConfig{
+		Host:    "time.google.com",
+		Port:    123,
+		Version: 0,
+		Timeout: 0}
+}
+
+// NewNTPOptions creates a new NTPOptions object.
+func NewNTPOptions(ntpConfig config.NTPConfig) NTPOptions {
+	return NTPOptions{
+		Host:         ntpConfig.Host,
+		Port:         ntpConfig.Port,
+		Version:      ntpConfig.Version,
+		LocalAddress: "",
+		Timeout:      ntpConfig.Timeout}
+}
+
+// queryNTP wraps beevikntp.QueryWithOptions, in order to use NTPOptions, which
+// contains both Host and Port, unlike beevikntp.QueryOptions.
+func queryNTP(options NTPOptions) (*ntp.Response, error) {
+	queryOptions := ntp.QueryOptions{
+		Timeout:      options.Timeout,
+		Version:      options.Version,
+		LocalAddress: options.LocalAddress,
+		Port:         options.Port}
+	fmt.Println(fmt.Sprintf("NTP Request to %s:%d", options.Host, options.Port))
+	return ntp.QueryWithOptions(options.Host, queryOptions)
+}
+
 // syncTime defines an object for time synchronization
 type syncTime struct {
 	mut         sync.RWMutex
 	clockOffset time.Duration
 	syncPeriod  time.Duration
-	query       func(host string) (*ntp.Response, error)
+	ntpOptions  NTPOptions
+	query       func(options NTPOptions) (*ntp.Response, error)
 }
 
-// NewSyncTime creates a syncTime object
-func NewSyncTime(syncPeriod time.Duration, query func(host string) (*ntp.Response, error)) *syncTime {
-	s := syncTime{clockOffset: 0, syncPeriod: syncPeriod, query: query}
+// NewSyncTime creates a syncTime object. The customQueryFunc argument allows
+// the caller to set a different NTP-querying callback, if desired. If set to
+// nil, then the default queryNTP is used.
+func NewSyncTime(ntpConfig config.NTPConfig, syncPeriod time.Duration, customQueryFunc func(options NTPOptions) (*ntp.Response, error)) *syncTime {
+	var queryFunc func(options NTPOptions) (*ntp.Response, error)
+	if customQueryFunc == nil {
+		queryFunc = queryNTP
+	} else {
+		queryFunc = customQueryFunc
+	}
+	s := syncTime{
+		clockOffset: 0,
+		syncPeriod:  syncPeriod,
+		query:       queryFunc,
+		ntpOptions:  NewNTPOptions(ntpConfig)}
 	return &s
 }
 
@@ -42,19 +98,22 @@ func (s *syncTime) sync() {
 		succeededRequests := 0
 
 		for i := 0; i < totalRequests; i++ {
-			r, err := s.query("time.google.com")
+			r, err := s.query(s.ntpOptions)
 
 			if err != nil {
+				fmt.Println(fmt.Sprintf("NTP Error: %s", err))
 				continue
 			}
+
+			fmt.Println(fmt.Sprintf("NTP reading: %s", r.Time.Format("Mon Jan 2 15:04:05 MST 2006")))
 
 			succeededRequests++
 			clockOffsetSum += r.ClockOffset
 		}
 
 		if succeededRequests > 0 {
-			averrageClockOffset := time.Duration(int64(clockOffsetSum) / int64(succeededRequests))
-			s.setClockOffset(averrageClockOffset)
+			averageClockOffset := time.Duration(int64(clockOffsetSum) / int64(succeededRequests))
+			s.setClockOffset(averageClockOffset)
 		}
 	}
 }
