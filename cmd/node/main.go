@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/big"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -18,6 +19,9 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
@@ -176,7 +180,32 @@ VERSION:
 	//TODO remove uniqueID
 	uniqueID = ""
 
-	rm *statistics.ResourceMonitor
+	rm                       *statistics.ResourceMonitor
+	hasher                   hashing.Hasher
+	marshalizer              marshal.Marshalizer
+	tpsBenchmark             *statistics.TpsBenchmark
+	addressConverter         *addressConverters.PlainAddressConverter
+	accountsAdapter          *state.AccountsDB
+	txSingleSigner           *singlesig.SchnorrSigner
+	singleSigner             crypto.SingleSigner
+	multiSigner              crypto.MultiSigner
+	netMessenger             p2p.Messenger
+	blkc                     data.ChainHandler
+	store                    dataRetriever.StorageService
+	datapool                 dataRetriever.PoolsHolder
+	inBalanceForShard        map[string]*big.Int
+	uint64ByteSliceConverter = uint64ByteSlice.NewBigEndianConverter()
+	metaChain                *blockchain.MetaChain
+	metaStore                dataRetriever.StorageService
+	metaDatapool             dataRetriever.MetaPoolsHolder
+	txSignKeyGen             crypto.KeyGenerator
+	txSignPrivKey            crypto.PrivateKey
+	txSignPubKey             crypto.PublicKey
+	interceptorsContainer    process.InterceptorsContainer
+	resolversFinder          dataRetriever.ResolversFinder
+	rounder                  consensus.Rounder
+	forkDetector             process.ForkDetector
+	blockProcessor           process.BlockProcessor
 )
 
 type seedRandReader struct {
@@ -553,147 +582,108 @@ func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
 	return nil, errors.New("no consensus type provided in config file")
 }
 
-func createShardNode(
-	ctx *cli.Context,
-	config *config.Config,
-	genesisConfig *sharding.Genesis,
-	nodesConfig *sharding.NodesSetup,
-	p2pConfig *config.P2PConfig,
-	syncer ntp.SyncTimer,
-	keyGen crypto.KeyGenerator,
-	privKey crypto.PrivateKey,
-	pubKey crypto.PublicKey,
-	shardCoordinator sharding.Coordinator,
-	log *logger.Logger,
-) (*node.Node, *external.ExternalResolver, *statistics.TpsBenchmark, error) {
+func initCoreComponents(config *config.Config, nodesConfig *sharding.NodesSetup, pubKey crypto.PublicKey, shardCoordinator sharding.Coordinator, log *logger.Logger) error {
+	var err error
 
-	hasher, err := getHasherFromConfig(config)
+	hasher, err = getHasherFromConfig(config)
 	if err != nil {
-		return nil, nil, nil, errors.New("could not create hasher: " + err.Error())
+		return errors.New("could not create hasher: " + err.Error())
 	}
 
-	marshalizer, err := getMarshalizerFromConfig(config)
+	marshalizer, err = getMarshalizerFromConfig(config)
 	if err != nil {
-		return nil, nil, nil, errors.New("could not create marshalizer: " + err.Error())
+		return errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	tr, err := getTrie(config.AccountsTrieStorage, hasher)
+	tpsBenchmark, err = statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), nodesConfig.RoundDuration/1000)
 	if err != nil {
-		return nil, nil, nil, errors.New("error creating trie: " + err.Error())
+		return err
 	}
-
-	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create address converter: " + err.Error())
-	}
-
-	accountFactory, err := factoryState.NewAccountFactoryCreator(shardCoordinator)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create account factory: " + err.Error())
-	}
-
-	accountsAdapter, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create accounts adapter: " + err.Error())
-	}
-
-	initialPubKeys := nodesConfig.InitialNodesPubKeys()
 
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
 	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
+
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
 	err = log.ApplyOptions(logger.WithFile(logFile))
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
 	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
+
 	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
-	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
+	return nil
+}
+
+func initStateComponents(config *config.Config, shardCoordinator sharding.Coordinator) error {
+	var err error
+
+	tr, err := getTrie(config.AccountsTrieStorage, hasher)
 	if err != nil {
-		return nil, nil, nil, errors.New("could not create transaction processor: " + err.Error())
+		return errors.New("error creating trie: " + err.Error())
 	}
 
-	blkc, err := createBlockChainFromConfig(config)
+	addressConverter, err = addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
 	if err != nil {
-		return nil, nil, nil, errors.New("could not create block chain: " + err.Error())
+		return errors.New("could not create address converter: " + err.Error())
 	}
 
-	store, err := createShardDataStoreFromConfig(config)
+	accountFactory, err := factoryState.NewAccountFactoryCreator(shardCoordinator)
 	if err != nil {
-		return nil, nil, nil, errors.New("could not create local data store: " + err.Error())
+		return errors.New("could not create account factory: " + err.Error())
 	}
 
-	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
-	datapool, err := createShardDataPoolFromConfig(config, uint64ByteSliceConverter)
+	accountsAdapter, err = state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
 	if err != nil {
-		return nil, nil, nil, errors.New("could not create shard data pools: " + err.Error())
+		return errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
-	if err != nil {
-		return nil, nil, nil, errors.New("initial balances could not be processed " + err.Error())
-	}
+	return nil
+}
 
-	txSingleSigner := &singlesig.SchnorrSigner{}
-	singleSigner, err := createSingleSigner(config)
+func initCryptoComponents(ctx *cli.Context, config *config.Config, nodesConfig *sharding.NodesSetup, keyGen crypto.KeyGenerator,
+	privKey crypto.PrivateKey, shardCoordinator sharding.Coordinator, log *logger.Logger,
+) error {
+
+	var err error
+
+	txSingleSigner = &singlesig.SchnorrSigner{}
+	singleSigner, err = createSingleSigner(config)
 	if err != nil {
-		return nil, nil, nil, errors.New("could not create singleSigner: " + err.Error())
+		return errors.New("could not create singleSigner: " + err.Error())
 	}
 
 	multisigHasher, err := getMultisigHasherFromConfig(config)
 	if err != nil {
-		return nil, nil, nil, errors.New("could not create multisig hasher: " + err.Error())
+		return errors.New("could not create multisig hasher: " + err.Error())
 	}
 
 	currentShardPubKeys, err := nodesConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
 	if err != nil {
-		return nil, nil, nil, errors.New("could not start creation of multiSigner: " + err.Error())
+		return errors.New("could not start creation of multiSigner: " + err.Error())
 	}
 
-	multiSigner, err := createMultiSigner(config, multisigHasher, currentShardPubKeys, privKey, keyGen)
+	multiSigner, err = createMultiSigner(config, multisigHasher, currentShardPubKeys, privKey, keyGen)
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
-	var randReader io.Reader
-	if p2pConfig.Node.Seed != "" {
-		randReader = NewSeedRandReader(hasher.Compute(p2pConfig.Node.Seed))
-	} else {
-		randReader = rand.Reader
-	}
-
-	netMessenger, err := createNetMessenger(p2pConfig, log, randReader)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), nodesConfig.RoundDuration/1000)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	dataPacker, err := partitioning.NewSizeDataPacker(marshalizer)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	txSignKeyGen, txSignPrivKey, txSignPubKey, err := getSigningParams(
+	txSignKeyGen, txSignPrivKey, txSignPubKey, err = getSigningParams(
 		ctx,
 		log,
 		txSignSk.Name,
@@ -702,10 +692,93 @@ func createShardNode(
 		kyber.NewBlakeSHA256Ed25519())
 
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
 	log.Info("Starting with tx sign public key: " + getPkEncoded(txSignPubKey))
+
+	return nil
+}
+
+func initP2PComponents(p2pConfig *config.P2PConfig, log *logger.Logger) error {
+	var err error
+
+	var randReader io.Reader
+	if p2pConfig.Node.Seed != "" {
+		randReader = NewSeedRandReader(hasher.Compute(p2pConfig.Node.Seed))
+	} else {
+		randReader = rand.Reader
+	}
+
+	netMessenger, err = createNetMessenger(p2pConfig, log, randReader)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func initDataComponentsForShardNode(config *config.Config, genesisConfig *sharding.Genesis, shardCoordinator sharding.Coordinator) error {
+	var err error
+
+	blkc, err = createBlockChainFromConfig(config)
+	if err != nil {
+		return errors.New("could not create block chain: " + err.Error())
+	}
+
+	store, err = createShardDataStoreFromConfig(config)
+	if err != nil {
+		return errors.New("could not create local data store: " + err.Error())
+	}
+
+	datapool, err = createShardDataPoolFromConfig(config, uint64ByteSliceConverter)
+	if err != nil {
+		return errors.New("could not create shard data pools: " + err.Error())
+	}
+
+	inBalanceForShard, err = genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
+	if err != nil {
+		return errors.New("initial balances could not be processed " + err.Error())
+	}
+
+	return nil
+}
+
+func initDataComponentsForMetaNode(config *config.Config) error {
+	var err error
+
+	metaChain, err = createMetaChainFromConfig(config)
+	if err != nil {
+		return errors.New("could not create block chain: " + err.Error())
+	}
+
+	metaStore, err = createMetaChainDataStoreFromConfig(config)
+	if err != nil {
+		return errors.New("could not create local data store: " + err.Error())
+	}
+
+	metaDatapool, err = createMetaDataPoolFromConfig(config, uint64ByteSliceConverter)
+	if err != nil {
+		return errors.New("could not create shard data pools: " + err.Error())
+	}
+
+	return nil
+}
+
+func initProcessComponentsShardNode(nodesConfig *sharding.NodesSetup, syncer ntp.SyncTimer,
+	shardCoordinator sharding.Coordinator, log *logger.Logger,
+) error {
+	var err error
+
+	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
+	if err != nil {
+		return errors.New("could not create transaction processor: " + err.Error())
+	}
+
+	dataPacker, err := partitioning.NewSizeDataPacker(marshalizer)
+	if err != nil {
+		return err
+	}
 
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
@@ -723,13 +796,13 @@ func createShardNode(
 		tpsBenchmark,
 	)
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
 	//TODO refactor all these factory calls
-	interceptorsContainer, err := interceptorContainerFactory.Create()
+	interceptorsContainer, err = interceptorContainerFactory.Create()
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
 	resolversContainerFactory, err := shardfactoryDataRetriever.NewResolversContainerFactory(
@@ -742,34 +815,34 @@ func createShardNode(
 		dataPacker,
 	)
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
 	resolversContainer, err := resolversContainerFactory.Create()
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
-	resolversFinder, err := containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	resolversFinder, err = containers.NewResolversFinder(resolversContainer, shardCoordinator)
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
-	rounder, err := round.NewRound(
+	rounder, err = round.NewRound(
 		time.Unix(nodesConfig.StartTime, 0),
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(nodesConfig.RoundDuration),
 		syncer)
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
-	forkDetector, err := processSync.NewBasicForkDetector(rounder)
+	forkDetector, err = processSync.NewBasicForkDetector(rounder)
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
-	blockProcessor, err := block.NewShardProcessor(
+	blockProcessor, err = block.NewShardProcessor(
 		datapool,
 		store,
 		hasher,
@@ -783,8 +856,124 @@ func createShardNode(
 	)
 
 	if err != nil {
-		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
+		return errors.New("could not create block processor: " + err.Error())
 	}
+
+	return nil
+}
+
+func initProcessComponentsMetaNode(nodesConfig *sharding.NodesSetup,
+	syncer ntp.SyncTimer, shardCoordinator sharding.Coordinator,
+) error {
+
+	var err error
+
+	//TODO add a real chronology validator and remove null chronology validator
+	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
+		shardCoordinator,
+		netMessenger,
+		metaStore,
+		marshalizer,
+		hasher,
+		multiSigner,
+		metaDatapool,
+		&nullChronologyValidator{},
+		tpsBenchmark,
+	)
+	if err != nil {
+		return err
+	}
+
+	//TODO refactor all these factory calls
+	interceptorsContainer, err = interceptorContainerFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	resolversContainerFactory, err := metafactoryDataRetriever.NewResolversContainerFactory(
+		shardCoordinator,
+		netMessenger,
+		metaStore,
+		marshalizer,
+		metaDatapool,
+		uint64ByteSliceConverter,
+	)
+	if err != nil {
+		return err
+	}
+
+	resolversContainer, err := resolversContainerFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	resolversFinder, err = containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	if err != nil {
+		return err
+	}
+
+	rounder, err = round.NewRound(
+		time.Unix(nodesConfig.StartTime, 0),
+		syncer.CurrentTime(),
+		time.Millisecond*time.Duration(nodesConfig.RoundDuration),
+		syncer)
+	if err != nil {
+		return err
+	}
+
+	forkDetector, err = processSync.NewBasicForkDetector(rounder)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createShardNode(
+	ctx *cli.Context,
+	config *config.Config,
+	genesisConfig *sharding.Genesis,
+	nodesConfig *sharding.NodesSetup,
+	p2pConfig *config.P2PConfig,
+	syncer ntp.SyncTimer,
+	keyGen crypto.KeyGenerator,
+	privKey crypto.PrivateKey,
+	pubKey crypto.PublicKey,
+	shardCoordinator sharding.Coordinator,
+	log *logger.Logger,
+) (*node.Node, *external.ExternalResolver, *statistics.TpsBenchmark, error) {
+
+	err := initCoreComponents(config, nodesConfig, pubKey, shardCoordinator, log)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = initStateComponents(config, shardCoordinator)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = initDataComponentsForShardNode(config, genesisConfig, shardCoordinator)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = initCryptoComponents(ctx, config, nodesConfig, keyGen, privKey, shardCoordinator, log)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = initP2PComponents(p2pConfig, log)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = initProcessComponentsShardNode(nodesConfig, syncer, shardCoordinator, log)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	initialPubKeys := nodesConfig.InitialNodesPubKeys()
 
 	nd, err := node.NewNode(
 		node.WithMessenger(netMessenger),
@@ -866,185 +1055,32 @@ func createMetaNode(
 	log *logger.Logger,
 ) (*node.Node, *external.ExternalResolver, *statistics.TpsBenchmark, error) {
 
-	hasher, err := getHasherFromConfig(config)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create hasher: " + err.Error())
-	}
-
-	marshalizer, err := getMarshalizerFromConfig(config)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create marshalizer: " + err.Error())
-	}
-
-	tr, err := getTrie(config.AccountsTrieStorage, hasher)
-	if err != nil {
-		return nil, nil, nil, errors.New("error creating trie: " + err.Error())
-	}
-
-	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create address converter: " + err.Error())
-	}
-
-	accountFactory, err := factoryState.NewAccountFactoryCreator(shardCoordinator)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create account factory: " + err.Error())
-	}
-
-	accountsAdapter, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create accounts adapter: " + err.Error())
-	}
-
-	initialPubKeys := nodesConfig.InitialNodesPubKeys()
-
-	publicKey, err := pubKey.ToByteArray()
+	err := initCoreComponents(config, nodesConfig, pubKey, shardCoordinator, log)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
-	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
+	err = initStateComponents(config, shardCoordinator)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	err = log.ApplyOptions(logger.WithFile(logFile))
+	err = initDataComponentsForMetaNode(config)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
+	err = initCryptoComponents(ctx, config, nodesConfig, keyGen, privKey, shardCoordinator, log)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	metaChain, err := createMetaChainFromConfig(config)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create block chain: " + err.Error())
-	}
-
-	metaStore, err := createMetaChainDataStoreFromConfig(config)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create local data store: " + err.Error())
-	}
-
-	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
-	metaDatapool, err := createMetaDataPoolFromConfig(config, uint64ByteSliceConverter)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create shard data pools: " + err.Error())
-	}
-
-	txSingleSigner := &singlesig.SchnorrSigner{}
-	singleSigner, err := createSingleSigner(config)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create singleSigner: " + err.Error())
-	}
-
-	multisigHasher, err := getMultisigHasherFromConfig(config)
-	if err != nil {
-		return nil, nil, nil, errors.New("could not create multisig hasher: " + err.Error())
-	}
-
-	currentShardPubKeys, err := nodesConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
-	if err != nil {
-		return nil, nil, nil, errors.New("could not start creation of multiSigner: " + err.Error())
-	}
-
-	multiSigner, err := createMultiSigner(config, multisigHasher, currentShardPubKeys, privKey, keyGen)
+	err = initP2PComponents(p2pConfig, log)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	var randReader io.Reader
-	if p2pConfig.Node.Seed != "" {
-		randReader = NewSeedRandReader(hasher.Compute(p2pConfig.Node.Seed))
-	} else {
-		randReader = rand.Reader
-	}
-
-	netMessenger, err := createNetMessenger(p2pConfig, log, randReader)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	_, txSignPrivKey, txSignPubKey, err := getSigningParams(
-		ctx,
-		log,
-		txSignSk.Name,
-		txSignSkIndex.Name,
-		initialBalancesSkPemFile,
-		kyber.NewBlakeSHA256Ed25519())
-
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), nodesConfig.RoundDuration/1000)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	log.Info("Starting with tx sign public key: " + getPkEncoded(txSignPubKey))
-
-	//TODO add a real chronology validator and remove null chronology validator
-	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
-		shardCoordinator,
-		netMessenger,
-		metaStore,
-		marshalizer,
-		hasher,
-		multiSigner,
-		metaDatapool,
-		&nullChronologyValidator{},
-		tpsBenchmark,
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	//TODO refactor all these factory calls
-	interceptorsContainer, err := interceptorContainerFactory.Create()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	resolversContainerFactory, err := metafactoryDataRetriever.NewResolversContainerFactory(
-		shardCoordinator,
-		netMessenger,
-		metaStore,
-		marshalizer,
-		metaDatapool,
-		uint64ByteSliceConverter,
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	resolversContainer, err := resolversContainerFactory.Create()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	resolversFinder, err := containers.NewResolversFinder(resolversContainer, shardCoordinator)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	rounder, err := round.NewRound(
-		time.Unix(nodesConfig.StartTime, 0),
-		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(nodesConfig.RoundDuration),
-		syncer)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	forkDetector, err := processSync.NewBasicForkDetector(rounder)
+	err = initProcessComponentsMetaNode(nodesConfig, syncer, shardCoordinator)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1079,6 +1115,8 @@ func createMetaNode(
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	initialPubKeys := nodesConfig.InitialNodesPubKeys()
 
 	nd, err := node.NewNode(
 		node.WithMessenger(netMessenger),
