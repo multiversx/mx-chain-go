@@ -616,7 +616,7 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 
 		// remove process finished
 		if hdr.GetNonce() > lastNoterizedMetaHdr.GetNonce() {
-			return nil
+			continue
 		}
 
 		errNotCritical := sp.blocksTracker.RemoveNotarisedBlocks(hdr)
@@ -627,13 +627,15 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 		// metablock was processed and finalized
 		buff, err := sp.marshalizer.Marshal(hdr)
 		if err != nil {
-			return err
+			log.Debug(err.Error())
+			continue
 		}
 
 		key := sp.hasher.Compute(string(buff))
 		err = sp.store.Put(dataRetriever.MetaBlockUnit, key, buff)
 		if err != nil {
-			return err
+			log.Debug(err.Error())
+			continue
 		}
 		sp.dataPool.MetaBlocks().Remove(key)
 		log.Info(fmt.Sprintf("metablock with nonce %d has been processed completely and removed from pool\n",
