@@ -315,3 +315,18 @@ var ErrNoSortedHdrsForShard = errors.New("no sorted headers in pool")
 
 // ErrNilSmartContractProcessor signals that smart contract call executor is nil
 var ErrNilSmartContractProcessor = errors.New("smart contract processor is nil")
+
+// ErrNilArguments signals that arguments from transactions data is nil
+var ErrNilArguments = errors.New("smart contract arguments are nil")
+
+// ErrNilCode signals that code from transaction data is nil
+var ErrNilCode = errors.New("smart contract code is nil")
+
+// ErrNilFunction signals that function from transaction data is nil
+var ErrNilFunction = errors.New("smart contract function is nil")
+
+// ErrStringSplitFailed signals that data splitting into arguments and code failed
+var ErrStringSplitFailed = errors.New("data splitting into arguments and code/function failed")
+
+// ErrNilArgumentParser signals that the argument parser is nil
+var ErrNilArgumentParser = errors.New("argument parser is nil")

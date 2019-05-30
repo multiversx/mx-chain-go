@@ -632,8 +632,13 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	argsParser, err := smartContract.NewAtArgumentParser()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	//TODO: change the mock
-	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{})
+	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser)
 	if err != nil {
 		return nil, nil, nil, err
 	}

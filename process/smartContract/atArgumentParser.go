@@ -1,23 +1,64 @@
 package smartContract
 
-import "math/big"
+import (
+	"math/big"
+	"strings"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+)
 
 type atArgumentParser struct {
+	arguments []*big.Int
+	code      []byte
 }
 
-func NewAtArgumentParser() *atArgumentParser {
-	return &atArgumentParser{}
+const atSep = "@"
+const base = 10
+
+func NewAtArgumentParser() (process.ArgumentsParser, error) {
+	return &atArgumentParser{}, nil
 }
 
-func (at *atArgumentParser) CreateArguments(data []byte) ([]*big.Int, error) {
-	args := make([]*big.Int, 0)
-	return args, nil
+func (at *atArgumentParser) ParseData(data []byte) error {
+	splitString := strings.Split(string(data), atSep)
+	if len(splitString) == 0 {
+		return process.ErrStringSplitFailed
+	}
+
+	code := []byte(splitString[0])
+	arguments := make([]*big.Int, 0)
+	for i := 1; i < len(splitString); i++ {
+		currArg := new(big.Int)
+		currArg, ok := currArg.SetString(splitString[i], base)
+		if !ok {
+			continue
+		}
+
+		arguments = append(arguments, currArg)
+	}
+
+	at.code = code
+	at.arguments = arguments
+	return nil
 }
 
-func (at *atArgumentParser) GetCodeFromData(data []byte) ([]byte, error) {
-	return []byte(""), nil
+func (at *atArgumentParser) GetArguments() ([]*big.Int, error) {
+	if at.arguments == nil {
+		return nil, process.ErrNilArguments
+	}
+	return at.arguments, nil
 }
 
-func (at *atArgumentParser) GetFunctionFromData(data []byte) (string, error) {
-	return string(""), nil
+func (at *atArgumentParser) GetCode() ([]byte, error) {
+	if at.code == nil {
+		return nil, process.ErrNilCode
+	}
+	return at.code, nil
+}
+
+func (at *atArgumentParser) GetFunction() (string, error) {
+	if at.code == nil {
+		return "", process.ErrNilFunction
+	}
+	return string(at.code), nil
 }

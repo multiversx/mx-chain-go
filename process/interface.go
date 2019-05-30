@@ -1,6 +1,7 @@
 package process
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -145,4 +146,12 @@ type BlocksTracker interface {
 	AddBlock(headerHandler data.HeaderHandler)
 	SetBlockBroadcastRound(nonce uint64, round int32)
 	BlockBroadcastRound(nonce uint64) int32
+}
+
+// ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
+type ArgumentsParser interface {
+	GetArguments() ([]*big.Int, error)
+	GetCode() ([]byte, error)
+	GetFunction() (string, error)
+	ParseData(data []byte) error
 }

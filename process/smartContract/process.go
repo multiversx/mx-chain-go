@@ -19,16 +19,17 @@ type scProcessor struct {
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
 	vm               vmcommon.VMExecutionHandler
-	argsParser       *atArgumentParser
+	argsParser       process.ArgumentsParser
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
-func NewSmartContractProcessor(vm vmcommon.VMExecutionHandler) (*scProcessor, error) {
+func NewSmartContractProcessor(vm vmcommon.VMExecutionHandler, argsParser process.ArgumentsParser) (*scProcessor, error) {
 	if vm == nil {
 		return nil, process.ErrNoVM
 	}
-
-	argsParser := NewAtArgumentParser()
+	if argsParser == nil {
+		return nil, process.ErrNilArgumentParser
+	}
 
 	return &scProcessor{vm: vm, argsParser: argsParser}, nil
 }
@@ -72,6 +73,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return process.ErrWrongTransaction
 	}
 
+	err := sc.argsParser.ParseData(tx.Data)
+	if err != nil {
+		return err
+	}
+
 	vmInput, err := sc.createVMCallInput(tx)
 	if err != nil {
 		return err
@@ -94,6 +100,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error {
 	if sc.vm == nil {
 		return process.ErrNoVM
+	}
+
+	err := sc.argsParser.ParseData(tx.Data)
+	if err != nil {
+		return err
 	}
 
 	vmInput, err := sc.createVMDeployInput(tx)
@@ -122,7 +133,7 @@ func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction) (*vmcommon
 
 	vmCallInput := &vmcommon.ContractCallInput{}
 	vmCallInput.VMInput = *vmInput
-	vmCallInput.Function, err = sc.argsParser.GetFunctionFromData(tx.Data)
+	vmCallInput.Function, err = sc.argsParser.GetFunction()
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +150,7 @@ func (sc *scProcessor) createVMDeployInput(tx *transaction.Transaction) (*vmcomm
 	}
 
 	vmCreateInput := &vmcommon.ContractCreateInput{}
-	vmCreateInput.ContractCode, err = sc.argsParser.GetCodeFromData(tx.Data)
+	vmCreateInput.ContractCode, err = sc.argsParser.GetCode()
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +165,7 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	vmInput := &vmcommon.VMInput{}
 
 	vmInput.CallerAddr = tx.SndAddr
-	vmInput.Arguments, err = sc.argsParser.CreateArguments(tx.Data)
+	vmInput.Arguments, err = sc.argsParser.GetArguments()
 	if err != nil {
 		return nil, err
 	}
