@@ -67,9 +67,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	tx *transaction.Transaction,
 	acntSrc, acntDst state.AccountHandler,
 ) error {
-	if sc.vm == nil {
-		return process.ErrNoVM
-	}
 	if tx == nil {
 		return process.ErrNilTransaction
 	}
@@ -105,9 +102,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 // DeploySmartContract runs the VM to verify register the smart contract and saves the data into the state
 func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error {
-	if sc.vm == nil {
-		return process.ErrNoVM
-	}
 	if len(tx.RcvAddr) != 0 {
 		return process.ErrWrongTransaction
 	}
