@@ -3,7 +3,6 @@ package block_test
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -19,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	blproc "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/stretchr/testify/assert"
@@ -292,7 +292,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	bp, _ := blproc.NewShardProcessor(
-		nil,
+		&mock.ServiceContainerMock{},
 		tdp,
 		initStore(),
 		&mock.HasherMock{},
@@ -365,7 +365,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	store := initStore()
 
 	bp, _ := blproc.NewShardProcessor(
-		nil,
+		&mock.ServiceContainerMock{},
 		tdp,
 		store,
 		&mock.HasherStub{},
@@ -389,7 +389,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 	tdp := initDataPool()
 	marshalizer := &mock.MarshalizerStub{}
 	bp, _ := blproc.NewShardProcessor(
-		nil,
+		&mock.ServiceContainerMock{},
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -425,7 +425,7 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerStub{}
 	hasher := &mock.HasherStub{}
 	bp, _ := blproc.NewShardProcessor(
-		nil,
+		&mock.ServiceContainerMock{},
 		tdp,
 		initStore(),
 		hasher,

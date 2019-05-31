@@ -3,10 +3,11 @@ package block_test
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -98,6 +99,25 @@ func createGenesisMetaBlock() *block.MetaBlock {
 }
 
 //------- NewMetaProcessor
+
+func TestNewMetaProcessor_NilCoreShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mdp := initMetaDataPool()
+	be, err := blproc.NewMetaProcessor(
+		nil,
+		&mock.AccountsStub{},
+		mdp,
+		&mock.ForkDetectorMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.ChainStorerMock{},
+		func(shardID uint32, hdrHash []byte) {},
+	)
+	assert.Equal(t, process.ErrNilCore, err)
+	assert.Nil(t, be)
+}
 
 func TestNewMetaProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
