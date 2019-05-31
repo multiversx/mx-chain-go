@@ -198,7 +198,7 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint32, nonc
 
 		err := mp.requestHeadersIfMissing(sortedHdrs, i, nonce)
 		if err != nil {
-			log.Info(err.Error())
+			log.Debug(err.Error())
 			continue
 		}
 	}
