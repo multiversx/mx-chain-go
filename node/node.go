@@ -96,10 +96,10 @@ type Node struct {
 	consensusTopic string
 	consensusType  string
 
-	isRunning         bool
-	isMetachainActive bool
-	txStorageSize     uint32
-	throttleSendData  chan struct{}
+	isRunning                bool
+	isMetachainActive        bool
+	txStorageSize            uint32
+	currentSendingGoRoutines int32
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -119,8 +119,9 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
 	node := &Node{
-		ctx:               context.Background(),
-		isMetachainActive: true,
+		ctx:                      context.Background(),
+		isMetachainActive:        true,
+		currentSendingGoRoutines: 0,
 	}
 	for _, opt := range opts {
 		err := opt(node)
@@ -128,8 +129,6 @@ func NewNode(opts ...Option) (*Node, error) {
 			return nil, errors.New("error applying option: " + err.Error())
 		}
 	}
-
-	node.throttleSendData = make(chan struct{}, maxGoRoutinesSendMessage)
 
 	return node, nil
 }
