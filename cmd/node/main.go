@@ -70,7 +70,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/profile"
@@ -128,6 +127,18 @@ VERSION:
 		Usage: "Private key that the node will load on startup and will sign blocks",
 		Value: "",
 	}
+	// configurationFile defines a flag for the path to the main toml configuration file
+	configurationFile = cli.StringFlag{
+		Name:  "config",
+		Usage: "The main configuration file to load",
+		Value: "./config/config.toml",
+	}
+	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
+	p2pConfigurationFile = cli.StringFlag{
+		Name:  "p2pconfig",
+		Usage: "The configuration file for P2P",
+		Value: "./config/p2p.toml",
+	}
 	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
 	withUI = cli.BoolTFlag{
 		Name:  "with-ui",
@@ -169,11 +180,18 @@ VERSION:
 		Name:  "storage-cleanup",
 		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk",
 	}
-
-	configurationFile        = "./config/config.toml"
-	p2pConfigurationFile     = "./config/p2p.toml"
-	initialBalancesSkPemFile = "./config/initialBalancesSk.pem"
-	initialNodesSkPemFile    = "./config/initialNodesSk.pem"
+	// initialBalancesSkPemFile defines a flag for the path to the ...
+	initialBalancesSkPemFile = cli.StringFlag{
+		Name:  "initialBalancesSkPemFile",
+		Usage: "The file containing the secret keys which ...",
+		Value: "./config/initialBalancesSk.pem",
+	}
+	// initialNodesSkPemFile defines a flag for the path to the ...
+	initialNodesSkPemFile = cli.StringFlag{
+		Name:  "initialNodesSkPemFile",
+		Usage: "The file containing the secret keys which ...",
+		Value: "./config/initialNodesSk.pem",
+	}
 
 	//TODO remove uniqueID
 	uniqueID = ""
@@ -247,7 +265,9 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, nodesFile, port, txSignSk, sk, profileMode, txSignSkIndex, skIndex, numOfNodes, storageCleanup}
+	app.Flags = []cli.Flag{
+		genesisFile, nodesFile, port, configurationFile, p2pConfigurationFile, txSignSk, sk, profileMode,
+		txSignSkIndex, skIndex, numOfNodes, storageCleanup, initialBalancesSkPemFile, initialNodesSkPemFile}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -304,17 +324,19 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	generalConfig, err := loadMainConfig(configurationFile, log)
+	configurationFileName := ctx.GlobalString(configurationFile.Name)
+	generalConfig, err := loadMainConfig(configurationFileName, log)
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFile))
+	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFileName))
 
-	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFile)
+	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
+	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFile))
+	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFileName))
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
 	}
@@ -331,8 +353,10 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with nodes config from: %s", ctx.GlobalString(nodesFile.Name)))
 
-	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
+	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, time.Hour, nil)
 	go syncer.StartSync()
+
+	log.Info(fmt.Sprintf("NTP average clock offset: %s", syncer.ClockOffset()))
 
 	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
 	if nodesConfig.StartTime == 0 {
@@ -342,6 +366,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 
 	startTime := time.Unix(nodesConfig.StartTime, 0)
+
+	log.Info(fmt.Sprintf("Start time formatted: %s", startTime.Format("Mon Jan 2 15:04:05 MST 2006")))
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
 
 	suite, err := getSuite(generalConfig)
@@ -349,12 +375,13 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
+	initialNodesSkPemFileName := ctx.GlobalString(initialNodesSkPemFile.Name)
 	keyGen, privKey, pubKey, err := getSigningParams(
 		ctx,
 		log,
 		sk.Name,
 		skIndex.Name,
-		initialNodesSkPemFile,
+		initialNodesSkPemFileName,
 		suite)
 	if err != nil {
 		return err
@@ -699,12 +726,13 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	initialBalancesSkPemFileName := ctx.GlobalString(initialBalancesSkPemFile.Name)
 	txSignKeyGen, txSignPrivKey, txSignPubKey, err := getSigningParams(
 		ctx,
 		log,
 		txSignSk.Name,
 		txSignSkIndex.Name,
-		initialBalancesSkPemFile,
+		initialBalancesSkPemFileName,
 		kyber.NewBlakeSHA256Ed25519())
 
 	if err != nil {
@@ -780,6 +808,18 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	shardsGenesisBlocks, err := generateGenesisHeadersForInit(
+		nodesConfig,
+		genesisConfig,
+		shardCoordinator,
+		addressConverter,
+		hasher,
+		marshalizer,
+	)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	blockProcessor, err := block.NewShardProcessor(
 		datapool,
 		store,
@@ -793,9 +833,18 @@ func createShardNode(
 		createTxRequestHandler(resolversFinder, factory.TransactionTopic, log),
 		createRequestHandler(resolversFinder, factory.MiniBlocksTopic, log),
 	)
-
 	if err != nil {
 		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
+	}
+
+	err = blockProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks, nodesConfig.MetaChainActive)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = blockProcessor.SetOnRequestHeaderHandlerByNonce(createMetaHeaderByNonceRequestHandler(resolversFinder, factory.MetachainBlocksTopic, log))
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	nd, err := node.NewNode(
@@ -986,12 +1035,13 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
+	initialBalancesSkPemFileName := ctx.GlobalString(initialBalancesSkPemFile.Name)
 	_, txSignPrivKey, txSignPubKey, err := getSigningParams(
 		ctx,
 		log,
 		txSignSk.Name,
 		txSignSkIndex.Name,
-		initialBalancesSkPemFile,
+		initialBalancesSkPemFileName,
 		kyber.NewBlakeSHA256Ed25519())
 
 	if err != nil {
@@ -1068,7 +1118,7 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
-	shardsGenesisBlocks, err := generateGenesisHeadersForMetachainInit(
+	shardsGenesisBlocks, err := generateGenesisHeadersForInit(
 		nodesConfig,
 		genesisConfig,
 		shardCoordinator,
@@ -1094,7 +1144,12 @@ func createMetaNode(
 		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
-	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks)
+	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks, nodesConfig.MetaChainActive)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = metaProcessor.SetOnRequestHeaderHandlerByNonce(createShardHeaderByNonceRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1198,6 +1253,50 @@ func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTop
 		}
 
 		err = resolver.RequestDataFromHash(txHash)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
+}
+
+func createShardHeaderByNonceRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
+	return func(destShardID uint32, nonce uint64) {
+		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
+		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		headerResolver, ok := resolver.(*resolvers.ShardHeaderResolver)
+		if !ok {
+			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		err = headerResolver.RequestDataFromNonce(nonce)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
+}
+
+func createMetaHeaderByNonceRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
+	return func(destShardID uint32, nonce uint64) {
+		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
+		resolver, err := resolversFinder.MetaChainResolver(baseTopic)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		headerResolver, ok := resolver.(*resolvers.HeaderResolver)
+		if !ok {
+			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
+			return
+		}
+
+		err = headerResolver.RequestDataFromNonce(nonce)
 		if err != nil {
 			log.Debug(err.Error())
 		}
@@ -1736,7 +1835,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func generateGenesisHeadersForMetachainInit(
+func generateGenesisHeadersForInit(
 	nodesSetup *sharding.NodesSetup,
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
@@ -1788,6 +1887,15 @@ func generateGenesisHeadersForMetachainInit(
 		}
 
 		shardsGenesisBlocks[shardId] = genesisBlock
+	}
+
+	if nodesSetup.IsMetaChainActive() {
+		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesPubKeys())
+		if err != nil {
+			return nil, err
+		}
+
+		shardsGenesisBlocks[sharding.MetachainShardId] = genesisBlock
 	}
 
 	return shardsGenesisBlocks, nil

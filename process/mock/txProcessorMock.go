@@ -8,7 +8,7 @@ import (
 )
 
 type TxProcessorMock struct {
-	ProcessTransactionCalled func(transaction *transaction.Transaction, round int32) error
+	ProcessTransactionCalled func(transaction *transaction.Transaction, round uint32) error
 	SetBalancesToTrieCalled  func(accBalance map[string]*big.Int) (rootHash []byte, err error)
 }
 
@@ -20,7 +20,7 @@ func (etm *TxProcessorMock) SetSCHandler(func(accountsAdapter state.AccountsAdap
 	panic("implement me")
 }
 
-func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transaction, round int32) error {
+func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transaction, round uint32) error {
 	return etm.ProcessTransactionCalled(transaction, round)
 }
 

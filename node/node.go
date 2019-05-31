@@ -322,16 +322,7 @@ func (n *Node) CreateShardGenesisBlock() error {
 
 // CreateMetaGenesisBlock creates the meta genesis block
 func (n *Node) CreateMetaGenesisBlock() error {
-	//TODO create the right metachain genesis block here
-	rootHash := []byte("root hash")
-	header := &block.MetaBlock{
-		RootHash:     rootHash,
-		PrevHash:     rootHash,
-		RandSeed:     rootHash,
-		PrevRandSeed: rootHash,
-	}
-	header.SetTimeStamp(uint64(n.genesisTime.Unix()))
-
+	header, err := genesis.CreateMetaGenesisBlock(uint64(n.genesisTime.Unix()), n.initialNodesPubkeys)
 	marshalizedHeader, err := n.marshalizer.Marshal(header)
 	if err != nil {
 		return err
