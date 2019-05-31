@@ -52,7 +52,7 @@ func TestGetOKAfterPutWithTimeout(t *testing.T) {
 
 	err := ldb.Put(key, val)
 	assert.Nil(t, err)
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 3)
 
 	v, err := ldb.Get(key)
 	assert.Nil(t, err)
