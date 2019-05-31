@@ -2,7 +2,10 @@ package badgerdb
 
 import (
 	"os"
+	"sync"
+	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/options"
@@ -11,10 +14,18 @@ import (
 // read + write + execute for owner only
 const rwxOwner = 0700
 
+var log = logger.DefaultLogger()
+
 // DB holds a pointer to the badger database and the path to where it is stored.
 type DB struct {
-	db   *badger.DB
-	path string
+	db                *badger.DB
+	path              string
+	maxBatchSize      int
+	batchDelaySeconds int
+	sizeBatch         int
+	batch             storage.Batcher
+	mutBatch          sync.RWMutex
+	dbClosed          chan struct{}
 }
 
 // NewDB is a constructor for the badger persister
@@ -36,38 +47,82 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err err
 	}
 
 	dbStore := &DB{
-		db:   db,
-		path: path,
+		db:                db,
+		path:              path,
+		maxBatchSize:      maxBatchSize,
+		batchDelaySeconds: batchDelaySeconds,
+		sizeBatch:         0,
+		dbClosed:          make(chan struct{}),
 	}
+
+	dbStore.batch = dbStore.createBatch()
+
+	go dbStore.batchTimeoutHandle()
 
 	return dbStore, nil
 }
 
+func (s *DB) batchTimeoutHandle() {
+	for {
+		select {
+		case <-time.After(time.Duration(s.batchDelaySeconds) * time.Second):
+			s.mutBatch.Lock()
+			err := s.putBatch(s.batch)
+			if err != nil {
+				log.Error(err.Error())
+				s.mutBatch.Unlock()
+				continue
+			}
+
+			s.batch.Reset()
+			s.sizeBatch = 0
+			s.mutBatch.Unlock()
+		case <-s.dbClosed:
+			return
+		}
+	}
+}
+
 // Put adds the value to the (key, val) storage medium
 func (s *DB) Put(key, val []byte) error {
-	err := s.db.Update(func(txn *badger.Txn) error {
-		err := txn.Set(key, val)
+	err := s.batch.Put(key, val)
+	if err != nil {
 		return err
-	})
+	}
+
+	s.mutBatch.Lock()
+	defer s.mutBatch.Unlock()
+
+	s.sizeBatch++
+	if s.sizeBatch < s.maxBatchSize {
+		return nil
+	}
+
+	err = s.putBatch(s.batch)
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+
+	s.batch.Reset()
+	s.sizeBatch = 0
 
 	return err
 }
 
 // CreateBatch returns a batcher to be used for batch writing data to the database
 func (s *DB) createBatch() storage.Batcher {
-	return NewBatch()
+	return NewBatch(s)
 }
 
 // PutBatch writes the Batch data into the database
 func (s *DB) putBatch(b storage.Batcher) error {
-	batch, ok := b.(*Batch)
+	batch, ok := b.(*batch)
 	if !ok {
 		return storage.ErrInvalidBatch
 	}
-	batch.mutBatchWrite.Lock()
-	defer batch.mutBatchWrite.Unlock()
 
-	return batch.batch.Flush()
+	return batch.batch.Commit()
 }
 
 // Get returns the value associated to the key
@@ -117,11 +172,18 @@ func (s *DB) Init() error {
 
 // Close closes the files/resources associated to the storage medium
 func (s *DB) Close() error {
+	s.putBatch(s.batch)
+	s.dbClosed <- struct{}{}
+
 	return s.db.Close()
 }
 
 // Remove removes the data associated to the given key
 func (s *DB) Remove(key []byte) error {
+	s.mutBatch.Lock()
+	_ = s.batch.Delete(key)
+	s.mutBatch.Unlock()
+
 	return s.db.Update(func(txn *badger.Txn) error {
 		return txn.Delete(key)
 	})
@@ -130,6 +192,7 @@ func (s *DB) Remove(key []byte) error {
 // Destroy removes the storage medium stored data
 func (s *DB) Destroy() error {
 	s.db.Close()
+	s.dbClosed <- struct{}{}
 	err := os.RemoveAll(s.path)
 	return err
 }

@@ -627,8 +627,10 @@ func TestNewStorageUnit_FromConfWrongCacheConfig(t *testing.T) {
 		Size: 10,
 		Type: "NotLRU",
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.LvlDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.LvlDB,
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -659,8 +661,10 @@ func TestNewStorageUnit_FromConfLvlDBOk(t *testing.T) {
 		Size: 10,
 		Type: storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.LvlDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.LvlDB,
+		MaxBatchSize:      1,
+		BatchDelaySeconds: 1,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -677,8 +681,10 @@ func TestNewStorageUnit_FromConfBoltDBOk(t *testing.T) {
 		Size: 10,
 		Type: storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.BoltDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.BoltDB,
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -695,8 +701,10 @@ func TestNewStorageUnit_FromConfBadgerDBOk(t *testing.T) {
 		Size: 10,
 		Type: storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.BadgerDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.BadgerDB,
+		MaxBatchSize:      1,
+		BatchDelaySeconds: 1,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -713,8 +721,10 @@ func TestNewStorageUnit_WithBlankBloomFilterShouldWorkLvlDB(t *testing.T) {
 		Size: 10,
 		Type: storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.LvlDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.LvlDB,
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
 	}, storageUnit.BloomConfig{})
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -729,8 +739,10 @@ func TestNewStorageUnit_WithBlankBloomFilterShouldWorkBoltDB(t *testing.T) {
 		Size: 10,
 		Type: storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.BoltDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.BoltDB,
+		MaxBatchSize:      1,
+		BatchDelaySeconds: 1,
 	}, storageUnit.BloomConfig{})
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -745,8 +757,10 @@ func TestNewStorageUnit_WithBlankBloomFilterShouldWorkBadgerDB(t *testing.T) {
 		Size: 10,
 		Type: storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.BadgerDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.BadgerDB,
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
 	}, storageUnit.BloomConfig{})
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -761,8 +775,10 @@ func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterLvlDB(t *tes
 		Size: 10,
 		Type: storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.LvlDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.LvlDB,
+		MaxBatchSize:      1,
+		BatchDelaySeconds: 1,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -780,8 +796,10 @@ func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterBoltDB(t *te
 		Size: 10,
 		Type: storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.BoltDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.BoltDB,
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -799,8 +817,10 @@ func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterBadgerDB(t *
 		Size: 10,
 		Type: storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.BadgerDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.BadgerDB,
+		MaxBatchSize:      1,
+		BatchDelaySeconds: 1,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -818,8 +838,10 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterLvlDBShouldErr(t *testing.T)
 		Size: 10,
 		Type: storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.LvlDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.LvlDB,
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
@@ -834,8 +856,10 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterBoltDBShouldErr(t *testing.T
 		Size: 10,
 		Type: storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.BoltDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.BoltDB,
+		MaxBatchSize:      1,
+		BatchDelaySeconds: 1,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
@@ -850,8 +874,10 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterBadgerDBShouldErr(t *testing
 		Size: 10,
 		Type: storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
-		FilePath: "Blocks",
-		Type:     storageUnit.BadgerDB,
+		FilePath:          "Blocks",
+		Type:              storageUnit.BadgerDB,
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
@@ -872,7 +898,7 @@ func initSUWithNilBloomFilter(cSize int) *storageUnit.Unit {
 		fmt.Println(err)
 	}
 
-	ldb, err1 := leveldb.NewDB(dir + "/levelDB", 10, 10)
+	ldb, err1 := leveldb.NewDB(dir+"/levelDB", 10, 10)
 	cache, err2 := lrucache.NewCache(cSize)
 
 	if err1 != nil {
@@ -898,7 +924,7 @@ func initSUWithBloomFilter(cSize int, bfSize uint) *storageUnit.Unit {
 		fmt.Println(err)
 	}
 
-	ldb, err1 := leveldb.NewDB(dir + "/levelDB", 10, 10)
+	ldb, err1 := leveldb.NewDB(dir+"/levelDB", 10, 10)
 	cache, err2 := lrucache.NewCache(cSize)
 	bf, err3 := bloom.NewFilter(bfSize, []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}})
 

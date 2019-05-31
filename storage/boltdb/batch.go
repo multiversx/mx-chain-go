@@ -4,18 +4,17 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-type Batch struct {
+type batch struct {
 	db *DB
-	ch chan error
 }
 
-func NewBatch(db *DB) *Batch {
-	return &Batch{
+func NewBatch(db *DB) *batch {
+	return &batch{
 		db: db,
 	}
 }
 
-func (b *Batch) Put(key []byte, val []byte) error {
+func (b *batch) Put(key []byte, val []byte) error {
 	err := b.db.db.Batch(func(tx *bolt.Tx) error {
 		return tx.Bucket([]byte(b.db.parentFolder)).Put(key, val)
 	})
@@ -23,7 +22,7 @@ func (b *Batch) Put(key []byte, val []byte) error {
 	return err
 }
 
-func (b *Batch) Delete(key []byte) error {
+func (b *batch) Delete(key []byte) error {
 	err := b.db.db.Batch(func(tx *bolt.Tx) error {
 		return tx.Bucket([]byte(b.db.parentFolder)).Delete(key)
 	})
@@ -31,14 +30,6 @@ func (b *Batch) Delete(key []byte) error {
 	return err
 }
 
-func (b *Batch) Reset() {
-	_ = b.db.db.Batch(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(b.db.parentFolder))
-
-		err := bucket.ForEach(func(k, v []byte) error {
-			return bucket.Delete(k)
-		})
-
-		return err
-	})
+func (b *batch) Reset() {
+	// nothing to do
 }

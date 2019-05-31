@@ -3,21 +3,22 @@ package badgerdb_test
 import (
 	"io/ioutil"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/badgerdb"
 	"github.com/stretchr/testify/assert"
 )
 
-func createBadgerDb(t *testing.T) (p *badgerdb.DB) {
+func createBadgerDb(t *testing.T, batchDelaySeconds int, maxBatchSize int) (p *badgerdb.DB) {
 	dir, err := ioutil.TempDir("", "leveldb_temp")
-	bDB, err := badgerdb.NewDB(dir, 10, 1)
+	bDB, err := badgerdb.NewDB(dir, batchDelaySeconds, maxBatchSize)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
 	return bDB
 }
 
 func TestInitNoError(t *testing.T) {
-	ldb := createBadgerDb(t)
+	ldb := createBadgerDb(t, 10, 1)
 
 	err := ldb.Init()
 
@@ -26,16 +27,73 @@ func TestInitNoError(t *testing.T) {
 
 func TestPutNoError(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
-	ldb := createBadgerDb(t)
+	ldb := createBadgerDb(t, 10, 1)
 
 	err := ldb.Put(key, val)
 
 	assert.Nil(t, err, "error saving in db")
 }
 
+func TestGetErrorAfterPutBeforeTimeout(t *testing.T) {
+	key, val := []byte("key"), []byte("value")
+	ldb := createBadgerDb(t, 1, 100)
+
+	err := ldb.Put(key, val)
+	assert.Nil(t, err)
+	v, err := ldb.Get(key)
+	assert.Nil(t, v)
+
+	assert.Contains(t, err.Error(), "Key not found")
+}
+
+func TestGetOKAfterPutWithTimeout(t *testing.T) {
+	key, val := []byte("key"), []byte("value")
+	ldb := createBadgerDb(t, 1, 100)
+
+	err := ldb.Put(key, val)
+	assert.Nil(t, err)
+	time.Sleep(time.Second * 2)
+
+	v, err := ldb.Get(key)
+	assert.Nil(t, err)
+	assert.Equal(t, val, v)
+}
+
+func TestRemoveBeforeTimeoutOK(t *testing.T) {
+	key, val := []byte("key"), []byte("value")
+	ldb := createBadgerDb(t, 1, 100)
+
+	err := ldb.Put(key, val)
+	assert.Nil(t, err)
+
+	_ = ldb.Remove(key)
+	time.Sleep(time.Second * 2)
+
+	v, err := ldb.Get(key)
+	assert.Nil(t, v)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Key not found")
+}
+
+func TestRemoveAfterTimeoutOK(t *testing.T) {
+	key, val := []byte("key"), []byte("value")
+	ldb := createBadgerDb(t, 1, 100)
+
+	err := ldb.Put(key, val)
+	assert.Nil(t, err)
+	time.Sleep(time.Second * 2)
+
+	_ = ldb.Remove(key)
+
+	v, err := ldb.Get(key)
+	assert.Nil(t, v)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Key not found")
+}
+
 func TestGetPresent(t *testing.T) {
 	key, val := []byte("key1"), []byte("value1")
-	ldb := createBadgerDb(t)
+	ldb := createBadgerDb(t, 10, 1)
 
 	err := ldb.Put(key, val)
 
@@ -49,7 +107,7 @@ func TestGetPresent(t *testing.T) {
 
 func TestGetNotPresent(t *testing.T) {
 	key := []byte("key2")
-	ldb := createBadgerDb(t)
+	ldb := createBadgerDb(t, 10, 1)
 
 	v, err := ldb.Get(key)
 
@@ -58,7 +116,7 @@ func TestGetNotPresent(t *testing.T) {
 
 func TestHasPresent(t *testing.T) {
 	key, val := []byte("key3"), []byte("value3")
-	ldb := createBadgerDb(t)
+	ldb := createBadgerDb(t, 10, 1)
 
 	err := ldb.Put(key, val)
 
@@ -71,7 +129,7 @@ func TestHasPresent(t *testing.T) {
 
 func TestHasNotPresent(t *testing.T) {
 	key := []byte("key4")
-	ldb := createBadgerDb(t)
+	ldb := createBadgerDb(t, 10, 1)
 
 	err := ldb.Has(key)
 
@@ -81,7 +139,7 @@ func TestHasNotPresent(t *testing.T) {
 
 func TestRemovePresent(t *testing.T) {
 	key, val := []byte("key5"), []byte("value5")
-	ldb := createBadgerDb(t)
+	ldb := createBadgerDb(t, 10, 1)
 
 	err := ldb.Put(key, val)
 
@@ -99,7 +157,7 @@ func TestRemovePresent(t *testing.T) {
 
 func TestRemoveNotPresent(t *testing.T) {
 	key := []byte("key6")
-	ldb := createBadgerDb(t)
+	ldb := createBadgerDb(t, 10, 1)
 
 	err := ldb.Remove(key)
 
@@ -107,7 +165,7 @@ func TestRemoveNotPresent(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	ldb := createBadgerDb(t)
+	ldb := createBadgerDb(t, 10, 1)
 
 	err := ldb.Close()
 
@@ -115,7 +173,7 @@ func TestClose(t *testing.T) {
 }
 
 func TestDestroy(t *testing.T) {
-	ldb := createBadgerDb(t)
+	ldb := createBadgerDb(t, 10, 1)
 
 	err := ldb.Destroy()
 

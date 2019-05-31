@@ -56,7 +56,7 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err err
 		dbClosed:          make(chan struct{}),
 	}
 
-	dbStore.batch = s.createBatch()
+	dbStore.batch = dbStore.createBatch()
 
 	go dbStore.batchTimeoutHandle()
 
@@ -74,6 +74,7 @@ func (s *DB) batchTimeoutHandle() {
 				s.mutBatch.Unlock()
 				continue
 			}
+
 			s.batch.Reset()
 			s.sizeBatch = 0
 			s.mutBatch.Unlock()
@@ -112,11 +113,6 @@ func (s *DB) Put(key, val []byte) error {
 
 // Get returns the value associated to the key
 func (s *DB) Get(key []byte) ([]byte, error) {
-	has, err := s.db.Has(key, nil)
-	if err != nil || !has {
-		return nil, storage.ErrKeyNotFound
-	}
-
 	data, err := s.db.Get(key, nil)
 	if err == leveldb.ErrNotFound {
 		return nil, storage.ErrKeyNotFound
@@ -152,31 +148,40 @@ func (s *DB) createBatch() storage.Batcher {
 
 // PutBatch writes the Batch data into the database
 func (s *DB) putBatch(b storage.Batcher) error {
-	batch, ok := b.(*Batch)
+	batch, ok := b.(*batch)
 	if !ok {
 		return storage.ErrInvalidBatch
 	}
 
-	return s.db.Write(batch.batch, nil)
+	wopt := &opt.WriteOptions{
+		Sync: true,
+	}
+
+	return s.db.Write(batch.batch, wopt)
 }
 
 // Close closes the files/resources associated to the storage medium
 func (s *DB) Close() error {
+	s.putBatch(s.batch)
 	s.dbClosed <- struct{}{}
+
 	return s.db.Close()
 }
 
 // Remove removes the data associated to the given key
 func (s *DB) Remove(key []byte) error {
+	s.mutBatch.Lock()
 	_ = s.batch.Delete(key)
-
+	s.mutBatch.Unlock()
 	return s.db.Delete(key, nil)
 }
 
 // Destroy removes the storage medium stored data
 func (s *DB) Destroy() error {
+	s.batch.Reset()
 	s.dbClosed <- struct{}{}
 	_ = s.db.Close()
 	err := os.RemoveAll(s.path)
+
 	return err
 }

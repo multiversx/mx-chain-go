@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 // DB represents the memory database storage. It holds a map of key value pairs
@@ -30,29 +28,6 @@ func (s *DB) Put(key, val []byte) error {
 	defer s.mutx.Unlock()
 
 	s.db[string(key)] = val
-
-	return nil
-}
-
-// CreateBatch returns a batcher to be used for batch writing data to the database
-func (s *DB) CreateBatch() storage.Batcher {
-	return NewBatch()
-}
-
-// PutBatch writes the Batch data into the database
-func (s *DB) PutBatch(b storage.Batcher) error {
-	batch, ok := b.(*Batch)
-	if !ok {
-		return storage.ErrInvalidBatch
-	}
-
-	batch.mutx.RLock()
-	for k, v := range batch.batch {
-		s.Put([]byte(k), v)
-	}
-
-	batch.mutx.RUnlock()
-	b.Reset()
 
 	return nil
 }
