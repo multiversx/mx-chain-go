@@ -187,10 +187,12 @@ func (a *MetaAccount) SetNonceWithJournal(nonce uint64) error {
 	return a.accountTracker.SaveAccount(a)
 }
 
+//SetNonce saves the nonce to the account
 func (a *MetaAccount) SetNonce(nonce uint64) {
 	a.Nonce = nonce
 }
 
+// GetNonce gets the nonce of the account
 func (a *MetaAccount) GetNonce() uint64 {
 	return a.Nonce
 }

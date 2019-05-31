@@ -8,6 +8,7 @@ import (
 type AccountWrapMock struct {
 	MockValue         int
 	dataTrie          trie.PatriciaMerkelTree
+	nonce             uint64
 	code              []byte
 	codeHash          []byte
 	rootHash          []byte
@@ -15,6 +16,7 @@ type AccountWrapMock struct {
 	tracker           state.AccountTracker
 	trackableDataTrie state.DataTrieTracker
 
+	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
 	SetRootHashWithJournalCalled func([]byte) error          `json:"-"`
 }
@@ -85,4 +87,19 @@ func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 
 func (awm *AccountWrapMock) SetDataTrieTracker(tracker state.DataTrieTracker) {
 	awm.trackableDataTrie = tracker
+}
+
+// SetNonceWithJournal sets the account's nonce, saving the old nonce before changing
+func (awm *AccountWrapMock) SetNonceWithJournal(nonce uint64) error {
+	return awm.SetNonceWithJournalCalled(nonce)
+}
+
+//SetNonce saves the nonce to the account
+func (awm *AccountWrapMock) SetNonce(nonce uint64) {
+	awm.nonce = nonce
+}
+
+// GetNonce gets the nonce of the account
+func (awm *AccountWrapMock) GetNonce() uint64 {
+	return awm.nonce
 }
