@@ -132,14 +132,59 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
+	err = sc.moveBalances(acntSnd, acntDst, tx.Value)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			errToLog := sc.moveBalances(acntDst, acntSnd, tx.Value)
+			log.Debug(errToLog.Error())
+		}
+	}()
+
 	vmOutput, err := sc.vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		return err
 	}
 
-	err = sc.processVMOutput(vmOutput, acntSnd, tx.GasLimit)
+	err = sc.processVMOutput(vmOutput, tx, acntSnd, acntDst)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (sc *scProcessor) moveBalances(acntSnd, acntDst state.AccountHandler, value *big.Int) error {
+	operation1 := big.NewInt(0)
+	operation2 := big.NewInt(0)
+
+	// is sender address in node shard
+	if acntSnd != nil {
+		stAcc, ok := acntSnd.(*state.Account)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		err := stAcc.SetBalanceWithJournal(operation1.Sub(stAcc.Balance, value))
+		if err != nil {
+			return err
+		}
+	}
+
+	// is receiver address in node shard
+	if acntDst != nil {
+		stAcc, ok := acntDst.(*state.Account)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		err := stAcc.SetBalanceWithJournal(operation2.Add(stAcc.Balance, value))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -169,7 +214,7 @@ func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd,
 		return err
 	}
 
-	err = sc.processVMOutput(vmOutput, acntSnd, tx.GasLimit)
+	err = sc.processVMOutput(vmOutput, tx, acntSnd, acntDst)
 	if err != nil {
 		return err
 	}
@@ -240,18 +285,18 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	return vmInput, nil
 }
 
-func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, acntSnd state.AccountHandler, gasLimit uint64) error {
+func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler) error {
 	err := sc.saveSCOutputToCurrentState(vmOutput)
 	if err != nil {
 		return err
 	}
 
-	err = sc.refundGasToSender(vmOutput.GasRefund, gasLimit, acntSnd)
+	err = sc.refundGasToSender(vmOutput.GasRefund, tx, acntSnd)
 	if err != nil {
 		return err
 	}
 
-	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts)
+	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts, acntDst)
 	if err != nil {
 		return err
 	}
@@ -275,14 +320,16 @@ func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, acntSnd stat
 }
 
 // give back the user the unused gas money
-func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, gasLimit uint64, acntSnd state.AccountHandler) error {
-	zero := big.NewInt(0)
-	if gasRefund == nil || gasRefund.Cmp(zero) <= 0 {
+func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, tx *transaction.Transaction, acntSnd state.AccountHandler) error {
+	txPaidFee := big.NewInt(0)
+	txPaidFee = txPaidFee.Mul(big.NewInt(int64(tx.GasPrice)), big.NewInt(int64(tx.GasLimit)))
+	if gasRefund == nil || gasRefund.Cmp(txPaidFee) <= 0 {
 		return nil
 	}
 
 	if acntSnd == nil || !acntSnd.IsInterfaceNil() {
 		//TODO: sharded smart contract processing
+		//TODO: create cross shard transaction here...
 		return nil
 	}
 
@@ -293,7 +340,7 @@ func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, gasLimit uint64, ac
 	}
 
 	refundErd := big.NewInt(0)
-	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(gasLimit)))
+	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GasLimit)))
 
 	operation := big.NewInt(0)
 	err := stAcc.SetBalanceWithJournal(operation.Add(stAcc.Balance, refundErd))
@@ -305,7 +352,7 @@ func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, gasLimit uint64, ac
 }
 
 // save account changes in state from vmOutput
-func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount) error {
+func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, acntDst state.AccountHandler) error {
 	for i := 0; i < len(outputAccounts); i++ {
 		outAcc := outputAccounts[i]
 		acc, err := sc.getAccountFromAddress(outAcc.Address)
@@ -315,6 +362,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 
 		if acc == nil || !acc.IsInterfaceNil() {
 			//TODO: sharded smart contract processing
+			//TODO: create cross shard transaction here...
 			continue
 		}
 
@@ -340,7 +388,9 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			return process.ErrWrongTypeAssertion
 		}
 
-		err = stAcc.SetBalanceWithJournal(outAcc.Balance)
+		difference := big.NewInt(0)
+		difference = difference.Sub(stAcc.Balance, outAcc.Balance)
+		err = sc.moveBalances(acntDst, stAcc, difference)
 		if err != nil {
 			return nil
 		}
@@ -362,6 +412,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 			continue
 		}
 
+		//TODO: protect this
 		err = sc.accounts.RemoveAccount(acc.AddressContainer())
 		if err != nil {
 			return err
@@ -371,7 +422,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 }
 
 func (sc *scProcessor) processTouchedAccounts(touchedAccounts [][]byte) error {
-
+	//TODO: implement
 	return nil
 }
 
@@ -429,18 +480,18 @@ func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput) err
 
 // saves return data into account state
 func (sc *scProcessor) saveReturnData(returnData []*big.Int) error {
-
+	//TODO: implement
 	return nil
 }
 
 // saves smart contract return code into account state
 func (sc *scProcessor) saveReturnCode(returnCode vmcommon.ReturnCode) error {
-
+	//TODO: implement
 	return nil
 }
 
 // save vm output logs into accounts
 func (sc *scProcessor) saveLogsIntoState(logs []*vmcommon.LogEntry) error {
-
+	//TODO: implement
 	return nil
 }
