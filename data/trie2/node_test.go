@@ -3,8 +3,9 @@ package trie2
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
 	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,7 +49,7 @@ func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 	encChildren := make([][]byte, nrOfChildren)
 	encChildren[1] = []byte("dog")
 	encChildren[10] = []byte("doge")
-	bn := newEmptyBranchNode()
+	bn := newBranchNode()
 	bn.EncodedChildren = encChildren
 
 	encNode, _ := marsh.Marshal(bn)
@@ -90,7 +91,7 @@ func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
 
 func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	_, collapsedBn := getBnAndCollapsedBn()
 	encNode, _ := marsh.Marshal(collapsedBn)
@@ -106,7 +107,7 @@ func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 
 func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	_, collapsedEn := getEnAndCollapsedEn()
 	encNode, _ := marsh.Marshal(collapsedEn)
@@ -122,7 +123,7 @@ func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 
 func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	ln := getLn()
 	encNode, _ := marsh.Marshal(ln)
@@ -138,7 +139,7 @@ func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 
 func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	bn, collapsedBn := getBnAndCollapsedBn()
 	bn.commit(0, db, marsh, hasher)
@@ -157,7 +158,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 
 func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	en, collapsedEn := getEnAndCollapsedEn()
 	en.commit(0, db, marsh, hasher)
@@ -176,7 +177,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 
 func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	ln := getLn()
 	ln.commit(0, db, marsh, hasher)
@@ -194,7 +195,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 
 func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	bn, collapsedBn := getBnAndCollapsedBn()
 
@@ -207,7 +208,7 @@ func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 
 func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	en, collapsedEn := getEnAndCollapsedEn()
 
@@ -220,7 +221,7 @@ func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 
 func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	ln := getLn()
 
@@ -233,7 +234,7 @@ func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 
 func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	marsh, _ := getTestMarshAndHasher()
 	var node *extensionNode
 
@@ -379,4 +380,18 @@ func TestNode_childPosOutOfRange(t *testing.T) {
 	t.Parallel()
 	assert.True(t, childPosOutOfRange(17))
 	assert.False(t, childPosOutOfRange(5))
+}
+
+func TestMarshalingAndUnmarshalingWithCapnp(t *testing.T) {
+	_, collapsedBn := getBnAndCollapsedBn()
+	marsh := marshal.CapnpMarshalizer{}
+	bn := newBranchNode()
+
+	encBn, err := marsh.Marshal(collapsedBn)
+	assert.Nil(t, err)
+	assert.NotNil(t, encBn)
+
+	err = marsh.Unmarshal(bn, encBn)
+	assert.Nil(t, err)
+	assert.Equal(t, collapsedBn, bn)
 }

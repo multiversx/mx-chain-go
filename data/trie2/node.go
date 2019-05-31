@@ -168,7 +168,7 @@ func getEmptyNodeOfType(t byte) (node, error) {
 	case leaf:
 		decNode = &leafNode{}
 	case branch:
-		decNode = newEmptyBranchNode()
+		decNode = newBranchNode()
 	default:
 		return nil, ErrInvalidNode
 	}

@@ -219,10 +219,7 @@ func (en *extensionNode) resolveCollapsed(pos byte, db DBWriteCacher, marshalize
 }
 
 func (en *extensionNode) isCollapsed() bool {
-	if en.child == nil && len(en.EncodedChild) != 0 {
-		return true
-	}
-	return false
+	return en.child == nil && len(en.EncodedChild) != 0
 }
 
 func (en *extensionNode) isPosCollapsed(pos int) bool {
@@ -295,7 +292,7 @@ func (en *extensionNode) insert(n *leafNode, db DBWriteCacher, marshalizer marsh
 		return true, newExtensionNode(en.Key, newNode), nil
 	}
 	// Otherwise branch out at the index where they differ.
-	branch := newEmptyBranchNode()
+	branch := newBranchNode()
 	oldChildPos := en.Key[keyMatchLen]
 	newChildPos := n.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {

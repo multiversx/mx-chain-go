@@ -45,7 +45,7 @@ func branchNodeGoToCapn(seg *capn.Segment, src *branchNode) capnp.BranchNodeCapn
 
 func branchNodeCapnToGo(src capnp.BranchNodeCapn, dest *branchNode) *branchNode {
 	if dest == nil {
-		dest = newEmptyBranchNode()
+		dest = newBranchNode()
 	}
 
 	for i := 0; i < nrOfChildren; i++ {
@@ -60,7 +60,7 @@ func branchNodeCapnToGo(src capnp.BranchNodeCapn, dest *branchNode) *branchNode 
 	return dest
 }
 
-func newEmptyBranchNode() *branchNode {
+func newBranchNode() *branchNode {
 	var children [nrOfChildren]node
 	EncChildren := make([][]byte, nrOfChildren)
 
@@ -177,35 +177,30 @@ func (bn *branchNode) setRootHash(marshalizer marshal.Marshalizer, hasher hashin
 }
 
 func (bn *branchNode) setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error) {
+	defer wg.Done()
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		c <- err
-		wg.Done()
 		return
 	}
 	if bn.getHash() != nil {
-		wg.Done()
 		return
 	}
 	if bn.isCollapsed() {
 		hash, err := encodeNodeAndGetHash(bn, marshalizer, hasher)
 		if err != nil {
 			c <- err
-			wg.Done()
 			return
 		}
 		bn.hash = hash
-		wg.Done()
 		return
 	}
 	hash, err := hashChildrenAndNode(bn, marshalizer, hasher)
 	if err != nil {
 		c <- err
-		wg.Done()
 		return
 	}
 	bn.hash = hash
-	wg.Done()
 	return
 }
 
@@ -317,10 +312,7 @@ func (bn *branchNode) isCollapsed() bool {
 }
 
 func (bn *branchNode) isPosCollapsed(pos int) bool {
-	if bn.children[pos] == nil && len(bn.EncodedChildren[pos]) != 0 {
-		return true
-	}
-	return false
+	return bn.children[pos] == nil && len(bn.EncodedChildren[pos]) != 0
 }
 
 func (bn *branchNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {

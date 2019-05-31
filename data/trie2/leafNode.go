@@ -101,6 +101,7 @@ func (ln *leafNode) setHashConcurrent(marshalizer marshal.Marshalizer, hasher ha
 func (ln *leafNode) setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
 	return ln.setHash(marshalizer, hasher)
 }
+
 func (ln *leafNode) hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
 	return nil
 }
@@ -185,7 +186,7 @@ func (ln *leafNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Ma
 	}
 
 	keyMatchLen := prefixLen(n.Key, ln.Key)
-	branch := newEmptyBranchNode()
+	branch := newBranchNode()
 	oldChildPos := ln.Key[keyMatchLen]
 	newChildPos := n.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
