@@ -62,6 +62,14 @@ func (a *Account) SetNonceWithJournal(nonce uint64) error {
 	return a.accountTracker.SaveAccount(a)
 }
 
+func (a *Account) SetNonce(nonce uint64) {
+	a.Nonce = nonce
+}
+
+func (a *Account) GetNonce() uint64 {
+	return a.Nonce
+}
+
 // SetBalanceWithJournal sets the account's balance, saving the old balance before changing
 func (a *Account) SetBalanceWithJournal(balance *big.Int) error {
 	entry, err := NewJournalEntryBalance(a, a.Balance)

@@ -1,15 +1,15 @@
 package smartContract
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/pkg/errors"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

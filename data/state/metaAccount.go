@@ -17,6 +17,7 @@ type MiniBlockData struct {
 // MetaAccount is the struct used in serialization/deserialization
 type MetaAccount struct {
 	Round         uint64
+	Nonce         uint64
 	TxCount       *big.Int
 	CodeHash      []byte
 	RootHash      []byte
@@ -171,6 +172,27 @@ func (a *MetaAccount) SetRootHashWithJournal(rootHash []byte) error {
 	a.RootHash = rootHash
 
 	return a.accountTracker.SaveAccount(a)
+}
+
+// SetNonceWithJournal sets the account's nonce, saving the old nonce before changing
+func (a *MetaAccount) SetNonceWithJournal(nonce uint64) error {
+	entry, err := NewJournalEntryNonce(a, a.Nonce)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.Nonce = nonce
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+func (a *MetaAccount) SetNonce(nonce uint64) {
+	a.Nonce = nonce
+}
+
+func (a *MetaAccount) GetNonce() uint64 {
+	return a.Nonce
 }
 
 // DataTrie returns the trie that holds the current account's data

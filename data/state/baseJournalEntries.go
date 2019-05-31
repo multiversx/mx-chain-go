@@ -120,3 +120,30 @@ func (bjed *BaseJournalEntryData) Revert() (AccountHandler, error) {
 func (bjed *BaseJournalEntryData) Trie() trie.PatriciaMerkelTree {
 	return bjed.trie
 }
+
+//------- JournalEntryNonce
+
+// JournalEntryNonce is used to revert a nonce change
+type JournalEntryNonce struct {
+	account  AccountHandler
+	oldNonce uint64
+}
+
+// NewJournalEntryNonce outputs a new JournalEntry implementation used to revert a nonce change
+func NewJournalEntryNonce(account AccountHandler, oldNonce uint64) (*JournalEntryNonce, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
+	}
+
+	return &JournalEntryNonce{
+		account:  account,
+		oldNonce: oldNonce,
+	}, nil
+}
+
+// Revert applies undo operation
+func (jen *JournalEntryNonce) Revert() (AccountHandler, error) {
+	jen.account.SetNonce(jen.oldNonce)
+
+	return jen.account, nil
+}
