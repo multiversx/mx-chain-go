@@ -158,10 +158,9 @@ VERSION:
 		Value: 0,
 	}
 	// gopsEn used to enable diagnosis of running go processes
-	gopsEn = cli.IntFlag{
+	gopsEn = cli.BoolFlag{
 		Name:  "gops-enable",
-		Usage: "Enables gops over the process.",
-		Value: 0,
+		Usage: "Enables gops over the process. Stack can be viewed by calling 'gops stack <pid>'",
 	}
 	// numOfNodes defines a flag that specifies the maximum number of nodes which will be used from the initialNodes
 	numOfNodes = cli.Uint64Flag{
@@ -477,7 +476,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 func enableGopsIfNeeded(ctx *cli.Context, log *logger.Logger) {
 	var gopsEnabled bool
 	if ctx.IsSet(gopsEn.Name) {
-		gopsEnabled = ctx.GlobalInt(gopsEn.Name) != 0
+		gopsEnabled = ctx.GlobalBool(gopsEn.Name)
 	}
 
 	if gopsEnabled {
