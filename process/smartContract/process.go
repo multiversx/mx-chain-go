@@ -35,15 +35,45 @@ type scProcessor struct {
 var log = logger.DefaultLogger()
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
-func NewSmartContractProcessor(vm vmcommon.VMExecutionHandler, argsParser process.ArgumentsParser) (*scProcessor, error) {
+func NewSmartContractProcessor(
+	vm vmcommon.VMExecutionHandler,
+	argsParser process.ArgumentsParser,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+	accountsDB state.AccountsAdapter,
+	adrConv state.AddressConverter,
+	coordinator sharding.Coordinator,
+) (*scProcessor, error) {
 	if vm == nil {
 		return nil, process.ErrNoVM
 	}
 	if argsParser == nil {
 		return nil, process.ErrNilArgumentParser
 	}
+	if hasher == nil {
+		return nil, process.ErrNilHasher
+	}
+	if marshalizer == nil {
+		return nil, process.ErrNilMarshalizer
+	}
+	if accountsDB == nil {
+		return nil, process.ErrNilAccountsAdapter
+	}
+	if adrConv == nil {
+		return nil, process.ErrNilAddressConverter
+	}
+	if coordinator == nil {
+		return nil, process.ErrNilShardCoordinator
+	}
 
-	return &scProcessor{vm: vm, argsParser: argsParser}, nil
+	return &scProcessor{
+		vm:               vm,
+		argsParser:       argsParser,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		accounts:         accountsDB,
+		adrConv:          adrConv,
+		shardCoordinator: coordinator}, nil
 }
 
 // ComputeTransactionType calculates the type of the transaction
