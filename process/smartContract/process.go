@@ -140,7 +140,9 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	defer func() {
 		if err != nil {
 			errToLog := sc.moveBalances(acntDst, acntSnd, tx.Value)
-			log.Debug(errToLog.Error())
+			if errToLog != nil {
+				log.Debug(errToLog.Error())
+			}
 		}
 	}()
 
