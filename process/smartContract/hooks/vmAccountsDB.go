@@ -96,7 +96,7 @@ func (vadb *VMAccountsDB) GetCode(address []byte) ([]byte, error) {
 
 	code := account.GetCode()
 	if len(code) == 0 {
-		return nil, state.ErrEmptyCode
+		return nil, ErrEmptyCode
 	}
 
 	return code, nil
