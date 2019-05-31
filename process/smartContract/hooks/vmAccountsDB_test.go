@@ -1,11 +1,12 @@
-package state_test
+package hooks_test
 
 import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract/hooks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,7 +14,7 @@ import (
 func TestNewVMAccountsDB_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	vadb, err := state.NewVMAccountsDB(nil, mock.NewAddressConverterFake(32, ""))
+	vadb, err := hooks.NewVMAccountsDB(nil, mock.NewAddressConverterFake(32, ""))
 
 	assert.Nil(t, vadb)
 	assert.Equal(t, state.ErrNilAccountsAdapter, err)
@@ -22,7 +23,7 @@ func TestNewVMAccountsDB_NilAccountsAdapterShouldErr(t *testing.T) {
 func TestNewVMAccountsDB_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	vadb, err := state.NewVMAccountsDB(&mock.AccountsStub{}, nil)
+	vadb, err := hooks.NewVMAccountsDB(mock.NewAccountsStub(), nil)
 
 	assert.Nil(t, vadb)
 	assert.Equal(t, state.ErrNilAddressConverter, err)
@@ -31,7 +32,7 @@ func TestNewVMAccountsDB_NilAddressConverterShouldErr(t *testing.T) {
 func TestNewVMAccountsDB_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	vadb, err := state.NewVMAccountsDB(&mock.AccountsStub{}, mock.NewAddressConverterFake(32, ""))
+	vadb, err := hooks.NewVMAccountsDB(mock.NewAccountsStub(), mock.NewAddressConverterFake(32, ""))
 
 	assert.NotNil(t, vadb)
 	assert.Nil(t, err)
@@ -43,7 +44,7 @@ func TestVMAccountsDB_AccountExistsErrorsShouldRetFalseAndErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
@@ -58,7 +59,7 @@ func TestVMAccountsDB_AccountExistsErrorsShouldRetFalseAndErr(t *testing.T) {
 func TestVMAccountsDB_AccountExistsDoesNotExistsRetFalseAndNil(t *testing.T) {
 	t.Parallel()
 
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
@@ -73,7 +74,7 @@ func TestVMAccountsDB_AccountExistsDoesNotExistsRetFalseAndNil(t *testing.T) {
 func TestVMAccountsDB_AccountExistsDoesExistsRetTrueAndNil(t *testing.T) {
 	t.Parallel()
 
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
 		},
@@ -90,7 +91,7 @@ func TestVMAccountsDB_AccountExistsDoesExistsRetTrueAndNil(t *testing.T) {
 func TestVMAccountsDB_GetBalanceWrongAccountTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
 		},
@@ -106,7 +107,7 @@ func TestVMAccountsDB_GetBalanceGetAccountErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
@@ -125,7 +126,7 @@ func TestVMAccountsDB_GetBalanceShouldWork(t *testing.T) {
 		Nonce:   1,
 		Balance: big.NewInt(2),
 	}
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
@@ -143,7 +144,7 @@ func TestVMAccountsDB_GetNonceGetAccountErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
@@ -162,7 +163,7 @@ func TestVMAccountsDB_GetNonceShouldWork(t *testing.T) {
 		Nonce:   1,
 		Balance: big.NewInt(2),
 	}
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
@@ -180,7 +181,7 @@ func TestVMAccountsDB_GetStorageAccountErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
@@ -200,7 +201,7 @@ func TestVMAccountsDB_GetStorageDataShouldWork(t *testing.T) {
 	accnt := mock.NewAccountWrapMock(nil, nil)
 	accnt.DataTrieTracker().SaveKeyValue(variableIdentifier, variableValue)
 
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
@@ -218,7 +219,7 @@ func TestVMAccountsDB_IsCodeEmptyAccountErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
@@ -235,7 +236,7 @@ func TestVMAccountsDB_IsCodeEmptyShouldWork(t *testing.T) {
 
 	accnt := mock.NewAccountWrapMock(nil, nil)
 
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
@@ -253,7 +254,7 @@ func TestVMAccountsDB_GetCodeAccountErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
@@ -272,7 +273,7 @@ func TestVMAccountsDB_GetCodeShouldWork(t *testing.T) {
 	accnt := mock.NewAccountWrapMock(nil, nil)
 	accnt.SetCode(code)
 
-	vadb, _ := state.NewVMAccountsDB(&mock.AccountsStub{
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},

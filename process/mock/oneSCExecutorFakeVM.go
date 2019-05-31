@@ -16,32 +16,33 @@ const getFunc = "get"
 
 var variableA = []byte("a")
 
-type VMFake struct {
+type OneSCExecutorFakeVM struct {
 	blockchainHook vmcommon.BlockchainHook
 	cryptoHook     vmcommon.CryptoHook
 }
 
-func NewVMFake(blockchainHook vmcommon.BlockchainHook, cryptoHook vmcommon.CryptoHook) (*VMFake, error) {
+func NewOneSCExecutorFakeVM(blockchainHook vmcommon.BlockchainHook, cryptoHook vmcommon.CryptoHook) (*OneSCExecutorFakeVM, error) {
 	if blockchainHook == nil || cryptoHook == nil {
 		return nil, errNilValue
 	}
 
-	vm := &VMFake{
+	vm := &OneSCExecutorFakeVM{
 		blockchainHook: blockchainHook,
 		cryptoHook:     cryptoHook,
 	}
+
 	return vm, nil
 }
 
-func (vm *VMFake) G0Create(input *vmcommon.ContractCreateInput) (*big.Int, error) {
+func (vm *OneSCExecutorFakeVM) G0Create(input *vmcommon.ContractCreateInput) (*big.Int, error) {
 	return big.NewInt(0), nil
 }
 
-func (vm *VMFake) G0Call(input *vmcommon.ContractCallInput) (*big.Int, error) {
+func (vm *OneSCExecutorFakeVM) G0Call(input *vmcommon.ContractCallInput) (*big.Int, error) {
 	return big.NewInt(0), nil
 }
 
-func (vm *VMFake) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
+func (vm *OneSCExecutorFakeVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 	//the default SC hardwired contract will be something like (written in golang):
 	//-------------------------------------
 	// var a int
@@ -75,6 +76,7 @@ func (vm *VMFake) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*
 	if err != nil {
 		return nil, err
 	}
+
 	newSCAddr, err := vm.cryptoHook.Sha256(string(input.CallerAddr) + fmt.Sprintf("%d", senderNonce))
 	if err != nil {
 		return nil, err
@@ -107,7 +109,7 @@ func (vm *VMFake) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*
 	}, nil
 }
 
-func (vm *VMFake) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+func (vm *OneSCExecutorFakeVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	//the default SC hardwired contract will be something like (written in golang):
 	//-------------------------------------
 	// var a int
@@ -142,6 +144,7 @@ func (vm *VMFake) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmco
 	if input.Arguments[0] != nil {
 		value = input.Arguments[0]
 	}
+
 	method := strings.ToLower(input.Function)
 	switch method {
 	case addFunc:
@@ -153,7 +156,7 @@ func (vm *VMFake) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmco
 	}
 }
 
-func (vm *VMFake) processAddFunc(input *vmcommon.ContractCallInput, value *big.Int) (*vmcommon.VMOutput, error) {
+func (vm *OneSCExecutorFakeVM) processAddFunc(input *vmcommon.ContractCallInput, value *big.Int) (*vmcommon.VMOutput, error) {
 	currentValueBuff, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
 	if err != nil {
 		return nil, err
@@ -166,12 +169,13 @@ func (vm *VMFake) processAddFunc(input *vmcommon.ContractCallInput, value *big.I
 	if err != nil {
 		return nil, err
 	}
+
 	destBalance, err := vm.blockchainHook.GetBalance(input.RecipientAddr)
 	if err != nil {
 		return nil, err
 	}
-	newBalance := big.NewInt(0).Add(destBalance, input.CallValue)
 
+	newBalance := big.NewInt(0).Add(destBalance, input.CallValue)
 	scOutputAccount := &vmcommon.OutputAccount{
 		Nonce:   destNonce,
 		Balance: newBalance,
@@ -198,24 +202,24 @@ func (vm *VMFake) processAddFunc(input *vmcommon.ContractCallInput, value *big.I
 	}, nil
 }
 
-func (vm *VMFake) processGetFunc(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+func (vm *OneSCExecutorFakeVM) processGetFunc(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	currentValueBuff, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
 	if err != nil {
 		return nil, err
 	}
 
 	currentValue := big.NewInt(0).SetBytes(currentValueBuff)
-
 	destNonce, err := vm.blockchainHook.GetNonce(input.RecipientAddr)
 	if err != nil {
 		return nil, err
 	}
+
 	destBalance, err := vm.blockchainHook.GetBalance(input.RecipientAddr)
 	if err != nil {
 		return nil, err
 	}
-	newBalance := big.NewInt(0).Add(destBalance, input.CallValue)
 
+	newBalance := big.NewInt(0).Add(destBalance, input.CallValue)
 	scOutputAccount := &vmcommon.OutputAccount{
 		Nonce:          destNonce,
 		Balance:        newBalance,
@@ -236,11 +240,12 @@ func (vm *VMFake) processGetFunc(input *vmcommon.ContractCallInput) (*vmcommon.V
 	}, nil
 }
 
-func (vm *VMFake) unavailableFunc(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+func (vm *OneSCExecutorFakeVM) unavailableFunc(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	destNonce, err := vm.blockchainHook.GetNonce(input.RecipientAddr)
 	if err != nil {
 		return nil, err
 	}
+
 	destBalance, err := vm.blockchainHook.GetBalance(input.RecipientAddr)
 	if err != nil {
 		return nil, err

@@ -24,7 +24,6 @@ func (acf *AddressConverterFake) CreateAddressFromPublicKeyBytes(pubKey []byte) 
 	newPubKey := make([]byte, len(pubKey))
 	copy(newPubKey, pubKey)
 
-	//check size, trimming as necessary
 	if len(newPubKey) > acf.addressLen {
 		newPubKey = newPubKey[len(newPubKey)-acf.addressLen:]
 	}
@@ -37,21 +36,17 @@ func (acf *AddressConverterFake) ConvertToHex(addressContainer state.AddressCont
 }
 
 func (acf *AddressConverterFake) CreateAddressFromHex(hexAddress string) (state.AddressContainer, error) {
-
-	//to lower
 	hexAddress = strings.ToLower(hexAddress)
 
-	//check if it has prefix, trimming as necessary
 	if strings.HasPrefix(hexAddress, strings.ToLower(acf.prefix)) {
 		hexAddress = hexAddress[len(acf.prefix):]
 	}
 
-	//check lengths
-	if len(hexAddress) != acf.addressLen*2 {
+	hexValsInByte := 2
+	if len(hexAddress) != acf.addressLen*hexValsInByte {
 		return nil, errors.New("wrong size")
 	}
 
-	//decode hex
 	buff := make([]byte, acf.addressLen)
 	_, err := hex.Decode(buff, []byte(hexAddress))
 

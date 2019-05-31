@@ -1,24 +1,28 @@
-package state
+package hooks
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+)
 
 // VMAccountsDB is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type VMAccountsDB struct {
-	accounts AccountsAdapter
-	addrConv AddressConverter
+	accounts state.AccountsAdapter
+	addrConv state.AddressConverter
 }
 
 // NewVMAccountsDB creates a new VMAccountsDB instance
 func NewVMAccountsDB(
-	accounts AccountsAdapter,
-	addrConv AddressConverter,
+	accounts state.AccountsAdapter,
+	addrConv state.AddressConverter,
 ) (*VMAccountsDB, error) {
 
 	if accounts == nil {
-		return nil, ErrNilAccountsAdapter
+		return nil, state.ErrNilAccountsAdapter
 	}
 	if addrConv == nil {
-		return nil, ErrNilAddressConverter
+		return nil, state.ErrNilAddressConverter
 	}
 
 	return &VMAccountsDB{
@@ -31,7 +35,7 @@ func NewVMAccountsDB(
 func (vadb *VMAccountsDB) AccountExists(address []byte) (bool, error) {
 	_, err := vadb.getAccountFromAddressBytes(address)
 	if err != nil {
-		if err == ErrAccNotFound {
+		if err == state.ErrAccNotFound {
 			return false, nil
 		}
 		return false, err
@@ -81,7 +85,6 @@ func (vadb *VMAccountsDB) IsCodeEmpty(address []byte) (bool, error) {
 
 	isCodeEmpty := len(account.GetCode()) == 0
 	return isCodeEmpty, nil
-
 }
 
 // GetCode retrieves the account's code
@@ -93,7 +96,7 @@ func (vadb *VMAccountsDB) GetCode(address []byte) ([]byte, error) {
 
 	code := account.GetCode()
 	if len(code) == 0 {
-		return nil, ErrEmptyCode
+		return nil, state.ErrEmptyCode
 	}
 
 	return code, nil
@@ -104,7 +107,7 @@ func (vadb *VMAccountsDB) GetBlockhash(offset *big.Int) ([]byte, error) {
 	return nil, nil
 }
 
-func (vadb *VMAccountsDB) getAccountFromAddressBytes(address []byte) (AccountHandler, error) {
+func (vadb *VMAccountsDB) getAccountFromAddressBytes(address []byte) (state.AccountHandler, error) {
 	addr, err := vadb.addrConv.CreateAddressFromPublicKeyBytes(address)
 	if err != nil {
 		return nil, err
@@ -113,15 +116,15 @@ func (vadb *VMAccountsDB) getAccountFromAddressBytes(address []byte) (AccountHan
 	return vadb.accounts.GetExistingAccount(addr)
 }
 
-func (vadb *VMAccountsDB) getShardAccountFromAddressBytes(address []byte) (*Account, error) {
+func (vadb *VMAccountsDB) getShardAccountFromAddressBytes(address []byte) (*state.Account, error) {
 	account, err := vadb.getAccountFromAddressBytes(address)
 	if err != nil {
 		return nil, err
 	}
 
-	shardAccount, ok := account.(*Account)
+	shardAccount, ok := account.(*state.Account)
 	if !ok {
-		return nil, ErrWrongTypeAssertion
+		return nil, state.ErrWrongTypeAssertion
 	}
 
 	return shardAccount, nil
