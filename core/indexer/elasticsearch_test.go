@@ -3,11 +3,10 @@ package indexer_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/indexer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/mock"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
