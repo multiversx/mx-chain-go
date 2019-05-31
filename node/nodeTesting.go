@@ -27,7 +27,7 @@ const maxGoRoutinesSendMessage = 100000
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
 // of transactions to be processed. It is mainly used for demo purposes
 func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTx uint64) error {
-	if len(n.throttleSendData) >= maxGoRoutinesSendMessage/2 {
+	if len(n.throttleSendData) >= maxGoRoutinesSendMessage {
 		return ErrSystemBusyGeneratingTransactions
 	}
 
