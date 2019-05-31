@@ -64,7 +64,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 	}
 
 	topicToSendRequest := trs.topicName + topicRequestSuffix
-	excludedTopicSendRequest := trs.topicName + topicRequestSuffix
+	excludedTopicSendRequest := trs.excludePeersFromTopic + topicRequestSuffix
 	allConnectedPeers := trs.messenger.ConnectedPeersOnTopic(topicToSendRequest)
 	excludedConnectedPeers := make([]p2p.PeerID, 0)
 
