@@ -1408,7 +1408,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 
 		miniBlockHeaders[i] = block.MiniBlockHeader{
 			Hash:            mbHash,
-			SenderShardID:   sp.shardCoordinator.SelfId(),
+			SenderShardID:   body[i].SenderShardID,
 			ReceiverShardID: body[i].ReceiverShardID,
 			TxCount:         uint32(txCount),
 		}
