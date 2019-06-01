@@ -206,3 +206,7 @@ func NewBaseProcessor(shardCord sharding.Coordinator) *baseProcessor {
 func (bp *baseProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
 	return bp.saveLastNotarizedHeader(shardId, processedHdrs)
 }
+
+func (sp *shardProcessor) CheckHeaderBodyConnection(hdr *block.Header, body block.Body) error {
+	return sp.CheckHeaderBodyConnection(hdr, body)
+}

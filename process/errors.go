@@ -312,3 +312,6 @@ var ErrNoSortedHdrsForShard = errors.New("no sorted headers in pool")
 
 // ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
 var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
+
+// ErrHeaderBodyMismatch signals that the header does not attest all data from the block
+var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header data")

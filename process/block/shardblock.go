@@ -154,6 +154,11 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
+	err = sp.checkHeaderBodyConnection(header, body)
+	if err != nil {
+		return process.ErrHeaderBodyMismatch
+	}
+
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", sp.getNrTxsWithDst(header.ShardId)))
 
 	requestedTxs := sp.requestBlockTransactions(body)
@@ -197,6 +202,43 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound())
+
+	return nil
+}
+
+// check if header has the same miniblocks as presented in body
+func (sp *shardProcessor) checkHeaderBodyConnection(hdr *block.Header, body block.Body) error {
+	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader)
+	for i := 0; i < len(hdr.MiniBlockHeaders); i++ {
+		mbHashesFromHdr[string(hdr.MiniBlockHeaders[i].Hash)] = &hdr.MiniBlockHeaders[i]
+	}
+
+	for i := 0; i < len(body); i++ {
+		miniBlock := body[i]
+
+		mbBytes, err := sp.marshalizer.Marshal(miniBlock)
+		if err != nil {
+			return err
+		}
+		mbHash := sp.hasher.Compute(string(mbBytes))
+
+		mbHdr, ok := mbHashesFromHdr[string(mbHash)]
+		if !ok {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.TxCount != uint32(len(miniBlock.TxHashes)) {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.ReceiverShardID != miniBlock.ReceiverShardID {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.SenderShardID != miniBlock.SenderShardID {
+			return process.ErrHeaderBodyMismatch
+		}
+	}
 
 	return nil
 }
