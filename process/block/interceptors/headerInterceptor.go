@@ -75,13 +75,14 @@ func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) erro
 }
 
 func (hi *HeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHeader) {
+	if !hi.hdrInterceptorBase.CheckHeaderForCurrentShard(hdrIntercepted) {
+		return
+	}
+
 	err := hi.hdrInterceptorBase.storer.Has(hdrIntercepted.Hash())
 	isHeaderInStorage := err == nil
 	if isHeaderInStorage {
 		log.Debug("intercepted block header already processed")
-		return
-	}
-	if !hi.hdrInterceptorBase.CheckHeaderForCurrentShard(hdrIntercepted) {
 		return
 	}
 

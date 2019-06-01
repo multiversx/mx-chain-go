@@ -71,6 +71,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/google/gops/agent"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
@@ -167,6 +168,11 @@ VERSION:
 		Name:  "sk-index",
 		Usage: "Private key index specifies the 0-th based index of the private key to be used from initialNodesSk.pem file.",
 		Value: 0,
+	}
+	// gopsEn used to enable diagnosis of running go processes
+	gopsEn = cli.BoolFlag{
+		Name:  "gops-enable",
+		Usage: "Enables gops over the process. Stack can be viewed by calling 'gops stack <pid>'",
 	}
 	// numOfNodes defines a flag that specifies the maximum number of nodes which will be used from the initialNodes
 	numOfNodes = cli.Uint64Flag{
@@ -266,8 +272,22 @@ func main() {
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
-		genesisFile, nodesFile, port, configurationFile, p2pConfigurationFile, txSignSk, sk, profileMode,
-		txSignSkIndex, skIndex, numOfNodes, storageCleanup, initialBalancesSkPemFile, initialNodesSkPemFile}
+		genesisFile,
+		nodesFile,
+		port,
+		configurationFile,
+		p2pConfigurationFile,
+		txSignSk,
+		sk,
+		profileMode,
+		txSignSkIndex,
+		skIndex,
+		numOfNodes,
+		storageCleanup,
+		initialBalancesSkPemFile,
+		initialNodesSkPemFile,
+		gopsEn,
+	}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -317,6 +337,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		p := profile.Start(profile.BlockProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 		defer p.Stop()
 	}
+
+	enableGopsIfNeeded(ctx, log)
 
 	log.Info("Starting node...")
 
@@ -487,6 +509,19 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func enableGopsIfNeeded(ctx *cli.Context, log *logger.Logger) {
+	var gopsEnabled bool
+	if ctx.IsSet(gopsEn.Name) {
+		gopsEnabled = ctx.GlobalBool(gopsEn.Name)
+	}
+
+	if gopsEnabled {
+		if err := agent.Listen(agent.Options{}); err != nil {
+			log.Error(err.Error())
+		}
+	}
 }
 
 func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error) {
