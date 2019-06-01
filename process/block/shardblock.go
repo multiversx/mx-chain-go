@@ -537,7 +537,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	errNotCritical = sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error()) // PMS: return err -> log.Info(errNotCritical.Error())
+		log.Debug(errNotCritical.Error()) // PMS: return err -> log.Debug(errNotCritical.Error())
 	}
 
 	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
@@ -578,8 +578,10 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body) ([]dat
 
 		buff, err := sp.marshalizer.Marshal(miniBlock)
 		if err != nil {
-			return nil, err
+			log.Debug(err.Error()) // PMS: return nil, err -> log.Debug(err.Error()) + continue
+			continue
 		}
+
 		mbHash := sp.hasher.Compute(string(buff))
 		miniBlockHashes[i] = mbHash
 	}
@@ -588,12 +590,14 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body) ([]dat
 	for _, metaBlockKey := range sp.dataPool.MetaBlocks().Keys() {
 		metaBlock, _ := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
 		if metaBlock == nil {
-			return processedMetaHdrs, process.ErrNilMetaBlockHeader
+			log.Debug(process.ErrNilMetaBlockHeader.Error()) // PMS: return processedMetaHdrs, process.ErrNilMetaBlockHeader -> log.Debug(process.ErrNilMetaBlockHeader.Error()) + continue
+			continue
 		}
 
 		hdr, ok := metaBlock.(*block.MetaBlock)
 		if !ok {
-			return processedMetaHdrs, process.ErrWrongTypeAssertion
+			log.Debug(process.ErrWrongTypeAssertion.Error()) // PMS: return processedMetaHdrs, process.ErrWrongTypeAssertion -> log.Debug(process.ErrWrongTypeAssertion.Error()) + continue
+			continue
 		}
 
 		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
@@ -656,6 +660,7 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 			log.Debug(err.Error())
 			continue
 		}
+
 		sp.dataPool.MetaBlocks().Remove(key)
 		log.Info(fmt.Sprintf("metablock with nonce %d has been processed completely and removed from pool\n",
 			hdr.GetNonce()))
@@ -753,10 +758,10 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	if err != nil {
 		return
 	}
-	if hdr.GetNonce() < lastHdr.GetNonce() {
+	if hdr.GetNonce() <= lastHdr.GetNonce() { // PMS: < -> <=
 		return
 	}
-	if hdr.GetRound() < lastHdr.GetRound() {
+	if hdr.GetRound() <= lastHdr.GetRound() { // PMS: < -> <=
 		return
 	}
 
@@ -1036,10 +1041,10 @@ func (sp *shardProcessor) getOrderedMetaBlocks(round uint32) ([]*hashAndHdr, err
 		if hdr.GetRound() > round {
 			continue
 		}
-		if hdr.GetRound() < lastHdr.GetRound() {
+		if hdr.GetRound() <= lastHdr.GetRound() { // PMS: < -> <=
 			continue
 		}
-		if hdr.GetNonce() < lastHdr.GetNonce() {
+		if hdr.GetNonce() <= lastHdr.GetNonce() { // PMS: < -> <=
 			continue
 		}
 
@@ -1592,7 +1597,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		receiverShardId := miniblock.ReceiverShardID
 		if receiverShardId == sp.shardCoordinator.SelfId() {
 			//not taking into account miniblocks for current shard
-			continue
+			continue // PMS: Should be created also for current shard?
 		}
 		bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 
@@ -1603,7 +1608,8 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 			if tx != nil {
 				txMrs, err := sp.marshalizer.Marshal(tx)
 				if err != nil {
-					return nil, nil, process.ErrMarshalWithoutSuccess
+					log.Debug(process.ErrMarshalWithoutSuccess.Error()) // PMS: return nil, nil, process.ErrMarshalWithoutSuccess -> log.Debug(process.ErrMarshalWithoutSuccess.Error()) + continue
+					continue
 				}
 				mrsTxs[receiverShardId] = append(mrsTxs[receiverShardId], txMrs)
 			}
@@ -1613,7 +1619,8 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	for shardId, subsetBlockBody := range bodies {
 		buff, err := sp.marshalizer.Marshal(subsetBlockBody)
 		if err != nil {
-			return nil, nil, process.ErrMarshalWithoutSuccess
+			log.Debug(process.ErrMarshalWithoutSuccess.Error()) // PMS: return nil, nil, process.ErrMarshalWithoutSuccess -> log.Debug(process.ErrMarshalWithoutSuccess.Error()) + continue
+			continue
 		}
 		mrsData[shardId] = buff
 	}
