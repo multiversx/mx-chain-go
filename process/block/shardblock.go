@@ -195,12 +195,12 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound(), header.GetNonce())
+	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound()) // PMS: removed parameter -> header.GetNonce()
 
 	return nil
 }
 
-func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32, nonce uint64) error {
+func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32) error { // PMS: removed parameter -> nonce uint64
 	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
 	if err != nil {
 		return err
@@ -215,7 +215,7 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32, nonc
 		sortedHdrs = append(sortedHdrs, hdr)
 	}
 
-	err = sp.requestHeadersIfMissing(sortedHdrs, sharding.MetachainShardId, nonce)
+	err = sp.requestHeadersIfMissing(sortedHdrs, sharding.MetachainShardId) // PMS: removed parameter -> nonce
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -537,7 +537,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	errNotCritical = sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
 	if errNotCritical != nil {
-		return err
+		log.Info(errNotCritical.Error()) // PMS: return err -> log.Info(errNotCritical.Error())
 	}
 
 	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
@@ -1335,7 +1335,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 		RandSeed:         make([]byte, 0),
 	}
 
-	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound(), header.GetNonce())
+	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound()) // PMS: removed parameter -> header.GetNonce()
 
 	if bodyHandler == nil {
 		return header, nil
