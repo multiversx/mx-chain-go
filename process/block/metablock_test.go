@@ -2135,7 +2135,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 
 	prevHash, _ = mp.ComputeHeaderHash(currHdr)
 	nextHdr := &block.Header{
-		Round:        11,
+		Round:        12,
 		Nonce:        47,
 		ShardId:      0,
 		PrevRandSeed: []byte("nextrand"),
@@ -2226,7 +2226,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrWrongNonceInBlock)
+	assert.Equal(t, err, process.ErrRootStateMissmatch)
 
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
@@ -2357,7 +2357,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 
 	mp.SetNextKValidity(1)
 	nextWrongHdr := &block.Header{
-		Round:        11,
+		Round:        12,
 		Nonce:        44,
 		ShardId:      0,
 		PrevRandSeed: currRandSeed,
@@ -2372,7 +2372,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 
 	prevHash, _ = mp.ComputeHeaderHash(currHdr)
 	nextHdr := &block.Header{
-		Round:        11,
+		Round:        12,
 		Nonce:        47,
 		ShardId:      0,
 		PrevRandSeed: []byte("nextrand"),

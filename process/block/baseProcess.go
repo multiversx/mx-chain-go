@@ -173,14 +173,14 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 		}
 		// block with nonce 0 was already saved
 		if prevHdr.GetRootHash() != nil {
-			return process.ErrWrongNonceInBlock
+			return process.ErrRootStateMissmatch
 		}
 		return nil
 	}
 
 	//TODO: add verification if rand seed was correctly computed add other verification
 	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
-	if prevHdr.GetRound() > currHdr.GetRound() {
+	if prevHdr.GetRound() >= currHdr.GetRound() {
 		return process.ErrLowShardHeaderRound
 	}
 
@@ -205,7 +205,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 }
 
 func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderHandler) error {
-	if shardId > bp.shardCoordinator.NumberOfShards() && shardId != sharding.MetachainShardId {
+	if shardId >= bp.shardCoordinator.NumberOfShards() && shardId != sharding.MetachainShardId {
 		return process.ErrShardIdMissmatch
 	}
 
@@ -238,14 +238,6 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 	if err != nil {
 		return err
 	}
-
-	tmpLastNotarized := bp.lastNotarizedHdrs[shardId]
-
-	defer func() {
-		if err != nil {
-			bp.lastNotarizedHdrs[shardId] = tmpLastNotarized
-		}
-	}()
 
 	sort.Slice(processedHdrs, func(i, j int) bool {
 		return processedHdrs[i].GetNonce() < processedHdrs[j].GetNonce()
@@ -340,10 +332,6 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 
 		if i > 0 {
 			prevHdr = sortedHdrs[i-1]
-		}
-
-		if prevHdr == nil {
-			continue
 		}
 
 		if currHdr.GetRound() > maxRound || prevHdr.GetRound() > maxRound {

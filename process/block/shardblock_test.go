@@ -3210,7 +3210,7 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrWrongNonceInBlock)
+	assert.Equal(t, err, process.ErrRootStateMissmatch)
 
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
