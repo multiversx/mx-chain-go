@@ -252,12 +252,13 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 	})
 
 	for i := 0; i < len(processedHdrs); i++ {
-		err = bp.checkHeaderTypeCorrect(shardId, processedHdrs[i])
-		if err != nil {
-			return err
+		errNotCritical := bp.checkHeaderTypeCorrect(shardId, processedHdrs[i])
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+			continue
 		}
 
-		errNotCritical := bp.isHdrConstructionValid(processedHdrs[i], bp.lastNotarizedHdrs[shardId])
+		errNotCritical = bp.isHdrConstructionValid(processedHdrs[i], bp.lastNotarizedHdrs[shardId])
 		if errNotCritical != nil {
 			continue
 		}

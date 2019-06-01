@@ -503,12 +503,12 @@ func (sp *shardProcessor) CommitBlock(
 
 	errNotCritical := sp.removeTxBlockFromPools(body)
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+		log.Debug(errNotCritical.Error())
 	}
 
 	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromPool(body)
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+		log.Debug(errNotCritical.Error())
 	}
 
 	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
@@ -518,12 +518,12 @@ func (sp *shardProcessor) CommitBlock(
 
 	errNotCritical = sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
 	if errNotCritical != nil {
-		return err
+		log.Debug(errNotCritical.Error())
 	}
 
 	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+		log.Debug(errNotCritical.Error())
 	}
 
 	err = chainHandler.SetCurrentBlockBody(body)
