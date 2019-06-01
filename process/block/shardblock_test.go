@@ -3640,3 +3640,156 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	lastNodesHdrs = sp.LastNotarizedHdrs()
 	assert.Equal(t, currHdr, lastNodesHdrs[sharding.MetachainShardId])
 }
+
+func createOneHeaderOneBody() (*block.Header, block.Body) {
+	txHash := []byte("tx_hash1")
+	rootHash := []byte("rootHash")
+	body := make(block.Body, 0)
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+	}
+	body = append(body, &miniblock)
+
+	hasher := &mock.HasherStub{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbHash := hasher.Compute(string(mbbytes))
+	mbHdr := block.MiniBlockHeader{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxCount:         uint32(len(txHashes)),
+		Hash:            mbHash}
+	mbHdrs := make([]block.MiniBlockHeader, 0)
+	mbHdrs = append(mbHdrs, mbHdr)
+
+	hdr := &block.Header{
+		Nonce:            1,
+		PrevHash:         []byte(""),
+		Signature:        []byte("signature"),
+		PubKeysBitmap:    []byte("00110"),
+		ShardId:          0,
+		RootHash:         rootHash,
+		MiniBlockHeaders: mbHdrs,
+	}
+
+	return hdr, body
+}
+
+func TestShardProcessor_CheckHeaderBodyConnectionReceiverMissmatch(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	sp, _ := blproc.NewShardProcessor(
+		initDataPool(),
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		func(destShardID uint32, txHashes [][]byte) {},
+		func(destShardID uint32, txHash []byte) {},
+	)
+
+	hdr.MiniBlockHeaders[0].ReceiverShardID = body[0].ReceiverShardID + 1
+	err := sp.CheckHeaderBodyConnection(hdr, body)
+	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+}
+
+func TestShardProcessor_CheckHeaderBodyConnectionSenderMissmatch(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	sp, _ := blproc.NewShardProcessor(
+		initDataPool(),
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		func(destShardID uint32, txHashes [][]byte) {},
+		func(destShardID uint32, txHash []byte) {},
+	)
+
+	hdr.MiniBlockHeaders[0].SenderShardID = body[0].SenderShardID + 1
+	err := sp.CheckHeaderBodyConnection(hdr, body)
+	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+}
+
+func TestShardProcessor_CheckHeaderBodyConnectionTxCountMissmatch(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	sp, _ := blproc.NewShardProcessor(
+		initDataPool(),
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		func(destShardID uint32, txHashes [][]byte) {},
+		func(destShardID uint32, txHash []byte) {},
+	)
+
+	hdr.MiniBlockHeaders[0].TxCount = uint32(len(body[0].TxHashes) + 1)
+	err := sp.CheckHeaderBodyConnection(hdr, body)
+	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+}
+
+func TestShardProcessor_CheckHeaderBodyConnectionHashMissmatch(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	sp, _ := blproc.NewShardProcessor(
+		initDataPool(),
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		func(destShardID uint32, txHashes [][]byte) {},
+		func(destShardID uint32, txHash []byte) {},
+	)
+
+	hdr.MiniBlockHeaders[0].Hash = []byte("wrongHash")
+	err := sp.CheckHeaderBodyConnection(hdr, body)
+	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+}
+
+func TestShardProcessor_CheckHeaderBodyConnectionShouldPass(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	sp, _ := blproc.NewShardProcessor(
+		initDataPool(),
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		func(destShardID uint32, txHashes [][]byte) {},
+		func(destShardID uint32, txHash []byte) {},
+	)
+
+	err := sp.CheckHeaderBodyConnection(hdr, body)
+	assert.Nil(t, err)
+}

@@ -208,5 +208,5 @@ func (bp *baseProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs [
 }
 
 func (sp *shardProcessor) CheckHeaderBodyConnection(hdr *block.Header, body block.Body) error {
-	return sp.CheckHeaderBodyConnection(hdr, body)
+	return sp.checkHeaderBodyConnection(hdr, body)
 }
