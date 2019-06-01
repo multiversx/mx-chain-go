@@ -333,6 +333,7 @@ func proposeMetaBlock(t *testing.T, proposer *testNode) (data.BodyHandler, data.
 	assert.Nil(t, err)
 
 	metaHeader.SetNonce(1)
+	metaHeader.SetRound(1)
 	metaHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := testMultiSig.AggregateSigs(nil)
 	metaHeader.SetSignature(sig)
