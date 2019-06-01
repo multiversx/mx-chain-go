@@ -178,12 +178,12 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	go mp.checkAndRequestIfShardHeadersMissing(header.Round, header.Nonce)
+	go mp.checkAndRequestIfShardHeadersMissing(header.Round)
 
 	return nil
 }
 
-func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint32, nonce uint64) error {
+func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint32) error {
 	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(round)
 	if err != nil {
 		return err
@@ -196,7 +196,7 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint32, nonc
 			sortedHdrs = append(sortedHdrs, sortedHdrPerShard[i][j])
 		}
 
-		err := mp.requestHeadersIfMissing(sortedHdrs, i, nonce)
+		err := mp.requestHeadersIfMissing(sortedHdrs, i, round)
 		if err != nil {
 			log.Debug(err.Error())
 			continue
@@ -893,7 +893,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	header.RootHash = mp.getRootHash()
 	header.TxCount = getTxCount(shardInfo)
 
-	go mp.checkAndRequestIfShardHeadersMissing(header.Round, header.Nonce)
+	go mp.checkAndRequestIfShardHeadersMissing(header.Round)
 
 	return header, nil
 }

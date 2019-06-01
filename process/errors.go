@@ -309,3 +309,6 @@ var ErrNoNewMetablocks = errors.New("there is no new metablocks")
 
 // ErrNoSortedHdrsForShard signals that there are no sorted hdrs in pool
 var ErrNoSortedHdrsForShard = errors.New("no sorted headers in pool")
+
+// ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
+var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")

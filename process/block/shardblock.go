@@ -171,6 +171,11 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}
 
+	err = sp.verifyCrossShardMiniBlockDstMe(header)
+	if err != nil {
+		return err
+	}
+
 	if sp.accounts.JournalLen() != 0 {
 		return process.ErrAccountStateDirty
 	}
@@ -191,12 +196,12 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound(), header.GetNonce())
+	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound())
 
 	return nil
 }
 
-func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32, nonce uint64) error {
+func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32) error {
 	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
 	if err != nil {
 		return err
@@ -211,7 +216,7 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32, nonc
 		sortedHdrs = append(sortedHdrs, hdr)
 	}
 
-	err = sp.requestHeadersIfMissing(sortedHdrs, sharding.MetachainShardId, nonce)
+	err = sp.requestHeadersIfMissing(sortedHdrs, sharding.MetachainShardId, round)
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -953,6 +958,64 @@ func (sp *shardProcessor) processMiniBlockComplete(
 	return err
 }
 
+func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header) error {
+	mMiniBlockMeta, err := sp.getAllMiniBlockDstMeFromMeta(hdr.Round)
+	if err != nil {
+		return err
+	}
+
+	miniBlockDstMe := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
+	for mbHash := range miniBlockDstMe {
+		if _, ok := mMiniBlockMeta[mbHash]; !ok {
+			return process.ErrCrossShardMBWithoutConfirmationFromMeta
+		}
+	}
+
+	return nil
+}
+
+func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(round uint32) (map[string][]byte, error) {
+	metaBlockCache := sp.dataPool.MetaBlocks()
+	if metaBlockCache == nil {
+		return nil, process.ErrNilMetaBlockPool
+	}
+
+	lastHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	if err != nil {
+		return nil, err
+	}
+
+	mMiniBlockMeta := make(map[string][]byte)
+	for _, metaHash := range metaBlockCache.Keys() {
+		val, _ := metaBlockCache.Peek(metaHash)
+		if val == nil {
+			continue
+		}
+
+		hdr, ok := val.(*block.MetaBlock)
+		if !ok {
+			continue
+		}
+
+		if hdr.GetRound() > round {
+			continue
+		}
+		if hdr.GetRound() < lastHdr.GetRound() {
+			continue
+		}
+		if hdr.GetNonce() < lastHdr.GetNonce() {
+			continue
+		}
+
+		miniBlockDstMe := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
+		for mbHash := range miniBlockDstMe {
+			mMiniBlockMeta[mbHash] = metaHash
+		}
+	}
+
+	return mMiniBlockMeta, nil
+}
+
 func (sp *shardProcessor) getOrderedMetaBlocks(round uint32) ([]*hashAndHdr, error) {
 	metaBlockCache := sp.dataPool.MetaBlocks()
 	if metaBlockCache == nil {
@@ -1278,7 +1341,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 		RandSeed:         make([]byte, 0),
 	}
 
-	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound(), header.GetNonce())
+	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound())
 
 	if bodyHandler == nil {
 		return header, nil
