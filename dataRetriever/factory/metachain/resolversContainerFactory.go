@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
+const emptyExcludePeersOnTopic = ""
+
 type resolversContainerFactory struct {
 	shardCoordinator         sharding.Coordinator
 	messenger                dataRetriever.TopicMessageHandler
@@ -173,7 +175,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifier,
-		"",
+		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)

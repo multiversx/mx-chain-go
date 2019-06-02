@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
+const emptyExcludePeersOnTopic = ""
+
 type resolversContainerFactory struct {
 	shardCoordinator         sharding.Coordinator
 	messenger                dataRetriever.TopicMessageHandler
@@ -212,7 +214,7 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierHdr,
-		"",
+		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)
@@ -321,7 +323,7 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolver() ([]strin
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierPeerCh,
-		"",
+		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)
@@ -362,7 +364,7 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierHdr,
-		"",
+		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)
@@ -405,7 +407,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierHdr,
-		"",
+		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)
