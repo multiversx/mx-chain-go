@@ -71,6 +71,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/google/gops/agent"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
@@ -127,6 +128,18 @@ VERSION:
 		Usage: "Private key that the node will load on startup and will sign blocks",
 		Value: "",
 	}
+	// configurationFile defines a flag for the path to the main toml configuration file
+	configurationFile = cli.StringFlag{
+		Name:  "config",
+		Usage: "The main configuration file to load",
+		Value: "./config/config.toml",
+	}
+	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
+	p2pConfigurationFile = cli.StringFlag{
+		Name:  "p2pconfig",
+		Usage: "The configuration file for P2P",
+		Value: "./config/p2p.toml",
+	}
 	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
 	withUI = cli.BoolTFlag{
 		Name:  "with-ui",
@@ -156,6 +169,11 @@ VERSION:
 		Usage: "Private key index specifies the 0-th based index of the private key to be used from initialNodesSk.pem file.",
 		Value: 0,
 	}
+	// gopsEn used to enable diagnosis of running go processes
+	gopsEn = cli.BoolFlag{
+		Name:  "gops-enable",
+		Usage: "Enables gops over the process. Stack can be viewed by calling 'gops stack <pid>'",
+	}
 	// numOfNodes defines a flag that specifies the maximum number of nodes which will be used from the initialNodes
 	numOfNodes = cli.Uint64Flag{
 		Name:  "num-of-nodes",
@@ -168,11 +186,18 @@ VERSION:
 		Name:  "storage-cleanup",
 		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk",
 	}
-
-	configurationFile        = "./config/config.toml"
-	p2pConfigurationFile     = "./config/p2p.toml"
-	initialBalancesSkPemFile = "./config/initialBalancesSk.pem"
-	initialNodesSkPemFile    = "./config/initialNodesSk.pem"
+	// initialBalancesSkPemFile defines a flag for the path to the ...
+	initialBalancesSkPemFile = cli.StringFlag{
+		Name:  "initialBalancesSkPemFile",
+		Usage: "The file containing the secret keys which ...",
+		Value: "./config/initialBalancesSk.pem",
+	}
+	// initialNodesSkPemFile defines a flag for the path to the ...
+	initialNodesSkPemFile = cli.StringFlag{
+		Name:  "initialNodesSkPemFile",
+		Usage: "The file containing the secret keys which ...",
+		Value: "./config/initialNodesSk.pem",
+	}
 
 	//TODO remove uniqueID
 	uniqueID = ""
@@ -246,7 +271,23 @@ func main() {
 	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{genesisFile, nodesFile, port, txSignSk, sk, profileMode, txSignSkIndex, skIndex, numOfNodes, storageCleanup}
+	app.Flags = []cli.Flag{
+		genesisFile,
+		nodesFile,
+		port,
+		configurationFile,
+		p2pConfigurationFile,
+		txSignSk,
+		sk,
+		profileMode,
+		txSignSkIndex,
+		skIndex,
+		numOfNodes,
+		storageCleanup,
+		initialBalancesSkPemFile,
+		initialNodesSkPemFile,
+		gopsEn,
+	}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -297,23 +338,27 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		defer p.Stop()
 	}
 
+	enableGopsIfNeeded(ctx, log)
+
 	log.Info("Starting node...")
 
 	stop := make(chan bool, 1)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	generalConfig, err := loadMainConfig(configurationFile, log)
+	configurationFileName := ctx.GlobalString(configurationFile.Name)
+	generalConfig, err := loadMainConfig(configurationFileName, log)
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFile))
+	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFileName))
 
-	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFile)
+	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
+	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFile))
+	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFileName))
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
 	}
@@ -352,12 +397,13 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
+	initialNodesSkPemFileName := ctx.GlobalString(initialNodesSkPemFile.Name)
 	keyGen, privKey, pubKey, err := getSigningParams(
 		ctx,
 		log,
 		sk.Name,
 		skIndex.Name,
-		initialNodesSkPemFile,
+		initialNodesSkPemFileName,
 		suite)
 	if err != nil {
 		return err
@@ -463,6 +509,19 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func enableGopsIfNeeded(ctx *cli.Context, log *logger.Logger) {
+	var gopsEnabled bool
+	if ctx.IsSet(gopsEn.Name) {
+		gopsEnabled = ctx.GlobalBool(gopsEn.Name)
+	}
+
+	if gopsEnabled {
+		if err := agent.Listen(agent.Options{}); err != nil {
+			log.Error(err.Error())
+		}
+	}
 }
 
 func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error) {
@@ -702,12 +761,13 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	initialBalancesSkPemFileName := ctx.GlobalString(initialBalancesSkPemFile.Name)
 	txSignKeyGen, txSignPrivKey, txSignPubKey, err := getSigningParams(
 		ctx,
 		log,
 		txSignSk.Name,
 		txSignSkIndex.Name,
-		initialBalancesSkPemFile,
+		initialBalancesSkPemFileName,
 		kyber.NewBlakeSHA256Ed25519())
 
 	if err != nil {
@@ -1010,12 +1070,13 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
+	initialBalancesSkPemFileName := ctx.GlobalString(initialBalancesSkPemFile.Name)
 	_, txSignPrivKey, txSignPubKey, err := getSigningParams(
 		ctx,
 		log,
 		txSignSk.Name,
 		txSignSkIndex.Name,
-		initialBalancesSkPemFile,
+		initialBalancesSkPemFileName,
 		kyber.NewBlakeSHA256Ed25519())
 
 	if err != nil {
