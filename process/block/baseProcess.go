@@ -325,7 +325,8 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 			prevHdr = sortedHdrs[i-1]
 		}
 
-		if currHdr.GetRound() > maxRound || prevHdr.GetRound() > maxRound {
+		hdrTooNew := currHdr.GetRound() > maxRound || prevHdr.GetRound() > maxRound
+		if hdrTooNew {
 			continue
 		}
 
