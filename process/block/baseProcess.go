@@ -40,6 +40,7 @@ type baseProcessor struct {
 	lastNotarizedHdrs    mapShardLastHeaders
 
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
+	onRequestHeaderHandler        func(shardId uint32, hash []byte)
 }
 
 func checkForNils(
@@ -57,16 +58,6 @@ func checkForNils(
 	if bodyHandler == nil {
 		return process.ErrNilBlockBody
 	}
-	return nil
-}
-
-// SetOnRequestHeaderHandlerByNonce sets request handler to ask for missing headers by nonce
-func (bp *baseProcessor) SetOnRequestHeaderHandlerByNonce(requestHandler func(shardId uint32, nonce uint64)) error {
-	//TODO: do this on constructor as it is a must to for blockprocessor to work
-	if requestHandler == nil {
-		return process.ErrNilRequestHeaderHandlerByNonce
-	}
-	bp.onRequestHeaderHandlerByNonce = requestHandler
 	return nil
 }
 
@@ -282,7 +273,7 @@ func (bp *baseProcessor) getLastNotarizedHdr(shardId uint32) (data.HeaderHandler
 // SetLastNotarizedHeadersSlice sets the headers blocks in lastNotarizedHdrs for every shard
 // This is done when starting a new epoch so metachain can use it when validating next shard header blocks
 // and shard can validate the next meta header
-func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
+func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
 	//TODO: protect this to be called only once at genesis time
 	//TODO: do this on constructor as it is a must to for blockprocessor to work
 	bp.mutLastNotarizedHdrs.Lock()

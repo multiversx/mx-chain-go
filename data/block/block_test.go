@@ -39,6 +39,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		MiniBlockHeaders: []block.MiniBlockHeader{mb},
 		PeerChanges:      []block.PeerChange{pc},
 		RootHash:         []byte("root hash"),
+		MetaBlockHashes:  make([][]byte, 0),
 		TxCount:          uint32(10),
 	}
 

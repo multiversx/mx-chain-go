@@ -34,7 +34,6 @@ type metaProcessor struct {
 	*baseProcessor
 	dataPool dataRetriever.MetaPoolsHolder
 
-	onRequestShardHeaderHandler   func(shardId uint32, mbHash []byte)
 	requestedShardHeaderHashes    map[string]bool
 	mutRequestedShardHeaderHashes sync.RWMutex
 
@@ -53,7 +52,8 @@ func NewMetaProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
-	requestHeaderHandler func(shardId uint32, hdrHash []byte),
+	startHeaders map[uint32]data.HeaderHandler,
+	requestHandler process.RequestHandler,
 ) (*metaProcessor, error) {
 
 	err := checkProcessorNilParameters(
@@ -73,23 +73,29 @@ func NewMetaProcessor(
 	if dataPool.ShardHeaders() == nil {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if requestHeaderHandler == nil {
-		return nil, process.ErrNilRequestHeaderHandler
+	if requestHandler == nil {
+		return nil, process.ErrNilRequestHandler
 	}
 
 	base := &baseProcessor{
-		accounts:         accounts,
-		forkDetector:     forkDetector,
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		store:            store,
-		shardCoordinator: shardCoordinator,
+		accounts:                      accounts,
+		forkDetector:                  forkDetector,
+		hasher:                        hasher,
+		marshalizer:                   marshalizer,
+		store:                         store,
+		shardCoordinator:              shardCoordinator,
+		onRequestHeaderHandler:        requestHandler.RequestHeaderHandler,
+		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderHandlerByNonce,
+	}
+
+	err = base.setLastNotarizedHeadersSlice(startHeaders, true)
+	if err != nil {
+		return nil, err
 	}
 
 	mp := metaProcessor{
-		baseProcessor:               base,
-		dataPool:                    dataPool,
-		onRequestShardHeaderHandler: requestHeaderHandler,
+		baseProcessor: base,
+		dataPool:      dataPool,
 	}
 
 	mp.requestedShardHeaderHashes = make(map[string]bool)
@@ -487,7 +493,7 @@ func (mp *metaProcessor) getSortedShardHdrsFromMetablock(header *block.MetaBlock
 		shardData := header.ShardInfo[i]
 		header, err := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
 		if header == nil {
-			go mp.onRequestShardHeaderHandler(shardData.ShardId, shardData.HeaderHash)
+			go mp.onRequestHeaderHandler(shardData.ShardId, shardData.HeaderHash)
 			return nil, err
 		}
 
@@ -677,7 +683,7 @@ func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
 	for shardId, headerHash := range missingHeaderHashes {
 		mp.requestedShardHeaderHashes[string(headerHash)] = true
 		//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
-		go mp.onRequestShardHeaderHandler(shardId, headerHash)
+		go mp.onRequestHeaderHandler(shardId, headerHash)
 	}
 
 	mp.mutRequestedShardHeaderHashes.Unlock()

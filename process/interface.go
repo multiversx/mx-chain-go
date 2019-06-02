@@ -142,3 +142,11 @@ type BlocksTracker interface {
 	SetBlockBroadcastRound(nonce uint64, round int32)
 	BlockBroadcastRound(nonce uint64) int32
 }
+
+// RequestHandler defines the methods through which request to data can be made
+type RequestHandler interface {
+	RequestHeaderHandlerByNonce(shardId uint32, nonce uint64)
+	RequestTransactionHandler(shardId uint32, txHashes [][]byte)
+	RequestMiniBlockHandler(shardId uint32, miniblockHash []byte)
+	RequestHeaderHandler(shardId uint32, hash []byte)
+}

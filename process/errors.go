@@ -244,8 +244,8 @@ var ErrNilResolverContainer = errors.New("nil resolver container")
 // ErrNilTransactionHandler signals that a nil transaction handler func was provided
 var ErrNilTransactionHandler = errors.New("nil request transaction handler")
 
-// ErrNilMiniBlocksRequestHandler signals that a nil mini block request handler func was provided
-var ErrNilMiniBlocksRequestHandler = errors.New("nil request miniblock handler")
+// ErrNilRequestHandler signals that a nil request handler interface was provided
+var ErrNilRequestHandler = errors.New("nil request handler")
 
 // ErrNilHaveTimeHandler signals that a nil have time handler func was provided
 var ErrNilHaveTimeHandler = errors.New("nil have time handler")

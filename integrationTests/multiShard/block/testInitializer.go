@@ -262,33 +262,35 @@ func createNetNode(
 				return nil
 			},
 		},
-		func(destShardID uint32, txHashes [][]byte) {
-			resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
+		createGenesisBlocks(shardCoordinator),
+		true,
+		&mock.RequestHandlerMock{
+			RequestTransactionHandlerCalled: func(destShardID uint32, txHashes [][]byte) {
+				resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
+				if err != nil {
+					fmt.Println(err.Error())
+					return
+				}
 
-			err = resolver.(*resolvers.TxResolver).RequestDataFromHashArray(txHashes)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-		},
-		func(shardId uint32, mbHash []byte) {
-			resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
+				err = resolver.(*resolvers.TxResolver).RequestDataFromHashArray(txHashes)
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+			},
+			RequestMiniBlockHandlerCalled: func(shardId uint32, mbHash []byte) {
+				resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
+				if err != nil {
+					fmt.Println(err.Error())
+					return
+				}
 
-			err = resolver.RequestDataFromHash(mbHash)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
+				err = resolver.RequestDataFromHash(mbHash)
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+			},
 		},
 	)
-	_ = blockProcessor.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator), true)
-
 	n, err := node.NewNode(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(testMarshalizer),
@@ -654,9 +656,9 @@ func createMetaNetNode(
 		testHasher,
 		testMarshalizer,
 		store,
-		func(shardId uint32, hdrHash []byte) {},
+		createGenesisBlocks(shardCoordinator),
+		&mock.RequestHandlerMock{},
 	)
-	_ = blkProc.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator), true)
 	tn.blkProcessor = blkProc
 
 	n, err := node.NewNode(

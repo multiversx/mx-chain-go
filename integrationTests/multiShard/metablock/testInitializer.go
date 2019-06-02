@@ -328,12 +328,9 @@ func createShardNetNode(
 				return nil
 			},
 		},
-		func(shardId uint32, txHash [][]byte) {
-
-		},
-		func(shardId uint32, miniblockHash []byte) {
-
-		},
+		createGenesisBlocks(shardCoordinator),
+		true,
+		&mock.RequestHandlerMock{},
 	)
 
 	n, err := node.NewNode(
@@ -488,7 +485,8 @@ func createMetaNetNode(
 		testHasher,
 		testMarshalizer,
 		store,
-		func(shardId uint32, hdrHash []byte) {},
+		createGenesisBlocks(shardCoordinator),
+		&mock.RequestHandlerMock{},
 	)
 
 	n, err := node.NewNode(
@@ -530,4 +528,44 @@ func createMetaNetNode(
 	})
 
 	return &tn
+}
+
+func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
+	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
+		genesisBlocks[shardId] = createGenesisBlock(shardId)
+	}
+
+	genesisBlocks[sharding.MetachainShardId] = createGenesisMetaBlock()
+
+	return genesisBlocks
+}
+
+func createGenesisBlock(shardId uint32) *dataBlock.Header {
+	rootHash := []byte("rootHash")
+	return &dataBlock.Header{
+		Nonce:         0,
+		Round:         0,
+		Signature:     rootHash,
+		RandSeed:      rootHash,
+		PrevRandSeed:  rootHash,
+		ShardId:       shardId,
+		PubKeysBitmap: rootHash,
+		RootHash:      rootHash,
+		PrevHash:      rootHash,
+	}
+}
+
+func createGenesisMetaBlock() *dataBlock.MetaBlock {
+	rootHash := []byte("rootHash")
+	return &dataBlock.MetaBlock{
+		Nonce:         0,
+		Round:         0,
+		Signature:     rootHash,
+		RandSeed:      rootHash,
+		PrevRandSeed:  rootHash,
+		PubKeysBitmap: rootHash,
+		RootHash:      rootHash,
+		PrevHash:      rootHash,
+	}
 }

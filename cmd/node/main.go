@@ -84,7 +84,6 @@ const (
 	blsHashSize        = 16
 	blsConsensusType   = "bls"
 	bnConsensusType    = "bn"
-	maxTxsToRequest    = 100
 )
 
 var (
@@ -855,6 +854,11 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	requestHandler, err := containers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	blockProcessor, err := block.NewShardProcessor(
 		datapool,
 		store,
@@ -865,21 +869,12 @@ func createShardNode(
 		shardCoordinator,
 		forkDetector,
 		blockTracker,
-		createTxRequestHandler(resolversFinder, factory.TransactionTopic, log),
-		createRequestHandler(resolversFinder, factory.MiniBlocksTopic, log),
+		shardsGenesisBlocks,
+		nodesConfig.MetaChainActive,
+		requestHandler,
 	)
 	if err != nil {
 		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
-	}
-
-	err = blockProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks, nodesConfig.MetaChainActive)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	err = blockProcessor.SetOnRequestHeaderHandlerByNonce(createMetaHeaderByNonceRequestHandler(resolversFinder, factory.MetachainBlocksTopic, log))
-	if err != nil {
-		return nil, nil, nil, err
 	}
 
 	nd, err := node.NewNode(
@@ -1165,6 +1160,11 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
+	requestHandler, err := containers.NewMetaResolverRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	metaProcessor, err := block.NewMetaProcessor(
 		accountsAdapter,
 		metaDatapool,
@@ -1173,20 +1173,11 @@ func createMetaNode(
 		hasher,
 		marshalizer,
 		metaStore,
-		createRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic, log),
+		shardsGenesisBlocks,
+		requestHandler,
 	)
 	if err != nil {
 		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
-	}
-
-	err = metaProcessor.SetLastNotarizedHeadersSlice(shardsGenesisBlocks, nodesConfig.MetaChainActive)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	err = metaProcessor.SetOnRequestHeaderHandlerByNonce(createShardHeaderByNonceRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic, log))
-	if err != nil {
-		return nil, nil, nil, err
 	}
 
 	nd, err := node.NewNode(
@@ -1243,39 +1234,6 @@ func createMetaNode(
 	}
 
 	return nd, externalResolver, tpsBenchmark, nil
-}
-
-func createTxRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, txHashes [][]byte) {
-	return func(destShardID uint32, txHashes [][]byte) {
-		log.Debug(fmt.Sprintf("Requesting %d transactions from shard %d from network...\n", len(txHashes), destShardID))
-		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
-		if err != nil {
-			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
-			return
-		}
-
-		txResolver, ok := resolver.(*resolvers.TxResolver)
-		if !ok {
-			log.Error("wrong assertion type when creating transaction resolver")
-			return
-		}
-
-		go func() {
-			dataSplit := &partitioning.DataSplit{}
-			sliceBatches, err := dataSplit.SplitDataInChunks(txHashes, maxTxsToRequest)
-			if err != nil {
-				log.Error("error requesting transactions: " + err.Error())
-				return
-			}
-
-			for _, batch := range sliceBatches {
-				err = txResolver.RequestDataFromHashArray(batch)
-				if err != nil {
-					log.Debug("error requesting tx batch: " + err.Error())
-				}
-			}
-		}()
-	}
 }
 
 func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, txHash []byte) {

@@ -301,9 +301,9 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		&mock.BlocksTrackerMock{},
-		func(destShardID uint32, txHashes [][]byte) {
-		},
-		func(destShardID uint32, txHash []byte) {},
+		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+		true,
+		&mock.RequestHandlerMock{},
 	)
 	blkc := createTestBlockchain()
 	body := &block.Body{}
@@ -373,9 +373,9 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		&mock.BlocksTrackerMock{},
-		func(destShardID uint32, txHashes [][]byte) {
-		},
-		func(destShardID uint32, txHash []byte) {},
+		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+		true,
+		&mock.RequestHandlerMock{},
 	)
 	assert.True(t, bp.VerifyStateRoot(rootHash))
 }
@@ -396,9 +396,9 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		&mock.BlocksTrackerMock{},
-		func(destShardID uint32, txHashes [][]byte) {
-		},
-		func(destShardID uint32, txHash []byte) {},
+		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+		true,
+		&mock.RequestHandlerMock{},
 	)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	expectedError := errors.New("marshalizer fail")
@@ -431,9 +431,9 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		&mock.BlocksTrackerMock{},
-		func(destShardID uint32, txHashes [][]byte) {
-		},
-		func(destShardID uint32, txHash []byte) {},
+		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+		true,
+		&mock.RequestHandlerMock{},
 	)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {

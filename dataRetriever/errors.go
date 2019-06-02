@@ -166,3 +166,15 @@ var ErrRequestTypeNotImplemented = errors.New("request type is not implemented")
 
 // ErrNilDataPacker signals that a nil data packer has been provided
 var ErrNilDataPacker = errors.New("nil data packer provided")
+
+// ErrNilResolverFinder signals that a nil resolver finder has been provided
+var ErrNilResolverFinder = errors.New("nil resolvers finder")
+
+// ErrEmptyTxRequestTopic signals that an empty transaction topic has been provided
+var ErrEmptyTxRequestTopic = errors.New("empty transaction request topic")
+
+// ErrEmptyMiniBlockRequestTopic signals that an empty miniblock topic has been provided
+var ErrEmptyMiniBlockRequestTopic = errors.New("empty miniblock request topic")
+
+// ErrEmptyHeaderRequestTopic signals that an empty transaction topic has been provided
+var ErrEmptyHeaderRequestTopic = errors.New("empty header request topic")

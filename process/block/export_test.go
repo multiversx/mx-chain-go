@@ -207,6 +207,10 @@ func (bp *baseProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs [
 	return bp.saveLastNotarizedHeader(shardId, processedHdrs)
 }
 
-func (sp *shardProcessor) CheckHeaderBodyConnection(hdr *block.Header, body block.Body) error {
-	return sp.checkHeaderBodyConnection(hdr, body)
+func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {
+	return sp.checkHeaderBodyCorrelation(hdr, body)
+}
+
+func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
+	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
 }
