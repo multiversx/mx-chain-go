@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
 )
 
 type ResolverRequestHandler struct {
@@ -21,6 +20,7 @@ type ResolverRequestHandler struct {
 
 var log = logger.DefaultLogger()
 
+// NewShardResolverRequestHandler creates a requestHandler interface implementation with request functions
 func NewShardResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	txRequestTopic string,
@@ -56,6 +56,7 @@ func NewShardResolverRequestHandler(
 	return rrh, nil
 }
 
+// NewMetaResolverRequestHandler creates a requestHandler interface implementation with request functions
 func NewMetaResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	hdrRequestTopic string,
@@ -76,12 +77,8 @@ func NewMetaResolverRequestHandler(
 	return rrh, nil
 }
 
+// RequestTransaction method asks for transactions from the connected peers
 func (rrh *ResolverRequestHandler) RequestTransaction(destShardID uint32, txHashes [][]byte) {
-	if len(rrh.txRequestTopic) == 0 {
-		log.Error(fmt.Sprintf("transaction request topic is not set"))
-		return
-	}
-
 	log.Debug(fmt.Sprintf("Requesting %d transactions from shard %d from network...\n", len(txHashes), destShardID))
 	resolver, err := rrh.resolversFinder.CrossShardResolver(rrh.txRequestTopic, destShardID)
 	if err != nil {
@@ -89,7 +86,7 @@ func (rrh *ResolverRequestHandler) RequestTransaction(destShardID uint32, txHash
 		return
 	}
 
-	txResolver, ok := resolver.(*resolvers.TxResolver)
+	txResolver, ok := resolver.(HashSliceResolver)
 	if !ok {
 		log.Error("wrong assertion type when creating transaction resolver")
 		return
@@ -112,21 +109,13 @@ func (rrh *ResolverRequestHandler) RequestTransaction(destShardID uint32, txHash
 	}()
 }
 
+// RequestMiniBlock method asks for miniblocks from the connected peers
 func (rrh *ResolverRequestHandler) RequestMiniBlock(shardId uint32, miniblockHash []byte) {
-	if len(rrh.mbRequestTopic) == 0 {
-		log.Error(fmt.Sprintf("miniblock request topic is not set"))
-		return
-	}
-
 	rrh.requestByHash(shardId, miniblockHash, rrh.mbRequestTopic)
 }
 
+// RequestHeader method asks for header from the connected peers
 func (rrh *ResolverRequestHandler) RequestHeader(shardId uint32, hash []byte) {
-	if len(rrh.hdrRequestTopic) == 0 {
-		log.Error(fmt.Sprintf("header request topic is not set"))
-		return
-	}
-
 	rrh.requestByHash(shardId, hash, rrh.hdrRequestTopic)
 }
 
@@ -144,12 +133,8 @@ func (rrh *ResolverRequestHandler) requestByHash(destShardID uint32, hash []byte
 	}
 }
 
+// RequestHeaderByNonce method asks for transactions from the connected peers
 func (rrh *ResolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonce uint64) {
-	if len(rrh.hdrRequestTopic) == 0 {
-		log.Error(fmt.Sprintf("header by nonce request topic is not set"))
-		return
-	}
-
 	var err error
 	var resolver dataRetriever.Resolver
 	if rrh.isMetaChain {
