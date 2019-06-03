@@ -351,6 +351,12 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return err
 	}
 
+	sp.mutNotarizedHdrs.Lock()
+	for i := uint32(0); i < sp.shardCoordinator.NumberOfShards(); i++ {
+		sp.lastNotarizedHdrs[i] = sp.finalNotarizedHdrs[i]
+	}
+	sp.mutNotarizedHdrs.Unlock()
+
 	return nil
 }
 
@@ -436,6 +442,10 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][]byt
 			delete(miniBlockHashes, key)
 		}
 	}
+
+	//TODO: if miniBlockHashes were not found in meta pool then they should be in some metablocks already
+	//committed in storer, so they should be searched there, and set as not processed and these metablocks should
+	//be pull out in the pool
 
 	return nil
 }
@@ -1349,6 +1359,8 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		return nil, 0, err
 	}
 
+	log.Info(fmt.Sprintf("orderedMetaBlocks: %d \n", len(orderedMetaBlocks)))
+
 	lastMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
 		return nil, 0, err
@@ -1432,6 +1444,8 @@ func (sp *shardProcessor) createMiniBlocks(
 	if err != nil {
 		log.Info(err.Error())
 	}
+
+	log.Info(fmt.Sprintf("destMeMiniBlocks: %d and txs: %d\n", len(destMeMiniBlocks), txs))
 
 	if len(destMeMiniBlocks) > 0 {
 		miniBlocks = append(miniBlocks, destMeMiniBlocks...)

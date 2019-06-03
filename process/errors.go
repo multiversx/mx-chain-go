@@ -295,8 +295,8 @@ var ErrShardIdMissmatch = errors.New("shard ID missmatch")
 // ErrMintAddressNotInThisShard signals that the mint address does not belong to current shard
 var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
 
-// ErrLastNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
-var ErrLastNotarizedHdrsSliceIsNil = errors.New("last notarized shard headers slice is nil")
+// ErrNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
+var ErrNotarizedHdrsSliceIsNil = errors.New("notarized shard headers slice is nil")
 
 // ErrNoNewMetablocks signals that no new metablocks are in the pool
 var ErrNoNewMetablocks = errors.New("there is no new metablocks")
