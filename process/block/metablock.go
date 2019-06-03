@@ -40,7 +40,7 @@ type metaProcessor struct {
 	mutRequestedShardHeaderHashes sync.RWMutex
 
 	nextKValidity         uint32
-	finalityAttestingHdrs []*block.Header
+	finalityAttestingHdrs []*block.Header // PMS: Not used
 
 	chRcvAllHdrs chan bool
 }
@@ -506,7 +506,7 @@ func (mp *metaProcessor) getSortedShardHdrsFromMetablock(header *block.MetaBlock
 
 	for shId := uint32(0); shId < mp.shardCoordinator.NumberOfShards(); shId++ {
 		hdrsForShard := sortedShardHdrs[shId]
-		if len(hdrsForShard) == 0 {
+		if len(hdrsForShard) <= 1 { // PMS: == 0 -> <= 1
 			continue
 		}
 
@@ -545,7 +545,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(header *block.MetaBlock) (map
 			continue
 		}
 
-		if tmpNotedHdrs[shId].GetRound() == 0 && hdrsForShard[0].GetRound() == 0 {
+		if tmpNotedHdrs[shId].GetRound() == 0 && hdrsForShard[0].GetRound() == 0 { // PMS: This condition could happen?
 			highestNonceHdrs[shId] = hdrsForShard[0]
 			continue
 		}
@@ -792,7 +792,7 @@ func (mp *metaProcessor) createShardInfo(
 			continue
 		}
 
-		lastPushedHdr[orderedHdrs[index].ShardId] = orderedHdrs[index]
+		lastPushedHdr[shId] = orderedHdrs[index] // PMS: lastPushedHdr[orderedHdrs[index].ShardId] -> lastPushedHdr[shId]
 		shardData := block.ShardData{}
 		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0)
 		shardData.TxCount = orderedHdrs[index].TxCount
@@ -856,6 +856,13 @@ func (mp *metaProcessor) createShardInfo(
 
 			if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
 				shardInfo = append(shardInfo, shardData)
+
+				// PMS: Added next for
+				// message to broadcast
+				for k := 0; k < len(attestingHdrIds); k++ {
+					hdrId := attestingHdrIds[k]
+					mp.finalityAttestingHdrs = append(mp.finalityAttestingHdrs, sortedHdrPerShard[shId][hdrId])
+				}
 			}
 
 			log.Info(fmt.Sprintf("creating shard info has been finished: created %d shard data\n", len(shardInfo)))
@@ -865,6 +872,12 @@ func (mp *metaProcessor) createShardInfo(
 		if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
 			shardInfo = append(shardInfo, shardData)
 
+			// PMS: Added next for
+			// message to broadcast
+			for k := 0; k < len(attestingHdrIds); k++ {
+				hdrId := attestingHdrIds[k]
+				mp.finalityAttestingHdrs = append(mp.finalityAttestingHdrs, sortedHdrPerShard[shId][hdrId])
+			}
 		}
 	}
 
@@ -1042,7 +1055,7 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 	headers := make([]*block.Header, 0)
 	hdrHashes := make([][]byte, 0)
 
-	maxRoundToSort := round + mp.nextKValidity + 1
+	maxRoundToSort := round - mp.nextKValidity - 1 // PMS: round + mp.nextKValidity + 1 -> round - mp.nextKValidity - 1
 
 	mp.mutLastNotarizedHdrs.RLock()
 	if mp.lastNotarizedHdrs == nil {
@@ -1062,7 +1075,7 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 			continue
 		}
 
-		if hdr.GetRound() > maxRoundToSort {
+		if hdr.GetRound() >= maxRoundToSort { // PMS: > -> >=
 			continue
 		}
 
@@ -1093,7 +1106,7 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 		}
 
 		sort.Slice(hdrsForShard, func(i, j int) bool {
-			return hdrsForShard[i].hdr.GetNonce() < hdrsForShard[i].hdr.GetNonce()
+			return hdrsForShard[i].hdr.GetNonce() < hdrsForShard[j].hdr.GetNonce() // PMS: < hdrsForShard[i].hdr.GetNonce() -> < hdrsForShard[j].hdr.GetNonce()
 		})
 
 		tmpHdrLen := len(hdrsForShard)
