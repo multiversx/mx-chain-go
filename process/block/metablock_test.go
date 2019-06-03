@@ -22,6 +22,7 @@ import (
 func createMetaBlockHeader() *block.MetaBlock {
 	hdr := block.MetaBlock{
 		Nonce:         1,
+		Round:         1,
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte("pubKeysBitmap"),
@@ -512,6 +513,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 
 	// should return err
 	mp.SetNextKValidity(0)
+	hdr.ShardInfo = make([]block.ShardData, 0)
 	err := mp.ProcessBlock(blkc, hdr, body, haveTime)
 
 	assert.Equal(t, process.ErrRootStateMissmatch, err)

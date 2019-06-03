@@ -541,11 +541,6 @@ func (mp *metaProcessor) checkShardHeadersValidity(header *block.MetaBlock) (map
 			continue
 		}
 
-		if tmpNotedHdrs[shId].GetRound() == 0 && hdrsForShard[0].GetRound() == 0 {
-			highestNonceHdrs[shId] = hdrsForShard[0]
-			continue
-		}
-
 		for i := 0; i < len(hdrsForShard); i++ {
 			err := mp.isHdrConstructionValid(hdrsForShard[i], tmpNotedHdrs[shId])
 			if err != nil {
@@ -566,7 +561,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 	}
 
 	//TODO: change this to look at the pool where values are saved by prevHash. can be done after resolver is done
-	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(header.GetRound())
+	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(header.GetRound() + mp.nextKValidity)
 	if err != nil {
 		return err
 	}

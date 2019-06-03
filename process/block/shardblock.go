@@ -25,6 +25,7 @@ var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
 const maxTransactionsInBlock = 15000
+const metablockFinality = 1
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
@@ -32,6 +33,7 @@ type shardProcessor struct {
 	dataPool               dataRetriever.PoolsHolder
 	txProcessor            process.TransactionProcessor
 	blocksTracker          process.BlocksTracker
+	metaBlockFinality      int
 	chRcvAllTxs            chan bool
 	onRequestTransaction   func(shardID uint32, txHashes [][]byte)
 	mutRequestedTxHashes   sync.RWMutex
@@ -136,6 +138,8 @@ func NewShardProcessor(
 	}
 	miniBlockPool.RegisterHandler(sp.receivedMiniBlock)
 
+	sp.metaBlockFinality = metablockFinality
+
 	return &sp, nil
 }
 
@@ -168,7 +172,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	err = sp.checkHeaderBodyCorrelation(header, body)
 	if err != nil {
-		return process.ErrHeaderBodyMismatch
+		return err
 	}
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", sp.getNrTxsWithDst(header.ShardId)))
@@ -1071,17 +1075,55 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header) erro
 	if err != nil {
 		return err
 	}
+	metablockCache := sp.dataPool.MetaBlocks()
+	if metablockCache == nil {
+		return process.ErrNilMetaBlockPool
+	}
 
+	currMetaBlocks := make([]data.HeaderHandler, 0)
 	miniBlockDstMe := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 	for mbHash := range miniBlockDstMe {
 		if _, ok := mMiniBlockMeta[mbHash]; !ok {
 			return process.ErrCrossShardMBWithoutConfirmationFromMeta
 		}
+
+		hdr, ok := metablockCache.Peek(mMiniBlockMeta[mbHash])
+		if !ok {
+			return process.ErrNilMetaBlockHeader
+		}
+
+		metaHdr, ok := hdr.(data.HeaderHandler)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		currMetaBlocks = append(currMetaBlocks, metaHdr)
 	}
 
-	metaBlockCache := sp.dataPool.MetaBlocks()
-	if metaBlockCache == nil {
-		return process.ErrNilMetaBlockPool
+	if len(currMetaBlocks) == 0 {
+		return nil
+	}
+
+	err = sp.verifyIncludedMetaBlocksFinality(currMetaBlocks, hdr.Round)
+
+	return err
+}
+
+func (sp *shardProcessor) verifyIncludedMetaBlocksFinality(currMetaBlocks []data.HeaderHandler, round uint32) error {
+	orderedMetablocks, err := sp.getOrderedMetaBlocks(round + uint32(sp.metaBlockFinality))
+	if err != nil {
+		return err
+	}
+
+	sort.Slice(currMetaBlocks, func(i, j int) bool {
+		return currMetaBlocks[i].GetNonce() < currMetaBlocks[j].GetNonce()
+	})
+
+	for i := 0; i < len(currMetaBlocks); i++ {
+		isFinal := sp.isMetaHeaderFinal(currMetaBlocks[i], orderedMetablocks, 0)
+		if !isFinal {
+			return process.ErrMetaBlockNotFinal
+		}
 	}
 
 	return nil
@@ -1238,6 +1280,44 @@ func (sp *shardProcessor) processMiniBlocksFromHeader(
 	return miniBlocks, nrTxAdded, allMBsProcessed
 }
 
+// isMetaHeaderFinal verifies if meta is trully final, in order to not do rollbacks
+func (sp *shardProcessor) isMetaHeaderFinal(currHdr data.HeaderHandler, sortedHdrs []*hashAndHdr, startPos int) bool {
+	if currHdr == nil {
+		return false
+	}
+	if sortedHdrs == nil {
+		return false
+	}
+
+	// verify if there are "K" block after current to make this one final
+	lastVerifiedHdr := currHdr
+	nextBlocksVerified := 0
+
+	for i := startPos; i < len(sortedHdrs); i++ {
+		if nextBlocksVerified >= sp.metaBlockFinality {
+			return true
+		}
+
+		// found a header with the next nonce
+		tmpHdr := sortedHdrs[i].hdr
+		if tmpHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
+			err := sp.isHdrConstructionValid(tmpHdr, lastVerifiedHdr)
+			if err != nil {
+				continue
+			}
+
+			lastVerifiedHdr = tmpHdr
+			nextBlocksVerified += 1
+		}
+	}
+
+	if nextBlocksVerified >= sp.metaBlockFinality {
+		return true
+	}
+
+	return false
+}
+
 // full verification through metachain header
 func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	noShards uint32,
@@ -1289,6 +1369,11 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 		err := sp.isHdrConstructionValid(hdr, lastMetaHdr)
 		if err != nil {
+			continue
+		}
+
+		isFinal := sp.isMetaHeaderFinal(hdr, orderedMetaBlocks, i+1)
+		if !isFinal {
 			continue
 		}
 
