@@ -1038,7 +1038,7 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 	headers := make([]*block.Header, 0)
 	hdrHashes := make([][]byte, 0)
 
-	maxRoundToSort := round + mp.nextKValidity + 1
+	maxRoundToSort := round - mp.nextKValidity
 
 	mp.mutLastNotarizedHdrs.RLock()
 	if mp.lastNotarizedHdrs == nil {
@@ -1058,7 +1058,7 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 			continue
 		}
 
-		if hdr.GetRound() > maxRoundToSort {
+		if hdr.GetRound() >= maxRoundToSort {
 			continue
 		}
 
@@ -1089,7 +1089,7 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 		}
 
 		sort.Slice(hdrsForShard, func(i, j int) bool {
-			return hdrsForShard[i].hdr.GetNonce() < hdrsForShard[i].hdr.GetNonce()
+			return hdrsForShard[i].hdr.GetNonce() < hdrsForShard[j].hdr.GetNonce()
 		})
 
 		tmpHdrLen := len(hdrsForShard)

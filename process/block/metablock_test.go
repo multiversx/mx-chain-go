@@ -1668,7 +1668,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	dataPool.ShardHeaders().Put(hdrHash33, headers[5])
 
 	mp.SetNextKValidity(1)
-	round := uint32(9)
+	round := uint32(20)
 	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
