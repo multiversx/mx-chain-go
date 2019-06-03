@@ -1,16 +1,16 @@
 package smartContract
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -132,6 +132,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
+	err = sc.processSCPayment(tx, acntSnd)
+	if err != nil {
+		return err
+	}
+
 	err = sc.moveBalances(acntSnd, acntDst, tx.Value)
 	if err != nil {
 		return err
@@ -159,39 +164,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	return nil
 }
 
-func (sc *scProcessor) moveBalances(acntSnd, acntDst state.AccountHandler, value *big.Int) error {
-	operation1 := big.NewInt(0)
-	operation2 := big.NewInt(0)
-
-	// is sender address in node shard
-	if acntSnd != nil {
-		stAcc, ok := acntSnd.(*state.Account)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-
-		err := stAcc.SetBalanceWithJournal(operation1.Sub(stAcc.Balance, value))
-		if err != nil {
-			return err
-		}
-	}
-
-	// is receiver address in node shard
-	if acntDst != nil {
-		stAcc, ok := acntDst.(*state.Account)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-
-		err := stAcc.SetBalanceWithJournal(operation2.Add(stAcc.Balance, value))
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // DeploySmartContract runs the VM to verify register the smart contract and saves the data into the state
 func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler) error {
 	if sc.vm == nil {
@@ -211,6 +183,11 @@ func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd,
 		return err
 	}
 
+	err = sc.processSCPayment(tx, acntSnd)
+	if err != nil {
+		return err
+	}
+
 	vmOutput, err := sc.vm.RunSmartContractCreate(vmInput)
 	if err != nil {
 		return err
@@ -222,11 +199,6 @@ func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd,
 	}
 
 	return nil
-}
-
-func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) (*big.Int, error) {
-	//TODO: add gas economics here - currently sc call is free
-	return big.NewInt(0), nil
 }
 
 func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction) (*vmcommon.ContractCallInput, error) {
@@ -287,7 +259,56 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	return vmInput, nil
 }
 
+func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
+	//TODO: add gas economics here - currently sc call is free
+	return nil
+}
+
+func (sc *scProcessor) moveBalances(acntSnd, acntDst state.AccountHandler, value *big.Int) error {
+	operation1 := big.NewInt(0)
+	operation2 := big.NewInt(0)
+
+	// is sender address in node shard
+	if acntSnd != nil {
+		stAcc, ok := acntSnd.(*state.Account)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		err := stAcc.SetBalanceWithJournal(operation1.Sub(stAcc.Balance, value))
+		if err != nil {
+			return err
+		}
+	}
+
+	// is receiver address in node shard
+	if acntDst != nil {
+		stAcc, ok := acntDst.(*state.Account)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		err := stAcc.SetBalanceWithJournal(operation2.Add(stAcc.Balance, value))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (sc *scProcessor) increaseNonce(acntSrc state.AccountHandler) error {
+	return acntSrc.SetNonceWithJournal(acntSrc.GetNonce() + 1)
+}
+
 func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler) error {
+	if vmOutput == nil {
+		return process.ErrNilVMOutput
+	}
+	if tx == nil {
+		return process.ErrNilTransaction
+	}
+
 	err := sc.saveSCOutputToCurrentState(vmOutput)
 	if err != nil {
 		return err
@@ -394,7 +415,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		difference = difference.Sub(stAcc.Balance, outAcc.Balance)
 		err = sc.moveBalances(acntDst, stAcc, difference)
 		if err != nil {
-			return nil
+			return err
 		}
 	}
 

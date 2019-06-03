@@ -55,3 +55,11 @@ func (sc *scProcessor) SaveReturnCode(returnCode vmcommon.ReturnCode) error {
 func (sc *scProcessor) SaveLogsIntoState(logs []*vmcommon.LogEntry) error {
 	return sc.saveLogsIntoState(logs)
 }
+
+func (sc *scProcessor) MoveBalances(acntSrc, acntDst *state.Account, value *big.Int) error {
+	return sc.moveBalances(acntSrc, acntDst, value)
+}
+
+func (sc *scProcessor) IncreaseNonce(acntSrc *state.Account) error {
+	return sc.increaseNonce(acntSrc)
+}
