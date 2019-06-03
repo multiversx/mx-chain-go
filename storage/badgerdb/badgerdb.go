@@ -172,7 +172,13 @@ func (s *DB) Init() error {
 
 // Close closes the files/resources associated to the storage medium
 func (s *DB) Close() error {
-	s.putBatch(s.batch)
+	s.mutBatch.Lock()
+	err := s.putBatch(s.batch)
+	s.mutBatch.Unlock()
+	if err != nil {
+		return err
+	}
+
 	s.dbClosed <- struct{}{}
 
 	return s.db.Close()
@@ -191,8 +197,13 @@ func (s *DB) Remove(key []byte) error {
 
 // Destroy removes the storage medium stored data
 func (s *DB) Destroy() error {
-	s.db.Close()
+	err := s.db.Close()
+	if err != nil {
+		return err
+	}
+
 	s.dbClosed <- struct{}{}
-	err := os.RemoveAll(s.path)
+	err = os.RemoveAll(s.path)
+
 	return err
 }

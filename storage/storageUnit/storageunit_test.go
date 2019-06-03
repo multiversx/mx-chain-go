@@ -847,6 +847,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterLvlDBShouldErr(t *testing.T)
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
 	})
 
+	assert.NotNil(t, err)
 	assert.Equal(t, "hash type not supported", err.Error())
 	assert.Nil(t, storer)
 }
@@ -865,6 +866,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterBoltDBShouldErr(t *testing.T
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
 	})
 
+	assert.NotNil(t, err)
 	assert.Equal(t, "hash type not supported", err.Error())
 	assert.Nil(t, storer)
 }
@@ -883,6 +885,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterBadgerDBShouldErr(t *testing
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
 	})
 
+	assert.NotNil(t, err)
 	assert.Equal(t, "hash type not supported", err.Error())
 	assert.Nil(t, storer)
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/boltdb/bolt"
@@ -60,7 +61,7 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err err
 		parentFolder: parentFolder,
 	}
 
-	dbStore.db.MaxBatchSize = batchDelaySeconds
+	dbStore.db.MaxBatchDelay = time.Duration(batchDelaySeconds) * time.Second
 	dbStore.db.MaxBatchSize = maxBatchSize
 	dbStore.batch = dbStore.createBatch()
 

@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
@@ -20,8 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 )
-
-var log = logger.DefaultLogger()
 
 // CacheType represents the type of the supported caches
 type CacheType string
