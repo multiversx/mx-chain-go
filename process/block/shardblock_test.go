@@ -2554,9 +2554,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	assert.True(t, isInTxHashes(txHash3, blockBody[0].TxHashes))
 }
 
-//------- removeMetaBlockFromPool
-
-func TestShardProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
+func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	t.Parallel()
 
 	//we have 3 metablocks in pool each containing 2 miniblocks.
@@ -2596,18 +2594,6 @@ func TestShardProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
 		createDummyMetaBlock(destShardId, destShards[2], miniblockHashes[4], miniblockHashes[5]),
 	)
 
-	wasCalledPut := false
-
-	store := &mock.ChainStorerMock{
-		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
-			if bytes.Equal(key, mb1Hash) {
-				wasCalledPut = true
-			}
-
-			return nil
-		},
-	}
-
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinator.CurrentShard = destShardId
 	shardCoordinator.SetNoShards(destShardId + 1)
@@ -2615,7 +2601,7 @@ func TestShardProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
 	bp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
 		dataPool,
-		store,
+		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
 		&mock.TxProcessorMock{},
@@ -2638,10 +2624,9 @@ func TestShardProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
 	//create block body with first 3 miniblocks from miniblocks var
 	blockBody := block.Body{miniblocks[0], miniblocks[1], miniblocks[2]}
 
-	_, err := bp.RemoveMetaBlockFromPool(blockBody)
+	_, err := bp.GetProcessedMetaBlocksFromPool(blockBody)
 
 	assert.Nil(t, err)
-	assert.True(t, wasCalledPut)
 	//check WasMiniBlockProcessed for remaining metablocks
 	metaBlock2Recov, _ := dataPool.MetaBlocks().Get(mb2Hash)
 	assert.True(t, (metaBlock2Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[2]))
@@ -2953,11 +2938,19 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 		return highNonce
 	}
 
+	putCalledNr := 0
+	store := &mock.ChainStorerMock{
+		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+			putCalledNr++
+			return nil
+		},
+	}
+
 	shardNr := uint32(5)
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
 		dataPool,
-		&mock.ChainStorerMock{},
+		store,
 		hasher,
 		marshalizer,
 		&mock.TxProcessorMock{},
@@ -3012,11 +3005,15 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	shardBlock := block.Body{}
 
 	// test header not in pool and defer called
-	processedMetaHdrs, err := sp.RemoveMetaBlockFromPool(shardBlock)
+	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(shardBlock)
 	assert.Nil(t, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
+
+	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, putCalledNr)
 
 	lastNodesHdrs = sp.LastNotarizedHdrs()
 	assert.Equal(t, firstNonce, lastNodesHdrs[sharding.MetachainShardId].GetNonce())
@@ -3026,11 +3023,15 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	dataPool.MetaBlocks().Put(currHash, shardHdr)
 	dataPool.MetaBlocks().Put(prevHash, prevHdr)
 
-	processedMetaHdrs, err = sp.RemoveMetaBlockFromPool(shardBlock)
+	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(shardBlock)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
+
+	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, putCalledNr)
 
 	lastNodesHdrs = sp.LastNotarizedHdrs()
 	assert.Equal(t, firstNonce, lastNodesHdrs[sharding.MetachainShardId].GetNonce())
@@ -3039,12 +3040,16 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	dataPool.MetaBlocks().Put(currHash, currHdr)
 	dataPool.MetaBlocks().Put(prevHash, prevHdr)
 
-	processedMetaHdrs, err = sp.RemoveMetaBlockFromPool(shardBlock)
+	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(shardBlock)
 	assert.Nil(t, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
-
 	assert.Nil(t, err)
+
+	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, putCalledNr)
+
 	lastNodesHdrs = sp.LastNotarizedHdrs()
 	assert.Equal(t, currHdr, lastNodesHdrs[sharding.MetachainShardId])
 }
@@ -3085,11 +3090,19 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 		return highNonce
 	}
 
+	putCalledNr := 0
+	store := &mock.ChainStorerMock{
+		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+			putCalledNr++
+			return nil
+		},
+	}
+
 	shardNr := uint32(5)
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
 		dataPool,
-		&mock.ChainStorerMock{},
+		store,
 		hasher,
 		marshalizer,
 		&mock.TxProcessorMock{},
@@ -3174,12 +3187,16 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	dataPool.MetaBlocks().Put(currHash, currHdr)
 	dataPool.MetaBlocks().Put(prevHash, prevHdr)
 
-	processedMetaHdrs, err := sp.RemoveMetaBlockFromPool(shardBlock)
+	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(shardBlock)
 	assert.Nil(t, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
-
 	assert.Nil(t, err)
+
+	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, putCalledNr)
+
 	lastNodesHdrs = sp.LastNotarizedHdrs()
 	assert.Equal(t, prevHdr, lastNodesHdrs[sharding.MetachainShardId])
 }
@@ -3195,12 +3212,19 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return highNonce
 	}
+	putCalledNr := 0
+	store := &mock.ChainStorerMock{
+		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+			putCalledNr++
+			return nil
+		},
+	}
 
 	shardNr := uint32(5)
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
 		dataPool,
-		&mock.ChainStorerMock{},
+		store,
 		hasher,
 		marshalizer,
 		&mock.TxProcessorMock{},
@@ -3284,13 +3308,19 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	// put headers in pool
 	dataPool.MetaBlocks().Put(currHash, currHdr)
 	dataPool.MetaBlocks().Put(prevHash, prevHdr)
+	dataPool.MetaBlocks().Put([]byte("shouldNotRemove"), &block.MetaBlock{Nonce: 47})
 
-	processedMetaHdrs, err := sp.RemoveMetaBlockFromPool(shardBlock)
+	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(shardBlock)
 	assert.Nil(t, err)
+	assert.Equal(t, 3, len(processedMetaHdrs))
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
-
 	assert.Nil(t, err)
+
+	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, putCalledNr)
+
 	lastNodesHdrs = sp.LastNotarizedHdrs()
 	assert.Equal(t, currHdr, lastNodesHdrs[sharding.MetachainShardId])
 }

@@ -22,6 +22,7 @@ func TestNewShardHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilResolverSender, err)
@@ -36,6 +37,7 @@ func TestNewShardHeaderResolver_OkValsShouldWork(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
 	)
 
 	assert.NotNil(t, shardHdrRes)
@@ -52,6 +54,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
 	)
 
 	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, nil))
@@ -66,6 +69,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
 	)
 
 	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, make([]byte, 0)))
@@ -98,6 +102,7 @@ func TestShardHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAn
 		headers,
 		&mock.StorerStub{},
 		marshalizer,
+		mock.NewNonceHashConverterMock(),
 	)
 
 	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData))
@@ -131,6 +136,7 @@ func TestShardHeaderResolver_NotFoundShouldReturnNilAndNotSend(t *testing.T) {
 			},
 		},
 		marshalizer,
+		mock.NewNonceHashConverterMock(),
 	)
 
 	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData))
@@ -170,6 +176,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPool
 		headers,
 		&mock.StorerStub{},
 		marshalizerStub,
+		mock.NewNonceHashConverterMock(),
 	)
 
 	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData))
@@ -200,6 +207,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestRetFromStorageCheckRet
 		headers,
 		store,
 		marshalizer,
+		mock.NewNonceHashConverterMock(),
 	)
 
 	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData))
@@ -214,6 +222,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestNonceTypeShouldErr(t *
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
 	)
 
 	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, []byte("aaa")))
@@ -240,6 +249,7 @@ func TestShardHeaderResolver_RequestDataFromHashShouldWork(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
 	)
 
 	assert.Nil(t, shardHdrRes.RequestDataFromHash(buffRequested))

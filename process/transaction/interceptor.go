@@ -146,6 +146,7 @@ func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte))
 }
 
 func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
+	//TODO should remove this as it is expensive
 	err := txi.txStorer.Has(tx.Hash())
 	isTxInStorage := err == nil
 	if isTxInStorage {
