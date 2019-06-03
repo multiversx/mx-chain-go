@@ -5,15 +5,16 @@ import (
 )
 
 type MessengerStub struct {
-	CloseCalled                    func() error
-	CreateTopicCalled              func(name string, createChannelForTopic bool) error
-	HasTopicCalled                 func(name string) bool
-	HasTopicValidatorCalled        func(name string) bool
-	BroadcastOnChannelCalled       func(channel string, topic string, buff []byte)
-	BroadcastCalled                func(topic string, buff []byte)
-	RegisterMessageProcessorCalled func(topic string, handler p2p.MessageProcessor) error
-	BootstrapCalled                func() error
-	PeerAddressCalled              func(pid p2p.PeerID) string
+	CloseCalled                      func() error
+	CreateTopicCalled                func(name string, createChannelForTopic bool) error
+	HasTopicCalled                   func(name string) bool
+	HasTopicValidatorCalled          func(name string) bool
+	BroadcastOnChannelCalled         func(channel string, topic string, buff []byte)
+	BroadcastCalled                  func(topic string, buff []byte)
+	RegisterMessageProcessorCalled   func(topic string, handler p2p.MessageProcessor) error
+	BootstrapCalled                  func() error
+	PeerAddressCalled                func(pid p2p.PeerID) string
+	BroadcastOnChannelBlockingCalled func(channel string, topic string, buff []byte)
 }
 
 func (ms *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
@@ -50,4 +51,8 @@ func (ms *MessengerStub) Bootstrap() error {
 
 func (ms *MessengerStub) PeerAddress(pid p2p.PeerID) string {
 	return ms.PeerAddressCalled(pid)
+}
+
+func (ms *MessengerStub) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
+	ms.BroadcastOnChannelBlockingCalled(channel, topic, buff)
 }

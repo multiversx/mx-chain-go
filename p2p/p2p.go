@@ -80,6 +80,7 @@ type Messenger interface {
 	RegisterMessageProcessor(topic string, handler MessageProcessor) error
 	UnregisterMessageProcessor(topic string) error
 	OutgoingChannelLoadBalancer() ChannelLoadBalancer
+	BroadcastOnChannelBlocking(channel string, topic string, buff []byte)
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 	Broadcast(topic string, buff []byte)
 	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error

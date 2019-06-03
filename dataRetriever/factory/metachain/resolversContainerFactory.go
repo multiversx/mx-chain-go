@@ -139,6 +139,7 @@ func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier st
 		rcf.dataPools.ShardHeaders(),
 		hdrStorer,
 		rcf.marshalizer,
+		rcf.uint64ByteSliceConverter,
 	)
 	if err != nil {
 		return nil, err

@@ -64,8 +64,8 @@ var ErrNilUint64ByteSliceConverter = errors.New("trying to set nil uint64 - byte
 // ErrNilBalances signals that a nil list of initial balances has been provided
 var ErrNilBalances = errors.New("trying to set nil balances")
 
-// ErrNilSingleSig signals that a nil schnorrSingleSigner object has been provided
-var ErrNilSingleSig = errors.New("trying to set nil schnorrSingleSigner")
+// ErrNilSingleSig signals that a nil singlesig object has been provided
+var ErrNilSingleSig = errors.New("trying to set nil singlesig")
 
 // ErrNilMultiSig signals that a nil multiSigner object has been provided
 var ErrNilMultiSig = errors.New("trying to set nil multiSigner")
@@ -117,3 +117,6 @@ var ErrNilTransactionPool = errors.New("nil transaction pool")
 
 // ErrTooManyTransactionsInPool signals that are too many transactions in pool
 var ErrTooManyTransactionsInPool = errors.New("too many transactions in pool")
+
+// ErrSystemBusyGeneratingTransactions signals that to many transactions are trying to get generated
+var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generating bulk transactions")
