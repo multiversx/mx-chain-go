@@ -1071,7 +1071,7 @@ func (sp *shardProcessor) processMiniBlockComplete(
 }
 
 func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header) error {
-	mMiniBlockMeta, err := sp.getAllMiniBlockDstMeFromMeta(hdr.Round)
+	mMiniBlockMeta, err := sp.getAllMiniBlockDstMeFromMeta(hdr.Round, hdr.MetaBlockHashes)
 	if err != nil {
 		return err
 	}
@@ -1129,7 +1129,7 @@ func (sp *shardProcessor) verifyIncludedMetaBlocksFinality(currMetaBlocks []data
 	return nil
 }
 
-func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(round uint32) (map[string][]byte, error) {
+func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(round uint32, metaHashes [][]byte) (map[string][]byte, error) {
 	metaBlockCache := sp.dataPool.MetaBlocks()
 	if metaBlockCache == nil {
 		return nil, process.ErrNilMetaBlockPool
@@ -1141,7 +1141,7 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(round uint32) (map[string
 	}
 
 	mMiniBlockMeta := make(map[string][]byte)
-	for _, metaHash := range metaBlockCache.Keys() {
+	for _, metaHash := range metaHashes {
 		val, _ := metaBlockCache.Peek(metaHash)
 		if val == nil {
 			continue

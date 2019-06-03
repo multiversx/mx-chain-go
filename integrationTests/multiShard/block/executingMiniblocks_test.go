@@ -400,10 +400,10 @@ func testPrivateKeyHasBalance(t *testing.T, n *testNode, sk crypto.PrivateKey, e
 func proposeBlock(t *testing.T, proposer *testNode, round uint32) (data.BodyHandler, data.HeaderHandler) {
 	haveTime := func() bool { return true }
 
-	blockBody, err := proposer.blkProcessor.CreateBlockBody(1, haveTime)
+	blockBody, err := proposer.blkProcessor.CreateBlockBody(round, haveTime)
 	assert.Nil(t, err)
 
-	blockHeader, err := proposer.blkProcessor.CreateBlockHeader(blockBody, 1, haveTime)
+	blockHeader, err := proposer.blkProcessor.CreateBlockHeader(blockBody, round, haveTime)
 	assert.Nil(t, err)
 
 	blockHeader.SetRound(round)
@@ -412,11 +412,13 @@ func proposeBlock(t *testing.T, proposer *testNode, round uint32) (data.BodyHand
 	sig, _ := testMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
 	currHdr := proposer.blkc.GetCurrentBlockHeader()
+	if currHdr == nil {
+		currHdr = proposer.blkc.GetGenesisHeader()
+	}
 	buff, _ := testMarshalizer.Marshal(currHdr)
 	blockHeader.SetPrevHash(testHasher.Compute(string(buff)))
-	blockHeader.SetPrevRandSeed(rootHash)
+	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
 	blockHeader.SetRandSeed(sig)
-	blockHeader.SetRound(1)
 
 	return blockBody, blockHeader
 }
@@ -431,10 +433,13 @@ func proposeMetaBlock(t *testing.T, proposer *testNode, round uint32) (data.Body
 	sig, _ := testMultiSig.AggregateSigs(nil)
 	metaHeader.SetSignature(sig)
 	currHdr := proposer.blkc.GetCurrentBlockHeader()
+	if currHdr == nil {
+		currHdr = proposer.blkc.GetGenesisHeader()
+	}
 	buff, _ := testMarshalizer.Marshal(currHdr)
 	metaHeader.SetPrevHash(testHasher.Compute(string(buff)))
 	metaHeader.SetRandSeed(sig)
-	metaHeader.SetPrevRandSeed(rootHash)
+	metaHeader.SetPrevRandSeed(currHdr.GetRandSeed())
 
 	return nil, metaHeader
 }

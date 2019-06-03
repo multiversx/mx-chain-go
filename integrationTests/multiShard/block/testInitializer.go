@@ -240,7 +240,7 @@ func createNetNode(
 		testMarshalizer,
 		shardCoordinator,
 	)
-
+	genesisBlocks := createGenesisBlocks(shardCoordinator)
 	blockProcessor, _ := block.NewShardProcessor(
 		dPool,
 		store,
@@ -264,10 +264,13 @@ func createNetNode(
 				return nil
 			},
 		},
-		createGenesisBlocks(shardCoordinator),
+		genesisBlocks,
 		true,
 		requestHandler,
 	)
+
+	blkc.SetGenesisHeader(genesisBlocks[shardCoordinator.SelfId()])
+
 	n, err := node.NewNode(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(testMarshalizer),
@@ -620,6 +623,7 @@ func createMetaNetNode(
 
 	requestHandler, _ := requestHandlers.NewMetaResolverRequestHandler(resolvers, factory.ShardHeadersForMetachainTopic)
 
+	genesisBlocks := createGenesisBlocks(shardCoordinator)
 	blkProc, _ := block.NewMetaProcessor(
 		accntAdapter,
 		dPool,
@@ -635,9 +639,12 @@ func createMetaNetNode(
 		testHasher,
 		testMarshalizer,
 		store,
-		createGenesisBlocks(shardCoordinator),
+		genesisBlocks,
 		requestHandler,
 	)
+
+	tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])
+
 	tn.blkProcessor = blkProc
 
 	n, err := node.NewNode(
