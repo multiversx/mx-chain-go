@@ -205,6 +205,18 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
 
+	for _, shardId := range recvShards {
+		receiverProposer := nodes[int(shardId)*nodesPerShard]
+
+		body, header := proposeBlock(t, receiverProposer, uint32(4))
+		receiverProposer.node.BroadcastShardBlock(body, header)
+		receiverProposer.node.BroadcastShardHeader(header)
+		receiverProposer.blkProcessor.CommitBlock(receiverProposer.blkc, header, body)
+	}
+	fmt.Println("Delaying for disseminating miniblocks and headers...")
+	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
+
 	fmt.Println("Step 10. NodesSetup from receivers shards will have to successfully process the block sent by their proposer...")
 	fmt.Println(makeDisplayTable(nodes))
 	for _, n := range nodes {
@@ -286,6 +298,27 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 				}
 
 				err = n.blkProcessor.CommitBlock(n.blkc, n.headers[2], block.Body(n.miniblocks))
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
+
+				err = n.blkProcessor.ProcessBlock(
+					n.blkc,
+					n.headers[3],
+					block.Body{},
+					func() time.Duration {
+						// time 5 seconds as they have to request from leader the TXs
+						return time.Second * 5
+					},
+				)
+
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
+
+				err = n.blkProcessor.CommitBlock(n.blkc, n.headers[3], block.Body{})
 				assert.Nil(t, err)
 				if err != nil {
 					return
