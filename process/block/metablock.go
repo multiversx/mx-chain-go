@@ -751,7 +751,7 @@ func (mp *metaProcessor) createShardInfo(
 	mbHdrs := uint32(0)
 
 	timeBefore := time.Now()
-	orderedHdrs, orderedHdrHashes, sortedHdrPerShard, err := mp.getOrderedHdrs(uint32(round))
+	orderedHdrs, orderedHdrHashes, sortedHdrPerShard, err := mp.getOrderedHdrs(round)
 	timeAfter := time.Now()
 
 	if !haveTime() {

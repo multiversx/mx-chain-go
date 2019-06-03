@@ -443,9 +443,9 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][]byt
 		}
 	}
 
-	//TODO: if miniBlockHashes were not found in meta pool then they should be in some metablocks already
-	//committed in storer, so they should be searched there, and set as not processed and these metablocks should
-	//be pull out in the pool
+	//TODO: if miniBlockHashes were not found in meta pool then they should be in some already committed metablocks
+	//So they should be searched in metablocks storer, these metablocks which contains them should be pull out in pools
+	//and then these miniblocks should be set as not processed.
 
 	return nil
 }
@@ -1354,7 +1354,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
 
-	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(uint32(round))
+	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
 	if err != nil {
 		return nil, 0, err
 	}
