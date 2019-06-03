@@ -131,43 +131,50 @@ func (ei *elasticIndexer) SaveBlock(body block.Body, header *block.Header, txPoo
 	go ei.saveTransactions(body, header, txPool)
 }
 
-func (ei *elasticIndexer) saveHeader(header *block.Header) {
-	var buff bytes.Buffer
-
+func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header *block.Header) ([]byte, []byte) {
 	h, err := ei.marshalizer.Marshal(header)
 	if err != nil {
 		ei.logger.Warn("could not marshal header")
-		return
+		return nil, nil
 	}
 
 	headerHash := ei.hasher.Compute(string(h))
 	elasticBlock := Block{
-		Nonce: header.Nonce,
+		Nonce:   header.Nonce,
 		ShardID: header.ShardId,
-		Hash: hex.EncodeToString(headerHash),
+		Hash:    hex.EncodeToString(headerHash),
 		// TODO: We should add functionality for proposer and validators
 		Proposer: hex.EncodeToString([]byte("mock proposer")),
 		//Validators: "mock validators",
-		PubKeyBitmap: hex.EncodeToString(header.PubKeysBitmap),
-		Size: int64(len(h)),
-		Timestamp: time.Duration(header.TimeStamp),
-		TxCount: header.TxCount,
+		PubKeyBitmap:  hex.EncodeToString(header.PubKeysBitmap),
+		Size:          int64(len(h)),
+		Timestamp:     time.Duration(header.TimeStamp),
+		TxCount:       header.TxCount,
 		StateRootHash: hex.EncodeToString(header.RootHash),
-		PrevHash: hex.EncodeToString(header.PrevHash),
+		PrevHash:      hex.EncodeToString(header.PrevHash),
 	}
 	serializedBlock, err := json.Marshal(elasticBlock)
 	if err != nil {
 		ei.logger.Warn("could not marshal elastic header")
-		return
+		return nil, nil
 	}
+
+	return serializedBlock, headerHash
+}
+
+func (ei *elasticIndexer) saveHeader(header *block.Header) {
+	var buff bytes.Buffer
+
+	serializedBlock, headerHash := ei.getSerializedElasticBlockAndHeaderHash(header)
+
 	buff.Grow(len(serializedBlock))
 	buff.Write(serializedBlock)
 
 	req := esapi.IndexRequest{
-		Index: blockIndex,
+		Index:      blockIndex,
 		DocumentID: hex.EncodeToString(headerHash),
-		Body: bytes.NewReader(buff.Bytes()),
-		Refresh: "true",
+		Body:       bytes.NewReader(buff.Bytes()),
+		Refresh:    "true",
 	}
 
 	res, err := req.Do(context.Background(), ei.db)
@@ -184,30 +191,34 @@ func (ei *elasticIndexer) saveHeader(header *block.Header) {
 	}
 }
 
-func (ei *elasticIndexer) saveTransactions(body block.Body, header *block.Header, txPool map[string]*transaction.Transaction) {
+func (ei *elasticIndexer) serializeBulkTx(bulk []Transaction) bytes.Buffer {
 	var buff bytes.Buffer
+	for _, tx := range bulk {
+		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
+		serializedTx, err := json.Marshal(tx)
+		if err != nil {
+			ei.logger.Warn("could not serialize transaction, will skip indexing: ", tx.Hash)
+			continue
+		}
+		// append a newline foreach element
+		serializedTx = append(serializedTx, "\n"...)
 
+		buff.Grow(len(meta) + len(serializedTx))
+		buff.Write(meta)
+		buff.Write(serializedTx)
+	}
+	return buff
+}
+
+func (ei *elasticIndexer) saveTransactions(body block.Body, header *block.Header, txPool map[string]*transaction.Transaction) {
 	bulks := ei.buildTransactionBulks(body, header, txPool)
 
 	for _, bulk := range bulks {
-		for _, tx := range bulk {
-			meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
-			serializedTx, err := json.Marshal(tx)
-			if err != nil {
-				ei.logger.Warn("could not serialize transaction, will skip indexing: ", tx.Hash)
-				continue
-			}
-			// append a newline foreach element
-			serializedTx = append(serializedTx, "\n"...)
 
-			buff.Grow(len(meta) + len(serializedTx))
-			buff.Write(meta)
-			buff.Write(serializedTx)
-		}
+		buff := ei.serializeBulkTx(bulk)
 
 		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(txIndex))
 		fmt.Println(res.String())
-		buff.Reset()
 
 		if err != nil {
 			ei.logger.Warn("error indexing bulk of transactions")
@@ -224,7 +235,7 @@ func (ei *elasticIndexer) saveTransactions(body block.Body, header *block.Header
 func (ei *elasticIndexer) buildTransactionBulks(body block.Body, header *block.Header, txPool map[string]*transaction.Transaction) [][]Transaction {
 	processedTxCount := 0
 	bulks := make([][]Transaction, (header.GetTxCount()/txBulkSize)+1)
-	blockMarshal, _ := ei.marshalizer.Marshal(body)
+	blockMarshal, _ := ei.marshalizer.Marshal(header)
 	blockHash := ei.hasher.Compute(string(blockMarshal))
 
 	for _, mb := range body {
@@ -254,21 +265,21 @@ func (ei *elasticIndexer) buildTransactionBulks(body block.Body, header *block.H
 
 			}
 			bulks[currentBulk] = append(bulks[currentBulk], Transaction{
-				Hash:              hex.EncodeToString(txHash),
-				MBHash:            hex.EncodeToString(mbHash),
-				BlockHash:         hex.EncodeToString(blockHash),
-				Nonce:             currentTx.Nonce,
-				Value:             currentTx.Value,
-				Receiver:          hex.EncodeToString(currentTx.RcvAddr),
-				Sender:            hex.EncodeToString(currentTx.SndAddr),
-				ReceiverShard:     mb.ReceiverShardID,
-				SenderShard:       mb.SenderShardID,
-				GasPrice:          currentTx.GasPrice,
-				GasLimit:          currentTx.GasLimit,
-				Data:              hex.EncodeToString(currentTx.Data),
-				Signature:         hex.EncodeToString(currentTx.Signature),
-				Timestamp:         time.Duration(header.TimeStamp),
-				Status:            mbTxStatus,
+				Hash:          hex.EncodeToString(txHash),
+				MBHash:        hex.EncodeToString(mbHash),
+				BlockHash:     hex.EncodeToString(blockHash),
+				Nonce:         currentTx.Nonce,
+				Value:         currentTx.Value,
+				Receiver:      hex.EncodeToString(currentTx.RcvAddr),
+				Sender:        hex.EncodeToString(currentTx.SndAddr),
+				ReceiverShard: mb.ReceiverShardID,
+				SenderShard:   mb.SenderShardID,
+				GasPrice:      currentTx.GasPrice,
+				GasLimit:      currentTx.GasLimit,
+				Data:          hex.EncodeToString(currentTx.Data),
+				Signature:     hex.EncodeToString(currentTx.Signature),
+				Timestamp:     time.Duration(header.TimeStamp),
+				Status:        mbTxStatus,
 			})
 		}
 	}
@@ -291,16 +302,16 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 
 	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, metachainTpsDocID, tpsIndex, "\n"))
 	generalInfo := TPS{
-		LiveTPS: tpsBenchmark.LiveTPS(),
-		PeakTPS: tpsBenchmark.PeakTPS(),
+		LiveTPS:    tpsBenchmark.LiveTPS(),
+		PeakTPS:    tpsBenchmark.PeakTPS(),
 		NrOfShards: tpsBenchmark.NrOfShards(),
 		// TODO: This value is still mocked, it should be removed if we cannot populate it correctly
-		NrOfNodes: 100,
-		BlockNumber: tpsBenchmark.BlockNumber(),
-		RoundNumber: tpsBenchmark.RoundNumber(),
-		RoundTime: tpsBenchmark.RoundTime(),
-		AverageBlockTxCount: tpsBenchmark.AverageBlockTxCount(),
-		LastBlockTxCount: tpsBenchmark.LastBlockTxCount(),
+		NrOfNodes:             100,
+		BlockNumber:           tpsBenchmark.BlockNumber(),
+		RoundNumber:           tpsBenchmark.RoundNumber(),
+		RoundTime:             tpsBenchmark.RoundTime(),
+		AverageBlockTxCount:   tpsBenchmark.AverageBlockTxCount(),
+		LastBlockTxCount:      tpsBenchmark.LastBlockTxCount(),
 		TotalProcessedTxCount: tpsBenchmark.TotalProcessedTxCount(),
 	}
 
@@ -322,13 +333,13 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 
 		bigTxCount := big.NewInt(int64(shardInfo.AverageBlockTxCount()))
 		shardTPS := TPS{
-			ShardID: shardInfo.ShardID(),
-			LiveTPS: shardInfo.LiveTPS(),
-			PeakTPS: shardInfo.PeakTPS(),
-			AverageTPS: shardInfo.AverageTPS(),
-			AverageBlockTxCount: bigTxCount,
-			CurrentBlockNonce: shardInfo.CurrentBlockNonce(),
-			LastBlockTxCount: shardInfo.LastBlockTxCount(),
+			ShardID:               shardInfo.ShardID(),
+			LiveTPS:               shardInfo.LiveTPS(),
+			PeakTPS:               shardInfo.PeakTPS(),
+			AverageTPS:            shardInfo.AverageTPS(),
+			AverageBlockTxCount:   bigTxCount,
+			CurrentBlockNonce:     shardInfo.CurrentBlockNonce(),
+			LastBlockTxCount:      shardInfo.LastBlockTxCount(),
 			TotalProcessedTxCount: shardInfo.TotalProcessedTxCount(),
 		}
 
