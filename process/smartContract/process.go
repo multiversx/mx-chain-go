@@ -15,8 +15,10 @@ import (
 )
 
 type scExecutionState struct {
-	mVMOutput map[string]*vmcommon.VMOutput
-	rootHash  []byte
+	allLogs       map[string][]*vmcommon.LogEntry
+	allReturnData map[string][]*big.Int
+	returnCodes   map[string]vmcommon.ReturnCode
+	rootHash      []byte
 }
 
 type scProcessor struct {
@@ -28,8 +30,8 @@ type scProcessor struct {
 	vm               vmcommon.VMExecutionHandler
 	argsParser       process.ArgumentsParser
 
-	mutSCState    sync.Mutex
-	currExecState scExecutionState
+	mutSCState   sync.Mutex
+	mapExecState map[uint32]scExecutionState
 }
 
 var log = logger.DefaultLogger()
@@ -108,6 +110,7 @@ func (sc *scProcessor) ComputeTransactionType(
 func (sc *scProcessor) ExecuteSmartContractTransaction(
 	tx *transaction.Transaction,
 	acntSnd, acntDst state.AccountHandler,
+	round uint32,
 ) error {
 	if sc.vm == nil {
 		return process.ErrNoVM
@@ -156,7 +159,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
-	err = sc.processVMOutput(vmOutput, tx, acntSnd, acntDst)
+	err = sc.processVMOutput(vmOutput, tx, acntSnd, acntDst, round)
 	if err != nil {
 		return err
 	}
@@ -165,7 +168,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 }
 
 // DeploySmartContract runs the VM to verify register the smart contract and saves the data into the state
-func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler) error {
+func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
 	if sc.vm == nil {
 		return process.ErrNoVM
 	}
@@ -193,7 +196,7 @@ func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd,
 		return err
 	}
 
-	err = sc.processVMOutput(vmOutput, tx, acntSnd, acntDst)
+	err = sc.processVMOutput(vmOutput, tx, acntSnd, acntDst, round)
 	if err != nil {
 		return err
 	}
@@ -301,7 +304,7 @@ func (sc *scProcessor) increaseNonce(acntSrc state.AccountHandler) error {
 	return acntSrc.SetNonceWithJournal(acntSrc.GetNonce() + 1)
 }
 
-func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler) error {
+func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
 	if vmOutput == nil {
 		return process.ErrNilVMOutput
 	}
@@ -309,7 +312,13 @@ func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transact
 		return process.ErrNilTransaction
 	}
 
-	err := sc.saveSCOutputToCurrentState(vmOutput)
+	txBytes, err := sc.marshalizer.Marshal(tx)
+	if err != nil {
+		return err
+	}
+	txHash := sc.hasher.Compute(string(txBytes))
+
+	err = sc.saveSCOutputToCurrentState(vmOutput, round, txHash)
 	if err != nil {
 		return err
 	}
@@ -330,11 +339,6 @@ func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transact
 	}
 
 	err = sc.processTouchedAccounts(vmOutput.TouchedAccounts)
-	if err != nil {
-		return err
-	}
-
-	err = sc.saveLogsIntoState(vmOutput.Logs)
 	if err != nil {
 		return err
 	}
@@ -411,6 +415,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			return process.ErrWrongTypeAssertion
 		}
 
+		// move balance from smart contract address to result address
 		difference := big.NewInt(0)
 		difference = difference.Sub(stAcc.Balance, outAcc.Balance)
 		err = sc.moveBalances(acntDst, stAcc, difference)
@@ -469,31 +474,35 @@ func (sc *scProcessor) getAccountFromAddress(address []byte) (state.AccountHandl
 	return acnt, nil
 }
 
+func (sc *scProcessor) GetAllSmartContractCallRootHash(round uint32) []byte {
+	return []byte("roothash")
+}
+
 // saves VM output into state
-func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput) error {
+func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput, round uint32, txHash []byte) error {
 	var err error
 
 	sc.mutSCState.Lock()
 	defer sc.mutSCState.Unlock()
 
-	tmpCurrScState := sc.currExecState
+	tmpCurrScState := sc.mapExecState[round]
 	defer func() {
 		if err != nil {
-			sc.currExecState = tmpCurrScState
+			sc.mapExecState[round] = tmpCurrScState
 		}
 	}()
 
-	err = sc.saveReturnData(output.ReturnData)
+	err = sc.saveReturnData(output.ReturnData, round, txHash)
 	if err != nil {
 		return err
 	}
 
-	err = sc.saveReturnCode(output.ReturnCode)
+	err = sc.saveReturnCode(output.ReturnCode, round, txHash)
 	if err != nil {
 		return err
 	}
 
-	err = sc.saveLogsIntoState(output.Logs)
+	err = sc.saveLogsIntoState(output.Logs, round, txHash)
 	if err != nil {
 		return err
 	}
@@ -502,19 +511,19 @@ func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput) err
 }
 
 // saves return data into account state
-func (sc *scProcessor) saveReturnData(returnData []*big.Int) error {
-	//TODO: implement
+func (sc *scProcessor) saveReturnData(returnData []*big.Int, round uint32, txHash []byte) error {
+	sc.mapExecState[round].allReturnData[string(txHash)] = returnData
 	return nil
 }
 
 // saves smart contract return code into account state
-func (sc *scProcessor) saveReturnCode(returnCode vmcommon.ReturnCode) error {
-	//TODO: implement
+func (sc *scProcessor) saveReturnCode(returnCode vmcommon.ReturnCode, round uint32, txHash []byte) error {
+	sc.mapExecState[round].returnCodes[string(txHash)] = returnCode
 	return nil
 }
 
 // save vm output logs into accounts
-func (sc *scProcessor) saveLogsIntoState(logs []*vmcommon.LogEntry) error {
-	//TODO: implement
+func (sc *scProcessor) saveLogsIntoState(logs []*vmcommon.LogEntry, round uint32, txHash []byte) error {
+	sc.mapExecState[round].allLogs[string(txHash)] = logs
 	return nil
 }

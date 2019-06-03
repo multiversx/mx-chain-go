@@ -351,7 +351,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	argParser.ParseDataCalled = func(data []byte) error {
 		return tmpError
 	}
-	err = sc.DeploySmartContract(tx, acntSrc, acntDst)
+	err = sc.DeploySmartContract(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, tmpError, err)
 }
 
@@ -383,7 +383,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	vm.RunSmartContractCreateCalled = func(input *vmcommon.ContractCreateInput) (output *vmcommon.VMOutput, e error) {
 		return nil, tmpError
 	}
-	err = sc.DeploySmartContract(tx, acntSrc, acntDst)
+	err = sc.DeploySmartContract(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, tmpError, err)
 }
 
@@ -411,7 +411,7 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
-	err = sc.DeploySmartContract(tx, acntSrc, acntDst)
+	err = sc.DeploySmartContract(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, process.ErrWrongTransaction, err)
 }
 
@@ -439,7 +439,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
-	err = sc.DeploySmartContract(tx, acntSrc, acntDst)
+	err = sc.DeploySmartContract(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, nil, err)
 }
 
@@ -467,7 +467,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
-	err = sc.ExecuteSmartContractTransaction(nil, acntSrc, acntDst)
+	err = sc.ExecuteSmartContractTransaction(nil, acntSrc, acntDst, 10)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -495,15 +495,15 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
+	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil, 10)
 	assert.Equal(t, process.ErrNilSCDestAccount, err)
 
 	acntDst.SetCode(nil)
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, process.ErrNilSCDestAccount, err)
 
 	acntDst = nil
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, process.ErrNilSCDestAccount, err)
 }
 
@@ -536,7 +536,7 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 	argParser.ParseDataCalled = func(data []byte) error {
 		return tmpError
 	}
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, tmpError, err)
 }
 
@@ -569,7 +569,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	vm.RunSmartContractCallCalled = func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
 		return nil, tmpError
 	}
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, tmpError, err)
 }
 
@@ -598,7 +598,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	acntSrc, acntDst := createAccounts(tx)
 
 	acntDst.SetCode([]byte("code"))
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, nil, err)
 }
 
@@ -1024,7 +1024,7 @@ func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 
 	acntSrc, acntDst, tx := createAccountsAndTransaction()
 
-	err = sc.processVMOutput(nil, tx, acntSrc, acntDst)
+	err = sc.processVMOutput(nil, tx, acntSrc, acntDst, 10)
 	assert.Equal(t, process.ErrNilVMOutput, err)
 }
 
@@ -1047,7 +1047,7 @@ func TestScProcessor_processVMOutputNilTx(t *testing.T) {
 	acntSrc, acntDst, _ := createAccountsAndTransaction()
 
 	vmOutput := &vmcommon.VMOutput{}
-	err = sc.processVMOutput(vmOutput, nil, acntSrc, acntDst)
+	err = sc.processVMOutput(vmOutput, nil, acntSrc, acntDst, 10)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -1070,7 +1070,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 	_, acntDst, tx := createAccountsAndTransaction()
 
 	vmOutput := &vmcommon.VMOutput{}
-	err = sc.processVMOutput(vmOutput, tx, nil, acntDst)
+	err = sc.processVMOutput(vmOutput, tx, nil, acntDst, 10)
 	assert.Nil(t, err)
 }
 
@@ -1093,16 +1093,22 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 	acntSnd, _, tx := createAccountsAndTransaction()
 
 	vmOutput := &vmcommon.VMOutput{}
-	err = sc.processVMOutput(vmOutput, tx, acntSnd, nil)
+	err = sc.processVMOutput(vmOutput, tx, acntSnd, nil, 10)
 	assert.Nil(t, err)
 }
 
-func TestScProcessor_GetAccountFromAddress(t *testing.T) {
+func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	t.Parallel()
 
 	accountsDB := &mock.AccountsStub{}
 	accountsDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return nil, state.ErrAccNotFound
+	}
+
+	addrConv := &mock.AddressConverterMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		return shardCoordinator.SelfId()
 	}
 
 	vm := &mock.VMExecutionHandlerStub{}
@@ -1113,12 +1119,12 @@ func TestScProcessor_GetAccountFromAddress(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accountsDB,
-		&mock.AddressConverterMock{},
-		mock.NewOneShardCoordinatorMock())
+		addrConv,
+		shardCoordinator)
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("SRC"))
+	acc, err := sc.GetAccountFromAddress([]byte("SRC"))
 	assert.Nil(t, acc)
 	assert.Equal(t, state.ErrAccNotFound, err)
 }
@@ -1130,10 +1136,15 @@ func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
 	addrConv.Fail = true
 
 	accountsDB := &mock.AccountsStub{}
-	removeCalled := 0
-	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
-		removeCalled++
-		return nil
+	getCalled := 0
+	accountsDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		getCalled++
+		return nil, state.ErrAccNotFound
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		return shardCoordinator.SelfId()
 	}
 
 	vm := &mock.VMExecutionHandlerStub{}
@@ -1145,27 +1156,31 @@ func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
 		&mock.MarshalizerMock{},
 		accountsDB,
 		addrConv,
-		mock.NewOneShardCoordinatorMock())
+		shardCoordinator)
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.GetAccountFromAddress([]byte("DST"))
 	assert.Nil(t, acc)
 	assert.NotNil(t, err)
-	assert.Equal(t, 0, removeCalled)
+	assert.Equal(t, 0, getCalled)
 }
 
-func TestScProcessor_GetAccountFromAddrFaildGetExistingAccount(t *testing.T) {
+func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	t.Parallel()
 
 	addrConv := &mock.AddressConverterMock{}
-	addrConv.Fail = true
 
 	accountsDB := &mock.AccountsStub{}
-	removeCalled := 0
-	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
-		removeCalled++
-		return nil
+	getCalled := 0
+	accountsDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		getCalled++
+		return nil, state.ErrAccNotFound
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		return shardCoordinator.SelfId()
 	}
 
 	vm := &mock.VMExecutionHandlerStub{}
@@ -1177,27 +1192,31 @@ func TestScProcessor_GetAccountFromAddrFaildGetExistingAccount(t *testing.T) {
 		&mock.MarshalizerMock{},
 		accountsDB,
 		addrConv,
-		mock.NewOneShardCoordinatorMock())
+		shardCoordinator)
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.GetAccountFromAddress([]byte("DST"))
 	assert.Nil(t, acc)
-	assert.NotNil(t, err)
-	assert.Equal(t, 0, removeCalled)
+	assert.Equal(t, state.ErrAccNotFound, err)
+	assert.Equal(t, 1, getCalled)
 }
 
 func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	t.Parallel()
 
 	addrConv := &mock.AddressConverterMock{}
-	addrConv.Fail = true
 
 	accountsDB := &mock.AccountsStub{}
-	removeCalled := 0
-	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
-		removeCalled++
-		return nil
+	getCalled := 0
+	accountsDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		getCalled++
+		return nil, state.ErrAccNotFound
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		return shardCoordinator.SelfId() + 1
 	}
 
 	vm := &mock.VMExecutionHandlerStub{}
@@ -1209,24 +1228,31 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 		&mock.MarshalizerMock{},
 		accountsDB,
 		addrConv,
-		mock.NewOneShardCoordinatorMock())
+		shardCoordinator)
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.GetAccountFromAddress([]byte("DST"))
 	assert.Nil(t, acc)
-	assert.NotNil(t, err)
-	assert.Equal(t, 0, removeCalled)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, getCalled)
 }
 
-func TestScProcessor_DeleteAccountsFaildAtRemove(t *testing.T) {
+func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	t.Parallel()
 
 	addrConv := &mock.AddressConverterMock{}
 
 	accountsDB := &mock.AccountsStub{}
-	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
-		return
+	getCalled := 0
+	accountsDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		getCalled++
+		return nil, state.ErrAccNotFound
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		return shardCoordinator.SelfId()
 	}
 
 	vm := &mock.VMExecutionHandlerStub{}
@@ -1238,12 +1264,126 @@ func TestScProcessor_DeleteAccountsFaildAtRemove(t *testing.T) {
 		&mock.MarshalizerMock{},
 		accountsDB,
 		addrConv,
-		mock.NewOneShardCoordinatorMock())
+		shardCoordinator)
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
-	assert.Nil(t, acc)
-	assert.NotNil(t, err)
+	acc, err := sc.GetAccountFromAddress([]byte("DST"))
+	assert.NotNil(t, acc)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, getCalled)
+}
+
+func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
+	t.Parallel()
+	addrConv := &mock.AddressConverterMock{}
+
+	accountsDB := &mock.AccountsStub{}
+	removeCalled := 0
+	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
+		removeCalled++
+		return state.ErrAccNotFound
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		return shardCoordinator.SelfId()
+	}
+
+	vm := &mock.VMExecutionHandlerStub{}
+	argParser := &mock.AtArgumentParserMock{}
+	sc, err := NewSmartContractProcessor(
+		vm,
+		argParser,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accountsDB,
+		addrConv,
+		shardCoordinator)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	deletedAccounts := make([][]byte, 0)
+	deletedAccounts = append(deletedAccounts, []byte("acc1"), []byte("acc2"), []byte("acc3"))
+	err = sc.DeleteAccounts(deletedAccounts)
+	assert.Equal(t, state.ErrAccNotFound, err)
+	assert.Equal(t, 1, removeCalled)
+}
+
+func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
+	t.Parallel()
+	addrConv := &mock.AddressConverterMock{}
+
+	accountsDB := &mock.AccountsStub{}
+	removeCalled := 0
+	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
+		removeCalled++
+		return state.ErrAccNotFound
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	computeIdCalled := 0
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		computeIdCalled++
+		return shardCoordinator.SelfId() + 1
+	}
+
+	vm := &mock.VMExecutionHandlerStub{}
+	argParser := &mock.AtArgumentParserMock{}
+	sc, err := NewSmartContractProcessor(
+		vm,
+		argParser,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accountsDB,
+		addrConv,
+		shardCoordinator)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	deletedAccounts := make([][]byte, 0)
+	deletedAccounts = append(deletedAccounts, []byte("acc1"), []byte("acc2"), []byte("acc3"))
+	err = sc.DeleteAccounts(deletedAccounts)
+	assert.Nil(t, err)
 	assert.Equal(t, 0, removeCalled)
+	assert.Equal(t, len(deletedAccounts), computeIdCalled)
+}
+
+func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
+	t.Parallel()
+	addrConv := &mock.AddressConverterMock{}
+
+	accountsDB := &mock.AccountsStub{}
+	removeCalled := 0
+	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
+		removeCalled++
+		return state.ErrAccNotFound
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	computeIdCalled := 0
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		computeIdCalled++
+		return shardCoordinator.SelfId()
+	}
+
+	vm := &mock.VMExecutionHandlerStub{}
+	argParser := &mock.AtArgumentParserMock{}
+	sc, err := NewSmartContractProcessor(
+		vm,
+		argParser,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accountsDB,
+		addrConv,
+		shardCoordinator)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	deletedAccounts := make([][]byte, 0)
+	deletedAccounts = append(deletedAccounts, []byte("acc1"), []byte("acc2"), []byte("acc3"))
+	err = sc.DeleteAccounts(deletedAccounts)
+	assert.Nil(t, err)
+	assert.Equal(t, len(deletedAccounts), removeCalled)
+	assert.Equal(t, len(deletedAccounts), computeIdCalled)
 }

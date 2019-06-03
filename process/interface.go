@@ -19,8 +19,8 @@ type TransactionProcessor interface {
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) (TransactionType, error)
-	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error
-	DeploySmartContract(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error
+	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
+	DeploySmartContract(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
 }
 
 // BlockProcessor is the main interface for block execution engine
