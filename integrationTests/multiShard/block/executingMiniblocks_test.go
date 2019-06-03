@@ -170,6 +170,17 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
 
+	for _, shardId := range recvShards {
+		receiverProposer := nodes[int(shardId)*nodesPerShard]
+
+		body, header := proposeBlock(t, receiverProposer, uint32(2))
+		receiverProposer.node.BroadcastShardBlock(body, header)
+		receiverProposer.node.BroadcastShardHeader(header)
+	}
+	fmt.Println("Delaying for disseminating miniblocks and headers...")
+	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
+
 	fmt.Println("Step 10. NodesSetup from receivers shards will have to successfully process the block sent by their proposer...")
 	fmt.Println(makeDisplayTable(nodes))
 	for _, n := range nodes {
@@ -196,6 +207,27 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 				err := n.blkProcessor.ProcessBlock(
 					n.blkc,
 					n.headers[0],
+					block.Body{},
+					func() time.Duration {
+						// time 5 seconds as they have to request from leader the TXs
+						return time.Second * 5
+					},
+				)
+
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
+
+				err = n.blkProcessor.CommitBlock(n.blkc, n.headers[0], block.Body{})
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
+
+				err = n.blkProcessor.ProcessBlock(
+					n.blkc,
+					n.headers[1],
 					block.Body(n.miniblocks),
 					func() time.Duration {
 						// time 5 seconds as they have to request from leader the TXs
@@ -208,7 +240,11 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 					return
 				}
 
-				err = n.blkProcessor.CommitBlock(n.blkc, n.headers[0], block.Body(n.miniblocks))
+				err = n.blkProcessor.CommitBlock(n.blkc, n.headers[1], block.Body(n.miniblocks))
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
 			}
 		}
 	}
@@ -330,7 +366,8 @@ func proposeBlock(t *testing.T, proposer *testNode, round uint32) (data.BodyHand
 	blockHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := testMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
-	buffGenesis, _ := testMarshalizer.Marshal(createGenesisBlock(proposer.shardId))
+	currHdr := proposer.blkc.GetCurrentBlockHeader()
+	buffGenesis, _ := testMarshalizer.Marshal(currHdr)
 	blockHeader.SetPrevHash(testHasher.Compute(string(buffGenesis)))
 	blockHeader.SetPrevRandSeed(rootHash)
 	blockHeader.SetRandSeed(sig)
