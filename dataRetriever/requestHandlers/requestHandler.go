@@ -150,46 +150,22 @@ func (rrh *ResolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonc
 		return
 	}
 
+	var err error
+	var resolver dataRetriever.Resolver
 	if rrh.isMetaChain {
-		rrh.requestWithCrossShardResolver(destShardID, nonce)
-		return
+		resolver, err = rrh.resolversFinder.CrossShardResolver(rrh.hdrRequestTopic, destShardID)
 	} else {
-		rrh.requestWithMetachainResolver(destShardID, nonce)
-		return
+		resolver, err = rrh.resolversFinder.MetaChainResolver(rrh.hdrRequestTopic)
 	}
-}
 
-func (rrh *ResolverRequestHandler) requestWithCrossShardResolver(destShardID uint32, nonce uint64) {
-	log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", rrh.hdrRequestTopic, destShardID, nonce))
-	resolver, err := rrh.resolversFinder.CrossShardResolver(rrh.hdrRequestTopic, destShardID)
 	if err != nil {
 		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
 		return
 	}
 
-	headerResolver, ok := resolver.(*resolvers.ShardHeaderResolver)
+	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
 	if !ok {
 		log.Error(fmt.Sprintf("resolver is not a header resolver to %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
-		return
-	}
-
-	err = headerResolver.RequestDataFromNonce(nonce)
-	if err != nil {
-		log.Debug(err.Error())
-	}
-}
-
-func (rrh *ResolverRequestHandler) requestWithMetachainResolver(destShardID uint32, nonce uint64) {
-	log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", rrh.hdrRequestTopic, destShardID, nonce))
-	resolver, err := rrh.resolversFinder.MetaChainResolver(rrh.hdrRequestTopic)
-	if err != nil {
-		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
-		return
-	}
-
-	headerResolver, ok := resolver.(*resolvers.HeaderResolver)
-	if !ok {
-		log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
 		return
 	}
 
