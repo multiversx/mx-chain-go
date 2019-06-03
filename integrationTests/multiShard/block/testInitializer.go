@@ -30,7 +30,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -231,6 +230,8 @@ func createNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	requestHandler, _ := containers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
+
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,
 		testHasher,
@@ -264,32 +265,7 @@ func createNetNode(
 		},
 		createGenesisBlocks(shardCoordinator),
 		true,
-		&mock.RequestHandlerMock{
-			RequestTransactionHandlerCalled: func(destShardID uint32, txHashes [][]byte) {
-				resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
-				if err != nil {
-					fmt.Println(err.Error())
-					return
-				}
-
-				err = resolver.(*resolvers.TxResolver).RequestDataFromHashArray(txHashes)
-				if err != nil {
-					fmt.Println(err.Error())
-				}
-			},
-			RequestMiniBlockHandlerCalled: func(shardId uint32, mbHash []byte) {
-				resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
-				if err != nil {
-					fmt.Println(err.Error())
-					return
-				}
-
-				err = resolver.RequestDataFromHash(mbHash)
-				if err != nil {
-					fmt.Println(err.Error())
-				}
-			},
-		},
+		requestHandler,
 	)
 	n, err := node.NewNode(
 		node.WithMessenger(messenger),
@@ -641,6 +617,8 @@ func createMetaNetNode(
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolvers, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 
+	requestHandler, _ := containers.NewMetaResolverRequestHandler(resolvers, factory.ShardHeadersForMetachainTopic)
+
 	blkProc, _ := block.NewMetaProcessor(
 		accntAdapter,
 		dPool,
@@ -657,7 +635,7 @@ func createMetaNetNode(
 		testMarshalizer,
 		store,
 		createGenesisBlocks(shardCoordinator),
-		&mock.RequestHandlerMock{},
+		requestHandler,
 	)
 	tn.blkProcessor = blkProc
 

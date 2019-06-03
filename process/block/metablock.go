@@ -84,8 +84,8 @@ func NewMetaProcessor(
 		marshalizer:                   marshalizer,
 		store:                         store,
 		shardCoordinator:              shardCoordinator,
-		onRequestHeaderHandler:        requestHandler.RequestHeaderHandler,
-		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderHandlerByNonce,
+		onRequestHeaderHandler:        requestHandler.RequestHeader,
+		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(startHeaders, true)

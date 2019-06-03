@@ -93,7 +93,7 @@ func NewShardProcessor(
 		marshalizer:                   marshalizer,
 		store:                         store,
 		shardCoordinator:              shardCoordinator,
-		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderHandlerByNonce,
+		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
 	}
 	err = base.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
 	if err != nil {
@@ -109,7 +109,7 @@ func NewShardProcessor(
 
 	sp.chRcvAllMetaHdrs = make(chan bool)
 	sp.chRcvAllTxs = make(chan bool)
-	sp.onRequestTransaction = requestHandler.RequestTransactionHandler
+	sp.onRequestTransaction = requestHandler.RequestTransaction
 
 	transactionPool := sp.dataPool.Transactions()
 	if transactionPool == nil {
@@ -117,7 +117,7 @@ func NewShardProcessor(
 	}
 	transactionPool.RegisterHandler(sp.receivedTransaction)
 
-	sp.onRequestMiniBlock = requestHandler.RequestMiniBlockHandler
+	sp.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	sp.requestedTxHashes = make(map[string]bool)
 	sp.requestedMetaHdrHashes = make(map[string]bool)
 	sp.crossTxsForBlock = make(map[string]*transaction.Transaction)
@@ -128,7 +128,7 @@ func NewShardProcessor(
 		return nil, process.ErrNilMetaBlockPool
 	}
 	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
-	sp.onRequestHeaderHandler = requestHandler.RequestHeaderHandler
+	sp.onRequestHeaderHandler = requestHandler.RequestHeader
 
 	miniBlockPool := sp.dataPool.MiniBlocks()
 	if miniBlockPool == nil {

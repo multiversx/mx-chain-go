@@ -178,3 +178,6 @@ var ErrEmptyMiniBlockRequestTopic = errors.New("empty miniblock request topic")
 
 // ErrEmptyHeaderRequestTopic signals that an empty transaction topic has been provided
 var ErrEmptyHeaderRequestTopic = errors.New("empty header request topic")
+
+// ErrInvalidMaxTxRequest signals that max tx request is too small
+var ErrInvalidMaxTxRequest = errors.New("max tx request number is invalid")

@@ -37,7 +37,7 @@ func TestNewMetaResolverRequestHandler(t *testing.T) {
 func TestNewShardResolverRequestHandlerNilFinder(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(nil, "topic", "topic", "topic")
+	rrh, err := NewShardResolverRequestHandler(nil, "topic", "topic", "topic", 1)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrNilResolverFinder, err)
@@ -46,7 +46,7 @@ func TestNewShardResolverRequestHandlerNilFinder(t *testing.T) {
 func TestNewShardResolverRequestHandlerTxTopicEmpty(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "", "topic", "topic")
+	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "", "topic", "topic", 1)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyTxRequestTopic, err)
@@ -55,7 +55,7 @@ func TestNewShardResolverRequestHandlerTxTopicEmpty(t *testing.T) {
 func TestNewShardResolverRequestHandlerMBTopicEmpty(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "", "topic")
+	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "", "topic", 1)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyMiniBlockRequestTopic, err)
@@ -64,16 +64,25 @@ func TestNewShardResolverRequestHandlerMBTopicEmpty(t *testing.T) {
 func TestNewShardResolverRequestHandlerHdrTopicEmpty(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "topic", "")
+	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "topic", "", 1)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyHeaderRequestTopic, err)
 }
 
+func TestNewShardResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
+	t.Parallel()
+
+	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "topic", "topic", 0)
+
+	assert.Nil(t, rrh)
+	assert.Equal(t, dataRetriever.ErrInvalidMaxTxRequest, err)
+}
+
 func TestNewShardResolverRequestHandler(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "topic", "topic")
+	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "topic", "topic", 1)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, rrh)

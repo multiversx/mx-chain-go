@@ -304,6 +304,7 @@ func createShardNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	requestHandler, _ := containers.NewShardResolverRequestHandler(tn.resolvers, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
 
 	blockProcessor, _ := block.NewShardProcessor(
 		dPool,
@@ -330,7 +331,7 @@ func createShardNetNode(
 		},
 		createGenesisBlocks(shardCoordinator),
 		true,
-		&mock.RequestHandlerMock{},
+		requestHandler,
 	)
 
 	n, err := node.NewNode(
@@ -469,6 +470,7 @@ func createMetaNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	requestHandler, _ := containers.NewMetaResolverRequestHandler(tn.resolvers, factory.ShardHeadersForMetachainTopic)
 
 	blockProcessor, _ := block.NewMetaProcessor(
 		accntAdapter,
@@ -486,7 +488,7 @@ func createMetaNetNode(
 		testMarshalizer,
 		store,
 		createGenesisBlocks(shardCoordinator),
-		&mock.RequestHandlerMock{},
+		requestHandler,
 	)
 
 	n, err := node.NewNode(

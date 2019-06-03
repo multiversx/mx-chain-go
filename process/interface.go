@@ -145,8 +145,8 @@ type BlocksTracker interface {
 
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
-	RequestHeaderHandlerByNonce(shardId uint32, nonce uint64)
-	RequestTransactionHandler(shardId uint32, txHashes [][]byte)
-	RequestMiniBlockHandler(shardId uint32, miniblockHash []byte)
-	RequestHeaderHandler(shardId uint32, hash []byte)
+	RequestHeaderByNonce(shardId uint32, nonce uint64)
+	RequestTransaction(shardId uint32, txHashes [][]byte)
+	RequestMiniBlock(shardId uint32, miniblockHash []byte)
+	RequestHeader(shardId uint32, hash []byte)
 }

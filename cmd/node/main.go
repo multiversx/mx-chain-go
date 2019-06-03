@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -46,7 +45,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
 	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -84,6 +82,7 @@ const (
 	blsHashSize        = 16
 	blsConsensusType   = "bls"
 	bnConsensusType    = "bn"
+	maxTxsToRequest    = 100
 )
 
 var (
@@ -854,7 +853,7 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	requestHandler, err := containers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic)
+	requestHandler, err := containers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, maxTxsToRequest)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1234,66 +1233,6 @@ func createMetaNode(
 	}
 
 	return nd, externalResolver, tpsBenchmark, nil
-}
-
-func createRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, txHash []byte) {
-	return func(destShardID uint32, txHash []byte) {
-		log.Debug(fmt.Sprintf("Requesting %s from shard %d with hash %s from network\n", baseTopic, destShardID, toB64(txHash)))
-		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
-		if err != nil {
-			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
-			return
-		}
-
-		err = resolver.RequestDataFromHash(txHash)
-		if err != nil {
-			log.Debug(err.Error())
-		}
-	}
-}
-
-func createShardHeaderByNonceRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
-	return func(destShardID uint32, nonce uint64) {
-		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
-		resolver, err := resolversFinder.CrossShardResolver(baseTopic, destShardID)
-		if err != nil {
-			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
-			return
-		}
-
-		headerResolver, ok := resolver.(*resolvers.ShardHeaderResolver)
-		if !ok {
-			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
-			return
-		}
-
-		err = headerResolver.RequestDataFromNonce(nonce)
-		if err != nil {
-			log.Debug(err.Error())
-		}
-	}
-}
-
-func createMetaHeaderByNonceRequestHandler(resolversFinder dataRetriever.ResolversFinder, baseTopic string, log *logger.Logger) func(destShardID uint32, nonce uint64) {
-	return func(destShardID uint32, nonce uint64) {
-		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", baseTopic, destShardID, nonce))
-		resolver, err := resolversFinder.MetaChainResolver(baseTopic)
-		if err != nil {
-			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
-			return
-		}
-
-		headerResolver, ok := resolver.(*resolvers.HeaderResolver)
-		if !ok {
-			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", baseTopic, destShardID))
-			return
-		}
-
-		err = headerResolver.RequestDataFromNonce(nonce)
-		if err != nil {
-			log.Debug(err.Error())
-		}
-	}
 }
 
 func createNetMessenger(
@@ -1768,13 +1707,6 @@ func decodeAddress(address string) ([]byte, error) {
 
 func encodeAddress(address []byte) string {
 	return hex.EncodeToString(address)
-}
-
-func toB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return base64.StdEncoding.EncodeToString(buff)
 }
 
 func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, log *logger.Logger) error {

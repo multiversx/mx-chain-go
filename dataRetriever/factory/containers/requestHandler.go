@@ -16,9 +16,8 @@ type ResolverRequestHandler struct {
 	mbRequestTopic  string
 	hdrRequestTopic string
 	isMetaChain     bool
+	maxTxsToRequest int
 }
-
-const maxTxsToRequest = 100
 
 var log = logger.DefaultLogger()
 
@@ -27,6 +26,7 @@ func NewShardResolverRequestHandler(
 	txRequestTopic string,
 	mbRequestTopic string,
 	hdrRequestTopic string,
+	maxTxsToRequest int,
 ) (*ResolverRequestHandler, error) {
 	if finder == nil {
 		return nil, dataRetriever.ErrNilResolverFinder
@@ -40,12 +40,16 @@ func NewShardResolverRequestHandler(
 	if len(hdrRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyHeaderRequestTopic
 	}
+	if maxTxsToRequest < 1 {
+		return nil, dataRetriever.ErrInvalidMaxTxRequest
+	}
 
 	rrh := &ResolverRequestHandler{
 		txRequestTopic:  txRequestTopic,
 		mbRequestTopic:  mbRequestTopic,
 		hdrRequestTopic: hdrRequestTopic,
 		isMetaChain:     false,
+		maxTxsToRequest: maxTxsToRequest,
 	}
 
 	return rrh, nil
@@ -70,9 +74,9 @@ func NewMetaResolverRequestHandler(
 	return rrh, nil
 }
 
-func (rrh *ResolverRequestHandler) RequestTransactionHandler(destShardID uint32, txHashes [][]byte) {
+func (rrh *ResolverRequestHandler) RequestTransaction(destShardID uint32, txHashes [][]byte) {
 	if len(rrh.txRequestTopic) == 0 {
-		log.Error(fmt.Sprintf("not base topic for transaction request handler"))
+		log.Error(fmt.Sprintf("transaction request topic is not set"))
 		return
 	}
 
@@ -91,7 +95,7 @@ func (rrh *ResolverRequestHandler) RequestTransactionHandler(destShardID uint32,
 
 	go func() {
 		dataSplit := &partitioning.DataSplit{}
-		sliceBatches, err := dataSplit.SplitDataInChunks(txHashes, maxTxsToRequest)
+		sliceBatches, err := dataSplit.SplitDataInChunks(txHashes, rrh.maxTxsToRequest)
 		if err != nil {
 			log.Error("error requesting transactions: " + err.Error())
 			return
@@ -106,25 +110,25 @@ func (rrh *ResolverRequestHandler) RequestTransactionHandler(destShardID uint32,
 	}()
 }
 
-func (rrh *ResolverRequestHandler) RequestMiniBlockHandler(shardId uint32, miniblockHash []byte) {
+func (rrh *ResolverRequestHandler) RequestMiniBlock(shardId uint32, miniblockHash []byte) {
 	if len(rrh.mbRequestTopic) == 0 {
-		log.Error(fmt.Sprintf("not base topic for miniblock request handler"))
+		log.Error(fmt.Sprintf("miniblock request topic is not set"))
 		return
 	}
 
-	rrh.requestHandlerByHash(shardId, miniblockHash, rrh.mbRequestTopic)
+	rrh.requestByHash(shardId, miniblockHash, rrh.mbRequestTopic)
 }
 
-func (rrh *ResolverRequestHandler) RequestHeaderHandler(shardId uint32, hash []byte) {
+func (rrh *ResolverRequestHandler) RequestHeader(shardId uint32, hash []byte) {
 	if len(rrh.hdrRequestTopic) == 0 {
-		log.Error(fmt.Sprintf("not base topic for header request handler"))
+		log.Error(fmt.Sprintf("header request topic is not set"))
 		return
 	}
 
-	rrh.requestHandlerByHash(shardId, hash, rrh.hdrRequestTopic)
+	rrh.requestByHash(shardId, hash, rrh.hdrRequestTopic)
 }
 
-func (rrh *ResolverRequestHandler) requestHandlerByHash(destShardID uint32, hash []byte, baseTopic string) {
+func (rrh *ResolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {
 	log.Debug(fmt.Sprintf("Requesting %s from shard %d with hash %s from network\n", baseTopic, destShardID, core.ToB64(hash)))
 	resolver, err := rrh.resolversFinder.CrossShardResolver(baseTopic, destShardID)
 	if err != nil {
@@ -138,49 +142,57 @@ func (rrh *ResolverRequestHandler) requestHandlerByHash(destShardID uint32, hash
 	}
 }
 
-func (rrh *ResolverRequestHandler) RequestHeaderHandlerByNonce(destShardID uint32, nonce uint64) {
+func (rrh *ResolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonce uint64) {
 	if len(rrh.hdrRequestTopic) == 0 {
-		log.Error(fmt.Sprintf("not base topic for header by nonce request handler"))
+		log.Error(fmt.Sprintf("header by nonce request topic is not set"))
 		return
 	}
 
 	if rrh.isMetaChain {
-		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", rrh.hdrRequestTopic, destShardID, nonce))
-		resolver, err := rrh.resolversFinder.CrossShardResolver(rrh.hdrRequestTopic, destShardID)
-		if err != nil {
-			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
-			return
-		}
-
-		headerResolver, ok := resolver.(*resolvers.ShardHeaderResolver)
-		if !ok {
-			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
-			return
-		}
-
-		err = headerResolver.RequestDataFromNonce(nonce)
-		if err != nil {
-			log.Debug(err.Error())
-		}
-
+		rrh.requestWithCrossShardResolver(destShardID, nonce)
 		return
 	} else {
-		log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", rrh.hdrRequestTopic, destShardID, nonce))
-		resolver, err := rrh.resolversFinder.MetaChainResolver(rrh.hdrRequestTopic)
-		if err != nil {
-			log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
-			return
-		}
+		rrh.requestWithMetachainResolver(destShardID, nonce)
+		return
+	}
+}
 
-		headerResolver, ok := resolver.(*resolvers.HeaderResolver)
-		if !ok {
-			log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
-			return
-		}
+func (rrh *ResolverRequestHandler) requestWithCrossShardResolver(destShardID uint32, nonce uint64) {
+	log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", rrh.hdrRequestTopic, destShardID, nonce))
+	resolver, err := rrh.resolversFinder.CrossShardResolver(rrh.hdrRequestTopic, destShardID)
+	if err != nil {
+		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
+		return
+	}
 
-		err = headerResolver.RequestDataFromNonce(nonce)
-		if err != nil {
-			log.Debug(err.Error())
-		}
+	headerResolver, ok := resolver.(*resolvers.ShardHeaderResolver)
+	if !ok {
+		log.Error(fmt.Sprintf("resolver is not a header resolver to %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
+		return
+	}
+
+	err = headerResolver.RequestDataFromNonce(nonce)
+	if err != nil {
+		log.Debug(err.Error())
+	}
+}
+
+func (rrh *ResolverRequestHandler) requestWithMetachainResolver(destShardID uint32, nonce uint64) {
+	log.Debug(fmt.Sprintf("Requesting %s from shard %d with nonce %d from network\n", rrh.hdrRequestTopic, destShardID, nonce))
+	resolver, err := rrh.resolversFinder.MetaChainResolver(rrh.hdrRequestTopic)
+	if err != nil {
+		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
+		return
+	}
+
+	headerResolver, ok := resolver.(*resolvers.HeaderResolver)
+	if !ok {
+		log.Error(fmt.Sprintf("resolver is not a header resolverto %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
+		return
+	}
+
+	err = headerResolver.RequestDataFromNonce(nonce)
+	if err != nil {
+		log.Debug(err.Error())
 	}
 }
