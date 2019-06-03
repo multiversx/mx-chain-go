@@ -194,9 +194,9 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	if requestedMetaHdrs > 0 {
-		log.Info(fmt.Sprintf("requested %d missing meta headers to confirm cross shard txs\n", requestedTxs))
+		log.Info(fmt.Sprintf("requested %d missing meta headers to confirm cross shard txs\n", requestedMetaHdrs))
 		err = sp.waitForMetaHdrHashes(haveTime())
-		log.Info(fmt.Sprintf("received %d missing meta headers\n", requestedTxs-len(sp.requestedTxHashes)))
+		log.Info(fmt.Sprintf("received %d missing meta headers\n", requestedMetaHdrs-len(sp.requestedMetaHdrHashes)))
 		if err != nil {
 			return err
 		}
@@ -1110,7 +1110,7 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header) erro
 }
 
 func (sp *shardProcessor) verifyIncludedMetaBlocksFinality(currMetaBlocks []data.HeaderHandler, round uint32) error {
-	orderedMetablocks, err := sp.getOrderedMetaBlocks(round + uint32(sp.metaBlockFinality))
+	orderedMetablocks, err := sp.getOrderedMetaBlocks(round)
 	if err != nil {
 		return err
 	}
@@ -1197,10 +1197,10 @@ func (sp *shardProcessor) getOrderedMetaBlocks(round uint32) ([]*hashAndHdr, err
 		if hdr.GetRound() > round {
 			continue
 		}
-		if hdr.GetRound() < lastHdr.GetRound() {
+		if hdr.GetRound() <= lastHdr.GetRound() {
 			continue
 		}
-		if hdr.GetNonce() < lastHdr.GetNonce() {
+		if hdr.GetNonce() <= lastHdr.GetNonce() {
 			continue
 		}
 

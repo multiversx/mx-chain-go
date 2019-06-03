@@ -561,7 +561,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 	}
 
 	//TODO: change this to look at the pool where values are saved by prevHash. can be done after resolver is done
-	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(header.GetRound() + mp.nextKValidity)
+	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(header.GetRound())
 	if err != nil {
 		return err
 	}
@@ -1033,8 +1033,6 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 	headers := make([]*block.Header, 0)
 	hdrHashes := make([][]byte, 0)
 
-	maxRoundToSort := round - mp.nextKValidity
-
 	mp.mutLastNotarizedHdrs.RLock()
 	if mp.lastNotarizedHdrs == nil {
 		mp.mutLastNotarizedHdrs.RUnlock()
@@ -1053,7 +1051,7 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 			continue
 		}
 
-		if hdr.GetRound() >= maxRoundToSort {
+		if hdr.GetRound() >= round {
 			continue
 		}
 
