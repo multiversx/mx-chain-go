@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
@@ -16,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 )
+
+var timeoutWait = time.Duration(time.Second)
 
 //------- GenerateAndSendBulkTransactions
 
@@ -336,8 +339,17 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	signer := &mock.SinglesignMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
+	wg := sync.WaitGroup{}
+	wg.Add(noOfTx)
+
+	chDone := make(chan struct{})
+	go func() {
+		wg.Wait()
+		chDone <- struct{}{}
+	}()
+
 	mes := &mock.MessengerStub{
-		BroadcastOnChannelCalled: func(pipe string, topic string, buff []byte) {
+		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) {
 			identifier := factory.TransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
 			if topic == identifier {
@@ -358,6 +370,8 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 					mutRecoveredTransactions.Lock()
 					recoveredTransactions[tx.Nonce] = &tx
 					mutRecoveredTransactions.Unlock()
+
+					wg.Done()
 				}
 			}
 		},
@@ -391,6 +405,14 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), uint64(noOfTx))
 	assert.Nil(t, err)
+
+	select {
+	case <-chDone:
+	case <-time.After(timeoutWait):
+		assert.Fail(t, "timout while waiting the broadcast of the generated transactions")
+		return
+	}
+
 	mutRecoveredTransactions.RLock()
 	assert.Equal(t, noOfTx, len(recoveredTransactions))
 	mutRecoveredTransactions.RUnlock()
