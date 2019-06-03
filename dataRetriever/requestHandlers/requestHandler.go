@@ -1,4 +1,4 @@
-package containers
+package requestHandlers
 
 import (
 	"fmt"
@@ -45,6 +45,7 @@ func NewShardResolverRequestHandler(
 	}
 
 	rrh := &ResolverRequestHandler{
+		resolversFinder: finder,
 		txRequestTopic:  txRequestTopic,
 		mbRequestTopic:  mbRequestTopic,
 		hdrRequestTopic: hdrRequestTopic,
@@ -67,6 +68,7 @@ func NewMetaResolverRequestHandler(
 	}
 
 	rrh := &ResolverRequestHandler{
+		resolversFinder: finder,
 		hdrRequestTopic: hdrRequestTopic,
 		isMetaChain:     true,
 	}
