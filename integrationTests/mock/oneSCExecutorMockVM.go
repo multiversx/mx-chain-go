@@ -16,17 +16,33 @@ const getFunc = "get"
 
 var variableA = []byte("a")
 
-type OneSCExecutorFakeVM struct {
+// OneSCExecutorMockVM contains one hardcoded SC with the following behaviour (written in golang):
+//-------------------------------------
+// var a int
+//
+// func init(initial int){
+//     a = initial
+// }
+//
+// func Add(value int){
+//     a += value
+// }
+//
+// func Get() int{
+//     return a
+// }
+//-------------------------------------
+type OneSCExecutorMockVM struct {
 	blockchainHook vmcommon.BlockchainHook
 	cryptoHook     vmcommon.CryptoHook
 }
 
-func NewOneSCExecutorFakeVM(blockchainHook vmcommon.BlockchainHook, cryptoHook vmcommon.CryptoHook) (*OneSCExecutorFakeVM, error) {
+func NewOneSCExecutorMockVM(blockchainHook vmcommon.BlockchainHook, cryptoHook vmcommon.CryptoHook) (*OneSCExecutorMockVM, error) {
 	if blockchainHook == nil || cryptoHook == nil {
 		return nil, errNilValue
 	}
 
-	vm := &OneSCExecutorFakeVM{
+	vm := &OneSCExecutorMockVM{
 		blockchainHook: blockchainHook,
 		cryptoHook:     cryptoHook,
 	}
@@ -34,32 +50,15 @@ func NewOneSCExecutorFakeVM(blockchainHook vmcommon.BlockchainHook, cryptoHook v
 	return vm, nil
 }
 
-func (vm *OneSCExecutorFakeVM) G0Create(input *vmcommon.ContractCreateInput) (*big.Int, error) {
+func (vm *OneSCExecutorMockVM) G0Create(input *vmcommon.ContractCreateInput) (*big.Int, error) {
 	return big.NewInt(0), nil
 }
 
-func (vm *OneSCExecutorFakeVM) G0Call(input *vmcommon.ContractCallInput) (*big.Int, error) {
+func (vm *OneSCExecutorMockVM) G0Call(input *vmcommon.ContractCallInput) (*big.Int, error) {
 	return big.NewInt(0), nil
 }
 
-func (vm *OneSCExecutorFakeVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
-	//the default SC hardwired contract will be something like (written in golang):
-	//-------------------------------------
-	// var a int
-	//
-	// func init(initial int){
-	//     a = initial
-	// }
-	//
-	// func Add(value int){
-	//     a += value
-	// }
-	//
-	// func Get() int{
-	//     return a
-	// }
-	//-------------------------------------
-
+func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 	if input == nil {
 		return nil, errNilValue
 	}
@@ -109,24 +108,7 @@ func (vm *OneSCExecutorFakeVM) RunSmartContractCreate(input *vmcommon.ContractCr
 	}, nil
 }
 
-func (vm *OneSCExecutorFakeVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-	//the default SC hardwired contract will be something like (written in golang):
-	//-------------------------------------
-	// var a int
-	//
-	// func init(initial int){
-	//     a = initial
-	// }
-	//
-	// func Add(value int){
-	//     a += value
-	// }
-	//
-	// func Get() int{
-	//     return a
-	// }
-	//-------------------------------------
-
+func (vm *OneSCExecutorMockVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	if input == nil {
 		return nil, errNilValue
 	}
@@ -156,7 +138,7 @@ func (vm *OneSCExecutorFakeVM) RunSmartContractCall(input *vmcommon.ContractCall
 	}
 }
 
-func (vm *OneSCExecutorFakeVM) processAddFunc(input *vmcommon.ContractCallInput, value *big.Int) (*vmcommon.VMOutput, error) {
+func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput, value *big.Int) (*vmcommon.VMOutput, error) {
 	currentValueBuff, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
 	if err != nil {
 		return nil, err
@@ -202,7 +184,7 @@ func (vm *OneSCExecutorFakeVM) processAddFunc(input *vmcommon.ContractCallInput,
 	}, nil
 }
 
-func (vm *OneSCExecutorFakeVM) processGetFunc(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+func (vm *OneSCExecutorMockVM) processGetFunc(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	currentValueBuff, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
 	if err != nil {
 		return nil, err
@@ -240,7 +222,7 @@ func (vm *OneSCExecutorFakeVM) processGetFunc(input *vmcommon.ContractCallInput)
 	}, nil
 }
 
-func (vm *OneSCExecutorFakeVM) unavailableFunc(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+func (vm *OneSCExecutorMockVM) unavailableFunc(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	destNonce, err := vm.blockchainHook.GetNonce(input.RecipientAddr)
 	if err != nil {
 		return nil, err
