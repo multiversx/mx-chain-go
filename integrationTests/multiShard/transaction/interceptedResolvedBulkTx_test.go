@@ -302,11 +302,11 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 		}
 	}()
 
-	//shard 0, requestors
+	//shard 0, requesters
 	recvTxs := make(map[int]map[string]struct{})
 	mutRecvTxs := sync.Mutex{}
 	for i := 0; i < nodesPerShard; i++ {
-		dPool := createRequestorDataPool(t, recvTxs, mutRecvTxs, i)
+		dPool := createRequesterDataPool(t, recvTxs, mutRecvTxs, i)
 
 		tn := createNode(
 			0,
@@ -370,7 +370,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	fmt.Println(makeDisplayTable(nodes))
 }
 
-func createRequestorDataPool(
+func createRequesterDataPool(
 	t *testing.T,
 	recvTxs map[int]map[string]struct{},
 	mutRecvTxs sync.Mutex,
@@ -381,7 +381,7 @@ func createRequestorDataPool(
 	return createTestDataPool(
 		&mock.ShardedDataStub{
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-				assert.Fail(t, "same-shard requestors should not be queried")
+				assert.Fail(t, "same-shard requesters should not be queried")
 				return nil, false
 			},
 			ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {

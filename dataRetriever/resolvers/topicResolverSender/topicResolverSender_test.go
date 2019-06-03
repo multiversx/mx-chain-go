@@ -187,8 +187,8 @@ func TestMakeDiffList_EmptyExcludedShoudRetAllPeersList(t *testing.T) {
 	t.Parallel()
 
 	allPeers := []p2p.PeerID{p2p.PeerID("peer1"), p2p.PeerID("peer2")}
-
-	diff := topicResolverSender.MakeDiffList(allPeers, make([]p2p.PeerID, 0))
+	excludedPeerList := make([]p2p.PeerID, 0)
+	diff := topicResolverSender.MakeDiffList(allPeers, excludedPeerList)
 
 	assert.Equal(t, allPeers, diff)
 }
@@ -233,7 +233,9 @@ func TestMakeDiffList_NoneFoundInExcludedShouldRetAllPeers(t *testing.T) {
 func TestSelectRandomPeers_ConnectedPeersLen0ShoudRetEmpty(t *testing.T) {
 	t.Parallel()
 
-	selectedPeers, err := topicResolverSender.SelectRandomPeers(make([]p2p.PeerID, 0), make([]p2p.PeerID, 0), 0, nil)
+	allPeerList := make([]p2p.PeerID, 0)
+	excludedPeerList := make([]p2p.PeerID, 0)
+	selectedPeers, err := topicResolverSender.SelectRandomPeers(allPeerList, excludedPeerList, 0, nil)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(selectedPeers))
@@ -243,8 +245,8 @@ func TestSelectRandomPeers_ConnectedPeersLenSmallerThanRequiredShoudRetListTest1
 	t.Parallel()
 
 	connectedPeers := []p2p.PeerID{p2p.PeerID("peer 1"), p2p.PeerID("peer 2")}
-
-	selectedPeers, err := topicResolverSender.SelectRandomPeers(connectedPeers, make([]p2p.PeerID, 0), 3, nil)
+	excludedPeerList := make([]p2p.PeerID, 0)
+	selectedPeers, err := topicResolverSender.SelectRandomPeers(connectedPeers, excludedPeerList, 3, nil)
 
 	assert.Nil(t, err)
 	assert.Equal(t, connectedPeers, selectedPeers)
@@ -254,8 +256,8 @@ func TestSelectRandomPeers_ConnectedPeersLenSmallerThanRequiredShoudRetListTest2
 	t.Parallel()
 
 	connectedPeers := []p2p.PeerID{p2p.PeerID("peer 1"), p2p.PeerID("peer 2")}
-
-	selectedPeers, err := topicResolverSender.SelectRandomPeers(connectedPeers, make([]p2p.PeerID, 0), 2, nil)
+	excludedPeerList := make([]p2p.PeerID, 0)
+	selectedPeers, err := topicResolverSender.SelectRandomPeers(connectedPeers, excludedPeerList, 2, nil)
 
 	assert.Nil(t, err)
 	assert.Equal(t, connectedPeers, selectedPeers)
@@ -277,7 +279,8 @@ func TestSelectRandomPeers_ConnectedPeersTestRandomizerRepeat0ThreeTimes(t *test
 		},
 	}
 
-	selectedPeers, _ := topicResolverSender.SelectRandomPeers(connectedPeers, make([]p2p.PeerID, 0), 2, mr)
+	excludedPeerList := make([]p2p.PeerID, 0)
+	selectedPeers, _ := topicResolverSender.SelectRandomPeers(connectedPeers, excludedPeerList, 2, mr)
 
 	//since iterating a map does not guarantee the order, we have to search in any combination possible
 	foundPeer0 := false
@@ -312,7 +315,8 @@ func TestSelectRandomPeers_ConnectedPeersTestRandomizerRepeat2TwoTimes(t *testin
 		},
 	}
 
-	selectedPeers, _ := topicResolverSender.SelectRandomPeers(connectedPeers, make([]p2p.PeerID, 0), 2, mr)
+	excludedPeerList := make([]p2p.PeerID, 0)
+	selectedPeers, _ := topicResolverSender.SelectRandomPeers(connectedPeers, excludedPeerList, 2, mr)
 
 	//since iterating a map does not guarantee the order, we have to search in any combination possible
 	foundPeer0 := false
