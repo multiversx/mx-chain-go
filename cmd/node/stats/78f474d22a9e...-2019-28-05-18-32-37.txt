@@ -1,1 +1,0 @@
-timestamp: 1559057557, uptime: 0s, num go: 11, go mem: 9.54 MB, sys mem: 69.44 MB, total mem: 11.70 MB, num GC: 2

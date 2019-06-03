@@ -1,4 +1,0 @@
-timestamp: 1559129201, uptime: 0s, num go: 11, go mem: 5.50 MB, sys mem: 68.94 MB, total mem: 11.72 MB, num GC: 3
-timestamp: 1559129232, uptime: 30s, num go: 211, go mem: 163.53 MB, sys mem: 271.27 MB, total mem: 1.63 GB, num GC: 32
-timestamp: 1559129266, uptime: 1m5s, num go: 217, go mem: 167.97 MB, sys mem: 339.41 MB, total mem: 7.59 GB, num GC: 84
-timestamp: 1559129301, uptime: 1m40s, num go: 211, go mem: 271.57 MB, sys mem: 339.72 MB, total mem: 14.11 GB, num GC: 133
