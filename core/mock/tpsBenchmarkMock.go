@@ -96,4 +96,32 @@ func (s *TpsBenchmarkMock) ShardStatistic(shardID uint32) statistics.ShardStatis
 
 // Update receives a metablock and updates all fields accordingly for each shard available in the meta block
 func (s *TpsBenchmarkMock) Update(mb *block.MetaBlock) {
+	s.blockNumber = mb.Nonce
+	s.roundNumber = uint64(mb.Round)
+	s.lastBlockTxCount = mb.TxCount
+	s.roundTime = 6
+
+	currentTPS := float64(uint64(mb.TxCount) / s.roundTime)
+	if currentTPS > s.peakTPS {
+		s.peakTPS = currentTPS
+	}
+}
+
+func (s *TpsBenchmarkMock) UpdateWithShardStats(mb *block.MetaBlock) {
+	s.blockNumber = mb.Nonce
+	s.roundNumber = uint64(mb.Round)
+	s.lastBlockTxCount = mb.TxCount
+	s.roundTime = 6
+
+	currentTPS := float64(uint64(mb.TxCount) / s.roundTime)
+	if currentTPS > s.peakTPS {
+		s.peakTPS = currentTPS
+	}
+
+	s.shardStatistics = make(map[uint32]statistics.ShardStatistic)
+	for _, shardInfo := range mb.ShardInfo {
+		updatedShardStats := &ShardStatisticsMock{}
+		updatedShardStats.roundTime = 6
+		s.shardStatistics[shardInfo.ShardId] = updatedShardStats
+	}
 }

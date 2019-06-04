@@ -3,6 +3,8 @@ package indexer
 import (
 	"bytes"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
@@ -30,4 +32,8 @@ func (ei *ElasticIndexer) BuildTransactionBulks(body block.Body, header *block.H
 
 func (ei *ElasticIndexer) SerializeBulkTx(bulk []Transaction) bytes.Buffer {
 	return ei.serializeBulkTx(bulk)
+}
+
+func (ei *ElasticIndexer) SerializeShardInfo(shardInfo statistics.ShardStatistic) ([]byte, []byte) {
+	return ei.serializeShardInfo(shardInfo)
 }
