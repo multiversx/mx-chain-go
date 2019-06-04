@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 )
 
 var log = logger.DefaultLogger()
@@ -21,7 +22,7 @@ type shardedData struct {
 	// Each key represents a destination shard id and the value will contain all
 	//  data hashes that have that shard as destination
 	shardedDataStore map[string]*shardStore
-	cacherConfig     storage.CacheConfig
+	cacherConfig     storageUnit.CacheConfig
 
 	mutAddedDataHandlers sync.RWMutex
 	addedDataHandlers    []func(key []byte)
@@ -33,7 +34,7 @@ type shardStore struct {
 }
 
 // NewShardedData is responsible for creating an empty pool of data
-func NewShardedData(cacherConfig storage.CacheConfig) (*shardedData, error) {
+func NewShardedData(cacherConfig storageUnit.CacheConfig) (*shardedData, error) {
 	err := verifyCacherConfig(cacherConfig)
 	if err != nil {
 		return nil, err
@@ -48,14 +49,14 @@ func NewShardedData(cacherConfig storage.CacheConfig) (*shardedData, error) {
 	}, nil
 }
 
-func verifyCacherConfig(cacherConfig storage.CacheConfig) error {
+func verifyCacherConfig(cacherConfig storageUnit.CacheConfig) error {
 	_, err := newShardStore("", cacherConfig)
 	return err
 }
 
 // newShardStore is responsible for creating an empty shardStore
-func newShardStore(cacheId string, cacherConfig storage.CacheConfig) (*shardStore, error) {
-	cacher, err := storage.NewCache(cacherConfig.Type, cacherConfig.Size, cacherConfig.Shards)
+func newShardStore(cacheId string, cacherConfig storageUnit.CacheConfig) (*shardStore, error) {
+	cacher, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Size, cacherConfig.Shards)
 	if err != nil {
 		return nil, err
 	}

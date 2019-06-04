@@ -38,6 +38,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 )
@@ -49,8 +50,8 @@ func init() {
 }
 
 func createTestBlockChain() data.ChainHandler {
-	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
+	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
 	)
@@ -59,9 +60,9 @@ func createTestBlockChain() data.ChainHandler {
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10, 1)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
-	unit, _ := storage.NewStorageUnit(cache, persist)
+	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 
 	return unit
 }
@@ -78,26 +79,26 @@ func createTestStore() dataRetriever.StorageService {
 }
 
 func createTestDataPool() dataRetriever.PoolsHolder {
-	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
-	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	hdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	metaHdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
-	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
+	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,

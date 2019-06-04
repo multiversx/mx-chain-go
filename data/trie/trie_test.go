@@ -798,7 +798,7 @@ func BenchmarkPatriciaMerkleTree_DeleteCollapsedTrie(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
 
-	nrValuesInTrie := 3000000
+	nrValuesInTrie := 1000000
 	values := make([][]byte, nrValuesInTrie)
 
 	for i := 0; i < nrValuesInTrie; i++ {
@@ -835,7 +835,7 @@ func BenchmarkPatriciaMerkleTree_GetCollapsedTrie(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
 
-	nrValuesInTrie := 3000000
+	nrValuesInTrie := 1000000
 	values := make([][]byte, nrValuesInTrie)
 
 	for i := 0; i < nrValuesInTrie; i++ {
@@ -854,7 +854,7 @@ func BenchmarkPatriciaMerkleTree_Prove(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
 
-	nrValuesInTrie := 3000000
+	nrValuesInTrie := 1000000
 	values := make([][]byte, nrValuesInTrie)
 
 	for i := 0; i < nrValuesInTrie; i++ {
@@ -913,34 +913,6 @@ func BenchmarkPatriciaMerkleTree_VerifyProof(b *testing.B) {
 	}
 }
 
-func BenchmarkPatriciaMerkleTree_VerifyProofCollapsedTrie(b *testing.B) {
-	var err error
-	tr := newEmpty()
-	hsh := keccak.Keccak{}
-
-	nrProofs := 10
-	proofs := make([][][]byte, nrProofs)
-
-	nrValuesInTrie := 100000
-	values := make([][]byte, nrValuesInTrie)
-
-	for i := 0; i < nrValuesInTrie; i++ {
-		values[i] = hsh.Compute(strconv.Itoa(i))
-		tr.Update(values[i], values[i])
-	}
-	for i := 0; i < nrProofs; i++ {
-		proofs[i], err = tr.Prove(values[i], 0)
-		assert.Nil(b, err)
-	}
-	tr.Commit(nil)
-	root := tr.Root()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		trie.VerifyProof(root, values[i%nrProofs], proofs[i%nrProofs])
-	}
-}
-
 func BenchmarkPatriciaMerkleTree_Commit(b *testing.B) {
 	nrValuesInTrie := 1000000
 	for i := 0; i < b.N; i++ {
@@ -954,5 +926,64 @@ func BenchmarkPatriciaMerkleTree_Commit(b *testing.B) {
 		b.StartTimer()
 
 		tr.Commit(nil)
+	}
+}
+
+func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000Nodes(b *testing.B) {
+	tr := newEmpty()
+	hsh := keccak.Keccak{}
+
+	nrValuesInTrie := 2000000
+	values := make([][]byte, nrValuesInTrie)
+	nrOfValuesToModify := 30000
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		key := hsh.Compute(strconv.Itoa(i))
+		value := append(key, []byte(strconv.Itoa(i))...)
+
+		tr.Update(key, value)
+		values[i] = key
+	}
+	tr.Commit(nil)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		for j := 0; j < nrOfValuesToModify; j++ {
+			tr.Update(values[j], values[j])
+		}
+		b.StartTimer()
+		tr.Root()
+	}
+}
+
+func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging200Nodes(b *testing.B) {
+	tr := newEmpty()
+	hsh := keccak.Keccak{}
+
+	nrValuesInTrie := 2000000
+	values := make([][]byte, nrValuesInTrie)
+	nrOfValuesToModify := 30000
+	nrOfValuesToCommit := 200
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		key := hsh.Compute(strconv.Itoa(i))
+		value := append(key, []byte(strconv.Itoa(i))...)
+
+		tr.Update(key, value)
+		values[i] = key
+	}
+	tr.Commit(nil)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for j := 0; j < nrOfValuesToModify; j++ {
+			b.StopTimer()
+			tr.Update(values[j], values[j])
+			if j%nrOfValuesToCommit == 0 {
+				b.StartTimer()
+				tr.Root()
+			}
+		}
 	}
 }

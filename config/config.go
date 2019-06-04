@@ -11,8 +11,10 @@ type CacheConfig struct {
 
 // DBConfig will map the json db configuration
 type DBConfig struct {
-	FilePath string `json:"file"`
-	Type     string `json:"type"`
+	FilePath          string `json:"file"`
+	Type              string `json:"type"`
+	BatchDelaySeconds int    `json:"batchDelaySeconds"`
+	MaxBatchSize      int    `json:"maxBatchSize"`
 }
 
 // BloomFilterConfig will map the json bloom filter configuration
