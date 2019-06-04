@@ -45,6 +45,21 @@ func newTestBlockHeader() *block.Header {
 	}
 }
 
+func newTestMetaBlock() *block.MetaBlock {
+	shardData := block.ShardData{
+		ShardId:               1,
+		HeaderHash:            []byte{1},
+		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
+		TxCount:               100,
+	}
+	return &block.MetaBlock{
+		Nonce:     1,
+		Round:     2,
+		TxCount:   100,
+		ShardInfo: []block.ShardData{shardData},
+	}
+}
+
 func newTestBlockBody() block.Body {
 	return block.Body{
 		{[][]byte{[]byte("tx1"), []byte("tx2")}, 2, 2},
@@ -164,4 +179,38 @@ func TestElasticIndexer_serializeBulkTx(t *testing.T) {
 	}
 
 	assert.Equal(t, buff, serializedTx)
+}
+
+func TestElasticIndexer_UpdateTPS(t *testing.T) {
+	var output bytes.Buffer
+	log.SetOutput(&output)
+	ei := indexer.NewTestElasticIndexer(url, shardCoordinator, marshalizer, hasher, log)
+
+	tpsBench := mock.TpsBenchmarkMock{}
+	tpsBench.Update(newTestMetaBlock())
+
+	ei.UpdateTPS(&tpsBench)
+	assert.Empty(t, output.String())
+}
+
+func TestElasticIndexer_UpdateTPSNil(t *testing.T) {
+	var output bytes.Buffer
+	log.SetOutput(&output)
+	ei := indexer.NewTestElasticIndexer(url, shardCoordinator, marshalizer, hasher, log)
+
+	ei.UpdateTPS(nil)
+	assert.NotEmpty(t, output.String())
+}
+
+func TestElasticIndexer_SerializeShardInfo(t *testing.T) {
+	ei := indexer.NewTestElasticIndexer(url, shardCoordinator, marshalizer, hasher, log)
+
+	tpsBench := mock.TpsBenchmarkMock{}
+	tpsBench.UpdateWithShardStats(newTestMetaBlock())
+
+	for _, shardInfo := range tpsBench.ShardStatistics() {
+		serializedInfo, meta := ei.SerializeShardInfo(shardInfo)
+		assert.NotNil(t, serializedInfo)
+		assert.NotNil(t, meta)
+	}
 }

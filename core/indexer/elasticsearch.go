@@ -291,6 +291,33 @@ func (ei *elasticIndexer) SaveMetaBlock(metaBlock *block.MetaBlock, headerPool m
 
 }
 
+func (ei *elasticIndexer) serializeShardInfo(shardInfo statistics.ShardStatistic) ([]byte, []byte) {
+	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s%d", "_type" : "%s" } }%s`,
+		shardTpsDocIDPrefix, shardInfo.ShardID(), tpsIndex, "\n"))
+
+	bigTxCount := big.NewInt(int64(shardInfo.AverageBlockTxCount()))
+	shardTPS := TPS{
+		ShardID:               shardInfo.ShardID(),
+		LiveTPS:               shardInfo.LiveTPS(),
+		PeakTPS:               shardInfo.PeakTPS(),
+		AverageTPS:            shardInfo.AverageTPS(),
+		AverageBlockTxCount:   bigTxCount,
+		CurrentBlockNonce:     shardInfo.CurrentBlockNonce(),
+		LastBlockTxCount:      shardInfo.LastBlockTxCount(),
+		TotalProcessedTxCount: shardInfo.TotalProcessedTxCount(),
+	}
+
+	serializedInfo, err := json.Marshal(shardTPS)
+	if err != nil {
+		ei.logger.Warn("could not serialize tps info, will skip indexing tps this shard")
+		return nil, nil
+	}
+	// append a newline foreach element in the bulk we create
+	serializedInfo = append(serializedInfo, "\n"...)
+
+	return serializedInfo, meta
+}
+
 // UpdateTPS updates the tps and statistics into elasticsearch index
 func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	if tpsBenchmark == nil {
@@ -328,28 +355,10 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	buff.Write(serializedInfo)
 
 	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
-		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s%d", "_type" : "%s" } }%s`,
-			shardTpsDocIDPrefix, shardInfo.ShardID(), tpsIndex, "\n"))
-
-		bigTxCount := big.NewInt(int64(shardInfo.AverageBlockTxCount()))
-		shardTPS := TPS{
-			ShardID:               shardInfo.ShardID(),
-			LiveTPS:               shardInfo.LiveTPS(),
-			PeakTPS:               shardInfo.PeakTPS(),
-			AverageTPS:            shardInfo.AverageTPS(),
-			AverageBlockTxCount:   bigTxCount,
-			CurrentBlockNonce:     shardInfo.CurrentBlockNonce(),
-			LastBlockTxCount:      shardInfo.LastBlockTxCount(),
-			TotalProcessedTxCount: shardInfo.TotalProcessedTxCount(),
-		}
-
-		serializedInfo, err := json.Marshal(shardTPS)
-		if err != nil {
-			ei.logger.Warn("could not serialize tps info, will skip indexing tps this shard")
+		serializedInfo, meta := ei.serializeShardInfo(shardInfo)
+		if serializedInfo == nil {
 			continue
 		}
-		// append a newline foreach element in the bulk we create
-		serializedInfo = append(serializedInfo, "\n"...)
 
 		buff.Grow(len(meta) + len(serializedInfo))
 		buff.Write(meta)
