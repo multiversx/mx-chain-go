@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
 	shard2 "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -305,6 +306,7 @@ func createShardNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(tn.resolvers, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
 
 	blockProcessor, _ := block.NewShardProcessor(
 		dPool,
@@ -329,12 +331,9 @@ func createShardNetNode(
 				return nil
 			},
 		},
-		func(shardId uint32, txHash [][]byte) {
-
-		},
-		func(shardId uint32, miniblockHash []byte) {
-
-		},
+		createGenesisBlocks(shardCoordinator),
+		true,
+		requestHandler,
 	)
 
 	n, err := node.NewNode(
@@ -473,6 +472,7 @@ func createMetaNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	requestHandler, _ := requestHandlers.NewMetaResolverRequestHandler(tn.resolvers, factory.ShardHeadersForMetachainTopic)
 
 	blockProcessor, _ := block.NewMetaProcessor(
 		accntAdapter,
@@ -489,7 +489,8 @@ func createMetaNetNode(
 		testHasher,
 		testMarshalizer,
 		store,
-		func(shardId uint32, hdrHash []byte) {},
+		createGenesisBlocks(shardCoordinator),
+		requestHandler,
 	)
 
 	n, err := node.NewNode(
@@ -531,4 +532,44 @@ func createMetaNetNode(
 	})
 
 	return &tn
+}
+
+func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
+	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
+		genesisBlocks[shardId] = createGenesisBlock(shardId)
+	}
+
+	genesisBlocks[sharding.MetachainShardId] = createGenesisMetaBlock()
+
+	return genesisBlocks
+}
+
+func createGenesisBlock(shardId uint32) *dataBlock.Header {
+	rootHash := []byte("rootHash")
+	return &dataBlock.Header{
+		Nonce:         0,
+		Round:         0,
+		Signature:     rootHash,
+		RandSeed:      rootHash,
+		PrevRandSeed:  rootHash,
+		ShardId:       shardId,
+		PubKeysBitmap: rootHash,
+		RootHash:      rootHash,
+		PrevHash:      rootHash,
+	}
+}
+
+func createGenesisMetaBlock() *dataBlock.MetaBlock {
+	rootHash := []byte("rootHash")
+	return &dataBlock.MetaBlock{
+		Nonce:         0,
+		Round:         0,
+		Signature:     rootHash,
+		RandSeed:      rootHash,
+		PrevRandSeed:  rootHash,
+		PubKeysBitmap: rootHash,
+		RootHash:      rootHash,
+		PrevHash:      rootHash,
+	}
 }

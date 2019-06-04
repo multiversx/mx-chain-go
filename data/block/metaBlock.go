@@ -422,6 +422,10 @@ func (m *MetaBlock) SetTxCount(txCount uint32) {
 func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	hashDst := make(map[string]uint32, 0)
 	for i := 0; i < len(m.ShardInfo); i++ {
+		if m.ShardInfo[i].ShardId == destId {
+			continue
+		}
+
 		for _, val := range m.ShardInfo[i].ShardMiniBlockHeaders {
 			if val.ReceiverShardId == destId && val.SenderShardId != destId {
 				hashDst[string(val.Hash)] = val.SenderShardId
