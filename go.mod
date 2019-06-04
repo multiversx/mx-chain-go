@@ -20,6 +20,7 @@ require (
 	github.com/glycerine/goconvey v0.0.0-20190410193231-58a59202ab31 // indirect
 	github.com/glycerine/rbtree v0.0.0-20180524195614-80eebfe947f7 // indirect
 	github.com/gogo/protobuf v1.2.1
+	github.com/golang/protobuf v1.3.0
 	github.com/google/gops v0.3.6
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
 	github.com/hashicorp/golang-lru v0.5.1
