@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -145,13 +146,13 @@ func createStore() *mock.ChainStorerMock {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storage.NewCache(storage.LRUCache, 1000, 1)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1)
 	return cache
 }
 
 func generateTestUnit() storage.Storer {
 	memDB, _ := memorydb.New()
-	storer, _ := storage.NewStorageUnit(
+	storer, _ := storageUnit.NewStorageUnit(
 		generateTestCache(),
 		memDB,
 	)
