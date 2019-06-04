@@ -143,6 +143,13 @@ func (mp *metaProcessor) AddHdrHashToRequestedList(hdrHash []byte) {
 		mp.requestedShardHeaderHashes = make(map[string]bool)
 	}
 
+	if mp.currHighestShardHdrNonces == nil {
+		mp.currHighestShardHdrNonces = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
+		for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
+			mp.currHighestShardHdrNonces[i] = uint64(0)
+		}
+	}
+
 	mp.requestedShardHeaderHashes[string(hdrHash)] = true
 }
 

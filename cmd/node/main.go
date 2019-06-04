@@ -1604,7 +1604,13 @@ func createMetaDataPoolFromConfig(
 		fmt.Println("error creating shardHeaders")
 		return nil, err
 	}
-	shardHeadersNonces, err := dataPool.NewNonceToHashCacher(shardHeaders, uint64ByteSliceConverter)
+
+	shardHeadersNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		fmt.Println("error creating shard headers nonces pool")
+		return nil, err
+	}
+	shardHeadersNonces, err := dataPool.NewNonceToHashCacher(shardHeadersNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
 		fmt.Println("error creating shard headers nonces pool")
 		return nil, err

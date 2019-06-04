@@ -28,8 +28,9 @@ func NewPoolsHolderFake() *PoolsHolderFake {
 		cacheHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
+	cacheMetaHdrNonces, _ := storage.NewCache(storage.LRUCache, 10000, 1)
 	phf.metaHdrNonces, _ = dataPool.NewNonceToHashCacher(
-		cacheHdrNonces,
+		cacheMetaHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
 	phf.miniBlocks, _ = storage.NewCache(storage.LRUCache, 10000, 1)

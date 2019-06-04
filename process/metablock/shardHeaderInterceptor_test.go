@@ -168,7 +168,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 	}
 }
 
-func TestShardHeaderInterceptor_ProcessReceivedMessageVTestHdrNonces(t *testing.T) {
+func TestShardHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -186,12 +186,6 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageVTestHdrNonces(t *testing.
 		return errors.New("Key not found")
 	}
 	hdrsNonces := &mock.Uint64CacherStub{}
-	hdrsNonces.PeekCalled = func(u uint64) (i interface{}, b bool) {
-		return nil, false
-	}
-	hdrsNonces.PutCalled = func(u uint64, i interface{}) bool {
-		return true
-	}
 
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		marshalizer,
@@ -223,11 +217,17 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageVTestHdrNonces(t *testing.
 	}
 
 	headers.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
-		aaaHash := mock.HasherMock{}.Compute(string(buff))
-		if bytes.Equal(aaaHash, key) {
+		return false, false
+	}
+
+	hdrsNonces.PeekCalled = func(u uint64) (i interface{}, b bool) {
+		return nil, false
+	}
+	hdrsNonces.PutCalled = func(u uint64, i interface{}) bool {
+		if testedNonce == u {
 			chanDone <- struct{}{}
 		}
-		return false, false
+		return true
 	}
 
 	assert.Nil(t, hi.ProcessReceivedMessage(msg))
