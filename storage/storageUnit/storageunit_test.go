@@ -103,6 +103,7 @@ func TestStorageUnit_NilBloomFilterShouldErr(t *testing.T) {
 	sUnit, err := storageUnit.NewStorageUnitWithBloomFilter(cache, mdb, nil)
 
 	assert.Nil(t, sUnit)
+	assert.NotNil(t, err)
 	assert.Equal(t, "expected not nil bloom filter", err.Error())
 }
 

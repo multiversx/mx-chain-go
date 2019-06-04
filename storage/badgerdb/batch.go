@@ -12,7 +12,6 @@ type batch struct {
 // NewBatch creates a batch
 func NewBatch(db *DB) *batch {
 	badgerDB := db.db
-
 	b := badgerDB.NewTransaction(true)
 
 	return &batch{

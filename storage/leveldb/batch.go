@@ -18,14 +18,12 @@ func NewBatch() *batch {
 // Put inserts one entry - key, value pair - into the batch
 func (b *batch) Put(key []byte, val []byte) error {
 	b.batch.Put(key, val)
-
 	return nil
 }
 
 // Delete deletes the entry for the provided key from the batch
 func (b *batch) Delete(key []byte) error {
 	b.batch.Delete(key)
-
 	return nil
 }
 

@@ -146,7 +146,7 @@ func (s *DB) createBatch() storage.Batcher {
 	return NewBatch()
 }
 
-// PutBatch writes the Batch data into the database
+// putBatch writes the Batch data into the database
 func (s *DB) putBatch(b storage.Batcher) error {
 	batch, ok := b.(*batch)
 	if !ok {

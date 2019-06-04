@@ -6,7 +6,7 @@ type Persister interface {
 	Put(key, val []byte) error
 	// Get gets the value associated to the key
 	Get(key []byte) ([]byte, error)
-	// Has returns true if the given key is present in the persistance mediu
+	// Has returns true if the given key is present in the persistance medium
 	Has(key []byte) error
 	// Init initializes the persistance medium and prepares it for usage
 	Init() error
