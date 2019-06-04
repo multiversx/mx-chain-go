@@ -63,6 +63,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/track"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
@@ -692,7 +694,18 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
+	argsParser, err := smartContract.NewAtArgumentParser()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	//TODO: change the mock
+	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator, scProcessor)
 	if err != nil {
 		return nil, nil, nil, errors.New("could not create transaction processor: " + err.Error())
 	}

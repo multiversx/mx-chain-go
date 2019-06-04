@@ -22,6 +22,9 @@ var ErrNilAddressContainer = errors.New("nil AddressContainer")
 // ErrNilTransaction signals that an operation has been attempted to or with a nil transaction
 var ErrNilTransaction = errors.New("nil transaction")
 
+// ErrWrongTransaction signals that transaction is invalid
+var ErrWrongTransaction = errors.New("invalid transaction")
+
 // ErrNoVM signals that no SCHandler has been set
 var ErrNoVM = errors.New("no VM (hook not set)")
 
@@ -312,3 +315,24 @@ var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header dat
 
 // ErrMetaBlockNotFinal signals that metablock is not final
 var ErrMetaBlockNotFinal = errors.New("cannot attest meta blocks finality")
+
+// ErrNilSmartContractProcessor signals that smart contract call executor is nil
+var ErrNilSmartContractProcessor = errors.New("smart contract processor is nil")
+
+// ErrNilArguments signals that arguments from transactions data is nil
+var ErrNilArguments = errors.New("smart contract arguments are nil")
+
+// ErrNilCode signals that code from transaction data is nil
+var ErrNilCode = errors.New("smart contract code is nil")
+
+// ErrNilFunction signals that function from transaction data is nil
+var ErrNilFunction = errors.New("smart contract function is nil")
+
+// ErrStringSplitFailed signals that data splitting into arguments and code failed
+var ErrStringSplitFailed = errors.New("data splitting into arguments and code/function failed")
+
+// ErrNilArgumentParser signals that the argument parser is nil
+var ErrNilArgumentParser = errors.New("argument parser is nil")
+
+// ErrNilSCDestAccount signals that destination account is nil
+var ErrNilSCDestAccount = errors.New("nil destination SC account")
