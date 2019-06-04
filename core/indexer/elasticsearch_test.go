@@ -112,7 +112,7 @@ func newTestTxPool() map[string]*transaction.Transaction {
 func TestNewElasticIndexerIncorrectUrl(t *testing.T) {
 	url := string([]byte{1, 2, 3})
 
-	ind, err := indexer.NewElasticIndexer(url, shardCoordinator, marshalizer, hasher, log)
+	ind, err := indexer.NewElasticIndexer(url, "username", "passwor", shardCoordinator, marshalizer, hasher, log)
 	assert.Nil(t, ind)
 	assert.NotNil(t, err)
 }

@@ -40,10 +40,13 @@ type elasticIndexer struct {
 }
 
 // NewElasticIndexer SHOULD UPDATE COMMENT
-func NewElasticIndexer(url string, shardCoordinator sharding.Coordinator, marshalizer marshal.Marshalizer,
+func NewElasticIndexer(url string, username string, password string, shardCoordinator sharding.Coordinator,
+	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher, logger *logger.Logger) (Indexer, error) {
 	cfg := elasticsearch.Config{
 		Addresses: []string{url},
+		Username:  username,
+		Password:  password,
 	}
 	es, err := elasticsearch.NewClient(cfg)
 	if err != nil {
@@ -218,7 +221,6 @@ func (ei *elasticIndexer) saveTransactions(body block.Body, header *block.Header
 		buff := ei.serializeBulkTx(bulk)
 
 		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(txIndex))
-		fmt.Println(res.String())
 
 		if err != nil {
 			ei.logger.Warn("error indexing bulk of transactions")
