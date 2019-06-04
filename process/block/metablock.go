@@ -1098,7 +1098,7 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 			continue
 		}
 
-		if hdr.GetRound() >= round {
+		if hdr.GetRound() > round {
 			continue
 		}
 

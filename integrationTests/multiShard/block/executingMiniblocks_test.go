@@ -88,10 +88,17 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	fmt.Println("Step 5. Proposer creates block body and header with all available transactions...")
 	blockBody, blockHeader := proposeBlock(t, proposerNode, uint32(1))
-
-	fmt.Println("Step 6. Proposer disseminates header, block body and miniblocks...")
 	proposerNode.node.BroadcastShardBlock(blockBody, blockHeader)
 	proposerNode.node.BroadcastShardHeader(blockHeader)
+	proposerNode.blkProcessor.CommitBlock(proposerNode.blkc, blockHeader, blockBody)
+	fmt.Println("Delaying for disseminating miniblocks and header...")
+	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
+
+	blockBody, blockHeader = proposeBlock(t, proposerNode, uint32(2))
+	proposerNode.node.BroadcastShardBlock(blockBody, blockHeader)
+	proposerNode.node.BroadcastShardHeader(blockHeader)
+	proposerNode.blkProcessor.CommitBlock(proposerNode.blkc, blockHeader, blockBody)
 	fmt.Println("Delaying for disseminating miniblocks and header...")
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
