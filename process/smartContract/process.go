@@ -141,6 +141,7 @@ func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction) (*vmcommon
 		return nil, err
 	}
 
+	// TODO: decide who is the recipient address
 	vmCallInput.RecipientAddr = tx.RcvAddr
 
 	return vmCallInput, nil
