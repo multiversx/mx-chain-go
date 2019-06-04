@@ -146,3 +146,14 @@ type ExplorerConfig struct {
 	Enabled    bool
 	IndexerURL string
 }
+
+// ServersConfig will hold all the confidential settings for servers
+type ServersConfig struct {
+	ElasticSearch ElasticSearchConfig
+}
+
+// ExplorerConfig will hold the configuration for the explorer indexer
+type ElasticSearchConfig struct {
+	Username string
+	Password string
+}

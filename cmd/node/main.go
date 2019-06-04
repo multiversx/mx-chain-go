@@ -142,6 +142,12 @@ VERSION:
 		Usage: "The configuration file for P2P",
 		Value: "./config/p2p.toml",
 	}
+	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
+	serversConfigurationFile = cli.StringFlag{
+		Name:  "serversconfig",
+		Usage: "The configuration file for servers confidential data",
+		Value: "./config/servers.toml",
+	}
 	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
 	withUI = cli.BoolTFlag{
 		Name:  "with-ui",
@@ -368,6 +374,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	if err != nil {
 		return err
 	}
+
 	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFileName))
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
@@ -848,7 +855,10 @@ func createShardNode(
 	}
 
 	if config.Explorer.Enabled {
-		dbIndexer, err = indexer.NewElasticIndexer(config.Explorer.IndexerURL, shardCoordinator, marshalizer, hasher, log)
+		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
+		dbIndexer, err = CreateElasticIndexer(serversConfigurationFileName, config.Explorer.IndexerURL,
+			shardCoordinator, marshalizer, hasher, log)
+
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -970,6 +980,24 @@ func createShardNode(
 	}
 
 	return nd, externalResolver, tpsBenchmark, nil
+}
+
+func CreateElasticIndexer(serversConfigurationFileName string, url string, coordinator sharding.Coordinator,
+	marshalizer marshal.Marshalizer, hasher hashing.Hasher, log *logger.Logger) (indexer.Indexer, error) {
+	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
+	if err != nil {
+		return nil, err
+	}
+	dbIndexer, err = indexer.NewElasticIndexer(url,
+		serversConfig.ElasticSearch.Username, serversConfig.ElasticSearch.Password, coordinator,
+		marshalizer,
+		hasher, log)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return dbIndexer, nil
 }
 
 func createMetaNode(
@@ -1170,7 +1198,9 @@ func createMetaNode(
 	}
 
 	if config.Explorer.Enabled {
-		dbIndexer, err = indexer.NewElasticIndexer(config.Explorer.IndexerURL, shardCoordinator, marshalizer, hasher, log)
+		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
+		dbIndexer, err = CreateElasticIndexer(serversConfigurationFileName, config.Explorer.IndexerURL,
+			shardCoordinator, marshalizer, hasher, log)
 		if err != nil {
 			return nil, nil, nil, err
 		}
