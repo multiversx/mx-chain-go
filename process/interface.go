@@ -148,6 +148,14 @@ type BlocksTracker interface {
 	BlockBroadcastRound(nonce uint64) int32
 }
 
+// RequestHandler defines the methods through which request to data can be made
+type RequestHandler interface {
+	RequestHeaderByNonce(shardId uint32, nonce uint64)
+	RequestTransaction(shardId uint32, txHashes [][]byte)
+	RequestMiniBlock(shardId uint32, miniblockHash []byte)
+	RequestHeader(shardId uint32, hash []byte)
+}
+
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
 type ArgumentsParser interface {
 	GetArguments() ([]*big.Int, error)

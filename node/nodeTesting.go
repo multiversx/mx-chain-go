@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -20,11 +21,17 @@ const maxBulkTransactionSize = 2 << 17 //128KB bulks
 // maxLoadThresholdPercent specifies the max load percent accepted from txs storage size when generates new txs
 const maxLoadThresholdPercent = 70
 
+const maxGoRoutinesSendMessage = 10000
+
 //TODO move this funcs in a new benchmarking/stress-test binary
 
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
 // of transactions to be processed. It is mainly used for demo purposes
 func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTx uint64) error {
+	if atomic.LoadInt32(&n.currentSendingGoRoutines) >= maxGoRoutinesSendMessage {
+		return ErrSystemBusyGeneratingTransactions
+	}
+
 	err := n.generateBulkTransactionsChecks(noOfTx)
 	if err != nil {
 		return err
@@ -122,12 +129,17 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return err
 	}
 
+	atomic.AddInt32(&n.currentSendingGoRoutines, int32(len(packets)))
 	for _, buff := range packets {
-		n.messenger.BroadcastOnChannel(
-			SendTransactionsPipe,
-			identifier,
-			buff,
-		)
+		go func(bufferToSend []byte) {
+			n.messenger.BroadcastOnChannelBlocking(
+				SendTransactionsPipe,
+				identifier,
+				bufferToSend,
+			)
+
+			atomic.AddInt32(&n.currentSendingGoRoutines, -1)
+		}(buff)
 	}
 
 	return nil

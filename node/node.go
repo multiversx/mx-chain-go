@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -96,9 +97,10 @@ type Node struct {
 	consensusTopic string
 	consensusType  string
 
-	isRunning         bool
-	isMetachainActive bool
-	txStorageSize     uint32
+	isRunning                bool
+	isMetachainActive        bool
+	txStorageSize            uint32
+	currentSendingGoRoutines int32
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -118,8 +120,9 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
 	node := &Node{
-		ctx:               context.Background(),
-		isMetachainActive: true,
+		ctx:                      context.Background(),
+		isMetachainActive:        true,
+		currentSendingGoRoutines: 0,
 	}
 	for _, opt := range opts {
 		err := opt(node)
@@ -127,6 +130,7 @@ func NewNode(opts ...Option) (*Node, error) {
 			return nil, errors.New("error applying option: " + err.Error())
 		}
 	}
+
 	return node, nil
 }
 
@@ -702,17 +706,21 @@ func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.Heade
 			n.shardCoordinator.CommunicationIdentifier(k), v)
 	}
 
+	dataPacker, err := partitioning.NewSizeDataPacker(n.marshalizer)
+	if err != nil {
+		return err
+	}
+
 	for k, v := range msgMapTx {
-		// for on values as those are list of txs with dest to K.
-		for _, tx := range v {
-			//TODO optimize this to send bulk transactions
-			// This should be made in future subtasks belonging to EN-1520 story
-			txsBuff, err := n.marshalizer.Marshal([][]byte{tx})
-			if err != nil {
-				return err
-			}
+		// forward txs to the destination shards in packets
+		packets, err := dataPacker.PackDataInChunks(v, maxBulkTransactionSize)
+		if err != nil {
+			return err
+		}
+
+		for _, buff := range packets {
 			go n.messenger.Broadcast(factory.TransactionTopic+
-				n.shardCoordinator.CommunicationIdentifier(k), txsBuff)
+				n.shardCoordinator.CommunicationIdentifier(k), buff)
 		}
 	}
 

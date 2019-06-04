@@ -244,11 +244,8 @@ var ErrContainerKeyAlreadyExists = errors.New("provided key already exists in co
 // ErrNilResolverContainer signals that a nil resolver container was provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
 
-// ErrNilTransactionHandler signals that a nil transaction handler func was provided
-var ErrNilTransactionHandler = errors.New("nil request transaction handler")
-
-// ErrNilMiniBlocksRequestHandler signals that a nil mini block request handler func was provided
-var ErrNilMiniBlocksRequestHandler = errors.New("nil request miniblock handler")
+// ErrNilRequestHandler signals that a nil request handler interface was provided
+var ErrNilRequestHandler = errors.New("nil request handler")
 
 // ErrNilHaveTimeHandler signals that a nil have time handler func was provided
 var ErrNilHaveTimeHandler = errors.New("nil have time handler")
@@ -283,9 +280,6 @@ var ErrNilRandSeed = errors.New("provided rand seed is nil")
 // ErrNilPrevRandSeed signals that a nil previous rand seed has been provided
 var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 
-// ErrNilRequestHeaderHandler signals that a nil header request handler func was provided
-var ErrNilRequestHeaderHandler = errors.New("nil request header handler")
-
 // ErrNilRequestHeaderHandlerByNonce signals that a nil header request handler by nonce func was provided
 var ErrNilRequestHeaderHandlerByNonce = errors.New("nil request header handler by nonce")
 
@@ -304,14 +298,23 @@ var ErrShardIdMissmatch = errors.New("shard ID missmatch")
 // ErrMintAddressNotInThisShard signals that the mint address does not belong to current shard
 var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
 
-// ErrLastNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
-var ErrLastNotarizedHdrsSliceIsNil = errors.New("last notarized shard headers slice is nil")
+// ErrNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
+var ErrNotarizedHdrsSliceIsNil = errors.New("notarized shard headers slice is nil")
 
 // ErrNoNewMetablocks signals that no new metablocks are in the pool
 var ErrNoNewMetablocks = errors.New("there is no new metablocks")
 
 // ErrNoSortedHdrsForShard signals that there are no sorted hdrs in pool
 var ErrNoSortedHdrsForShard = errors.New("no sorted headers in pool")
+
+// ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
+var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
+
+// ErrHeaderBodyMismatch signals that the header does not attest all data from the block
+var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header data")
+
+// ErrMetaBlockNotFinal signals that metablock is not final
+var ErrMetaBlockNotFinal = errors.New("cannot attest meta blocks finality")
 
 // ErrNilSmartContractProcessor signals that smart contract call executor is nil
 var ErrNilSmartContractProcessor = errors.New("smart contract processor is nil")

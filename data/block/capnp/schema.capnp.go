@@ -12,9 +12,9 @@ import (
 
 type HeaderCapn C.Struct
 
-func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct(40, 8)) }
-func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(40, 8)) }
-func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(40, 8)) }
+func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct(40, 9)) }
+func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(40, 9)) }
+func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(40, 9)) }
 func ReadRootHeaderCapn(s *C.Segment) HeaderCapn { return HeaderCapn(s.Root(0).ToStruct()) }
 func (s HeaderCapn) Nonce() uint64               { return C.Struct(s).Get64(0) }
 func (s HeaderCapn) SetNonce(v uint64)           { C.Struct(s).Set64(0, v) }
@@ -50,6 +50,8 @@ func (s HeaderCapn) PeerChanges() PeerChangeCapn_List {
 func (s HeaderCapn) SetPeerChanges(v PeerChangeCapn_List) { C.Struct(s).SetObject(6, C.Object(v)) }
 func (s HeaderCapn) RootHash() []byte                     { return C.Struct(s).GetObject(7).ToData() }
 func (s HeaderCapn) SetRootHash(v []byte)                 { C.Struct(s).SetObject(7, s.Segment.NewData(v)) }
+func (s HeaderCapn) MetaHdrHashes() C.DataList            { return C.DataList(C.Struct(s).GetObject(8)) }
+func (s HeaderCapn) SetMetaHdrHashes(v C.DataList)        { C.Struct(s).SetObject(8, C.Object(v)) }
 func (s HeaderCapn) TxCount() uint32                      { return C.Struct(s).Get32(32) }
 func (s HeaderCapn) SetTxCount(v uint32)                  { C.Struct(s).Set32(32, v) }
 func (s HeaderCapn) WriteJSON(w io.Writer) error {
@@ -347,6 +349,43 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 			return err
 		}
 		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"metaHdrHashes\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.MetaHdrHashes()
+		{
+			err = b.WriteByte('[')
+			if err != nil {
+				return err
+			}
+			for i, s := range s.ToArray() {
+				if i != 0 {
+					_, err = b.WriteString(", ")
+				}
+				if err != nil {
+					return err
+				}
+				buf, err = json.Marshal(s)
+				if err != nil {
+					return err
+				}
+				_, err = b.Write(buf)
+				if err != nil {
+					return err
+				}
+			}
+			err = b.WriteByte(']')
+		}
 		if err != nil {
 			return err
 		}
@@ -685,6 +724,43 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
+	_, err = b.WriteString("metaHdrHashes = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.MetaHdrHashes()
+		{
+			err = b.WriteByte('[')
+			if err != nil {
+				return err
+			}
+			for i, s := range s.ToArray() {
+				if i != 0 {
+					_, err = b.WriteString(", ")
+				}
+				if err != nil {
+					return err
+				}
+				buf, err = json.Marshal(s)
+				if err != nil {
+					return err
+				}
+				_, err = b.Write(buf)
+				if err != nil {
+					return err
+				}
+			}
+			err = b.WriteByte(']')
+		}
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
 	_, err = b.WriteString("txCount = ")
 	if err != nil {
 		return err
@@ -716,7 +792,7 @@ func (s HeaderCapn) MarshalCapLit() ([]byte, error) {
 type HeaderCapn_List C.PointerList
 
 func NewHeaderCapnList(s *C.Segment, sz int) HeaderCapn_List {
-	return HeaderCapn_List(s.NewCompositeList(40, 8, sz))
+	return HeaderCapn_List(s.NewCompositeList(40, 9, sz))
 }
 func (s HeaderCapn_List) Len() int            { return C.PointerList(s).Len() }
 func (s HeaderCapn_List) At(i int) HeaderCapn { return HeaderCapn(C.PointerList(s).At(i).ToStruct()) }

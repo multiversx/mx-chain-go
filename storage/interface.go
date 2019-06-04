@@ -18,6 +18,16 @@ type Persister interface {
 	Destroy() error
 }
 
+// Batcher allows to batch the data first then write the batch to the persister in one go
+type Batcher interface {
+	// Put inserts one entry - key, value pair - into the batch
+	Put(key []byte, val []byte) error
+	// Delete deletes the batch
+	Delete(key []byte) error
+	// Reset clears the contents of the batch
+	Reset()
+}
+
 // Cacher provides caching services
 type Cacher interface {
 	// Clear is used to completely clear the cache.

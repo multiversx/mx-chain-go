@@ -3,9 +3,9 @@ package transaction
 import (
 	"context"
 	"crypto/ecdsa"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -42,19 +42,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 )
 
-var r *rand.Rand
-
-func init() {
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
-}
+var hasher = sha256.Sha256{}
+var marshalizer = &marshal.JsonMarshalizer{}
+var suite = kyber.NewBlakeSHA256Ed25519()
+var singleSigner = &singlesig.SchnorrSigner{}
+var keyGen = signing.NewKeyGenerator(suite)
+var addrConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 
 type testNode struct {
 	node         *node.Node
-	mesenger     p2p.Messenger
+	messenger    p2p.Messenger
 	shardId      uint32
 	sk           crypto.PrivateKey
 	pk           crypto.PublicKey
@@ -66,8 +68,8 @@ type testNode struct {
 }
 
 func createTestBlockChain() *blockchain.BlockChain {
-	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
+	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
 	)
@@ -76,9 +78,9 @@ func createTestBlockChain() *blockchain.BlockChain {
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10, 1)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
-	unit, _ := storage.NewStorageUnit(cache, persist)
+	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 	return unit
 }
 
@@ -93,25 +95,28 @@ func createTestStore() dataRetriever.StorageService {
 	return store
 }
 
-func createTestDataPool() dataRetriever.PoolsHolder {
-	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
-	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+func createTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
+	if txPool == nil {
+		txPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	}
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	hdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	metaHdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
-	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
+	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
@@ -126,17 +131,13 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 	return dPool
 }
 
-func createDummyHexAddress(chars int) string {
+func createDummyAddress(chars int) []byte {
 	if chars < 1 {
-		return ""
+		return nil
 	}
-	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
 	buff := make([]byte, chars)
-	for i := 0; i < chars; i++ {
-		buff[i] = characters[r.Int()%16]
-	}
-
-	return string(buff)
+	_, _ = rand.Read(buff)
+	return buff
 }
 
 func createDummyHexAddressInShard(
@@ -144,14 +145,13 @@ func createDummyHexAddressInShard(
 	addrConv state.AddressConverter,
 ) string {
 
-	hexAddr := createDummyHexAddress(64)
+	addrBytes := createDummyAddress(32)
 	for {
-		buff, _ := hex.DecodeString(hexAddr)
-		addr, _ := addrConv.CreateAddressFromPublicKeyBytes(buff)
+		addr, _ := addrConv.CreateAddressFromPublicKeyBytes(addrBytes)
 		if coordinator.ComputeId(addr) == coordinator.SelfId() {
-			return hexAddr
+			return hex.EncodeToString(addrBytes)
 		}
-		hexAddr = createDummyHexAddress(64)
+		addrBytes = createDummyAddress(32)
 	}
 }
 
@@ -183,6 +183,29 @@ func createMultiSigner(
 	return multiSigner, err
 }
 
+func generateSkPkInShardAndCreateAccount(
+	shardCoordinator sharding.Coordinator,
+	targetShardId uint32,
+	accntAdapter state.AccountsAdapter,
+) (crypto.PrivateKey, crypto.PublicKey) {
+
+	sk, pk := keyGen.GeneratePair()
+	for {
+		pkBytes, _ := pk.ToByteArray()
+		addr, _ := addrConverter.CreateAddressFromPublicKeyBytes(pkBytes)
+		if shardCoordinator.ComputeId(addr) == targetShardId {
+			if accntAdapter != nil {
+				_, _ = accntAdapter.GetAccountWithJournal(addr)
+				_, _ = accntAdapter.Commit()
+			}
+			break
+		}
+		sk, pk = keyGen.GeneratePair()
+	}
+
+	return sk, pk
+}
+
 func createNetNode(
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
@@ -195,25 +218,8 @@ func createNetNode(
 	crypto.PrivateKey,
 	dataRetriever.ResolversFinder) {
 
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
 	messenger := createMessengerWithKadDht(context.Background(), initialAddr)
-	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	suite := kyber.NewBlakeSHA256Ed25519()
-	singleSigner := &singlesig.SchnorrSigner{}
-	keyGen := signing.NewKeyGenerator(suite)
-	sk, pk := keyGen.GeneratePair()
-
-	for {
-		pkBytes, _ := pk.ToByteArray()
-		addr, _ := addrConverter.CreateAddressFromPublicKeyBytes(pkBytes)
-		if shardCoordinator.ComputeId(addr) == targetShardId {
-			_, _ = accntAdapter.GetAccountWithJournal(addr)
-			_, _ = accntAdapter.Commit()
-			break
-		}
-		sk, pk = keyGen.GeneratePair()
-	}
+	sk, pk := generateSkPkInShardAndCreateAccount(shardCoordinator, targetShardId, accntAdapter)
 
 	pkBuff, _ := pk.ToByteArray()
 	fmt.Printf("Found pk: %s\n", hex.EncodeToString(pkBuff))
@@ -277,7 +283,7 @@ func createNetNode(
 }
 
 func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
 	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
@@ -319,8 +325,8 @@ func makeDisplayTable(nodes []*testNode) string {
 				hex.EncodeToString(buffPk),
 				fmt.Sprintf("%d", n.shardId),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.txRecv)),
-				fmt.Sprintf("%d / %d", len(n.mesenger.ConnectedPeersOnTopic(factory.TransactionTopic+"_"+
-					fmt.Sprintf("%d", n.shardId))), len(n.mesenger.ConnectedPeers())),
+				fmt.Sprintf("%d / %d", len(n.messenger.ConnectedPeersOnTopic(factory.TransactionTopic+"_"+
+					fmt.Sprintf("%d", n.shardId))), len(n.messenger.ConnectedPeers())),
 			},
 		)
 	}
@@ -345,6 +351,46 @@ func displayAndStartNodes(nodes []*testNode) {
 	}
 }
 
+func createNode(
+	shardId uint32,
+	numOfShards int,
+	dPool dataRetriever.PoolsHolder,
+	skShardId uint32,
+	serviceID string,
+) *testNode {
+
+	testNode := &testNode{
+		dPool:   dPool,
+		shardId: uint32(shardId),
+	}
+
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
+	accntAdapter := createAccountsDB()
+	var n *node.Node
+	var mes p2p.Messenger
+	var sk crypto.PrivateKey
+	var resFinder dataRetriever.ResolversFinder
+
+	n, mes, sk, resFinder = createNetNode(
+		testNode.dPool,
+		accntAdapter,
+		shardCoordinator,
+		skShardId,
+		serviceID,
+	)
+
+	testNode.node = n
+	testNode.sk = sk
+	testNode.messenger = mes
+	testNode.pk = sk.GeneratePublic()
+	testNode.resFinder = resFinder
+	testNode.dPool.Transactions().RegisterHandler(func(key []byte) {
+		atomic.AddInt32(&testNode.txRecv, 1)
+	})
+
+	return testNode
+}
+
 func createNodesWithNodeSkInShardExceptFirst(
 	numOfShards int,
 	nodesPerShard int,
@@ -358,45 +404,15 @@ func createNodesWithNodeSkInShardExceptFirst(
 	idx := 0
 	for shardId := 0; shardId < numOfShards; shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			testNode := &testNode{
-				dPool:   createTestDataPool(),
-				shardId: uint32(shardId),
-			}
+			dPool := createTestDataPool(nil)
 
-			shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
-			accntAdapter := createAccountsDB()
-			var n *node.Node
-			var mes p2p.Messenger
-			var sk crypto.PrivateKey
-			var resFinder dataRetriever.ResolversFinder
-
+			skShardId := uint32(shardId)
 			isFirstNodeGenerated := shardId == 0 && j == 0
 			if isFirstNodeGenerated {
-				n, mes, sk, resFinder = createNetNode(
-					testNode.dPool,
-					accntAdapter,
-					shardCoordinator,
-					firstSkShardId,
-					serviceID,
-				)
-			} else {
-				n, mes, sk, resFinder = createNetNode(
-					testNode.dPool,
-					accntAdapter,
-					shardCoordinator,
-					testNode.shardId,
-					serviceID,
-				)
+				skShardId = firstSkShardId
 			}
 
-			testNode.node = n
-			testNode.sk = sk
-			testNode.mesenger = mes
-			testNode.pk = sk.GeneratePublic()
-			testNode.resFinder = resFinder
-			testNode.dPool.Transactions().RegisterHandler(func(key []byte) {
-				atomic.AddInt32(&testNode.txRecv, 1)
-			})
+			testNode := createNode(uint32(shardId), numOfShards, dPool, skShardId, serviceID)
 
 			nodes[idx] = testNode
 			idx++
