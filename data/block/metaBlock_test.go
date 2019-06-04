@@ -335,3 +335,26 @@ func TestMetaBlock_SetTxCount(t *testing.T) {
 
 	assert.Equal(t, txCount, m.GetTxCount())
 }
+
+func TestMetaBlock_GetMiniBlockHeadersWithDst(t *testing.T) {
+	t.Parallel()
+
+	metaHdr := &block.MetaBlock{Round: 15}
+	metaHdr.ShardInfo = make([]block.ShardData, 0)
+
+	shardMBHeader := make([]block.ShardMiniBlockHeader, 0)
+	shMBHdr1 := block.ShardMiniBlockHeader{SenderShardId: 0, ReceiverShardId: 1, Hash: []byte("hash1")}
+	shMBHdr2 := block.ShardMiniBlockHeader{SenderShardId: 0, ReceiverShardId: 1, Hash: []byte("hash2")}
+	shardMBHeader = append(shardMBHeader, shMBHdr1, shMBHdr2)
+
+	shData1 := block.ShardData{ShardId: 0, HeaderHash: []byte("sh"), ShardMiniBlockHeaders: shardMBHeader}
+	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shData1)
+
+	shData2 := block.ShardData{ShardId: 1, HeaderHash: []byte("sh"), ShardMiniBlockHeaders: shardMBHeader}
+	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shData2)
+
+	mbDst0 := metaHdr.GetMiniBlockHeadersWithDst(0)
+	assert.Equal(t, 0, len(mbDst0))
+	mbDst1 := metaHdr.GetMiniBlockHeadersWithDst(1)
+	assert.Equal(t, len(shardMBHeader), len(mbDst1))
+}
