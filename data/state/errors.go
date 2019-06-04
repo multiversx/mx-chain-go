@@ -121,3 +121,6 @@ var ErrAccNotFound = errors.New("account was not found")
 
 // ErrUnknownShardId signals that shard id is not valid
 var ErrUnknownShardId = errors.New("shard id is not valid")
+
+// ErrNilAddressConverter signals that a nil address converter has been provided
+var ErrNilAddressConverter = errors.New("nil address converter")
