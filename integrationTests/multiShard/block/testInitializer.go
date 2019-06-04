@@ -290,6 +290,7 @@ func createNetNode(
 		node.WithResolversFinder(resolversFinder),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithDataStore(store),
+		node.WithSyncer(&mock.SyncTimerMock{}),
 	)
 
 	if err != nil {
@@ -666,6 +667,7 @@ func createMetaNetNode(
 		node.WithResolversFinder(resolvers),
 		node.WithBlockProcessor(tn.blkProcessor),
 		node.WithDataStore(store),
+		node.WithSyncer(&mock.SyncTimerMock{}),
 	)
 	if err != nil {
 		fmt.Println(err.Error())

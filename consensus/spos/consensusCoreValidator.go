@@ -1,5 +1,6 @@
 package spos
 
+// ValidateConsensusCore checks for nil all the container objects
 func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container == nil {
 		return ErrNilConsensusCore
@@ -12,6 +13,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	}
 	if container.BootStrapper() == nil {
 		return ErrNilBlootstraper
+	}
+	if container.BroadcastMessanger() == nil {
+		return ErrNilBroadcastMessanger
 	}
 	if container.Chronology() == nil {
 		return ErrNilChronologyHandler

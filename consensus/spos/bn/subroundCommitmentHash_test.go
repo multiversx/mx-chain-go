@@ -24,12 +24,12 @@ func initSubroundCommitmentHashWithContainer(container *mock.ConsensusCoreMock) 
 		"(COMMITMENT_HASH)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	srCommitmentHash, _ := bn.NewSubroundCommitmentHash(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -47,7 +47,6 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSubroundShouldFail(t
 
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		nil,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -71,12 +70,12 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilConsensusStateShould
 		"(COMMITMENT_HASH)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	sr.ConsensusState = nil
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -101,12 +100,12 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilHasherShouldFail(t *
 		"(COMMITMENT_HASH)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetHasher(nil)
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -131,12 +130,12 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilMultisignerShouldFai
 		"(COMMITMENT_HASH)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetMultiSigner(nil)
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -161,12 +160,12 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilRounderShouldFail(t 
 		"(COMMITMENT_HASH)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetRounder(nil)
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -191,47 +190,17 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSyncTimerShouldFail(
 		"(COMMITMENT_HASH)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetSyncTimer(nil)
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
 	assert.Nil(t, srCommitmentHash)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
-}
-
-func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
-	t.Parallel()
-
-	container := mock.InitConsensusCore()
-
-	consensusState := initConsensusState()
-	ch := make(chan bool, 1)
-
-	sr, _ := spos.NewSubround(
-		int(bn.SrBlock),
-		int(bn.SrCommitmentHash),
-		int(bn.SrBitmap),
-		int64(40*roundTimeDuration/100),
-		int64(55*roundTimeDuration/100),
-		"(COMMITMENT_HASH)",
-		consensusState,
-		ch,
-		container,
-	)
-
-	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
-		sr,
-		nil,
-		extend,
-	)
-
-	assert.Nil(t, srCommitmentHash)
-	assert.Equal(t, spos.ErrNilSendConsensusMessageFunction, err)
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashShouldWork(t *testing.T) {
@@ -251,12 +220,12 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashShouldWork(t *testing.T
 		"(COMMITMENT_HASH)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 

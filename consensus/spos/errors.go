@@ -67,6 +67,9 @@ var ErrNilBlockTracker = errors.New("block tracker is nil")
 // ErrNilBlootstraper is raised when a valid block processor is expected but nil used
 var ErrNilBlootstraper = errors.New("boostraper is nil")
 
+// ErrNilBroadcastMessanger is raised when a valid broadcast messanger is expected but nil used
+var ErrNilBroadcastMessanger = errors.New("broadcast messanger is nil")
+
 // ErrInvalidKey is raised when an invalid key is used with a map
 var ErrInvalidKey = errors.New("map key is invalid")
 
@@ -103,12 +106,6 @@ var ErrNilSyncTimer = errors.New("sync timer is nil")
 // ErrNilSubround is raised when a valid subround is expected but nil used
 var ErrNilSubround = errors.New("subround is nil")
 
-// ErrNilSendConsensusMessageFunction is raised when a valid send consensus message function is expected but nil used
-var ErrNilSendConsensusMessageFunction = errors.New("send consnensus message function is nil")
-
-// ErrNilBroadcastBlockFunction is raised when a valid broadcast block function is expected but nil used
-var ErrNilBroadcastBlockFunction = errors.New("broadcast block function is nil")
-
 // ErrNilChannel is raised when a valid channel is expected but nil used
 var ErrNilChannel = errors.New("channel is nil")
 
@@ -136,17 +133,11 @@ var ErrNilBlsSingleSigner = errors.New("BLS single signer should not be nil")
 // ErrNilHeader is raised when an expected header is nil
 var ErrNilHeader = errors.New("header is nil")
 
-// ErrNilBroadcastBlock is raised when a valid broadcastBlock function is expected but nil used
-var ErrNilBroadcastBlock = errors.New("broadcastBlock is nil")
-
-// ErrNilBroadcastHeader is raised when a valid broadcastHeader function is expected but nil used
-var ErrNilBroadcastHeader = errors.New("broadcastHeader is nil")
-
 // ErrNilBroadcastUnnotarisedBlocks is raised when a valid broadcastUnnotarisedBlocks function is expected but nil used
 var ErrNilBroadcastUnnotarisedBlocks = errors.New("broadcastUnnotarisedBlocks is nil")
 
-// ErrNilSendMessage is raised when a valid sendMessage function is expected but nil used
-var ErrNilSendMessage = errors.New("sendMessage is nil")
-
 // ErrNilForkDetector is raised when a valid fork detector is expected but nil used
 var ErrNilForkDetector = errors.New("fork detector is nil")
+
+// ErrNilExecuteStoredMessages is raised when a valid executeStoredMessages function is expected but nil used
+var ErrNilExecuteStoredMessages = errors.New("executeStoredMessages is nil")

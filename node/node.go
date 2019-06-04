@@ -241,18 +241,15 @@ func (n *Node) StartConsensus() error {
 		n.blockProcessor,
 		n.blockTracker,
 		bootstrapper,
+		n,
 		consensusState,
 		n.forkDetector,
 		n.keyGen,
 		n.marshalizer,
-		n.privKey,
 		n.rounder,
 		n.shardCoordinator,
 		n.singleSigner,
 		n.syncTimer,
-		n.getBroadcastBlock(),
-		n.getBroadcastHeader(),
-		n.sendMessage,
 	)
 	if err != nil {
 		return err
@@ -272,6 +269,7 @@ func (n *Node) StartConsensus() error {
 		n.blkc,
 		n.blockProcessor,
 		bootstrapper,
+		n,
 		chronologyHandler,
 		n.hasher,
 		n.marshalizer,
@@ -392,28 +390,48 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 	return chr, nil
 }
 
-func (n *Node) getBroadcastBlock() func(data.BodyHandler, data.HeaderHandler) error {
+// BroadcastBlock returns a function used for broadcast blocks
+func (n *Node) BroadcastBlock() func(data.BodyHandler, data.HeaderHandler) error {
 	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
-		return n.BroadcastShardBlock
+		return n.broadcastShardBlock
 	}
 
 	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return n.BroadcastMetaBlock
+		return n.broadcastMetaBlock
 	}
 
 	return nil
 }
 
-func (n *Node) getBroadcastHeader() func(data.HeaderHandler) error {
+// BroadcastHeader returns a function used for broadcast headers
+func (n *Node) BroadcastHeader() func(data.HeaderHandler) error {
 	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
-		return n.BroadcastShardHeader
+		return n.broadcastShardHeader
 	}
 
 	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return n.BroadcastMetaHeader
+		return n.broadcastMetaHeader
 	}
 
 	return nil
+}
+
+// BroadcastMiniBlocksAndTransactions returns a function used for broadcast transactions
+func (n *Node) BroadcastMiniBlocksAndTransactions() func(data.BodyHandler, data.HeaderHandler) error {
+	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
+		return n.broadcastMiniBlocksAndTransactions
+	}
+
+	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return n.broadcastMetaShardHeaders
+	}
+
+	return nil
+}
+
+// BroadcastConsensusMessage returns a function used for broadcast consensus messages
+func (n *Node) BroadcastConsensusMessage() func(*consensus.Message) error {
+	return n.broadcastConsensusMessage
 }
 
 func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
@@ -650,23 +668,43 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 	return account, nil
 }
 
-func (n *Node) sendMessage(cnsDta *consensus.Message) {
-	cnsDtaBuff, err := n.marshalizer.Marshal(cnsDta)
+func (n *Node) broadcastConsensusMessage(message *consensus.Message) error {
+	signature, err := n.genSignature(message)
 	if err != nil {
-		log.Debug(err.Error())
-		return
+		return err
 	}
 
-	n.messenger.Broadcast(
-		n.consensusTopic,
-		cnsDtaBuff)
+	signedMessage := *message
+	signedMessage.Signature = signature
+
+	buff, err := n.marshalizer.Marshal(signedMessage)
+	if err != nil {
+		return err
+	}
+
+	n.messenger.Broadcast(n.consensusTopic, buff)
+	return nil
 }
 
-// BroadcastShardBlock will send on intra shard topics the header and block body and on cross shard topics
+func (n *Node) genSignature(message *consensus.Message) ([]byte, error) {
+	buff, err := n.marshalizer.Marshal(message)
+	if err != nil {
+		return nil, err
+	}
+
+	signature, err := n.singleSigner.Sign(n.privKey, buff)
+	if err != nil {
+		return nil, err
+	}
+
+	return signature, nil
+}
+
+// broadcastShardBlock will send on intra shard topics the header and block body and on cross shard topics
 // the miniblocks. This func needs to be exported as it is tested in integrationTests package.
 // TODO: investigate if the body block needs to be sent on intra shard topic as each miniblock is already sent on cross
 //  shard topics
-func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
+func (n *Node) broadcastShardBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
 	if blockBody == nil {
 		return ErrNilTxBlockBody
 	}
@@ -690,45 +728,17 @@ func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.Heade
 		return err
 	}
 
-	msgMapBlockBody, msgMapTx, err := n.blockProcessor.MarshalizedDataToBroadcast(header, blockBody)
-	if err != nil {
-		return err
-	}
-
 	go n.messenger.Broadcast(factory.HeadersTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgHeader)
 
 	go n.messenger.Broadcast(factory.MiniBlocksTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
-	for k, v := range msgMapBlockBody {
-		go n.messenger.Broadcast(factory.MiniBlocksTopic+
-			n.shardCoordinator.CommunicationIdentifier(k), v)
-	}
-
-	dataPacker, err := partitioning.NewSizeDataPacker(n.marshalizer)
-	if err != nil {
-		return err
-	}
-
-	for k, v := range msgMapTx {
-		// forward txs to the destination shards in packets
-		packets, err := dataPacker.PackDataInChunks(v, maxBulkTransactionSize)
-		if err != nil {
-			return err
-		}
-
-		for _, buff := range packets {
-			go n.messenger.Broadcast(factory.TransactionTopic+
-				n.shardCoordinator.CommunicationIdentifier(k), buff)
-		}
-	}
-
 	return nil
 }
 
-// BroadcastShardHeader will send on metachain topics the header
-func (n *Node) BroadcastShardHeader(header data.HeaderHandler) error {
+// broadcastShardHeader will send on metachain topics the header
+func (n *Node) broadcastShardHeader(header data.HeaderHandler) error {
 	if header == nil {
 		return ErrNilBlockHeader
 	}
@@ -754,6 +764,61 @@ func (n *Node) BroadcastShardHeader(header data.HeaderHandler) error {
 		go n.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
 	}
 
+	return nil
+}
+
+// broadcastMiniBlocksAndTransactions will send on transaction topic the transactions
+func (n *Node) broadcastMiniBlocksAndTransactions(blockBody data.BodyHandler, header data.HeaderHandler) error {
+	if blockBody == nil {
+		return ErrNilTxBlockBody
+	}
+
+	err := blockBody.IntegrityAndValidity()
+	if err != nil {
+		return err
+	}
+
+	if header == nil {
+		return ErrNilBlockHeader
+	}
+
+	msgMapBlockBody, msgMapTransactions, err := n.blockProcessor.MarshalizedDataToBroadcast(header, blockBody)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range msgMapBlockBody {
+		go n.messenger.Broadcast(factory.MiniBlocksTopic+
+			n.shardCoordinator.CommunicationIdentifier(k), v)
+	}
+
+	dataPacker, err := partitioning.NewSizeDataPacker(n.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range msgMapTransactions {
+		// forward txs to the destination shards in packets
+		packets, err := dataPacker.PackDataInChunks(v, maxBulkTransactionSize)
+		if err != nil {
+			return err
+		}
+
+		for _, buff := range packets {
+			go n.messenger.Broadcast(factory.TransactionTopic+
+				n.shardCoordinator.CommunicationIdentifier(k), buff)
+		}
+	}
+
+	if len(msgMapBlockBody) > 0 {
+		log.Info(fmt.Sprintf("%sStep 1: miniblocks and transactions have been sent\n", n.syncTimer.FormattedCurrentTime()))
+	}
+
+	return nil
+}
+
+// broadcastMetaShardHeaders will send on shard headers topic the shard headers
+func (n *Node) broadcastMetaShardHeaders(blockBody data.BodyHandler, header data.HeaderHandler) error {
 	return nil
 }
 
@@ -803,9 +868,9 @@ func (n *Node) createMetaBlockFromBlockHeader(hdrHandler data.HeaderHandler, hdr
 	return n.marshalizer.Marshal(metaBlock)
 }
 
-// BroadcastMetaBlock will send on meta shard topics the header and on meta-to-shard topics
+// broadcastMetaBlock will send on meta shard topics the header and on meta-to-shard topics
 // the header. This func needs to be exported as it is tested in integrationTests package.
-func (n *Node) BroadcastMetaBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
+func (n *Node) broadcastMetaBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
 	if header == nil {
 		return ErrNilMetaBlockHeader
 	}
@@ -820,8 +885,8 @@ func (n *Node) BroadcastMetaBlock(blockBody data.BodyHandler, header data.Header
 	return nil
 }
 
-// BroadcastMetaHeader will send on metachain topics the header
-func (n *Node) BroadcastMetaHeader(headerHandler data.HeaderHandler) error {
+// broadcastMetaHeader will send on metachain topics the header
+func (n *Node) broadcastMetaHeader(headerHandler data.HeaderHandler) error {
 	return nil
 }
 

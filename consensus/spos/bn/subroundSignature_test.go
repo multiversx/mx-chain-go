@@ -26,12 +26,12 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bn.Su
 		"(SIGNATURE)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	srSignature, _ := bn.NewSubroundSignature(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -48,7 +48,6 @@ func TestSubroundSignature_NewSubroundSignatureNilSubroundShouldFail(t *testing.
 
 	srSignature, err := bn.NewSubroundSignature(
 		nil,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -72,13 +71,13 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		"(SIGNATURE)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	sr.ConsensusState = nil
 	srSignature, err := bn.NewSubroundSignature(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -102,12 +101,12 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		"(SIGNATURE)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetHasher(nil)
 	srSignature, err := bn.NewSubroundSignature(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -132,12 +131,12 @@ func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testi
 		"(SIGNATURE)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetMultiSigner(nil)
 	srSignature, err := bn.NewSubroundSignature(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -162,13 +161,13 @@ func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T
 		"(SIGNATURE)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetRounder(nil)
 
 	srSignature, err := bn.NewSubroundSignature(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -193,47 +192,17 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		"(SIGNATURE)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetSyncTimer(nil)
 	srSignature, err := bn.NewSubroundSignature(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
 	assert.Nil(t, srSignature)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
-}
-
-func TestSubroundSignature_NewSubroundSignatureNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
-	t.Parallel()
-
-	container := mock.InitConsensusCore()
-
-	consensusState := initConsensusState()
-	ch := make(chan bool, 1)
-
-	sr, _ := spos.NewSubround(
-		int(bn.SrCommitment),
-		int(bn.SrSignature),
-		int(bn.SrEndRound),
-		int64(70*roundTimeDuration/100),
-		int64(85*roundTimeDuration/100),
-		"(SIGNATURE)",
-		consensusState,
-		ch,
-		container,
-	)
-
-	srSignature, err := bn.NewSubroundSignature(
-		sr,
-		nil,
-		extend,
-	)
-
-	assert.Nil(t, srSignature)
-	assert.Equal(t, spos.ErrNilSendConsensusMessageFunction, err)
 }
 
 func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
@@ -253,12 +222,12 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		"(SIGNATURE)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	srSignature, err := bn.NewSubroundSignature(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 

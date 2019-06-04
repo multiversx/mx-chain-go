@@ -17,6 +17,7 @@ type ConsensusCore struct {
 	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
 	bootstraper            process.Bootstrapper
+	broadcastMessanger     consensus.BroadcastMessanger
 	chronologyHandler      consensus.ChronologyHandler
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
@@ -34,6 +35,7 @@ func NewConsensusCore(
 	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
+	broadcastMessanger consensus.BroadcastMessanger,
 	chronologyHandler consensus.ChronologyHandler,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
@@ -49,6 +51,7 @@ func NewConsensusCore(
 		blockChain,
 		blockProcessor,
 		bootstraper,
+		broadcastMessanger,
 		chronologyHandler,
 		hasher,
 		marshalizer,
@@ -82,6 +85,11 @@ func (cc *ConsensusCore) BlockProcessor() process.BlockProcessor {
 // BootStrapper gets the Bootstrapper stored in the ConsensusCore
 func (cc *ConsensusCore) BootStrapper() process.Bootstrapper {
 	return cc.bootstraper
+}
+
+// BroadcastMessanger gets the BroadcastMessanger stored in the ConsensusCore
+func (cc *ConsensusCore) BroadcastMessanger() consensus.BroadcastMessanger {
+	return cc.broadcastMessanger
 }
 
 // Chronology gets the ChronologyHandler stored in the ConsensusCore

@@ -20,6 +20,8 @@ type ConsensusCoreHandler interface {
 	BlockProcessor() process.BlockProcessor
 	// BootStrapper gets the Bootstrapper stored in the ConsensusCore
 	BootStrapper() process.Bootstrapper
+	// BroadcastMessanger gets the BroadcastMessanger stored in ConsensusCore
+	BroadcastMessanger() consensus.BroadcastMessanger
 	// Chronology gets the ChronologyHandler stored in the ConsensusCore
 	Chronology() consensus.ChronologyHandler
 	// Hasher gets the Hasher stored in the ConsensusCore
@@ -73,8 +75,6 @@ type WorkerHandler interface {
 	RemoveAllReceivedMessagesCalls()
 	//ProcessReceivedMessage method redirects the received message to the channel which should handle it
 	ProcessReceivedMessage(message p2p.MessageP2P) error
-	//SendConsensusMessage sends the consensus message
-	SendConsensusMessage(cnsDta *consensus.Message) bool
 	//Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
 	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged

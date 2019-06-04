@@ -3,6 +3,8 @@ package consensus
 import (
 	"math/big"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 )
 
 // Rounder defines the actions which should be handled by a round implementation
@@ -65,4 +67,12 @@ type ValidatorGroupSelector interface {
 // PublicKeysSelector allows retrieval of eligible validators public keys selected by a bitmap
 type PublicKeysSelector interface {
 	GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error)
+}
+
+// BroadcastMessanger defines the behaviour of the broadcast messages by the consensus group
+type BroadcastMessanger interface {
+	BroadcastBlock() func(data.BodyHandler, data.HeaderHandler) error
+	BroadcastHeader() func(data.HeaderHandler) error
+	BroadcastMiniBlocksAndTransactions() func(data.BodyHandler, data.HeaderHandler) error
+	BroadcastConsensusMessage() func(*Message) error
 }

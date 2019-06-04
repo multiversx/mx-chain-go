@@ -36,6 +36,7 @@ func defaultSubround(consensusState *spos.ConsensusState, ch chan bool, containe
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 }

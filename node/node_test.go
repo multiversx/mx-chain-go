@@ -733,14 +733,16 @@ func TestNode_BroadcastBlockShouldFailWhenTxBlockBodyNil(t *testing.T) {
 	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
 		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
 	}}
+	sc := mock.NewOneShardCoordinatorMock()
 
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithBlockProcessor(bp),
+		node.WithShardCoordinator(sc),
 	)
 
-	err := n.BroadcastShardBlock(nil, &block.Header{})
+	err := n.BroadcastBlock()(nil, &block.Header{})
 	assert.Equal(t, node.ErrNilTxBlockBody, err)
 }
 
@@ -761,11 +763,13 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
 	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
 		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
 	}}
+	sc := mock.NewOneShardCoordinatorMock()
 
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(marshalizerMock),
 		node.WithBlockProcessor(bp),
+		node.WithShardCoordinator(sc),
 	)
 
 	txHash0 := []byte("txHash0")
@@ -778,11 +782,11 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
 
-	err2 := n.BroadcastShardBlock(body, &block.Header{})
+	err2 := n.BroadcastBlock()(body, &block.Header{})
 	assert.Equal(t, err, err2)
 }
 
-func TestNode_BroadcastBlockShouldFailWhenBlockIsNotGoodType(t *testing.T) {
+func TestNode_BroadcastMiniBlocksAndTransactionsShouldFailWhenBlockIsNotGoodType(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
 	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
@@ -796,7 +800,7 @@ func TestNode_BroadcastBlockShouldFailWhenBlockIsNotGoodType(t *testing.T) {
 	)
 
 	wr := wrongBody{}
-	err := n.BroadcastShardBlock(wr, &block.Header{})
+	err := n.BroadcastMiniBlocksAndTransactions()(wr, &block.Header{})
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
@@ -823,7 +827,7 @@ func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
 
-	err := n.BroadcastShardBlock(body, nil)
+	err := n.BroadcastBlock()(body, nil)
 	assert.Equal(t, node.ErrNilBlockHeader, err)
 }
 
@@ -863,7 +867,7 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
 
-	err2 := n.BroadcastShardBlock(body, &block.Header{})
+	err2 := n.BroadcastBlock()(body, &block.Header{})
 	assert.Equal(t, err, err2)
 }
 
@@ -891,7 +895,7 @@ func TestNode_BroadcastBlockShouldWorkWithOneShard(t *testing.T) {
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
 
-	err := n.BroadcastShardBlock(body, &block.Header{})
+	err := n.BroadcastBlock()(body, &block.Header{})
 	assert.Nil(t, err)
 }
 
@@ -933,7 +937,7 @@ func TestNode_BroadcastBlockShouldWorkMultiShard(t *testing.T) {
 	body = append(body, &mb1)
 	body = append(body, &mb1)
 
-	err := n.BroadcastShardBlock(body, &block.Header{})
+	err := n.BroadcastBlock()(body, &block.Header{})
 	assert.Nil(t, err)
 }
 
