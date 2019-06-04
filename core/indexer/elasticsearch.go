@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -43,6 +45,19 @@ type elasticIndexer struct {
 func NewElasticIndexer(url string, username string, password string, shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher, logger *logger.Logger) (Indexer, error) {
+
+	err := checkElasticSearchParams(
+		url,
+		shardCoordinator,
+		marshalizer,
+		hasher,
+		logger,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := elasticsearch.Config{
 		Addresses: []string{url},
 		Username:  username,
@@ -72,6 +87,31 @@ func NewElasticIndexer(url string, username string, password string, shardCoordi
 	}
 
 	return indexer, nil
+}
+
+func checkElasticSearchParams(url string, coordinator sharding.Coordinator, marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher, logger *logger.Logger) error {
+	if url == "" {
+		return core.ErrNilUrl
+	}
+
+	if coordinator == nil {
+		return core.ErrNilCoordinator
+	}
+
+	if marshalizer == nil {
+		return core.ErrNilMarshalizer
+	}
+
+	if hasher == nil {
+		return core.ErrNilHasher
+	}
+
+	if logger == nil {
+		return core.ErrNilLogger
+	}
+
+	return nil
 }
 
 func (ei *elasticIndexer) checkAndCreateIndex(index string, body io.Reader) error {

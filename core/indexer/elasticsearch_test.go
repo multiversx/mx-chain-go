@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/indexer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/mock"
@@ -18,11 +20,13 @@ import (
 )
 
 var (
-	url              = "https://elrond.com"
+	url              = "http://localhost:9300"
 	shardCoordinator = mock.ShardCoordinatorMock{}
 	marshalizer      = &mock.MarshalizerMock{}
 	hasher           = mock.HasherMock{}
 	log              = logger.DefaultLogger()
+	username         = "username"
+	password         = "password"
 )
 
 func newTestBlockHeader() *block.Header {
@@ -94,10 +98,56 @@ func newTestTxPool() map[string]*transaction.Transaction {
 	return txPool
 }
 
+func TestElasticIndexer_NewIndexerWithNilUrlShouldError(t *testing.T) {
+	ei, err := indexer.NewElasticIndexer("", username, password, shardCoordinator, marshalizer, hasher, log)
+
+	assert.Nil(t, ei)
+	assert.Equal(t, core.ErrNilUrl, err)
+}
+
+func TestElasticIndexer_NewIndexerWithNilShardCoordinatorShouldError(t *testing.T) {
+	ei, err := indexer.NewElasticIndexer("a", username, password, nil, marshalizer, hasher, log)
+
+	assert.Nil(t, ei)
+	assert.Equal(t, core.ErrNilCoordinator, err)
+}
+
+func TestElasticIndexer_NewIndexerWithNilMarsharlizerShouldError(t *testing.T) {
+	ei, err := indexer.NewElasticIndexer("a", username, password, shardCoordinator, nil, hasher, log)
+
+	assert.Nil(t, ei)
+	assert.Equal(t, core.ErrNilMarshalizer, err)
+}
+
+func TestElasticIndexer_NewIndexerWithNilHasherShouldError(t *testing.T) {
+	ei, err := indexer.NewElasticIndexer("a", username, password, shardCoordinator, marshalizer, nil, log)
+
+	assert.Nil(t, ei)
+	assert.Equal(t, core.ErrNilHasher, err)
+}
+
+func TestElasticIndexer_NewIndexerWithNilLoggerShouldError(t *testing.T) {
+	ei, err := indexer.NewElasticIndexer("a", username, password, shardCoordinator, marshalizer, hasher, nil)
+
+	assert.Nil(t, ei)
+	assert.Equal(t, core.ErrNilLogger, err)
+}
+
+func TestElasticIndexer_NewIndexerWithCorrectParamsShouldWork(t *testing.T) {
+
+	elasticServer := &mock.ElasticSearchServerMock{}
+	go elasticServer.Start()
+
+	ei, err := indexer.NewElasticIndexer("http://localhost:9300", username, password, shardCoordinator, marshalizer, hasher, log)
+
+	assert.Nil(t, ei)
+	assert.Equal(t, core.ErrNilLogger, err)
+}
+
 func TestNewElasticIndexerIncorrectUrl(t *testing.T) {
 	url := string([]byte{1, 2, 3})
 
-	ind, err := indexer.NewElasticIndexer(url, "username", "passwor", shardCoordinator, marshalizer, hasher, log)
+	ind, err := indexer.NewElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
 	assert.Nil(t, ind)
 	assert.NotNil(t, err)
 }

@@ -303,6 +303,7 @@ func main() {
 		initialBalancesSkPemFile,
 		initialNodesSkPemFile,
 		gopsEn,
+		serversConfigurationFile,
 	}
 	app.Authors = []cli.Author{
 		{
