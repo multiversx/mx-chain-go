@@ -218,6 +218,14 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 	return nil
 }
 
+func (bp *baseProcessor) restoreLastNotarized() {
+	bp.mutNotarizedHdrs.Lock()
+	for i := uint32(0); i < bp.shardCoordinator.NumberOfShards(); i++ {
+		bp.lastNotarizedHdrs[i] = bp.finalNotarizedHdrs[i]
+	}
+	bp.mutNotarizedHdrs.Unlock()
+}
+
 func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
 	bp.mutNotarizedHdrs.Lock()
 	defer bp.mutNotarizedHdrs.Unlock()
@@ -293,8 +301,8 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 		if !ok {
 			return process.ErrWrongTypeAssertion
 		}
-		bp.finalNotarizedHdrs[i] = bp.lastNotarizedHdrs[i]
 		bp.lastNotarizedHdrs[i] = hdr
+		bp.finalNotarizedHdrs[i] = hdr
 	}
 
 	if metaChainActive {
@@ -302,8 +310,8 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 		if !ok {
 			return process.ErrWrongTypeAssertion
 		}
-		bp.finalNotarizedHdrs[sharding.MetachainShardId] = bp.lastNotarizedHdrs[sharding.MetachainShardId]
 		bp.lastNotarizedHdrs[sharding.MetachainShardId] = hdr
+		bp.finalNotarizedHdrs[sharding.MetachainShardId] = hdr
 	}
 
 	return nil

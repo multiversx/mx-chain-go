@@ -272,11 +272,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		shardMBHeaderCounterMutex.Unlock()
 	}
 
-	mp.mutNotarizedHdrs.Lock()
-	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		mp.lastNotarizedHdrs[i] = mp.finalNotarizedHdrs[i]
-	}
-	mp.mutNotarizedHdrs.Unlock()
+	mp.restoreLastNotarized()
 
 	return nil
 }

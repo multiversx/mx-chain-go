@@ -351,11 +351,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return err
 	}
 
-	sp.mutNotarizedHdrs.Lock()
-	for i := uint32(0); i < sp.shardCoordinator.NumberOfShards(); i++ {
-		sp.lastNotarizedHdrs[i] = sp.finalNotarizedHdrs[i]
-	}
-	sp.mutNotarizedHdrs.Unlock()
+	sp.restoreLastNotarized()
 
 	return nil
 }
