@@ -83,7 +83,6 @@ func (sc *scProcessor) ComputeTransactionType(
 	tx *transaction.Transaction,
 	acntSrc, acntDst state.AccountHandler,
 ) (process.TransactionType, error) {
-	//TODO: add all kind of tests here
 	if tx == nil {
 		return 0, process.ErrNilTransaction
 	}
@@ -112,9 +111,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	acntSnd, acntDst state.AccountHandler,
 	round uint32,
 ) error {
-	if sc.vm == nil {
-		return process.ErrNoVM
-	}
 	if tx == nil {
 		return process.ErrNilTransaction
 	}
@@ -167,11 +163,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	return nil
 }
 
-// DeploySmartContract runs the VM to verify register the smart contract and saves the data into the state
+// DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
-	if sc.vm == nil {
-		return process.ErrNoVM
-	}
 	if len(tx.RcvAddr) != 0 {
 		return process.ErrWrongTransaction
 	}
@@ -219,7 +212,7 @@ func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction) (*vmcommon
 
 	vmCallInput.RecipientAddr = tx.RcvAddr
 
-	return &vmcommon.ContractCallInput{}, nil
+	return vmCallInput, nil
 }
 
 func (sc *scProcessor) createVMDeployInput(tx *transaction.Transaction) (*vmcommon.ContractCreateInput, error) {

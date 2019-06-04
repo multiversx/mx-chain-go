@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
 	Size   uint32 `json:"size"`
@@ -9,8 +11,10 @@ type CacheConfig struct {
 
 // DBConfig will map the json db configuration
 type DBConfig struct {
-	FilePath string `json:"file"`
-	Type     string `json:"type"`
+	FilePath          string `json:"file"`
+	Type              string `json:"type"`
+	BatchDelaySeconds int    `json:"batchDelaySeconds"`
+	MaxBatchSize      int    `json:"maxBatchSize"`
 }
 
 // BloomFilterConfig will map the json bloom filter configuration
@@ -41,6 +45,14 @@ type AddressConfig struct {
 // TypeConfig will map the json string type configuration
 type TypeConfig struct {
 	Type string `json:"type"`
+}
+
+// NTPConfig will hold the configuration for NTP queries
+type NTPConfig struct {
+	Host    string
+	Port    int
+	Timeout time.Duration
+	Version int
 }
 
 // Config will hold the entire application configuration parameters
@@ -79,6 +91,8 @@ type Config struct {
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
+
+	NTPConfig NTPConfig
 }
 
 // NodeConfig will hold basic p2p settings

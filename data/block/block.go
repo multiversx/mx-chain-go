@@ -87,7 +87,8 @@ type Header struct {
 	MiniBlockHeaders []MiniBlockHeader `capid:"11"`
 	PeerChanges      []PeerChange      `capid:"12"`
 	RootHash         []byte            `capid:"13"`
-	TxCount          uint32            `capid:"14"`
+	MetaBlockHashes  [][]byte          `capid:"14"`
+	TxCount          uint32            `capid:"15"`
 	processedMBs     map[string]bool   // TODO remove this field when metachain processing is running
 }
 
@@ -141,6 +142,14 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	}
 
 	dest.RootHash = src.RootHash()
+
+	var n int
+	n = src.MetaHdrHashes().Len()
+	dest.MetaBlockHashes = make([][]byte, n)
+	for i := 0; i < n; i++ {
+		dest.MetaBlockHashes[i] = src.MetaHdrHashes().At(i)
+	}
+
 	dest.TxCount = src.TxCount()
 
 	return dest
@@ -182,6 +191,13 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 	}
 
 	dest.SetRootHash(src.RootHash)
+
+	mylist1 := seg.NewDataList(len(src.MetaBlockHashes))
+	for i := range src.MetaBlockHashes {
+		mylist1.Set(i, src.MetaBlockHashes[i])
+	}
+	dest.SetMetaHdrHashes(mylist1)
+
 	dest.SetTxCount(src.TxCount)
 
 	return dest

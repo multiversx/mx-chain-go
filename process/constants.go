@@ -20,6 +20,6 @@ const (
 	MoveBalance TransactionType = iota
 	// SCDeployment defines ID of a transaction to store a smart contract
 	SCDeployment
-	// BHProposed defines ID of a transaction of type smart contract call
+	// SCInvoking defines ID of a transaction of type smart contract call
 	SCInvoking
 )

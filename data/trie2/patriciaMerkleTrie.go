@@ -94,10 +94,10 @@ func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 		return nil, ErrNilNode
 	}
 	hash := tr.root.getHash()
-	if !tr.root.isDirty() && hash != nil {
+	if hash != nil {
 		return hash, nil
 	}
-	err := tr.root.setHash(tr.marshalizer, tr.hasher)
+	err := tr.root.setRootHash(tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
 	hexKey := keyBytesToHex(key)
 	node := tr.root
 
-	err := node.setHash(tr.marshalizer, tr.hasher)
+	err := node.setRootHash(tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -176,18 +176,13 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if tr.root.isCollapsed() {
 		return nil
 	}
-	err := tr.root.setHash(tr.marshalizer, tr.hasher)
+	err := tr.root.setRootHash(tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
 	}
-	err = tr.root.commit(tr.db, tr.marshalizer, tr.hasher)
+	err = tr.root.commit(0, tr.db, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
 	}
-	newRoot, err := tr.root.getCollapsed(tr.marshalizer, tr.hasher)
-	if err != nil {
-		return err
-	}
-	tr.root = newRoot
 	return nil
 }
