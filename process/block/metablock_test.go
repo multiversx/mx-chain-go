@@ -3,7 +3,6 @@ package block_test
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"reflect"
 	"testing"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	blproc "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -622,100 +622,6 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	assert.Equal(t, errPersister, err)
 }
 
-func TestMetaProcessor_CommitBlockStorageFailsForShardDataShouldErr(t *testing.T) {
-	t.Parallel()
-
-	mdp := initMetaDataPool()
-	errPersister := errors.New("failure")
-	accounts := &mock.AccountsStub{
-		RevertToSnapshotCalled: func(snapshot int) error {
-			return nil
-		},
-	}
-	hdr := createMetaBlockHeader()
-	body := &block.MetaBlockBody{}
-
-	shardDataUnit := &mock.StorerStub{
-		PutCalled: func(key, data []byte) error {
-			return errPersister
-		},
-	}
-	store := initStore()
-	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
-
-	mp, _ := blproc.NewMetaProcessor(
-		accounts,
-		mdp,
-		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
-				return nil
-			},
-		},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		store,
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
-	blkc, _ := blockchain.NewMetaChain(
-		generateTestCache(),
-	)
-	err := mp.CommitBlock(blkc, hdr, body)
-
-	assert.Equal(t, errPersister, err)
-}
-
-func TestMetaProcessor_CommitBlockStorageFailsForPeerDataShouldErr(t *testing.T) {
-	t.Parallel()
-
-	mdp := initMetaDataPool()
-	errPersister := errors.New("failure")
-	accounts := &mock.AccountsStub{
-		RevertToSnapshotCalled: func(snapshot int) error {
-			return nil
-		},
-	}
-	hdr := createMetaBlockHeader()
-	body := &block.MetaBlockBody{}
-
-	shardDataUnit := &mock.StorerStub{
-		PutCalled: func(key, data []byte) error {
-			return nil
-		},
-	}
-	peerDataUnit := &mock.StorerStub{
-		PutCalled: func(key, data []byte) error {
-			return errPersister
-		},
-	}
-	store := initStore()
-	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
-	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
-
-	mp, _ := blproc.NewMetaProcessor(
-		accounts,
-		mdp,
-		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
-				return nil
-			},
-		},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		store,
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
-	blkc, _ := blockchain.NewMetaChain(
-		generateTestCache(),
-	)
-	err := mp.CommitBlock(blkc, hdr, body)
-
-	assert.Equal(t, errPersister, err)
-}
-
 func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -727,19 +633,7 @@ func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	}
 	hdr := createMetaBlockHeader()
 	body := &block.MetaBlockBody{}
-	shardDataUnit := &mock.StorerStub{
-		PutCalled: func(key, data []byte) error {
-			return nil
-		},
-	}
-	peerDataUnit := &mock.StorerStub{
-		PutCalled: func(key, data []byte) error {
-			return nil
-		},
-	}
 	store := initStore()
-	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
-	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
 
 	mp, _ := blproc.NewMetaProcessor(
 		accounts,
@@ -775,19 +669,7 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	}
 	fd := &mock.ForkDetectorMock{}
 	hasher := &mock.HasherStub{}
-	shardDataUnit := &mock.StorerStub{
-		PutCalled: func(key, data []byte) error {
-			return nil
-		},
-	}
-	peerDataUnit := &mock.StorerStub{
-		PutCalled: func(key, data []byte) error {
-			return nil
-		},
-	}
 	store := initStore()
-	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
-	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
 
 	mp, _ := blproc.NewMetaProcessor(
 		accounts,
@@ -846,20 +728,8 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	shardDataUnit := &mock.StorerStub{
-		PutCalled: func(key, data []byte) error {
-			return nil
-		},
-	}
-	peerDataUnit := &mock.StorerStub{
-		PutCalled: func(key, data []byte) error {
-			return nil
-		},
-	}
 	store := initStore()
 	store.AddStorer(dataRetriever.BlockHeaderUnit, blockHeaderUnit)
-	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
-	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
 
 	mp, _ := blproc.NewMetaProcessor(
 		accounts,

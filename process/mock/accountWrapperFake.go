@@ -79,3 +79,11 @@ func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 func (awm *AccountWrapMock) SetDataTrieTracker(tracker state.DataTrieTracker) {
 	awm.trackableDataTrie = tracker
 }
+
+func (awm *AccountWrapMock) IsInterfaceNil() bool {
+	if awm == nil {
+		return true
+	}
+
+	return false
+}

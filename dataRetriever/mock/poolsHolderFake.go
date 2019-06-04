@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 )
 
 type PoolsHolderFake struct {
@@ -19,16 +20,16 @@ type PoolsHolderFake struct {
 
 func NewPoolsHolderFake() *PoolsHolderFake {
 	phf := &PoolsHolderFake{}
-	phf.transactions, _ = shardedData.NewShardedData(storage.CacheConfig{Size: 10000, Type: storage.LRUCache})
-	phf.headers, _ = storage.NewCache(storage.LRUCache, 10000, 1)
-	phf.metaBlocks, _ = storage.NewCache(storage.LRUCache, 10000, 1)
-	cacheHdrNonces, _ := storage.NewCache(storage.LRUCache, 10000, 1)
+	phf.transactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
+	phf.headers, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	phf.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	cacheHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	phf.hdrNonces, _ = dataPool.NewNonceToHashCacher(
 		cacheHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
-	phf.miniBlocks, _ = storage.NewCache(storage.LRUCache, 10000, 1)
-	phf.peerChangesBlocks, _ = storage.NewCache(storage.LRUCache, 10000, 1)
+	phf.miniBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	phf.peerChangesBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	return phf
 }
 

@@ -36,6 +36,14 @@ func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Acc
 	}, nil
 }
 
+// IsInterfaceNil return if there is no value under the interface
+func (a *Account) IsInterfaceNil() bool {
+	if a == nil {
+		return true
+	}
+	return false
+}
+
 // AddressContainer returns the address associated with the account
 func (a *Account) AddressContainer() AddressContainer {
 	return a.addressContainer
