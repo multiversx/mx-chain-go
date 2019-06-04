@@ -1,22 +1,28 @@
 package trie2
 
 import (
+	"sync"
+
+	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
 const nrOfChildren = 17
 const firstByte = 0
+const maxTrieLevelAfterCommit = 6
 
 type node interface {
 	getHash() []byte
 	setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
+	setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error)
+	setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
 	getCollapsed(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) // a collapsed node is a node that instead of the children holds the children hashes
 	isCollapsed() bool
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode(marshal.Marshalizer) ([]byte, error)
-	commit(dbw DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
+	commit(level byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
 	resolveCollapsed(pos byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) error
 	hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error)
 	hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
@@ -29,23 +35,21 @@ type node interface {
 }
 
 type branchNode struct {
-	EncodedChildren [nrOfChildren][]byte
-	children        [nrOfChildren]node
-	hash            []byte
-	dirty           bool
+	protobuf.CollapsedBn
+	children [nrOfChildren]node
+	hash     []byte
+	dirty    bool
 }
 
 type extensionNode struct {
-	Key          []byte
-	EncodedChild []byte
-	child        node
-	hash         []byte
-	dirty        bool
+	protobuf.CollapsedEn
+	child node
+	hash  []byte
+	dirty bool
 }
 
 type leafNode struct {
-	Key   []byte
-	Value []byte
+	protobuf.CollapsedLn
 	hash  []byte
 	dirty bool
 }
@@ -164,7 +168,7 @@ func getEmptyNodeOfType(t byte) (node, error) {
 	case leaf:
 		decNode = &leafNode{}
 	case branch:
-		decNode = &branchNode{}
+		decNode = newBranchNode()
 	default:
 		return nil, ErrInvalidNode
 	}

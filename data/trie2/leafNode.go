@@ -2,15 +2,61 @@ package trie2
 
 import (
 	"bytes"
+	"io"
+	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/capnp"
+	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	capn "github.com/glycerine/go-capnproto"
 )
+
+// Save saves the serialized data of a leaf node into a stream through Capnp protocol
+func (ln *leafNode) Save(w io.Writer) error {
+	seg := capn.NewBuffer(nil)
+	leafNodeGoToCapn(seg, ln)
+	_, err := seg.WriteTo(w)
+	return err
+}
+
+// Load loads the data from the stream into a leaf node object through Capnp protocol
+func (ln *leafNode) Load(r io.Reader) error {
+	capMsg, err := capn.ReadFromStream(r, nil)
+	if err != nil {
+		return err
+	}
+	z := capnp.ReadRootLeafNodeCapn(capMsg)
+	leafNodeCapnToGo(z, ln)
+	return nil
+}
+
+func leafNodeGoToCapn(seg *capn.Segment, src *leafNode) capnp.LeafNodeCapn {
+	dest := capnp.AutoNewLeafNodeCapn(seg)
+
+	dest.SetKey(src.Key)
+	dest.SetValue(src.Value)
+
+	return dest
+}
+
+func leafNodeCapnToGo(src capnp.LeafNodeCapn, dest *leafNode) *leafNode {
+	if dest == nil {
+		dest = &leafNode{}
+	}
+
+	dest.Value = src.Value()
+	dest.Key = src.Key()
+
+	return dest
+}
 
 func newLeafNode(key, value []byte) *leafNode {
 	return &leafNode{
-		Key:   key,
-		Value: value,
+		CollapsedLn: protobuf.CollapsedLn{
+			Key:   key,
+			Value: value,
+		},
 		hash:  nil,
 		dirty: true,
 	}
@@ -33,12 +79,27 @@ func (ln *leafNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Hash
 	if err != nil {
 		return err
 	}
+	if ln.getHash() != nil {
+		return nil
+	}
 	hash, err := hashChildrenAndNode(ln, marshalizer, hasher)
 	if err != nil {
 		return err
 	}
 	ln.hash = hash
 	return nil
+}
+
+func (ln *leafNode) setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error) {
+	err := ln.setHash(marshalizer, hasher)
+	if err != nil {
+		c <- err
+	}
+	wg.Done()
+}
+
+func (ln *leafNode) setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+	return ln.setHash(marshalizer, hasher)
 }
 
 func (ln *leafNode) hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
@@ -53,7 +114,7 @@ func (ln *leafNode) hashNode(marshalizer marshal.Marshalizer, hasher hashing.Has
 	return encodeNodeAndGetHash(ln, marshalizer, hasher)
 }
 
-func (ln *leafNode) commit(db DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (ln *leafNode) commit(level byte, db DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -120,12 +181,12 @@ func (ln *leafNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Ma
 	if bytes.Equal(n.Key, ln.Key) {
 		ln.Value = n.Value
 		ln.dirty = true
+		ln.hash = nil
 		return true, ln, nil
 	}
 
 	keyMatchLen := prefixLen(n.Key, ln.Key)
-	branch := &branchNode{}
-	branch.dirty = true
+	branch := newBranchNode()
 	oldChildPos := ln.Key[keyMatchLen]
 	newChildPos := n.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {

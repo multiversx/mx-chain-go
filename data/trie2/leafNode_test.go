@@ -3,19 +3,22 @@ package trie2
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
+	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
 	"github.com/stretchr/testify/assert"
 )
 
 func getLn() *leafNode {
-	return &leafNode{Key: []byte("dog"), Value: []byte("dog"), dirty: true}
+	return newLeafNode([]byte("dog"), []byte("dog"))
 }
 
 func TestLeafNode_newLeafNode(t *testing.T) {
 	t.Parallel()
 	expectedLn := &leafNode{
-		Key:   []byte("dog"),
-		Value: []byte("dog"),
+		CollapsedLn: protobuf.CollapsedLn{
+			Key:   []byte("dog"),
+			Value: []byte("dog"),
+		},
 		hash:  nil,
 		dirty: true,
 	}
@@ -120,14 +123,14 @@ func TestLeafNode_hashNodeNilNode(t *testing.T) {
 
 func TestLeafNode_commit(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, hasher := getTestMarshAndHasher()
 
 	hash, _ := encodeNodeAndGetHash(ln, marsh, hasher)
 	ln.setHash(marsh, hasher)
 
-	err := ln.commit(db, marsh, hasher)
+	err := ln.commit(0, db, marsh, hasher)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -140,20 +143,20 @@ func TestLeafNode_commit(t *testing.T) {
 func TestLeafNode_commitEmptyNode(t *testing.T) {
 	t.Parallel()
 	ln := &leafNode{}
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 
-	err := ln.commit(db, marsh, hasher)
+	err := ln.commit(0, db, marsh, hasher)
 	assert.Equal(t, ErrEmptyNode, err)
 }
 
 func TestLeafNode_commitNilNode(t *testing.T) {
 	t.Parallel()
 	var ln *leafNode
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 
-	err := ln.commit(db, marsh, hasher)
+	err := ln.commit(0, db, marsh, hasher)
 	assert.Equal(t, ErrNilNode, err)
 }
 
@@ -192,7 +195,7 @@ func TestLeafNode_getEncodedNodeNil(t *testing.T) {
 
 func TestLeafNode_resolveCollapsed(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -207,7 +210,7 @@ func TestLeafNode_isCollapsed(t *testing.T) {
 
 func TestLeafNode_tryGet(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -219,7 +222,7 @@ func TestLeafNode_tryGet(t *testing.T) {
 
 func TestLeafNode_tryGetWrongKey(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -231,7 +234,7 @@ func TestLeafNode_tryGetWrongKey(t *testing.T) {
 
 func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	ln := &leafNode{}
 	marsh, _ := getTestMarshAndHasher()
 
@@ -243,7 +246,7 @@ func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 
 func TestLeafNode_tryGetNilNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	var ln *leafNode
 	marsh, _ := getTestMarshAndHasher()
 
@@ -255,7 +258,7 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 
 func TestLeafNode_getNext(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 	key := []byte{100, 111, 103}
@@ -268,7 +271,7 @@ func TestLeafNode_getNext(t *testing.T) {
 
 func TestLeafNode_getNextWrongKey(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 	key := []byte{2, 100, 111, 103}
@@ -281,7 +284,7 @@ func TestLeafNode_getNextWrongKey(t *testing.T) {
 
 func TestLeafNode_getNextNilNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	var ln *leafNode
 	marsh, _ := getTestMarshAndHasher()
 	key := []byte{2, 100, 111, 103}
@@ -294,10 +297,10 @@ func TestLeafNode_getNextNilNode(t *testing.T) {
 
 func TestLeafNode_insertAtSameKey(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	ln := getLn()
 
-	node := &leafNode{Key: []byte{100, 111, 103}, Value: []byte("dogs")}
+	node := newLeafNode([]byte{100, 111, 103}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, err := ln.insert(node, db, marsh)
@@ -309,9 +312,9 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 
 func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
-	ln := &leafNode{Key: []byte{2, 100, 111, 103}, Value: []byte{100, 111, 103}}
-	node := &leafNode{Key: []byte{3, 4, 5}, Value: []byte{3, 4, 5}}
+	db, _ := mock.NewMemDbMock()
+	ln := newLeafNode([]byte{2, 100, 111, 103}, []byte{100, 111, 103})
+	node := newLeafNode([]byte{3, 4, 5}, []byte{3, 4, 5})
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, err := ln.insert(node, db, marsh)
@@ -324,9 +327,9 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 
 func TestLeafNode_insertInNilNode(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	var ln *leafNode
-	node := &leafNode{Key: []byte{0, 2, 3}, Value: []byte("dogs")}
+	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, err := ln.insert(node, db, marsh)
@@ -337,7 +340,7 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 
 func TestLeafNode_deletePresent(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -349,7 +352,7 @@ func TestLeafNode_deletePresent(t *testing.T) {
 
 func TestLeafNode_deleteNotPresent(t *testing.T) {
 	t.Parallel()
-	db, _ := memorydb.New()
+	db, _ := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -361,8 +364,8 @@ func TestLeafNode_deleteNotPresent(t *testing.T) {
 
 func TestLeafNode_reduceNode(t *testing.T) {
 	t.Parallel()
-	ln := &leafNode{Key: []byte{100, 111, 103}}
-	expected := &leafNode{Key: []byte{2, 100, 111, 103}, dirty: true}
+	ln := &leafNode{CollapsedLn: protobuf.CollapsedLn{Key: []byte{100, 111, 103}}}
+	expected := &leafNode{CollapsedLn: protobuf.CollapsedLn{Key: []byte{2, 100, 111, 103}}, dirty: true}
 	node := ln.reduceNode(2)
 	assert.Equal(t, expected, node)
 }
