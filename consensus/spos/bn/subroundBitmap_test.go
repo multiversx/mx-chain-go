@@ -4,20 +4,19 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/stretchr/testify/assert"
 )
 
 func initSubroundBitmap() bn.SubroundBitmap {
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -58,7 +57,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilBlockProcessorShouldFail(t *testing.
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -89,7 +88,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilConsensusStateShouldFail(t *testing.
 	container := mock.InitConsensusCore()
 	consensusState := initConsensusState()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -119,7 +118,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilRounderShouldFail(t *testing.T) {
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -150,7 +149,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilSyncTimerShouldFail(t *testing.T) {
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -181,7 +180,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilSendConsensusMessageFunctionShouldFa
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -210,7 +209,7 @@ func TestSubroundBitmap_NewSubroundBitmapShouldWork(t *testing.T) {
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
 
-	sr, _ := bn.NewSubround(
+	sr, _ := spos.NewSubround(
 		int(bn.SrCommitmentHash),
 		int(bn.SrBitmap),
 		int(bn.SrCommitment),
@@ -284,7 +283,6 @@ func TestSubroundBitmap_ReceivedBitmap(t *testing.T) {
 	sr.Header = &block.Header{}
 
 	commitment := []byte("commitment")
-
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.Data,
 		commitment,

@@ -7,7 +7,7 @@ import (
 	"go.dedis.ch/kyber/v3/sign/bls"
 )
 
-// BlsSingleSigner is a SingleSigner implementation that uses a BLS signature scheme
+// RandomnessSingleSigner is a SingleSigner implementation that uses a BLS signature scheme
 type BlsSingleSigner struct {
 }
 
@@ -15,6 +15,10 @@ type BlsSingleSigner struct {
 func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
 	if private == nil {
 		return nil, crypto.ErrNilPrivateKey
+	}
+
+	if msg == nil {
+		return nil, crypto.ErrNilMessage
 	}
 
 	scalar := private.Scalar()
@@ -59,14 +63,14 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 		return crypto.ErrNilSuite
 	}
 
-	kSuite, ok := suite.GetUnderlyingSuite().(pairing.Suite)
-	if !ok {
-		return crypto.ErrInvalidSuite
-	}
-
 	point := public.Point()
 	if point == nil {
 		return crypto.ErrNilPublicKeyPoint
+	}
+
+	kSuite, ok := suite.GetUnderlyingSuite().(pairing.Suite)
+	if !ok {
+		return crypto.ErrInvalidSuite
 	}
 
 	kPoint, ok := point.GetUnderlyingObj().(kyber.Point)

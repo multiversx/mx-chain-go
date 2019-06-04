@@ -9,16 +9,17 @@ import (
 
 // BlockProcessorStub mocks the implementation for a blockProcessor
 type BlockProcessorStub struct {
-	ProcessBlockCalled                 func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled                  func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled           func()
-	CreateGenesisBlockCalled           func(balances map[string]*big.Int) (rootHash []byte, err error)
-	CreateBlockCalled                  func(round int32, haveTime func() bool) (data.BodyHandler, error)
-	RestoreBlockIntoPoolsCalled        func(blockChain data.ChainHandler, body data.BodyHandler) error
-	GetRootHashCalled                  func() []byte
-	SetOnRequestTransactionCalled      func(f func(destShardID uint32, txHash []byte))
-	CheckBlockValidityCalled           func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
-	MarshalizedDataForCrossShardCalled func(body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
+	ProcessBlockCalled               func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
+	RevertAccountStateCalled         func()
+	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
+	CreateBlockBodyCalled            func(round uint32, haveTime func() bool) (data.BodyHandler, error)
+	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
+	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
+	CreateBlockHeaderCalled          func(body data.BodyHandler, round uint32, haveTime func() bool) (data.HeaderHandler, error)
+	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
+	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
+	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 }
 
 // ProcessBlock mocks pocessing a block
@@ -37,32 +38,31 @@ func (blProcMock *BlockProcessorStub) RevertAccountState() {
 }
 
 // CreateGenesisBlock mocks the creation of a genesis block body
-func (blProcMock *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) (rootHash []byte, err error) {
+func (blProcMock *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
 	return blProcMock.CreateGenesisBlockCalled(balances)
 }
 
 // CreateTxBlockBody mocks the creation of a transaction block body
-func (blProcMock *BlockProcessorStub) CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error) {
-	return blProcMock.CreateBlockCalled(round, haveTime)
+func (blProcMock *BlockProcessorStub) CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error) {
+	return blProcMock.CreateBlockBodyCalled(round, haveTime)
 }
 
-func (blProcMock *BlockProcessorStub) RestoreBlockIntoPools(blockChain data.ChainHandler, body data.BodyHandler) error {
-	return blProcMock.RestoreBlockIntoPoolsCalled(blockChain, body)
+func (blProcMock *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
+	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
 }
 
-// GetRootHash mocks getting root hash
-func (blProcMock BlockProcessorStub) GetRootHash() []byte {
-	return blProcMock.GetRootHashCalled()
+func (blProcMock BlockProcessorStub) CreateBlockHeader(body data.BodyHandler, round uint32, haveTime func() bool) (data.HeaderHandler, error) {
+	return blProcMock.CreateBlockHeaderCalled(body, round, haveTime)
 }
 
-func (blProcMock BlockProcessorStub) CheckBlockValidity(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool {
-	return blProcMock.CheckBlockValidityCalled(blockChain, header, body)
+func (blProcMock BlockProcessorStub) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
+	return blProcMock.MarshalizedDataToBroadcastCalled(header, body)
 }
 
-func (bps BlockProcessorStub) CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error) {
-	panic("implement me")
+func (blProcMock BlockProcessorStub) DecodeBlockBody(dta []byte) data.BodyHandler {
+	return blProcMock.DecodeBlockBodyCalled(dta)
 }
 
-func (blProcMock BlockProcessorStub) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
-	return blProcMock.MarshalizedDataForCrossShardCalled(body)
+func (blProcMock BlockProcessorStub) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	return blProcMock.DecodeBlockHeaderCalled(dta)
 }

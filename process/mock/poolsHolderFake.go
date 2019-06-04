@@ -15,20 +15,25 @@ type PoolsHolderFake struct {
 	hdrNonces         dataRetriever.Uint64Cacher
 	miniBlocks        storage.Cacher
 	peerChangesBlocks storage.Cacher
+	metaHdrNonces     dataRetriever.Uint64Cacher
 }
 
 func NewPoolsHolderFake() *PoolsHolderFake {
 	phf := &PoolsHolderFake{}
 	phf.transactions, _ = shardedData.NewShardedData(storage.CacheConfig{Size: 10000, Type: storage.LRUCache})
-	phf.headers, _ = storage.NewCache(storage.LRUCache, 10000)
-	phf.metaBlocks, _ = storage.NewCache(storage.LRUCache, 10000)
-	cacheHdrNonces, _ := storage.NewCache(storage.LRUCache, 10000)
+	phf.headers, _ = storage.NewCache(storage.LRUCache, 10000, 1)
+	phf.metaBlocks, _ = storage.NewCache(storage.LRUCache, 10000, 1)
+	cacheHdrNonces, _ := storage.NewCache(storage.LRUCache, 10000, 1)
 	phf.hdrNonces, _ = dataPool.NewNonceToHashCacher(
 		cacheHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
-	phf.miniBlocks, _ = storage.NewCache(storage.LRUCache, 10000)
-	phf.peerChangesBlocks, _ = storage.NewCache(storage.LRUCache, 10000)
+	phf.metaHdrNonces, _ = dataPool.NewNonceToHashCacher(
+		cacheHdrNonces,
+		uint64ByteSlice.NewBigEndianConverter(),
+	)
+	phf.miniBlocks, _ = storage.NewCache(storage.LRUCache, 10000, 1)
+	phf.peerChangesBlocks, _ = storage.NewCache(storage.LRUCache, 10000, 1)
 	return phf
 }
 
@@ -54,4 +59,8 @@ func (phf *PoolsHolderFake) PeerChangesBlocks() storage.Cacher {
 
 func (phf *PoolsHolderFake) MetaBlocks() storage.Cacher {
 	return phf.metaBlocks
+}
+
+func (phf *PoolsHolderFake) MetaHeadersNonces() dataRetriever.Uint64Cacher {
+	return phf.metaHdrNonces
 }

@@ -16,6 +16,10 @@ func NewMultipleShardsCoordinatorMock() *multipleShardsCoordinatorMock {
 	return &multipleShardsCoordinatorMock{noShards: 1}
 }
 
+func NewMultiShardsCoordinatorMock(nrShard uint32) *multipleShardsCoordinatorMock {
+	return &multipleShardsCoordinatorMock{noShards: nrShard}
+}
+
 func (scm *multipleShardsCoordinatorMock) NumberOfShards() uint32 {
 	return scm.noShards
 }

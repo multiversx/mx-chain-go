@@ -1,9 +1,11 @@
 package node
 
-import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-)
+import "github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 
-func (n *Node) SetMessenger(mes p2p.Messenger) {
-	n.messenger = mes
+func (n *Node) HeartbeatMonitor() *heartbeat.Monitor {
+	return n.heartbeatMonitor
+}
+
+func (n *Node) HeartbeatSender() *heartbeat.Sender {
+	return n.heartbeatSender
 }

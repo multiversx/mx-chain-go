@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -143,6 +143,7 @@ func TestChronology_StartRoundShouldReturnWhenLoadSubroundHandlerReturnsNil(t *t
 func TestChronology_StartRoundShouldReturnWhenDoWorkReturnsFalse(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{}
+	rounderMock.UpdateRound(rounderMock.TimeStamp(), rounderMock.TimeStamp().Add(rounderMock.TimeDuration()))
 	syncTimerMock := &mock.SyncTimerMock{}
 	genesisTime := time.Now()
 	chr, _ := chronology.NewChronology(
@@ -161,6 +162,7 @@ func TestChronology_StartRoundShouldReturnWhenDoWorkReturnsFalse(t *testing.T) {
 func TestChronology_StartRoundShouldWork(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{}
+	rounderMock.UpdateRound(rounderMock.TimeStamp(), rounderMock.TimeStamp().Add(rounderMock.TimeDuration()))
 	syncTimerMock := &mock.SyncTimerMock{}
 	genesisTime := time.Now()
 	chr, _ := chronology.NewChronology(
@@ -246,6 +248,7 @@ func TestChronology_InitRoundShouldNotSetSubroundWhenRoundIndexIsNegative(t *tes
 func TestChronology_InitRoundShouldSetSubroundWhenRoundIndexIsPositive(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{}
+	rounderMock.UpdateRound(rounderMock.TimeStamp(), rounderMock.TimeStamp().Add(rounderMock.TimeDuration()))
 	syncTimerMock := &mock.SyncTimerMock{}
 	chr, _ := chronology.NewChronology(
 		syncTimerMock.CurrentTime(),

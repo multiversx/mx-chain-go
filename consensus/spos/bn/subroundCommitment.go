@@ -8,20 +8,20 @@ import (
 )
 
 type subroundCommitment struct {
-	*subround
+	*spos.Subround
 
 	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundCommitment creates a subroundCommitment object
 func NewSubroundCommitment(
-	subround *subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundCommitment, error) {
 
 	err := checkNewSubroundCommitmentParams(
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	)
 
@@ -30,26 +30,26 @@ func NewSubroundCommitment(
 	}
 
 	srCommitment := subroundCommitment{
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	}
 
-	srCommitment.job = srCommitment.doCommitmentJob
-	srCommitment.check = srCommitment.doCommitmentConsensusCheck
-	srCommitment.extend = extend
+	srCommitment.Job = srCommitment.doCommitmentJob
+	srCommitment.Check = srCommitment.doCommitmentConsensusCheck
+	srCommitment.Extend = extend
 
 	return &srCommitment, nil
 }
 
 func checkNewSubroundCommitmentParams(
-	subround *subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
-	if subround == nil {
+	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 
-	if subround.ConsensusState == nil {
+	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
 
@@ -57,12 +57,12 @@ func checkNewSubroundCommitmentParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
 }
 
-// doCommitmentJob method does the job of the commitment subround
+// doCommitmentJob method does the job of the subround Commitment
 func (sr *subroundCommitment) doCommitmentJob() bool {
 	if !sr.IsSelfJobDone(SrBitmap) { // is NOT self in the leader's bitmap?
 		return false
@@ -78,8 +78,14 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 		return false
 	}
 
+	multiSig, err := getBnMultiSigner(sr.MultiSigner())
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
 	// commitment
-	commitment, err := sr.MultiSigner().Commitment(uint16(selfIndex))
+	commitment, err := multiSig.Commitment(uint16(selfIndex))
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -137,7 +143,12 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.Message) bool
 		return false
 	}
 
-	currentMultiSigner := sr.MultiSigner()
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
 	err = currentMultiSigner.StoreCommitment(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
 		log.Info(err.Error())
@@ -160,7 +171,7 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.Message) bool
 	return true
 }
 
-// doCommitmentConsensusCheck method checks if the consensus in the <COMMITMENT> subround is achieved
+// doCommitmentConsensusCheck method checks if the consensus in the subround Commitment is achieved
 func (sr *subroundCommitment) doCommitmentConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false

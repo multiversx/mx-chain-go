@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -26,7 +27,6 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	fmt.Println("Step 1. Setup nodes...")
 	numOfShards := 6
-	startingPort := 36000
 	nodesPerShard := 3
 
 	senderShard := uint32(0)
@@ -35,12 +35,10 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	valMinting := big.NewInt(100)
 	valToTransferPerTx := big.NewInt(2)
 
-	advertiser := createMessengerWithKadDht(context.Background(), startingPort, "")
+	advertiser := createMessengerWithKadDht(context.Background(), "")
 	advertiser.Bootstrap()
-	startingPort++
 
 	nodes := createNodes(
-		startingPort,
 		numOfShards,
 		nodesPerShard,
 		getConnectableAddress(advertiser),
@@ -89,19 +87,21 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	createMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
 
 	fmt.Println("Step 5. Proposer creates block body and header with all available transactions...")
-	blockBody, blockHeader := proposeBlock(t, proposerNode)
+	blockBody, blockHeader := proposeBlock(t, proposerNode, uint32(1))
 
 	fmt.Println("Step 6. Proposer disseminates header, block body and miniblocks...")
-	proposerNode.node.BroadcastBlock(blockBody, blockHeader)
+	proposerNode.node.BroadcastShardBlock(blockBody, blockHeader)
+	proposerNode.node.BroadcastShardHeader(blockHeader)
 	fmt.Println("Delaying for disseminating miniblocks and header...")
 	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
 
-	fmt.Println("Step 7. Nodes from proposer's shard will have to successfully process the block sent by the proposer...")
+	fmt.Println("Step 7. NodesSetup from proposer's shard will have to successfully process the block sent by the proposer...")
 	fmt.Println(makeDisplayTable(nodes))
 	for _, n := range nodes {
 		isNodeInSenderShardAndNotProposer := n.shardId == senderShard && n != proposerNode
-
 		if isNodeInSenderShardAndNotProposer {
+			n.blkc.SetGenesisHeaderHash(n.headers[0].GetPrevHash())
 			err := n.blkProcessor.ProcessBlock(
 				n.blkc,
 				n.headers[0],
@@ -115,6 +115,36 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 			assert.Nil(t, err)
 		}
 	}
+
+	fmt.Println("Step 7. Metachain processes the received header...")
+	metaNode := nodes[len(nodes)-1]
+	_, metaHeader := proposeMetaBlock(t, metaNode, uint32(1))
+	metaNode.node.BroadcastMetaBlock(nil, metaHeader)
+	metaNode.blkProcessor.CommitBlock(metaNode.blkc, metaHeader, &block.MetaBlockBody{})
+	fmt.Println("Delaying for disseminating meta header...")
+	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
+
+	_, metaHeader = proposeMetaBlock(t, metaNode, uint32(2))
+	metaNode.node.BroadcastMetaBlock(nil, metaHeader)
+	metaNode.blkProcessor.CommitBlock(metaNode.blkc, metaHeader, &block.MetaBlockBody{})
+	fmt.Println("Delaying for disseminating meta header...")
+	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
+
+	_, metaHeader = proposeMetaBlock(t, metaNode, uint32(3))
+	metaNode.node.BroadcastMetaBlock(nil, metaHeader)
+	metaNode.blkProcessor.CommitBlock(metaNode.blkc, metaHeader, &block.MetaBlockBody{})
+	fmt.Println("Delaying for disseminating meta header...")
+	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
+
+	_, metaHeader = proposeMetaBlock(t, metaNode, uint32(3))
+	metaNode.node.BroadcastMetaBlock(nil, metaHeader)
+	metaNode.blkProcessor.CommitBlock(metaNode.blkc, metaHeader, &block.MetaBlockBody{})
+	fmt.Println("Delaying for disseminating meta header...")
+	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
 
 	fmt.Println("Step 8. Test nodes from proposer shard to have the correct balances...")
 	for _, n := range nodes {
@@ -142,16 +172,58 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		receiverProposer := nodes[int(shardId)*nodesPerShard]
 		firstReceiverNodes = append(firstReceiverNodes, receiverProposer)
 
-		body, header := proposeBlock(t, receiverProposer)
-		receiverProposer.node.BroadcastBlock(body, header)
+		body, header := proposeBlock(t, receiverProposer, uint32(1))
+		receiverProposer.node.BroadcastShardBlock(body, header)
+		receiverProposer.node.BroadcastShardHeader(header)
+		receiverProposer.blkProcessor.CommitBlock(receiverProposer.blkc, header, body)
 	}
 	fmt.Println("Delaying for disseminating miniblocks and headers...")
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
 
-	fmt.Println("Step 10. Nodes from receivers shards will have to successfully process the block sent by their proposer...")
+	for _, shardId := range recvShards {
+		receiverProposer := nodes[int(shardId)*nodesPerShard]
+
+		body, header := proposeBlock(t, receiverProposer, uint32(2))
+		receiverProposer.node.BroadcastShardBlock(body, header)
+		receiverProposer.node.BroadcastShardHeader(header)
+		receiverProposer.blkProcessor.CommitBlock(receiverProposer.blkc, header, body)
+	}
+	fmt.Println("Delaying for disseminating miniblocks and headers...")
+	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
+
+	for _, shardId := range recvShards {
+		receiverProposer := nodes[int(shardId)*nodesPerShard]
+
+		body, header := proposeBlock(t, receiverProposer, uint32(3))
+		receiverProposer.node.BroadcastShardBlock(body, header)
+		receiverProposer.node.BroadcastShardHeader(header)
+		receiverProposer.blkProcessor.CommitBlock(receiverProposer.blkc, header, body)
+	}
+	fmt.Println("Delaying for disseminating miniblocks and headers...")
+	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
+
+	for _, shardId := range recvShards {
+		receiverProposer := nodes[int(shardId)*nodesPerShard]
+
+		body, header := proposeBlock(t, receiverProposer, uint32(4))
+		receiverProposer.node.BroadcastShardBlock(body, header)
+		receiverProposer.node.BroadcastShardHeader(header)
+		receiverProposer.blkProcessor.CommitBlock(receiverProposer.blkc, header, body)
+	}
+	fmt.Println("Delaying for disseminating miniblocks and headers...")
+	time.Sleep(time.Second * 5)
+	fmt.Println(makeDisplayTable(nodes))
+
+	fmt.Println("Step 10. NodesSetup from receivers shards will have to successfully process the block sent by their proposer...")
 	fmt.Println(makeDisplayTable(nodes))
 	for _, n := range nodes {
+		if n.shardId == sharding.MetachainShardId {
+			continue
+		}
+
 		isNodeInReceiverShardAndNotProposer := false
 		for _, shardId := range recvShards {
 			if n.shardId == shardId {
@@ -167,9 +239,52 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 		if isNodeInReceiverShardAndNotProposer {
 			if len(n.headers) > 0 {
+				n.blkc.SetGenesisHeaderHash(n.headers[0].GetPrevHash())
 				err := n.blkProcessor.ProcessBlock(
 					n.blkc,
 					n.headers[0],
+					block.Body{},
+					func() time.Duration {
+						// time 5 seconds as they have to request from leader the TXs
+						return time.Second * 5
+					},
+				)
+
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
+
+				err = n.blkProcessor.CommitBlock(n.blkc, n.headers[0], block.Body{})
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
+
+				err = n.blkProcessor.ProcessBlock(
+					n.blkc,
+					n.headers[1],
+					block.Body{},
+					func() time.Duration {
+						// time 5 seconds as they have to request from leader the TXs
+						return time.Second * 5
+					},
+				)
+
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
+
+				err = n.blkProcessor.CommitBlock(n.blkc, n.headers[1], block.Body{})
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
+
+				err = n.blkProcessor.ProcessBlock(
+					n.blkc,
+					n.headers[2],
 					block.Body(n.miniblocks),
 					func() time.Duration {
 						// time 5 seconds as they have to request from leader the TXs
@@ -182,7 +297,32 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 					return
 				}
 
-				err = n.blkProcessor.CommitBlock(n.blkc, n.headers[0], block.Body(n.miniblocks))
+				err = n.blkProcessor.CommitBlock(n.blkc, n.headers[2], block.Body(n.miniblocks))
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
+
+				err = n.blkProcessor.ProcessBlock(
+					n.blkc,
+					n.headers[3],
+					block.Body{},
+					func() time.Duration {
+						// time 5 seconds as they have to request from leader the TXs
+						return time.Second * 5
+					},
+				)
+
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
+
+				err = n.blkProcessor.CommitBlock(n.blkc, n.headers[3], block.Body{})
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
 			}
 		}
 	}
@@ -275,8 +415,8 @@ func createMintingForSenders(
 		for _, sk := range sendersPrivateKeys {
 			pkBuff, _ := sk.GeneratePublic().ToByteArray()
 			adr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
-			account, _ := n.accntState.GetJournalizedAccount(adr)
-			account.SetBalanceWithJournal(value)
+			account, _ := n.accntState.GetAccountWithJournal(adr)
+			account.(*state.Account).SetBalanceWithJournal(value)
 		}
 
 		n.accntState.Commit()
@@ -287,23 +427,52 @@ func testPrivateKeyHasBalance(t *testing.T, n *testNode, sk crypto.PrivateKey, e
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
 	addr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 	account, _ := n.accntState.GetExistingAccount(addr)
-	assert.Equal(t, expectedBalance, account.BaseAccount().Balance)
+	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
 }
 
-func proposeBlock(t *testing.T, proposer *testNode) (data.BodyHandler, data.HeaderHandler) {
-	blockBody, err := proposer.blkProcessor.CreateBlockBody(0, func() bool {
-		return true
-	})
+func proposeBlock(t *testing.T, proposer *testNode, round uint32) (data.BodyHandler, data.HeaderHandler) {
+	haveTime := func() bool { return true }
+
+	blockBody, err := proposer.blkProcessor.CreateBlockBody(round, haveTime)
 	assert.Nil(t, err)
-	blockHeader, err := proposer.blkProcessor.CreateBlockHeader(blockBody)
+
+	blockHeader, err := proposer.blkProcessor.CreateBlockHeader(blockBody, round, haveTime)
 	assert.Nil(t, err)
+
+	blockHeader.SetRound(round)
+	blockHeader.SetNonce(uint64(round))
 	blockHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := testMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
-	buffGenesis, _ := testMarshalizer.Marshal(proposer.blkc.GetGenesisHeader())
-	blockHeader.SetPrevHash(testHasher.Compute(string(buffGenesis)))
-	blockHeader.SetPrevRandSeed(sig)
+	currHdr := proposer.blkc.GetCurrentBlockHeader()
+	if currHdr == nil {
+		currHdr = proposer.blkc.GetGenesisHeader()
+	}
+	buff, _ := testMarshalizer.Marshal(currHdr)
+	blockHeader.SetPrevHash(testHasher.Compute(string(buff)))
+	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
 	blockHeader.SetRandSeed(sig)
 
 	return blockBody, blockHeader
+}
+
+func proposeMetaBlock(t *testing.T, proposer *testNode, round uint32) (data.BodyHandler, data.HeaderHandler) {
+	metaHeader, err := proposer.blkProcessor.CreateBlockHeader(nil, round, func() bool { return true })
+	assert.Nil(t, err)
+
+	metaHeader.SetNonce(uint64(round))
+	metaHeader.SetRound(round)
+	metaHeader.SetPubKeysBitmap(make([]byte, 0))
+	sig, _ := testMultiSig.AggregateSigs(nil)
+	metaHeader.SetSignature(sig)
+	currHdr := proposer.blkc.GetCurrentBlockHeader()
+	if currHdr == nil {
+		currHdr = proposer.blkc.GetGenesisHeader()
+	}
+	buff, _ := testMarshalizer.Marshal(currHdr)
+	metaHeader.SetPrevHash(testHasher.Compute(string(buff)))
+	metaHeader.SetRandSeed(sig)
+	metaHeader.SetPrevRandSeed(currHdr.GetRandSeed())
+
+	return nil, metaHeader
 }

@@ -9,6 +9,7 @@ import (
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
+// If the function returns a non nil value, the received message will not be propagated to its connected peers
 type MessageProcessor interface {
 	ProcessReceivedMessage(message MessageP2P) error
 }
@@ -68,6 +69,7 @@ type Messenger interface {
 	IsConnected(peerID PeerID) bool
 	ConnectedPeers() []PeerID
 	ConnectedAddresses() []string
+	PeerAddress(pid PeerID) string
 	ConnectedPeersOnTopic(topic string) []PeerID
 	TrimConnections()
 	Bootstrap() error
@@ -78,6 +80,7 @@ type Messenger interface {
 	RegisterMessageProcessor(topic string, handler MessageProcessor) error
 	UnregisterMessageProcessor(topic string) error
 	OutgoingChannelLoadBalancer() ChannelLoadBalancer
+	BroadcastOnChannelBlocking(channel string, topic string, buff []byte)
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 	Broadcast(topic string, buff []byte)
 	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error

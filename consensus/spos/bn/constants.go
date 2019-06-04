@@ -1,6 +1,11 @@
 package bn
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+)
+
+var log = logger.DefaultLogger()
 
 const (
 	// SrStartRound defines ID of subround "Start round"
@@ -21,7 +26,7 @@ const (
 
 const (
 	// MtUnknown defines ID of a message that has unknown Data inside
-	MtUnknown spos.MessageType = iota
+	MtUnknown consensus.MessageType = iota
 	// MtBlockBody defines ID of a message that has a block body inside
 	MtBlockBody
 	// MtBlockHeader defines ID of a message that has a block header inside
@@ -36,14 +41,8 @@ const (
 	MtSignature
 )
 
-// syncThesholdPercent sepcifies the max allocated time to syncronize as a percentage of the total time of the round
-const syncThresholdPercent = 50
-
 // processingThresholdPercent specifies the max allocated time for processing the block as a percentage of the total time of the round
 const processingThresholdPercent = 65
-
-// maxThresholdPercent specifies the max allocated time percent for doing job as a percentage of the total time of one round
-const maxThresholdPercent = 75
 
 // srStartStartTime specifies the start time, from the total time of the round, of subround Start
 const srStartStartTime = 0.0
@@ -87,7 +86,7 @@ const srEndStartTime = 0.65
 // srEndEndTime specifies the end time, from the total time of the round, of subround End
 const srEndEndTime = 0.75
 
-func getStringValue(msgType spos.MessageType) string {
+func getStringValue(msgType consensus.MessageType) string {
 	switch msgType {
 	case MtBlockBody:
 		return "(BLOCK_BODY)"
@@ -105,5 +104,27 @@ func getStringValue(msgType spos.MessageType) string {
 		return "(UNKNOWN)"
 	default:
 		return "Undefined message type"
+	}
+}
+
+// getSubroundName returns the name of each subround from a given subround ID
+func getSubroundName(subroundId int) string {
+	switch subroundId {
+	case SrStartRound:
+		return "(START_ROUND)"
+	case SrBlock:
+		return "(BLOCK)"
+	case SrCommitmentHash:
+		return "(COMMITMENT_HASH)"
+	case SrBitmap:
+		return "(BITMAP)"
+	case SrCommitment:
+		return "(COMMITMENT)"
+	case SrSignature:
+		return "(SIGNATURE)"
+	case SrEndRound:
+		return "(END_ROUND)"
+	default:
+		return "Undefined subround"
 	}
 }

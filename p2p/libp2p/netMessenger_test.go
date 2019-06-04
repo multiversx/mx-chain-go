@@ -15,8 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-net"
@@ -178,6 +178,7 @@ func TestNewNetworkMessenger_NilContextShouldErr(t *testing.T) {
 		&mock.ConnManagerNotifieeStub{},
 		&mock.ChannelLoadBalancerStub{},
 		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	assert.Nil(t, mes)
@@ -185,7 +186,7 @@ func TestNewNetworkMessenger_NilContextShouldErr(t *testing.T) {
 }
 
 func TestNewNetworkMessenger_InvalidPortShouldErr(t *testing.T) {
-	port := 0
+	port := -1
 
 	_, sk := createLibP2PCredentialsMessenger()
 
@@ -196,6 +197,7 @@ func TestNewNetworkMessenger_InvalidPortShouldErr(t *testing.T) {
 		&mock.ConnManagerNotifieeStub{},
 		&mock.ChannelLoadBalancerStub{},
 		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	assert.Nil(t, mes)
@@ -212,6 +214,7 @@ func TestNewNetworkMessenger_NilP2PprivateKeyShouldErr(t *testing.T) {
 		&mock.ConnManagerNotifieeStub{},
 		&mock.ChannelLoadBalancerStub{},
 		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	assert.Nil(t, mes)
@@ -230,6 +233,7 @@ func TestNewNetworkMessenger_NilPipeLoadBalancerShouldErr(t *testing.T) {
 		&mock.ConnManagerNotifieeStub{},
 		nil,
 		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	assert.Nil(t, mes)
@@ -253,6 +257,7 @@ func TestNewNetworkMessenger_NoConnMgrShouldWork(t *testing.T) {
 			},
 		},
 		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	assert.NotNil(t, mes)
@@ -283,6 +288,7 @@ func TestNewNetworkMessenger_WithConnMgrShouldWork(t *testing.T) {
 			},
 		},
 		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	assert.NotNil(t, mes)
@@ -309,6 +315,7 @@ func TestNewNetworkMessenger_WithNullPeerDiscoveryShouldWork(t *testing.T) {
 			},
 		},
 		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	assert.NotNil(t, mes)
@@ -334,6 +341,7 @@ func TestNewNetworkMessenger_NilPeerDiscoveryShouldErr(t *testing.T) {
 			},
 		},
 		nil,
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	assert.Nil(t, mes)
@@ -363,10 +371,33 @@ func TestNewNetworkMessenger_PeerDiscovererFailsWhenApplyingContextShouldErr(t *
 				return errExpected
 			},
 		},
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	assert.Nil(t, mes)
 	assert.Equal(t, errExpected, err)
+}
+
+func TestNewNetworkMessengerWithPortSweep_ShouldFindFreePort(t *testing.T) {
+	_, sk := createLibP2PCredentialsMessenger()
+
+	mes, err := libp2p.NewNetworkMessengerOnFreePort(
+		context.Background(),
+		sk,
+		nil,
+		&mock.ChannelLoadBalancerStub{
+			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+				time.Sleep(time.Millisecond * 100)
+				return nil
+			},
+		},
+		discovery.NewNullDiscoverer(),
+	)
+
+	assert.NotNil(t, mes)
+	assert.Nil(t, err)
+
+	mes.Close()
 }
 
 //------- Messenger functionality
@@ -696,6 +727,123 @@ func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
 	mes3.Close()
 }
 
+func TestLibp2pMessenger_ConnectedAddresses(t *testing.T) {
+	netw, mes1, mes2 := createMockNetworkOf2()
+	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+
+	netw.LinkAll()
+
+	adr2 := mes2.Addresses()[0]
+
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = mes1.ConnectToPeer(adr2)
+	_ = mes3.ConnectToPeer(adr2)
+
+	//connected peers:  1 ----- 2 ----- 3
+
+	foundAddr1 := false
+	foundAddr3 := false
+
+	for _, addr := range mes2.ConnectedAddresses() {
+		for _, addrMes1 := range mes1.Addresses() {
+			if addr == addrMes1 {
+				foundAddr1 = true
+			}
+		}
+
+		for _, addrMes3 := range mes3.Addresses() {
+			if addr == addrMes3 {
+				foundAddr3 = true
+			}
+		}
+	}
+
+	assert.True(t, foundAddr1)
+	assert.True(t, foundAddr3)
+	assert.Equal(t, 2, len(mes2.ConnectedAddresses()))
+	//no need to further test that mes2 is connected to mes1 and mes3 s this was tested in first 2 asserts
+
+	mes1.Close()
+	mes2.Close()
+	mes3.Close()
+}
+
+func TestLibp2pMessenger_PeerAddressConnectedPeerShouldWork(t *testing.T) {
+	netw, mes1, mes2 := createMockNetworkOf2()
+	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+
+	netw.LinkAll()
+
+	adr2 := mes2.Addresses()[0]
+
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = mes1.ConnectToPeer(adr2)
+	_ = mes3.ConnectToPeer(adr2)
+
+	//connected peers:  1 ----- 2 ----- 3
+
+	defer mes1.Close()
+	defer mes2.Close()
+	defer mes3.Close()
+
+	adr1Recov := mes2.PeerAddress(mes1.ID())
+	for _, addr := range mes1.Addresses() {
+		if strings.Contains(addr, adr1Recov) {
+			//address returned is valid, test is successful
+			return
+		}
+	}
+
+	assert.Fail(t, "Returned address is not valid!")
+}
+
+func TestLibp2pMessenger_PeerAddressDisconnectedPeerShouldWork(t *testing.T) {
+	netw, mes1, mes2 := createMockNetworkOf2()
+	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+
+	netw.LinkAll()
+
+	adr2 := mes2.Addresses()[0]
+
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = mes1.ConnectToPeer(adr2)
+	_ = mes3.ConnectToPeer(adr2)
+
+	defer mes1.Close()
+	defer mes2.Close()
+	defer mes3.Close()
+
+	netw.UnlinkPeers(peer.ID(mes1.ID().Bytes()), peer.ID(mes2.ID().Bytes()))
+	netw.DisconnectPeers(peer.ID(mes1.ID().Bytes()), peer.ID(mes2.ID().Bytes()))
+	netw.DisconnectPeers(peer.ID(mes2.ID().Bytes()), peer.ID(mes1.ID().Bytes()))
+
+	//connected peers:  1 --x-- 2 ----- 3
+
+	assert.False(t, mes2.IsConnected(mes1.ID()))
+
+	adr1Recov := mes2.PeerAddress(mes1.ID())
+	for _, addr := range mes1.Addresses() {
+		if strings.Contains(addr, adr1Recov) {
+			//address returned is valid, test is successful
+			return
+		}
+	}
+
+	assert.Fail(t, "Returned address is not valid!")
+}
+
+func TestLibp2pMessenger_PeerAddressUnknownPeerShouldReturnEmpty(t *testing.T) {
+	_, mes1, _ := createMockNetworkOf2()
+
+	defer mes1.Close()
+
+	adr1Recov := mes1.PeerAddress("unknown peer")
+	assert.Equal(t, "", adr1Recov)
+}
+
 //------- ConnectedPeersOnTopic
 
 func TestLibp2pMessenger_ConnectedPeersOnTopicInvalidTopicShouldRetEmptyList(t *testing.T) {
@@ -930,6 +1078,7 @@ func TestLibp2pMessenger_TrimConnectionsCallsConnManagerTrimConnections(t *testi
 			},
 		},
 		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	mes.TrimConnections()
@@ -961,6 +1110,7 @@ func TestLibp2pMessenger_SendDataThrottlerShouldReturnCorrectObject(t *testing.T
 		nil,
 		sdt,
 		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	sdtReturned := mes.OutgoingChannelLoadBalancer()
@@ -1021,6 +1171,7 @@ func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testi
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	fmt.Println("Messenger 2:")
@@ -1031,6 +1182,7 @@ func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testi
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
 	)
 
 	err := mes1.ConnectToPeer(getConnectableAddress(mes2))

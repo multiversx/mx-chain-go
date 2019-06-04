@@ -9,19 +9,19 @@ import (
 )
 
 type subroundSignature struct {
-	*subround
+	*spos.Subround
 
 	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundSignature creates a subroundSignature object
 func NewSubroundSignature(
-	subround *subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	)
 	if err != nil {
@@ -29,25 +29,25 @@ func NewSubroundSignature(
 	}
 
 	srSignature := subroundSignature{
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	}
-	srSignature.job = srSignature.doSignatureJob
-	srSignature.check = srSignature.doSignatureConsensusCheck
-	srSignature.extend = extend
+	srSignature.Job = srSignature.doSignatureJob
+	srSignature.Check = srSignature.doSignatureConsensusCheck
+	srSignature.Extend = extend
 
 	return &srSignature, nil
 }
 
 func checkNewSubroundSignatureParams(
-	subround *subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
-	if subround == nil {
+	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 
-	if subround.ConsensusState == nil {
+	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
 
@@ -55,12 +55,12 @@ func checkNewSubroundSignatureParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
 }
 
-// doSignatureJob method does the job of the signatuure subround
+// doSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) doSignatureJob() bool {
 	if !sr.IsSelfJobDone(SrBitmap) { // is NOT self in the leader's bitmap?
 		return false
@@ -78,14 +78,20 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	// first compute commitment aggregation
-	err = sr.MultiSigner().AggregateCommitments(bitmap)
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	sigPart, err := sr.MultiSigner().CreateSignatureShare(bitmap)
+	// first compute commitment aggregation
+	err = currentMultiSigner.AggregateCommitments(bitmap)
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
+	sigPart, err := currentMultiSigner.CreateSignatureShare(sr.GetData(), bitmap)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -125,6 +131,11 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 		size = nbBitsBitmap
 	}
 
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
+	if err != nil {
+		return err
+	}
+
 	for i := 0; i < size; i++ {
 		indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
 
@@ -142,13 +153,13 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 			return spos.ErrNilCommitment
 		}
 
-		commitment, err := sr.MultiSigner().Commitment(uint16(i))
+		commitment, err := currentMultiSigner.Commitment(uint16(i))
 		if err != nil {
 			return err
 		}
 
 		computedCommitmentHash := sr.Hasher().Compute(string(commitment))
-		receivedCommitmentHash, err := sr.MultiSigner().CommitmentHash(uint16(i))
+		receivedCommitmentHash, err := currentMultiSigner.CommitmentHash(uint16(i))
 
 		if err != nil {
 			return err
@@ -212,7 +223,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	return true
 }
 
-// doSignatureConsensusCheck method checks if the consensus in the <SIGNATURE> subround is achieved
+// doSignatureConsensusCheck method checks if the consensus in the subround Signature is achieved
 func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false
@@ -247,7 +258,6 @@ func (sr *subroundSignature) signaturesCollected(threshold int) bool {
 
 		if isBitmapJobDone {
 			isSignJobDone, err := sr.JobDone(node, SrSignature)
-
 			if err != nil {
 				log.Error(err.Error())
 				continue

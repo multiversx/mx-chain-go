@@ -13,8 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +31,9 @@ func createMessenger(port int) p2p.Messenger {
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewNullDiscoverer())
+		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
+	)
 
 	if err != nil {
 		fmt.Println(err.Error())

@@ -43,8 +43,8 @@ var ErrNilBlockChain = errors.New("nil block chain")
 // ErrNilMetaBlockHeader signals that an operation has been attempted to or with a nil metablock
 var ErrNilMetaBlockHeader = errors.New("nil metablock header")
 
-// ErrNilTxBlockBody signals that an operation has been attempted to or with a nil block body
-var ErrNilTxBlockBody = errors.New("nil block body")
+// ErrNilTxBlockBody signals that an operation has been attempted to or with a nil tx block body
+var ErrNilTxBlockBody = errors.New("nil tx block body")
 
 // ErrNilStore signals that the provided storage service is nil
 var ErrNilStore = errors.New("nil data storage service")
@@ -54,6 +54,9 @@ var ErrNilPeerBlockBody = errors.New("nil block body")
 
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
+
+// ErrNilBlockBody signals that an operation has been attempted to or with a nil block body
+var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrNilTxHash signals that an operation has been attempted with a nil hash
 var ErrNilTxHash = errors.New("nil transaction hash")
@@ -94,6 +97,9 @@ var ErrMissingTransaction = errors.New("missing transaction")
 // ErrMarshalWithoutSuccess signals that marshal some data was not done with success
 var ErrMarshalWithoutSuccess = errors.New("marshal without success")
 
+// ErrUnmarshalWithoutSuccess signals that unmarshal some data was not done with success
+var ErrUnmarshalWithoutSuccess = errors.New("unmarshal without success")
+
 // ErrRootStateMissmatch signals that persist some data was not done with success
 var ErrRootStateMissmatch = errors.New("root state does not match")
 
@@ -132,6 +138,9 @@ var ErrNilMetachainHeadersDataPool = errors.New("nil metachain headers data pool
 
 // ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
 var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
+
+//ErrNilMetachainHeadersNoncesDataPool signals a nil metachain header - nonce cache
+var ErrNilMetachainHeadersNoncesDataPool = errors.New("nil metachain headers nonces cache")
 
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
@@ -177,6 +186,12 @@ var ErrNilPoolsHolder = errors.New("nil pools holder")
 
 // ErrNilTxStorage signals that a nil transaction storage has been provided
 var ErrNilTxStorage = errors.New("nil transaction storage")
+
+// ErrNilStorage signals that a nil storage has been provided
+var ErrNilStorage = errors.New("nil storage")
+
+// ErrNilBlocksTracker signals that a nil blocks tracker has been provided
+var ErrNilBlocksTracker = errors.New("nil blocks tracker")
 
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
@@ -226,11 +241,8 @@ var ErrContainerKeyAlreadyExists = errors.New("provided key already exists in co
 // ErrNilResolverContainer signals that a nil resolver container was provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
 
-// ErrNilTransactionHandler signals that a nil transaction handler func was provided
-var ErrNilTransactionHandler = errors.New("nil request transaction handler")
-
-// ErrNilMiniBlocksRequestHandler signals that a nil mini block request handler func was provided
-var ErrNilMiniBlocksRequestHandler = errors.New("nil request miniblock handler")
+// ErrNilRequestHandler signals that a nil request handler interface was provided
+var ErrNilRequestHandler = errors.New("nil request handler")
 
 // ErrNilHaveTimeHandler signals that a nil have time handler func was provided
 var ErrNilHaveTimeHandler = errors.New("nil have time handler")
@@ -247,9 +259,6 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 // ErrWrongTypeAssertion signals that an type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
-// ErrHeaderIsInStorage signals that the header is already in storage
-var ErrHeaderIsInStorage = errors.New("header is already in storage")
-
 // ErrRollbackFromGenesis signals that a rollback from genesis is called
 var ErrRollbackFromGenesis = errors.New("roll back from genesis is not supported")
 
@@ -258,3 +267,48 @@ var ErrNoTransactionInMessage = errors.New("no transaction found in received mes
 
 // ErrNilBuffer signals that a provided byte buffer is nil
 var ErrNilBuffer = errors.New("provided byte buffer is nil")
+
+// ErrNilChronologyValidator signals that a nil chronology validator has been provided
+var ErrNilChronologyValidator = errors.New("provided chronology validator object is nil")
+
+// ErrNilRandSeed signals that a nil rand seed has been provided
+var ErrNilRandSeed = errors.New("provided rand seed is nil")
+
+// ErrNilPrevRandSeed signals that a nil previous rand seed has been provided
+var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
+
+// ErrNilRequestHeaderHandlerByNonce signals that a nil header request handler by nonce func was provided
+var ErrNilRequestHeaderHandlerByNonce = errors.New("nil request header handler by nonce")
+
+// ErrLowShardHeaderRound signals that shard header round is too low for processing
+var ErrLowShardHeaderRound = errors.New("shard header round is lower than last committed for this shard")
+
+// ErrRandSeedMismatch signals that random seeds are not equal
+var ErrRandSeedMismatch = errors.New("random seeds do not match")
+
+// ErrHeaderNotFinal signals that header is not final and it should be
+var ErrHeaderNotFinal = errors.New("header in metablock is not final")
+
+// ErrShardIdMissmatch signals shard ID does not match expectations
+var ErrShardIdMissmatch = errors.New("shard ID missmatch")
+
+// ErrMintAddressNotInThisShard signals that the mint address does not belong to current shard
+var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
+
+// ErrLastNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
+var ErrLastNotarizedHdrsSliceIsNil = errors.New("last notarized shard headers slice is nil")
+
+// ErrNoNewMetablocks signals that no new metablocks are in the pool
+var ErrNoNewMetablocks = errors.New("there is no new metablocks")
+
+// ErrNoSortedHdrsForShard signals that there are no sorted hdrs in pool
+var ErrNoSortedHdrsForShard = errors.New("no sorted headers in pool")
+
+// ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
+var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
+
+// ErrHeaderBodyMismatch signals that the header does not attest all data from the block
+var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header data")
+
+// ErrMetaBlockNotFinal signals that metablock is not final
+var ErrMetaBlockNotFinal = errors.New("cannot attest meta blocks finality")

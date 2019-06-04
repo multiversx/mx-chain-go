@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
@@ -15,16 +16,18 @@ import (
 )
 
 type interceptorsContainerFactory struct {
-	shardCoordinator sharding.Coordinator
-	messenger        process.TopicHandler
-	store            dataRetriever.StorageService
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	keyGen           crypto.KeyGenerator
-	singleSigner     crypto.SingleSigner
-	multiSigner      crypto.MultiSigner
-	dataPool         dataRetriever.PoolsHolder
-	addrConverter    state.AddressConverter
+	shardCoordinator    sharding.Coordinator
+	messenger           process.TopicHandler
+	store               dataRetriever.StorageService
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	keyGen              crypto.KeyGenerator
+	singleSigner        crypto.SingleSigner
+	multiSigner         crypto.MultiSigner
+	dataPool            dataRetriever.PoolsHolder
+	addrConverter       state.AddressConverter
+	chronologyValidator process.ChronologyValidator
+	tpsBenchmark        *statistics.TpsBenchmark
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -39,6 +42,8 @@ func NewInterceptorsContainerFactory(
 	multiSigner crypto.MultiSigner,
 	dataPool dataRetriever.PoolsHolder,
 	addrConverter state.AddressConverter,
+	chronologyValidator process.ChronologyValidator,
+	tpsBenchmark *statistics.TpsBenchmark,
 ) (*interceptorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -71,18 +76,23 @@ func NewInterceptorsContainerFactory(
 	if addrConverter == nil {
 		return nil, process.ErrNilAddressConverter
 	}
+	if chronologyValidator == nil {
+		return nil, process.ErrNilChronologyValidator
+	}
 
 	return &interceptorsContainerFactory{
-		shardCoordinator: shardCoordinator,
-		messenger:        messenger,
-		store:            store,
-		marshalizer:      marshalizer,
-		hasher:           hasher,
-		keyGen:           keyGen,
-		singleSigner:     singleSigner,
-		multiSigner:      multiSigner,
-		dataPool:         dataPool,
-		addrConverter:    addrConverter,
+		shardCoordinator:    shardCoordinator,
+		messenger:           messenger,
+		store:               store,
+		marshalizer:         marshalizer,
+		hasher:              hasher,
+		keyGen:              keyGen,
+		singleSigner:        singleSigner,
+		multiSigner:         multiSigner,
+		dataPool:            dataPool,
+		addrConverter:       addrConverter,
+		chronologyValidator: chronologyValidator,
+		tpsBenchmark:        tpsBenchmark,
 	}, nil
 }
 
@@ -179,6 +189,16 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 		interceptorSlice[int(idx)] = interceptor
 	}
 
+	//tx interceptor for metachain topic
+	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+
+	interceptor, err := icf.createOneTxInterceptor(identifierTx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keys = append(keys, identifierTx)
+	interceptorSlice = append(interceptorSlice, interceptor)
 	return keys, interceptorSlice, nil
 }
 
@@ -218,6 +238,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
+		icf.chronologyValidator,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -256,7 +277,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifier string) (process.Interceptor, error) {
 	txBlockBodyStorer := icf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
-	interceptor, err := interceptors.NewMiniBlocksInterceptor(
+	interceptor, err := interceptors.NewTxBlockBodyInterceptor(
 		icf.marshalizer,
 		icf.dataPool.MiniBlocks(),
 		txBlockBodyStorer,
@@ -307,10 +328,13 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.MetaBlocks(),
+		icf.dataPool.MetaHeadersNonces(),
+		icf.tpsBenchmark,
 		metachainHeaderStorer,
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
+		icf.chronologyValidator,
 	)
 	if err != nil {
 		return nil, nil, err

@@ -11,15 +11,21 @@ import (
 // It implements Newer and Hashed interfaces
 type InterceptedHeader struct {
 	*block.Header
-	multiSigVerifier crypto.MultiSigVerifier
-	hash             []byte
+	multiSigVerifier    crypto.MultiSigVerifier
+	chronologyValidator process.ChronologyValidator
+	hash                []byte
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
-func NewInterceptedHeader(multiSigVerifier crypto.MultiSigVerifier) *InterceptedHeader {
+func NewInterceptedHeader(
+	multiSigVerifier crypto.MultiSigVerifier,
+	chronologyValidator process.ChronologyValidator,
+) *InterceptedHeader {
+
 	return &InterceptedHeader{
-		Header:           &block.Header{},
-		multiSigVerifier: multiSigVerifier,
+		Header:              &block.Header{},
+		multiSigVerifier:    multiSigVerifier,
+		chronologyValidator: chronologyValidator,
 	}
 }
 
@@ -38,7 +44,7 @@ func (inHdr *InterceptedHeader) Shard() uint32 {
 	return inHdr.ShardId
 }
 
-// GetHeader returns the Header pointer that holds the data
+// GetShardHeader returns the Header pointer that holds the data
 func (inHdr *InterceptedHeader) GetHeader() *block.Header {
 	return inHdr.Header
 }
@@ -63,29 +69,29 @@ func (inHdr *InterceptedHeader) Integrity(coordinator sharding.Coordinator) erro
 	if coordinator == nil {
 		return process.ErrNilShardCoordinator
 	}
-
 	if inHdr.Header == nil {
 		return process.ErrNilBlockHeader
 	}
-
 	if inHdr.PubKeysBitmap == nil {
 		return process.ErrNilPubKeysBitmap
 	}
-
 	if inHdr.ShardId >= coordinator.NumberOfShards() {
 		return process.ErrInvalidShardId
 	}
-
 	if inHdr.PrevHash == nil {
 		return process.ErrNilPreviousBlockHash
 	}
-
 	if inHdr.Signature == nil {
 		return process.ErrNilSignature
 	}
-
 	if inHdr.RootHash == nil {
 		return process.ErrNilRootHash
+	}
+	if inHdr.RandSeed == nil {
+		return process.ErrNilRandSeed
+	}
+	if inHdr.PrevRandSeed == nil {
+		return process.ErrNilPrevRandSeed
 	}
 
 	switch inHdr.BlockBodyType {
@@ -101,15 +107,23 @@ func (inHdr *InterceptedHeader) Integrity(coordinator sharding.Coordinator) erro
 }
 
 func (inHdr *InterceptedHeader) validityCheck() error {
-	// TODO: need to check epoch is round - timestamp - epoch - nonce - requires chronology
-	return nil
+	if inHdr.chronologyValidator == nil {
+		return process.ErrNilChronologyValidator
+	}
+
+	return inHdr.chronologyValidator.ValidateReceivedBlock(
+		inHdr.ShardId,
+		inHdr.Epoch,
+		inHdr.Nonce,
+		inHdr.Round,
+	)
 }
 
 // VerifySig verifies a signature
 func (inHdr *InterceptedHeader) VerifySig() error {
 	// TODO: Check block signature after multisig will be implemented
 	// TODO: the interceptors do not have access yet to consensus group selection to validate multisigs
-
+	// TODO: verify that the block proposer is among the signers and in the bitmap
 	return nil
 }
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/stretchr/testify/assert"
 )

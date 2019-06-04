@@ -34,9 +34,6 @@ var ErrNilMiniBlockHashesPool = errors.New("nil meta block mini block hashes dat
 // ErrNilShardHeaderPool signals that a nil meta block data pool was provided
 var ErrNilShardHeaderPool = errors.New("nil meta block shard header data pool")
 
-// ErrNilMetaBlockNouncesPool signals that a nil meta block data pool was provided
-var ErrNilMetaBlockNouncesPool = errors.New("nil meta block nounces data pool")
-
 // ErrInvalidHeaderType signals an invalid header pointer was provided
 var ErrInvalidHeaderType = errors.New("invalid header type")
 
@@ -48,3 +45,6 @@ var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrMiniBlockEmpty signals that mini block is empty
 var ErrMiniBlockEmpty = errors.New("mini block is empty")
+
+// ErrWrongTypeAssertion signals that wrong type was provided
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")

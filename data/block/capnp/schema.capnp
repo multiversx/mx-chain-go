@@ -5,39 +5,40 @@ $Go.import("_");
 
 
 struct HeaderCapn {
-   nonce            @0:   UInt64;
-   prevHash         @1:   Data;
-   prevRandSeed     @2:   Data;
-   randSeed         @3:   Data;
-   pubKeysBitmap    @4:   Data;
-   shardId          @5:   UInt32;
-   timeStamp        @6:   UInt64;
-   round            @7:   UInt32;
-   epoch            @8:   UInt32;
-   blockBodyType    @9:   UInt8;
-   signature        @10:  Data;
-   miniBlockHeaders @11:  List(MiniBlockHeaderCapn);
-   peerChanges      @12:  List(PeerChangeCapn);
-   rootHash         @13:  Data;
-   txCount          @14:  UInt32;
+  nonce            @0:   UInt64;
+  prevHash         @1:   Data;
+  prevRandSeed     @2:   Data;
+  randSeed         @3:   Data;
+  pubKeysBitmap    @4:   Data;
+  shardId          @5:   UInt32;
+  timeStamp        @6:   UInt64;
+  round            @7:   UInt32;
+  epoch            @8:   UInt32;
+  blockBodyType    @9:   UInt8;
+  signature        @10:  Data;
+  miniBlockHeaders @11:  List(MiniBlockHeaderCapn);
+  peerChanges      @12:  List(PeerChangeCapn);
+  rootHash         @13:  Data;
+  metaHdrHashes    @14:  List(Data);
+  txCount          @15:  UInt32;
 }
 
 struct MiniBlockHeaderCapn {
-   hash            @0: Data;
-   receiverShardID @1: UInt32;
-   senderShardID   @2: UInt32;
-   txCount         @3: UInt32;
+  hash            @0: Data;
+  receiverShardID @1: UInt32;
+  senderShardID   @2: UInt32;
+  txCount         @3: UInt32;
 }
 
 struct MiniBlockCapn {
-   txHashes        @0:   List(Data);
-   receiverShardID @1:   UInt32;
-   senderShardID   @2:   UInt32;
+  txHashes        @0:   List(Data);
+  receiverShardID @1:   UInt32;
+  senderShardID   @2:   UInt32;
 }
 
 struct PeerChangeCapn {
-   pubKey       @0:   Data;
-   shardIdDest  @1:   UInt32;
+  pubKey       @0:   Data;
+  shardIdDest  @1:   UInt32;
 }
 
 ##compile with:

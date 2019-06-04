@@ -17,6 +17,7 @@ type TxService interface {
 	SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, code string, signature []byte) (*transaction.Transaction, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	GenerateAndSendBulkTransactions(string, *big.Int, uint64) error
+	GenerateAndSendBulkTransactionsOneByOne(string, *big.Int, uint64) error
 }
 
 // TxRequest represents the structure on which user input for generating a new transaction will validate against
@@ -51,14 +52,26 @@ type SendTxRequest struct {
 //TxResponse represents the structure on which the response will be validated against
 type TxResponse struct {
 	SendTxRequest
+	ShardID     uint32 `json:"shardId"`
+	Hash        string `json:"hash"`
+	BlockNumber uint64 `json:"blockNumber"`
+	BlockHash   string `json:"blockHash"`
+	Timestamp   uint64 `json:"timestamp"`
 }
 
 // Routes defines transaction related routes
 func Routes(router *gin.RouterGroup) {
 	router.POST("/generate", GenerateTransaction)
 	router.POST("/generate-and-send-multiple", GenerateAndSendBulkTransactions)
+	router.POST("/generate-and-send-multiple-one-by-one", GenerateAndSendBulkTransactionsOneByOne)
 	router.POST("/send", SendTransaction)
 	router.GET("/:txhash", GetTransaction)
+}
+
+// RoutesForTransactionsLists defines routes related to lists of transactions. Used separately so
+// it will not conflict with the wildcard for transaction details route
+func RoutesForTransactionsLists(router *gin.RouterGroup) {
+	router.GET("/recent", RecentTransactions)
 }
 
 // GenerateTransaction generates a new transaction given a sender, receiver, value and data
@@ -139,6 +152,30 @@ func GenerateAndSendBulkTransactions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("%d", gtx.TxCount)})
 }
 
+// GenerateAndSendBulkTransactionsOneByOne generates multipleTransactions in a one-by-one fashion
+func GenerateAndSendBulkTransactionsOneByOne(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(TxService)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	var gtx = MultipleTxRequest{}
+	err := c.ShouldBindJSON(&gtx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		return
+	}
+
+	err = ef.GenerateAndSendBulkTransactionsOneByOne(gtx.Receiver, gtx.Value, uint64(gtx.TxCount))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrMultipleTxGenerationFailed.Error(), err.Error())})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("%d", gtx.TxCount)})
+}
+
 // GetTransaction returns transaction details for a given txhash
 func GetTransaction(c *gin.Context) {
 
@@ -166,6 +203,35 @@ func GetTransaction(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})
+}
+
+// RecentTransactions returns the list of latest transactions from all shards
+func RecentTransactions(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"transactions": buildDummyRecentTransactions()})
+}
+
+func buildDummyRecentTransactions() []TxResponse {
+	txs := make([]TxResponse, 0)
+	for i := 0; i < 10; i++ {
+		txs = append(txs, TxResponse{
+			SendTxRequest{
+				Sender:    "0x000000",
+				Receiver:  "0x11111",
+				Value:     big.NewInt(10),
+				Data:      "",
+				Nonce:     1,
+				GasPrice:  big.NewInt(10),
+				GasLimit:  big.NewInt(10),
+				Signature: "0x12314212313",
+			},
+			1,
+			"0x3213894328492",
+			10,
+			"0x000000000",
+			1558361492,
+		})
+	}
+	return txs
 }
 
 func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {

@@ -14,8 +14,8 @@ import (
 
 	errors2 "github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/middleware"
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/transaction/mock"
 	tr "github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -101,6 +101,39 @@ func TestGenerateAndSendMultipleTransaction_WithParametersShouldReturnNoError(t 
 			`"txCount":%d}`, receiver, value, txCount)
 
 	req, _ := http.NewRequest("POST", "/transaction/generate-and-send-multiple", bytes.NewBuffer([]byte(jsonStr)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	multipleTransactionResponse := GeneralResponse{}
+	loadResponse(resp.Body, &multipleTransactionResponse)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "", multipleTransactionResponse.Error)
+	assert.Equal(t, fmt.Sprintf("%d", txCount), multipleTransactionResponse.Message)
+}
+
+func TestGenerateAndSendMultipleTransactionOneByOne_WithParametersShouldReturnNoError(t *testing.T) {
+	t.Parallel()
+	receiver := "multipleReceiver"
+	value := big.NewInt(5)
+	txCount := 10
+
+	facade := mock.Facade{
+		GenerateAndSendBulkTransactionsOneByOneHandler: func(receiver string, value *big.Int,
+			txCount uint64) error {
+			return nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	jsonStr := fmt.Sprintf(
+		`{"receiver":"%s",`+
+			`"value":%s,`+
+			`"txCount":%d}`, receiver, value, txCount)
+
+	req, _ := http.NewRequest("POST", "/transaction/generate-and-send-multiple-one-by-one", bytes.NewBuffer([]byte(jsonStr)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)

@@ -76,9 +76,6 @@ var ErrNilSingleSigner = errors.New("nil single signer")
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
 
-// ErrNilPoolsHolder signals that an operation has been attempted to or with a nil pools holder object
-var ErrNilPoolsHolder = errors.New("nil pools holder")
-
 // ErrNilTxStorage signals that a nil transaction storage has been provided
 var ErrNilTxStorage = errors.New("nil transaction storage")
 
@@ -155,8 +152,32 @@ var ErrNilMiniBlockHashesPool = errors.New("nil meta block mini block hashes dat
 // ErrNilShardHeaderPool signals that a nil meta block data pool was provided
 var ErrNilShardHeaderPool = errors.New("nil meta block shard header data pool")
 
-// ErrNilMetaBlockNouncesPool signals that a nil meta block data pool was provided
-var ErrNilMetaBlockNouncesPool = errors.New("nil meta block nounces data pool")
+// ErrNilMetaBlockNoncesPool signals that a nil meta block data pool was provided
+var ErrNilMetaBlockNoncesPool = errors.New("nil meta block nonces data pool")
 
 // ErrNoSuchStorageUnit defines the error for using an invalid storage unit
 var ErrNoSuchStorageUnit = errors.New("no such unit type")
+
+// ErrNilRandomizer signals that a nil randomizer has been provided
+var ErrNilRandomizer = errors.New("nil randomizer")
+
+// ErrRequestTypeNotImplemented signals that a not implemented type of request has been received
+var ErrRequestTypeNotImplemented = errors.New("request type is not implemented")
+
+// ErrNilDataPacker signals that a nil data packer has been provided
+var ErrNilDataPacker = errors.New("nil data packer provided")
+
+// ErrNilResolverFinder signals that a nil resolver finder has been provided
+var ErrNilResolverFinder = errors.New("nil resolvers finder")
+
+// ErrEmptyTxRequestTopic signals that an empty transaction topic has been provided
+var ErrEmptyTxRequestTopic = errors.New("empty transaction request topic")
+
+// ErrEmptyMiniBlockRequestTopic signals that an empty miniblock topic has been provided
+var ErrEmptyMiniBlockRequestTopic = errors.New("empty miniblock request topic")
+
+// ErrEmptyHeaderRequestTopic signals that an empty transaction topic has been provided
+var ErrEmptyHeaderRequestTopic = errors.New("empty header request topic")
+
+// ErrInvalidMaxTxRequest signals that max tx request is too small
+var ErrInvalidMaxTxRequest = errors.New("max tx request number is invalid")

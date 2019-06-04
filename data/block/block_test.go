@@ -39,6 +39,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		MiniBlockHeaders: []block.MiniBlockHeader{mb},
 		PeerChanges:      []block.PeerChange{pc},
 		RootHash:         []byte("root hash"),
+		MetaBlockHashes:  make([][]byte, 0),
 		TxCount:          uint32(10),
 	}
 
@@ -113,6 +114,17 @@ func TestHeader_GetEpoch(t *testing.T) {
 	}
 
 	assert.Equal(t, epoch, h.GetEpoch())
+}
+
+func TestHeader_GetShard(t *testing.T) {
+	t.Parallel()
+
+	shardId := uint32(2)
+	h := block.Header{
+		ShardId: shardId,
+	}
+
+	assert.Equal(t, shardId, h.GetShardID())
 }
 
 func TestHeader_GetNonce(t *testing.T) {
@@ -311,7 +323,7 @@ func TestHeader_SetTimeStamp(t *testing.T) {
 	h := block.Header{}
 	h.SetTimeStamp(timeStamp)
 
-	assert.Equal(t, timeStamp, h.GetTimestamp())
+	assert.Equal(t, timeStamp, h.GetTimeStamp())
 }
 
 func TestHeader_SetTxCount(t *testing.T) {

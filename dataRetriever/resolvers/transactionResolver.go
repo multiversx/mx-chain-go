@@ -1,13 +1,14 @@
 package resolvers
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
+
+// maxBuffToSendBulkTransactions represents max buffer size to send in bytes
+var maxBuffToSendBulkTransactions = 2 << 17 //128KB
 
 // TxResolver is a wrapper over Resolver that is specialized in resolving transaction requests
 type TxResolver struct {
@@ -15,6 +16,7 @@ type TxResolver struct {
 	txPool      dataRetriever.ShardedDataCacherNotifier
 	txStorage   storage.Storer
 	marshalizer marshal.Marshalizer
+	dataPacker  dataRetriever.DataPacker
 }
 
 // NewTxResolver creates a new transaction resolver
@@ -23,22 +25,23 @@ func NewTxResolver(
 	txPool dataRetriever.ShardedDataCacherNotifier,
 	txStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
+	dataPacker dataRetriever.DataPacker,
 ) (*TxResolver, error) {
 
 	if senderResolver == nil {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-
 	if txPool == nil {
 		return nil, dataRetriever.ErrNilTxDataPool
 	}
-
 	if txStorage == nil {
 		return nil, dataRetriever.ErrNilTxStorage
 	}
-
 	if marshalizer == nil {
 		return nil, dataRetriever.ErrNilMarshalizer
+	}
+	if dataPacker == nil {
+		return nil, dataRetriever.ErrNilDataPacker
 	}
 
 	txResolver := &TxResolver{
@@ -46,6 +49,7 @@ func NewTxResolver(
 		txPool:              txPool,
 		txStorage:           txStorage,
 		marshalizer:         marshalizer,
+		dataPacker:          dataPacker,
 	}
 
 	return txResolver, nil
@@ -60,47 +64,34 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return err
 	}
 
-	buff, err := txRes.resolveTxRequest(rd)
-	if err != nil {
-		return err
+	if rd.Value == nil {
+		return dataRetriever.ErrNilValue
 	}
 
-	if buff == nil {
-		log.Debug(fmt.Sprintf("missing data: %v", rd))
-		return nil
+	switch rd.Type {
+	case dataRetriever.HashType:
+		buff, err := txRes.resolveTxRequestByHash(rd.Value)
+		if err != nil {
+			return err
+		}
+		return txRes.Send(buff, message.Peer())
+	case dataRetriever.HashArrayType:
+		return txRes.resolveTxRequestByHashArray(rd.Value, message.Peer())
+	default:
+		return dataRetriever.ErrRequestTypeNotImplemented
 	}
-
-	return txRes.Send(buff, message.Peer())
 }
 
-func (txRes *TxResolver) resolveTxRequest(rd *dataRetriever.RequestData) ([]byte, error) {
-	//TODO - implement other types such as HashArrayType for an array of transaction
-	// This should be made in future subtasks belonging to EN-1520 story
-	if rd.Type != dataRetriever.HashType {
-		return nil, dataRetriever.ErrResolveNotHashType
-	}
-
-	if rd.Value == nil {
-		return nil, dataRetriever.ErrNilValue
-	}
-
+func (txRes *TxResolver) resolveTxRequestByHash(hash []byte) ([]byte, error) {
 	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
 	txsBuff := make([][]byte, 0)
-	value, ok := txRes.txPool.SearchFirstData(rd.Value)
-	if ok {
-		txBuff, err := txRes.marshalizer.Marshal(value)
-		if err != nil {
-			return nil, err
-		}
-		txsBuff = append(txsBuff, txBuff)
-	} else {
-		buff, err := txRes.txStorage.Get(rd.Value)
-		if err != nil {
-			return nil, err
-		}
-		txsBuff = append(txsBuff, buff)
+
+	tx, err := txRes.fetchTxAsByteSlice(hash)
+	if err != nil {
+		return nil, err
 	}
 
+	txsBuff = append(txsBuff, tx)
 	buffToSend, err := txRes.marshalizer.Marshal(txsBuff)
 	if err != nil {
 		return nil, err
@@ -109,10 +100,68 @@ func (txRes *TxResolver) resolveTxRequest(rd *dataRetriever.RequestData) ([]byte
 	return buffToSend, nil
 }
 
+func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte) ([]byte, error) {
+	value, ok := txRes.txPool.SearchFirstData(hash)
+	if ok {
+		txBuff, err := txRes.marshalizer.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		return txBuff, nil
+	}
+
+	return txRes.txStorage.Get(hash)
+}
+
+func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.PeerID) error {
+	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
+	hashes := make([][]byte, 0)
+	err := txRes.marshalizer.Unmarshal(&hashes, hashesBuff)
+	if err != nil {
+		return err
+	}
+
+	txsBuffSlice := make([][]byte, 0)
+	for _, hash := range hashes {
+		tx, err := txRes.fetchTxAsByteSlice(hash)
+		if err != nil {
+			//it might happen to error on a tx (maybe it is missing) but should continue
+			// as to send back as many as it can
+			log.Debug(err.Error())
+			continue
+		}
+		txsBuffSlice = append(txsBuffSlice, tx)
+	}
+
+	buffsToSend, err := txRes.dataPacker.PackDataInChunks(txsBuffSlice, maxBuffToSendBulkTransactions)
+
+	for _, buff := range buffsToSend {
+		err = txRes.Send(buff, pid)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // RequestDataFromHash requests a transaction from other peers having input the tx hash
 func (txRes *TxResolver) RequestDataFromHash(hash []byte) error {
 	return txRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: hash,
+	})
+}
+
+// RequestDataFromHashArray requests a list of tx hashes from other peers
+func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte) error {
+	buffHashes, err := txRes.marshalizer.Marshal(hashes)
+	if err != nil {
+		return err
+	}
+
+	return txRes.SendOnRequestTopic(&dataRetriever.RequestData{
+		Type:  dataRetriever.HashArrayType,
+		Value: buffHashes,
 	})
 }

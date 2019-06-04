@@ -4,8 +4,12 @@ type HeaderHandlerStub struct {
 	GetMiniBlockHeadersWithDstCalled func(destId uint32) map[string]uint32
 }
 
+func (hhs *HeaderHandlerStub) GetShardID() uint32 {
+	return 1
+}
+
 func (hhs *HeaderHandlerStub) GetNonce() uint64 {
-	panic("implement me")
+	return 1
 }
 
 func (hhs *HeaderHandlerStub) GetEpoch() uint32 {
@@ -13,6 +17,10 @@ func (hhs *HeaderHandlerStub) GetEpoch() uint32 {
 }
 
 func (hhs *HeaderHandlerStub) GetRound() uint32 {
+	return 1
+}
+
+func (hhs *HeaderHandlerStub) GetTimeStamp() uint64 {
 	panic("implement me")
 }
 

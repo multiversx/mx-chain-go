@@ -19,8 +19,17 @@ import (
 
 const durationBetweenSends = time.Duration(time.Microsecond * 10)
 
+// ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
+const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
+
+// ListenLocalhostAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
+const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
+
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
+
+const refreshPeersOnTopic = time.Second * 60
+const ttlPeersOnTopic = time.Second * 120
 
 var log = logger.DefaultLogger()
 
@@ -33,6 +42,7 @@ type networkMessenger struct {
 	mutTopics      sync.RWMutex
 	topics         map[string]p2p.MessageProcessor
 	outgoingPLB    p2p.ChannelLoadBalancer
+	poc            *peersOnChannel
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -44,13 +54,14 @@ func NewNetworkMessenger(
 	conMgr ifconnmgr.ConnManager,
 	outgoingPLB p2p.ChannelLoadBalancer,
 	peerDiscoverer p2p.PeerDiscoverer,
+	listenAddress string,
 ) (*networkMessenger, error) {
 
 	if ctx == nil {
 		return nil, p2p.ErrNilContext
 	}
 
-	if port < 1 {
+	if port < 0 {
 		return nil, p2p.ErrInvalidPort
 	}
 
@@ -66,13 +77,14 @@ func NewNetworkMessenger(
 		return nil, p2p.ErrNilPeerDiscoverer
 	}
 
+	address := fmt.Sprintf(listenAddress+"%d", port)
 	opts := []libp2p.Option{
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port)),
+		libp2p.ListenAddrStrings(address),
 		libp2p.Identity(p2pPrivKey),
-		libp2p.DefaultTransports,
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
 		libp2p.ConnectionManager(conMgr),
+		libp2p.DefaultTransports,
 	}
 
 	h, err := libp2p.New(ctx, opts...)
@@ -125,6 +137,14 @@ func createMessenger(
 	lctx.connHost.Network().Notify(netMes.connMonitor)
 
 	netMes.ds, err = NewDirectSender(lctx.Context(), lctx.Host(), netMes.directMessageHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	netMes.poc, err = newPeersOnChannel(
+		pb.ListPeers,
+		refreshPeersOnTopic,
+		ttlPeersOnTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -264,18 +284,30 @@ func (netMes *networkMessenger) ConnectedAddresses() []string {
 	return conns
 }
 
-// ConnectedPeersOnTopic returns the connected peers on a provided topic
-func (netMes *networkMessenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
-	//as the peers in pubsub impl are held inside a map where the key is the peerID,
-	//the returned list will hold distinct values
-	list := netMes.pb.ListPeers(topic)
-	connectedPeers := make([]p2p.PeerID, len(list))
+// PeerAddress returns the peer's address or empty string if the peer is unknown
+func (netMes *networkMessenger) PeerAddress(pid p2p.PeerID) string {
+	h := netMes.ctxProvider.Host()
 
-	for idx, pid := range list {
-		connectedPeers[idx] = p2p.PeerID(pid)
+	//check if the peer is connected to return it's connected address
+	for _, c := range h.Network().Conns() {
+		if string(c.RemotePeer()) == string(pid.Bytes()) {
+			return c.RemoteMultiaddr().String()
+		}
 	}
 
-	return connectedPeers
+	//check in peerstore (maybe it is known but not connected)
+	addresses := h.Peerstore().Addrs(peer.ID(pid.Bytes()))
+	if len(addresses) == 0 {
+		return ""
+	}
+
+	//return the first address from multi address slice
+	return addresses[0].String()
+}
+
+// ConnectedPeersOnTopic returns the connected peers on a provided topic
+func (netMes *networkMessenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
+	return netMes.poc.ConnectedPeersOnChannel(topic)
 }
 
 // CreateTopic opens a new topic using pubsub infrastructure
@@ -334,15 +366,19 @@ func (netMes *networkMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadBal
 	return netMes.outgoingPLB
 }
 
+// BroadcastOnChannelBlocking tries to send a byte buffer onto a topic using provided channel
+// It is a blocking method. It needs to be launched on a go routine
+func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
+	sendable := &p2p.SendableData{
+		Buff:  buff,
+		Topic: topic,
+	}
+	netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
+}
+
 // BroadcastOnChannel tries to send a byte buffer onto a topic using provided channel
 func (netMes *networkMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
-	go func() {
-		sendable := &p2p.SendableData{
-			Buff:  buff,
-			Topic: topic,
-		}
-		netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
-	}()
+	go netMes.BroadcastOnChannelBlocking(channel, topic, buff)
 }
 
 // Broadcast tries to send a byte buffer onto a topic using the topic name as channel

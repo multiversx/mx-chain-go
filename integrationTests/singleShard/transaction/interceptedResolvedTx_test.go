@@ -32,14 +32,12 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	fmt.Println("Requestor:")
 	nRequestor, mesRequestor, sk1, resolversFinder := createNetNode(
-		34100,
 		dPoolRequestor,
 		createAccountsDB(),
 		shardCoordinator)
 
 	fmt.Println("Resolver:")
 	nResolver, mesResolver, _, _ := createNetNode(
-		34101,
 		dPoolResolver,
 		createAccountsDB(),
 		shardCoordinator)

@@ -12,6 +12,7 @@ type PoolsHolderStub struct {
 	TransactionsCalled      func() dataRetriever.ShardedDataCacherNotifier
 	MiniBlocksCalled        func() storage.Cacher
 	MetaBlocksCalled        func() storage.Cacher
+	MetaHeadersNoncesCalled func() dataRetriever.Uint64Cacher
 }
 
 func (phs *PoolsHolderStub) Headers() storage.Cacher {
@@ -36,4 +37,8 @@ func (phs *PoolsHolderStub) MiniBlocks() storage.Cacher {
 
 func (phs *PoolsHolderStub) MetaBlocks() storage.Cacher {
 	return phs.MetaBlocksCalled()
+}
+
+func (phs *PoolsHolderStub) MetaHeadersNonces() dataRetriever.Uint64Cacher {
+	return phs.MetaHeadersNoncesCalled()
 }

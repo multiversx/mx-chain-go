@@ -145,7 +145,7 @@ func createStore() *mock.ChainStorerMock {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storage.NewCache(storage.LRUCache, 1000)
+	cache, _ := storage.NewCache(storage.LRUCache, 1000, 1)
 	return cache
 }
 
@@ -226,7 +226,7 @@ func createHeadersNoncesDataPool(
 
 func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.ForkDetector {
 	return &mock.ForkDetectorMock{
-		RemoveHeadersCalled: func(nonce uint64) {
+		RemoveHeadersCalled: func(nonce uint64, hash []byte) {
 			if nonce == removedNonce {
 				remFlags.flagHdrRemovedFromForkDetector = true
 			}
@@ -898,7 +898,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return true, math.MaxUint64
 	}
-	forkDetector.RemoveHeadersCalled = func(nonce uint64) {
+	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
@@ -928,10 +928,6 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	r := bs.SyncBlock()
 
@@ -983,10 +979,6 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	r := bs.SyncBlock()
 
@@ -1066,10 +1058,6 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
-
 	bs.RequestHeader(2)
 	r := bs.SyncBlock()
 	assert.Equal(t, process.ErrMissingBody, r)
@@ -1120,10 +1108,6 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.StartSync()
 	time.Sleep(200 * time.Millisecond)
@@ -1235,10 +1219,6 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	bs.StartSync()
 
@@ -1653,7 +1633,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		account,
 	)
 
-	assert.Nil(t, bs.GetHeaderFromPool(0))
+	assert.Nil(t, bs.GetHeaderFromPoolWithNonce(0))
 }
 
 func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
@@ -1715,7 +1695,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		account,
 	)
 
-	assert.True(t, hdr == bs.GetHeaderFromPool(0))
+	assert.True(t, hdr == bs.GetHeaderFromPoolWithNonce(0))
 }
 
 func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
@@ -1795,8 +1775,8 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-		if isProcessed {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
 
@@ -1849,8 +1829,8 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-		if isProcessed {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
 
@@ -2020,7 +2000,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
-			PubKeysBitmap: []byte{1},
+			PubKeysBitmap: []byte("X"),
 			Nonce:         newHdrNonce,
 		}
 	}
@@ -2088,7 +2068,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
-		RestoreBlockIntoPoolsCalled: func(blockChain data.ChainHandler, body data.BodyHandler) error {
+		RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
 	}
@@ -2243,7 +2223,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 	}
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
-		RestoreBlockIntoPoolsCalled: func(blockChain data.ChainHandler, body data.BodyHandler) error {
+		RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
 	}

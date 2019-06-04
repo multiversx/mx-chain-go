@@ -8,19 +8,19 @@ import (
 )
 
 type subroundCommitmentHash struct {
-	*subround
+	*spos.Subround
 
 	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundCommitmentHash creates a subroundCommitmentHash object
 func NewSubroundCommitmentHash(
-	subround *subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundCommitmentHash, error) {
 	err := checkNewSubroundCommitmentHashParams(
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	)
 	if err != nil {
@@ -28,25 +28,25 @@ func NewSubroundCommitmentHash(
 	}
 
 	srCommitmentHash := subroundCommitmentHash{
-		subround,
+		baseSubround,
 		sendConsensusMessage,
 	}
-	srCommitmentHash.job = srCommitmentHash.doCommitmentHashJob
-	srCommitmentHash.check = srCommitmentHash.doCommitmentHashConsensusCheck
-	srCommitmentHash.extend = extend
+	srCommitmentHash.Job = srCommitmentHash.doCommitmentHashJob
+	srCommitmentHash.Check = srCommitmentHash.doCommitmentHashConsensusCheck
+	srCommitmentHash.Extend = extend
 
 	return &srCommitmentHash, nil
 }
 
 func checkNewSubroundCommitmentHashParams(
-	subround *subround,
+	baseSubround *spos.Subround,
 	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
-	if subround == nil {
+	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 
-	if subround.ConsensusState == nil {
+	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
 
@@ -54,12 +54,12 @@ func checkNewSubroundCommitmentHashParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
 }
 
-// doCommitmentHashJob method does the job of the commitment hash subround
+// doCommitmentHashJob method does the job of the subround CommitmentHash
 func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
 	if !sr.CanDoSubroundJob(SrCommitmentHash) {
 		return false
@@ -132,7 +132,12 @@ func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *consensus.Messa
 		return false
 	}
 
-	currentMultiSigner := sr.MultiSigner()
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
 	err = currentMultiSigner.StoreCommitmentHash(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
 		log.Error(err.Error())
@@ -166,7 +171,7 @@ func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *consensus.Messa
 	return true
 }
 
-// doCommitmentHashConsensusCheck method checks if the consensus in the <COMMITMENT_HASH> subround is achieved
+// doCommitmentHashConsensusCheck method checks if the consensus in the subround CommitmentHash is achieved
 func (sr *subroundCommitmentHash) doCommitmentHashConsensusCheck() bool {
 	if sr.RoundCanceled {
 		return false
@@ -250,7 +255,12 @@ func (sr *subroundCommitmentHash) commitmentHashesCollected(threshold int) bool 
 }
 
 func (sr *subroundCommitmentHash) genCommitmentHash() ([]byte, error) {
-	_, commitment := sr.MultiSigner().CreateCommitment()
+	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
+	if err != nil {
+		return nil, err
+	}
+
+	_, commitment := currentMultiSigner.CreateCommitment()
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
@@ -258,8 +268,6 @@ func (sr *subroundCommitmentHash) genCommitmentHash() ([]byte, error) {
 	}
 
 	commitmentHash := sr.Hasher().Compute(string(commitment))
-
-	currentMultiSigner := sr.MultiSigner()
 	err = currentMultiSigner.StoreCommitmentHash(uint16(selfIndex), commitmentHash)
 	if err != nil {
 		return nil, err

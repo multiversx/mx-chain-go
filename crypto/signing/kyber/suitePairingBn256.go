@@ -29,7 +29,7 @@ func (s *suitePairingBn256) RandomStream() cipher.Stream {
 func (s *suitePairingBn256) CreatePoint() crypto.Point {
 	po := kyberPoint{}
 	po.Point = s.suite.Point()
-	po.Point.Base()
+	// No Base necessary. For marshal /unmarshal kyber expects an empty point
 
 	return &po
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/dataPool"
 	"github.com/stretchr/testify/assert"
 )
@@ -51,7 +52,7 @@ func TestNewMetaDataPool_NilMetaHeaderNouncesShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		nil)
 
-	assert.Equal(t, data.ErrNilMetaBlockNouncesPool, err)
+	assert.Equal(t, dataRetriever.ErrNilMetaBlockNoncesPool, err)
 	assert.Nil(t, tdp)
 }
 

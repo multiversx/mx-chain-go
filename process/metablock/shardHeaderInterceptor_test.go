@@ -2,7 +2,9 @@ package metablock_test
 
 import (
 	"bytes"
+	"errors"
 	"testing"
+	"time"
 
 	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -11,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/stretchr/testify/assert"
 )
+
+var durTimeout = time.Duration(time.Second)
 
 //------- NewShardHeaderInterceptor
 
@@ -25,7 +29,9 @@ func TestNewShardHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, hi)
@@ -41,7 +47,9 @@ func TestNewShardHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
 	assert.Nil(t, hi)
@@ -58,7 +66,9 @@ func TestNewShardHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, hi)
@@ -77,7 +87,9 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *tes
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilMessage, hi.ProcessReceivedMessage(nil))
 }
@@ -86,13 +98,18 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	wasCalled := 0
+	chanDone := make(chan struct{}, 1)
 	testedNonce := uint64(67)
 	headers := &mock.CacherStub{}
 	multisigner := mock.NewMultiSigner()
+	chronologyValidator := &mock.ChronologyValidatorStub{
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+			return nil
+		},
+	}
 	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) (bool, error) {
-		return false, nil
+	storer.HasCalled = func(key []byte) error {
+		return errors.New("Key not found")
 	}
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		marshalizer,
@@ -100,9 +117,11 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 		storer,
 		multisigner,
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		chronologyValidator,
+	)
 
-	hdr := block.NewInterceptedHeader(multisigner)
+	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
@@ -111,6 +130,8 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 	hdr.Signature = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
 	hdr.RootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 	hdr.MiniBlockHeaders = make([]dataBlock.MiniBlockHeader, 0)
 
 	buff, _ := marshalizer.Marshal(hdr)
@@ -121,26 +142,35 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 	headers.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
 		if bytes.Equal(aaaHash, key) {
-			wasCalled++
+			chanDone <- struct{}{}
 		}
 		return false, false
 	}
 
 	assert.Nil(t, hi.ProcessReceivedMessage(msg))
-	assert.Equal(t, 1, wasCalled)
+	select {
+	case <-chanDone:
+	case <-time.After(durTimeout):
+		assert.Fail(t, "timeout while waiting for block to be inserted in the pool")
+	}
 }
 
 func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	wasCalled := 0
+	chanDone := make(chan struct{}, 1)
 	testedNonce := uint64(67)
 	headers := &mock.CacherStub{}
 	multisigner := mock.NewMultiSigner()
+	chronologyValidator := &mock.ChronologyValidatorStub{
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+			return nil
+		},
+	}
 	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) (bool, error) {
-		return true, nil
+	storer.HasCalled = func(key []byte) error {
+		return nil
 	}
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		marshalizer,
@@ -148,9 +178,11 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t 
 		storer,
 		multisigner,
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		chronologyValidator,
+	)
 
-	hdr := block.NewInterceptedHeader(multisigner)
+	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
@@ -158,6 +190,8 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t 
 	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
 	hdr.MiniBlockHeaders = make([]dataBlock.MiniBlockHeader, 0)
 
@@ -169,11 +203,15 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t 
 	headers.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
 		if bytes.Equal(aaaHash, key) {
-			wasCalled++
+			chanDone <- struct{}{}
 		}
 		return false, false
 	}
 
 	assert.Nil(t, hi.ProcessReceivedMessage(msg))
-	assert.Equal(t, 0, wasCalled)
+	select {
+	case <-chanDone:
+		assert.Fail(t, "should have not add block in pool")
+	case <-time.After(durTimeout):
+	}
 }

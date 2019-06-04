@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"math/big"
 	"testing"
 
@@ -81,10 +82,10 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		PeerInfo:      []block.PeerData{pd},
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte("pub keys"),
-		PreviousHash:  []byte("previous hash"),
+		PrevHash:      []byte("previous hash"),
 		PrevRandSeed:  []byte("previous random seed"),
 		RandSeed:      []byte("random seed"),
-		StateRootHash: []byte("state root hash"),
+		RootHash:      []byte("root hash"),
 		TxCount:       uint32(1),
 	}
 	var b bytes.Buffer
@@ -107,6 +108,14 @@ func TestMetaBlock_GetEpoch(t *testing.T) {
 	assert.Equal(t, epoch, m.GetEpoch())
 }
 
+func TestMetaBlock_GetShard(t *testing.T) {
+	t.Parallel()
+
+	m := block.MetaBlock{}
+
+	assert.Equal(t, sharding.MetachainShardId, m.GetShardID())
+}
+
 func TestMetaBlock_GetNonce(t *testing.T) {
 	t.Parallel()
 
@@ -123,7 +132,7 @@ func TestMetaBlock_GetPrevHash(t *testing.T) {
 
 	prevHash := []byte("prev hash")
 	m := block.MetaBlock{
-		PreviousHash: prevHash,
+		PrevHash: prevHash,
 	}
 
 	assert.Equal(t, prevHash, m.GetPrevHash())
@@ -167,7 +176,7 @@ func TestMetaBlock_GetRootHash(t *testing.T) {
 
 	rootHash := []byte("root hash")
 	m := block.MetaBlock{
-		StateRootHash: rootHash,
+		RootHash: rootHash,
 	}
 
 	assert.Equal(t, rootHash, m.GetRootHash())
@@ -192,7 +201,7 @@ func TestMetaBlock_GetTimestamp(t *testing.T) {
 		TimeStamp: timestamp,
 	}
 
-	assert.Equal(t, timestamp, m.GetTimestamp())
+	assert.Equal(t, timestamp, m.GetTimeStamp())
 }
 
 func TestMetaBlock_GetSignature(t *testing.T) {
@@ -314,7 +323,7 @@ func TestMetaBlock_SetTimeStamp(t *testing.T) {
 	m := block.MetaBlock{}
 	m.SetTimeStamp(timestamp)
 
-	assert.Equal(t, timestamp, m.GetTimestamp())
+	assert.Equal(t, timestamp, m.GetTimeStamp())
 }
 
 func TestMetaBlock_SetTxCount(t *testing.T) {
@@ -325,4 +334,27 @@ func TestMetaBlock_SetTxCount(t *testing.T) {
 	m.SetTxCount(txCount)
 
 	assert.Equal(t, txCount, m.GetTxCount())
+}
+
+func TestMetaBlock_GetMiniBlockHeadersWithDst(t *testing.T) {
+	t.Parallel()
+
+	metaHdr := &block.MetaBlock{Round: 15}
+	metaHdr.ShardInfo = make([]block.ShardData, 0)
+
+	shardMBHeader := make([]block.ShardMiniBlockHeader, 0)
+	shMBHdr1 := block.ShardMiniBlockHeader{SenderShardId: 0, ReceiverShardId: 1, Hash: []byte("hash1")}
+	shMBHdr2 := block.ShardMiniBlockHeader{SenderShardId: 0, ReceiverShardId: 1, Hash: []byte("hash2")}
+	shardMBHeader = append(shardMBHeader, shMBHdr1, shMBHdr2)
+
+	shData1 := block.ShardData{ShardId: 0, HeaderHash: []byte("sh"), ShardMiniBlockHeaders: shardMBHeader}
+	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shData1)
+
+	shData2 := block.ShardData{ShardId: 1, HeaderHash: []byte("sh"), ShardMiniBlockHeaders: shardMBHeader}
+	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shData2)
+
+	mbDst0 := metaHdr.GetMiniBlockHeadersWithDst(0)
+	assert.Equal(t, 0, len(mbDst0))
+	mbDst1 := metaHdr.GetMiniBlockHeadersWithDst(1)
+	assert.Equal(t, len(shardMBHeader), len(mbDst1))
 }

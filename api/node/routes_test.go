@@ -2,19 +2,23 @@ package node_test
 
 import (
 	"encoding/json"
+	errs "errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/node"
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/node/mock"
 )
 
 type GeneralResponse struct {
@@ -30,6 +34,20 @@ type StatusResponse struct {
 type AddressResponse struct {
 	GeneralResponse
 	Address string `json:"address"`
+}
+
+type StatisticsResponse struct {
+	GeneralResponse
+	Statistics struct {
+		LiveTPS               float32 `json:"liveTPS"`
+		PeakTPS               float32 `json:"peakTPS"`
+		NrOfShards            uint32  `json:"nrOfShards"`
+		BlockNumber           uint64  `json:"blockNumber"`
+		RoundTime             uint32  `json:"roundTime"`
+		AverageBlockTxCount   float32 `json:"averageBlockTxCount"`
+		LastBlockTxCount      uint32  `json:"lastBlockTxCount"`
+		TotalProcessedTxCount uint32  `json:"totalProcessedTxCount"`
+	} `json:"statistics"`
 }
 
 func init() {
@@ -295,6 +313,137 @@ func TestAddress_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, addressRsp.Address, address)
 }
 
+//------- Heartbeatstatus
+
+func TestHeartbeatStatus_FailsWithoutFacade(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+	defer func() {
+		r := recover()
+
+		assert.NotNil(t, r, "Not providing elrondFacade context should panic")
+	}()
+	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+}
+
+func TestHeartbeatstatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{}
+	facade.Running = true
+	ws := startNodeServerWrongFacade()
+	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := StatusResponse{}
+	loadResponse(resp.Body, &statusRsp)
+
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
+}
+
+func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errs.New("expected error")
+	facade := mock.Facade{
+		GetHeartbeatsHandler: func() ([]heartbeat.PubKeyHeartbeat, error) {
+			return nil, errExpected
+		},
+	}
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := StatusResponse{}
+	loadResponse(resp.Body, &statusRsp)
+
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Equal(t, errExpected.Error(), statusRsp.Error)
+}
+
+func TestHeartbeatstatus(t *testing.T) {
+	t.Parallel()
+
+	hbStatus := []heartbeat.PubKeyHeartbeat{
+		{
+			HexPublicKey: "pk1",
+			PeerHeartBeats: []heartbeat.PeerHeartbeat{
+				{
+					P2PAddress: "addr",
+					IsActive:   true,
+				},
+			},
+		},
+	}
+	facade := mock.Facade{
+		GetHeartbeatsHandler: func() (heartbeats []heartbeat.PubKeyHeartbeat, e error) {
+			return hbStatus, nil
+		},
+	}
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := StatusResponse{}
+	loadResponseAsString(resp.Body, &statusRsp)
+
+	assert.Equal(t, resp.Code, http.StatusOK)
+	assert.NotEqual(t, "", statusRsp.Message)
+}
+
+func TestStatistics_FailsWithoutFacade(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+	defer func() {
+		r := recover()
+		assert.NotNil(t, r, "Not providing elrondFacade context should panic")
+	}()
+	req, _ := http.NewRequest("GET", "/node/statistics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+}
+
+func TestStatistics_FailsWithWrongFacadeTypeConversion(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServerWrongFacade()
+	req, _ := http.NewRequest("GET", "/node/statistics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statisticsRsp := StatisticsResponse{}
+	loadResponse(resp.Body, &statisticsRsp)
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Equal(t, statisticsRsp.Error, errors.ErrInvalidAppContext.Error())
+}
+
+func TestStatistics_ReturnsSuccessfully(t *testing.T) {
+	nrOfShards := uint32(10)
+	roundTime := uint64(4)
+	benchmark, _ := statistics.NewTPSBenchmark(nrOfShards, roundTime)
+
+	facade := mock.Facade{}
+	facade.TpsBenchmarkHandler = func() *statistics.TpsBenchmark {
+		return benchmark
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/statistics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statisticsRsp := StatisticsResponse{}
+	loadResponse(resp.Body, &statisticsRsp)
+	assert.Equal(t, resp.Code, http.StatusOK)
+	assert.Equal(t, statisticsRsp.Statistics.NrOfShards, nrOfShards)
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
@@ -303,13 +452,23 @@ func loadResponse(rsp io.Reader, destination interface{}) {
 	}
 }
 
+func loadResponseAsString(rsp io.Reader, response *StatusResponse) {
+	buff, err := ioutil.ReadAll(rsp)
+	if err != nil {
+		logError(err)
+		return
+	}
+
+	response.Message = string(buff)
+}
+
 func logError(err error) {
 	if err != nil {
 		fmt.Println(err)
 	}
 }
 
-func startNodeServer(handler node.Handler) *gin.Engine {
+func startNodeServer(handler node.FacadeHandler) *gin.Engine {
 	server := startNodeServerWithFacade(handler)
 	return server
 }

@@ -13,13 +13,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 // WithMessenger sets up the messenger option for the Node
-func WithMessenger(mes p2p.Messenger) Option {
+func WithMessenger(mes P2PMessenger) Option {
 	return func(n *Node) error {
 		if mes == nil {
 			return ErrNilMessenger
@@ -95,44 +94,66 @@ func WithDataStore(store dataRetriever.StorageService) Option {
 	}
 }
 
-// WithPrivateKey sets up the private key option for the Node
-func WithPrivateKey(sk crypto.PrivateKey) Option {
+// WithTxSignPrivKey sets up the single sign private key option for the Node
+func WithTxSignPrivKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
 		if sk == nil {
 			return ErrNilPrivateKey
 		}
-		n.privateKey = sk
+		n.txSignPrivKey = sk
 		return nil
 	}
 }
 
-// WithKeyGenerator sets up the single sign key generator option for the Node
-func WithKeyGenerator(keyGen crypto.KeyGenerator) Option {
+// WithPubKey sets up the multi sign pub key option for the Node
+func WithPubKey(pk crypto.PublicKey) Option {
+	return func(n *Node) error {
+		if pk == nil {
+			return ErrNilPublicKey
+		}
+		n.pubKey = pk
+		return nil
+	}
+}
+
+// WithPrivKey sets up the multi sign private key option for the Node
+func WithPrivKey(sk crypto.PrivateKey) Option {
+	return func(n *Node) error {
+		if sk == nil {
+			return ErrNilPrivateKey
+		}
+		n.privKey = sk
+		return nil
+	}
+}
+
+// WithKeyGen sets up the single sign key generator option for the Node
+func WithKeyGen(keyGen crypto.KeyGenerator) Option {
 	return func(n *Node) error {
 		if keyGen == nil {
 			return ErrNilSingleSignKeyGen
 		}
-		n.singleSignKeyGen = keyGen
+		n.keyGen = keyGen
 		return nil
 	}
 }
 
 // WithInitialNodesPubKeys sets up the initial nodes public key option for the Node
-func WithInitialNodesPubKeys(pubKeys [][]string) Option {
+func WithInitialNodesPubKeys(pubKeys map[uint32][]string) Option {
 	return func(n *Node) error {
 		n.initialNodesPubkeys = pubKeys
 		return nil
 	}
 }
 
-// WithPublicKey sets up the public key option for the Node
-func WithPublicKey(pk crypto.PublicKey) Option {
+// WithTxSignPubKey sets up the single sign public key option for the Node
+func WithTxSignPubKey(pk crypto.PublicKey) Option {
 	return func(n *Node) error {
 		if pk == nil {
 			return ErrNilPublicKey
 		}
 
-		n.publicKey = pk
+		n.txSignPubKey = pk
 		return nil
 	}
 }
@@ -159,13 +180,13 @@ func WithConsensusGroupSize(consensusGroupSize int) Option {
 	}
 }
 
-// WithSyncer sets up the syncer option for the Node
+// WithSyncer sets up the syncTimer option for the Node
 func WithSyncer(syncer ntp.SyncTimer) Option {
 	return func(n *Node) error {
 		if syncer == nil {
 			return ErrNilSyncTimer
 		}
-		n.syncer = syncer
+		n.syncTimer = syncer
 		return nil
 	}
 }
@@ -188,6 +209,17 @@ func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 			return ErrNilBlockProcessor
 		}
 		n.blockProcessor = blockProcessor
+		return nil
+	}
+}
+
+// WithBlockTracker sets up the block tracker option for the Node
+func WithBlockTracker(blockTracker process.BlocksTracker) Option {
+	return func(n *Node) error {
+		if blockTracker == nil {
+			return ErrNilBlockTracker
+		}
+		n.blockTracker = blockTracker
 		return nil
 	}
 }
@@ -255,29 +287,40 @@ func WithInitialNodesBalances(balances map[string]*big.Int) Option {
 	}
 }
 
-// WithSinglesig sets up the singlesig option for the Node
-func WithSinglesig(singlesig crypto.SingleSigner) Option {
+// WithSingleSigner sets up a singleSigner option for the Node
+func WithSingleSigner(singleSigner crypto.SingleSigner) Option {
 	return func(n *Node) error {
-		if singlesig == nil {
+		if singleSigner == nil {
 			return ErrNilSingleSig
 		}
-		n.singlesig = singlesig
+		n.singleSigner = singleSigner
 		return nil
 	}
 }
 
-// WithMultisig sets up the multisig option for the Node
-func WithMultisig(multisig crypto.MultiSigner) Option {
+// WithTxSingleSigner sets up a txSingleSigner option for the Node
+func WithTxSingleSigner(txSingleSigner crypto.SingleSigner) Option {
 	return func(n *Node) error {
-		if multisig == nil {
+		if txSingleSigner == nil {
+			return ErrNilSingleSig
+		}
+		n.txSingleSigner = txSingleSigner
+		return nil
+	}
+}
+
+// WithMultiSigner sets up the multiSigner option for the Node
+func WithMultiSigner(multiSigner crypto.MultiSigner) Option {
+	return func(n *Node) error {
+		if multiSigner == nil {
 			return ErrNilMultiSig
 		}
-		n.multisig = multisig
+		n.multiSigner = multiSigner
 		return nil
 	}
 }
 
-// WithForkDetector sets up the multisig option for the Node
+// WithForkDetector sets up the multiSigner option for the Node
 func WithForkDetector(forkDetector process.ForkDetector) Option {
 	return func(n *Node) error {
 		if forkDetector == nil {
@@ -306,6 +349,31 @@ func WithResolversFinder(resolversFinder dataRetriever.ResolversFinder) Option {
 			return ErrNilResolversFinder
 		}
 		n.resolversFinder = resolversFinder
+		return nil
+	}
+}
+
+// WithActiveMetachain sets up the flag that tells the node that metachain shard is active
+// TODO - remove this when finishing metachain testing as it will always be enabled
+func WithActiveMetachain(flag bool) Option {
+	return func(n *Node) error {
+		n.isMetachainActive = flag
+		return nil
+	}
+}
+
+// WithConsensusType sets up the consensus type option for the Node
+func WithConsensusType(consensusType string) Option {
+	return func(n *Node) error {
+		n.consensusType = consensusType
+		return nil
+	}
+}
+
+// WithTxStorageSize sets up a txStorageSize option for the Node
+func WithTxStorageSize(txStorageSize uint32) Option {
+	return func(n *Node) error {
+		n.txStorageSize = txStorageSize
 		return nil
 	}
 }

@@ -37,11 +37,17 @@ var ErrNilSingleSigner = errors.New("singleSigner is nil")
 // ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used
 var ErrNilMultiSigner = errors.New("multiSigner is nil")
 
+// ErrInvalidMultiSigner is raised when an invalid multiSigner is used
+var ErrInvalidMultiSigner = errors.New("multiSigner is invalid")
+
 // ErrNilConsensusState is raised when a valid consensus is expected but nil used
 var ErrNilConsensusState = errors.New("consensus state is nil")
 
 // ErrNilConsensusCore is raised when a valid ConsensusCore is expected but nil used
 var ErrNilConsensusCore = errors.New("consensus core is nil")
+
+// ErrNilConsensusService is raised when a valid ConsensusService is expected but nil used
+var ErrNilConsensusService = errors.New("consensus service is nil")
 
 // ErrNilBlockChain is raised when a valid blockchain is expected but nil used
 var ErrNilBlockChain = errors.New("blockchain is nil")
@@ -54,6 +60,9 @@ var ErrNilMarshalizer = errors.New("marshalizer is nil")
 
 // ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
 var ErrNilBlockProcessor = errors.New("block processor is nil")
+
+// ErrNilBlockTracker is raised when a valid block tracker is expected but nil used
+var ErrNilBlockTracker = errors.New("block tracker is nil")
 
 // ErrNilBlootstraper is raised when a valid block processor is expected but nil used
 var ErrNilBlootstraper = errors.New("boostraper is nil")
@@ -73,7 +82,7 @@ var ErrNilMessage = errors.New("nil message")
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
 
-// ErrNilWorker is raised when a valid worker is expected but nil used
+// ErrNilWorker is raised when a valid Worker is expected but nil used
 var ErrNilWorker = errors.New("worker is nil")
 
 // ErrNilShardCoordinator is raised when a valid shard coordinator is expected but nil used
@@ -114,3 +123,30 @@ var ErrMessageForPastRound = errors.New("message is for past round")
 
 // ErrInvalidSignature is raised when signature is invalid
 var ErrInvalidSignature = errors.New("signature is invalid")
+
+// ErrMessageFromItself is raised when a message from itself is received
+var ErrMessageFromItself = errors.New("message is from itself")
+
+// ErrNilBlsPrivateKey is raised when the bls private key is nil
+var ErrNilBlsPrivateKey = errors.New("BLS private key should not be nil")
+
+// ErrNilBlsSingleSigner is raised when a message from itself is received
+var ErrNilBlsSingleSigner = errors.New("BLS single signer should not be nil")
+
+// ErrNilHeader is raised when an expected header is nil
+var ErrNilHeader = errors.New("header is nil")
+
+// ErrNilBroadcastBlock is raised when a valid broadcastBlock function is expected but nil used
+var ErrNilBroadcastBlock = errors.New("broadcastBlock is nil")
+
+// ErrNilBroadcastHeader is raised when a valid broadcastHeader function is expected but nil used
+var ErrNilBroadcastHeader = errors.New("broadcastHeader is nil")
+
+// ErrNilBroadcastUnnotarisedBlocks is raised when a valid broadcastUnnotarisedBlocks function is expected but nil used
+var ErrNilBroadcastUnnotarisedBlocks = errors.New("broadcastUnnotarisedBlocks is nil")
+
+// ErrNilSendMessage is raised when a valid sendMessage function is expected but nil used
+var ErrNilSendMessage = errors.New("sendMessage is nil")
+
+// ErrNilForkDetector is raised when a valid fork detector is expected but nil used
+var ErrNilForkDetector = errors.New("fork detector is nil")

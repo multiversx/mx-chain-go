@@ -49,6 +49,9 @@ var ErrNilRounder = errors.New("trying to set nil rounder")
 // ErrNilBlockProcessor signals that a nil block processor has been provided
 var ErrNilBlockProcessor = errors.New("trying to set nil block processor")
 
+// ErrNilBlockTracker signals that a nil block tracker has been provided
+var ErrNilBlockTracker = errors.New("trying to set nil block tracker")
+
 // ErrNilDataPool signals that a nil data pool has been provided
 var ErrNilDataPool = errors.New("trying to set nil data pool")
 
@@ -64,8 +67,8 @@ var ErrNilBalances = errors.New("trying to set nil balances")
 // ErrNilSingleSig signals that a nil singlesig object has been provided
 var ErrNilSingleSig = errors.New("trying to set nil singlesig")
 
-// ErrNilMultiSig signals that a nil multisig object has been provided
-var ErrNilMultiSig = errors.New("trying to set nil multisig")
+// ErrNilMultiSig signals that a nil multiSigner object has been provided
+var ErrNilMultiSig = errors.New("trying to set nil multiSigner")
 
 // ErrNilForkDetector signals that a nil forkdetector object has been provided
 var ErrNilForkDetector = errors.New("nil fork detector")
@@ -87,3 +90,33 @@ var ErrNilTxBlockBody = errors.New("tx block body is nil")
 
 // ErrNilMetaBlockHeader is raised when a valid metablock is expected but nil was provided
 var ErrNilMetaBlockHeader = errors.New("meta block header is nil")
+
+// ErrWrongTypeAssertion is raised when a type assertion occurs
+var ErrWrongTypeAssertion = errors.New("wrong type assertion: expected *block.Header")
+
+// ErrNegativeDurationInSecToConsiderUnresponsive is raised when a value less than 1 has been provided
+var ErrNegativeDurationInSecToConsiderUnresponsive = errors.New("value DurationInSecToConsiderUnresponsive is less" +
+	" than 1")
+
+// ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec is raised when a value less than 1 has been provided
+var ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec = errors.New("value MaxTimeToWaitBetweenBroadcastsInSec is less " +
+	"than 1")
+
+// ErrNegativeMinTimeToWaitBetweenBroadcastsInSec is raised when a value less than 1 has been provided
+var ErrNegativeMinTimeToWaitBetweenBroadcastsInSec = errors.New("value MinTimeToWaitBetweenBroadcastsInSec is less " +
+	"than 1")
+
+// ErrWrongValues signals that wrong values were provided
+var ErrWrongValues = errors.New("wrong values for heartbeat parameters")
+
+// ErrGenesisBlockNotInitialized signals that genesis block is not initialized
+var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized")
+
+// ErrNilTransactionPool signals that a nil transaction pool was used
+var ErrNilTransactionPool = errors.New("nil transaction pool")
+
+// ErrTooManyTransactionsInPool signals that are too many transactions in pool
+var ErrTooManyTransactionsInPool = errors.New("too many transactions in pool")
+
+// ErrSystemBusyGeneratingTransactions signals that to many transactions are trying to get generated
+var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generating bulk transactions")

@@ -11,6 +11,7 @@ import (
 func TestTomlParser(t *testing.T) {
 	txBlockBodyStorageSize := 170
 	txBlockBodyStorageType := "type1"
+	txBlockBodyStorageShards := 5
 	txBlockBodyStorageFile := "path1/file1"
 	txBlockBodyStorageTypeDB := "type2"
 
@@ -29,11 +30,14 @@ func TestTomlParser(t *testing.T) {
 	hasherType := "hashFunc4"
 	multiSigHasherType := "hashFunc5"
 
+	consensusType := "bn"
+
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
-				Size: uint32(txBlockBodyStorageSize),
-				Type: txBlockBodyStorageType,
+				Size:   uint32(txBlockBodyStorageSize),
+				Type:   txBlockBodyStorageType,
+				Shards: uint32(txBlockBodyStorageShards),
 			},
 			DB: DBConfig{
 				FilePath: txBlockBodyStorageFile,
@@ -64,6 +68,9 @@ func TestTomlParser(t *testing.T) {
 		MultisigHasher: TypeConfig{
 			Type: multiSigHasherType,
 		},
+		Consensus: TypeConfig{
+			Type: consensusType,
+		},
 	}
 
 	testString := `
@@ -71,6 +78,7 @@ func TestTomlParser(t *testing.T) {
     [MiniBlocksStorage.Cache]
         Size = ` + strconv.Itoa(txBlockBodyStorageSize) + `
         Type = "` + txBlockBodyStorageType + `"
+		Shards = ` + strconv.Itoa(txBlockBodyStorageShards) + `
     [MiniBlocksStorage.DB]
         FilePath = "` + txBlockBodyStorageFile + `"
         Type = "` + txBlockBodyStorageTypeDB + `"
@@ -96,8 +104,10 @@ func TestTomlParser(t *testing.T) {
 
 [MultisigHasher]
 	Type = "` + multiSigHasherType + `"
-`
 
+[Consensus]
+	Type = "` + consensusType + `"
+`
 	cfg := Config{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)

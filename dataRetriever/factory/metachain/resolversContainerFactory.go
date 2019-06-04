@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/random"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
@@ -18,6 +19,7 @@ type resolversContainerFactory struct {
 	marshalizer              marshal.Marshalizer
 	dataPools                dataRetriever.MetaPoolsHolder
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	intRandomizer            dataRetriever.IntRandomizer
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -56,6 +58,7 @@ func NewResolversContainerFactory(
 		marshalizer:              marshalizer,
 		dataPools:                dataPools,
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
+		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
 	}, nil
 }
 
@@ -103,7 +106,7 @@ func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, 
 	keys := make([]string, noOfShards)
 	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
 
-	//wire up to topics: shardHeadersForMetachain_0, shardHeadersForMetachain_1 ...
+	//wire up to topics: shardHeadersForMetachain_0_META, shardHeadersForMetachain_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierHeader := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(idx)
 		resolver, err := rcf.createOneShardHeaderResolver(identifierHeader)
@@ -125,6 +128,7 @@ func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier st
 		rcf.messenger,
 		identifier,
 		rcf.marshalizer,
+		rcf.intRandomizer,
 	)
 	if err != nil {
 		return nil, err
@@ -135,6 +139,7 @@ func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier st
 		rcf.dataPools.ShardHeaders(),
 		hdrStorer,
 		rcf.marshalizer,
+		rcf.uint64ByteSliceConverter,
 	)
 	if err != nil {
 		return nil, err
@@ -166,16 +171,18 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 		rcf.messenger,
 		identifier,
 		rcf.marshalizer,
+		rcf.intRandomizer,
 	)
 	if err != nil {
 		return nil, err
 	}
-
-	resolver, err := resolvers.NewShardHeaderResolver(
+	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.MetaChainBlocks(),
+		rcf.dataPools.MetaBlockNonces(),
 		hdrStorer,
 		rcf.marshalizer,
+		rcf.uint64ByteSliceConverter,
 	)
 	if err != nil {
 		return nil, err

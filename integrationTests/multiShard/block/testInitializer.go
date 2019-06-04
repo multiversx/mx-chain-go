@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
@@ -21,16 +22,19 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
+	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/multiShard/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -40,6 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	metaProcess "github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -52,8 +57,9 @@ import (
 var r *rand.Rand
 var testHasher = sha256.Sha256{}
 var testMarshalizer = &marshal.JsonMarshalizer{}
-var testAddressConverter, _ = state.NewPlainAddressConverter(32, "0x")
-var testMultiSig = mock.NewMultiSigner()
+var testAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
+var testMultiSig = mock.NewMultiSigner(1)
+var rootHash = []byte("root hash")
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -61,7 +67,7 @@ func init() {
 
 type testNode struct {
 	node             *node.Node
-	mesenger         p2p.Messenger
+	messenger        p2p.Messenger
 	shardId          uint32
 	accntState       state.AccountsAdapter
 	blkc             data.ChainHandler
@@ -82,9 +88,9 @@ type testNode struct {
 	txsRecv          int32
 }
 
-func createTestBlockChain() *blockchain.BlockChain {
+func createTestShardChain() *blockchain.BlockChain {
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
+	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
 	)
@@ -94,14 +100,14 @@ func createTestBlockChain() *blockchain.BlockChain {
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10)
+	cache, _ := storage.NewCache(storage.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
 
 	unit, _ := storage.NewStorageUnit(cache, persist)
 	return unit
 }
 
-func createTestStore() dataRetriever.StorageService {
+func createTestShardStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
@@ -112,23 +118,27 @@ func createTestStore() dataRetriever.StorageService {
 	return store
 }
 
-func createTestDataPool() dataRetriever.PoolsHolder {
+func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
@@ -137,6 +147,7 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
+		metaHdrNonces,
 	)
 
 	return dPool
@@ -145,12 +156,15 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 func createAccountsDB() *state.AccountsDB {
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer)
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer, &mock.AccountsFactoryStub{
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
+			return state.NewAccount(address, tracker)
+		},
+	})
 	return adb
 }
 
 func createNetNode(
-	port int,
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
@@ -164,7 +178,7 @@ func createNetNode(
 	process.BlockProcessor,
 	data.ChainHandler) {
 
-	messenger := createMessengerWithKadDht(context.Background(), port, initialAddr)
+	messenger := createMessengerWithKadDht(context.Background(), initialAddr)
 	suite := kyber.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
@@ -182,9 +196,10 @@ func createNetNode(
 	pkBuff, _ := pk.ToByteArray()
 	fmt.Printf("Found pk: %s\n", hex.EncodeToString(pkBuff))
 
-	blkc := createTestBlockChain()
-	store := createTestStore()
+	blkc := createTestShardChain()
+	store := createTestShardStore()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
+	dataPacker, _ := partitioning.NewSizeDataPacker(testMarshalizer)
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -197,6 +212,8 @@ func createNetNode(
 		testMultiSig,
 		dPool,
 		testAddressConverter,
+		&mock.ChronologyValidatorMock{},
+		nil,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -210,9 +227,12 @@ func createNetNode(
 		testMarshalizer,
 		dPool,
 		uint64Converter,
+		dataPacker,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
+
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,
 		testHasher,
@@ -220,8 +240,8 @@ func createNetNode(
 		testMarshalizer,
 		shardCoordinator,
 	)
-
-	blockProcessor, _ := block.NewBlockProcessor(
+	genesisBlocks := createGenesisBlocks(shardCoordinator)
+	blockProcessor, _ := block.NewShardProcessor(
 		dPool,
 		store,
 		testHasher,
@@ -230,38 +250,26 @@ func createNetNode(
 		accntAdapter,
 		shardCoordinator,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {
 				return 0
 			},
 		},
-		func(destShardID uint32, txHash []byte) {
-			resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-
-			err = resolver.RequestDataFromHash(txHash)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
+		&mock.BlocksTrackerMock{
+			AddBlockCalled: func(headerHandler data.HeaderHandler) {
+			},
+			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
+				return nil
+			},
 		},
-		func(shardId uint32, mbHash []byte) {
-			resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
-			if err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-
-			err = resolver.RequestDataFromHash(mbHash)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-		},
+		genesisBlocks,
+		true,
+		requestHandler,
 	)
+
+	blkc.SetGenesisHeader(genesisBlocks[shardCoordinator.SelfId()])
 
 	n, err := node.NewNode(
 		node.WithMessenger(messenger),
@@ -270,14 +278,14 @@ func createNetNode(
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(testAddressConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithKeyGenerator(keyGen),
+		node.WithKeyGen(keyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
-		node.WithMultisig(testMultiSig),
-		node.WithSinglesig(singleSigner),
-		node.WithPrivateKey(sk),
-		node.WithPublicKey(pk),
+		node.WithMultiSigner(testMultiSig),
+		node.WithSingleSigner(singleSigner),
+		node.WithTxSignPrivKey(sk),
+		node.WithTxSignPubKey(pk),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
 		node.WithBlockProcessor(blockProcessor),
@@ -291,13 +299,12 @@ func createNetNode(
 	return n, messenger, sk, resolversFinder, blockProcessor, blkc
 }
 
-func createMessengerWithKadDht(ctx context.Context, port int, initialAddr string) p2p.Messenger {
+func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, err := libp2p.NewNetworkMessenger(
+	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,
-		port,
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
@@ -335,8 +342,8 @@ func makeDisplayTable(nodes []*testNode) string {
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.miniblocksRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.headersRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.metachainHdrRecv)),
-				fmt.Sprintf("%d / %d", len(n.mesenger.ConnectedPeersOnTopic(factory.TransactionTopic+"_"+
-					fmt.Sprintf("%d", n.shardId))), len(n.mesenger.ConnectedPeers())),
+				fmt.Sprintf("%d / %d", len(n.messenger.ConnectedPeersOnTopic(factory.TransactionTopic+"_"+
+					fmt.Sprintf("%d", n.shardId))), len(n.messenger.ConnectedPeers())),
 			},
 		)
 	}
@@ -360,27 +367,26 @@ func displayAndStartNodes(nodes []*testNode) {
 }
 
 func createNodes(
-	startingPort int,
 	numOfShards int,
 	nodesPerShard int,
 	serviceID string,
 ) []*testNode {
 
 	//first node generated will have is pk belonging to firstSkShardId
-	nodes := make([]*testNode, int(numOfShards)*nodesPerShard)
+	numMetaChainNodes := 1
+	nodes := make([]*testNode, int(numOfShards)*nodesPerShard+numMetaChainNodes)
 
 	idx := 0
 	for shardId := 0; shardId < numOfShards; shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
 			testNode := &testNode{
-				dPool:   createTestDataPool(),
+				dPool:   createTestShardDataPool(),
 				shardId: uint32(shardId),
 			}
 
 			shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
 			accntAdapter := createAccountsDB()
 			n, mes, sk, resFinder, blkProcessor, blkc := createNetNode(
-				startingPort+idx,
 				testNode.dPool,
 				accntAdapter,
 				shardCoordinator,
@@ -391,7 +397,7 @@ func createNodes(
 
 			testNode.node = n
 			testNode.sk = sk
-			testNode.mesenger = mes
+			testNode.messenger = mes
 			testNode.pk = sk.GeneratePublic()
 			testNode.resFinder = resFinder
 			testNode.accntState = accntAdapter
@@ -424,6 +430,18 @@ func createNodes(
 			nodes[idx] = testNode
 			idx++
 		}
+	}
+
+	shardCoordinatorMeta, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), sharding.MetachainShardId)
+	tn := createMetaNetNode(
+		createTestMetaDataPool(),
+		createAccountsDB(),
+		shardCoordinatorMeta,
+		serviceID,
+	)
+	for i := 0; i < numMetaChainNodes; i++ {
+		idx := i + int(numOfShards)*nodesPerShard
+		nodes[idx] = tn
 	}
 
 	return nodes
@@ -506,5 +524,208 @@ func generatePrivateKeyInShardId(
 		}
 
 		sk, pk = keyGen.GeneratePair()
+	}
+}
+
+func createTestMetaChain() data.ChainHandler {
+	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
+	metaChain, _ := blockchain.NewMetaChain(
+		badBlockCache,
+	)
+	metaChain.GenesisBlock = &dataBlock.MetaBlock{}
+
+	return metaChain
+}
+
+func createTestMetaStore() dataRetriever.StorageService {
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaPeerDataUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaShardDataUnit, createMemUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+
+	return store
+}
+
+func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
+	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storage.CacheConfig{Size: 10000, Type: storage.LRUCache}
+	miniblockHashes, _ := shardedData.NewShardedData(cacherCfg)
+
+	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	shardHeaders, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	metaBlockNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	metaBlockNonces, _ := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+
+	dPool, _ := dataPool.NewMetaDataPool(
+		metaBlocks,
+		miniblockHashes,
+		shardHeaders,
+		metaBlockNonces,
+	)
+
+	return dPool
+}
+
+func createMetaNetNode(
+	dPool dataRetriever.MetaPoolsHolder,
+	accntAdapter state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
+	initialAddr string,
+) *testNode {
+
+	tn := testNode{}
+
+	tn.messenger = createMessengerWithKadDht(context.Background(), initialAddr)
+	suite := kyber.NewBlakeSHA256Ed25519()
+	singleSigner := &singlesig.SchnorrSigner{}
+	keyGen := signing.NewKeyGenerator(suite)
+	sk, pk := keyGen.GeneratePair()
+
+	pkBuff, _ := pk.ToByteArray()
+	fmt.Printf("Found pk: %s\n", hex.EncodeToString(pkBuff))
+
+	tn.blkc = createTestMetaChain()
+	store := createTestMetaStore()
+	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
+
+	interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
+		shardCoordinator,
+		tn.messenger,
+		store,
+		testMarshalizer,
+		testHasher,
+		testMultiSig,
+		dPool,
+		&mock.ChronologyValidatorMock{},
+		nil,
+	)
+	interceptorsContainer, err := interceptorContainerFactory.Create()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	resolversContainerFactory, _ := metafactoryDataRetriever.NewResolversContainerFactory(
+		shardCoordinator,
+		tn.messenger,
+		store,
+		testMarshalizer,
+		dPool,
+		uint64Converter,
+	)
+	resolversContainer, _ := resolversContainerFactory.Create()
+	resolvers, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
+
+	requestHandler, _ := requestHandlers.NewMetaResolverRequestHandler(resolvers, factory.ShardHeadersForMetachainTopic)
+
+	genesisBlocks := createGenesisBlocks(shardCoordinator)
+	blkProc, _ := block.NewMetaProcessor(
+		accntAdapter,
+		dPool,
+		&mock.ForkDetectorMock{
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+				return nil
+			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
+		},
+		shardCoordinator,
+		testHasher,
+		testMarshalizer,
+		store,
+		genesisBlocks,
+		requestHandler,
+	)
+
+	tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])
+
+	tn.blkProcessor = blkProc
+
+	n, err := node.NewNode(
+		node.WithMessenger(tn.messenger),
+		node.WithMarshalizer(testMarshalizer),
+		node.WithHasher(testHasher),
+		node.WithMetaDataPool(dPool),
+		node.WithAddressConverter(testAddressConverter),
+		node.WithAccountsAdapter(accntAdapter),
+		node.WithKeyGen(keyGen),
+		node.WithShardCoordinator(shardCoordinator),
+		node.WithBlockChain(tn.blkc),
+		node.WithUint64ByteSliceConverter(uint64Converter),
+		node.WithMultiSigner(testMultiSig),
+		node.WithSingleSigner(singleSigner),
+		node.WithPrivKey(sk),
+		node.WithPubKey(pk),
+		node.WithInterceptorsContainer(interceptorsContainer),
+		node.WithResolversFinder(resolvers),
+		node.WithBlockProcessor(tn.blkProcessor),
+		node.WithDataStore(store),
+	)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
+
+	tn.node = n
+	tn.sk = sk
+	tn.pk = pk
+	tn.accntState = accntAdapter
+	tn.shardId = sharding.MetachainShardId
+
+	dPool.MetaChainBlocks().RegisterHandler(func(key []byte) {
+		atomic.AddInt32(&tn.metachainHdrRecv, 1)
+	})
+	dPool.ShardHeaders().RegisterHandler(func(key []byte) {
+		atomic.AddInt32(&tn.headersRecv, 1)
+		tn.mutHeaders.Lock()
+		metaHeader, _ := dPool.ShardHeaders().Peek(key)
+		tn.headers = append(tn.headers, metaHeader.(data.HeaderHandler))
+		tn.mutHeaders.Unlock()
+	})
+
+	return &tn
+}
+
+func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
+	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
+		genesisBlocks[shardId] = createGenesisBlock(shardId)
+	}
+
+	genesisBlocks[sharding.MetachainShardId] = createGenesisMetaBlock()
+
+	return genesisBlocks
+}
+
+func createGenesisBlock(shardId uint32) *dataBlock.Header {
+	return &dataBlock.Header{
+		Nonce:         0,
+		Round:         0,
+		Signature:     rootHash,
+		RandSeed:      rootHash,
+		PrevRandSeed:  rootHash,
+		ShardId:       shardId,
+		PubKeysBitmap: rootHash,
+		RootHash:      rootHash,
+		PrevHash:      rootHash,
+	}
+}
+
+func createGenesisMetaBlock() *dataBlock.MetaBlock {
+	return &dataBlock.MetaBlock{
+		Nonce:         0,
+		Round:         0,
+		Signature:     rootHash,
+		RandSeed:      rootHash,
+		PrevRandSeed:  rootHash,
+		PubKeysBitmap: rootHash,
+		RootHash:      rootHash,
+		PrevHash:      rootHash,
 	}
 }

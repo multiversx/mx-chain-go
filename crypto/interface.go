@@ -109,19 +109,21 @@ type Random interface {
 type Suite interface {
 	Group
 	Random
-	GetUnderlyingSuite() interface{}
-}
-
-// Generator generates a (Scalar, Point) key pair
-type Generator interface {
+	// CreateKeyPair creates a scalar and a point pair that can be used in asymmetric cryptography
 	CreateKeyPair(cipher.Stream) (Scalar, Point)
+	// GetUnderlyingSuite returns the library suite that crypto.Suite wraps
+	GetUnderlyingSuite() interface{}
 }
 
 // KeyGenerator is an interface for generating different types of cryptographic keys
 type KeyGenerator interface {
+	// GeneratePair creates a (crypto.PrivateKey, crypto.PublicKey) pair to be used for asymmetric cryptography
 	GeneratePair() (PrivateKey, PublicKey)
+	// PrivateKeyFromByteArray creates a crypto.PrivateKey from a byte array
 	PrivateKeyFromByteArray(b []byte) (PrivateKey, error)
+	// PublicKeyFromByteArray creates a crypto.PublicKey from a byte array
 	PublicKeyFromByteArray(b []byte) (PublicKey, error)
+	// Suite returns the crypto.Suite used by the KeyGenerator
 	Suite() Suite
 }
 
@@ -159,42 +161,49 @@ type SingleSigner interface {
 
 // MultiSigner provides functionality for multi-signing a message and verifying a multi-signed message
 type MultiSigner interface {
-	// Reset resets the data holder inside the multiSigner
-	Reset(pubKeys []string, index uint16) error
 	// MultiSigVerifier Provides functionality for verifying a multi-signature
 	MultiSigVerifier
-	// CreateCommitment creates a secret commitment and the corresponding public commitment point
-	CreateCommitment() (commSecret []byte, commitment []byte)
-	// StoreCommitmentHash adds a commitment hash to the list with the specified position
-	StoreCommitmentHash(index uint16, commHash []byte) error
-	// CommitmentHash returns the commitment hash from the list with the specified position
-	CommitmentHash(index uint16) ([]byte, error)
-	// StoreCommitment adds a commitment to the list with the specified position
-	StoreCommitment(index uint16, value []byte) error
-	// Commitment returns the commitment from the list with the specified position
-	Commitment(index uint16) ([]byte, error)
-	// AggregateCommitments aggregates the list of commitments
-	AggregateCommitments(bitmap []byte) error
+	// Reset resets the data holder inside the multiSigner
+	Reset(pubKeys []string, index uint16) error
 	// CreateSignatureShare creates a partial signature
-	CreateSignatureShare(bitmap []byte) ([]byte, error)
+	CreateSignatureShare(msg []byte, bitmap []byte) ([]byte, error)
 	// StoreSignatureShare adds the partial signature of the signer with specified position
 	StoreSignatureShare(index uint16, sig []byte) error
 	// SignatureShare returns the partial signature set for given index
 	SignatureShare(index uint16) ([]byte, error)
 	// VerifySignatureShare verifies the partial signature of the signer with specified position
-	VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error
+	VerifySignatureShare(index uint16, sig []byte, msg []byte, bitmap []byte) error
 	// AggregateSigs aggregates all collected partial signatures
 	AggregateSigs(bitmap []byte) ([]byte, error)
 }
 
-// MultiSigVerifier Provides functionality for verifying a multi-signature
+// MultiSigVerifier provides functionality for verifying a multi-signature
 type MultiSigVerifier interface {
 	// Create resets the multisigner and initializes to the new params
 	Create(pubKeys []string, index uint16) (MultiSigner, error)
-	// SetMessage sets the message to be multi-signed upon
-	SetMessage(msg []byte) error
 	// SetAggregatedSig sets the aggregated signature
 	SetAggregatedSig([]byte) error
 	// Verify verifies the aggregated signature
-	Verify(bitmap []byte) error
+	Verify(msg []byte, bitmap []byte, ) error
+}
+
+// LowLevelSignerBLS provides functionality to sign and verify BLS single/multi-signatures
+// Implementations act as a wrapper over a specific crypto library, such that changing the library requires only
+// writing a new implementation of this LowLevelSigner
+type LowLevelSignerBLS interface {
+	// VerifySigShare verifies a BLS single signature
+	VerifySigShare(pubKey PublicKey, message []byte, sig []byte) error
+	// SignShare creates a BLS single signature over a given message
+	SignShare(privKey PrivateKey, message []byte) ([]byte, error)
+	// VerifySigBytes verifies if a byte array represents a BLS signature
+	VerifySigBytes(suite Suite, sig []byte) error
+	// AggregateSignatures aggregates BLS single signatures given as byte arrays
+	AggregateSignatures(suite Suite, sigs ...[]byte) ([]byte, error)
+	// VerifyAggregatedSig verifies the validity of an aggregated signature over a given message
+	VerifyAggregatedSig(suite Suite, aggPointsBytes []byte, aggSigBytes []byte, msg []byte) error
+	// AggregatePublicKeys aggregates a list of public key Points. Returns the byte array representation of the point
+	AggregatePublicKeys(suite Suite, pubKeys ...Point) ([]byte, error)
+	// ScalarMulSig provides the result of multiplying a scalar with a signature.
+	// This is used in the modified BLS multi-signature scheme
+	ScalarMulSig(suite Suite, scalar Scalar, sig []byte) ([]byte, error)
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 	"github.com/whyrusleeping/go-logging"
 )
@@ -25,18 +26,15 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	}
 
 	numOfShards := 6
-	startingPort := 36000
 	nodesPerShard := 3
 
 	senderShard := uint32(0)
 	recvShards := []uint32{1, 2}
 
-	advertiser := createMessengerWithKadDht(context.Background(), startingPort, "")
+	advertiser := createMessengerWithKadDht(context.Background(), "")
 	advertiser.Bootstrap()
-	startingPort++
 
 	nodes := createNodes(
-		startingPort,
 		numOfShards,
 		nodesPerShard,
 		getConnectableAddress(advertiser),
@@ -56,7 +54,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 
 	fmt.Println("Generating header and block body...")
 	body, hdr := generateHeaderAndBody(senderShard, recvShards...)
-	err := nodes[0].node.BroadcastBlock(body, hdr)
+	err := nodes[0].node.BroadcastShardBlock(body, hdr)
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second * 10)
@@ -64,8 +62,9 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	for _, n := range nodes {
 		isSenderShard := n.shardId == senderShard
 		isRecvShard := uint32InSlice(n.shardId, recvShards)
+		isRecvMetachain := n.shardId == sharding.MetachainShardId
 
-		assert.Equal(t, int32(1), atomic.LoadInt32(&n.metachainHdrRecv))
+		assert.Equal(t, int32(0), atomic.LoadInt32(&n.metachainHdrRecv))
 
 		if isSenderShard {
 			assert.Equal(t, int32(1), atomic.LoadInt32(&n.headersRecv))
@@ -84,7 +83,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 			assert.True(t, equalSlices(expectedMiniblocks, n.miniblocksHashes))
 		}
 
-		if !isSenderShard && !isRecvShard {
+		if !isSenderShard && !isRecvShard && !isRecvMetachain {
 			//other nodes should have not received neither the header nor the miniblocks
 			assert.Equal(t, int32(0), atomic.LoadInt32(&n.headersRecv))
 			assert.Equal(t, int32(0), atomic.LoadInt32(&n.miniblocksRecv))
@@ -106,6 +105,8 @@ func generateHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyH
 		ShardId:          senderShard,
 		BlockBodyType:    block.TxBlock,
 		RootHash:         []byte{255, 255},
+		PrevRandSeed:     make([]byte, 0),
+		RandSeed:         make([]byte, 0),
 		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
 	}
 

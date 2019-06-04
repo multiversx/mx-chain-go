@@ -682,7 +682,7 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return true, math.MaxUint64
 	}
-	forkDetector.RemoveHeadersCalled = func(nonce uint64) {
+	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
@@ -712,10 +712,6 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 		shardCoordinator,
 		account,
 	)
-
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
 
 	r := bs.SyncBlock()
 
@@ -768,10 +764,6 @@ func TestMetaBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
-
 	r := bs.SyncBlock()
 
 	assert.Equal(t, process.ErrMissingHeader, r)
@@ -823,10 +815,6 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
-
 	bs.StartSync()
 	time.Sleep(200 * time.Millisecond)
 	bs.StopSync()
@@ -856,9 +844,9 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 			if bytes.Equal([]byte("aaa"), key) && dataAvailable {
 				return &block.MetaBlock{
-					Nonce:         2,
-					Round:         1,
-					StateRootHash: []byte("bbb")}, true
+					Nonce:    2,
+					Round:    1,
+					RootHash: []byte("bbb")}, true
 			}
 
 			return nil, false
@@ -923,10 +911,6 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
-		return nil
-	}
-
 	bs.StartSync()
 
 	time.Sleep(200 * time.Millisecond)
@@ -958,9 +942,9 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("aaa"), key) {
 				return &block.MetaBlock{
-					Nonce:         2,
-					Round:         1,
-					StateRootHash: []byte("bbb")}, true
+					Nonce:    2,
+					Round:    1,
+					RootHash: []byte("bbb")}, true
 			}
 
 			return nil, false
@@ -1042,9 +1026,9 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("aaa"), key) {
 				return &block.MetaBlock{
-					Nonce:         2,
-					Round:         1,
-					StateRootHash: []byte("bbb")}, true
+					Nonce:    2,
+					Round:    1,
+					RootHash: []byte("bbb")}, true
 			}
 
 			return nil, false
@@ -1311,7 +1295,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		account,
 	)
 
-	assert.Nil(t, bs.GetHeaderFromPool(0))
+	assert.Nil(t, bs.GetHeaderFromPoolWithNonce(0))
 }
 
 func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
@@ -1373,7 +1357,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		account,
 	)
 
-	assert.True(t, hdr == bs.GetHeaderFromPool(0))
+	assert.True(t, hdr == bs.GetHeaderFromPoolWithNonce(0))
 }
 
 //------- testing received headers
@@ -1403,8 +1387,8 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-		if isProcessed {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
 
@@ -1457,8 +1441,8 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddTo
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-		if isProcessed {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
 
@@ -1628,7 +1612,7 @@ func TestMetaBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.MetaBlock{
-			PubKeysBitmap: []byte{1},
+			PubKeysBitmap: []byte("X"),
 			Nonce:         newHdrNonce,
 		}
 	}
@@ -1657,8 +1641,8 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 	prevHdrBytes := []byte("prev header bytes")
 	prevHdrRootHash := []byte("prev header root hash")
 	prevHdr := &block.MetaBlock{
-		Signature:     []byte("sig of the prev header as to be unique in this context"),
-		StateRootHash: prevHdrRootHash,
+		Signature: []byte("sig of the prev header as to be unique in this context"),
+		RootHash:  prevHdrRootHash,
 	}
 
 	pools := createMockMetaPools()
@@ -1696,7 +1680,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
-		RestoreBlockIntoPoolsCalled: func(blockChain data.ChainHandler, body data.BodyHandler) error {
+		RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
 	}
@@ -1710,7 +1694,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
 				//copy only defined fields
 				obj.(*block.MetaBlock).Signature = prevHdr.Signature
-				obj.(*block.MetaBlock).StateRootHash = prevHdrRootHash
+				obj.(*block.MetaBlock).RootHash = prevHdrRootHash
 				return nil
 			}
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
@@ -1752,7 +1736,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 	hdr := &block.MetaBlock{
 		Nonce: currentHdrNonce,
 		//empty bitmap
-		PreviousHash: prevHdrHash,
+		PrevHash: prevHdrHash,
 	}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return hdr
@@ -1810,8 +1794,8 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 	prevHdrBytes := []byte("prev header bytes")
 	prevHdrRootHash := []byte("prev header root hash")
 	prevHdr := &block.MetaBlock{
-		Signature:     []byte("sig of the prev header as to be unique in this context"),
-		StateRootHash: prevHdrRootHash,
+		Signature: []byte("sig of the prev header as to be unique in this context"),
+		RootHash:  prevHdrRootHash,
 	}
 
 	pools := createMockMetaPools()
@@ -1851,7 +1835,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 	}
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
-		RestoreBlockIntoPoolsCalled: func(blockChain data.ChainHandler, body data.BodyHandler) error {
+		RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
 	}
@@ -1865,7 +1849,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
 				//copy only defined fields
 				obj.(*block.MetaBlock).Signature = prevHdr.Signature
-				obj.(*block.MetaBlock).StateRootHash = prevHdrRootHash
+				obj.(*block.MetaBlock).RootHash = prevHdrRootHash
 				return nil
 			}
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
@@ -1907,7 +1891,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 	hdr := &block.MetaBlock{
 		Nonce: currentHdrNonce,
 		//empty bitmap
-		PreviousHash: prevHdrHash,
+		PrevHash: prevHdrHash,
 	}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return hdr

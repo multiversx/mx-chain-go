@@ -8,14 +8,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
@@ -25,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -47,7 +50,7 @@ func init() {
 
 func createTestBlockChain() data.ChainHandler {
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
+	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
 	)
@@ -56,7 +59,7 @@ func createTestBlockChain() data.ChainHandler {
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10)
+	cache, _ := storage.NewCache(storage.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
 	unit, _ := storage.NewStorageUnit(cache, persist)
 
@@ -77,18 +80,24 @@ func createTestStore() dataRetriever.StorageService {
 func createTestDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-	metaPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
@@ -96,7 +105,8 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
-		metaPool,
+		metaBlocks,
+		metaHdrNonces,
 	)
 
 	return dPool
@@ -122,7 +132,11 @@ func createAccountsDB() *state.AccountsDB {
 
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh)
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &mock.AccountsFactoryStub{
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
+			return state.NewAccount(address, tracker)
+		},
+	})
 
 	return adb
 }
@@ -143,7 +157,6 @@ func createMultiSigner(
 }
 
 func createNetNode(
-	port int,
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
@@ -156,9 +169,9 @@ func createNetNode(
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	messenger := createMessenger(context.Background(), port)
+	messenger := createMessenger(context.Background())
 
-	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
@@ -168,6 +181,7 @@ func createNetNode(
 	blkc := createTestBlockChain()
 	store := createTestStore()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
+	dataPacker, _ := partitioning.NewSizeDataPacker(marshalizer)
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -180,6 +194,8 @@ func createNetNode(
 		multiSigner,
 		dPool,
 		addrConverter,
+		&mock.ChronologyValidatorMock{},
+		nil,
 	)
 	interceptorsContainer, _ := interceptorContainerFactory.Create()
 
@@ -190,6 +206,7 @@ func createNetNode(
 		marshalizer,
 		dPool,
 		uint64Converter,
+		dataPacker,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
@@ -201,29 +218,30 @@ func createNetNode(
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithKeyGenerator(keyGen),
+		node.WithKeyGen(keyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
-		node.WithMultisig(multiSigner),
-		node.WithSinglesig(singleSigner),
-		node.WithPrivateKey(sk),
-		node.WithPublicKey(pk),
+		node.WithMultiSigner(multiSigner),
+		node.WithSingleSigner(singleSigner),
+		node.WithTxSignPrivKey(sk),
+		node.WithTxSignPubKey(pk),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
 		node.WithDataStore(store),
+		node.WithTxSingleSigner(singleSigner),
+		node.WithTxStorageSize(100000),
 	)
 
 	return n, messenger, sk, resolversFinder
 }
 
-func createMessenger(ctx context.Context, port int) p2p.Messenger {
+func createMessenger(ctx context.Context) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, err := libp2p.NewNetworkMessenger(
+	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,
-		port,
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),

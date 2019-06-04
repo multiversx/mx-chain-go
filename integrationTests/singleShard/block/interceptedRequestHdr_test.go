@@ -30,14 +30,12 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 
 	fmt.Println("Requestor:")
 	nRequestor, mesRequestor, _, resolversFinder := createNetNode(
-		33000,
 		dPoolRequestor,
 		createAccountsDB(),
 		shardCoordinator)
 
 	fmt.Println("Resolver:")
 	nResolver, mesResolver, _, _ := createNetNode(
-		33001,
 		dPoolResolver,
 		createAccountsDB(),
 		shardCoordinator)
@@ -68,6 +66,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 		ShardId:          0,
 		BlockBodyType:    block.TxBlock,
 		RootHash:         []byte{255, 255},
+		PrevRandSeed:     make([]byte, 0),
+		RandSeed:         make([]byte, 0),
 		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
 	}
 

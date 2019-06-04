@@ -39,13 +39,13 @@ func (bc *ChainStorer) GetStorer(unitType UnitType) storage.Storer {
 // Has returns true if the key is found in the selected Unit or false otherwise
 // It can return an error if the provided unit type is not supported or if the
 // underlying implementation of the storage unit reports an error.
-func (bc *ChainStorer) Has(unitType UnitType, key []byte) (bool, error) {
+func (bc *ChainStorer) Has(unitType UnitType, key []byte) error {
 	bc.lock.RLock()
 	storer := bc.chain[unitType]
 	bc.lock.RUnlock()
 
 	if storer == nil {
-		return false, ErrNoSuchStorageUnit
+		return ErrNoSuchStorageUnit
 	}
 
 	return storer.Has(key)

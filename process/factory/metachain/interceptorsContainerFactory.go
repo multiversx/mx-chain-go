@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -14,13 +15,15 @@ import (
 )
 
 type interceptorsContainerFactory struct {
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	store            dataRetriever.StorageService
-	dataPool         dataRetriever.MetaPoolsHolder
-	shardCoordinator sharding.Coordinator
-	messenger        process.TopicHandler
-	multiSigner      crypto.MultiSigner
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	store               dataRetriever.StorageService
+	dataPool            dataRetriever.MetaPoolsHolder
+	shardCoordinator    sharding.Coordinator
+	messenger           process.TopicHandler
+	multiSigner         crypto.MultiSigner
+	chronologyValidator process.ChronologyValidator
+	tpsBenchmark        *statistics.TpsBenchmark
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -32,6 +35,8 @@ func NewInterceptorsContainerFactory(
 	hasher hashing.Hasher,
 	multiSigner crypto.MultiSigner,
 	dataPool dataRetriever.MetaPoolsHolder,
+	chronologyValidator process.ChronologyValidator,
+	tpsBenchmark *statistics.TpsBenchmark,
 ) (*interceptorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -55,15 +60,20 @@ func NewInterceptorsContainerFactory(
 	if dataPool == nil {
 		return nil, process.ErrNilDataPoolHolder
 	}
+	if chronologyValidator == nil {
+		return nil, process.ErrNilChronologyValidator
+	}
 
 	return &interceptorsContainerFactory{
-		shardCoordinator: shardCoordinator,
-		messenger:        messenger,
-		store:            store,
-		marshalizer:      marshalizer,
-		hasher:           hasher,
-		multiSigner:      multiSigner,
-		dataPool:         dataPool,
+		shardCoordinator:    shardCoordinator,
+		messenger:           messenger,
+		store:               store,
+		marshalizer:         marshalizer,
+		hasher:              hasher,
+		multiSigner:         multiSigner,
+		dataPool:            dataPool,
+		chronologyValidator: chronologyValidator,
+		tpsBenchmark:        tpsBenchmark,
 	}, nil
 }
 
@@ -115,10 +125,13 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.MetaChainBlocks(),
+		icf.dataPool.MetaBlockNonces(),
+		icf.tpsBenchmark,
 		metachainHeaderStorer,
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
+		icf.chronologyValidator,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -140,7 +153,7 @@ func (icf *interceptorsContainerFactory) generateShardHeaderInterceptors() ([]st
 	keys := make([]string, noOfShards)
 	interceptorSlice := make([]process.Interceptor, noOfShards)
 
-	//wire up to topics: shardHeadersForMetachain_0, shardHeadersForMetachain_1 ...
+	//wire up to topics: shardHeadersForMetachain_0_META, shardHeadersForMetachain_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierHeader := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(idx)
 		interceptor, err := icf.createOneShardHeaderInterceptor(identifierHeader)
@@ -164,6 +177,7 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identif
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
+		icf.chronologyValidator,
 	)
 	if err != nil {
 		return nil, err

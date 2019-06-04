@@ -13,11 +13,12 @@ import (
 
 // HeaderInterceptorBase is the "abstract class" extended in HeaderInterceptor and ShardHeaderInterceptor
 type HeaderInterceptorBase struct {
-	marshalizer      marshal.Marshalizer
-	storer           storage.Storer
-	multiSigVerifier crypto.MultiSigVerifier
-	hasher           hashing.Hasher
-	shardCoordinator sharding.Coordinator
+	marshalizer         marshal.Marshalizer
+	storer              storage.Storer
+	multiSigVerifier    crypto.MultiSigVerifier
+	hasher              hashing.Hasher
+	shardCoordinator    sharding.Coordinator
+	chronologyValidator process.ChronologyValidator
 }
 
 // NewHeaderInterceptorBase creates a new HeaderIncterceptorBase instance
@@ -27,6 +28,7 @@ func NewHeaderInterceptorBase(
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
+	chronologyValidator process.ChronologyValidator,
 ) (*HeaderInterceptorBase, error) {
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
@@ -43,13 +45,17 @@ func NewHeaderInterceptorBase(
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if chronologyValidator == nil {
+		return nil, process.ErrNilChronologyValidator
+	}
 
 	hdrIntercept := &HeaderInterceptorBase{
-		marshalizer:      marshalizer,
-		storer:           storer,
-		multiSigVerifier: multiSigVerifier,
-		hasher:           hasher,
-		shardCoordinator: shardCoordinator,
+		marshalizer:         marshalizer,
+		storer:              storer,
+		multiSigVerifier:    multiSigVerifier,
+		hasher:              hasher,
+		shardCoordinator:    shardCoordinator,
+		chronologyValidator: chronologyValidator,
 	}
 
 	return hdrIntercept, nil
@@ -65,7 +71,7 @@ func (hib *HeaderInterceptorBase) ParseReceivedMessage(message p2p.MessageP2P) (
 		return nil, process.ErrNilDataToProcess
 	}
 
-	hdrIntercepted := block.NewInterceptedHeader(hib.multiSigVerifier)
+	hdrIntercepted := block.NewInterceptedHeader(hib.multiSigVerifier, hib.chronologyValidator)
 	err := hib.marshalizer.Unmarshal(hdrIntercepted, message.Data())
 	if err != nil {
 		return nil, err
@@ -84,10 +90,13 @@ func (hib *HeaderInterceptorBase) ParseReceivedMessage(message p2p.MessageP2P) (
 		return nil, err
 	}
 
-	isHeaderInStorage, _ := hib.storer.Has(hashWithSig)
-	if isHeaderInStorage {
-		return nil, process.ErrHeaderIsInStorage
-	}
-
 	return hdrIntercepted, nil
+}
+
+// CheckHeaderForCurrentShard checks if the header is for current shard
+func (hib *HeaderInterceptorBase) CheckHeaderForCurrentShard(interceptedHdr *block.InterceptedHeader) bool {
+	isHeaderForCurrentShard := hib.shardCoordinator.SelfId() == interceptedHdr.GetHeader().ShardId
+	isMetachainShardCoordinator := hib.shardCoordinator.SelfId() == sharding.MetachainShardId
+
+	return isHeaderForCurrentShard || isMetachainShardCoordinator
 }

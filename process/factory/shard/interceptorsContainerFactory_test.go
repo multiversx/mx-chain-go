@@ -59,9 +59,11 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.PeerChangesBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
-
 	pools.MetaBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
+	}
+	pools.MetaHeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
+		return &mock.Uint64CacherStub{}
 	}
 
 	return pools
@@ -90,7 +92,10 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -109,7 +114,10 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilMessenger, err)
@@ -128,7 +136,10 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilBlockChain, err)
@@ -147,7 +158,10 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -166,7 +180,10 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -185,7 +202,10 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilKeyGen, err)
@@ -204,7 +224,10 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		nil,
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilSingleSigner, err)
@@ -223,7 +246,10 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		nil,
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
@@ -242,7 +268,10 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		nil,
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -261,7 +290,10 @@ func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T)
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		nil)
+		nil,
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilAddressConverter, err)
@@ -280,7 +312,10 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	assert.NotNil(t, icf)
 	assert.Nil(t, err)
@@ -301,7 +336,10 @@ func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *tes
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	container, err := icf.Create()
 
@@ -322,7 +360,10 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	container, err := icf.Create()
 
@@ -343,7 +384,10 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	container, err := icf.Create()
 
@@ -364,7 +408,10 @@ func TestInterceptorsContainerFactory_CreateTopicCreationPeerChBlocksFailsShould
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	container, err := icf.Create()
 
@@ -385,7 +432,10 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsSh
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	container, err := icf.Create()
 
@@ -406,7 +456,10 @@ func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	container, err := icf.Create()
 
@@ -427,7 +480,10 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	container, err := icf.Create()
 
@@ -448,7 +504,10 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	container, err := icf.Create()
 
@@ -469,7 +528,10 @@ func TestInterceptorsContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	container, err := icf.Create()
 
@@ -490,7 +552,10 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	container, err := icf.Create()
 
@@ -518,7 +583,10 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	container, err := icf.Create()
 
@@ -552,11 +620,14 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+		nil,
+	)
 
 	container, _ := icf.Create()
 
-	numInterceptorTxs := noOfShards
+	numInterceptorTxs := noOfShards + 1
 	numInterceptorHeaders := 1
 	numInterceptorMiniBlocks := noOfShards
 	numInterceptorPeerChanges := 1

@@ -2,6 +2,7 @@ package data
 
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
+	GetShardID() uint32
 	GetNonce() uint64
 	GetEpoch() uint32
 	GetRound() uint32
@@ -11,6 +12,7 @@ type HeaderHandler interface {
 	GetRandSeed() []byte
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
+	GetTimeStamp() uint64
 	GetTxCount() uint32
 
 	SetNonce(n uint64)
