@@ -3,7 +3,6 @@ package block_test
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -19,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	blproc "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
@@ -471,7 +471,7 @@ func TestBaseProcessor_SetLastNotarizedHeadersSliceNil(t *testing.T) {
 
 	err := base.SetLastNotarizedHeadersSlice(nil, false)
 
-	assert.Equal(t, process.ErrLastNotarizedHdrsSliceIsNil, err)
+	assert.Equal(t, process.ErrNotarizedHdrsSliceIsNil, err)
 }
 
 func TestBaseProcessor_SetLastNotarizedHeadersSliceNotEnoughHeaders(t *testing.T) {
@@ -638,7 +638,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrLastNotSliceNotSet(t *testing.T) {
 
 	err := base.SaveLastNotarizedHeader(2, prHdrs)
 
-	assert.Equal(t, process.ErrLastNotarizedHdrsSliceIsNil, err)
+	assert.Equal(t, process.ErrNotarizedHdrsSliceIsNil, err)
 }
 
 func TestBaseProcessor_SaveLastNoterizedHdrLastNotShardIdMissmatch(t *testing.T) {
