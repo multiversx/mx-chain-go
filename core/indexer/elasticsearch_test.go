@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -21,6 +23,7 @@ import (
 
 var (
 	url              = "http://localhost:9300"
+	port             = ":9300"
 	shardCoordinator = mock.ShardCoordinatorMock{}
 	marshalizer      = &mock.MarshalizerMock{}
 	hasher           = mock.HasherMock{}
@@ -149,14 +152,89 @@ func TestElasticIndexer_NewIndexerWithNilLoggerShouldError(t *testing.T) {
 }
 
 func TestElasticIndexer_NewIndexerWithCorrectParamsShouldWork(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/blocks" {
+			w.WriteHeader(http.StatusOK)
+		}
+		if r.URL.Path == "/transactions" {
+			w.WriteHeader(http.StatusOK)
+		}
+		if r.URL.Path == "/tps" {
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
 
-	elasticServer := &mock.ElasticSearchServerMock{}
-	go elasticServer.Start()
+	ei, err := indexer.NewElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, log)
 
-	ei, err := indexer.NewElasticIndexer("http://localhost:9300", username, password, shardCoordinator, marshalizer, hasher, log)
+	assert.NotNil(t, ei)
+	assert.Nil(t, err)
+}
 
-	assert.Nil(t, ei)
-	assert.Equal(t, core.ErrNilLogger, err)
+func TestElasticIndexer_CheckAndCreateIndexShouldWorkIfIndexExists(t *testing.T) {
+	blocksFunctionCount := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/blocks" {
+			w.WriteHeader(http.StatusOK)
+			blocksFunctionCount++
+		}
+	}))
+
+	ei := indexer.NewTestElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, log)
+
+	err := ei.CheckAndCreateIndex("blocks", nil)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 1, blocksFunctionCount)
+}
+
+func TestElasticIndexer_CheckAndCreateIndexShouldCreateIndexIfItDoesNotExist(t *testing.T) {
+	blocksFunctionCount := 0
+	putFunctionCount := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PUT" {
+			w.WriteHeader(http.StatusOK)
+			putFunctionCount++
+			return
+		}
+		if r.URL.Path == "/blocks" {
+			w.WriteHeader(http.StatusNotFound)
+			blocksFunctionCount++
+			return
+		}
+	}))
+
+	ei := indexer.NewTestElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, log)
+
+	err := ei.CheckAndCreateIndex("blocks", nil)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 1, blocksFunctionCount)
+	assert.Equal(t, 1, putFunctionCount)
+}
+
+func TestElasticIndexer_CreateIndexShouldCreateIndexIfItDoesNotExist(t *testing.T) {
+	blocksFunctionCount := 0
+	putFunctionCount := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PUT" {
+			w.WriteHeader(http.StatusOK)
+			putFunctionCount++
+			return
+		}
+		if r.URL.Path == "/blocks" {
+			w.WriteHeader(http.StatusNotFound)
+			blocksFunctionCount++
+			return
+		}
+	}))
+
+	ei := indexer.NewTestElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, log)
+
+	err := ei.CreateIndex("blocks", nil)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 0, blocksFunctionCount)
+	assert.Equal(t, 1, putFunctionCount)
 }
 
 func TestNewElasticIndexerIncorrectUrl(t *testing.T) {
@@ -168,7 +246,7 @@ func TestNewElasticIndexerIncorrectUrl(t *testing.T) {
 }
 
 func TestElasticIndexer_getSerializedElasticBlockAndHeaderHash(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
 	header := newTestBlockHeader()
 
 	serializedBlock, headerHash := ei.GetSerializedElasticBlockAndHeaderHash(header)
@@ -194,7 +272,7 @@ func TestElasticIndexer_getSerializedElasticBlockAndHeaderHash(t *testing.T) {
 }
 
 func TestElasticIndexer_buildTransactionBulks(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
 
 	header := newTestBlockHeader()
 	body := newTestBlockBody()
@@ -208,7 +286,7 @@ func TestElasticIndexer_buildTransactionBulks(t *testing.T) {
 }
 
 func TestElasticIndexer_serializeBulkTx(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
 
 	header := newTestBlockHeader()
 	body := newTestBlockBody()
@@ -234,7 +312,7 @@ func TestElasticIndexer_serializeBulkTx(t *testing.T) {
 func TestElasticIndexer_UpdateTPS(t *testing.T) {
 	var output bytes.Buffer
 	log.SetOutput(&output)
-	ei := indexer.NewTestElasticIndexer(url, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
 
 	tpsBench := mock.TpsBenchmarkMock{}
 	tpsBench.Update(newTestMetaBlock())
@@ -246,14 +324,14 @@ func TestElasticIndexer_UpdateTPS(t *testing.T) {
 func TestElasticIndexer_UpdateTPSNil(t *testing.T) {
 	var output bytes.Buffer
 	log.SetOutput(&output)
-	ei := indexer.NewTestElasticIndexer(url, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
 
 	ei.UpdateTPS(nil)
 	assert.NotEmpty(t, output.String())
 }
 
 func TestElasticIndexer_SerializeShardInfo(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
 
 	tpsBench := mock.TpsBenchmarkMock{}
 	tpsBench.UpdateWithShardStats(newTestMetaBlock())
