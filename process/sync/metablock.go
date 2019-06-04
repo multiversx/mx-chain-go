@@ -381,7 +381,6 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 		return err
 	}
 
-	//TODO: Remove also MetaShardDataUnit and MetaPeerDataUnit from storage
 	boot.cleanCachesOnRollback(header, headerStore)
 	errNotCritical := boot.blkExecutor.RestoreBlockIntoPools(header, nil)
 	if errNotCritical != nil {

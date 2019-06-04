@@ -364,32 +364,6 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	for i := 0; i < len(header.ShardInfo); i++ {
-		buff, err = mp.marshalizer.Marshal(header.ShardInfo[i])
-		if err != nil {
-			return err
-		}
-
-		shardDataHash := mp.hasher.Compute(string(buff))
-		err = mp.store.Put(dataRetriever.MetaShardDataUnit, shardDataHash, buff)
-		if err != nil {
-			return err
-		}
-	}
-
-	for i := 0; i < len(header.PeerInfo); i++ {
-		buff, err = mp.marshalizer.Marshal(header.PeerInfo[i])
-		if err != nil {
-			return err
-		}
-
-		peerDataHash := mp.hasher.Compute(string(buff))
-		err = mp.store.Put(dataRetriever.MetaPeerDataUnit, peerDataHash, buff)
-		if err != nil {
-			return err
-		}
-	}
-
 	headerNoncePool := mp.dataPool.MetaBlockNonces()
 	if headerNoncePool == nil {
 		err = process.ErrNilDataPoolHolder
