@@ -101,13 +101,15 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 	}
 
 	//Step 2. search the nonce-key pair
-	hash, _ := hdrRes.hdrNonces.Get(nonce)
-	if hash == nil {
+	value, _ := hdrRes.hdrNonces.Get(nonce)
+	hash, ok := value.([]byte)
+
+	if hash == nil || !ok {
 		return nil, nil
 	}
 
 	//Step 3. search header by key (hash)
-	value, ok := hdrRes.headers.Peek(hash)
+	value, ok = hdrRes.headers.Peek(hash)
 	if !ok {
 		return hdrRes.hdrStorage.Get(hash)
 	}

@@ -25,15 +25,14 @@ var shardMBHeadersCurrentBlockProcessed = 0
 var shardMBHeadersTotalProcessed = 0
 
 const maxHeadersInBlock = 256
-const blockFinality = 0
-
-// TODO: change block finality to 1, add resolvers and pool for prevhash and integration test.
+const blockFinality = 1
 
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
 	dataPool dataRetriever.MetaPoolsHolder
 
+	currHighestShardHdrNonces     map[uint32]uint64
 	requestedShardHeaderHashes    map[string]bool
 	mutRequestedShardHeaderHashes sync.RWMutex
 
@@ -152,8 +151,6 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrAccountStateDirty
 	}
 
-	//TODO: block finality verification is done, need a new pool where headers are put with their key = previousHeaderHash
-	// this way it can be easily calculated if the block is final. and method to ask for headers which has a given previous hash
 	highestNonceHdrs, err := mp.checkShardHeadersValidity(header)
 	if err != nil {
 		return err
@@ -649,17 +646,58 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 // receivedHeader is a call back function which is called when a new header
 // is added in the headers pool
 func (mp *metaProcessor) receivedHeader(headerHash []byte) {
+	shardHeaderCache := mp.dataPool.ShardHeaders()
+	if shardHeaderCache == nil {
+		return
+	}
+
+	shardHdrsNoncesCache := mp.dataPool.ShardHeadersNonces()
+	if shardHdrsNoncesCache == nil && mp.nextKValidity > 0 {
+		return
+	}
+
+	value, ok := shardHeaderCache.Peek(headerHash)
+	if !ok {
+		return
+	}
+
+	hdr, ok := value.(data.HeaderHandler)
+	if !ok {
+		return
+	}
+
 	mp.mutRequestedShardHeaderHashes.Lock()
 
 	if len(mp.requestedShardHeaderHashes) > 0 {
 		if mp.requestedShardHeaderHashes[string(headerHash)] {
 			delete(mp.requestedShardHeaderHashes, string(headerHash))
+
+			if hdr.GetNonce() > mp.currHighestShardHdrNonces[hdr.GetShardID()] {
+				mp.currHighestShardHdrNonces[hdr.GetShardID()] = hdr.GetNonce()
+			}
 		}
 
 		lenReqHeadersHashes := len(mp.requestedShardHeaderHashes)
+		areFinalityAttestingHdrsInCache := true
+		if lenReqHeadersHashes == 0 {
+			for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
+				// ask for finality attesting hdrs if it is not yet in cache
+				for i := mp.currHighestShardHdrNonces[shardId] + 1; i <= mp.currHighestShardHdrNonces[shardId]+uint64(mp.nextKValidity); i++ {
+					value, okPeek := shardHdrsNoncesCache.Peek(i)
+					mapOfHashes, okTypeAssertion := value.(map[uint32][]byte)
+
+					finalityAttestingHeaderForShardFound := !okPeek || !okTypeAssertion || len(mapOfHashes[shardId]) == 0
+					if finalityAttestingHeaderForShardFound {
+						go mp.onRequestHeaderHandlerByNonce(shardId, i)
+						areFinalityAttestingHdrsInCache = false
+					}
+				}
+			}
+		}
+
 		mp.mutRequestedShardHeaderHashes.Unlock()
 
-		if lenReqHeadersHashes == 0 {
+		if lenReqHeadersHashes == 0 && areFinalityAttestingHdrsInCache {
 			mp.chRcvAllHdrs <- true
 		}
 
@@ -672,12 +710,16 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
 	mp.mutRequestedShardHeaderHashes.Lock()
 
+	mp.currHighestShardHdrNonces = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
 	missingHeaderHashes := mp.computeMissingHeaders(header)
 	mp.requestedShardHeaderHashes = make(map[string]bool)
 
+	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
+		mp.currHighestShardHdrNonces[i] = uint64(0)
+	}
+
 	for shardId, headerHash := range missingHeaderHashes {
 		mp.requestedShardHeaderHashes[string(headerHash)] = true
-		//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
 		go mp.onRequestHeaderHandler(shardId, headerHash)
 	}
 
@@ -694,6 +736,11 @@ func (mp *metaProcessor) computeMissingHeaders(header *block.MetaBlock) map[uint
 		header, _ := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
 		if header == nil {
 			missingHeaders[shardData.ShardId] = shardData.HeaderHash
+			continue
+		}
+
+		if header.GetNonce() > mp.currHighestShardHdrNonces[shardData.ShardId] {
+			mp.currHighestShardHdrNonces[shardData.ShardId] = header.GetNonce()
 		}
 	}
 

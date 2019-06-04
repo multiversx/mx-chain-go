@@ -408,6 +408,7 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 
 	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 	shardHeaders, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	shardHeadersNonces, _ := dataPool.NewNonceToHashCacher(shardHeaders, uint64ByteSlice.NewBigEndianConverter())
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	metaBlockNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -418,6 +419,7 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 		miniblockHashes,
 		shardHeaders,
 		metaBlockNonces,
+		shardHeadersNonces,
 	)
 
 	return dPool

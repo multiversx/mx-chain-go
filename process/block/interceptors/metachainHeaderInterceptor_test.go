@@ -354,9 +354,10 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 		}
 		return
 	}
-	metachainHeadersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
+	metachainHeadersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
-		if bytes.Equal(aaaHash, i) && u == testedNonce {
+		hash, _ := i.([]byte)
+		if bytes.Equal(aaaHash, hash) && u == testedNonce {
 			wg.Done()
 		}
 		return
@@ -428,9 +429,10 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 		}
 		return
 	}
-	metachainHeadersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
+	metachainHeadersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
-		if bytes.Equal(aaaHash, i) && u == testedNonce {
+		hash, _ := i.([]byte)
+		if bytes.Equal(aaaHash, hash) && u == testedNonce {
 			chanDone <- struct{}{}
 		}
 		return

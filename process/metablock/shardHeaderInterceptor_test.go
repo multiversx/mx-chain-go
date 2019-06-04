@@ -26,6 +26,7 @@ func TestNewShardHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	hi, err := metablock.NewShardHeaderInterceptor(
 		nil,
 		headers,
+		&mock.Uint64CacherStub{},
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -44,6 +45,7 @@ func TestNewShardHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 	hi, err := metablock.NewShardHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		nil,
+		&mock.Uint64CacherStub{},
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -63,6 +65,7 @@ func TestNewShardHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	hi, err := metablock.NewShardHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
+		&mock.Uint64CacherStub{},
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -84,6 +87,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *tes
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
+		&mock.Uint64CacherStub{},
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -111,9 +115,11 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 	storer.HasCalled = func(key []byte) error {
 		return errors.New("Key not found")
 	}
+	hdrsNonces := &mock.Uint64CacherStub{}
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		marshalizer,
 		headers,
+		hdrsNonces,
 		storer,
 		multisigner,
 		mock.HasherMock{},
@@ -175,6 +181,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t 
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		marshalizer,
 		headers,
+		&mock.Uint64CacherStub{},
 		storer,
 		multisigner,
 		mock.HasherMock{},

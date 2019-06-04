@@ -1604,6 +1604,11 @@ func createMetaDataPoolFromConfig(
 		fmt.Println("error creating shardHeaders")
 		return nil, err
 	}
+	shardHeadersNonces, err := dataPool.NewNonceToHashCacher(shardHeaders, uint64ByteSliceConverter)
+	if err != nil {
+		fmt.Println("error creating shard headers nonces pool")
+		return nil, err
+	}
 
 	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
 	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -1617,7 +1622,7 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	return dataPool.NewMetaDataPool(metaBlockBody, miniBlockHashes, shardHeaders, metaBlockNonces)
+	return dataPool.NewMetaDataPool(metaBlockBody, miniBlockHashes, shardHeaders, metaBlockNonces, shardHeadersNonces)
 }
 
 func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, error) {

@@ -3,6 +3,7 @@ package metablock
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -19,7 +20,9 @@ var log = logger.DefaultLogger()
 type ShardHeaderInterceptor struct {
 	hdrInterceptorBase *interceptors.HeaderInterceptorBase
 	headers            storage.Cacher
+	hdrsNonces         dataRetriever.Uint64Cacher
 	storer             storage.Storer
+	shardCoordinator   sharding.Coordinator
 }
 
 // NewShardHeaderInterceptor hooks a new interceptor for shard block headers by metachain nodes
@@ -27,6 +30,7 @@ type ShardHeaderInterceptor struct {
 func NewShardHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	headers storage.Cacher,
+	hdrsNonces dataRetriever.Uint64Cacher,
 	storer storage.Storer,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
@@ -36,6 +40,9 @@ func NewShardHeaderInterceptor(
 
 	if headers == nil {
 		return nil, process.ErrNilHeadersDataPool
+	}
+	if hdrsNonces == nil {
+		return nil, process.ErrNilHeadersNoncesDataPool
 	}
 
 	hdrBaseInterceptor, err := interceptors.NewHeaderInterceptorBase(
@@ -53,7 +60,9 @@ func NewShardHeaderInterceptor(
 	return &ShardHeaderInterceptor{
 		hdrInterceptorBase: hdrBaseInterceptor,
 		headers:            headers,
+		hdrsNonces:         hdrsNonces,
 		storer:             storer,
+		shardCoordinator:   shardCoordinator,
 	}, nil
 }
 
@@ -83,4 +92,20 @@ func (shi *ShardHeaderInterceptor) processHeader(hdrIntercepted *block.Intercept
 	}
 
 	shi.headers.HasOrAdd(hdrIntercepted.Hash(), hdrIntercepted.GetHeader())
+
+	nonce := hdrIntercepted.GetHeader().GetNonce()
+
+	value, okPeek := shi.hdrsNonces.Peek(nonce)
+	mapOfHashes, okTypeAssertion := value.(map[uint32][]byte)
+
+	if !okPeek || !okTypeAssertion {
+		// repair saved data
+		mapOfHashes = make(map[uint32][]byte, shi.shardCoordinator.NumberOfShards())
+		for i := uint32(0); i < shi.shardCoordinator.NumberOfShards(); i++ {
+			mapOfHashes[i] = make([]byte, 0)
+		}
+	}
+
+	mapOfHashes[hdrIntercepted.GetHeader().GetShardID()] = hdrIntercepted.Hash()
+	shi.hdrsNonces.Put(nonce, mapOfHashes)
 }
