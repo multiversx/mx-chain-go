@@ -120,7 +120,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return err
 	}
 
-	return process.ErrWrongTypeInContainer
+	return process.ErrWrongTransaction
 }
 
 func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {

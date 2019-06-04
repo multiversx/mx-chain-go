@@ -19,6 +19,10 @@ func NewAtArgumentParser() (process.ArgumentsParser, error) {
 	return &atArgumentParser{}, nil
 }
 
+// ParseData creates the code and the arguments from the input data
+// format: code@arg1@arg2@arg3...
+// Until the first @ all the bytes are for the code / function
+// after that every argument start with an @
 func (at *atArgumentParser) ParseData(data []byte) error {
 	splitString := strings.Split(string(data), atSep)
 	if len(splitString) == 0 || len(splitString[0]) == 0 {
@@ -42,6 +46,7 @@ func (at *atArgumentParser) ParseData(data []byte) error {
 	return nil
 }
 
+// GetArguments returns the arguments from the parsed data
 func (at *atArgumentParser) GetArguments() ([]*big.Int, error) {
 	if at.arguments == nil {
 		return nil, process.ErrNilArguments
@@ -49,6 +54,7 @@ func (at *atArgumentParser) GetArguments() ([]*big.Int, error) {
 	return at.arguments, nil
 }
 
+// GetCode returns the code from the parsed data
 func (at *atArgumentParser) GetCode() ([]byte, error) {
 	if at.code == nil {
 		return nil, process.ErrNilCode
@@ -56,6 +62,7 @@ func (at *atArgumentParser) GetCode() ([]byte, error) {
 	return at.code, nil
 }
 
+// GetFunctons returns the function from the parsed data
 func (at *atArgumentParser) GetFunction() (string, error) {
 	if at.code == nil {
 		return "", process.ErrNilFunction

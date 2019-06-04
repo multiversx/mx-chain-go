@@ -1,14 +1,14 @@
 package smartContract
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -39,7 +39,6 @@ func (sc *scProcessor) ComputeTransactionType(
 	tx *transaction.Transaction,
 	acntSrc, acntDst state.AccountHandler,
 ) (process.TransactionType, error) {
-	//TODO: add all kind of tests here
 	if tx == nil {
 		return 0, process.ErrNilTransaction
 	}
@@ -100,7 +99,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	return nil
 }
 
-// DeploySmartContract runs the VM to verify register the smart contract and saves the data into the state
+// DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error {
 	if len(tx.RcvAddr) != 0 {
 		return process.ErrWrongTransaction
@@ -144,7 +143,7 @@ func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction) (*vmcommon
 
 	vmCallInput.RecipientAddr = tx.RcvAddr
 
-	return &vmcommon.ContractCallInput{}, nil
+	return vmCallInput, nil
 }
 
 func (sc *scProcessor) createVMDeployInput(tx *transaction.Transaction) (*vmcommon.ContractCreateInput, error) {
@@ -188,6 +187,6 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 }
 
 func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, acntSrc, acntDst state.AccountHandler) error {
-
+	// TODO process output, pull request is comming.
 	return nil
 }
