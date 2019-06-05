@@ -47,6 +47,14 @@ func NewMetaAccount(addressContainer AddressContainer, tracker AccountTracker) (
 	}, nil
 }
 
+// IsInterfaceNil return if there is no value under the interface
+func (a *MetaAccount) IsInterfaceNil() bool {
+	if a == nil {
+		return true
+	}
+	return false
+}
+
 // AddressContainer returns the address associated with the account
 func (a *MetaAccount) AddressContainer() AddressContainer {
 	return a.addressContainer

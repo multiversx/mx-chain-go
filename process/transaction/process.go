@@ -20,7 +20,7 @@ type txProcessor struct {
 	accounts         state.AccountsAdapter
 	adrConv          state.AddressConverter
 	hasher           hashing.Hasher
-	scHandler        func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
+	scProcessor      process.SmartContractProcessor
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
 }
@@ -32,6 +32,7 @@ func NewTxProcessor(
 	addressConv state.AddressConverter,
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
+	scProcessor process.SmartContractProcessor,
 ) (*txProcessor, error) {
 
 	if accounts == nil {
@@ -49,6 +50,9 @@ func NewTxProcessor(
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if scProcessor == nil {
+		return nil, process.ErrNilSmartContractProcessor
+	}
 
 	return &txProcessor{
 		accounts:         accounts,
@@ -56,17 +60,8 @@ func NewTxProcessor(
 		adrConv:          addressConv,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
+		scProcessor:      scProcessor,
 	}, nil
-}
-
-// SCHandler returns the smart contract execution function
-func (txProc *txProcessor) SCHandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error {
-	return txProc.scHandler
-}
-
-// SetSCHandler sets the smart contract execution function
-func (txProc *txProcessor) SetSCHandler(f func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error) {
-	txProc.scHandler = f
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
@@ -87,39 +82,45 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return err
 	}
 
-	value := tx.Value
-
-	// is sender address in node shard
-	if acntSrc != nil {
-		err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = txProc.moveBalances(acntSrc, acntDst, value)
+	txType, err := txProc.scProcessor.ComputeTransactionType(tx, acntSrc, acntDst)
 	if err != nil {
 		return err
 	}
 
-	// is sender address in node shard
-	if acntSrc != nil {
-		err = txProc.increaseNonce(acntSrc)
+	switch txType {
+	case process.MoveBalance:
+		value := tx.Value
+		// is sender address in node shard
+		if acntSrc != nil {
+			err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = txProc.moveBalances(acntSrc, acntDst, value)
 		if err != nil {
 			return err
 		}
-	}
 
-	// is receiver address in node shard and this address contains a SC code
-	if acntDst != nil && acntDst.GetCode() != nil {
-		err = txProc.callSCHandler(tx)
-		if err != nil {
-			// TODO: Revert state if SC execution failed and substract only some fee needed for SC job done
-			return err
+		// is sender address in node shard
+		if acntSrc != nil {
+			err = txProc.increaseNonce(acntSrc)
+			if err != nil {
+				return err
+			}
 		}
+
+		return nil
+	case process.SCDeployment:
+		err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, acntDst)
+		return err
+	case process.SCInvoking:
+		err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+		return err
 	}
 
-	return nil
+	return process.ErrWrongTransaction
 }
 
 func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
@@ -190,14 +191,6 @@ func (txProc *txProcessor) getAccounts(adrSrc, adrDst state.AddressContainer,
 	}
 
 	return
-}
-
-func (txProc *txProcessor) callSCHandler(tx *transaction.Transaction) error {
-	if txProc.scHandler == nil {
-		return process.ErrNoVM
-	}
-
-	return txProc.scHandler(txProc.accounts, tx)
 }
 
 func (txProc *txProcessor) checkTxValues(acntSrc *state.Account, value *big.Int, nonce uint64) error {
