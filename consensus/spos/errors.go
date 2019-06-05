@@ -58,6 +58,9 @@ var ErrNilHasher = errors.New("hasher is nil")
 // ErrNilMarshalizer is raised when a valid marshalizer is expected but nil used
 var ErrNilMarshalizer = errors.New("marshalizer is nil")
 
+// ErrNilMessenger is raised when a valid messenger is expected but nil used
+var ErrNilMessenger = errors.New("messenger is nil")
+
 // ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
 var ErrNilBlockProcessor = errors.New("block processor is nil")
 
@@ -132,6 +135,12 @@ var ErrNilBlsSingleSigner = errors.New("BLS single signer should not be nil")
 
 // ErrNilHeader is raised when an expected header is nil
 var ErrNilHeader = errors.New("header is nil")
+
+// ErrNilBody is raised when an expected body is nil
+var ErrNilBody = errors.New("body is nil")
+
+// ErrNilMetaHeader is raised when an expected meta header is nil
+var ErrNilMetaHeader = errors.New("meta header is nil")
 
 // ErrNilBroadcastUnnotarisedBlocks is raised when a valid broadcastUnnotarisedBlocks function is expected but nil used
 var ErrNilBroadcastUnnotarisedBlocks = errors.New("broadcastUnnotarisedBlocks is nil")

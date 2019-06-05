@@ -7,6 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
@@ -14,9 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
-
-//TODO convert this const into a var and read it from config when this code moves to another binary
-const maxBulkTransactionSize = 2 << 17 //128KB bulks
 
 // maxLoadThresholdPercent specifies the max load percent accepted from txs storage size when generates new txs
 const maxLoadThresholdPercent = 70
@@ -124,7 +122,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
 	fmt.Printf("Identifier: %s\n", identifier)
 
-	packets, err := dataPacker.PackDataInChunks(transactions, maxBulkTransactionSize)
+	packets, err := dataPacker.PackDataInChunks(transactions, core.MaxBulkTransactionSize)
 	if err != nil {
 		return err
 	}

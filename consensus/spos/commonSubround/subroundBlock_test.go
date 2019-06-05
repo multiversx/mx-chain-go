@@ -301,7 +301,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 			return nil
 		},
-		BroadcastMiniBlocksAndTransactionsCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
 			return err
 		},
 	}
@@ -315,7 +315,44 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 			return nil
 		},
-		BroadcastMiniBlocksAndTransactionsCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
+			return err
+		},
+		BroadcastTransactionsCalled: func(bytes map[uint32][][]byte) error {
+			return nil
+		},
+	}
+	container.SetBroadcastMessanger(bm)
+	r = sr.DoBlockJob()
+	assert.False(t, r)
+
+	bpm = mock.InitBlockProcessorMock()
+	container.SetBlockProcessor(bpm)
+	bm = &mock.BroadcastMessangerMock{
+		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+			return nil
+		},
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
+			return nil
+		},
+		BroadcastTransactionsCalled: func(bytes map[uint32][][]byte) error {
+			return err
+		},
+	}
+	container.SetBroadcastMessanger(bm)
+	r = sr.DoBlockJob()
+	assert.False(t, r)
+
+	bpm = mock.InitBlockProcessorMock()
+	container.SetBlockProcessor(bpm)
+	bm = &mock.BroadcastMessangerMock{
+		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+			return nil
+		},
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
+			return nil
+		},
+		BroadcastTransactionsCalled: func(bytes map[uint32][][]byte) error {
 			return nil
 		},
 	}

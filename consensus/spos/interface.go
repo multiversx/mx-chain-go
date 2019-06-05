@@ -20,8 +20,8 @@ type ConsensusCoreHandler interface {
 	BlockProcessor() process.BlockProcessor
 	// BootStrapper gets the Bootstrapper stored in the ConsensusCore
 	BootStrapper() process.Bootstrapper
-	// BroadcastMessanger gets the BroadcastMessanger stored in ConsensusCore
-	BroadcastMessanger() consensus.BroadcastMessanger
+	// BroadcastMessenger gets the BroadcastMessenger stored in ConsensusCore
+	BroadcastMessenger() consensus.BroadcastMessenger
 	// Chronology gets the ChronologyHandler stored in the ConsensusCore
 	Chronology() consensus.ChronologyHandler
 	// Hasher gets the Hasher stored in the ConsensusCore
@@ -79,8 +79,6 @@ type WorkerHandler interface {
 	Extend(subroundId int)
 	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
 	GetConsensusStateChangedChannel() chan bool
-	//BroadcastBlock does a broadcast of the blockBody and blockHeader
-	BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error
 	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 	ExecuteStoredMessages()
 	//BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet

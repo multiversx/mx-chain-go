@@ -71,8 +71,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 			uint64(sr.Rounder().TimeStamp().Unix()),
 			sr.Rounder().Index())
 
-		sendConsensusMessage := sr.BroadcastMessanger().BroadcastConsensusMessage()
-		err = sendConsensusMessage(msg)
+		err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 		if err != nil {
 			log.Info(err.Error())
 			return false

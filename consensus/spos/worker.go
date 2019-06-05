@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -24,7 +23,7 @@ type Worker struct {
 	blockProcessor     process.BlockProcessor
 	blockTracker       process.BlocksTracker
 	bootstraper        process.Bootstrapper
-	broadcastMessanger consensus.BroadcastMessanger
+	broadcastMessanger consensus.BroadcastMessenger
 	consensusState     *ConsensusState
 	forkDetector       process.ForkDetector
 	keyGenerator       crypto.KeyGenerator
@@ -50,7 +49,7 @@ func NewWorker(
 	blockProcessor process.BlockProcessor,
 	blockTracker process.BlocksTracker,
 	bootstraper process.Bootstrapper,
-	broadcastMessanger consensus.BroadcastMessanger,
+	broadcastMessanger consensus.BroadcastMessenger,
 	consensusState *ConsensusState,
 	forkDetector process.ForkDetector,
 	keyGenerator crypto.KeyGenerator,
@@ -111,7 +110,7 @@ func checkNewWorkerParams(
 	blockProcessor process.BlockProcessor,
 	blockTracker process.BlocksTracker,
 	bootstraper process.Bootstrapper,
-	broadcastMessanger consensus.BroadcastMessanger,
+	broadcastMessanger consensus.BroadcastMessenger,
 	consensusState *ConsensusState,
 	forkDetector process.ForkDetector,
 	keyGenerator crypto.KeyGenerator,
@@ -393,12 +392,6 @@ func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 	return wrk.consensusStateChangedChannel
 }
 
-//BroadcastBlock does a broadcast of the blockBody and blockHeader
-func (wrk *Worker) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
-	broadcastBlock := wrk.broadcastMessanger.BroadcastBlock()
-	return broadcastBlock(body, header)
-}
-
 //BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet
 func (wrk *Worker) BroadcastUnnotarisedBlocks() {
 	headers := wrk.blockTracker.UnnotarisedBlocks()
@@ -412,8 +405,7 @@ func (wrk *Worker) BroadcastUnnotarisedBlocks() {
 			continue
 		}
 
-		broadcastHeader := wrk.broadcastMessanger.BroadcastHeader()
-		err := broadcastHeader(header)
+		err := wrk.broadcastMessanger.BroadcastHeader(header)
 		if err != nil {
 			log.Info(err.Error())
 			continue

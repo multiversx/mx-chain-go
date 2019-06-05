@@ -90,8 +90,7 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
 
-	sendConsensusMessage := sr.BroadcastMessanger().BroadcastConsensusMessage()
-	err = sendConsensusMessage(msg)
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
 		log.Error(err.Error())
 		return false

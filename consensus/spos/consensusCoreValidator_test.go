@@ -27,7 +27,7 @@ func initConsensusDataContainer() *ConsensusCore {
 		blockChain:             blockChain,
 		blockProcessor:         blockProcessorMock,
 		bootstraper:            bootstraperMock,
-		broadcastMessanger:     broadcastMessangerMock,
+		broadcastMessenger:     broadcastMessangerMock,
 		chronologyHandler:      chronologyHandlerMock,
 		hasher:                 hasherMock,
 		marshalizer:            marshalizerMock,

@@ -87,8 +87,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	broadcastMiniBlocksAndTransactions := sr.BroadcastMessanger().BroadcastMiniBlocksAndTransactions()
-	err := broadcastMiniBlocksAndTransactions(sr.BlockBody, sr.Header)
+	err := sr.broadcastMiniBlocksAndTransactions()
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -101,6 +100,25 @@ func (sr *SubroundBlock) doBlockJob() bool {
 	}
 
 	return true
+}
+
+func (sr *SubroundBlock) broadcastMiniBlocksAndTransactions() error {
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.BlockBody)
+	if err != nil {
+		return err
+	}
+
+	err = sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
+	if err != nil {
+		return err
+	}
+
+	err = sr.BroadcastMessenger().BroadcastTransactions(transactions)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // sendBlockBody method job the proposed block body in the subround Block
@@ -136,8 +154,7 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
 
-	sendConsensusMessage := sr.BroadcastMessanger().BroadcastConsensusMessage()
-	err = sendConsensusMessage(msg)
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -175,8 +192,7 @@ func (sr *SubroundBlock) sendBlockHeader() bool {
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
 
-	sendConsensusMessage := sr.BroadcastMessanger().BroadcastConsensusMessage()
-	err = sendConsensusMessage(msg)
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
 		log.Error(err.Error())
 		return false

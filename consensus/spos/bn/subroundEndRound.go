@@ -80,8 +80,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
 	// broadcast block body and header
-	broadcastBlock := sr.BroadcastMessanger().BroadcastBlock()
-	err = broadcastBlock(sr.ConsensusState.BlockBody, sr.ConsensusState.Header)
+	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
 	if err != nil {
 		log.Error(err.Error())
 	}
