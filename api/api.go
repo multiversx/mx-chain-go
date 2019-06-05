@@ -46,17 +46,6 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	transaction.Routes(txRoutes)
 
-	txsRoutes := ws.Group("/transactions")
-	txsRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	transaction.RoutesForTransactionsLists(txsRoutes)
-
-	/*blockRoutes := ws.Group("/block")
-	blockRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	block.Routes(blockRoutes)
-
-	blocksRoutes := ws.Group("/blocks")
-	blocksRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	block.RoutesForBlocksLists(blocksRoutes)*/
 }
 
 func registerValidators() error {

@@ -863,11 +863,11 @@ func createShardNode(
 		if err != nil {
 			return nil, nil, nil, err
 		}
-	}
 
-	coreServiceContainer, err = serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(dbIndexer))
-	if err != nil {
-		return nil, nil, nil, err
+		coreServiceContainer, err = serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(dbIndexer))
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 
 	blockTracker, err := track.NewShardBlockTracker(datapool, marshalizer, shardCoordinator, store)
@@ -985,11 +985,11 @@ func CreateElasticIndexer(serversConfigurationFileName string, url string, coord
 	if err != nil {
 		return nil, err
 	}
+
 	dbIndexer, err = indexer.NewElasticIndexer(url,
 		serversConfig.ElasticSearch.Username, serversConfig.ElasticSearch.Password, coordinator,
 		marshalizer,
 		hasher, log)
-
 	if err != nil {
 		return nil, err
 	}

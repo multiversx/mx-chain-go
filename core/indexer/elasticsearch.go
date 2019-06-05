@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -33,6 +32,8 @@ const tpsIndex = "tps"
 const metachainTpsDocID = "meta"
 const shardTpsDocIDPrefix = "shard"
 
+const badRequest = 400
+
 type elasticIndexer struct {
 	db               *elasticsearch.Client
 	shardCoordinator sharding.Coordinator
@@ -41,7 +42,8 @@ type elasticIndexer struct {
 	logger           *logger.Logger
 }
 
-// NewElasticIndexer SHOULD UPDATE COMMENT
+// NewElasticIndexer creates a new elasticIndexer where the server listens on the url, authentication for the server is
+// using the username and password
 func NewElasticIndexer(url string, username string, password string, shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher, logger *logger.Logger) (Indexer, error) {
@@ -53,7 +55,6 @@ func NewElasticIndexer(url string, username string, password string, shardCoordi
 		hasher,
 		logger,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -94,19 +95,15 @@ func checkElasticSearchParams(url string, coordinator sharding.Coordinator, mars
 	if url == "" {
 		return core.ErrNilUrl
 	}
-
 	if coordinator == nil {
 		return core.ErrNilCoordinator
 	}
-
 	if marshalizer == nil {
 		return core.ErrNilMarshalizer
 	}
-
 	if hasher == nil {
 		return core.ErrNilHasher
 	}
-
 	if logger == nil {
 		return core.ErrNilLogger
 	}
@@ -153,9 +150,10 @@ func (ei *elasticIndexer) createIndex(index string, body io.Reader) error {
 	}
 	if res.IsError() {
 		// Resource already exists
-		if res.StatusCode == 400 {
+		if res.StatusCode == badRequest {
 			return nil
 		}
+
 		ei.logger.Warn(res.String())
 		return ErrCannotCreateIndex
 	}
@@ -171,6 +169,7 @@ func (ei *elasticIndexer) SaveBlock(body block.Body, header *block.Header, txPoo
 		fmt.Println("elasticsearch - no miniblocks")
 		return
 	}
+
 	go ei.saveTransactions(body, header, txPool)
 }
 
@@ -196,6 +195,7 @@ func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header *block.H
 		StateRootHash: hex.EncodeToString(header.RootHash),
 		PrevHash:      hex.EncodeToString(header.PrevHash),
 	}
+
 	serializedBlock, err := json.Marshal(elasticBlock)
 	if err != nil {
 		ei.logger.Warn("could not marshal elastic header")
@@ -224,6 +224,7 @@ func (ei *elasticIndexer) saveHeader(header *block.Header) {
 	if err != nil {
 		ei.logger.Warn("Could not index block header: %s", err)
 	}
+
 	defer func() {
 		_ = res.Body.Close()
 	}()
@@ -250,6 +251,7 @@ func (ei *elasticIndexer) serializeBulkTx(bulk []Transaction) bytes.Buffer {
 		buff.Write(meta)
 		buff.Write(serializedTx)
 	}
+
 	return buff
 }
 
@@ -257,11 +259,8 @@ func (ei *elasticIndexer) saveTransactions(body block.Body, header *block.Header
 	bulks := ei.buildTransactionBulks(body, header, txPool)
 
 	for _, bulk := range bulks {
-
 		buff := ei.serializeBulkTx(bulk)
-
 		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(txIndex))
-
 		if err != nil {
 			ei.logger.Warn("error indexing bulk of transactions")
 		}

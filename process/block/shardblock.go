@@ -78,9 +78,6 @@ func NewShardProcessor(
 		return nil, err
 	}
 
-	if core == nil {
-		return nil, process.ErrNilCore
-	}
 	if dataPool == nil {
 		return nil, process.ErrNilDataPoolHolder
 	}

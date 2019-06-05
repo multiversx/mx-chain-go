@@ -69,9 +69,7 @@ func NewMetaProcessor(
 	if err != nil {
 		return nil, err
 	}
-	if core == nil {
-		return nil, process.ErrNilCore
-	}
+
 	if dataPool == nil {
 		return nil, process.ErrNilDataPoolHolder
 	}
@@ -218,8 +216,8 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint32) erro
 	return nil
 }
 
-func (mp *metaProcessor) indexBlockIfNeeded(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) {
-	if mp.core.Indexer() == nil {
+func (mp *metaProcessor) indexBlock(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) {
+	if mp.core == nil || mp.core.Indexer() == nil {
 		return
 	}
 
@@ -229,7 +227,7 @@ func (mp *metaProcessor) indexBlockIfNeeded(metaBlock *block.MetaBlock, headerPo
 		go mp.core.Indexer().UpdateTPS(tpsBenchmark)
 	}
 
-	// maybe index metablocks also?
+	//TODO: maybe index metablocks also?
 }
 
 // removeBlockInfoFromPool removes the block info from associated pools
@@ -442,10 +440,11 @@ func (mp *metaProcessor) CommitBlock(
 		log.Info(errNotCritical.Error())
 	}
 
-	if mp.core.TPSBenchmark() != nil {
+	if mp.core != nil && mp.core.TPSBenchmark() != nil {
 		mp.core.TPSBenchmark().Update(header)
 	}
-	mp.indexBlockIfNeeded(header, tempHeaderPool)
+
+	mp.indexBlock(header, tempHeaderPool)
 
 	go mp.displayMetaBlock(header)
 
