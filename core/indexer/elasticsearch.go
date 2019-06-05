@@ -25,7 +25,7 @@ import (
 	"github.com/gin-gonic/gin/json"
 )
 
-const txBulkSize = 2500
+const txBulkSize = 1000
 const txIndex = "transactions"
 const blockIndex = "blocks"
 const tpsIndex = "tps"
