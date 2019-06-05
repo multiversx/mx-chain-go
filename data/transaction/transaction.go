@@ -11,9 +11,9 @@ import (
 // Transaction holds all the data needed for a value transfer
 type Transaction struct {
 	Nonce     uint64   `capid:"0" json:"nonce"`
-	Value     *big.Int `capid:"1" json:"value,omitempty"`
-	RcvAddr   []byte   `capid:"2" json:"receiver,omitempty"`
-	SndAddr   []byte   `capid:"3" json:"sender,omitempty"`
+	Value     *big.Int `capid:"1" json:"value"`
+	RcvAddr   []byte   `capid:"2" json:"receiver"`
+	SndAddr   []byte   `capid:"3" json:"sender"`
 	GasPrice  uint64   `capid:"4" json:"gasPrice,omitempty"`
 	GasLimit  uint64   `capid:"5" json:"gasLimit,omitempty"`
 	Data      []byte   `capid:"6" json:"data,omitempty"`
