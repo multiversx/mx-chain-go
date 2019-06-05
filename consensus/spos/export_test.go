@@ -35,12 +35,12 @@ func (wrk *Worker) SetBootstraper(bootstraper process.Bootstrapper) {
 	wrk.bootstraper = bootstraper
 }
 
-func (wrk *Worker) BroadcastMessanger() consensus.BroadcastMessenger {
-	return wrk.broadcastMessanger
+func (wrk *Worker) BroadcastMessenger() consensus.BroadcastMessenger {
+	return wrk.broadcastMessenger
 }
 
-func (wrk *Worker) SetBroadcastMessanger(broadcastMessanger consensus.BroadcastMessenger) {
-	wrk.broadcastMessanger = broadcastMessanger
+func (wrk *Worker) SetBroadcastMessenger(broadcastMessenger consensus.BroadcastMessenger) {
+	wrk.broadcastMessenger = broadcastMessenger
 }
 
 func (wrk *Worker) ConsensusState() *ConsensusState {

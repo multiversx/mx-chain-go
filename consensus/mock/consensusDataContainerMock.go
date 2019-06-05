@@ -88,8 +88,8 @@ func (cdc *ConsensusCoreMock) SetBootStrapper(bootstraper process.Bootstrapper) 
 	cdc.bootstraper = bootstraper
 }
 
-func (cdc *ConsensusCoreMock) SetBroadcastMessanger(broadcastMessanger consensus.BroadcastMessenger) {
-	cdc.broadcastMessenger = broadcastMessanger
+func (cdc *ConsensusCoreMock) SetBroadcastMessenger(broadcastMessenger consensus.BroadcastMessenger) {
+	cdc.broadcastMessenger = broadcastMessenger
 }
 
 func (cdc *ConsensusCoreMock) SetChronology(chronologyHandler consensus.ChronologyHandler) {

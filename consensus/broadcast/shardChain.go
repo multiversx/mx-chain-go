@@ -143,15 +143,17 @@ func (sc *shardChain) BroadcastHeader(header data.HeaderHandler) error {
 
 // BroadcastMiniBlocks will send on miniblock topic the miniblocks
 func (sc *shardChain) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) error {
+	mbs := 0
 	for k, v := range miniBlocks {
+		mbs++
 		miniBlocksTopic := factory.MiniBlocksTopic +
 			sc.shardCoordinator.CommunicationIdentifier(k)
 
 		go sc.messenger.Broadcast(miniBlocksTopic, v)
 	}
 
-	if len(miniBlocks) > 0 {
-		log.Info(fmt.Sprintf("%sStep 1: %d miniblocks have been sent\n", sc.syncTimer.FormattedCurrentTime(), len(miniBlocks)))
+	if mbs > 0 {
+		log.Info(fmt.Sprintf("%sStep 1: Sent %d miniblocks\n", sc.syncTimer.FormattedCurrentTime(), mbs))
 	}
 
 	return nil
@@ -164,7 +166,9 @@ func (sc *shardChain) BroadcastTransactions(transactions map[uint32][][]byte) er
 		return err
 	}
 
+	txs := 0
 	for k, v := range transactions {
+		txs += len(v)
 		// forward txs to the destination shards in packets
 		packets, err := dataPacker.PackDataInChunks(v, core.MaxBulkTransactionSize)
 		if err != nil {
@@ -179,8 +183,8 @@ func (sc *shardChain) BroadcastTransactions(transactions map[uint32][][]byte) er
 		}
 	}
 
-	if len(transactions) > 0 {
-		log.Info(fmt.Sprintf("%sStep 1: %d transactions have been sent\n", sc.syncTimer.FormattedCurrentTime(), len(transactions)))
+	if txs > 0 {
+		log.Info(fmt.Sprintf("%sStep 1: Sent %d transactions\n", sc.syncTimer.FormattedCurrentTime(), txs))
 	}
 
 	return nil

@@ -70,8 +70,8 @@ var ErrNilBlockTracker = errors.New("block tracker is nil")
 // ErrNilBlootstraper is raised when a valid block processor is expected but nil used
 var ErrNilBlootstraper = errors.New("boostraper is nil")
 
-// ErrNilBroadcastMessanger is raised when a valid broadcast messanger is expected but nil used
-var ErrNilBroadcastMessanger = errors.New("broadcast messanger is nil")
+// ErrNilBroadcastMessenger is raised when a valid broadcast messenger is expected but nil used
+var ErrNilBroadcastMessenger = errors.New("broadcast messenger is nil")
 
 // ErrInvalidKey is raised when an invalid key is used with a map
 var ErrInvalidKey = errors.New("map key is invalid")

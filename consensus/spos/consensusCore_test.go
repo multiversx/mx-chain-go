@@ -83,7 +83,7 @@ func TestConsensusCore_WithNilBootstrapperShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilBlootstraper, err)
 }
 
-func TestConsensusCore_WithNilBroadcastMessangerShouldFail(t *testing.T) {
+func TestConsensusCore_WithNilBroadcastMessengerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusCoreMock := mock.InitConsensusCore()
@@ -105,7 +105,7 @@ func TestConsensusCore_WithNilBroadcastMessangerShouldFail(t *testing.T) {
 		consensusCoreMock.ValidatorGroupSelector())
 
 	assert.Nil(t, consensusCore)
-	assert.Equal(t, spos.ErrNilBroadcastMessanger, err)
+	assert.Equal(t, spos.ErrNilBroadcastMessenger, err)
 }
 
 func TestConsensusCore_WithNilChronologyShouldFail(t *testing.T) {

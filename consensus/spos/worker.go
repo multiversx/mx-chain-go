@@ -23,7 +23,7 @@ type Worker struct {
 	blockProcessor     process.BlockProcessor
 	blockTracker       process.BlocksTracker
 	bootstraper        process.Bootstrapper
-	broadcastMessanger consensus.BroadcastMessenger
+	broadcastMessenger consensus.BroadcastMessenger
 	consensusState     *ConsensusState
 	forkDetector       process.ForkDetector
 	keyGenerator       crypto.KeyGenerator
@@ -49,7 +49,7 @@ func NewWorker(
 	blockProcessor process.BlockProcessor,
 	blockTracker process.BlocksTracker,
 	bootstraper process.Bootstrapper,
-	broadcastMessanger consensus.BroadcastMessenger,
+	broadcastMessenger consensus.BroadcastMessenger,
 	consensusState *ConsensusState,
 	forkDetector process.ForkDetector,
 	keyGenerator crypto.KeyGenerator,
@@ -64,7 +64,7 @@ func NewWorker(
 		blockProcessor,
 		blockTracker,
 		bootstraper,
-		broadcastMessanger,
+		broadcastMessenger,
 		consensusState,
 		forkDetector,
 		keyGenerator,
@@ -83,7 +83,7 @@ func NewWorker(
 		blockProcessor:     blockProcessor,
 		blockTracker:       blockTracker,
 		bootstraper:        bootstraper,
-		broadcastMessanger: broadcastMessanger,
+		broadcastMessenger: broadcastMessenger,
 		consensusState:     consensusState,
 		forkDetector:       forkDetector,
 		keyGenerator:       keyGenerator,
@@ -110,7 +110,7 @@ func checkNewWorkerParams(
 	blockProcessor process.BlockProcessor,
 	blockTracker process.BlocksTracker,
 	bootstraper process.Bootstrapper,
-	broadcastMessanger consensus.BroadcastMessenger,
+	broadcastMessenger consensus.BroadcastMessenger,
 	consensusState *ConsensusState,
 	forkDetector process.ForkDetector,
 	keyGenerator crypto.KeyGenerator,
@@ -132,8 +132,8 @@ func checkNewWorkerParams(
 	if bootstraper == nil {
 		return ErrNilBlootstraper
 	}
-	if broadcastMessanger == nil {
-		return ErrNilBroadcastMessanger
+	if broadcastMessenger == nil {
+		return ErrNilBroadcastMessenger
 	}
 	if consensusState == nil {
 		return ErrNilConsensusState
@@ -405,7 +405,7 @@ func (wrk *Worker) BroadcastUnnotarisedBlocks() {
 			continue
 		}
 
-		err := wrk.broadcastMessanger.BroadcastHeader(header)
+		err := wrk.broadcastMessenger.BroadcastHeader(header)
 		if err != nil {
 			log.Info(err.Error())
 			continue

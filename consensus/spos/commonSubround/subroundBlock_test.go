@@ -297,7 +297,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		return make(map[uint32][]byte, 0), make(map[uint32][][]byte, 0), err
 	}
 	container.SetBlockProcessor(bpm)
-	bm := &mock.BroadcastMessangerMock{
+	bm := &mock.BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 			return nil
 		},
@@ -305,13 +305,13 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			return err
 		},
 	}
-	container.SetBroadcastMessanger(bm)
+	container.SetBroadcastMessenger(bm)
 	r = sr.DoBlockJob()
 	assert.False(t, r)
 
 	bpm = mock.InitBlockProcessorMock()
 	container.SetBlockProcessor(bpm)
-	bm = &mock.BroadcastMessangerMock{
+	bm = &mock.BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 			return nil
 		},
@@ -322,13 +322,13 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			return nil
 		},
 	}
-	container.SetBroadcastMessanger(bm)
+	container.SetBroadcastMessenger(bm)
 	r = sr.DoBlockJob()
 	assert.False(t, r)
 
 	bpm = mock.InitBlockProcessorMock()
 	container.SetBlockProcessor(bpm)
-	bm = &mock.BroadcastMessangerMock{
+	bm = &mock.BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 			return nil
 		},
@@ -339,13 +339,13 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			return err
 		},
 	}
-	container.SetBroadcastMessanger(bm)
+	container.SetBroadcastMessenger(bm)
 	r = sr.DoBlockJob()
 	assert.False(t, r)
 
 	bpm = mock.InitBlockProcessorMock()
 	container.SetBlockProcessor(bpm)
-	bm = &mock.BroadcastMessangerMock{
+	bm = &mock.BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 			return nil
 		},
@@ -356,7 +356,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			return nil
 		},
 	}
-	container.SetBroadcastMessanger(bm)
+	container.SetBroadcastMessenger(bm)
 	r = sr.DoBlockJob()
 	assert.True(t, r)
 	assert.Equal(t, uint64(1), sr.Header.GetNonce())

@@ -99,7 +99,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	}
 	blockProcessorMock := InitBlockProcessorMock()
 	bootstraperMock := &BootstraperMock{}
-	broadcastMessangerMock := &BroadcastMessangerMock{
+	broadcastMessengerMock := &BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 			return nil
 		},
@@ -124,7 +124,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		blockChain,
 		blockProcessorMock,
 		bootstraperMock,
-		broadcastMessangerMock,
+		broadcastMessengerMock,
 		chronologyHandlerMock,
 		hasherMock,
 		marshalizerMock,

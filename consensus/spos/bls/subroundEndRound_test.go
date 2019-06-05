@@ -305,12 +305,12 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	bm := &mock.BroadcastMessangerMock{
+	bm := &mock.BroadcastMessengerMock{
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return errors.New("error")
 		},
 	}
-	container.SetBroadcastMessanger(bm)
+	container.SetBroadcastMessenger(bm)
 	sr := *initSubroundEndRoundWithContainer(container)
 	sr.SetSelfPubKey("A")
 
@@ -324,12 +324,12 @@ func TestSubroundEndRound_DoEndRoundJobAllOK(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	bm := &mock.BroadcastMessangerMock{
+	bm := &mock.BroadcastMessengerMock{
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return errors.New("error")
 		},
 	}
-	container.SetBroadcastMessanger(bm)
+	container.SetBroadcastMessenger(bm)
 	sr := *initSubroundEndRoundWithContainer(container)
 	sr.SetSelfPubKey("A")
 

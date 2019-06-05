@@ -15,7 +15,7 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 		return ErrNilBlootstraper
 	}
 	if container.BroadcastMessenger() == nil {
-		return ErrNilBroadcastMessanger
+		return ErrNilBroadcastMessenger
 	}
 	if container.Chronology() == nil {
 		return ErrNilChronologyHandler
