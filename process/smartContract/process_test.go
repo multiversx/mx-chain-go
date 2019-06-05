@@ -783,210 +783,6 @@ func TestScProcessor_CreateVMInput(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
-//------- moveBalances
-func TestScProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
-
-	adrDst := mock.NewAddressMock([]byte{67})
-	journalizeCalled := false
-	saveAccountCalled := false
-	acntDst, _ := state.NewAccount(adrDst, &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled = true
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled = true
-			return nil
-		},
-	})
-
-	vm := &mock.VMExecutionHandlerStub{}
-	argParser := &mock.AtArgumentParserMock{}
-	sc, err := NewSmartContractProcessor(
-		vm,
-		argParser,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
-	assert.NotNil(t, sc)
-	assert.Nil(t, err)
-
-	err = sc.MoveBalances(nil, acntDst, big.NewInt(0))
-
-	assert.True(t, journalizeCalled && saveAccountCalled)
-	assert.Nil(t, err)
-}
-
-func TestScProcessor_MoveBalancesShouldNotFailWhenAcntDstIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
-
-	adrSrc := mock.NewAddressMock([]byte{65})
-	journalizeCalled := false
-	saveAccountCalled := false
-	acntSrc, _ := state.NewAccount(adrSrc, &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled = true
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled = true
-			return nil
-		},
-	})
-
-	vm := &mock.VMExecutionHandlerStub{}
-	argParser := &mock.AtArgumentParserMock{}
-	sc, err := NewSmartContractProcessor(
-		vm,
-		argParser,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
-	assert.NotNil(t, sc)
-	assert.Nil(t, err)
-	err = sc.MoveBalances(acntSrc, nil, big.NewInt(0))
-
-	assert.True(t, journalizeCalled && saveAccountCalled)
-	assert.Nil(t, err)
-}
-
-func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	adrSrc := mock.NewAddressMock([]byte{65})
-	acntSrc, err := state.NewAccount(adrSrc, tracker)
-	assert.Nil(t, err)
-
-	adrDst := mock.NewAddressMock([]byte{67})
-	acntDst, err := state.NewAccount(adrDst, tracker)
-	assert.Nil(t, err)
-
-	vm := &mock.VMExecutionHandlerStub{}
-	argParser := &mock.AtArgumentParserMock{}
-	sc, err := NewSmartContractProcessor(
-		vm,
-		argParser,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
-	assert.NotNil(t, sc)
-	assert.Nil(t, err)
-
-	acntSrc.Balance = big.NewInt(64)
-	acntDst.Balance = big.NewInt(31)
-	err = sc.MoveBalances(acntSrc, acntDst, big.NewInt(14))
-
-	assert.Nil(t, err)
-	assert.Equal(t, big.NewInt(50), acntSrc.Balance)
-	assert.Equal(t, big.NewInt(45), acntDst.Balance)
-	assert.Equal(t, 2, journalizeCalled)
-	assert.Equal(t, 2, saveAccountCalled)
-}
-
-func TestScProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	adrSrc := mock.NewAddressMock([]byte{65})
-	acntSrc, err := state.NewAccount(adrSrc, tracker)
-	assert.Nil(t, err)
-
-	acntDst := acntSrc
-
-	vm := &mock.VMExecutionHandlerStub{}
-	argParser := &mock.AtArgumentParserMock{}
-	sc, err := NewSmartContractProcessor(
-		vm,
-		argParser,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
-	assert.NotNil(t, sc)
-	assert.Nil(t, err)
-
-	acntSrc.Balance = big.NewInt(64)
-
-	err = sc.MoveBalances(acntSrc, acntDst, big.NewInt(1))
-	assert.Nil(t, err)
-	assert.Equal(t, big.NewInt(64), acntSrc.Balance)
-	assert.Equal(t, big.NewInt(64), acntDst.Balance)
-	assert.Equal(t, 2, journalizeCalled)
-	assert.Equal(t, 2, saveAccountCalled)
-}
-
-//------- increaseNonce
-
-func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	adrSrc := mock.NewAddressMock([]byte{65})
-	acntSrc, err := state.NewAccount(adrSrc, tracker)
-	assert.Nil(t, err)
-
-	vm := &mock.VMExecutionHandlerStub{}
-	argParser := &mock.AtArgumentParserMock{}
-	sc, err := NewSmartContractProcessor(
-		vm,
-		argParser,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
-	assert.NotNil(t, sc)
-	assert.Nil(t, err)
-
-	acntSrc.Nonce = 45
-
-	err = sc.IncreaseNonce(acntSrc)
-	assert.Nil(t, err)
-	assert.Equal(t, uint64(46), acntSrc.Nonce)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
-}
-
 func createAccountsAndTransaction() (*state.Account, *state.Account, *transaction.Transaction) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1111,7 +907,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	t.Parallel()
 
 	accountsDB := &mock.AccountsStub{}
-	accountsDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return nil, state.ErrAccNotFound
 	}
 
@@ -1147,7 +943,7 @@ func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
-	accountsDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		getCalled++
 		return nil, state.ErrAccNotFound
 	}
@@ -1183,7 +979,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
-	accountsDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		getCalled++
 		return nil, state.ErrAccNotFound
 	}
@@ -1219,7 +1015,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
-	accountsDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		getCalled++
 		return nil, state.ErrAccNotFound
 	}
@@ -1255,7 +1051,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
-	accountsDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		getCalled++
 		acc, _ := state.NewAccount(addressContainer, &mock.AccountTrackerStub{})
 		return acc, nil
@@ -1291,7 +1087,7 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	removeCalled := 0
-	accountsDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return nil, state.ErrAccNotFound
 	}
 	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
@@ -1369,7 +1165,7 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	removeCalled := 0
-	accountsDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		acc, _ := state.NewAccount(addressContainer, &mock.AccountTrackerStub{})
 		return acc, nil
 	}

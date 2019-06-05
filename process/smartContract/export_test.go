@@ -55,11 +55,3 @@ func (sc *scProcessor) SaveReturnCode(returnCode vmcommon.ReturnCode, round uint
 func (sc *scProcessor) SaveLogsIntoState(logs []*vmcommon.LogEntry, round uint32, txHash []byte) error {
 	return sc.saveLogsIntoState(logs, round, txHash)
 }
-
-func (sc *scProcessor) MoveBalances(acntSrc, acntDst *state.Account, value *big.Int) error {
-	return sc.moveBalances(acntSrc, acntDst, value)
-}
-
-func (sc *scProcessor) IncreaseNonce(acntSrc *state.Account) error {
-	return sc.increaseNonce(acntSrc)
-}

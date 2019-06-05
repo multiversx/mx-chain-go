@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -33,8 +32,6 @@ type scProcessor struct {
 	mutSCState   sync.Mutex
 	mapExecState map[uint32]scExecutionState
 }
-
-var log = logger.DefaultLogger()
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
 func NewSmartContractProcessor(
@@ -137,25 +134,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
-	err = sc.moveBalances(acntSnd, acntDst, tx.Value)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err != nil {
-			errToLog := sc.moveBalances(acntDst, acntSnd, tx.Value)
-			if errToLog != nil {
-				log.Debug(errToLog.Error())
-			}
-		}
-	}()
-
 	vmOutput, err := sc.vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		return err
 	}
 
+	// VM is formally verified and the output is correct
 	err = sc.processVMOutput(vmOutput, tx, acntSnd, acntDst, round)
 	if err != nil {
 		return err
@@ -185,11 +169,13 @@ func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd,
 		return err
 	}
 
+	// TODO: Smart contract address calculation
 	vmOutput, err := sc.vm.RunSmartContractCreate(vmInput)
 	if err != nil {
 		return err
 	}
 
+	// VM is formally verified, the output is correct
 	err = sc.processVMOutput(vmOutput, tx, acntSnd, acntDst, round)
 	if err != nil {
 		return err
@@ -261,43 +247,6 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 	return nil
 }
 
-func (sc *scProcessor) moveBalances(acntSnd, acntDst state.AccountHandler, value *big.Int) error {
-	operation1 := big.NewInt(0)
-	operation2 := big.NewInt(0)
-
-	// is sender address in node shard
-	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
-		stAcc, ok := acntSnd.(*state.Account)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-
-		err := stAcc.SetBalanceWithJournal(operation1.Sub(stAcc.Balance, value))
-		if err != nil {
-			return err
-		}
-	}
-
-	// is receiver address in node shard
-	if acntDst != nil && !acntDst.IsInterfaceNil() {
-		stAcc, ok := acntDst.(*state.Account)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-
-		err := stAcc.SetBalanceWithJournal(operation2.Add(stAcc.Balance, value))
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (sc *scProcessor) increaseNonce(acntSrc state.AccountHandler) error {
-	return acntSrc.SetNonceWithJournal(acntSrc.GetNonce() + 1)
-}
-
 func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
 	if vmOutput == nil {
 		return process.ErrNilVMOutput
@@ -344,6 +293,7 @@ func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transact
 func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, tx *transaction.Transaction, acntSnd state.AccountHandler) error {
 	txPaidFee := big.NewInt(0)
 	txPaidFee = txPaidFee.Mul(big.NewInt(int64(tx.GasPrice)), big.NewInt(int64(tx.GasLimit)))
+	// TODO make sure gas calculation is according to economics paper
 	if gasRefund == nil || gasRefund.Cmp(txPaidFee) <= 0 {
 		return nil
 	}
@@ -356,12 +306,11 @@ func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, tx *transaction.Tra
 
 	stAcc, ok := acntSnd.(*state.Account)
 	if !ok {
-		log.Debug(process.ErrWrongTransaction.Error())
-		return nil
+		return process.ErrWrongTypeAssertion
 	}
 
 	refundErd := big.NewInt(0)
-	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GasLimit)))
+	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GasPrice)))
 
 	operation := big.NewInt(0)
 	err := stAcc.SetBalanceWithJournal(operation.Add(stAcc.Balance, refundErd))
@@ -372,7 +321,7 @@ func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, tx *transaction.Tra
 	return nil
 }
 
-// save account changes in state from vmOutput
+// save account changes in state from vmOutput - protected by VM - every output can be treated as is.
 func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, acntDst state.AccountHandler) error {
 	for i := 0; i < len(outputAccounts); i++ {
 		outAcc := outputAccounts[i]
@@ -393,15 +342,29 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		}
 
 		if len(outAcc.Code) > 0 {
-			acc.SetCode(outAcc.Code)
+			err = acc.SetCodeWithJournal(outAcc.Code)
+			if err != nil {
+				return err
+			}
+
+			hash := sc.hasher.Compute(string(outAcc.Code))
+			err = acc.SetCodeHashWithJournal(hash)
+			if err != nil {
+				return err
+			}
 		}
 
 		if outAcc.Nonce == nil || outAcc.Nonce.Cmp(big.NewInt(int64(acc.GetNonce()))) < 0 {
 			return process.ErrWrongNonceInVMOutput
 		}
 
+		err = acc.SetNonceWithJournal(outAcc.Nonce.Uint64())
+		if err != nil {
+			return err
+		}
+
 		if outAcc.Balance == nil {
-			continue
+			return process.ErrNilBalanceFromSC
 		}
 
 		stAcc, ok := acc.(*state.Account)
@@ -409,10 +372,8 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			return process.ErrWrongTypeAssertion
 		}
 
-		// move balance from smart contract address to result address
-		difference := big.NewInt(0)
-		difference = difference.Sub(stAcc.Balance, outAcc.Balance)
-		err = sc.moveBalances(acntDst, stAcc, difference)
+		// update the values according to SC output
+		err = stAcc.SetBalanceWithJournal(outAcc.Balance)
 		if err != nil {
 			return err
 		}
@@ -421,7 +382,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 	return nil
 }
 
-// delete accounts
+// delete accounts - only suicide by current SC or another SC called by current SC - protected by VM
 func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 	for _, value := range deletedAccounts {
 		acc, err := sc.getAccountFromAddress(value)
@@ -434,7 +395,6 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 			continue
 		}
 
-		//TODO: protect this
 		err = sc.accounts.RemoveAccount(acc.AddressContainer())
 		if err != nil {
 			return err
@@ -460,7 +420,7 @@ func (sc *scProcessor) getAccountFromAddress(address []byte) (state.AccountHandl
 		return nil, nil
 	}
 
-	acnt, err := sc.accounts.GetExistingAccount(adrSrc)
+	acnt, err := sc.accounts.GetAccountWithJournal(adrSrc)
 	if err != nil {
 		return nil, err
 	}
@@ -468,6 +428,7 @@ func (sc *scProcessor) getAccountFromAddress(address []byte) (state.AccountHandl
 	return acnt, nil
 }
 
+// GetAllSmartContractCallRoothash returns the roothash of the state of the SC executions for defined round
 func (sc *scProcessor) GetAllSmartContractCallRootHash(round uint32) []byte {
 	return []byte("roothash")
 }

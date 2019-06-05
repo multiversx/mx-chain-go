@@ -58,6 +58,33 @@ func (bjech *BaseJournalEntryCodeHash) Revert() (AccountHandler, error) {
 	return bjech.account, nil
 }
 
+//------- BaseJournalEntryCode
+
+// BaseJournalEntryCode creates a code hash change in account
+type BaseJournalEntryCode struct {
+	account AccountHandler
+	oldCode []byte
+}
+
+// NewBaseJournalEntryCode outputs a new BaseJournalEntry implementation used to save and revert a code change
+func NewBaseJournalEntryCode(account AccountHandler, oldCode []byte) (*BaseJournalEntryCode, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
+	}
+
+	return &BaseJournalEntryCode{
+		account: account,
+		oldCode: oldCode,
+	}, nil
+}
+
+// Revert applies undo operation
+func (bjech *BaseJournalEntryCode) Revert() (AccountHandler, error) {
+	bjech.account.SetCode(bjech.oldCode)
+
+	return bjech.account, nil
+}
+
 //------- BaseJournalEntryRoot
 
 // BaseJournalEntryRootHash creates an account's root hash change

@@ -19,6 +19,7 @@ type AccountWrapMock struct {
 	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
 	SetRootHashWithJournalCalled func([]byte) error          `json:"-"`
+	SetCodeWithJournalCalled     func(codeHash []byte) error `json:"-"`
 }
 
 func NewAccountWrapMock(adr state.AddressContainer, tracker state.AccountTracker) *AccountWrapMock {
@@ -67,6 +68,10 @@ func (awm *AccountWrapMock) AddressContainer() state.AddressContainer {
 
 func (awm *AccountWrapMock) SetCode(code []byte) {
 	awm.code = code
+}
+
+func (awm *AccountWrapMock) SetCodeWithJournal(code []byte) error {
+	return awm.SetCodeWithJournalCalled(code)
 }
 
 func (awm *AccountWrapMock) DataTrie() trie.PatriciaMerkelTree {

@@ -46,6 +46,7 @@ type AccountHandler interface {
 	SetCodeHashWithJournal([]byte) error
 	GetCode() []byte
 	SetCode(code []byte)
+	SetCodeWithJournal([]byte) error
 	SetNonce(nonce uint64)
 	GetNonce() uint64
 	SetNonceWithJournal(nonce uint64) error

@@ -342,3 +342,6 @@ var ErrWrongNonceInVMOutput = errors.New("nonce invalid from SC run")
 
 // ErrNilVMOutput signals that vmoutput is nil
 var ErrNilVMOutput = errors.New("nil vm output")
+
+// ErrNilBalanceFromSC signals that balance is nil
+var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
