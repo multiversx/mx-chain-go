@@ -38,28 +38,28 @@ func initAccountsMock() *mock.AccountsStub {
 }
 
 //------- NewBlockProcessor
-
-func TestNewBlockProcessor_NilCoreShouldErr(t *testing.T) {
-	t.Parallel()
-	tdp := initDataPool()
-	sp, err := blproc.NewShardProcessor(
-		nil,
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		initAccountsMock(),
-		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		true,
-		&mock.RequestHandlerMock{},
-	)
-	assert.Equal(t, process.ErrNilCore, err)
-	assert.Nil(t, sp)
-}
+//
+//func TestNewBlockProcessor_NilCoreShouldErr(t *testing.T) {
+//	t.Parallel()
+//	tdp := initDataPool()
+//	sp, err := blproc.NewShardProcessor(
+//		nil,
+//		tdp,
+//		&mock.ChainStorerMock{},
+//		&mock.HasherStub{},
+//		&mock.MarshalizerMock{},
+//		&mock.TxProcessorMock{},
+//		initAccountsMock(),
+//		mock.NewOneShardCoordinatorMock(),
+//		&mock.ForkDetectorMock{},
+//		&mock.BlocksTrackerMock{},
+//		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+//		true,
+//		&mock.RequestHandlerMock{},
+//	)
+//	assert.Equal(t, process.ErrNilCore, err)
+//	assert.Nil(t, sp)
+//}
 
 func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()

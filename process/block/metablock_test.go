@@ -99,26 +99,26 @@ func createGenesisMetaBlock() *block.MetaBlock {
 }
 
 //------- NewMetaProcessor
-
-func TestNewMetaProcessor_NilCoreShouldErr(t *testing.T) {
-	t.Parallel()
-
-	mdp := initMetaDataPool()
-	be, err := blproc.NewMetaProcessor(
-		nil,
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
-	assert.Equal(t, process.ErrNilCore, err)
-	assert.Nil(t, be)
-}
+//
+//func TestNewMetaProcessor_NilCoreShouldErr(t *testing.T) {
+//	t.Parallel()
+//
+//	mdp := initMetaDataPool()
+//	be, err := blproc.NewMetaProcessor(
+//		nil,
+//		&mock.AccountsStub{},
+//		mdp,
+//		&mock.ForkDetectorMock{},
+//		mock.NewOneShardCoordinatorMock(),
+//		&mock.HasherStub{},
+//		&mock.MarshalizerMock{},
+//		&mock.ChainStorerMock{},
+//		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+//		&mock.RequestHandlerMock{},
+//	)
+//	assert.Equal(t, process.ErrNilCore, err)
+//	assert.Nil(t, be)
+//}
 
 func TestNewMetaProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
