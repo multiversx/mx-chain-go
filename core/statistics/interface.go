@@ -3,12 +3,12 @@ package statistics
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 )
 
 // TPSBenchmark is an interface used to calculate statistics for the network activity
 type TPSBenchmark interface {
-	Update(mb *block.MetaBlock)
+	Update(mb data.HeaderHandler)
 	ActiveNodes() uint32
 	RoundTime() uint64
 	BlockNumber() uint64

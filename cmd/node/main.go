@@ -870,8 +870,13 @@ func createShardNode(
 
 	if config.Explorer.Enabled {
 		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
-		dbIndexer, err = CreateElasticIndexer(serversConfigurationFileName, config.Explorer.IndexerURL,
-			shardCoordinator, marshalizer, hasher, log)
+		dbIndexer, err = CreateElasticIndexer(
+			serversConfigurationFileName,
+			config.Explorer.IndexerURL,
+			shardCoordinator,
+			marshalizer,
+			hasher,
+			log)
 
 		if err != nil {
 			return nil, nil, nil, err
@@ -992,15 +997,23 @@ func createShardNode(
 	return nd, externalResolver, tpsBenchmark, nil
 }
 
-func CreateElasticIndexer(serversConfigurationFileName string, url string, coordinator sharding.Coordinator,
-	marshalizer marshal.Marshalizer, hasher hashing.Hasher, log *logger.Logger) (indexer.Indexer, error) {
+func CreateElasticIndexer(
+	serversConfigurationFileName string,
+	url string, coordinator sharding.Coordinator,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	log *logger.Logger,
+) (indexer.Indexer, error) {
 	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
 	if err != nil {
 		return nil, err
 	}
 
-	dbIndexer, err = indexer.NewElasticIndexer(url,
-		serversConfig.ElasticSearch.Username, serversConfig.ElasticSearch.Password, coordinator,
+	dbIndexer, err = indexer.NewElasticIndexer(
+		url,
+		serversConfig.ElasticSearch.Username,
+		serversConfig.ElasticSearch.Password,
+		coordinator,
 		marshalizer,
 		hasher, log)
 	if err != nil {
@@ -1209,14 +1222,20 @@ func createMetaNode(
 
 	if config.Explorer.Enabled {
 		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
-		dbIndexer, err = CreateElasticIndexer(serversConfigurationFileName, config.Explorer.IndexerURL,
-			shardCoordinator, marshalizer, hasher, log)
+		dbIndexer, err = CreateElasticIndexer(
+			serversConfigurationFileName,
+			config.Explorer.IndexerURL,
+			shardCoordinator,
+			marshalizer,
+			hasher,
+			log)
 		if err != nil {
 			return nil, nil, nil, err
 		}
 	}
 
-	coreServiceContainer, err = serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(dbIndexer),
+	coreServiceContainer, err = serviceContainer.NewServiceContainer(
+		serviceContainer.WithIndexer(dbIndexer),
 		serviceContainer.WithTPSBenchmark(tpsBenchmark))
 	if err != nil {
 		return nil, nil, nil, err

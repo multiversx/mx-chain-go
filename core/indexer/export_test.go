@@ -4,35 +4,39 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/elastic/go-elasticsearch/v7"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/elastic/go-elasticsearch/v7"
 )
 
 type ElasticIndexer struct {
 	elasticIndexer
 }
 
-func NewTestElasticIndexer(url string, username string, password string, shardCoordinator sharding.Coordinator,
+func NewTestElasticIndexer(
+	url string,
+	username string,
+	password string,
+	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher, logger *logger.Logger) ElasticIndexer {
+	hasher hashing.Hasher,
+	logger *logger.Logger) ElasticIndexer {
 
 	cfg := elasticsearch.Config{
 		Addresses: []string{url},
 		Username:  username,
 		Password:  password,
 	}
-	es, _ := elasticsearch.NewClient(cfg)
 
+	es, _ := elasticsearch.NewClient(cfg)
 	indexer := elasticIndexer{es, shardCoordinator,
 		marshalizer, hasher, logger}
+
 	return ElasticIndexer{indexer}
 }
 
@@ -40,11 +44,15 @@ func (ei *ElasticIndexer) GetSerializedElasticBlockAndHeaderHash(header *block.H
 	return ei.getSerializedElasticBlockAndHeaderHash(header)
 }
 
-func (ei *ElasticIndexer) BuildTransactionBulks(body block.Body, header *block.Header, txPool map[string]*transaction.Transaction) [][]Transaction {
+func (ei *ElasticIndexer) BuildTransactionBulks(
+	body *block.Body,
+	header *block.Header,
+	txPool map[string]*transaction.Transaction,
+) [][]*Transaction {
 	return ei.buildTransactionBulks(body, header, txPool)
 }
 
-func (ei *ElasticIndexer) SerializeBulkTx(bulk []Transaction) bytes.Buffer {
+func (ei *ElasticIndexer) SerializeBulkTx(bulk []*Transaction) bytes.Buffer {
 	return ei.serializeBulkTx(bulk)
 }
 

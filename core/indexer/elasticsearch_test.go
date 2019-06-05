@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/indexer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/mock"
@@ -23,7 +22,6 @@ import (
 
 var (
 	url              = "http://localhost:9300"
-	port             = ":9300"
 	shardCoordinator = mock.ShardCoordinatorMock{}
 	marshalizer      = &mock.MarshalizerMock{}
 	hasher           = mock.HasherMock{}
@@ -278,7 +276,7 @@ func TestElasticIndexer_buildTransactionBulks(t *testing.T) {
 	body := newTestBlockBody()
 	txPool := newTestTxPool()
 
-	bulks := ei.BuildTransactionBulks(body, header, txPool)
+	bulks := ei.BuildTransactionBulks(&body, header, txPool)
 
 	for _, bulk := range bulks {
 		assert.NotNil(t, bulk)
@@ -292,7 +290,7 @@ func TestElasticIndexer_serializeBulkTx(t *testing.T) {
 	body := newTestBlockBody()
 	txPool := newTestTxPool()
 
-	bulks := ei.BuildTransactionBulks(body, header, txPool)
+	bulks := ei.BuildTransactionBulks(&body, header, txPool)
 
 	serializedTx := ei.SerializeBulkTx(bulks[0])
 

@@ -7,7 +7,7 @@ import (
 
 // ServiceContainerMock is a mock implementation of the Core interface
 type ServiceContainerMock struct {
-	IndexerCalled func() indexer.Indexer
+	IndexerCalled      func() indexer.Indexer
 	TPSBenchmarkCalled func() statistics.TPSBenchmark
 }
 

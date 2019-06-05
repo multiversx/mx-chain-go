@@ -4,6 +4,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
@@ -95,13 +97,13 @@ func (s *TpsBenchmarkMock) ShardStatistic(shardID uint32) statistics.ShardStatis
 }
 
 // Update receives a metablock and updates all fields accordingly for each shard available in the meta block
-func (s *TpsBenchmarkMock) Update(mb *block.MetaBlock) {
-	s.blockNumber = mb.Nonce
-	s.roundNumber = uint64(mb.Round)
-	s.lastBlockTxCount = mb.TxCount
+func (s *TpsBenchmarkMock) Update(mb data.HeaderHandler) {
+	s.blockNumber = mb.GetNonce()
+	s.roundNumber = uint64(mb.GetRound())
+	s.lastBlockTxCount = mb.GetTxCount()
 	s.roundTime = 6
 
-	currentTPS := float64(uint64(mb.TxCount) / s.roundTime)
+	currentTPS := float64(uint64(mb.GetTxCount()) / s.roundTime)
 	if currentTPS > s.peakTPS {
 		s.peakTPS = currentTPS
 	}

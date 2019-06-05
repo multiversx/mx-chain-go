@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
@@ -44,9 +46,15 @@ type elasticIndexer struct {
 
 // NewElasticIndexer creates a new elasticIndexer where the server listens on the url, authentication for the server is
 // using the username and password
-func NewElasticIndexer(url string, username string, password string, shardCoordinator sharding.Coordinator,
+func NewElasticIndexer(
+	url string,
+	username string,
+	password string,
+	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher, logger *logger.Logger) (Indexer, error) {
+	hasher hashing.Hasher,
+	logger *logger.Logger,
+) (Indexer, error) {
 
 	err := checkElasticSearchParams(
 		url,
@@ -69,8 +77,12 @@ func NewElasticIndexer(url string, username string, password string, shardCoordi
 		return nil, err
 	}
 
-	indexer := &elasticIndexer{es, shardCoordinator,
-		marshalizer, hasher, logger}
+	indexer := &elasticIndexer{
+		es,
+		shardCoordinator,
+		marshalizer,
+		hasher,
+		logger}
 
 	err = indexer.checkAndCreateIndex(blockIndex, nil)
 	if err != nil {
@@ -90,8 +102,13 @@ func NewElasticIndexer(url string, username string, password string, shardCoordi
 	return indexer, nil
 }
 
-func checkElasticSearchParams(url string, coordinator sharding.Coordinator, marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher, logger *logger.Logger) error {
+func checkElasticSearchParams(
+	url string,
+	coordinator sharding.Coordinator,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	logger *logger.Logger,
+) error {
 	if url == "" {
 		return core.ErrNilUrl
 	}
@@ -118,13 +135,13 @@ func (ei *elasticIndexer) checkAndCreateIndex(index string, body io.Reader) erro
 	}
 	// Indices.Exists actually does a HEAD request to the elastic index.
 	// A status code of 200 actually means the index exists so we
-	//  don't need to do nothing.
+	//  don't need to do anything.
 	if res.StatusCode == http.StatusOK {
 		return nil
 	}
 	// A status code of 404 means the index does not exist so we create it
 	if res.StatusCode == http.StatusNotFound {
-		fmt.Println("Status code", res.String())
+		//fmt.Println("Status code", res.String())
 		err = ei.createIndex(index, body)
 		if err != nil {
 			return err
@@ -139,7 +156,8 @@ func (ei *elasticIndexer) createIndex(index string, body io.Reader) error {
 	var res *esapi.Response
 
 	if body != nil {
-		res, err = ei.db.Indices.Create(index,
+		res, err = ei.db.Indices.Create(
+			index,
 			ei.db.Indices.Create.WithBody(body))
 	} else {
 		res, err = ei.db.Indices.Create(index)
@@ -148,6 +166,7 @@ func (ei *elasticIndexer) createIndex(index string, body io.Reader) error {
 	if err != nil {
 		return err
 	}
+
 	if res.IsError() {
 		// Resource already exists
 		if res.StatusCode == badRequest {
@@ -162,10 +181,22 @@ func (ei *elasticIndexer) createIndex(index string, body io.Reader) error {
 }
 
 // SaveBlock will build
-func (ei *elasticIndexer) SaveBlock(body block.Body, header *block.Header, txPool map[string]*transaction.Transaction) {
+func (ei *elasticIndexer) SaveBlock(
+	bodyHandler data.BodyHandler,
+	headerhandler data.HeaderHandler,
+	txPool map[string]*transaction.Transaction) {
+
+	header := headerhandler.(*block.Header)
+	body := bodyHandler.(*block.Body)
+
+	if header == nil {
+		fmt.Println("elasticsearch - no header")
+		return
+	}
+
 	go ei.saveHeader(header)
 
-	if len(body) == 0 {
+	if len(*body) == 0 {
 		fmt.Println("elasticsearch - no miniblocks")
 		return
 	}
@@ -230,12 +261,11 @@ func (ei *elasticIndexer) saveHeader(header *block.Header) {
 	}()
 
 	if res.IsError() {
-		fmt.Println(res.String())
-		ei.logger.Warn("error from elasticsearch indexing bulk of transactions")
+		ei.logger.Warn(res.String())
 	}
 }
 
-func (ei *elasticIndexer) serializeBulkTx(bulk []Transaction) bytes.Buffer {
+func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
 	var buff bytes.Buffer
 	for _, tx := range bulk {
 		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
@@ -255,7 +285,10 @@ func (ei *elasticIndexer) serializeBulkTx(bulk []Transaction) bytes.Buffer {
 	return buff
 }
 
-func (ei *elasticIndexer) saveTransactions(body block.Body, header *block.Header, txPool map[string]*transaction.Transaction) {
+func (ei *elasticIndexer) saveTransactions(
+	body *block.Body,
+	header *block.Header,
+	txPool map[string]*transaction.Transaction) {
 	bulks := ei.buildTransactionBulks(body, header, txPool)
 
 	for _, bulk := range bulks {
@@ -265,21 +298,24 @@ func (ei *elasticIndexer) saveTransactions(body block.Body, header *block.Header
 			ei.logger.Warn("error indexing bulk of transactions")
 		}
 		if res.IsError() {
-			fmt.Println(res.String())
-			ei.logger.Warn("error from elasticsearch indexing bulk of transactions")
+			ei.logger.Warn(res.String())
 		}
 	}
 }
 
 // buildTransactionBulks creates bulks of maximum txBulkSize transactions to be indexed together
 //  using the elasticsearch bulk API
-func (ei *elasticIndexer) buildTransactionBulks(body block.Body, header *block.Header, txPool map[string]*transaction.Transaction) [][]Transaction {
+func (ei *elasticIndexer) buildTransactionBulks(
+	body *block.Body,
+	header *block.Header,
+	txPool map[string]*transaction.Transaction,
+) [][]*Transaction {
 	processedTxCount := 0
-	bulks := make([][]Transaction, (header.GetTxCount()/txBulkSize)+1)
+	bulks := make([][]*Transaction, (header.GetTxCount()/txBulkSize)+1)
 	blockMarshal, _ := ei.marshalizer.Marshal(header)
 	blockHash := ei.hasher.Compute(string(blockMarshal))
 
-	for _, mb := range body {
+	for _, mb := range *body {
 		mbMarshal, err := ei.marshalizer.Marshal(mb)
 		if err != nil {
 			ei.logger.Warn("could not marshal miniblock")
@@ -302,10 +338,7 @@ func (ei *elasticIndexer) buildTransactionBulks(body block.Body, header *block.H
 				continue
 			}
 
-			if ei.shardCoordinator.SelfId() == mb.SenderShardID {
-
-			}
-			bulks[currentBulk] = append(bulks[currentBulk], Transaction{
+			bulks[currentBulk] = append(bulks[currentBulk], &Transaction{
 				Hash:          hex.EncodeToString(txHash),
 				MBHash:        hex.EncodeToString(mbHash),
 				BlockHash:     hex.EncodeToString(blockHash),
@@ -324,12 +357,8 @@ func (ei *elasticIndexer) buildTransactionBulks(body block.Body, header *block.H
 			})
 		}
 	}
+
 	return bulks
-}
-
-// SaveMetaBlock will build
-func (ei *elasticIndexer) SaveMetaBlock(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) {
-
 }
 
 func (ei *elasticIndexer) serializeShardInfo(shardInfo statistics.ShardStatistic) ([]byte, []byte) {
