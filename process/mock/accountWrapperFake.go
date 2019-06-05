@@ -8,6 +8,7 @@ import (
 type AccountWrapMock struct {
 	MockValue         int
 	dataTrie          trie.PatriciaMerkelTree
+	nonce             uint64
 	code              []byte
 	codeHash          []byte
 	rootHash          []byte
@@ -15,6 +16,7 @@ type AccountWrapMock struct {
 	tracker           state.AccountTracker
 	trackableDataTrie state.DataTrieTracker
 
+	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
 	SetRootHashWithJournalCalled func([]byte) error          `json:"-"`
 }
@@ -55,6 +57,10 @@ func (awm *AccountWrapMock) SetRootHashWithJournal(rootHash []byte) error {
 	return awm.SetRootHashWithJournalCalled(rootHash)
 }
 
+func (awm *AccountWrapMock) SetNonceWithJournal(nonce uint64) error {
+	return awm.SetNonceWithJournalCalled(nonce)
+}
+
 func (awm *AccountWrapMock) AddressContainer() state.AddressContainer {
 	return awm.address
 }
@@ -78,6 +84,14 @@ func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 
 func (awm *AccountWrapMock) SetDataTrieTracker(tracker state.DataTrieTracker) {
 	awm.trackableDataTrie = tracker
+}
+
+func (awm *AccountWrapMock) SetNonce(nonce uint64) {
+	awm.nonce = nonce
+}
+
+func (awm *AccountWrapMock) GetNonce() uint64 {
+	return awm.nonce
 }
 
 func (awm *AccountWrapMock) IsInterfaceNil() bool {

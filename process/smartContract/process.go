@@ -75,7 +75,8 @@ func NewSmartContractProcessor(
 		marshalizer:      marshalizer,
 		accounts:         accountsDB,
 		adrConv:          adrConv,
-		shardCoordinator: coordinator}, nil
+		shardCoordinator: coordinator,
+		mapExecState:     make(map[uint32]scExecutionState)}, nil
 }
 
 // ComputeTransactionType calculates the type of the transaction
@@ -265,7 +266,7 @@ func (sc *scProcessor) moveBalances(acntSnd, acntDst state.AccountHandler, value
 	operation2 := big.NewInt(0)
 
 	// is sender address in node shard
-	if acntSnd != nil {
+	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
 		stAcc, ok := acntSnd.(*state.Account)
 		if !ok {
 			return process.ErrWrongTypeAssertion
@@ -278,7 +279,7 @@ func (sc *scProcessor) moveBalances(acntSnd, acntDst state.AccountHandler, value
 	}
 
 	// is receiver address in node shard
-	if acntDst != nil {
+	if acntDst != nil && !acntDst.IsInterfaceNil() {
 		stAcc, ok := acntDst.(*state.Account)
 		if !ok {
 			return process.ErrWrongTypeAssertion
@@ -347,7 +348,7 @@ func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, tx *transaction.Tra
 		return nil
 	}
 
-	if acntSnd == nil || !acntSnd.IsInterfaceNil() {
+	if acntSnd == nil || acntSnd.IsInterfaceNil() {
 		//TODO: sharded smart contract processing
 		//TODO: create cross shard transaction here...
 		return nil
@@ -380,7 +381,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			return err
 		}
 
-		if acc == nil || !acc.IsInterfaceNil() {
+		if acc == nil || acc.IsInterfaceNil() {
 			//TODO: sharded smart contract processing
 			//TODO: create cross shard transaction here...
 			continue
@@ -428,7 +429,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 			return err
 		}
 
-		if acc == nil || !acc.IsInterfaceNil() {
+		if acc == nil || acc.IsInterfaceNil() {
 			//TODO: sharded Smart Contract processing
 			continue
 		}
@@ -477,6 +478,13 @@ func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput, rou
 
 	sc.mutSCState.Lock()
 	defer sc.mutSCState.Unlock()
+
+	if _, ok := sc.mapExecState[round]; !ok {
+		sc.mapExecState[round] = scExecutionState{
+			allLogs:       make(map[string][]*vmcommon.LogEntry),
+			allReturnData: make(map[string][]*big.Int),
+			returnCodes:   make(map[string]vmcommon.ReturnCode)}
+	}
 
 	tmpCurrScState := sc.mapExecState[round]
 	defer func() {

@@ -146,22 +146,6 @@ func TestNewTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 	assert.Nil(t, txProc)
 }
 
-func TestNewTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	txProc, err := txproc.NewTxProcessor(
-		&mock.AccountsStub{},
-		mock.HasherMock{},
-		&mock.AddressConverterMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		nil,
-	)
-
-	assert.Equal(t, process.ErrNilSmartContractProcessor, err)
-	assert.Nil(t, txProc)
-}
-
 func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -959,7 +943,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
 		wasCalled = true
 		return nil
 	}
@@ -1020,7 +1004,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}
@@ -1090,7 +1074,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	scProcessorMock := &mock.SCProcessorMock{}
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}

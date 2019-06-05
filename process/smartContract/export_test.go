@@ -20,8 +20,8 @@ func (sc *scProcessor) CreateVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	return sc.createVMInput(tx)
 }
 
-func (sc *scProcessor) ProcessVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler) error {
-	return sc.processVMOutput(vmOutput, tx, acntSnd, acntDst)
+func (sc *scProcessor) ProcessVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
+	return sc.processVMOutput(vmOutput, tx, acntSnd, acntDst, round)
 }
 
 func (sc *scProcessor) RefundGasToSender(gasRefund *big.Int, tx *transaction.Transaction, acntSnd state.AccountHandler) error {
@@ -40,20 +40,20 @@ func (sc *scProcessor) GetAccountFromAddress(address []byte) (state.AccountHandl
 	return sc.getAccountFromAddress(address)
 }
 
-func (sc *scProcessor) SaveSCOutputToCurrentState(output *vmcommon.VMOutput) error {
-	return sc.saveSCOutputToCurrentState(output)
+func (sc *scProcessor) SaveSCOutputToCurrentState(output *vmcommon.VMOutput, round uint32, txHash []byte) error {
+	return sc.saveSCOutputToCurrentState(output, round, txHash)
 }
 
-func (sc *scProcessor) SaveReturnData(returnData []*big.Int) error {
-	return sc.saveReturnData(returnData)
+func (sc *scProcessor) SaveReturnData(returnData []*big.Int, round uint32, txHash []byte) error {
+	return sc.saveReturnData(returnData, round, txHash)
 }
 
-func (sc *scProcessor) SaveReturnCode(returnCode vmcommon.ReturnCode) error {
-	return sc.saveReturnCode(returnCode)
+func (sc *scProcessor) SaveReturnCode(returnCode vmcommon.ReturnCode, round uint32, txHash []byte) error {
+	return sc.saveReturnCode(returnCode, round, txHash)
 }
 
-func (sc *scProcessor) SaveLogsIntoState(logs []*vmcommon.LogEntry) error {
-	return sc.saveLogsIntoState(logs)
+func (sc *scProcessor) SaveLogsIntoState(logs []*vmcommon.LogEntry, round uint32, txHash []byte) error {
+	return sc.saveLogsIntoState(logs, round, txHash)
 }
 
 func (sc *scProcessor) MoveBalances(acntSrc, acntDst *state.Account, value *big.Int) error {
