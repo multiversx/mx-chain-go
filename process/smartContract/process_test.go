@@ -1407,3 +1407,115 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	assert.Equal(t, toPay, totalPayed.Uint64())
 	assert.Equal(t, modifiedBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
+
+func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
+	t.Parallel()
+
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.AtArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5))
+
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 1
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 10
+	tx.GasLimit = 10
+
+	acntSrc, _ := createAccounts(tx)
+	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+
+	err = sc.refundGasToSender(nil, tx, acntSrc)
+	assert.Nil(t, err)
+	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
+
+	err = sc.refundGasToSender(big.NewInt(0), tx, acntSrc)
+	assert.Nil(t, err)
+	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
+}
+
+func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
+	t.Parallel()
+
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.AtArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5))
+
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 1
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 10
+	tx.GasLimit = 10
+
+	acntSrc, _ := createAccounts(tx)
+
+	err = sc.refundGasToSender(big.NewInt(10), tx, nil)
+	assert.Nil(t, err)
+
+	acntSrc = nil
+	err = sc.refundGasToSender(big.NewInt(10), tx, acntSrc)
+	assert.Nil(t, err)
+
+	badAcc := &mock.AccountWrapMock{}
+	err = sc.refundGasToSender(big.NewInt(10), tx, badAcc)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestScProcessor_RefundGasToSender(t *testing.T) {
+	t.Parallel()
+
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.AtArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5))
+
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 1
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 10
+	tx.GasLimit = 15
+
+	acntSrc, _ := createAccounts(tx)
+	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+
+	refundGas := big.NewInt(10)
+	err = sc.refundGasToSender(refundGas, tx, acntSrc)
+	assert.Nil(t, err)
+
+	totalRefund := refundGas.Uint64() * tx.GasPrice
+	assert.Equal(t, currBalance+totalRefund, acntSrc.(*state.Account).Balance.Uint64())
+}
