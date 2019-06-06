@@ -339,3 +339,15 @@ var ErrNilArgumentParser = errors.New("argument parser is nil")
 
 // ErrNilSCDestAccount signals that destination account is nil
 var ErrNilSCDestAccount = errors.New("nil destination SC account")
+
+// ErrWrongNonceInVMOutput signals that nonce in vm output is wrong
+var ErrWrongNonceInVMOutput = errors.New("nonce invalid from SC run")
+
+// ErrNilVMOutput signals that vmoutput is nil
+var ErrNilVMOutput = errors.New("nil vm output")
+
+// ErrNilBalanceFromSC signals that balance is nil
+var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
+
+// ErrNilFakeAccountsHandler signals that fake accounts handler is nil
+var ErrNilFakeAccountsHandler = errors.New("fake accounts handler is nil")
