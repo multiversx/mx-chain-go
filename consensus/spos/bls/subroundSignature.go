@@ -9,19 +9,15 @@ import (
 
 type subroundSignature struct {
 	*spos.Subround
-
-	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundSignature creates a subroundSignature object
 func NewSubroundSignature(
 	baseSubround *spos.Subround,
-	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
 		baseSubround,
-		sendConsensusMessage,
 	)
 	if err != nil {
 		return nil, err
@@ -29,7 +25,6 @@ func NewSubroundSignature(
 
 	srSignature := subroundSignature{
 		baseSubround,
-		sendConsensusMessage,
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
@@ -40,16 +35,12 @@ func NewSubroundSignature(
 
 func checkNewSubroundSignatureParams(
 	baseSubround *spos.Subround,
-	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
-	}
-	if sendConsensusMessage == nil {
-		return spos.ErrNilSendConsensusMessageFunction
 	}
 
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
@@ -80,7 +71,9 @@ func (sr *subroundSignature) doSignatureJob() bool {
 			uint64(sr.Rounder().TimeStamp().Unix()),
 			sr.Rounder().Index())
 
-		if !sr.sendConsensusMessage(msg) {
+		err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
+		if err != nil {
+			log.Info(err.Error())
 			return false
 		}
 

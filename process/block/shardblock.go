@@ -40,8 +40,8 @@ type shardProcessor struct {
 	onRequestTransaction   func(shardID uint32, txHashes [][]byte)
 	mutRequestedTxHashes   sync.RWMutex
 	requestedTxHashes      map[string]bool
-	mutCrossTxsForBlock    sync.RWMutex
-	crossTxsForBlock       map[string]*transaction.Transaction
+	mutTxsForBlock         sync.RWMutex
+	txsForBlock            map[string]*transaction.Transaction
 	onRequestMiniBlock     func(shardId uint32, mbHash []byte)
 	chRcvAllMetaHdrs       chan bool
 	mutUsedMetaHdrs        sync.Mutex
@@ -126,7 +126,7 @@ func NewShardProcessor(
 	sp.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	sp.requestedTxHashes = make(map[string]bool)
 	sp.requestedMetaHdrHashes = make(map[string]bool)
-	sp.crossTxsForBlock = make(map[string]*transaction.Transaction)
+	sp.txsForBlock = make(map[string]*transaction.Transaction)
 	sp.mapUsedMetaHdrs = make(map[uint32][][]byte)
 
 	metaBlockPool := sp.dataPool.MetaBlocks()
@@ -1065,7 +1065,7 @@ func (sp *shardProcessor) processMiniBlockComplete(
 		return process.ErrNilTransactionPool
 	}
 
-	miniBlockTxs, _, err := sp.getAllTxsFromMiniBlock(miniBlock, haveTime)
+	miniBlockTxs, miniBlockTxHashes, err := sp.getAllTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return err
 	}
@@ -1082,6 +1082,7 @@ func (sp *shardProcessor) processMiniBlockComplete(
 			break
 		}
 	}
+
 	// all txs from miniblock has to be processed together
 	if err != nil {
 		log.Error(err.Error())
@@ -1090,8 +1091,17 @@ func (sp *shardProcessor) processMiniBlockComplete(
 			// TODO: evaluate if reloading the trie from disk will might solve the problem
 			log.Error(errAccountState.Error())
 		}
+
+		return err
 	}
-	return err
+
+	sp.mutTxsForBlock.Lock()
+	for index, txHash := range miniBlockTxHashes {
+		sp.txsForBlock[string(txHash)] = miniBlockTxs[index]
+	}
+	sp.mutTxsForBlock.Unlock()
+
+	return nil
 }
 
 func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header) error {
@@ -1436,9 +1446,9 @@ func (sp *shardProcessor) createMiniBlocks(
 ) (block.Body, error) {
 
 	miniBlocks := make(block.Body, 0)
-	sp.mutCrossTxsForBlock.Lock()
-	sp.crossTxsForBlock = make(map[string]*transaction.Transaction)
-	sp.mutCrossTxsForBlock.Unlock()
+	sp.mutTxsForBlock.Lock()
+	sp.txsForBlock = make(map[string]*transaction.Transaction)
+	sp.mutTxsForBlock.Unlock()
 
 	if sp.accounts.JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
@@ -1527,9 +1537,9 @@ func (sp *shardProcessor) createMiniBlocks(
 				continue
 			}
 
-			sp.mutCrossTxsForBlock.Lock()
-			sp.crossTxsForBlock[string(orderedTxHashes[index])] = orderedTxes[index]
-			sp.mutCrossTxsForBlock.Unlock()
+			sp.mutTxsForBlock.Lock()
+			sp.txsForBlock[string(orderedTxHashes[index])] = orderedTxes[index]
+			sp.mutTxsForBlock.Unlock()
 			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 			txs++
 
@@ -1848,16 +1858,12 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	for i := 0; i < len(body); i++ {
 		miniblock := body[i]
 		receiverShardId := miniblock.ReceiverShardID
-		if receiverShardId == sp.shardCoordinator.SelfId() {
-			//not taking into account miniblocks for current shard
-			continue
-		}
 		bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 
 		for _, txHash := range miniblock.TxHashes {
-			sp.mutCrossTxsForBlock.RLock()
-			tx := sp.crossTxsForBlock[string(txHash)]
-			sp.mutCrossTxsForBlock.RUnlock()
+			sp.mutTxsForBlock.RLock()
+			tx := sp.txsForBlock[string(txHash)]
+			sp.mutTxsForBlock.RUnlock()
 			if tx != nil {
 				txMrs, err := sp.marshalizer.Marshal(tx)
 				if err != nil {

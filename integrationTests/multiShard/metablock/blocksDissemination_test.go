@@ -53,9 +53,9 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 
 	fmt.Println("Generating header and block body from shard 0 to metachain...")
 	body, hdr := generateHeaderAndBody(senderShard)
-	err := nodes[0].node.BroadcastShardBlock(body, hdr)
+	err := nodes[0].broadcastMessenger.BroadcastBlock(body, hdr)
 	assert.Nil(t, err)
-	err = nodes[0].node.BroadcastShardHeader(hdr)
+	err = nodes[0].broadcastMessenger.BroadcastHeader(hdr)
 	assert.Nil(t, err)
 
 	for i := 0; i < 5; i++ {
@@ -71,7 +71,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 
 	fmt.Println("Generating metaheader from metachain to any other shards...")
 	metaHdr := generateMetaHeader()
-	nodes[1].node.BroadcastMetaBlock(nil, metaHdr)
+	nodes[1].broadcastMessenger.BroadcastBlock(nil, metaHdr)
 
 	for i := 0; i < 5; i++ {
 		fmt.Println(makeDisplayTable(nodes))

@@ -112,7 +112,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	leader, err := sr.GetLeader()
 	if err != nil {
-		log.Info(err.Error())
+		log.Error(err.Error())
 
 		sr.RoundCanceled = true
 
