@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 )
@@ -10,6 +11,9 @@ import (
 type VMAccountsDB struct {
 	accounts state.AccountsAdapter
 	addrConv state.AddressConverter
+
+	mutFakeAccounts sync.Mutex
+	fakeAccounts    map[string]state.AccountHandler
 }
 
 // NewVMAccountsDB creates a new VMAccountsDB instance
@@ -25,10 +29,14 @@ func NewVMAccountsDB(
 		return nil, state.ErrNilAddressConverter
 	}
 
-	return &VMAccountsDB{
+	vmAccountsDB := &VMAccountsDB{
 		accounts: accounts,
 		addrConv: addrConv,
-	}, nil
+	}
+
+	vmAccountsDB.fakeAccounts = make(map[string]state.AccountHandler, 0)
+
+	return vmAccountsDB, nil
 }
 
 // AccountExists checks if an account exists in provided AccountAdapter
@@ -108,6 +116,11 @@ func (vadb *VMAccountsDB) GetBlockhash(offset *big.Int) ([]byte, error) {
 }
 
 func (vadb *VMAccountsDB) getAccountFromAddressBytes(address []byte) (state.AccountHandler, error) {
+	fakeAcc, success := vadb.getAccountFromFakeAccounts(address)
+	if success {
+		return fakeAcc, nil
+	}
+
 	addr, err := vadb.addrConv.CreateAddressFromPublicKeyBytes(address)
 	if err != nil {
 		return nil, err
@@ -128,4 +141,36 @@ func (vadb *VMAccountsDB) getShardAccountFromAddressBytes(address []byte) (*stat
 	}
 
 	return shardAccount, nil
+}
+
+func (vadb *VMAccountsDB) getAccountFromFakeAccounts(address []byte) (state.AccountHandler, bool) {
+	vadb.mutFakeAccounts.Lock()
+	defer vadb.mutFakeAccounts.Unlock()
+
+	if fakeAcc, ok := vadb.fakeAccounts[string(address)]; ok {
+		return fakeAcc, true
+	}
+
+	return nil, false
+}
+
+func (vadb *VMAccountsDB) CreateFakeAccounts(address []byte, balance *big.Int, nonce uint64) {
+	vadb.mutFakeAccounts.Lock()
+	vadb.fakeAccounts[string(address)] = &state.Account{Balance: balance, Nonce: nonce}
+	vadb.mutFakeAccounts.Unlock()
+}
+
+func (vadb *VMAccountsDB) CleanFakeAccounts() {
+	vadb.mutFakeAccounts.Lock()
+	vadb.fakeAccounts = make(map[string]state.AccountHandler, 0)
+	vadb.mutFakeAccounts.Unlock()
+}
+
+func (vadb *VMAccountsDB) GetFakeAccount(address []byte) state.AccountHandler {
+	fakeAcc, success := vadb.getAccountFromFakeAccounts(address)
+	if success {
+		return fakeAcc
+	}
+
+	return nil
 }

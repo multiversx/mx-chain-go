@@ -67,6 +67,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/track"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
@@ -717,8 +718,13 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	vmAccountsDB, err := hooks.NewVMAccountsDB(accountsAdapter, addressConverter)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	//TODO: change the mock
-	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser)
+	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser, hasher, marshalizer, accountsAdapter, vmAccountsDB, addressConverter, shardCoordinator)
 	if err != nil {
 		return nil, nil, nil, err
 	}

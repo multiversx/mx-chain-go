@@ -4,33 +4,6 @@ import (
 	"math/big"
 )
 
-//------- JournalEntryNonce
-
-// JournalEntryNonce is used to revert a nonce change
-type JournalEntryNonce struct {
-	account  *Account
-	oldNonce uint64
-}
-
-// NewJournalEntryNonce outputs a new JournalEntry implementation used to revert a nonce change
-func NewJournalEntryNonce(account *Account, oldNonce uint64) (*JournalEntryNonce, error) {
-	if account == nil {
-		return nil, ErrNilAccountHandler
-	}
-
-	return &JournalEntryNonce{
-		account:  account,
-		oldNonce: oldNonce,
-	}, nil
-}
-
-// Revert applies undo operation
-func (jen *JournalEntryNonce) Revert() (AccountHandler, error) {
-	jen.account.Nonce = jen.oldNonce
-
-	return jen.account, nil
-}
-
 //------- JournalEntryBalance
 
 // JournalEntryBalance is used to revert a balance change
