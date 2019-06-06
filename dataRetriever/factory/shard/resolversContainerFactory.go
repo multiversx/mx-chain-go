@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
+const emptyExcludePeersOnTopic = ""
+
 type resolversContainerFactory struct {
 	shardCoordinator         sharding.Coordinator
 	messenger                dataRetriever.TopicMessageHandler
@@ -155,8 +157,9 @@ func (rcf *resolversContainerFactory) generateTxResolvers() ([]string, []dataRet
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(idx)
+		excludePeersFromTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-		resolver, err := rcf.createOneTxResolver(identifierTx)
+		resolver, err := rcf.createOneTxResolver(identifierTx, excludePeersFromTopic)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -168,12 +171,13 @@ func (rcf *resolversContainerFactory) generateTxResolvers() ([]string, []dataRet
 	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createOneTxResolver(identifier string) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createOneTxResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
 	txStorer := rcf.store.GetStorer(dataRetriever.TransactionUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
-		identifier,
+		topic,
+		excludedTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)
@@ -194,7 +198,7 @@ func (rcf *resolversContainerFactory) createOneTxResolver(identifier string) (da
 
 	//add on the request topic
 	return rcf.createTopicAndAssignHandler(
-		identifier+resolverSender.TopicRequestSuffix(),
+		topic+resolverSender.TopicRequestSuffix(),
 		resolver,
 		false)
 }
@@ -210,6 +214,7 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierHdr,
+		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)
@@ -261,8 +266,9 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
+		excludePeersFromTopic := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-		resolver, err := rcf.createOneMiniBlocksResolver(identifierMiniBlocks)
+		resolver, err := rcf.createOneMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -274,12 +280,13 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createOneMiniBlocksResolver(identifier string) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createOneMiniBlocksResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
 	miniBlocksStorer := rcf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
-		identifier,
+		topic,
+		excludedTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)
@@ -299,7 +306,7 @@ func (rcf *resolversContainerFactory) createOneMiniBlocksResolver(identifier str
 
 	//add on the request topic
 	return rcf.createTopicAndAssignHandler(
-		identifier+resolverSender.TopicRequestSuffix(),
+		topic+resolverSender.TopicRequestSuffix(),
 		txBlkResolver,
 		false)
 }
@@ -316,6 +323,7 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolver() ([]strin
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierPeerCh,
+		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)
@@ -356,6 +364,7 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierHdr,
+		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)
@@ -398,6 +407,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierHdr,
+		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 	)

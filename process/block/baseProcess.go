@@ -34,16 +34,20 @@ type hashAndHdr struct {
 type mapShardLastHeaders map[uint32]data.HeaderHandler
 
 type baseProcessor struct {
-	shardCoordinator              sharding.Coordinator
-	accounts                      state.AccountsAdapter
-	forkDetector                  process.ForkDetector
-	hasher                        hashing.Hasher
-	marshalizer                   marshal.Marshalizer
-	store                         dataRetriever.StorageService
+	shardCoordinator sharding.Coordinator
+	accounts         state.AccountsAdapter
+	forkDetector     process.ForkDetector
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	store            dataRetriever.StorageService
 	uint64Converter               typeConverters.Uint64ByteSliceConverter
-	mutLastNotarizedHdrs          sync.RWMutex
-	lastNotarizedHdrs             mapShardLastHeaders
+
+	mutNotarizedHdrs   sync.RWMutex
+	lastNotarizedHdrs  mapShardLastHeaders
+	finalNotarizedHdrs mapShardLastHeaders
+
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
+	onRequestHeaderHandler        func(shardId uint32, hash []byte)
 }
 
 func checkForNils(
@@ -61,16 +65,6 @@ func checkForNils(
 	if bodyHandler == nil {
 		return process.ErrNilBlockBody
 	}
-	return nil
-}
-
-// SetOnRequestHeaderHandlerByNonce sets request handler to ask for missing headers by nonce
-func (bp *baseProcessor) SetOnRequestHeaderHandlerByNonce(requestHandler func(shardId uint32, nonce uint64)) error {
-	//TODO: do this on constructor as it is a must to for blockprocessor to work
-	if requestHandler == nil {
-		return process.ErrNilRequestHeaderHandlerByNonce
-	}
-	bp.onRequestHeaderHandlerByNonce = requestHandler
 	return nil
 }
 
@@ -177,14 +171,14 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 		}
 		// block with nonce 0 was already saved
 		if prevHdr.GetRootHash() != nil {
-			return process.ErrRootStateMissmatch // PMS: ErrWrongNonceInBlock -> ErrRootStateMissmatch
+			return process.ErrRootStateMissmatch
 		}
 		return nil
 	}
 
 	//TODO: add verification if rand seed was correctly computed add other verification
 	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
-	if prevHdr.GetRound() >= currHdr.GetRound() { // PMS: > -> >=
+	if prevHdr.GetRound() >= currHdr.GetRound() {
 		return process.ErrLowShardHeaderRound
 	}
 
@@ -209,7 +203,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 }
 
 func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderHandler) error {
-	if shardId >= bp.shardCoordinator.NumberOfShards() && shardId != sharding.MetachainShardId { // PMS: > -> >=
+	if shardId >= bp.shardCoordinator.NumberOfShards() && shardId != sharding.MetachainShardId {
 		return process.ErrShardIdMissmatch
 	}
 
@@ -230,12 +224,20 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 	return nil
 }
 
-func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
-	bp.mutLastNotarizedHdrs.Lock()
-	defer bp.mutLastNotarizedHdrs.Unlock()
+func (bp *baseProcessor) restoreLastNotarized() {
+	bp.mutNotarizedHdrs.Lock()
+	for i := uint32(0); i < bp.shardCoordinator.NumberOfShards(); i++ {
+		bp.lastNotarizedHdrs[i] = bp.finalNotarizedHdrs[i]
+	}
+	bp.mutNotarizedHdrs.Unlock()
+}
 
-	if bp.lastNotarizedHdrs == nil {
-		return process.ErrLastNotarizedHdrsSliceIsNil
+func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
+	bp.mutNotarizedHdrs.Lock()
+	defer bp.mutNotarizedHdrs.Unlock()
+
+	if bp.lastNotarizedHdrs == nil || bp.finalNotarizedHdrs == nil {
+		return process.ErrNotarizedHdrsSliceIsNil
 	}
 
 	err := bp.checkHeaderTypeCorrect(shardId, bp.lastNotarizedHdrs[shardId])
@@ -243,23 +245,15 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 		return err
 	}
 
-	// PMS: commented code
-	//tmpLastNotarized := bp.lastNotarizedHdrs[shardId]
-	//
-	//defer func() {
-	//	if err != nil {
-	//		bp.lastNotarizedHdrs[shardId] = tmpLastNotarized
-	//	}
-	//}()
-
 	sort.Slice(processedHdrs, func(i, j int) bool {
 		return processedHdrs[i].GetNonce() < processedHdrs[j].GetNonce()
 	})
 
 	for i := 0; i < len(processedHdrs); i++ {
-		errNotCritical := bp.checkHeaderTypeCorrect(shardId, processedHdrs[i]) // PMS: err -> errNotCritical
-		if errNotCritical != nil {                                             // PMS: err -> errNotCritical
-			continue // PMS: return err -> continue
+		errNotCritical := bp.checkHeaderTypeCorrect(shardId, processedHdrs[i])
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+			continue
 		}
 
 		errNotCritical = bp.isHdrConstructionValid(processedHdrs[i], bp.lastNotarizedHdrs[shardId])
@@ -267,6 +261,7 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 			continue
 		}
 
+		bp.finalNotarizedHdrs[shardId] = bp.lastNotarizedHdrs[shardId]
 		bp.lastNotarizedHdrs[shardId] = processedHdrs[i]
 	}
 
@@ -274,11 +269,11 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 }
 
 func (bp *baseProcessor) getLastNotarizedHdr(shardId uint32) (data.HeaderHandler, error) {
-	bp.mutLastNotarizedHdrs.RLock()
-	defer bp.mutLastNotarizedHdrs.RUnlock()
+	bp.mutNotarizedHdrs.RLock()
+	defer bp.mutNotarizedHdrs.RUnlock()
 
 	if bp.lastNotarizedHdrs == nil {
-		return nil, process.ErrLastNotarizedHdrsSliceIsNil
+		return nil, process.ErrNotarizedHdrsSliceIsNil
 	}
 
 	err := bp.checkHeaderTypeCorrect(shardId, bp.lastNotarizedHdrs[shardId])
@@ -295,24 +290,25 @@ func (bp *baseProcessor) getLastNotarizedHdr(shardId uint32) (data.HeaderHandler
 // SetLastNotarizedHeadersSlice sets the headers blocks in lastNotarizedHdrs for every shard
 // This is done when starting a new epoch so metachain can use it when validating next shard header blocks
 // and shard can validate the next meta header
-func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
+func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
 	//TODO: protect this to be called only once at genesis time
 	//TODO: do this on constructor as it is a must to for blockprocessor to work
-	bp.mutLastNotarizedHdrs.Lock()
-	defer bp.mutLastNotarizedHdrs.Unlock()
+	bp.mutNotarizedHdrs.Lock()
+	defer bp.mutNotarizedHdrs.Unlock()
 
 	if startHeaders == nil {
-		return process.ErrLastNotarizedHdrsSliceIsNil
+		return process.ErrNotarizedHdrsSliceIsNil
 	}
 
 	bp.lastNotarizedHdrs = make(mapShardLastHeaders, bp.shardCoordinator.NumberOfShards())
+	bp.finalNotarizedHdrs = make(mapShardLastHeaders, bp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < bp.shardCoordinator.NumberOfShards(); i++ {
 		hdr, ok := startHeaders[i].(*block.Header)
 		if !ok {
 			return process.ErrWrongTypeAssertion
 		}
-
 		bp.lastNotarizedHdrs[i] = hdr
+		bp.finalNotarizedHdrs[i] = hdr
 	}
 
 	if metaChainActive {
@@ -320,14 +316,14 @@ func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]da
 		if !ok {
 			return process.ErrWrongTypeAssertion
 		}
-
 		bp.lastNotarizedHdrs[sharding.MetachainShardId] = hdr
+		bp.finalNotarizedHdrs[sharding.MetachainShardId] = hdr
 	}
 
 	return nil
 }
 
-func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler, shardId uint32) error { // PMS: removed parameter -> maxNonce uint64
+func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler, shardId uint32, maxRound uint32) error {
 	prevHdr, err := bp.getLastNotarizedHdr(shardId)
 	if err != nil {
 		return err
@@ -348,24 +344,19 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 			prevHdr = sortedHdrs[i-1]
 		}
 
-		// PMS: this condition could be commented as it can never happen
-		if prevHdr == nil {
+		hdrTooNew := currHdr.GetRound() > maxRound || prevHdr.GetRound() > maxRound
+		if hdrTooNew {
 			continue
 		}
 
 		if currHdr.GetNonce()-prevHdr.GetNonce() > 1 {
-			for j := prevHdr.GetNonce() + 1; j < currHdr.GetNonce(); j++ { // PMS: prevHdr.GetNonce() -> prevHdr.GetNonce()+1
+			for j := prevHdr.GetNonce() + 1; j < currHdr.GetNonce(); j++ {
 				missingNonces = append(missingNonces, j)
 			}
 		}
 	}
 
 	for _, nonce := range missingNonces {
-		// PMS: commented code
-		//if nonce > maxNonce {
-		//	return nil
-		//}
-
 		// do the request here
 		if bp.onRequestHeaderHandlerByNonce == nil {
 			return process.ErrNilRequestHeaderHandlerByNonce

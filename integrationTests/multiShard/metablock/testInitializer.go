@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
 	shard2 "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -47,6 +48,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 )
@@ -78,10 +80,10 @@ type testNode struct {
 //------- Common
 
 func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10, 1)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
 
-	unit, _ := storage.NewStorageUnit(cache, persist)
+	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 	return unit
 }
 
@@ -193,8 +195,8 @@ func createNodes(
 //------- Shard
 
 func createTestShardChain() *blockchain.BlockChain {
-	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
+	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
 	)
@@ -215,26 +217,26 @@ func createTestShardStore() dataRetriever.StorageService {
 }
 
 func createTestShardDataPool() dataRetriever.PoolsHolder {
-	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
-	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	hdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	metaHdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	metaHdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
-	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
+	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
@@ -304,6 +306,7 @@ func createShardNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(tn.resolvers, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
 
 	blockProcessor, _ := block.NewShardProcessor(
 		dPool,
@@ -328,12 +331,9 @@ func createShardNetNode(
 				return nil
 			},
 		},
-		func(shardId uint32, txHash [][]byte) {
-
-		},
-		func(shardId uint32, miniblockHash []byte) {
-
-		},
+		createGenesisBlocks(shardCoordinator),
+		true,
+		requestHandler,
 	)
 
 	n, err := node.NewNode(
@@ -380,8 +380,8 @@ func createShardNetNode(
 //------- Meta
 
 func createTestMetaChain() data.ChainHandler {
-	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
+	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
 	metaChain, _ := blockchain.NewMetaChain(
 		badBlockCache,
 	)
@@ -393,25 +393,23 @@ func createTestMetaChain() data.ChainHandler {
 func createTestMetaStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MetaPeerDataUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MetaShardDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 
 	return store
 }
 
 func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
-	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storage.CacheConfig{Size: 10000, Type: storage.LRUCache}
+	cacherCfg = storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache}
 	miniblockHashes, _ := shardedData.NewShardedData(cacherCfg)
 
-	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	shardHeaders, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	shardHeaders, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
-	metaBlockNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	metaBlockNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	metaBlockNonces, _ := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
 	dPool, _ := dataPool.NewMetaDataPool(
@@ -472,6 +470,7 @@ func createMetaNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	requestHandler, _ := requestHandlers.NewMetaResolverRequestHandler(tn.resolvers, factory.ShardHeadersForMetachainTopic)
 
 	blockProcessor, _ := block.NewMetaProcessor(
 		accntAdapter,
@@ -488,7 +487,8 @@ func createMetaNetNode(
 		testHasher,
 		testMarshalizer,
 		store,
-		func(shardId uint32, hdrHash []byte) {},
+		createGenesisBlocks(shardCoordinator),
+		requestHandler,
 	)
 
 	n, err := node.NewNode(
@@ -530,4 +530,44 @@ func createMetaNetNode(
 	})
 
 	return &tn
+}
+
+func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
+	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
+		genesisBlocks[shardId] = createGenesisBlock(shardId)
+	}
+
+	genesisBlocks[sharding.MetachainShardId] = createGenesisMetaBlock()
+
+	return genesisBlocks
+}
+
+func createGenesisBlock(shardId uint32) *dataBlock.Header {
+	rootHash := []byte("rootHash")
+	return &dataBlock.Header{
+		Nonce:         0,
+		Round:         0,
+		Signature:     rootHash,
+		RandSeed:      rootHash,
+		PrevRandSeed:  rootHash,
+		ShardId:       shardId,
+		PubKeysBitmap: rootHash,
+		RootHash:      rootHash,
+		PrevHash:      rootHash,
+	}
+}
+
+func createGenesisMetaBlock() *dataBlock.MetaBlock {
+	rootHash := []byte("rootHash")
+	return &dataBlock.MetaBlock{
+		Nonce:         0,
+		Round:         0,
+		Signature:     rootHash,
+		RandSeed:      rootHash,
+		PrevRandSeed:  rootHash,
+		PubKeysBitmap: rootHash,
+		RootHash:      rootHash,
+		PrevHash:      rootHash,
+	}
 }

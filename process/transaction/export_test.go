@@ -18,10 +18,6 @@ func (txProc *txProcessor) GetAccounts(adrSrc, adrDst state.AddressContainer,
 	return txProc.getAccounts(adrSrc, adrDst)
 }
 
-func (txProc *txProcessor) CallSCHandler(tx *transaction.Transaction) error {
-	return txProc.callSCHandler(tx)
-}
-
 func (txProc *txProcessor) CheckTxValues(acntSrc *state.Account, value *big.Int, nonce uint64) error {
 	return txProc.checkTxValues(acntSrc, value, nonce)
 }

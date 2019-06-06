@@ -1,6 +1,7 @@
 package process
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -12,10 +13,14 @@ import (
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
-	SCHandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
-	SetSCHandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error)
-
 	ProcessTransaction(transaction *transaction.Transaction, round uint32) error
+}
+
+// SmartContractProcessor is the main interface for the smart contract caller engine
+type SmartContractProcessor interface {
+	ComputeTransactionType(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) (TransactionType, error)
+	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error
+	DeploySmartContract(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error
 }
 
 // BlockProcessor is the main interface for block execution engine
@@ -141,4 +146,20 @@ type BlocksTracker interface {
 	AddBlock(headerHandler data.HeaderHandler)
 	SetBlockBroadcastRound(nonce uint64, round int32)
 	BlockBroadcastRound(nonce uint64) int32
+}
+
+// RequestHandler defines the methods through which request to data can be made
+type RequestHandler interface {
+	RequestHeaderByNonce(shardId uint32, nonce uint64)
+	RequestTransaction(shardId uint32, txHashes [][]byte)
+	RequestMiniBlock(shardId uint32, miniblockHash []byte)
+	RequestHeader(shardId uint32, hash []byte)
+}
+
+// ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
+type ArgumentsParser interface {
+	GetArguments() ([]*big.Int, error)
+	GetCode() ([]byte, error)
+	GetFunction() (string, error)
+	ParseData(data []byte) error
 }

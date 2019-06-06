@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -17,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -562,20 +564,20 @@ func (n *Node) SendTransaction(
 	receiverHex string,
 	value *big.Int,
 	transactionData string,
-	signature []byte) (*transaction.Transaction, error) {
+	signature []byte) (string, error) {
 
 	if n.shardCoordinator == nil {
-		return nil, ErrNilShardCoordinator
+		return "", ErrNilShardCoordinator
 	}
 
 	sender, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	receiver, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	senderShardId := n.shardCoordinator.ComputeId(sender)
@@ -591,12 +593,14 @@ func (n *Node) SendTransaction(
 
 	txBuff, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
+
+	txHexHash := hex.EncodeToString(n.hasher.Compute(string(txBuff)))
 
 	marshalizedTx, err := n.marshalizer.Marshal([][]byte{txBuff})
 	if err != nil {
-		return nil, errors.New("could not marshal transaction")
+		return "", errors.New("could not marshal transaction")
 	}
 
 	//the topic identifier is made of the current shard id and sender's shard id
@@ -608,7 +612,7 @@ func (n *Node) SendTransaction(
 		marshalizedTx,
 	)
 
-	return &tx, nil
+	return txHexHash, nil
 }
 
 //GetTransaction gets the transaction
@@ -705,17 +709,21 @@ func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.Heade
 			n.shardCoordinator.CommunicationIdentifier(k), v)
 	}
 
+	dataPacker, err := partitioning.NewSizeDataPacker(n.marshalizer)
+	if err != nil {
+		return err
+	}
+
 	for k, v := range msgMapTx {
-		// for on values as those are list of txs with dest to K.
-		for _, tx := range v {
-			//TODO optimize this to send bulk transactions
-			// This should be made in future subtasks belonging to EN-1520 story
-			txsBuff, err := n.marshalizer.Marshal([][]byte{tx})
-			if err != nil {
-				return err
-			}
+		// forward txs to the destination shards in packets
+		packets, err := dataPacker.PackDataInChunks(v, maxBulkTransactionSize)
+		if err != nil {
+			return err
+		}
+
+		for _, buff := range packets {
 			go n.messenger.Broadcast(factory.TransactionTopic+
-				n.shardCoordinator.CommunicationIdentifier(k), txsBuff)
+				n.shardCoordinator.CommunicationIdentifier(k), buff)
 		}
 	}
 

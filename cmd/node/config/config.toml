@@ -11,6 +11,8 @@
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
         Type = "LvlDB"
+        BatchDelaySeconds = 10
+        MaxBatchSize = 1
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
@@ -19,6 +21,8 @@
     [PeerBlockBodyStorage.DB]
         FilePath = "PeerBlocks"
         Type = "LvlDB"
+        BatchDelaySeconds = 10
+        MaxBatchSize = 1
 
 [BlockHeaderStorage]
     [BlockHeaderStorage.Cache]
@@ -27,6 +31,8 @@
     [BlockHeaderStorage.DB]
         FilePath = "BlockHeaders"
         Type = "LvlDB"
+        BatchDelaySeconds = 10
+        MaxBatchSize = 1
 
 [ShardDataStorage]
     [ShardDataStorage.Cache]
@@ -35,6 +41,8 @@
     [ShardDataStorage.DB]
         FilePath = "ShardData"
         Type = "LvlDB"
+        BatchDelaySeconds = 10
+        MaxBatchSize = 1
 
 [PeerDataStorage]
     [PeerDataStorage.Cache]
@@ -43,6 +51,8 @@
     [PeerDataStorage.DB]
         FilePath = "PeerData"
         Type = "LvlDB"
+        BatchDelaySeconds = 10
+        MaxBatchSize = 1
 
 [MetaBlockStorage]
     [MetaBlockStorage.Cache]
@@ -51,6 +61,8 @@
     [MetaBlockStorage.DB]
         FilePath = "MetaBlock"
         Type = "LvlDB"
+        BatchDelaySeconds = 10
+        MaxBatchSize = 1
 
 [TxStorage]
     [TxStorage.Cache]
@@ -59,6 +71,8 @@
     [TxStorage.DB]
         FilePath = "Transactions"
         Type = "LvlDB"
+        BatchDelaySeconds = 10
+        MaxBatchSize = 5000
 
 [HdrNonceHashStorage]
     [HdrNonceHashStorage.Cache]
@@ -75,6 +89,9 @@
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie"
         Type = "LvlDB"
+        BatchDelaySeconds = 10
+        MaxBatchSize = 1
+
     [AccountsTrieStorage.Bloom]
         Size = 2048
         HashFunc = ["Keccak", "Blake2b", "Fnv"]

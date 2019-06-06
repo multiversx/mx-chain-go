@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -10,8 +11,17 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 	"github.com/whyrusleeping/go-logging"
 )
@@ -271,6 +281,194 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 
 		assert.Equal(t, atomic.LoadInt32(&n.txRecv), int32(0))
 	}
+}
+
+func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	advertiser := createMessengerWithKadDht(context.Background(), "")
+	advertiser.Bootstrap()
+
+	nodes := make([]*testNode, 0)
+	maxShards := 2
+	nodesPerShard := 2
+	txGenerated := 10
+
+	defer func() {
+		advertiser.Close()
+		for _, n := range nodes {
+			n.node.Stop()
+		}
+	}()
+
+	//shard 0, requesters
+	recvTxs := make(map[int]map[string]struct{})
+	mutRecvTxs := sync.Mutex{}
+	for i := 0; i < nodesPerShard; i++ {
+		dPool := createRequesterDataPool(t, recvTxs, mutRecvTxs, i)
+
+		tn := createNode(
+			0,
+			maxShards,
+			dPool,
+			0,
+			getConnectableAddress(advertiser),
+		)
+
+		nodes = append(nodes, tn)
+	}
+
+	var txHashesGenerated [][]byte
+	var dPool dataRetriever.PoolsHolder
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), 0)
+	dPool, txHashesGenerated = createResolversDataPool(t, txGenerated, 0, 1, shardCoordinator)
+	//shard 1, resolvers, same data pool, does not matter
+	for i := 0; i < nodesPerShard; i++ {
+		tn := createNode(
+			1,
+			maxShards,
+			dPool,
+			1,
+			getConnectableAddress(advertiser),
+		)
+
+		atomic.StoreInt32(&tn.txRecv, int32(txGenerated))
+
+		nodes = append(nodes, tn)
+	}
+
+	displayAndStartNodes(nodes)
+	fmt.Println("Delaying for node bootstrap and topic announcement...")
+	time.Sleep(time.Second * 5)
+
+	fmt.Println(makeDisplayTable(nodes))
+
+	fmt.Println("Request nodes start asking the data...")
+	reqShardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), 0)
+	for i := 0; i < nodesPerShard; i++ {
+		resolver, _ := nodes[i].resFinder.Get(factory.TransactionTopic + reqShardCoordinator.CommunicationIdentifier(1))
+		txResolver, ok := resolver.(*resolvers.TxResolver)
+		assert.True(t, ok)
+
+		txResolver.RequestDataFromHashArray(txHashesGenerated)
+	}
+
+	time.Sleep(time.Second * 5)
+	mutRecvTxs.Lock()
+	defer mutRecvTxs.Unlock()
+	for i := 0; i < nodesPerShard; i++ {
+		mapTx := recvTxs[i]
+		assert.NotNil(t, mapTx)
+
+		txsReceived := len(recvTxs[i])
+		assert.Equal(t, txGenerated, txsReceived)
+
+		atomic.StoreInt32(&nodes[i].txRecv, int32(txsReceived))
+	}
+
+	fmt.Println(makeDisplayTable(nodes))
+}
+
+func createRequesterDataPool(
+	t *testing.T,
+	recvTxs map[int]map[string]struct{},
+	mutRecvTxs sync.Mutex,
+	nodeIndex int,
+) dataRetriever.PoolsHolder {
+
+	//not allowed to request data from the same shard
+	return createTestDataPool(
+		&mock.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				assert.Fail(t, "same-shard requesters should not be queried")
+				return nil, false
+			},
+			ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
+				assert.Fail(t, "same-shard requestors should not be queried")
+				return nil
+			},
+			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+				mutRecvTxs.Lock()
+				defer mutRecvTxs.Unlock()
+
+				txMap := recvTxs[nodeIndex]
+				if txMap == nil {
+					txMap = make(map[string]struct{})
+					recvTxs[nodeIndex] = txMap
+				}
+
+				txMap[string(key)] = struct{}{}
+			},
+			RegisterHandlerCalled: func(i func(key []byte)) {
+			},
+		},
+	)
+}
+
+func createResolversDataPool(
+	t *testing.T,
+	maxTxs int,
+	senderShardID uint32,
+	recvShardId uint32,
+	shardCoordinator sharding.Coordinator,
+) (dataRetriever.PoolsHolder, [][]byte) {
+
+	txHashes := make([][]byte, maxTxs)
+
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
+
+	for i := 0; i < maxTxs; i++ {
+		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
+		cacherIdentifier := process.ShardCacherIdentifier(1, 0)
+		txPool.AddData(txHash, tx, cacherIdentifier)
+		txHashes[i] = txHash
+	}
+
+	return createTestDataPool(txPool), txHashes
+}
+
+func generateValidTx(
+	t *testing.T,
+	shardCoordinator sharding.Coordinator,
+	senderShardId uint32,
+	receiverShardId uint32,
+) (*transaction.Transaction, []byte) {
+
+	skSender, pkSender := generateSkPkInShardAndCreateAccount(shardCoordinator, senderShardId, nil)
+	pkSenderBuff, _ := pkSender.ToByteArray()
+	_, pkRecv := generateSkPkInShardAndCreateAccount(shardCoordinator, receiverShardId, nil)
+	pkRecvBuff, _ := pkRecv.ToByteArray()
+
+	accnts := createAccountsDB()
+	addrSender, _ := addrConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
+	accnts.GetAccountWithJournal(addrSender)
+	accnts.Commit()
+
+	mockNode, _ := node.NewNode(
+		node.WithMarshalizer(marshalizer),
+		node.WithHasher(hasher),
+		node.WithAddressConverter(addrConverter),
+		node.WithKeyGen(keyGen),
+		node.WithTxSingleSigner(singleSigner),
+		node.WithTxSignPrivKey(skSender),
+		node.WithTxSignPubKey(pkSender),
+		node.WithAccountsAdapter(accnts),
+	)
+
+	tx, err := mockNode.GenerateTransaction(
+		hex.EncodeToString(pkSenderBuff),
+		hex.EncodeToString(pkRecvBuff),
+		big.NewInt(1),
+		"",
+	)
+	assert.Nil(t, err)
+
+	txBuff, _ := marshalizer.Marshal(tx)
+	txHash := hasher.Compute(string(txBuff))
+
+	return tx, txHash
 }
 
 func copyNeededTransactions(

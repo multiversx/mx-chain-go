@@ -10,21 +10,21 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
 var timeoutWaitForWaitGroups = time.Second * 2
 
-var defaultTestConfig = storage.CacheConfig{
+var defaultTestConfig = storageUnit.CacheConfig{
 	Size: 1000,
-	Type: storage.LRUCache,
+	Type: storageUnit.LRUCache,
 }
 
 func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
-	cacheConfigBad := storage.CacheConfig{
+	cacheConfigBad := storageUnit.CacheConfig{
 		Size: 0,
-		Type: storage.LRUCache,
+		Type: storageUnit.LRUCache,
 	}
 
 	sd, err := shardedData.NewShardedData(cacheConfigBad)
@@ -33,9 +33,9 @@ func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
 }
 
 func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
-	cacheConfigBad := storage.CacheConfig{
+	cacheConfigBad := storageUnit.CacheConfig{
 		Size: 10,
-		Type: storage.LRUCache,
+		Type: storageUnit.LRUCache,
 	}
 
 	sd, err := shardedData.NewShardedData(cacheConfigBad)
