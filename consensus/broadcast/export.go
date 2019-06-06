@@ -11,7 +11,7 @@ func (cm *commonMessenger) SignMessage(message *consensus.Message) ([]byte, erro
 	return cm.signMessage(message)
 }
 
-func NewCommonMessanger(
+func NewCommonMessenger(
 	marshalizer marshal.Marshalizer,
 	messenger consensus.P2PMessenger,
 	privateKey crypto.PrivateKey,
