@@ -8,23 +8,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/stretchr/testify/assert"
 )
 
-func sendConsensusMessage(cnsMsg *consensus.Message) bool {
-	fmt.Println(cnsMsg)
-	return true
-}
-
-func broadcastBlock(txBlockBody data.BodyHandler, header data.HeaderHandler) error {
-	fmt.Println(txBlockBody)
-	fmt.Println(header)
-	return nil
-}
-
 func extend(subroundId int) {
 	fmt.Println(subroundId)
+}
+
+// executeStoredMessages tries to execute all the messages received which are valid for execution
+func executeStoredMessages() {
 }
 
 func initWorker() spos.WorkerHandler {

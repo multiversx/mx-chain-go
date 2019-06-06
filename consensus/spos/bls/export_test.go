@@ -124,14 +124,6 @@ func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
 }
 
-func (sr *subroundEndRound) BroadcastBlock() func(data.BodyHandler, data.HeaderHandler) error {
-	return sr.broadcastBlock
-}
-
-func (sr *subroundEndRound) SetBroadcastBlock(broadcastBlock func(data.BodyHandler, data.HeaderHandler) error) {
-	sr.broadcastBlock = broadcastBlock
-}
-
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
 }
