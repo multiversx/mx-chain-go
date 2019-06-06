@@ -242,7 +242,6 @@ func createNetNode(
 		dPool,
 		addrConverter,
 		&mock.ChronologyValidatorMock{},
-		nil,
 	)
 	interceptorsContainer, _ := interceptorContainerFactory.Create()
 

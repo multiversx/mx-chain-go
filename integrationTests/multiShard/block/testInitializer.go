@@ -217,7 +217,6 @@ func createNetNode(
 		dPool,
 		testAddressConverter,
 		&mock.ChronologyValidatorMock{},
-		nil,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -247,6 +246,7 @@ func createNetNode(
 	)
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 	blockProcessor, _ := block.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		dPool,
 		store,
 		testHasher,
@@ -615,7 +615,6 @@ func createMetaNetNode(
 		testMultiSig,
 		dPool,
 		&mock.ChronologyValidatorMock{},
-		nil,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -637,6 +636,7 @@ func createMetaNetNode(
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 	blkProc, _ := block.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{

@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
@@ -275,7 +274,6 @@ func createShardNetNode(
 	blkc := createTestShardChain()
 	store := createTestShardStore()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, uint64(time.Second*4))
 	addConverter, _ := addressConverters.NewPlainAddressConverter(32, "")
 	dataPacker, _ := partitioning.NewSizeDataPacker(testMarshalizer)
 
@@ -291,7 +289,6 @@ func createShardNetNode(
 		dPool,
 		addConverter,
 		&mock.ChronologyValidatorMock{},
-		tpsBenchmark,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -312,6 +309,7 @@ func createShardNetNode(
 	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(tn.resolvers, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
 
 	blockProcessor, _ := block.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		dPool,
 		store,
 		testHasher,
@@ -465,7 +463,6 @@ func createMetaNetNode(
 		testMultiSig,
 		dPool,
 		&mock.ChronologyValidatorMock{},
-		nil,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -485,6 +482,7 @@ func createMetaNetNode(
 	requestHandler, _ := requestHandlers.NewMetaResolverRequestHandler(tn.resolvers, factory.ShardHeadersForMetachainTopic)
 
 	blockProcessor, _ := block.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{

@@ -23,8 +23,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/indexer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
@@ -141,6 +143,12 @@ VERSION:
 		Name:  "p2pconfig",
 		Usage: "The configuration file for P2P",
 		Value: "./config/p2p.toml",
+	}
+	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
+	serversConfigurationFile = cli.StringFlag{
+		Name:  "serversconfig",
+		Usage: "The configuration file for servers confidential data",
+		Value: "./config/servers.toml",
 	}
 	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
 	withUI = cli.BoolTFlag{
@@ -264,6 +272,14 @@ func (mockProposerResolver) ResolveProposer(shardId uint32, roundIndex uint32, p
 	return []byte("mocked proposer"), nil
 }
 
+// dbIndexer will hold the database indexer. Defined globally so it can be initialised only in
+//  certain conditions. If those conditions will not be met, it will stay as nil
+var dbIndexer indexer.Indexer
+
+// coreServiceContainer is defined globally so it can be injected with appropriate
+//  params depending on the type of node we are starting
+var coreServiceContainer serviceContainer.Core
+
 func main() {
 	log := logger.DefaultLogger()
 	log.SetLevel(logger.LogInfo)
@@ -289,6 +305,7 @@ func main() {
 		initialBalancesSkPemFile,
 		initialNodesSkPemFile,
 		gopsEn,
+		serversConfigurationFile,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -360,6 +377,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	if err != nil {
 		return err
 	}
+
 	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFileName))
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
@@ -802,7 +820,6 @@ func createShardNode(
 		datapool,
 		addressConverter,
 		&nullChronologyValidator{},
-		tpsBenchmark,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -851,6 +868,26 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	if config.Explorer.Enabled {
+		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
+		dbIndexer, err = CreateElasticIndexer(
+			serversConfigurationFileName,
+			config.Explorer.IndexerURL,
+			shardCoordinator,
+			marshalizer,
+			hasher,
+			log)
+
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		coreServiceContainer, err = serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(dbIndexer))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	}
+
 	blockTracker, err := track.NewShardBlockTracker(datapool, marshalizer, shardCoordinator, store)
 	if err != nil {
 		return nil, nil, nil, err
@@ -874,6 +911,7 @@ func createShardNode(
 	}
 
 	blockProcessor, err := block.NewShardProcessor(
+		coreServiceContainer,
 		datapool,
 		store,
 		hasher,
@@ -957,6 +995,33 @@ func createShardNode(
 	}
 
 	return nd, externalResolver, tpsBenchmark, nil
+}
+
+func CreateElasticIndexer(
+	serversConfigurationFileName string,
+	url string,
+	coordinator sharding.Coordinator,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	log *logger.Logger,
+) (indexer.Indexer, error) {
+	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
+	if err != nil {
+		return nil, err
+	}
+
+	dbIndexer, err = indexer.NewElasticIndexer(
+		url,
+		serversConfig.ElasticSearch.Username,
+		serversConfig.ElasticSearch.Password,
+		coordinator,
+		marshalizer,
+		hasher, log)
+	if err != nil {
+		return nil, err
+	}
+
+	return dbIndexer, nil
 }
 
 func createMetaNode(
@@ -1109,7 +1174,6 @@ func createMetaNode(
 		multiSigner,
 		metaDatapool,
 		&nullChronologyValidator{},
-		tpsBenchmark,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1157,6 +1221,27 @@ func createMetaNode(
 		return nil, nil, nil, err
 	}
 
+	if config.Explorer.Enabled {
+		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
+		dbIndexer, err = CreateElasticIndexer(
+			serversConfigurationFileName,
+			config.Explorer.IndexerURL,
+			shardCoordinator,
+			marshalizer,
+			hasher,
+			log)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	}
+
+	coreServiceContainer, err = serviceContainer.NewServiceContainer(
+		serviceContainer.WithIndexer(dbIndexer),
+		serviceContainer.WithTPSBenchmark(tpsBenchmark))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	blockTracker, err := track.NewMetaBlockTracker()
 	if err != nil {
 		return nil, nil, nil, err
@@ -1180,6 +1265,7 @@ func createMetaNode(
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(
+		coreServiceContainer,
 		accountsAdapter,
 		metaDatapool,
 		forkDetector,

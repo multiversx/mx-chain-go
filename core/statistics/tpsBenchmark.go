@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
 
@@ -20,12 +20,13 @@ type TpsBenchmark struct {
 	averageBlockTxCount   *big.Int
 	lastBlockTxCount      uint32
 	totalProcessedTxCount *big.Int
-	shardStatistics       map[uint32]*shardStatistics
+	shardStatistics       map[uint32]ShardStatistic
 	missingNonces         map[uint64]struct{}
 	missingNoncesLock     sync.RWMutex
 }
 
-type shardStatistics struct {
+// ShardStatistics will hold the tps statistics for each shard
+type ShardStatistics struct {
 	shardID               uint32
 	roundTime             uint64
 	averageTPS            *big.Int
@@ -40,12 +41,12 @@ type shardStatistics struct {
 // nrOfShards represents the total number of shards, roundDuration is the duration for a round in seconds
 func NewTPSBenchmark(nrOfShards uint32, roundDuration uint64) (*TpsBenchmark, error) {
 	if roundDuration == 0 {
-		return nil, core.ErrInvalidRoundDuration
+		return nil, ErrInvalidRoundDuration
 	}
 
-	shardStats := make(map[uint32]*shardStatistics, 0)
+	shardStats := make(map[uint32]ShardStatistic, 0)
 	for i := uint32(0); i < nrOfShards; i++ {
-		shardStats[i] = &shardStatistics{
+		shardStats[i] = &ShardStatistics{
 			roundTime:             roundDuration,
 			totalProcessedTxCount: big.NewInt(0),
 		}
@@ -111,14 +112,14 @@ func (s *TpsBenchmark) NrOfShards() uint32 {
 }
 
 // ShardStatistics returns the current statistical state for a given shard
-func (s *TpsBenchmark) ShardStatistics() map[uint32]*shardStatistics {
+func (s *TpsBenchmark) ShardStatistics() map[uint32]ShardStatistic {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 	return s.shardStatistics
 }
 
 // ShardStatistic returns the current statistical state for a given shard
-func (s *TpsBenchmark) ShardStatistic(shardID uint32) *shardStatistics {
+func (s *TpsBenchmark) ShardStatistic(shardID uint32) ShardStatistic {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
@@ -158,7 +159,16 @@ func (s *TpsBenchmark) isMetaBlockRelevant(mb *block.MetaBlock) bool {
 }
 
 // Update receives a metablock and updates all fields accordingly for each shard available in the meta block
-func (s *TpsBenchmark) Update(mb *block.MetaBlock) {
+func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
+	if mblock == nil {
+		return
+	}
+
+	mb := mblock.(*block.MetaBlock)
+	if mb == nil {
+		return
+	}
+
 	if !s.isMetaBlockRelevant(mb) {
 		return
 	}
@@ -208,21 +218,21 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	for _, shardInfo := range header.ShardInfo {
 		shardStat, ok := s.shardStatistics[shardInfo.ShardId]
 		if !ok {
-			return core.ErrInvalidShardId
+			return ErrInvalidShardId
 		}
 
-		shardPeakTPS := shardStat.peakTPS
+		shardPeakTPS := shardStat.PeakTPS()
 		currentShardTPS := float64(uint64(shardInfo.TxCount) / s.roundTime)
-		if currentShardTPS > shardStat.peakTPS {
+		if currentShardTPS > shardStat.PeakTPS() {
 			shardPeakTPS = currentShardTPS
 		}
 
 		bigTxCount := big.NewInt(int64(shardInfo.TxCount))
-		newTotalProcessedTxCount := big.NewInt(0).Add(shardStat.totalProcessedTxCount, bigTxCount)
+		newTotalProcessedTxCount := big.NewInt(0).Add(shardStat.TotalProcessedTxCount(), bigTxCount)
 		roundsPassed := big.NewInt(int64(header.Round))
 		newAverageTPS := big.NewInt(0).Quo(newTotalProcessedTxCount, roundsPassed)
 
-		updatedShardStats := &shardStatistics{
+		updatedShardStats := &ShardStatistics{
 			shardID:               shardInfo.ShardId,
 			roundTime:             s.roundTime,
 			currentBlockNonce:     header.Nonce,
@@ -240,41 +250,41 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 }
 
 // ShardID returns the shard id of the current statistic object
-func (ss *shardStatistics) ShardID() uint32 {
+func (ss *ShardStatistics) ShardID() uint32 {
 	return ss.shardID
 }
 
 // AverageTPS returns an average tps for all processed blocks in a shard
-func (ss *shardStatistics) AverageTPS() *big.Int {
+func (ss *ShardStatistics) AverageTPS() *big.Int {
 	return ss.averageTPS
 }
 
 // AverageBlockTxCount returns an average transaction count for
-func (ss *shardStatistics) AverageBlockTxCount() uint32 {
+func (ss *ShardStatistics) AverageBlockTxCount() uint32 {
 	return ss.averageBlockTxCount
 }
 
 // CurrentBlockNonce returns the block nounce of the last processed block in a shard
-func (ss *shardStatistics) CurrentBlockNonce() uint64 {
+func (ss *ShardStatistics) CurrentBlockNonce() uint64 {
 	return ss.currentBlockNonce
 }
 
 // LiveTPS returns tps for the last block
-func (ss *shardStatistics) LiveTPS() float64 {
+func (ss *ShardStatistics) LiveTPS() float64 {
 	return float64(uint64(ss.lastBlockTxCount) / ss.roundTime)
 }
 
 // PeakTPS returns peak tps for for all the blocks of the current shard
-func (ss *shardStatistics) PeakTPS() float64 {
+func (ss *ShardStatistics) PeakTPS() float64 {
 	return ss.peakTPS
 }
 
 // LastBlockTxCount returns the number of transactions included in the last block
-func (ss *shardStatistics) LastBlockTxCount() uint32 {
+func (ss *ShardStatistics) LastBlockTxCount() uint32 {
 	return ss.lastBlockTxCount
 }
 
 // TotalProcessedTxCount returns the total number of processed transactions for this shard
-func (ss *shardStatistics) TotalProcessedTxCount() *big.Int {
+func (ss *ShardStatistics) TotalProcessedTxCount() *big.Int {
 	return ss.totalProcessedTxCount
 }
