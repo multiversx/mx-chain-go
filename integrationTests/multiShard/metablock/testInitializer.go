@@ -415,12 +415,10 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	cacherCfg = storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache}
 	miniblockHashes, _ := shardedData.NewShardedData(cacherCfg)
 
-	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	shardHeaders, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	shardHeadersNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	shardHeadersNonces, _ := dataPool.NewNonceToHashCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	shardHeaders, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	shardHeadersNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	shardHeadersNonces, _ := dataPool.NewNonceToHashCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	metaBlockNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)

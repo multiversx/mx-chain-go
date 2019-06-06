@@ -1707,7 +1707,7 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	shardHeadersNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	shardHeadersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		fmt.Println("error creating shard headers nonces pool")
 		return nil, err

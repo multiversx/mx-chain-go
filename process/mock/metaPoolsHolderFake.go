@@ -19,19 +19,15 @@ type MetaPoolsHolderFake struct {
 
 func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	mphf := &MetaPoolsHolderFake{}
-	mphf.miniBlockHashes, _ = shardedData.NewShardedData(storage.CacheConfig{Size: 10000, Type: storage.LRUCache})
-	mphf.metaChainBlocks, _ = storage.NewCache(storage.LRUCache, 10000, 1)
-	mphf.shardHeaders, _ = storage.NewCache(storage.LRUCache, 10000, 1)
+	mphf.miniBlockHashes, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
+	mphf.metaChainBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	mphf.shardHeaders, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 
-	cacheShardHdrNonces, _ := storage.NewCache(storage.LRUCache, 10000, 1)
+	cacheShardHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	mphf.shardHeadersNonces, _ = dataPool.NewNonceToHashCacher(
 		cacheShardHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
-	cacheHdrNonces, _ := storage.NewCache(storage.LRUCache, 10000, 1)
-	mphf.miniBlockHashes, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
-	mphf.metaChainBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	mphf.shardHeaders, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	cacheHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	mphf.metaBlockNonces, _ = dataPool.NewNonceToHashCacher(
 		cacheHdrNonces,

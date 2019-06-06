@@ -39,8 +39,6 @@ type shardProcessor struct {
 	onRequestTransaction    func(shardID uint32, txHashes [][]byte)
 	mutRequestedTxHashes    sync.RWMutex
 	requestedTxHashes       map[string]bool
-	mutCrossTxsForBlock     sync.RWMutex
-	crossTxsForBlock        map[string]*transaction.Transaction
 	onRequestMiniBlock      func(shardId uint32, mbHash []byte)
 	chRcvAllMetaHdrs        chan bool
 	mutUsedMetaHdrs         sync.Mutex
@@ -48,23 +46,9 @@ type shardProcessor struct {
 	mutRequestedMetaHdrs    sync.RWMutex
 	requestedMetaHdrHashes  map[string]bool
 	currHighestMetaHdrNonce uint64
-	core                   serviceContainer.Core
-	dataPool               dataRetriever.PoolsHolder
-	txProcessor            process.TransactionProcessor
-	blocksTracker          process.BlocksTracker
-	metaBlockFinality      int
-	chRcvAllTxs            chan bool
-	onRequestTransaction   func(shardID uint32, txHashes [][]byte)
-	mutRequestedTxHashes   sync.RWMutex
-	requestedTxHashes      map[string]bool
-	mutTxsForBlock         sync.RWMutex
-	txsForBlock            map[string]*transaction.Transaction
-	onRequestMiniBlock     func(shardId uint32, mbHash []byte)
-	chRcvAllMetaHdrs       chan bool
-	mutUsedMetaHdrs        sync.Mutex
-	mapUsedMetaHdrs        map[uint32][][]byte
-	mutRequestedMetaHdrs   sync.RWMutex
-	requestedMetaHdrHashes map[string]bool
+	core                    serviceContainer.Core
+	mutTxsForBlock          sync.RWMutex
+	txsForBlock             map[string]*transaction.Transaction
 }
 
 // NewShardProcessor creates a new shardProcessor object
