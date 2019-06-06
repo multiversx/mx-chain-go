@@ -23,7 +23,7 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t
 		},
 	}
 
-	cm, _ := broadcast.NewCommonMessanger(
+	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
 		privateKeyMock,
@@ -50,7 +50,7 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldWork(t *testing.T) {
 		},
 	}
 
-	cm, _ := broadcast.NewCommonMessanger(
+	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
 		privateKeyMock,
@@ -75,7 +75,7 @@ func TestCommonMessenger_SignMessageShouldErrWhenMarshalFail(t *testing.T) {
 	}
 	marshalizerMock.Fail = true
 
-	cm, _ := broadcast.NewCommonMessanger(
+	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
 		privateKeyMock,
@@ -100,7 +100,7 @@ func TestCommonMessenger_SignMessageShouldErrWhenSignFail(t *testing.T) {
 		},
 	}
 
-	cm, _ := broadcast.NewCommonMessanger(
+	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
 		privateKeyMock,
