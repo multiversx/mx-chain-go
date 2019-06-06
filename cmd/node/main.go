@@ -999,7 +999,8 @@ func createShardNode(
 
 func CreateElasticIndexer(
 	serversConfigurationFileName string,
-	url string, coordinator sharding.Coordinator,
+	url string,
+	coordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	log *logger.Logger,

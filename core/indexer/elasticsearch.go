@@ -11,11 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -141,7 +140,6 @@ func (ei *elasticIndexer) checkAndCreateIndex(index string, body io.Reader) erro
 	}
 	// A status code of 404 means the index does not exist so we create it
 	if res.StatusCode == http.StatusNotFound {
-		//fmt.Println("Status code", res.String())
 		err = ei.createIndex(index, body)
 		if err != nil {
 			return err
