@@ -345,3 +345,6 @@ var ErrNilVMOutput = errors.New("nil vm output")
 
 // ErrNilBalanceFromSC signals that balance is nil
 var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
+
+// ErrNilFakeAccountsHandler signals that fake accounts handler is nil
+var ErrNilFakeAccountsHandler = errors.New("fake accounts handler is nil")

@@ -27,6 +27,9 @@ func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.Ac
 	}
 
 	acntSrc, _ := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
+	acntSrc.Balance = tx.Value
+	totalFee := big.NewInt(0)
+	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
 	acntDst, _ := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 
 	return acntSrc, acntDst
@@ -41,6 +44,7 @@ func TestNewSmartContractProcessorNilVM(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -57,6 +61,7 @@ func TestNewSmartContractProcessorNilArgsParser(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -73,6 +78,7 @@ func TestNewSmartContractProcessorNilHasher(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -89,6 +95,7 @@ func TestNewSmartContractProcessorNilMarshalizer(t *testing.T) {
 		&mock.HasherMock{},
 		nil,
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -105,6 +112,7 @@ func TestNewSmartContractProcessorNilAccountsDB(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -121,6 +129,7 @@ func TestNewSmartContractProcessorNilAdrConv(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		nil,
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -137,11 +146,29 @@ func TestNewSmartContractProcessorNilShardCoordinator(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		nil)
 
 	assert.Nil(t, sc)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestNewSmartContractProcessorNilFakeAccountsHandler(t *testing.T) {
+	t.Parallel()
+
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.AtArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		nil,
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5))
+
+	assert.Nil(t, sc)
+	assert.Equal(t, process.ErrNilFakeAccountsHandler, err)
 }
 
 func TestNewSmartContractProcessor(t *testing.T) {
@@ -153,6 +180,7 @@ func TestNewSmartContractProcessor(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -169,6 +197,7 @@ func TestScProcessor_ComputeTransactionTypeNil(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -188,6 +217,7 @@ func TestScProcessor_ComputeTransactionTypeNilTx(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -216,6 +246,7 @@ func TestScProcessor_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -243,6 +274,7 @@ func TestScProcessor_ComputeTransactionTypeScDeployment(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -272,6 +304,7 @@ func TestScProcessor_ComputeTransactionTypeScInvoking(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -303,6 +336,7 @@ func TestScProcessor_ComputeTransactionTypeMoveBalance(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 
@@ -334,6 +368,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -366,6 +401,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -398,6 +434,7 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -426,6 +463,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -454,6 +492,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -482,6 +521,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -518,6 +558,7 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -551,6 +592,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -584,6 +626,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -613,6 +656,7 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -645,6 +689,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -673,6 +718,7 @@ func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -706,6 +752,7 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -734,6 +781,7 @@ func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -766,6 +814,7 @@ func TestScProcessor_CreateVMInput(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -823,6 +872,7 @@ func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -845,6 +895,7 @@ func TestScProcessor_processVMOutputNilTx(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -868,6 +919,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -891,6 +943,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
@@ -925,6 +978,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accountsDB,
+		&mock.FakeAccountsHandlerMock{},
 		addrConv,
 		shardCoordinator)
 	assert.NotNil(t, sc)
@@ -961,6 +1015,7 @@ func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accountsDB,
+		&mock.FakeAccountsHandlerMock{},
 		addrConv,
 		shardCoordinator)
 	assert.NotNil(t, sc)
@@ -997,6 +1052,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accountsDB,
+		&mock.FakeAccountsHandlerMock{},
 		addrConv,
 		shardCoordinator)
 	assert.NotNil(t, sc)
@@ -1033,6 +1089,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accountsDB,
+		&mock.FakeAccountsHandlerMock{},
 		addrConv,
 		shardCoordinator)
 	assert.NotNil(t, sc)
@@ -1070,6 +1127,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accountsDB,
+		&mock.FakeAccountsHandlerMock{},
 		addrConv,
 		shardCoordinator)
 	assert.NotNil(t, sc)
@@ -1108,6 +1166,7 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accountsDB,
+		&mock.FakeAccountsHandlerMock{},
 		addrConv,
 		shardCoordinator)
 	assert.NotNil(t, sc)
@@ -1146,6 +1205,7 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accountsDB,
+		&mock.FakeAccountsHandlerMock{},
 		addrConv,
 		shardCoordinator)
 	assert.NotNil(t, sc)
@@ -1189,6 +1249,7 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accountsDB,
+		&mock.FakeAccountsHandlerMock{},
 		addrConv,
 		shardCoordinator)
 	assert.NotNil(t, sc)

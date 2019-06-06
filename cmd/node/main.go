@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract/hooks"
 	"io"
 	"math"
 	"os"
@@ -699,8 +700,13 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
+	vmAccountsDB, err := hooks.NewVMAccountsDB(accountsAdapter, addressConverter)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	//TODO: change the mock
-	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser, hasher, marshalizer, accountsAdapter, addressConverter, shardCoordinator)
+	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser, hasher, marshalizer, accountsAdapter, vmAccountsDB, addressConverter, shardCoordinator)
 	if err != nil {
 		return nil, nil, nil, err
 	}

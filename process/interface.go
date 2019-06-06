@@ -163,3 +163,10 @@ type ArgumentsParser interface {
 	GetFunction() (string, error)
 	ParseData(data []byte) error
 }
+
+// FakeAccountsHandler defines the functionality to create fake accounts and pass to VM.
+type FakeAccountsHandler interface {
+	CreateFakeAccounts(address []byte, balance *big.Int, nonce uint64)
+	CleanFakeAccounts()
+	GetFakeAccount(address []byte) state.AccountHandler
+}

@@ -22,6 +22,7 @@ type scExecutionState struct {
 
 type scProcessor struct {
 	accounts         state.AccountsAdapter
+	fakeAccounts     process.FakeAccountsHandler
 	adrConv          state.AddressConverter
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
@@ -40,6 +41,7 @@ func NewSmartContractProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountsDB state.AccountsAdapter,
+	fakeAccounts process.FakeAccountsHandler,
 	adrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
 ) (*scProcessor, error) {
@@ -58,6 +60,9 @@ func NewSmartContractProcessor(
 	if accountsDB == nil {
 		return nil, process.ErrNilAccountsAdapter
 	}
+	if fakeAccounts == nil {
+		return nil, process.ErrNilFakeAccountsHandler
+	}
 	if adrConv == nil {
 		return nil, process.ErrNilAddressConverter
 	}
@@ -71,6 +76,7 @@ func NewSmartContractProcessor(
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		accounts:         accountsDB,
+		fakeAccounts:     fakeAccounts,
 		adrConv:          adrConv,
 		shardCoordinator: coordinator,
 		mapExecState:     make(map[uint32]scExecutionState)}, nil
@@ -109,6 +115,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	acntSnd, acntDst state.AccountHandler,
 	round uint32,
 ) error {
+	defer sc.fakeAccounts.CleanFakeAccounts()
+
 	if tx == nil {
 		return process.ErrNilTransaction
 	}
@@ -119,17 +127,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return process.ErrNilSCDestAccount
 	}
 
-	err := sc.argsParser.ParseData(tx.Data)
+	err := sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
 		return err
 	}
 
 	vmInput, err := sc.createVMCallInput(tx)
-	if err != nil {
-		return err
-	}
-
-	err = sc.processSCPayment(tx, acntSnd)
 	if err != nil {
 		return err
 	}
@@ -148,23 +151,36 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	return nil
 }
 
-// DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
-func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
-	if len(tx.RcvAddr) != 0 {
-		return process.ErrWrongTransaction
-	}
-
+func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
 	err := sc.argsParser.ParseData(tx.Data)
 	if err != nil {
 		return err
 	}
 
-	vmInput, err := sc.createVMDeployInput(tx)
+	totalBalance, err := sc.processSCPayment(tx, acntSnd)
 	if err != nil {
 		return err
 	}
 
-	err = sc.processSCPayment(tx, acntSnd)
+	sc.fakeAccounts.CreateFakeAccounts(tx.SndAddr, totalBalance, tx.Nonce)
+
+	return nil
+}
+
+// DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
+func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
+	defer sc.fakeAccounts.CleanFakeAccounts()
+
+	if len(tx.RcvAddr) != 0 {
+		return process.ErrWrongTransaction
+	}
+
+	err := sc.prepareSmartContractCall(tx, acntSnd)
+	if err != nil {
+		return err
+	}
+
+	vmInput, err := sc.createVMDeployInput(tx)
 	if err != nil {
 		return err
 	}
@@ -242,9 +258,35 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	return vmInput, nil
 }
 
-func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
-	//TODO: add gas economics here - currently sc call is free
-	return nil
+// taking money from sender, as VM might not have access to him because of state sharding
+func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) (*big.Int, error) {
+	operation := big.NewInt(0)
+	operation = operation.Mul(big.NewInt(int64(tx.GasPrice)), big.NewInt(int64(tx.GasLimit)))
+	operation = operation.Add(operation, tx.Value)
+
+	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+		// transaction was already done at sender shard
+		return operation, nil
+	}
+
+	stAcc, ok := acntSnd.(*state.Account)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	if stAcc.Balance.Cmp(operation) < 0 {
+		return nil, process.ErrInsufficientFunds
+	}
+
+	err := stAcc.SetBalanceWithJournal(operation.Sub(stAcc.Balance, operation))
+	if err != nil {
+		return nil, err
+	}
+
+	// if the account is intrashard VM gets the total balance
+	operation = operation.Add(operation, stAcc.Balance)
+
+	return operation, nil
 }
 
 func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
@@ -271,7 +313,7 @@ func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transact
 		return err
 	}
 
-	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts, acntDst)
+	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts)
 	if err != nil {
 		return err
 	}
@@ -293,7 +335,6 @@ func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transact
 func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, tx *transaction.Transaction, acntSnd state.AccountHandler) error {
 	txPaidFee := big.NewInt(0)
 	txPaidFee = txPaidFee.Mul(big.NewInt(int64(tx.GasPrice)), big.NewInt(int64(tx.GasLimit)))
-	// TODO make sure gas calculation is according to economics paper
 	if gasRefund == nil || gasRefund.Cmp(txPaidFee) <= 0 {
 		return nil
 	}
@@ -322,7 +363,7 @@ func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, tx *transaction.Tra
 }
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
-func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, acntDst state.AccountHandler) error {
+func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount) error {
 	for i := 0; i < len(outputAccounts); i++ {
 		outAcc := outputAccounts[i]
 		acc, err := sc.getAccountFromAddress(outAcc.Address)
@@ -333,6 +374,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		if acc == nil || acc.IsInterfaceNil() {
 			//TODO: sharded smart contract processing
 			//TODO: create cross shard transaction here...
+			//if fakeAcc use the difference between outacc and fakeAcc for the new transaction
 			continue
 		}
 
