@@ -11,8 +11,10 @@ type CacheConfig struct {
 
 // DBConfig will map the json db configuration
 type DBConfig struct {
-	FilePath string `json:"file"`
-	Type     string `json:"type"`
+	FilePath          string `json:"file"`
+	Type              string `json:"type"`
+	BatchDelaySeconds int    `json:"batchDelaySeconds"`
+	MaxBatchSize      int    `json:"maxBatchSize"`
 }
 
 // BloomFilterConfig will map the json bloom filter configuration
@@ -89,6 +91,7 @@ type Config struct {
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
+	Explorer        ExplorerConfig
 
 	NTPConfig NTPConfig
 }
@@ -138,4 +141,21 @@ type HeartbeatConfig struct {
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
+}
+
+// ExplorerConfig will hold the configuration for the explorer indexer
+type ExplorerConfig struct {
+	Enabled    bool
+	IndexerURL string
+}
+
+// ServersConfig will hold all the confidential settings for servers
+type ServersConfig struct {
+	ElasticSearch ElasticSearchConfig
+}
+
+// ExplorerConfig will hold the configuration for the explorer indexer
+type ElasticSearchConfig struct {
+	Username string
+	Password string
 }

@@ -53,6 +53,8 @@ type AccountHandler interface {
 	DataTrie() trie.PatriciaMerkelTree
 	SetDataTrie(trie trie.PatriciaMerkelTree)
 	DataTrieTracker() DataTrieTracker
+
+	IsInterfaceNil() bool
 }
 
 // DataTrieTracker models what how to manipulate data held by a SC account

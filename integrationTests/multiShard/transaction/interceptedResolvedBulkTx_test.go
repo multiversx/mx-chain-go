@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 	"github.com/whyrusleeping/go-logging"
 )
@@ -306,7 +307,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	recvTxs := make(map[int]map[string]struct{})
 	mutRecvTxs := sync.Mutex{}
 	for i := 0; i < nodesPerShard; i++ {
-		dPool := createRequesterDataPool(t, recvTxs, mutRecvTxs, i)
+		dPool := createRequesterDataPool(t, recvTxs, &mutRecvTxs, i)
 
 		tn := createNode(
 			0,
@@ -373,7 +374,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 func createRequesterDataPool(
 	t *testing.T,
 	recvTxs map[int]map[string]struct{},
-	mutRecvTxs sync.Mutex,
+	mutRecvTxs *sync.Mutex,
 	nodeIndex int,
 ) dataRetriever.PoolsHolder {
 
@@ -416,7 +417,7 @@ func createResolversDataPool(
 
 	txHashes := make([][]byte, maxTxs)
 
-	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100, Type: storage.LRUCache})
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 
 	for i := 0; i < maxTxs; i++ {
 		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)

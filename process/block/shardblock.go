@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -47,10 +48,28 @@ type shardProcessor struct {
 	mutRequestedMetaHdrs    sync.RWMutex
 	requestedMetaHdrHashes  map[string]bool
 	currHighestMetaHdrNonce uint64
+	core                   serviceContainer.Core
+	dataPool               dataRetriever.PoolsHolder
+	txProcessor            process.TransactionProcessor
+	blocksTracker          process.BlocksTracker
+	metaBlockFinality      int
+	chRcvAllTxs            chan bool
+	onRequestTransaction   func(shardID uint32, txHashes [][]byte)
+	mutRequestedTxHashes   sync.RWMutex
+	requestedTxHashes      map[string]bool
+	mutTxsForBlock         sync.RWMutex
+	txsForBlock            map[string]*transaction.Transaction
+	onRequestMiniBlock     func(shardId uint32, mbHash []byte)
+	chRcvAllMetaHdrs       chan bool
+	mutUsedMetaHdrs        sync.Mutex
+	mapUsedMetaHdrs        map[uint32][][]byte
+	mutRequestedMetaHdrs   sync.RWMutex
+	requestedMetaHdrHashes map[string]bool
 }
 
 // NewShardProcessor creates a new shardProcessor object
 func NewShardProcessor(
+	core serviceContainer.Core,
 	dataPool dataRetriever.PoolsHolder,
 	store dataRetriever.StorageService,
 	hasher hashing.Hasher,
@@ -104,6 +123,7 @@ func NewShardProcessor(
 	}
 
 	sp := shardProcessor{
+		core:          core,
 		baseProcessor: base,
 		dataPool:      dataPool,
 		txProcessor:   txProcessor,
@@ -123,7 +143,7 @@ func NewShardProcessor(
 	sp.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	sp.requestedTxHashes = make(map[string]bool)
 	sp.requestedMetaHdrHashes = make(map[string]bool)
-	sp.crossTxsForBlock = make(map[string]*transaction.Transaction)
+	sp.txsForBlock = make(map[string]*transaction.Transaction)
 	sp.mapUsedMetaHdrs = make(map[uint32][][]byte)
 
 	metaBlockPool := sp.dataPool.MetaBlocks()
@@ -297,6 +317,14 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32) erro
 	return nil
 }
 
+func (sp *shardProcessor) indexBlockIfNeeded(body block.Body, header *block.Header, txPool map[string]*transaction.Transaction) {
+	if sp.core == nil || sp.core.Indexer() == nil {
+		return
+	}
+
+	go sp.core.Indexer().SaveBlock(body, header, txPool)
+}
+
 // removeTxBlockFromPools removes transactions and miniblocks from associated pools
 func (sp *shardProcessor) removeTxBlockFromPools(body block.Body) error {
 	if body == nil {
@@ -351,6 +379,8 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	if err != nil {
 		return err
 	}
+
+	sp.restoreLastNotarized()
 
 	return nil
 }
@@ -438,6 +468,10 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][]byt
 		}
 	}
 
+	//TODO: if miniBlockHashes were not found in meta pool then they should be in some already committed metablocks
+	//So they should be searched in metablocks storer, these metablocks which contains them should be pull out in pools
+	//and then these miniblocks should be set as not processed.
+
 	return nil
 }
 
@@ -502,7 +536,15 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	buff, err := sp.marshalizer.Marshal(headerHandler)
+	tempTxPool := make(map[string]*transaction.Transaction)
+
+	header, ok := headerHandler.(*block.Header)
+	if !ok {
+		err = process.ErrWrongTypeAssertion
+		return err
+	}
+
+	buff, err := sp.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
@@ -510,12 +552,6 @@ func (sp *shardProcessor) CommitBlock(
 	headerHash := sp.hasher.Compute(string(buff))
 	err = sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
 	if err != nil {
-		return err
-	}
-
-	header, ok := headerHandler.(*block.Header)
-	if !ok {
-		err = process.ErrWrongTypeAssertion
 		return err
 	}
 
@@ -555,6 +591,8 @@ func (sp *shardProcessor) CommitBlock(
 				err = process.ErrMissingTransaction
 				return err
 			}
+
+			tempTxPool[string(txHash)] = tx
 
 			buff, err = sp.marshalizer.Marshal(tx)
 			if err != nil {
@@ -615,6 +653,8 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
+
+	sp.indexBlockIfNeeded(body, header, tempTxPool)
 
 	// write data to log
 	go sp.displayShardBlock(header, body)
@@ -1073,7 +1113,7 @@ func (sp *shardProcessor) processMiniBlockComplete(
 		return process.ErrNilTransactionPool
 	}
 
-	miniBlockTxs, _, err := sp.getAllTxsFromMiniBlock(miniBlock, haveTime)
+	miniBlockTxs, miniBlockTxHashes, err := sp.getAllTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return err
 	}
@@ -1090,6 +1130,7 @@ func (sp *shardProcessor) processMiniBlockComplete(
 			break
 		}
 	}
+
 	// all txs from miniblock has to be processed together
 	if err != nil {
 		log.Error(err.Error())
@@ -1098,8 +1139,17 @@ func (sp *shardProcessor) processMiniBlockComplete(
 			// TODO: evaluate if reloading the trie from disk will might solve the problem
 			log.Error(errAccountState.Error())
 		}
+
+		return err
 	}
-	return err
+
+	sp.mutTxsForBlock.Lock()
+	for index, txHash := range miniBlockTxHashes {
+		sp.txsForBlock[string(txHash)] = miniBlockTxs[index]
+	}
+	sp.mutTxsForBlock.Unlock()
+
+	return nil
 }
 
 func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header) error {
@@ -1376,10 +1426,12 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
 
-	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(uint32(round))
+	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
 	if err != nil {
 		return nil, 0, err
 	}
+
+	log.Info(fmt.Sprintf("orderedMetaBlocks: %d \n", len(orderedMetaBlocks)))
 
 	lastMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
@@ -1442,9 +1494,9 @@ func (sp *shardProcessor) createMiniBlocks(
 ) (block.Body, error) {
 
 	miniBlocks := make(block.Body, 0)
-	sp.mutCrossTxsForBlock.Lock()
-	sp.crossTxsForBlock = make(map[string]*transaction.Transaction)
-	sp.mutCrossTxsForBlock.Unlock()
+	sp.mutTxsForBlock.Lock()
+	sp.txsForBlock = make(map[string]*transaction.Transaction)
+	sp.mutTxsForBlock.Unlock()
 
 	if sp.accounts.JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
@@ -1464,6 +1516,8 @@ func (sp *shardProcessor) createMiniBlocks(
 	if err != nil {
 		log.Info(err.Error())
 	}
+
+	log.Info(fmt.Sprintf("destMeMiniBlocks: %d and txs: %d\n", len(destMeMiniBlocks), txs))
 
 	if len(destMeMiniBlocks) > 0 {
 		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
@@ -1531,9 +1585,9 @@ func (sp *shardProcessor) createMiniBlocks(
 				continue
 			}
 
-			sp.mutCrossTxsForBlock.Lock()
-			sp.crossTxsForBlock[string(orderedTxHashes[index])] = orderedTxes[index]
-			sp.mutCrossTxsForBlock.Unlock()
+			sp.mutTxsForBlock.Lock()
+			sp.txsForBlock[string(orderedTxHashes[index])] = orderedTxes[index]
+			sp.mutTxsForBlock.Unlock()
 			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 			txs++
 
@@ -1852,16 +1906,12 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	for i := 0; i < len(body); i++ {
 		miniblock := body[i]
 		receiverShardId := miniblock.ReceiverShardID
-		if receiverShardId == sp.shardCoordinator.SelfId() {
-			//not taking into account miniblocks for current shard
-			continue
-		}
 		bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 
 		for _, txHash := range miniblock.TxHashes {
-			sp.mutCrossTxsForBlock.RLock()
-			tx := sp.crossTxsForBlock[string(txHash)]
-			sp.mutCrossTxsForBlock.RUnlock()
+			sp.mutTxsForBlock.RLock()
+			tx := sp.txsForBlock[string(txHash)]
+			sp.mutTxsForBlock.RUnlock()
 			if tx != nil {
 				txMrs, err := sp.marshalizer.Marshal(tx)
 				if err != nil {

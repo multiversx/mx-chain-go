@@ -32,6 +32,11 @@ type TransactionResponse struct {
 	TxResp *transaction.TxResponse `json:"transaction,omitempty"`
 }
 
+type TransactionHashResponse struct {
+	GeneralResponse
+	TxHash string `json:"txHash,omitempty"`
+}
+
 func init() {
 	gin.SetMode(gin.TestMode)
 }
@@ -426,8 +431,8 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 
 	facade := mock.Facade{
 		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value *big.Int,
-			code string, signature []byte) (transaction *tr.Transaction, e error) {
-			return nil, errors.New(errorString)
+			code string, signature []byte) (string, error) {
+			return "", errors.New(errorString)
 		},
 	}
 	ws := startNodeServer(&facade)
@@ -460,18 +465,12 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	value := big.NewInt(10)
 	data := "data"
 	signature := "aabbccdd"
+	txHash := "tx hash"
 
 	facade := mock.Facade{
 		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value *big.Int,
-			code string, signature []byte) (transaction *tr.Transaction, e error) {
-			return &tr.Transaction{
-				Nonce:     nonce,
-				SndAddr:   []byte(sender),
-				RcvAddr:   []byte(receiver),
-				Value:     value,
-				Data:      []byte(code),
-				Signature: signature,
-			}, nil
+			code string, signature []byte) (string, error) {
+			return txHash, nil
 		},
 	}
 	ws := startNodeServer(&facade)
@@ -490,12 +489,12 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	txHashResponse := TransactionHashResponse{}
+	loadResponse(resp.Body, &txHashResponse)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Empty(t, transactionResponse.Error)
-	assert.Equal(t, transactionResponse.TxResp.Nonce, nonce)
+	assert.Empty(t, txHashResponse.Error)
+	assert.Equal(t, txHashResponse.TxHash, txHash)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

@@ -27,6 +27,13 @@ func NewAccountWrapMock(adr state.AddressContainer, tracker state.AccountTracker
 	}
 }
 
+func (awm *AccountWrapMock) IsInterfaceNil() bool {
+	if awm == nil {
+		return true
+	}
+	return false
+}
+
 func (awm *AccountWrapMock) GetCodeHash() []byte {
 	return awm.codeHash
 }

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/boltdb/bolt"
 )
 
@@ -15,18 +17,17 @@ const rwxOwner = 0700
 // read + write for owner
 const rwOwner = 0600
 
-var errKeyNotFound = errors.New("Key not found")
-
 // DB holds a pointer to the boltdb database and the path to where it is stored.
 type DB struct {
 	db           *bolt.DB
 	path         string
 	parentFolder string
+	batch        storage.Batcher
 }
 
 // NewDB is a constructor for the boltdb persister
 // It creates the files in the location given as parameter
-func NewDB(path string) (s *DB, err error) {
+func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err error) {
 	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
@@ -60,18 +61,16 @@ func NewDB(path string) (s *DB, err error) {
 		parentFolder: parentFolder,
 	}
 
+	dbStore.db.MaxBatchDelay = time.Duration(batchDelaySeconds) * time.Second
+	dbStore.db.MaxBatchSize = maxBatchSize
+	dbStore.batch = dbStore.createBatch()
+
 	return dbStore, nil
 }
 
 // Put adds the value to the (key, val) storage medium
 func (s *DB) Put(key, val []byte) error {
-	err := s.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(s.parentFolder))
-		err := b.Put(key, val)
-		return err
-	})
-
-	return err
+	return s.batch.Put(key, val)
 }
 
 // Get returns the value associated to the key
@@ -82,7 +81,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 		b := tx.Bucket([]byte(s.parentFolder))
 		v := b.Get(key)
 		if v == nil {
-			return errKeyNotFound
+			return storage.ErrKeyNotFound
 		}
 
 		val = append([]byte{}, v...)
@@ -93,13 +92,18 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	return val, err
 }
 
+// CreateBatch returns a batcher to be used for batch writing data to the database
+func (s *DB) createBatch() storage.Batcher {
+	return NewBatch(s)
+}
+
 // Has returns true if the given key is present in the persistance medium
 func (s *DB) Has(key []byte) error {
 	return s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(s.parentFolder))
 		v := b.Get(key)
 		if v == nil {
-			return errKeyNotFound
+			return storage.ErrKeyNotFound
 		}
 
 		return nil
@@ -119,6 +123,8 @@ func (s *DB) Close() error {
 
 // Remove removes the data associated to the given key
 func (s *DB) Remove(key []byte) error {
+	_ = s.batch.Delete(key)
+
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(s.parentFolder))
 		err := b.Delete(key)

@@ -11,6 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// executeStoredMessages tries to execute all the messages received which are valid for execution
+func executeStoredMessages() {
+}
+
 func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
 	for i := 0; i < size; i++ {
@@ -69,6 +73,7 @@ func TestSubround_NewSubroundNilConsensusStateShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		nil,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -91,10 +96,35 @@ func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		nil,
+		executeStoredMessages,
 		container,
 	)
 
 	assert.Equal(t, spos.ErrNilChannel, err)
+	assert.Nil(t, sr)
+}
+
+func TestSubround_NewSubroundNilExecuteStoredMessagesShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	ch := make(chan bool, 1)
+
+	sr, err := spos.NewSubround(
+		int(-1),
+		int(bls.SrStartRound),
+		int(bls.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		nil,
+		container,
+	)
+
+	assert.Equal(t, spos.ErrNilExecuteStoredMessages, err)
 	assert.Nil(t, sr)
 }
 
@@ -113,6 +143,7 @@ func TestSubround_NewSubroundNilContainerShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		nil,
 	)
 
@@ -137,6 +168,7 @@ func TestSubround_NilContainerBlockchainShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -161,6 +193,7 @@ func TestSubround_NilContainerBlockprocessorShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -185,6 +218,7 @@ func TestSubround_NilContainerBootstrapperShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -209,6 +243,7 @@ func TestSubround_NilContainerChronologyShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -233,6 +268,7 @@ func TestSubround_NilContainerHasherShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -257,6 +293,7 @@ func TestSubround_NilContainerMarshalizerShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -281,6 +318,7 @@ func TestSubround_NilContainerMultisignerShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -305,6 +343,7 @@ func TestSubround_NilContainerRounderShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -329,6 +368,7 @@ func TestSubround_NilContainerShardCoordinatorShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -353,6 +393,7 @@ func TestSubround_NilContainerSyncTimerShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -377,6 +418,7 @@ func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -399,6 +441,7 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -430,6 +473,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	sr.Job = nil
@@ -464,6 +508,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	sr.Job = func() bool {
@@ -497,6 +542,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	sr.Job = func() bool {
@@ -532,6 +578,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	sr.Job = func() bool {
@@ -567,6 +614,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 		"(START_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -621,6 +669,7 @@ func TestSubround_Previous(t *testing.T) {
 		"(BLOCK)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	sr.Job = func() bool {
@@ -649,6 +698,7 @@ func TestSubround_Current(t *testing.T) {
 		"(BLOCK)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	sr.Job = func() bool {
@@ -677,6 +727,7 @@ func TestSubround_Next(t *testing.T) {
 		"(BLOCK)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	sr.Job = func() bool {
@@ -705,6 +756,7 @@ func TestSubround_StartTime(t *testing.T) {
 		"(SIGNATURE)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	sr.Job = func() bool {
@@ -733,6 +785,7 @@ func TestSubround_EndTime(t *testing.T) {
 		"(BLOCK)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	sr.Job = func() bool {
@@ -761,6 +814,7 @@ func TestSubround_Name(t *testing.T) {
 		"(BLOCK)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	sr.Job = func() bool {
