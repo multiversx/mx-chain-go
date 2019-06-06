@@ -283,9 +283,6 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 		return nil, err
 	}
 
-	// if the account is intrashard VM gets the total balance
-	operation = operation.Add(operation, stAcc.Balance)
-
 	return operation, nil
 }
 
@@ -371,6 +368,8 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			return err
 		}
 
+		fakeAcc := sc.fakeAccounts.GetFakeAccount(outAcc.Address)
+
 		if acc == nil || acc.IsInterfaceNil() {
 			//TODO: sharded smart contract processing
 			//TODO: create cross shard transaction here...
@@ -412,6 +411,11 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		stAcc, ok := acc.(*state.Account)
 		if !ok {
 			return process.ErrWrongTypeAssertion
+		}
+
+		// if fake account, than VM so only transaction value plus fee as balance, so anything remaining is a plus
+		if fakeAcc != nil && !fakeAcc.IsInterfaceNil() {
+			outAcc.Balance = outAcc.Balance.Add(outAcc.Balance, stAcc.Balance)
 		}
 
 		// update the values according to SC output
