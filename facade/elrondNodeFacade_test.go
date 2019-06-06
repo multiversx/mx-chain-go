@@ -393,9 +393,9 @@ func TestElrondNodeFacade_SetSyncer(t *testing.T) {
 func TestElrondNodeFacade_SendTransaction(t *testing.T) {
 	called := 0
 	node := &mock.NodeMock{}
-	node.SendTransactionHandler = func(nonce uint64, sender string, receiver string, amount *big.Int, code string, signature []byte) (i *transaction.Transaction, e error) {
+	node.SendTransactionHandler = func(nonce uint64, sender string, receiver string, amount *big.Int, code string, signature []byte) (string, error) {
 		called++
-		return nil, nil
+		return "", nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
 	ef.SendTransaction(1, "test", "test", big.NewInt(0), "code", []byte{})
