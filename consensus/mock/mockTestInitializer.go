@@ -37,6 +37,9 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
 		return &block.Header{}
 	}
+	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
+		return make(map[uint32][]byte, 0), make(map[uint32][][]byte, 0), nil
+	}
 
 	return blockProcessorMock
 }
@@ -96,6 +99,11 @@ func InitConsensusCore() *ConsensusCoreMock {
 	}
 	blockProcessorMock := InitBlockProcessorMock()
 	bootstraperMock := &BootstraperMock{}
+	broadcastMessengerMock := &BroadcastMessengerMock{
+		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+			return nil
+		},
+	}
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
 	hasherMock := HasherMock{}
@@ -116,6 +124,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		blockChain,
 		blockProcessorMock,
 		bootstraperMock,
+		broadcastMessengerMock,
 		chronologyHandlerMock,
 		hasherMock,
 		marshalizerMock,

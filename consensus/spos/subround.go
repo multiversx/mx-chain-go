@@ -22,6 +22,7 @@ type Subround struct {
 	name      string
 
 	consensusStateChangedChannel chan bool
+	executeStoredMessages        func()
 
 	Job    func() bool          // method does the Subround Job and send the result to the peers
 	Check  func() bool          // method checks if the consensus of the Subround is done
@@ -38,11 +39,13 @@ func NewSubround(
 	name string,
 	consensusState *ConsensusState,
 	consensusStateChangedChannel chan bool,
+	executeStoredMessages func(),
 	container ConsensusCoreHandler,
 ) (*Subround, error) {
 	err := checkNewSubroundParams(
 		consensusState,
 		consensusStateChangedChannel,
+		executeStoredMessages,
 		container,
 	)
 	if err != nil {
@@ -59,6 +62,7 @@ func NewSubround(
 		endTime,
 		name,
 		consensusStateChangedChannel,
+		executeStoredMessages,
 		nil,
 		nil,
 		nil,
@@ -70,6 +74,7 @@ func NewSubround(
 func checkNewSubroundParams(
 	state *ConsensusState,
 	consensusStateChangedChannel chan bool,
+	executeStoredMessages func(),
 	container ConsensusCoreHandler,
 ) error {
 	err := ValidateConsensusCore(container)
@@ -82,6 +87,9 @@ func checkNewSubroundParams(
 	if state == nil {
 		return ErrNilConsensusState
 	}
+	if executeStoredMessages == nil {
+		return ErrNilExecuteStoredMessages
+	}
 
 	return nil
 }
@@ -93,6 +101,9 @@ func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
 	if sr.Job == nil || sr.Check == nil {
 		return false
 	}
+
+	// execute stored messages which were received in this new round but before this initialisation
+	go sr.executeStoredMessages()
 
 	startTime := time.Time{}
 	startTime = rounder.TimeStamp()

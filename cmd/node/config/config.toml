@@ -4,6 +4,10 @@
    # value will be given as string. For example: "0", "1", "15", "metachain"
    DestinationShardAsObserver = "0"
 
+[Explorer]
+    Enabled = false
+    IndexerURL = "http://localhost:9200"
+
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Size = 1000
@@ -114,23 +118,19 @@
 
 [MetaHeaderNoncesDataPool]
     Size = 100000
-    Type = "FIFOSharded"
-    Shards = 128
+    Type = "LRU"
 
 [TxDataPool]
     Size = 100000
-    Type = "FIFOSharded"
-    Shards = 128
+    Type = "LRU"
 
 [ShardHeadersDataPool]
     Size = 10000
-    Type = "FIFOSharded"
-    Shards = 128
+    Type = "LRU"
 
 [MiniBlockHeaderHashesDataPool]
     Size = 10000
-    Type = "FIFOSharded"
-    Shards = 128
+    Type = "LRU"
 
 [MetaBlockBodyDataPool]
     Size = 1000

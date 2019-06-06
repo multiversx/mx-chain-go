@@ -14,7 +14,7 @@ import (
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
 	GenerateTransaction(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
-	SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, code string, signature []byte) (*transaction.Transaction, error)
+	SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, code string, signature []byte) (string, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	GenerateAndSendBulkTransactions(string, *big.Int, uint64) error
 	GenerateAndSendBulkTransactionsOneByOne(string, *big.Int, uint64) error
@@ -119,13 +119,13 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, gtx.Value, gtx.Data, signature)
+	txHash, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, gtx.Value, gtx.Data, signature)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error())})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})
+	c.JSON(http.StatusOK, gin.H{"txHash": txHash})
 }
 
 // GenerateAndSendBulkTransactions generates multipleTransactions

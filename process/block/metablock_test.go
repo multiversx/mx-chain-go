@@ -105,6 +105,7 @@ func TestNewMetaProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		nil,
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -123,6 +124,7 @@ func TestNewMetaProcessor_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	be, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		nil,
 		&mock.ForkDetectorMock{},
@@ -142,6 +144,7 @@ func TestNewMetaProcessor_NilForkDetectorShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		nil,
@@ -161,6 +164,7 @@ func TestNewMetaProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -180,6 +184,7 @@ func TestNewMetaProcessor_NilHasherShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -199,6 +204,7 @@ func TestNewMetaProcessor_NilMarshalizerShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -218,6 +224,7 @@ func TestNewMetaProcessor_NilChainStorerShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -237,6 +244,7 @@ func TestNewMetaProcessor_NilRequestHeaderHandlerShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	be, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -256,6 +264,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	mp, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -277,6 +286,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -297,6 +307,7 @@ func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -317,6 +328,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -336,6 +348,7 @@ func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -368,6 +381,7 @@ func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	}
 	body := &block.MetaBlockBody{}
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revToSnapshot,
@@ -392,6 +406,7 @@ func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -417,6 +432,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -445,6 +461,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -492,6 +509,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 		return []byte("rootHashX")
 	}
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revertToSnapshot,
@@ -531,6 +549,7 @@ func TestMetaProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 		return nil
 	}
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		accounts,
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -568,6 +587,7 @@ func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T
 		},
 	}
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		accounts,
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -604,6 +624,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	store.AddStorer(dataRetriever.MetaBlockUnit, hdrUnit)
 
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		accounts,
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -636,6 +657,7 @@ func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	store := initStore()
 
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		accounts,
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -672,6 +694,7 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	store := initStore()
 
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		accounts,
 		mdp,
 		fd,
@@ -732,6 +755,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, blockHeaderUnit)
 
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		accounts,
 		mdp,
 		fd,
@@ -777,6 +801,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -812,6 +837,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *tes
 
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -832,6 +858,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -856,6 +883,7 @@ func TestMetaProcessor_DisplayLogInfo(t *testing.T) {
 	hasher := mock.HasherMock{}
 	hdr := createMetaBlockHeader()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -874,6 +902,7 @@ func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFai
 	t.Parallel()
 
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			JournalLenCalled: func() int {
 				return 1
@@ -898,6 +927,7 @@ func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			JournalLenCalled: func() int {
 				return 0
@@ -932,6 +962,7 @@ func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) 
 		return nil
 	}
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: revToSnapshot,
 		},
@@ -954,6 +985,7 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -981,6 +1013,7 @@ func TestMetaProcessor_ReceivedHeaderShouldEraseRequested(t *testing.T) {
 	dataPool := mock.NewMetaPoolsHolderFake()
 
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		dataPool,
 		&mock.ForkDetectorMock{},
@@ -1062,6 +1095,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 		MiniBlockHeaders: miniBlockHeaders3})
 
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				assert.Fail(t, "revert should have not been called")
@@ -1139,6 +1173,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				assert.Fail(t, "revert should have not been called")
@@ -1261,6 +1296,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				assert.Fail(t, "revert should have not been called")
@@ -1431,6 +1467,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				assert.Fail(t, "revert should have not been called")
@@ -1567,6 +1604,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldErrNilMetaBlockHeader(t *testi
 
 	mdp := initMetaDataPool()
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -1603,6 +1641,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	}
 
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		dataPool,
 		&mock.ForkDetectorMock{},
@@ -1632,6 +1671,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				assert.Fail(t, "revert should have not been called")
@@ -1729,6 +1769,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				assert.Fail(t, "revert should have not been called")
@@ -1827,6 +1868,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				assert.Fail(t, "revert should have not been called")
@@ -1888,6 +1930,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				assert.Fail(t, "revert should have not been called")
@@ -1955,6 +1998,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				assert.Fail(t, "revert should have not been called")
@@ -2066,6 +2110,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				assert.Fail(t, "revert should have not been called")
@@ -2176,6 +2221,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				assert.Fail(t, "revert should have not been called")
@@ -2297,6 +2343,7 @@ func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
 	mdp := initMetaDataPool()
 	marshalizerMock := &mock.MarshalizerMock{}
 	mp, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},
@@ -2323,6 +2370,7 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 	mdp := initMetaDataPool()
 	marshalizerMock := &mock.MarshalizerMock{}
 	mp, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
 		mdp,
 		&mock.ForkDetectorMock{},

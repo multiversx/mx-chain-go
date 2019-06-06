@@ -15,6 +15,7 @@
 !/.gitignore
 
 /vendor
+/esdata
 .env
 *.log
 genessis.json

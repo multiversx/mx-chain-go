@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -32,6 +33,7 @@ const blockFinality = 0
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
+	core     serviceContainer.Core
 	dataPool dataRetriever.MetaPoolsHolder
 
 	requestedShardHeaderHashes    map[string]bool
@@ -45,6 +47,7 @@ type metaProcessor struct {
 
 // NewMetaProcessor creates a new metaProcessor object
 func NewMetaProcessor(
+	core serviceContainer.Core,
 	accounts state.AccountsAdapter,
 	dataPool dataRetriever.MetaPoolsHolder,
 	forkDetector process.ForkDetector,
@@ -94,6 +97,7 @@ func NewMetaProcessor(
 	}
 
 	mp := metaProcessor{
+		core:          core,
 		baseProcessor: base,
 		dataPool:      dataPool,
 	}
@@ -210,6 +214,20 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint32) erro
 	}
 
 	return nil
+}
+
+func (mp *metaProcessor) indexBlock(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) {
+	if mp.core == nil || mp.core.Indexer() == nil {
+		return
+	}
+
+	// Update tps benchmarks in the DB
+	tpsBenchmark := mp.core.TPSBenchmark()
+	if tpsBenchmark != nil {
+		go mp.core.Indexer().UpdateTPS(tpsBenchmark)
+	}
+
+	//TODO: maybe index metablocks also?
 }
 
 // removeBlockInfoFromPool removes the block info from associated pools
@@ -332,6 +350,8 @@ func (mp *metaProcessor) CommitBlock(
 		}
 	}()
 
+	tempHeaderPool := make(map[string]*block.Header)
+
 	err = checkForNils(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
@@ -375,6 +395,8 @@ func (mp *metaProcessor) CommitBlock(
 			return err
 		}
 
+		tempHeaderPool[string(shardData.HeaderHash)] = header
+
 		buff, err = mp.marshalizer.Marshal(header)
 		if err != nil {
 			return err
@@ -417,6 +439,12 @@ func (mp *metaProcessor) CommitBlock(
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
+
+	if mp.core != nil && mp.core.TPSBenchmark() != nil {
+		mp.core.TPSBenchmark().Update(header)
+	}
+
+	mp.indexBlock(header, tempHeaderPool)
 
 	go mp.displayMetaBlock(header)
 
