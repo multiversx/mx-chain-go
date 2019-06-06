@@ -5,7 +5,7 @@
    DestinationShardAsObserver = "0"
 
 [Explorer]
-    Enabled = true
+    Enabled = false
     IndexerURL = "http://localhost:9200"
 
 [MiniBlocksStorage]
