@@ -16,12 +16,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
@@ -39,9 +38,6 @@ import (
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
 const WaitTime = time.Duration(2000 * time.Millisecond)
-
-// ConsensusTopic is the topic used in consensus algorithm
-const ConsensusTopic = "consensus"
 
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
@@ -237,23 +233,32 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
+	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
+		n.marshalizer,
+		n.messenger,
+		n.shardCoordinator,
+		n.privKey,
+		n.singleSigner,
+		n.syncTimer)
+
+	if err != nil {
+		return err
+	}
+
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blockProcessor,
 		n.blockTracker,
 		bootstrapper,
+		broadcastMessenger,
 		consensusState,
 		n.forkDetector,
 		n.keyGen,
 		n.marshalizer,
-		n.privKey,
 		n.rounder,
 		n.shardCoordinator,
 		n.singleSigner,
 		n.syncTimer,
-		n.getBroadcastBlock(),
-		n.getBroadcastHeader(),
-		n.sendMessage,
 	)
 	if err != nil {
 		return err
@@ -273,6 +278,7 @@ func (n *Node) StartConsensus() error {
 		n.blkc,
 		n.blockProcessor,
 		bootstrapper,
+		broadcastMessenger,
 		chronologyHandler,
 		n.hasher,
 		n.marshalizer,
@@ -391,30 +397,6 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 	}
 
 	return chr, nil
-}
-
-func (n *Node) getBroadcastBlock() func(data.BodyHandler, data.HeaderHandler) error {
-	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
-		return n.BroadcastShardBlock
-	}
-
-	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return n.BroadcastMetaBlock
-	}
-
-	return nil
-}
-
-func (n *Node) getBroadcastHeader() func(data.HeaderHandler) error {
-	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
-		return n.BroadcastShardHeader
-	}
-
-	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return n.BroadcastMetaHeader
-	}
-
-	return nil
 }
 
 func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
@@ -542,7 +524,7 @@ func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor, shard
 		return ErrNilMessenger
 	}
 
-	n.consensusTopic = ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
+	n.consensusTopic = core.ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 	if n.messenger.HasTopicValidator(n.consensusTopic) {
 		return ErrValidatorAlreadySet
 	}
@@ -651,181 +633,6 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 	}
 
 	return account, nil
-}
-
-func (n *Node) sendMessage(cnsDta *consensus.Message) {
-	cnsDtaBuff, err := n.marshalizer.Marshal(cnsDta)
-	if err != nil {
-		log.Debug(err.Error())
-		return
-	}
-
-	n.messenger.Broadcast(
-		n.consensusTopic,
-		cnsDtaBuff)
-}
-
-// BroadcastShardBlock will send on intra shard topics the header and block body and on cross shard topics
-// the miniblocks. This func needs to be exported as it is tested in integrationTests package.
-// TODO: investigate if the body block needs to be sent on intra shard topic as each miniblock is already sent on cross
-//  shard topics
-func (n *Node) BroadcastShardBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
-	if blockBody == nil {
-		return ErrNilTxBlockBody
-	}
-
-	err := blockBody.IntegrityAndValidity()
-	if err != nil {
-		return err
-	}
-
-	if header == nil {
-		return ErrNilBlockHeader
-	}
-
-	msgHeader, err := n.marshalizer.Marshal(header)
-	if err != nil {
-		return err
-	}
-
-	msgBlockBody, err := n.marshalizer.Marshal(blockBody)
-	if err != nil {
-		return err
-	}
-
-	msgMapBlockBody, msgMapTx, err := n.blockProcessor.MarshalizedDataToBroadcast(header, blockBody)
-	if err != nil {
-		return err
-	}
-
-	go n.messenger.Broadcast(factory.HeadersTopic+
-		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgHeader)
-
-	go n.messenger.Broadcast(factory.MiniBlocksTopic+
-		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
-
-	for k, v := range msgMapBlockBody {
-		go n.messenger.Broadcast(factory.MiniBlocksTopic+
-			n.shardCoordinator.CommunicationIdentifier(k), v)
-	}
-
-	dataPacker, err := partitioning.NewSizeDataPacker(n.marshalizer)
-	if err != nil {
-		return err
-	}
-
-	for k, v := range msgMapTx {
-		// forward txs to the destination shards in packets
-		packets, err := dataPacker.PackDataInChunks(v, maxBulkTransactionSize)
-		if err != nil {
-			return err
-		}
-
-		for _, buff := range packets {
-			go n.messenger.Broadcast(factory.TransactionTopic+
-				n.shardCoordinator.CommunicationIdentifier(k), buff)
-		}
-	}
-
-	return nil
-}
-
-// BroadcastShardHeader will send on metachain topics the header
-func (n *Node) BroadcastShardHeader(header data.HeaderHandler) error {
-	if header == nil {
-		return ErrNilBlockHeader
-	}
-
-	msgHeader, err := n.marshalizer.Marshal(header)
-	if err != nil {
-		return err
-	}
-
-	if !n.isMetachainActive {
-		//TODO - remove this when metachain is fully tested. Should remove only "if" branch,
-		// the "else" branch should not be removed
-		msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
-		if err != nil {
-			return err
-		}
-
-		go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
-	} else {
-		shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
-			n.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
-
-		go n.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
-	}
-
-	return nil
-}
-
-// createMetaBlockFromBlockHeader func will be deleted when metachain will be fully implemented as its functionality
-// will be done by metachain nodes
-//TODO - delete this func when metachain is fully implemented
-func (n *Node) createMetaBlockFromBlockHeader(hdrHandler data.HeaderHandler, hdrBuff []byte) ([]byte, error) {
-	hdr, ok := hdrHandler.(*block.Header)
-	if !ok {
-		return nil, ErrWrongTypeAssertion
-	}
-
-	hdrHash := n.hasher.Compute(string(hdrBuff))
-
-	metaBlock := &block.MetaBlock{
-		Epoch:         hdr.Epoch,
-		Nonce:         hdr.Nonce,
-		PeerInfo:      make([]block.PeerData, 0),
-		PrevHash:      hdr.PrevHash,
-		PrevRandSeed:  hdr.PrevRandSeed,
-		PubKeysBitmap: hdr.PubKeysBitmap,
-		RandSeed:      hdr.RandSeed,
-		Round:         hdr.Round,
-		Signature:     hdr.Signature,
-		RootHash:      hdr.RootHash,
-		TimeStamp:     hdr.TimeStamp,
-		TxCount:       hdr.TxCount,
-		ShardInfo: []block.ShardData{
-			{
-				TxCount:               hdr.TxCount,
-				HeaderHash:            hdrHash,
-				ShardId:               hdr.ShardId,
-				ShardMiniBlockHeaders: make([]block.ShardMiniBlockHeader, len(hdr.MiniBlockHeaders)),
-			},
-		},
-	}
-
-	for idx, miniblockHdr := range hdr.MiniBlockHeaders {
-		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx] = block.ShardMiniBlockHeader{
-			TxCount:         miniblockHdr.TxCount,
-			Hash:            miniblockHdr.Hash,
-			ReceiverShardId: miniblockHdr.ReceiverShardID,
-			SenderShardId:   miniblockHdr.SenderShardID,
-		}
-	}
-
-	return n.marshalizer.Marshal(metaBlock)
-}
-
-// BroadcastMetaBlock will send on meta shard topics the header and on meta-to-shard topics
-// the header. This func needs to be exported as it is tested in integrationTests package.
-func (n *Node) BroadcastMetaBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
-	if header == nil {
-		return ErrNilMetaBlockHeader
-	}
-
-	msgHeader, err := n.marshalizer.Marshal(header)
-	if err != nil {
-		return err
-	}
-
-	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
-
-	return nil
-}
-
-// BroadcastMetaHeader will send on metachain topics the header
-func (n *Node) BroadcastMetaHeader(headerHandler data.HeaderHandler) error {
-	return nil
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module

@@ -25,12 +25,12 @@ func initSubroundBitmap() bn.SubroundBitmap {
 		"(BITMAP)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	srBitmap, _ := bn.NewSubroundBitmap(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -42,7 +42,6 @@ func TestSubroundBitmap_NewSubroundBitmapNilSubroundShouldFail(t *testing.T) {
 
 	srBitmap, err := bn.NewSubroundBitmap(
 		nil,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -66,6 +65,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilBlockProcessorShouldFail(t *testing.
 		"(BITMAP)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -73,7 +73,6 @@ func TestSubroundBitmap_NewSubroundBitmapNilBlockProcessorShouldFail(t *testing.
 
 	srBitmap, err := bn.NewSubroundBitmap(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -97,13 +96,13 @@ func TestSubroundBitmap_NewSubroundBitmapNilConsensusStateShouldFail(t *testing.
 		"(BITMAP)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	sr.ConsensusState = nil
 	srBitmap, err := bn.NewSubroundBitmap(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -127,6 +126,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilRounderShouldFail(t *testing.T) {
 		"(BITMAP)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -134,7 +134,6 @@ func TestSubroundBitmap_NewSubroundBitmapNilRounderShouldFail(t *testing.T) {
 
 	srBitmap, err := bn.NewSubroundBitmap(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -158,6 +157,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilSyncTimerShouldFail(t *testing.T) {
 		"(BITMAP)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
@@ -165,41 +165,11 @@ func TestSubroundBitmap_NewSubroundBitmapNilSyncTimerShouldFail(t *testing.T) {
 
 	srBitmap, err := bn.NewSubroundBitmap(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
 	assert.Nil(t, srBitmap)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
-}
-
-func TestSubroundBitmap_NewSubroundBitmapNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
-	t.Parallel()
-
-	consensusState := initConsensusState()
-	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
-
-	sr, _ := spos.NewSubround(
-		int(bn.SrCommitmentHash),
-		int(bn.SrBitmap),
-		int(bn.SrCommitment),
-		int64(40*roundTimeDuration/100),
-		int64(55*roundTimeDuration/100),
-		"(BITMAP)",
-		consensusState,
-		ch,
-		container,
-	)
-
-	srBitmap, err := bn.NewSubroundBitmap(
-		sr,
-		nil,
-		extend,
-	)
-
-	assert.Nil(t, srBitmap)
-	assert.Equal(t, spos.ErrNilSendConsensusMessageFunction, err)
 }
 
 func TestSubroundBitmap_NewSubroundBitmapShouldWork(t *testing.T) {
@@ -218,12 +188,12 @@ func TestSubroundBitmap_NewSubroundBitmapShouldWork(t *testing.T) {
 		"(BITMAP)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	srBitmap, err := bn.NewSubroundBitmap(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
