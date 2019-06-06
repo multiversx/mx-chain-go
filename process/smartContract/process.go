@@ -278,7 +278,8 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 		return nil, process.ErrInsufficientFunds
 	}
 
-	err := stAcc.SetBalanceWithJournal(operation.Sub(stAcc.Balance, operation))
+	totalCost := big.NewInt(0)
+	err := stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, operation))
 	if err != nil {
 		return nil, err
 	}

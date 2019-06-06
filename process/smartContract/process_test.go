@@ -27,9 +27,11 @@ func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.Ac
 	}
 
 	acntSrc, _ := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
-	acntSrc.Balance = tx.Value
+	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
+	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, totalFee)
+
 	acntDst, _ := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 
 	return acntSrc, acntDst
@@ -1221,8 +1223,8 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 
 func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	t.Parallel()
-	addrConv := &mock.AddressConverterMock{}
 
+	addrConv := &mock.AddressConverterMock{}
 	accountsDB := &mock.AccountsStub{}
 	removeCalled := 0
 	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -1261,4 +1263,147 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, len(deletedAccounts), removeCalled)
 	assert.Equal(t, len(deletedAccounts), computeIdCalled)
+}
+
+func TestScProcessor_ProcessSCPaymentAccNotInShard(t *testing.T) {
+	t.Parallel()
+
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.AtArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5))
+
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 1
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 10
+	tx.GasLimit = 10
+
+	totalPayed, err := sc.ProcessSCPayment(tx, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, tx.Value.Uint64()+(tx.GasLimit*tx.GasPrice), totalPayed.Uint64())
+
+	acntSnd, _ := createAccounts(tx)
+	acntSnd = nil
+
+	totalPayed, err = sc.ProcessSCPayment(tx, acntSnd)
+	assert.Nil(t, err)
+	assert.Equal(t, tx.Value.Uint64()+(tx.GasLimit*tx.GasPrice), totalPayed.Uint64())
+}
+
+func TestScProcessor_ProcessSCPaymentWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
+
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.AtArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5))
+
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 1
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 10
+	tx.GasLimit = 10
+
+	acntSrc := &mock.AccountWrapMock{}
+
+	totalPayed, err := sc.ProcessSCPayment(tx, acntSrc)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.Nil(t, totalPayed)
+}
+
+func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
+	t.Parallel()
+
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.AtArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5))
+
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 1
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 10
+	tx.GasLimit = 10
+
+	acntSrc, _ := createAccounts(tx)
+	stAcc, _ := acntSrc.(*state.Account)
+	stAcc.Balance = big.NewInt(45)
+
+	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+
+	totalPayed, err := sc.ProcessSCPayment(tx, acntSrc)
+	assert.Equal(t, process.ErrInsufficientFunds, err)
+	assert.Nil(t, totalPayed)
+	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
+}
+
+func TestScProcessor_ProcessSCPayment(t *testing.T) {
+	t.Parallel()
+
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.AtArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		&mock.FakeAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5))
+
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 1
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 10
+	tx.GasLimit = 10
+
+	toPay := tx.Value.Uint64() + tx.GasLimit*tx.GasLimit
+
+	acntSrc, _ := createAccounts(tx)
+	currBalance := acntSrc.(*state.Account).Balance.Uint64()
+	modifiedBalance := currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
+
+	totalPayed, err := sc.ProcessSCPayment(tx, acntSrc)
+	assert.Nil(t, err)
+	assert.Equal(t, toPay, totalPayed.Uint64())
+	assert.Equal(t, modifiedBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
