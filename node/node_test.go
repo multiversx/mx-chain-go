@@ -2,6 +2,7 @@ package node_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -15,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
@@ -568,11 +570,16 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 		},
 	}
 
+	marshalizer := &mock.MarshalizerFake{}
+	hasher := &mock.HasherFake{}
+	adrConverter := mock.NewAddressConverterFake(32, "0x")
+
 	n, _ := node.NewNode(
-		node.WithMarshalizer(&mock.MarshalizerFake{}),
-		node.WithAddressConverter(mock.NewAddressConverterFake(32, "0x")),
+		node.WithMarshalizer(marshalizer),
+		node.WithAddressConverter(adrConverter),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithMessenger(mes),
+		node.WithHasher(hasher),
 	)
 
 	nonce := uint64(50)
@@ -582,7 +589,10 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	txData := "data"
 	signature := []byte("signature")
 
-	tx, err := n.SendTransaction(
+	senderBuff, _ := adrConverter.CreateAddressFromHex(sender)
+	receiverBuff, _ := adrConverter.CreateAddressFromHex(receiver)
+
+	txHexHashResulted, err := n.SendTransaction(
 		nonce,
 		sender,
 		receiver,
@@ -590,8 +600,18 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 		txData,
 		signature)
 
+	marshalizedTx, _ := marshalizer.Marshal(&transaction.Transaction{
+		Nonce:     nonce,
+		Value:     value,
+		SndAddr:   senderBuff.Bytes(),
+		RcvAddr:   receiverBuff.Bytes(),
+		Data:      []byte(txData),
+		Signature: signature,
+	})
+	txHexHashExpected := hex.EncodeToString(hasher.Compute(string(marshalizedTx)))
+
 	assert.Nil(t, err)
-	assert.NotNil(t, tx)
+	assert.Equal(t, txHexHashExpected, txHexHashResulted)
 	assert.True(t, txSent)
 }
 
