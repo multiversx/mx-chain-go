@@ -53,11 +53,11 @@ func GetBroadcastMessenger(
 ) (consensus.BroadcastMessenger, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return broadcast.NewShardChain(marshalizer, messenger, shardCoordinator, privateKey, singleSigner, syncTimer)
+		return broadcast.NewShardChainMessenger(marshalizer, messenger, privateKey, shardCoordinator, singleSigner, syncTimer)
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return broadcast.NewMetaChain(marshalizer, messenger, privateKey, shardCoordinator, singleSigner)
+		return broadcast.NewMetaChainMessenger(marshalizer, messenger, privateKey, shardCoordinator, singleSigner)
 	}
 
 	return nil, ErrInvalidShardId

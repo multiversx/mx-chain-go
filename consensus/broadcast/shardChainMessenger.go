@@ -15,30 +15,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
-type shardChain struct {
-	*common
+type shardChainMessenger struct {
+	*commonMessenger
 	marshalizer      marshal.Marshalizer
 	messenger        consensus.P2PMessenger
 	shardCoordinator sharding.Coordinator
 	syncTimer        ntp.SyncTimer
 }
 
-// NewShardChain creates a new shardChain object
-func NewShardChain(
+// NewShardChainMessenger creates a new shardChainMessenger object
+func NewShardChainMessenger(
 	marshalizer marshal.Marshalizer,
 	messenger consensus.P2PMessenger,
-	shardCoordinator sharding.Coordinator,
 	privateKey crypto.PrivateKey,
+	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
-) (*shardChain, error) {
+) (*shardChainMessenger, error) {
 
 	err := checkShardChainNilParameters(marshalizer, messenger, shardCoordinator, privateKey, singleSigner, syncTimer)
 	if err != nil {
 		return nil, err
 	}
 
-	cm := &common{
+	cm := &commonMessenger{
 		marshalizer:      marshalizer,
 		messenger:        messenger,
 		privateKey:       privateKey,
@@ -46,15 +46,15 @@ func NewShardChain(
 		singleSigner:     singleSigner,
 	}
 
-	sc := &shardChain{
-		common:           cm,
+	scm := &shardChainMessenger{
+		commonMessenger:  cm,
 		marshalizer:      marshalizer,
 		messenger:        messenger,
 		shardCoordinator: shardCoordinator,
 		syncTimer:        syncTimer,
 	}
 
-	return sc, nil
+	return scm, nil
 }
 
 func checkShardChainNilParameters(
@@ -87,8 +87,8 @@ func checkShardChainNilParameters(
 	return nil
 }
 
-// BroadcastBlock will send on intra shard topics the header and block body
-func (sc *shardChain) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
+// BroadcastBlock will send on in-shard headers topic and on in-shard miniblocks topic the header and block body
+func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
 	if blockBody == nil {
 		return spos.ErrNilBody
 	}
@@ -102,66 +102,69 @@ func (sc *shardChain) BroadcastBlock(blockBody data.BodyHandler, header data.Hea
 		return spos.ErrNilHeader
 	}
 
-	msgHeader, err := sc.marshalizer.Marshal(header)
+	msgHeader, err := scm.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
 
-	msgBlockBody, err := sc.marshalizer.Marshal(blockBody)
+	msgBlockBody, err := scm.marshalizer.Marshal(blockBody)
 	if err != nil {
 		return err
 	}
 
-	selfIdentifier := sc.shardCoordinator.CommunicationIdentifier(sc.shardCoordinator.SelfId())
+	selfIdentifier := scm.shardCoordinator.CommunicationIdentifier(scm.shardCoordinator.SelfId())
 
-	go sc.messenger.Broadcast(factory.HeadersTopic+selfIdentifier, msgHeader)
-
-	//TODO: Investigate if the body block needs to be sent on intra shard topic as each miniblock is already sent on cross shard topics
-	go sc.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
+	go scm.messenger.Broadcast(factory.HeadersTopic+selfIdentifier, msgHeader)
+	go scm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
 
 	return nil
 }
 
-// BroadcastHeader will send on metachain topics the header
-func (sc *shardChain) BroadcastHeader(header data.HeaderHandler) error {
+// BroadcastHeader will send on shard headers for metachain topic the header
+func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
 	if header == nil {
 		return spos.ErrNilHeader
 	}
 
-	msgHeader, err := sc.marshalizer.Marshal(header)
+	msgHeader, err := scm.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
 
 	shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
-		sc.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
+		scm.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
 
-	go sc.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
+	go scm.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
 
 	return nil
 }
 
-// BroadcastMiniBlocks will send on miniblock topic the miniblocks
-func (sc *shardChain) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) error {
+// BroadcastMiniBlocks will send on miniblocks topic the cross-shard miniblocks
+func (scm *shardChainMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) error {
 	mbs := 0
 	for k, v := range miniBlocks {
+		// if miniblock is inshard then is not necessary to be send, as the blockbody is already sent at this point
+		if k == scm.shardCoordinator.SelfId() {
+			continue
+		}
+
 		mbs++
 		miniBlocksTopic := factory.MiniBlocksTopic +
-			sc.shardCoordinator.CommunicationIdentifier(k)
+			scm.shardCoordinator.CommunicationIdentifier(k)
 
-		go sc.messenger.Broadcast(miniBlocksTopic, v)
+		go scm.messenger.Broadcast(miniBlocksTopic, v)
 	}
 
 	if mbs > 0 {
-		log.Info(fmt.Sprintf("%sStep 1: Sent %d miniblocks\n", sc.syncTimer.FormattedCurrentTime(), mbs))
+		log.Info(fmt.Sprintf("%sStep 1: Sent %d miniblocks\n", scm.syncTimer.FormattedCurrentTime(), mbs))
 	}
 
 	return nil
 }
 
 // BroadcastTransactions will send on transaction topic the transactions
-func (sc *shardChain) BroadcastTransactions(transactions map[uint32][][]byte) error {
-	dataPacker, err := partitioning.NewSizeDataPacker(sc.marshalizer)
+func (scm *shardChainMessenger) BroadcastTransactions(transactions map[uint32][][]byte) error {
+	dataPacker, err := partitioning.NewSizeDataPacker(scm.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -177,14 +180,14 @@ func (sc *shardChain) BroadcastTransactions(transactions map[uint32][][]byte) er
 
 		for _, buff := range packets {
 			transactionTopic := factory.TransactionTopic +
-				sc.shardCoordinator.CommunicationIdentifier(k)
+				scm.shardCoordinator.CommunicationIdentifier(k)
 
-			go sc.messenger.Broadcast(transactionTopic, buff)
+			go scm.messenger.Broadcast(transactionTopic, buff)
 		}
 	}
 
 	if txs > 0 {
-		log.Info(fmt.Sprintf("%sStep 1: Sent %d transactions\n", sc.syncTimer.FormattedCurrentTime(), txs))
+		log.Info(fmt.Sprintf("%sStep 1: Sent %d transactions\n", scm.syncTimer.FormattedCurrentTime(), txs))
 	}
 
 	return nil

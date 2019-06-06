@@ -10,41 +10,41 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
-type metaChain struct {
-	*common
+type metaChainMessenger struct {
+	*commonMessenger
 	marshalizer marshal.Marshalizer
 	messenger   consensus.P2PMessenger
 }
 
-// NewMetaChain creates a new metaChain object
-func NewMetaChain(
+// NewMetaChainMessenger creates a new metaChainMessenger object
+func NewMetaChainMessenger(
 	marshalizer marshal.Marshalizer,
 	messenger consensus.P2PMessenger,
 	privateKey crypto.PrivateKey,
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
-) (*metaChain, error) {
+) (*metaChainMessenger, error) {
 
 	err := checkMetaChainNilParameters(marshalizer, messenger, privateKey, shardCoordinator, singleSigner)
 	if err != nil {
 		return nil, err
 	}
 
-	cm := &common{
+	cm := &commonMessenger{
 		marshalizer:      marshalizer,
 		messenger:        messenger,
 		privateKey:       privateKey,
-		singleSigner:     singleSigner,
 		shardCoordinator: shardCoordinator,
+		singleSigner:     singleSigner,
 	}
 
-	mc := &metaChain{
-		common:      cm,
-		marshalizer: marshalizer,
-		messenger:   messenger,
+	mcm := &metaChainMessenger{
+		commonMessenger: cm,
+		marshalizer:     marshalizer,
+		messenger:       messenger,
 	}
 
-	return mc, nil
+	return mcm, nil
 }
 
 func checkMetaChainNilParameters(
@@ -73,38 +73,38 @@ func checkMetaChainNilParameters(
 	return nil
 }
 
-// BroadcastBlock will send on meta shard topics and on meta-to-shard topics the header
-func (mc *metaChain) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
+// BroadcastBlock will send on metachain blocks topic the header
+func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
 	if header == nil {
 		return spos.ErrNilMetaHeader
 	}
 
-	msgHeader, err := mc.marshalizer.Marshal(header)
+	msgHeader, err := mcm.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
 
-	go mc.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+	go mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
 
 	return nil
 }
 
-// BroadcastHeader will send on mini block topic the mini blocks
-func (mc *metaChain) BroadcastHeader(header data.HeaderHandler) error {
+// BroadcastHeader will send on meta-to-shards topic the header
+func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
 	// meta chain does not need to broadcast separately the header, as it have no body and BroadcastBlock does all
 	// the job for it, but this method is created to satisfy the BroadcastMessenger interface
 	return nil
 }
 
-// BroadcastMiniBlocks will send on mini block topic the mini blocks
-func (mc *metaChain) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) error {
+// BroadcastMiniBlocks will send on miniblocks topic the miniblocks
+func (mcm *metaChainMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) error {
 	// meta chain does not need to broadcast miniblocks but this method is created to satisfy the BroadcastMessenger
 	// interface
 	return nil
 }
 
 // BroadcastTransactions will send on transaction topic the transactions
-func (mc *metaChain) BroadcastTransactions(transactions map[uint32][][]byte) error {
+func (mcm *metaChainMessenger) BroadcastTransactions(transactions map[uint32][][]byte) error {
 	// meta chain does not need to broadcast transactions but this method is created to satisfy the BroadcastMessenger
 	// interface
 	return nil

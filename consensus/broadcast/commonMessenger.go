@@ -11,7 +11,7 @@ import (
 
 var log = logger.DefaultLogger()
 
-type common struct {
+type commonMessenger struct {
 	marshalizer      marshal.Marshalizer
 	messenger        consensus.P2PMessenger
 	privateKey       crypto.PrivateKey
@@ -19,35 +19,35 @@ type common struct {
 	singleSigner     crypto.SingleSigner
 }
 
-// BroadcastConsensusMessage will send on consensus topics the consensus message
-func (c *common) BroadcastConsensusMessage(message *consensus.Message) error {
-	signature, err := c.signMessage(message)
+// BroadcastConsensusMessage will send on consensus topic the consensus message
+func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message) error {
+	signature, err := cm.signMessage(message)
 	if err != nil {
 		return err
 	}
 
 	message.Signature = signature
 
-	buff, err := c.marshalizer.Marshal(message)
+	buff, err := cm.marshalizer.Marshal(message)
 	if err != nil {
 		return err
 	}
 
 	consensusTopic := core.ConsensusTopic +
-		c.shardCoordinator.CommunicationIdentifier(c.shardCoordinator.SelfId())
+		cm.shardCoordinator.CommunicationIdentifier(cm.shardCoordinator.SelfId())
 
-	go c.messenger.Broadcast(consensusTopic, buff)
+	go cm.messenger.Broadcast(consensusTopic, buff)
 
 	return nil
 }
 
-func (c *common) signMessage(message *consensus.Message) ([]byte, error) {
-	buff, err := c.marshalizer.Marshal(message)
+func (cm *commonMessenger) signMessage(message *consensus.Message) ([]byte, error) {
+	buff, err := cm.marshalizer.Marshal(message)
 	if err != nil {
 		return nil, err
 	}
 
-	signature, err := c.singleSigner.Sign(c.privateKey, buff)
+	signature, err := cm.singleSigner.Sign(cm.privateKey, buff)
 	if err != nil {
 		return nil, err
 	}

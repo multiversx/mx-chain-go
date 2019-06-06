@@ -398,50 +398,6 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 	return chr, nil
 }
 
-//// BroadcastBlock returns a function used for broadcast blocks
-//func (n *Node) BroadcastBlock() func(data.BodyHandler, data.HeaderHandler) error {
-//	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
-//		return n.broadcastShardBlock
-//	}
-//
-//	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
-//		return n.broadcastMetaBlock
-//	}
-//
-//	return nil
-//}
-//
-//// BroadcastHeader returns a function used for broadcast headers
-//func (n *Node) BroadcastHeader() func(data.HeaderHandler) error {
-//	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
-//		return n.broadcastShardHeader
-//	}
-//
-//	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
-//		return n.broadcastMetaHeader
-//	}
-//
-//	return nil
-//}
-//
-//// BroadcastMiniBlocksAndTransactions returns a function used for broadcast transactions
-//func (n *Node) BroadcastMiniBlocksAndTransactions() func(data.BodyHandler, data.HeaderHandler) error {
-//	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
-//		return n.broadcastMiniBlocksAndTransactions
-//	}
-//
-//	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
-//		return n.broadcastMetaShardHeaders
-//	}
-//
-//	return nil
-//}
-//
-//// BroadcastConsensusMessage returns a function used for broadcast consensus messages
-//func (n *Node) BroadcastConsensusMessage() func(*consensus.Message) error {
-//	return n.broadcastConsensusMessage
-//}
-
 func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
 	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
 		return n.createShardBootstrapper(rounder)
