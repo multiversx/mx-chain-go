@@ -19,14 +19,11 @@ type SubroundBlock struct {
 	mtBlockHeader                 int
 	processingThresholdPercentage int
 	getSubroundName               func(subroundId int) string
-
-	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundBlock creates a SubroundBlock object
 func NewSubroundBlock(
 	baseSubround *spos.Subround,
-	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 	mtBlockBody int,
 	mtBlockHeader int,
@@ -35,7 +32,6 @@ func NewSubroundBlock(
 ) (*SubroundBlock, error) {
 	err := checkNewSubroundBlockParams(
 		baseSubround,
-		sendConsensusMessage,
 	)
 	if err != nil {
 		return nil, err
@@ -47,7 +43,6 @@ func NewSubroundBlock(
 		mtBlockHeader,
 		processingThresholdPercentage,
 		getSubroundName,
-		sendConsensusMessage,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -59,7 +54,6 @@ func NewSubroundBlock(
 
 func checkNewSubroundBlockParams(
 	baseSubround *spos.Subround,
-	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if baseSubround == nil {
 		return spos.ErrNilSubround
@@ -67,10 +61,6 @@ func checkNewSubroundBlockParams(
 
 	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
-	}
-
-	if sendConsensusMessage == nil {
-		return spos.ErrNilSendConsensusMessageFunction
 	}
 
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
@@ -97,13 +87,38 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	err := sr.SetSelfJobDone(sr.Current(), true)
+	err := sr.broadcastMiniBlocksAndTransactions()
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
+	err = sr.SetSelfJobDone(sr.Current(), true)
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
 	return true
+}
+
+func (sr *SubroundBlock) broadcastMiniBlocksAndTransactions() error {
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.BlockBody)
+	if err != nil {
+		return err
+	}
+
+	err = sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
+	if err != nil {
+		return err
+	}
+
+	err = sr.BroadcastMessenger().BroadcastTransactions(transactions)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // sendBlockBody method job the proposed block body in the subround Block
@@ -113,11 +128,6 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 	maxTime := time.Duration(sr.EndTime())
 	haveTimeInCurrentSubround := func() bool {
 		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
-	}
-
-	if sr.Rounder().Index() < 0 {
-		log.Error("invalid round, round must be always > 0")
-		return false
 	}
 
 	blockBody, err := sr.BlockProcessor().CreateBlockBody(
@@ -144,7 +154,9 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
 
-	if !sr.sendConsensusMessage(msg) {
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
+	if err != nil {
+		log.Error(err.Error())
 		return false
 	}
 
@@ -180,7 +192,9 @@ func (sr *SubroundBlock) sendBlockHeader() bool {
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
 
-	if !sr.sendConsensusMessage(msg) {
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
+	if err != nil {
+		log.Error(err.Error())
 		return false
 	}
 

@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
@@ -63,14 +65,15 @@ func init() {
 }
 
 type testNode struct {
-	node          *node.Node
-	messenger     p2p.Messenger
-	sk            crypto.PrivateKey
-	pk            crypto.PublicKey
-	shard         string
-	shardDataPool dataRetriever.PoolsHolder
-	metaDataPool  dataRetriever.MetaPoolsHolder
-	resolvers     dataRetriever.ResolversFinder
+	node               *node.Node
+	messenger          p2p.Messenger
+	sk                 crypto.PrivateKey
+	pk                 crypto.PublicKey
+	shard              string
+	shardDataPool      dataRetriever.PoolsHolder
+	metaDataPool       dataRetriever.MetaPoolsHolder
+	resolvers          dataRetriever.ResolversFinder
+	broadcastMessenger consensus.BroadcastMessenger
 
 	shardHdrRecv     int32
 	metachainHdrRecv int32
@@ -334,6 +337,15 @@ func createShardNetNode(
 		requestHandler,
 	)
 
+	tn.broadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
+		testMarshalizer,
+		tn.messenger,
+		shardCoordinator,
+		sk,
+		singleSigner,
+		&mock.SyncTimerMock{},
+	)
+
 	n, err := node.NewNode(
 		node.WithMessenger(tn.messenger),
 		node.WithMarshalizer(testMarshalizer),
@@ -487,6 +499,15 @@ func createMetaNetNode(
 		store,
 		createGenesisBlocks(shardCoordinator),
 		requestHandler,
+	)
+
+	tn.broadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
+		testMarshalizer,
+		tn.messenger,
+		shardCoordinator,
+		sk,
+		singleSigner,
+		&mock.SyncTimerMock{},
 	)
 
 	n, err := node.NewNode(

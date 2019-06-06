@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -20,29 +19,25 @@ import (
 
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
-	consensusService ConsensusService
-	blockProcessor   process.BlockProcessor
-	blockTracker     process.BlocksTracker
-	bootstraper      process.Bootstrapper
-	consensusState   *ConsensusState
-	forkDetector     process.ForkDetector
-	keyGenerator     crypto.KeyGenerator
-	marshalizer      marshal.Marshalizer
-	privateKey       crypto.PrivateKey
-	rounder          consensus.Rounder
-	shardCoordinator sharding.Coordinator
-	singleSigner     crypto.SingleSigner
-	syncTimer        ntp.SyncTimer
+	consensusService   ConsensusService
+	blockProcessor     process.BlockProcessor
+	blockTracker       process.BlocksTracker
+	bootstraper        process.Bootstrapper
+	broadcastMessenger consensus.BroadcastMessenger
+	consensusState     *ConsensusState
+	forkDetector       process.ForkDetector
+	keyGenerator       crypto.KeyGenerator
+	marshalizer        marshal.Marshalizer
+	rounder            consensus.Rounder
+	shardCoordinator   sharding.Coordinator
+	singleSigner       crypto.SingleSigner
+	syncTimer          ntp.SyncTimer
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
 
 	executeMessageChannel        chan *consensus.Message
 	consensusStateChangedChannel chan bool
-
-	broadcastBlock  func(data.BodyHandler, data.HeaderHandler) error
-	broadcastHeader func(data.HeaderHandler) error
-	sendMessage     func(consensus *consensus.Message)
 
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
@@ -54,58 +49,49 @@ func NewWorker(
 	blockProcessor process.BlockProcessor,
 	blockTracker process.BlocksTracker,
 	bootstraper process.Bootstrapper,
+	broadcastMessenger consensus.BroadcastMessenger,
 	consensusState *ConsensusState,
 	forkDetector process.ForkDetector,
 	keyGenerator crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
-	privateKey crypto.PrivateKey,
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
-	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
-	broadcastHeader func(data.HeaderHandler) error,
-	sendMessage func(consensus *consensus.Message),
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
 		consensusService,
 		blockProcessor,
 		blockTracker,
 		bootstraper,
+		broadcastMessenger,
 		consensusState,
 		forkDetector,
 		keyGenerator,
 		marshalizer,
-		privateKey,
 		rounder,
 		shardCoordinator,
 		singleSigner,
 		syncTimer,
-		broadcastBlock,
-		broadcastHeader,
-		sendMessage,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	wrk := Worker{
-		consensusService: consensusService,
-		blockProcessor:   blockProcessor,
-		blockTracker:     blockTracker,
-		bootstraper:      bootstraper,
-		consensusState:   consensusState,
-		forkDetector:     forkDetector,
-		keyGenerator:     keyGenerator,
-		marshalizer:      marshalizer,
-		privateKey:       privateKey,
-		rounder:          rounder,
-		shardCoordinator: shardCoordinator,
-		singleSigner:     singleSigner,
-		syncTimer:        syncTimer,
-		broadcastBlock:   broadcastBlock,
-		broadcastHeader:  broadcastHeader,
-		sendMessage:      sendMessage,
+		consensusService:   consensusService,
+		blockProcessor:     blockProcessor,
+		blockTracker:       blockTracker,
+		bootstraper:        bootstraper,
+		broadcastMessenger: broadcastMessenger,
+		consensusState:     consensusState,
+		forkDetector:       forkDetector,
+		keyGenerator:       keyGenerator,
+		marshalizer:        marshalizer,
+		rounder:            rounder,
+		shardCoordinator:   shardCoordinator,
+		singleSigner:       singleSigner,
+		syncTimer:          syncTimer,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -124,18 +110,15 @@ func checkNewWorkerParams(
 	blockProcessor process.BlockProcessor,
 	blockTracker process.BlocksTracker,
 	bootstraper process.Bootstrapper,
+	broadcastMessenger consensus.BroadcastMessenger,
 	consensusState *ConsensusState,
 	forkDetector process.ForkDetector,
 	keyGenerator crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
-	privateKey crypto.PrivateKey,
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
-	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
-	broadcastHeader func(data.HeaderHandler) error,
-	sendMessage func(consensus *consensus.Message),
 ) error {
 	if consensusService == nil {
 		return ErrNilConsensusService
@@ -149,6 +132,9 @@ func checkNewWorkerParams(
 	if bootstraper == nil {
 		return ErrNilBlootstraper
 	}
+	if broadcastMessenger == nil {
+		return ErrNilBroadcastMessenger
+	}
 	if consensusState == nil {
 		return ErrNilConsensusState
 	}
@@ -161,9 +147,6 @@ func checkNewWorkerParams(
 	if marshalizer == nil {
 		return ErrNilMarshalizer
 	}
-	if privateKey == nil {
-		return ErrNilPrivateKey
-	}
 	if rounder == nil {
 		return ErrNilRounder
 	}
@@ -175,15 +158,6 @@ func checkNewWorkerParams(
 	}
 	if syncTimer == nil {
 		return ErrNilSyncTimer
-	}
-	if broadcastBlock == nil {
-		return ErrNilBroadcastBlock
-	}
-	if broadcastHeader == nil {
-		return ErrNilBroadcastHeader
-	}
-	if sendMessage == nil {
-		return ErrNilSendMessage
 	}
 
 	return nil
@@ -397,41 +371,6 @@ func (wrk *Worker) checkChannels() {
 	}
 }
 
-// SendConsensusMessage sends the consensus message
-func (wrk *Worker) SendConsensusMessage(cnsDta *consensus.Message) bool {
-	signature, err := wrk.genConsensusDataSignature(cnsDta)
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	signedCnsData := *cnsDta
-	signedCnsData.Signature = signature
-
-	if wrk.sendMessage == nil {
-		log.Error("sendMessage call back function is not set\n")
-		return false
-	}
-
-	go wrk.sendMessage(&signedCnsData)
-
-	return true
-}
-
-func (wrk *Worker) genConsensusDataSignature(cnsDta *consensus.Message) ([]byte, error) {
-	cnsDtaStr, err := wrk.marshalizer.Marshal(cnsDta)
-	if err != nil {
-		return nil, err
-	}
-
-	signature, err := wrk.singleSigner.Sign(wrk.privateKey, cnsDtaStr)
-	if err != nil {
-		return nil, err
-	}
-
-	return signature, nil
-}
-
 //Extend does an extension for the subround with subroundId
 func (wrk *Worker) Extend(subroundId int) {
 	log.Info(fmt.Sprintf("extend function is called from subround: %s\n",
@@ -453,11 +392,6 @@ func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 	return wrk.consensusStateChangedChannel
 }
 
-//BroadcastBlock does a broadcast of the blockBody and blockHeader
-func (wrk *Worker) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
-	return wrk.broadcastBlock(body, header)
-}
-
 //BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet
 func (wrk *Worker) BroadcastUnnotarisedBlocks() {
 	headers := wrk.blockTracker.UnnotarisedBlocks()
@@ -471,9 +405,9 @@ func (wrk *Worker) BroadcastUnnotarisedBlocks() {
 			continue
 		}
 
-		err := wrk.broadcastHeader(header)
+		err := wrk.broadcastMessenger.BroadcastHeader(header)
 		if err != nil {
-			log.Error(err.Error())
+			log.Info(err.Error())
 			continue
 		}
 

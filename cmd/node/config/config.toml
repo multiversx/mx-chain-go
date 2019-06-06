@@ -5,7 +5,7 @@
    DestinationShardAsObserver = "0"
 
 [Explorer]
-    Enabled = true
+    Enabled = false
     IndexerURL = "http://localhost:9200"
 
 [MiniBlocksStorage]
@@ -118,23 +118,19 @@
 
 [MetaHeaderNoncesDataPool]
     Size = 100000
-    Type = "FIFOSharded"
-    Shards = 128
+    Type = "LRU"
 
 [TxDataPool]
     Size = 100000
-    Type = "FIFOSharded"
-    Shards = 128
+    Type = "LRU"
 
 [ShardHeadersDataPool]
     Size = 10000
-    Type = "FIFOSharded"
-    Shards = 128
+    Type = "LRU"
 
 [MiniBlockHeaderHashesDataPool]
     Size = 10000
-    Type = "FIFOSharded"
-    Shards = 128
+    Type = "LRU"
 
 [MetaBlockBodyDataPool]
     Size = 1000

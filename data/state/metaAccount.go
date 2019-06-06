@@ -17,6 +17,7 @@ type MiniBlockData struct {
 // MetaAccount is the struct used in serialization/deserialization
 type MetaAccount struct {
 	Round         uint64
+	Nonce         uint64
 	TxCount       *big.Int
 	CodeHash      []byte
 	RootHash      []byte
@@ -148,6 +149,19 @@ func (a *MetaAccount) SetCode(code []byte) {
 	a.code = code
 }
 
+// SetCodeWithJournal sets the account's code, saving the old code before changing
+func (a *MetaAccount) SetCodeWithJournal(code []byte) error {
+	entry, err := NewBaseJournalEntryCode(a, a.code)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.code = code
+
+	return a.accountTracker.SaveAccount(a)
+}
+
 //------- data trie / root hash
 
 // GetRootHash returns the root hash associated with this account
@@ -171,6 +185,29 @@ func (a *MetaAccount) SetRootHashWithJournal(rootHash []byte) error {
 	a.RootHash = rootHash
 
 	return a.accountTracker.SaveAccount(a)
+}
+
+// SetNonceWithJournal sets the account's nonce, saving the old nonce before changing
+func (a *MetaAccount) SetNonceWithJournal(nonce uint64) error {
+	entry, err := NewJournalEntryNonce(a, a.Nonce)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.Nonce = nonce
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+//SetNonce saves the nonce to the account
+func (a *MetaAccount) SetNonce(nonce uint64) {
+	a.Nonce = nonce
+}
+
+// GetNonce gets the nonce of the account
+func (a *MetaAccount) GetNonce() uint64 {
+	return a.Nonce
 }
 
 // DataTrie returns the trie that holds the current account's data
