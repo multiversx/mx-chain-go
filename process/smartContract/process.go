@@ -331,9 +331,7 @@ func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transact
 
 // give back the user the unused gas money
 func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, tx *transaction.Transaction, acntSnd state.AccountHandler) error {
-	txPaidFee := big.NewInt(0)
-	txPaidFee = txPaidFee.Mul(big.NewInt(int64(tx.GasPrice)), big.NewInt(int64(tx.GasLimit)))
-	if gasRefund == nil || gasRefund.Cmp(txPaidFee) <= 0 {
+	if gasRefund == nil || gasRefund.Cmp(big.NewInt(0)) <= 0 {
 		return nil
 	}
 
