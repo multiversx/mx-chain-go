@@ -83,7 +83,7 @@ func (c *FIFOShardedCache) HasOrAdd(key []byte, value interface{}) (found, evict
 		c.callAddedDataHandlers(key)
 	}
 
-	return found, true
+	return !added, true
 }
 
 func (c *FIFOShardedCache) callAddedDataHandlers(key []byte) {
