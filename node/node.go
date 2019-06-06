@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -545,20 +546,20 @@ func (n *Node) SendTransaction(
 	receiverHex string,
 	value *big.Int,
 	transactionData string,
-	signature []byte) (*transaction.Transaction, error) {
+	signature []byte) (string, error) {
 
 	if n.shardCoordinator == nil {
-		return nil, ErrNilShardCoordinator
+		return "", ErrNilShardCoordinator
 	}
 
 	sender, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	receiver, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	senderShardId := n.shardCoordinator.ComputeId(sender)
@@ -574,12 +575,14 @@ func (n *Node) SendTransaction(
 
 	txBuff, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
+
+	txHexHash := hex.EncodeToString(n.hasher.Compute(string(txBuff)))
 
 	marshalizedTx, err := n.marshalizer.Marshal([][]byte{txBuff})
 	if err != nil {
-		return nil, errors.New("could not marshal transaction")
+		return "", errors.New("could not marshal transaction")
 	}
 
 	//the topic identifier is made of the current shard id and sender's shard id
@@ -591,7 +594,7 @@ func (n *Node) SendTransaction(
 		marshalizedTx,
 	)
 
-	return &tx, nil
+	return txHexHash, nil
 }
 
 //GetTransaction gets the transaction
