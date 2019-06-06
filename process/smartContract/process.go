@@ -284,6 +284,11 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 		return nil, err
 	}
 
+	err = stAcc.SetNonceWithJournal(stAcc.GetNonce() + 1)
+	if err != nil {
+		return nil, err
+	}
+
 	return operation, nil
 }
 

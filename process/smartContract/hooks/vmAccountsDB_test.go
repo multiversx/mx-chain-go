@@ -284,3 +284,44 @@ func TestVMAccountsDB_GetCodeShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, code, retrievedCode)
 }
+
+func TestVMAccountsDB_CleanFakeAccounts(t *testing.T) {
+	t.Parallel()
+
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, &mock.AddressConverterMock{})
+
+	address := []byte("test")
+	vadb.CreateFakeAccounts(address, big.NewInt(10), 10)
+	vadb.CleanFakeAccounts()
+
+	acc := vadb.GetFakeAccount(address)
+	assert.Nil(t, acc)
+}
+
+func TestVMAccountsDB_CreateAndGetFakeAccounts(t *testing.T) {
+	t.Parallel()
+
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, &mock.AddressConverterMock{})
+
+	address := []byte("test")
+	nonce := uint64(10)
+	vadb.CreateFakeAccounts(address, big.NewInt(10), nonce)
+
+	acc := vadb.GetFakeAccount(address)
+	assert.NotNil(t, acc)
+	assert.Equal(t, nonce, acc.GetNonce())
+}
+
+func TestVMAccountsDB_GetNonceFromFakeAccount(t *testing.T) {
+	t.Parallel()
+
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, &mock.AddressConverterMock{})
+
+	address := []byte("test")
+	nonce := uint64(10)
+	vadb.CreateFakeAccounts(address, big.NewInt(10), nonce)
+
+	getNonce, err := vadb.GetNonce(address)
+	assert.Nil(t, err)
+	assert.Equal(t, nonce, getNonce.Uint64())
+}
