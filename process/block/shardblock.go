@@ -1047,7 +1047,7 @@ func (sp *shardProcessor) processMiniBlockComplete(
 		return process.ErrNilTransactionPool
 	}
 
-	miniBlockTxs, _, err := sp.getAllTxsFromMiniBlock(miniBlock, haveTime)
+	miniBlockTxs, miniBlockTxHashes, err := sp.getAllTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return err
 	}
@@ -1064,6 +1064,7 @@ func (sp *shardProcessor) processMiniBlockComplete(
 			break
 		}
 	}
+
 	// all txs from miniblock has to be processed together
 	if err != nil {
 		log.Error(err.Error())
@@ -1072,8 +1073,17 @@ func (sp *shardProcessor) processMiniBlockComplete(
 			// TODO: evaluate if reloading the trie from disk will might solve the problem
 			log.Error(errAccountState.Error())
 		}
+
+		return err
 	}
-	return err
+
+	sp.mutTxsForBlock.Lock()
+	for index, txHash := range miniBlockTxHashes {
+		sp.txsForBlock[string(txHash)] = miniBlockTxs[index]
+	}
+	sp.mutTxsForBlock.Unlock()
+
+	return nil
 }
 
 func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header) error {

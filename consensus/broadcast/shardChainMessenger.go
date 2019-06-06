@@ -143,11 +143,6 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 func (scm *shardChainMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) error {
 	mbs := 0
 	for k, v := range miniBlocks {
-		// if miniblock is inshard then is not necessary to be send, as the blockbody is already sent at this point
-		if k == scm.shardCoordinator.SelfId() {
-			continue
-		}
-
 		mbs++
 		miniBlocksTopic := factory.MiniBlocksTopic +
 			scm.shardCoordinator.CommunicationIdentifier(k)
