@@ -6,6 +6,7 @@ require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/ElrondNetwork/concurrent-map v0.1.1
+	github.com/ElrondNetwork/elrond-vm-common v0.0.4
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/beevik/ntp v0.2.0
 	github.com/boltdb/bolt v1.3.1
@@ -21,6 +22,7 @@ require (
 	github.com/glycerine/rbtree v0.0.0-20180524195614-80eebfe947f7 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/gogo/protobuf v1.2.1
+	github.com/golang/protobuf v1.3.0
 	github.com/google/gops v0.3.6
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
 	github.com/hashicorp/golang-lru v0.5.1
