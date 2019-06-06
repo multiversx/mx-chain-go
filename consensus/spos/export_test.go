@@ -3,7 +3,6 @@ package spos
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
@@ -34,6 +33,14 @@ func (wrk *Worker) Bootstraper() process.Bootstrapper {
 
 func (wrk *Worker) SetBootstraper(bootstraper process.Bootstrapper) {
 	wrk.bootstraper = bootstraper
+}
+
+func (wrk *Worker) BroadcastMessenger() consensus.BroadcastMessenger {
+	return wrk.broadcastMessenger
+}
+
+func (wrk *Worker) SetBroadcastMessenger(broadcastMessenger consensus.BroadcastMessenger) {
+	wrk.broadcastMessenger = broadcastMessenger
 }
 
 func (wrk *Worker) ConsensusState() *ConsensusState {
@@ -138,16 +145,4 @@ func (wrk *Worker) SetConsensusStateChangedChannel(consensusStateChangedChannel 
 
 func (wrk *Worker) CheckSelfState(cnsDta *consensus.Message) error {
 	return wrk.checkSelfState(cnsDta)
-}
-
-func (wrk *Worker) SetSendMessage(sendMessage func(consensus *consensus.Message)) {
-	wrk.sendMessage = sendMessage
-}
-
-func (wrk *Worker) SetBroadcastBlock(broadcastBlock func(data.BodyHandler, data.HeaderHandler) error) {
-	wrk.broadcastBlock = broadcastBlock
-}
-
-func (wrk *Worker) SetBroadcastHeader(broadcastHeader func(data.HeaderHandler) error) {
-	wrk.broadcastHeader = broadcastHeader
 }

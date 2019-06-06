@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"math/rand"
 	"reflect"
 	"sync/atomic"
@@ -18,9 +15,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	blproc "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
@@ -2224,14 +2224,23 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	assert.NotNil(t, msh)
 	assert.NotNil(t, mstx)
 	_, found := msh[0]
-	assert.False(t, found)
+	assert.True(t, found)
+	_, found = msh[1]
+	assert.True(t, found)
 
 	expectedBody := make(block.Body, 0)
+	err = marshalizer.Unmarshal(&expectedBody, msh[0])
+	assert.Nil(t, err)
+	assert.Equal(t, len(expectedBody), 2)
+	assert.Equal(t, expectedBody[0], &mb0)
+	assert.Equal(t, expectedBody[1], &mb0)
+
+	expectedBody = make(block.Body, 0)
 	err = marshalizer.Unmarshal(&expectedBody, msh[1])
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(expectedBody))
-	assert.Equal(t, &mb1, expectedBody[0])
-	assert.Equal(t, &mb1, expectedBody[1])
+	assert.Equal(t, len(expectedBody), 2)
+	assert.Equal(t, expectedBody[0], &mb1)
+	assert.Equal(t, expectedBody[1], &mb1)
 }
 
 func TestShardProcessor_MarshalizedDataWrongType(t *testing.T) {

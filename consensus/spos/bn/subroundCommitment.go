@@ -9,20 +9,16 @@ import (
 
 type subroundCommitment struct {
 	*spos.Subround
-
-	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundCommitment creates a subroundCommitment object
 func NewSubroundCommitment(
 	baseSubround *spos.Subround,
-	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundCommitment, error) {
 
 	err := checkNewSubroundCommitmentParams(
 		baseSubround,
-		sendConsensusMessage,
 	)
 
 	if err != nil {
@@ -31,7 +27,6 @@ func NewSubroundCommitment(
 
 	srCommitment := subroundCommitment{
 		baseSubround,
-		sendConsensusMessage,
 	}
 
 	srCommitment.Job = srCommitment.doCommitmentJob
@@ -43,7 +38,6 @@ func NewSubroundCommitment(
 
 func checkNewSubroundCommitmentParams(
 	baseSubround *spos.Subround,
-	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if baseSubround == nil {
 		return spos.ErrNilSubround
@@ -51,10 +45,6 @@ func checkNewSubroundCommitmentParams(
 
 	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
-	}
-
-	if sendConsensusMessage == nil {
-		return spos.ErrNilSendConsensusMessageFunction
 	}
 
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
@@ -100,7 +90,9 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
 
-	if !sr.sendConsensusMessage(msg) {
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
+	if err != nil {
+		log.Error(err.Error())
 		return false
 	}
 
@@ -139,7 +131,7 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.Message) bool
 
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
-		log.Info(err.Error())
+		log.Error(err.Error())
 		return false
 	}
 
@@ -151,7 +143,7 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.Message) bool
 
 	err = currentMultiSigner.StoreCommitment(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
-		log.Info(err.Error())
+		log.Error(err.Error())
 		return false
 	}
 
