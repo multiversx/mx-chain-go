@@ -307,46 +307,7 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestShardChainMessenger_BroadcastInShardMiniBlocksShouldNotBeDone(t *testing.T) {
-	var channelCalled chan bool
-	channelCalled = make(chan bool)
-
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{
-		BroadcastCalled: func(topic string, buff []byte) {
-			channelCalled <- true
-		},
-	}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-
-	scm, _ := broadcast.NewShardChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-	)
-
-	miniBlocks := make(map[uint32][]byte)
-	miniBlocks[0] = make([]byte, 0)
-	err := scm.BroadcastMiniBlocks(miniBlocks)
-
-	wasCalled := false
-	select {
-	case <-channelCalled:
-		wasCalled = true
-	case <-time.After(time.Millisecond * 100):
-	}
-
-	assert.Nil(t, err)
-	assert.False(t, wasCalled)
-}
-
-func TestShardChainMessenger_BroadcastCrossShardMiniBlocksShouldBeDone(t *testing.T) {
+func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 	var channelCalled chan bool
 	channelCalled = make(chan bool, 100)
 
@@ -388,7 +349,7 @@ func TestShardChainMessenger_BroadcastCrossShardMiniBlocksShouldBeDone(t *testin
 	}
 
 	assert.Nil(t, err)
-	assert.Equal(t, 3, called)
+	assert.Equal(t, 4, called)
 }
 
 func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T) {
