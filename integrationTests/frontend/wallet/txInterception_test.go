@@ -71,7 +71,12 @@ func testInterceptedTxFromFrontendGeneratedParams(
 
 	chDone := make(chan struct{})
 
+	var err error
+	txHexHash := ""
+
 	dPool.Transactions().RegisterHandler(func(key []byte) {
+		assert.Equal(t, txHexHash, hex.EncodeToString(key))
+
 		dataRecovered, _ := dPool.Transactions().SearchFirstData(key)
 		assert.NotNil(t, dataRecovered)
 
@@ -102,7 +107,8 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		dataBuff, _ := hex.DecodeString(frontendData)
 		data = string(dataBuff)
 	}
-	n.SendTransaction(frontendNonce, frontendSenderHex, frontendReceiverHex, frontendValue, data, sig)
+	txHexHash, err = n.SendTransaction(frontendNonce, frontendSenderHex, frontendReceiverHex, frontendValue, data, sig)
+	assert.Nil(t, err)
 
 	select {
 	case <-chDone:
