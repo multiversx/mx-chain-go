@@ -3378,14 +3378,15 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	dataPool.MetaBlocks().Put(prevHash, prevHdr)
 
 	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(shardBlock)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, putCalledNr)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, putCalledNr)
+	assert.Equal(t, 1, putCalledNr)
 
 	lastNodesHdrs = sp.LastNotarizedHdrs()
 	assert.Equal(t, firstNonce, lastNodesHdrs[sharding.MetachainShardId].GetNonce())
@@ -3402,7 +3403,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, putCalledNr)
+	assert.Equal(t, 3, putCalledNr)
 
 	lastNodesHdrs = sp.LastNotarizedHdrs()
 	assert.Equal(t, currHdr, lastNodesHdrs[sharding.MetachainShardId])

@@ -969,14 +969,14 @@ func (sp *shardProcessor) computeMissingTxsForShards(body block.Body) map[uint32
 			}
 		}
 
-		//TODO: This request should be managed by data retriever after it will be implemented (genericTransactionResolver.go)
-		nonceDiffernce := sp.forkDetector.ProbableHighestNonce() - sp.forkDetector.GetHighestFinalBlockNonce()
-		if len(currentShardMissingTransactions) > 0 && nonceDiffernce > blocksGapWhenUseStorage {
-			currentShardMissingTransactions = sp.getTransactionsFromStorer(
-				currentShardMissingTransactions,
-				miniBlock.SenderShardID,
-				miniBlock.ReceiverShardID)
-		}
+		////TODO: This request should be managed by data retriever after it will be implemented (genericTransactionResolver.go)
+		//nonceDiffernce := sp.forkDetector.ProbableHighestNonce() - sp.forkDetector.GetHighestFinalBlockNonce()
+		//if len(currentShardMissingTransactions) > 0 && nonceDiffernce > blocksGapWhenUseStorage {
+		//	currentShardMissingTransactions = sp.getTransactionsFromStorer(
+		//		currentShardMissingTransactions,
+		//		miniBlock.SenderShardID,
+		//		miniBlock.ReceiverShardID)
+		//}
 
 		if len(currentShardMissingTransactions) > 0 {
 			missingTxsForShard[miniBlock.SenderShardID] = currentShardMissingTransactions
