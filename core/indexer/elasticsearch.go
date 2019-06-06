@@ -184,8 +184,17 @@ func (ei *elasticIndexer) SaveBlock(
 	headerhandler data.HeaderHandler,
 	txPool map[string]*transaction.Transaction) {
 
-	header := headerhandler.(*block.Header)
-	body := bodyHandler.(*block.Body)
+	header, ok := headerhandler.(*block.Header)
+	if !ok {
+		fmt.Println("elasticsearch - header type assertion failed")
+		return
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		fmt.Println("elasticsearch - body type assertion failed")
+		return
+	}
 
 	if header == nil {
 		fmt.Println("elasticsearch - no header")

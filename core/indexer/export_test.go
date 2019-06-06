@@ -25,7 +25,8 @@ func NewTestElasticIndexer(
 	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	logger *logger.Logger) ElasticIndexer {
+	logger *logger.Logger,
+) ElasticIndexer {
 
 	cfg := elasticsearch.Config{
 		Addresses: []string{url},

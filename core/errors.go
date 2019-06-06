@@ -24,3 +24,6 @@ var ErrNilInputData = errors.New("nil input data")
 
 //ErrNilUrl signals that the provided url is empty
 var ErrNilUrl = errors.New("url is empty")
+
+// ErrWrongTypeAssertion signals that an type assertion failed
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")

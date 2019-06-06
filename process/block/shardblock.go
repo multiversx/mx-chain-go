@@ -521,7 +521,13 @@ func (sp *shardProcessor) CommitBlock(
 
 	tempTxPool := make(map[string]*transaction.Transaction)
 
-	buff, err := sp.marshalizer.Marshal(headerHandler)
+	header, ok := headerHandler.(*block.Header)
+	if !ok {
+		err = process.ErrWrongTypeAssertion
+		return err
+	}
+
+	buff, err := sp.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
@@ -529,12 +535,6 @@ func (sp *shardProcessor) CommitBlock(
 	headerHash := sp.hasher.Compute(string(buff))
 	err = sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
 	if err != nil {
-		return err
-	}
-
-	header, ok := headerHandler.(*block.Header)
-	if !ok {
-		err = process.ErrWrongTypeAssertion
 		return err
 	}
 
