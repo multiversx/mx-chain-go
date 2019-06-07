@@ -10,6 +10,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
@@ -30,6 +34,12 @@ func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker 
 func createDummyAddress() state.AddressContainer {
 	buff := make([]byte, sha256.Sha256{}.Size())
 	_, _ = rand.Reader.Read(buff)
+
+	return state.NewAddress(buff)
+}
+
+func createEmptyAddress() state.AddressContainer {
+	buff := make([]byte, sha256.Sha256{}.Size())
 
 	return state.NewAddress(buff)
 }
@@ -60,4 +70,24 @@ func createAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 
 	hashCreated, _ := accnts.Commit()
 	return hashCreated
+}
+
+func createTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter) process.TransactionProcessor {
+	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+	cryptoHook := &hooks.VMCryptoHook{}
+	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, cryptoHook)
+	argsParser, _ := smartContract.NewAtArgumentParser()
+	scProcessor, _ := smartContract.NewSmartContractProcessor(
+		vm,
+		argsParser,
+		testHasher,
+		testMarshalizer,
+		accnts,
+		blockChainHook,
+		addrConv,
+		oneShardCoordinator,
+	)
+	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
+
+	return txProcessor
 }

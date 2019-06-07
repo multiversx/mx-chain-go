@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"bytes"
 	"math/big"
 	"sync"
 
@@ -91,7 +92,13 @@ func (sc *scProcessor) ComputeTransactionType(
 		return 0, process.ErrNilTransaction
 	}
 
-	if len(tx.RcvAddr) == 0 {
+	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.RcvAddr)
+	if recvAddressIsInvalid {
+		return 0, process.ErrWrongTransaction
+	}
+
+	isEmptyAddress := bytes.Equal(tx.RcvAddr, make([]byte, sc.adrConv.AddressLen()))
+	if isEmptyAddress {
 		if len(tx.Data) > 0 {
 			return process.SCDeployment, nil
 		}
