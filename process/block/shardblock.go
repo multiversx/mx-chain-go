@@ -963,7 +963,7 @@ func (sp *shardProcessor) requestMetaHeaders(hdr *block.Header) int {
 		}
 	}
 
-	if len(hdr.MetaBlockHashes) > 0 {
+	if len(sp.requestedMetaHdrHashes) > 0 {
 		sp.metaHdrsFound = false
 	}
 
