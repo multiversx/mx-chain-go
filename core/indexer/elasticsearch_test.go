@@ -283,6 +283,16 @@ func TestElasticIndexer_buildTransactionBulks(t *testing.T) {
 	}
 }
 
+func TestElasticIndexer_SaveBlockShouldWork(t *testing.T) {
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
+
+	header := newTestBlockHeader()
+	body := newTestBlockBody()
+	txPool := newTestTxPool()
+
+	ei.SaveBlock(&body, header, txPool)
+}
+
 func TestElasticIndexer_serializeBulkTx(t *testing.T) {
 	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
 
