@@ -75,10 +75,11 @@ func createAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 	return hashCreated
 }
 
-func createTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter) process.TransactionProcessor {
+func createTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 	cryptoHook := &hooks.VMCryptoHook{}
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, cryptoHook)
+	vm.GasForOperation = opGas
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		vm,

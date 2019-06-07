@@ -13,6 +13,18 @@ import (
 //TODO add integration and unit tests with generating and broadcasting transaction with empty recv address
 
 func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
+	testVMDeploy(t, 0, big.NewInt(0))
+}
+
+func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
+	testVMDeploy(t, 0, big.NewInt(50))
+}
+
+func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
+	testVMDeploy(t, 1000, big.NewInt(50))
+}
+
+func testVMDeploy(t *testing.T, opGas uint64, transferOnCalls *big.Int) {
 	accnts := createInMemoryShardAccountsDB()
 
 	senderPubkeyBytes := createDummyAddress().Bytes()
@@ -20,18 +32,22 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	senderBalance := big.NewInt(100000000)
 	_ = createAccount(accnts, senderPubkeyBytes, senderNonce, senderBalance)
 
-	txProcessor := createTxProcessorWithOneSCExecutorMockVM(accnts)
+	txProcessor := createTxProcessorWithOneSCExecutorMockVM(accnts, opGas)
 	assert.NotNil(t, txProcessor)
+
+	gasPrice := uint64(1)
 
 	initialValueForInternalVariable := uint64(45)
 	scCode := "mocked code, not taken into account"
 	txData := fmt.Sprintf("%s@%X", scCode, initialValueForInternalVariable)
 	tx := &transaction.Transaction{
-		Nonce:   senderNonce,
-		Value:   big.NewInt(0),
-		SndAddr: senderPubkeyBytes,
-		RcvAddr: createEmptyAddress().Bytes(),
-		Data:    []byte(txData),
+		Nonce:    senderNonce,
+		Value:    transferOnCalls,
+		SndAddr:  senderPubkeyBytes,
+		RcvAddr:  createEmptyAddress().Bytes(),
+		Data:     []byte(txData),
+		GasPrice: gasPrice,
+		GasLimit: opGas,
 	}
 	assert.NotNil(t, tx)
 
@@ -48,8 +64,12 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddress)
 	senderRecovShardAccount := senderRecovAccount.(*state.Account)
 
+	expectedSenderBalance := big.NewInt(0).Sub(senderBalance, transferOnCalls)
+	gasFunds := big.NewInt(0).Mul(big.NewInt(0).SetUint64(opGas), big.NewInt(0).SetUint64(gasPrice))
+	expectedSenderBalance.Sub(expectedSenderBalance, gasFunds)
+
 	assert.Equal(t, senderNonce+1, senderRecovShardAccount.GetNonce())
-	assert.Equal(t, senderBalance, senderRecovShardAccount.Balance)
+	assert.Equal(t, expectedSenderBalance, senderRecovShardAccount.Balance)
 
 	destinationAddressBytes := computeSCDestinationAddressBytes(senderNonce, senderPubkeyBytes)
 
@@ -57,7 +77,7 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 		t,
 		destinationAddressBytes,
 		accnts,
-		big.NewInt(0),
+		transferOnCalls,
 		scCode,
 		map[string]*big.Int{"a": big.NewInt(0).SetUint64(initialValueForInternalVariable)})
 }
