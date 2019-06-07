@@ -944,7 +944,6 @@ func (sp *shardProcessor) requestMetaHeaders(hdr *block.Header) int {
 	for i := 0; i < len(hdr.MetaBlockHashes); i++ {
 		cachedVal, ok := metaBlockCache.Peek(hdr.MetaBlockHashes[i])
 		if !ok {
-			sp.metaHdrsFound = false
 			sp.requestedMetaHdrHashes[string(hdr.MetaBlockHashes[i])] = true
 			requestedMetaHdrs++
 
@@ -959,6 +958,10 @@ func (sp *shardProcessor) requestMetaHeaders(hdr *block.Header) int {
 		if sp.currHighestMetaHdrNonce < metaHdr.GetNonce() {
 			sp.currHighestMetaHdrNonce = metaHdr.GetNonce()
 		}
+	}
+
+	if len(hdr.MetaBlockHashes) > 0 {
+		sp.metaHdrsFound = false
 	}
 
 	sp.mutRequestedTxHashes.Unlock()

@@ -677,7 +677,7 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 
 	mp.mutRequestedShardHeaderHashes.Lock()
 
-	if mp.allNeededShardHdrsFound == false {
+	if !mp.allNeededShardHdrsFound {
 		if mp.requestedShardHeaderHashes[string(headerHash)] {
 			delete(mp.requestedShardHeaderHashes, string(headerHash))
 
