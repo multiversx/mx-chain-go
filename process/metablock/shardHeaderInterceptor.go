@@ -1,6 +1,8 @@
 package metablock
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
@@ -22,7 +24,6 @@ type ShardHeaderInterceptor struct {
 	headers            storage.Cacher
 	hdrsNonces         dataRetriever.Uint64Cacher
 	storer             storage.Storer
-	shardCoordinator   sharding.Coordinator
 }
 
 // NewShardHeaderInterceptor hooks a new interceptor for shard block headers by metachain nodes
@@ -62,7 +63,6 @@ func NewShardHeaderInterceptor(
 		headers:            headers,
 		hdrsNonces:         hdrsNonces,
 		storer:             storer,
-		shardCoordinator:   shardCoordinator,
 	}, nil
 }
 
@@ -96,16 +96,13 @@ func (shi *ShardHeaderInterceptor) processHeader(hdrIntercepted *block.Intercept
 	nonce := hdrIntercepted.GetHeader().GetNonce()
 
 	value, okPeek := shi.hdrsNonces.Peek(nonce)
-	mapOfHashes, okTypeAssertion := value.(map[uint32][]byte)
+	mapOfHashes, okTypeAssertion := value.(sync.Map)
 
 	if !okPeek || !okTypeAssertion {
 		// repair saved data
-		mapOfHashes = make(map[uint32][]byte, shi.shardCoordinator.NumberOfShards())
-		for i := uint32(0); i < shi.shardCoordinator.NumberOfShards(); i++ {
-			mapOfHashes[i] = make([]byte, 0)
-		}
+		mapOfHashes = sync.Map{}
 	}
 
-	mapOfHashes[hdrIntercepted.GetHeader().GetShardID()] = hdrIntercepted.Hash()
+	mapOfHashes.Store(hdrIntercepted.GetHeader().GetShardID(), hdrIntercepted.Hash())
 	shi.hdrsNonces.Put(nonce, mapOfHashes)
 }

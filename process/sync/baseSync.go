@@ -182,7 +182,8 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) (has
 	value, _ := boot.headersNonces.Get(header.GetNonce())
 	boot.headersNonces.Remove(header.GetNonce())
 
-	hash, ok := value.([]byte)
+	var ok bool
+	hash, ok = value.([]byte)
 	if ok {
 		boot.headers.Remove(hash)
 	}

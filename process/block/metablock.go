@@ -691,11 +691,16 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 			for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
 				// ask for finality attesting hdrs if it is not yet in cache
 				for i := mp.currHighestShardHdrNonces[shardId] + 1; i <= mp.currHighestShardHdrNonces[shardId]+uint64(mp.nextKValidity); i++ {
-					value, okPeek := shardHdrsNoncesCache.Peek(i)
-					mapOfHashes, okTypeAssertion := value.(map[uint32][]byte)
+					if mp.currHighestShardHdrNonces[shardId] == uint64(0) {
+						continue
+					}
 
-					finalityAttestingHeaderForShardFound := !okPeek || !okTypeAssertion || len(mapOfHashes[shardId]) == 0
-					if finalityAttestingHeaderForShardFound {
+					value, okPeek := shardHdrsNoncesCache.Peek(i)
+					mapOfHashes, okTypeAssertion := value.(sync.Map)
+					_, okLoad := mapOfHashes.Load(shardId)
+
+					finalityAttestingHeaderForShardNotFound := !okPeek || !okTypeAssertion || !okLoad
+					if finalityAttestingHeaderForShardNotFound {
 						go mp.onRequestHeaderHandlerByNonce(shardId, i)
 						areFinalityAttestingHdrsInCache = false
 					}
@@ -719,12 +724,12 @@ func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
 	mp.mutRequestedShardHeaderHashes.Lock()
 
 	mp.currHighestShardHdrNonces = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
-	missingHeaderHashes := mp.computeMissingHeaders(header)
-	mp.requestedShardHeaderHashes = make(map[string]bool)
-
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
 		mp.currHighestShardHdrNonces[i] = uint64(0)
 	}
+
+	missingHeaderHashes := mp.computeMissingHeaders(header)
+	mp.requestedShardHeaderHashes = make(map[string]bool)
 
 	for shardId, headerHash := range missingHeaderHashes {
 		mp.requestedShardHeaderHashes[string(headerHash)] = true
