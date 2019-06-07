@@ -1465,7 +1465,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	blkc := createTestBlockchain()
 	sp.SetExistingTxsForShard(0, string(txHash), nil)
 	err := sp.CommitBlock(blkc, hdr, body)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.Equal(t, process.ErrMissingTransaction, err)
 }
 
 func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {

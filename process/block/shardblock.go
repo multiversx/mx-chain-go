@@ -506,11 +506,10 @@ func (sp *shardProcessor) processBlockTransactions(body block.Body, round uint32
 
 			txHash := miniBlock.TxHashes[j]
 			sp.mutTxsForBlock.RLock()
-			tx, ok := sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)]
+			tx := sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)]
 			sp.mutTxsForBlock.RUnlock()
-			//tx, ok := elem.(*transaction.Transaction)
-			if !ok {
-				return process.ErrWrongTypeAssertion
+			if tx == nil {
+				return process.ErrMissingTransaction
 			}
 
 			err := sp.processAndRemoveBadTransaction(
@@ -600,17 +599,11 @@ func (sp *shardProcessor) CommitBlock(
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			sp.mutTxsForBlock.RLock()
-			tx, ok := sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)]
+			tx := sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)]
 			sp.mutTxsForBlock.RUnlock()
-			//tx, ok := elem.(*transaction.Transaction)
-			if !ok {
-				return process.ErrWrongTypeAssertion
+			if tx == nil {
+				return process.ErrMissingTransaction
 			}
-
-			//if tx == nil {
-			//	err = process.ErrMissingTransaction
-			//	return err
-			//}
 
 			tempTxPool[string(txHash)] = tx
 
