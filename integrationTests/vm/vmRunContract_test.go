@@ -20,7 +20,8 @@ func deployFreeAndRunSmartContract(t *testing.T, runSCvalue *big.Int) {
 	senderBalance := big.NewInt(100000000)
 	_ = createAccount(accnts, senderPubkeyBytes, senderNonce, senderBalance)
 
-	txProcessor := createTxProcessorWithOneSCExecutorMockVM(accnts)
+	gasOp := uint64(0)
+	txProcessor := createTxProcessorWithOneSCExecutorMockVM(accnts, gasOp)
 	assert.NotNil(t, txProcessor)
 
 	initialValueForInternalVariable := uint64(45)
