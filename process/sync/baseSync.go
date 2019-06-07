@@ -178,17 +178,16 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	return !isNodeSynchronized
 }
 
-func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) (hash []byte) {
+func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
 	value, _ := boot.headersNonces.Get(header.GetNonce())
 	boot.headersNonces.Remove(header.GetNonce())
 
-	var ok bool
-	hash, ok = value.([]byte)
+	hash, ok := value.([]byte)
 	if ok {
 		boot.headers.Remove(hash)
 	}
 
-	return
+	return hash
 }
 
 func (boot *baseBootstrap) cleanCachesOnRollback(header data.HeaderHandler, headerStore storage.Storer) {
