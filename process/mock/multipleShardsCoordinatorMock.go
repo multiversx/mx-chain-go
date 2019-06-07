@@ -25,6 +25,9 @@ func (scm *multipleShardsCoordinatorMock) NumberOfShards() uint32 {
 }
 
 func (scm *multipleShardsCoordinatorMock) ComputeId(address state.AddressContainer) uint32 {
+	if scm.ComputeIdCalled == nil {
+		return scm.SelfId()
+	}
 	return scm.ComputeIdCalled(address)
 }
 

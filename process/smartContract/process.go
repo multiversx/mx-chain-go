@@ -83,10 +83,7 @@ func NewSmartContractProcessor(
 }
 
 // ComputeTransactionType calculates the type of the transaction
-func (sc *scProcessor) ComputeTransactionType(
-	tx *transaction.Transaction,
-	acntSrc, acntDst state.AccountHandler,
-) (process.TransactionType, error) {
+func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (process.TransactionType, error) {
 	if tx == nil {
 		return 0, process.ErrNilTransaction
 	}
@@ -96,6 +93,11 @@ func (sc *scProcessor) ComputeTransactionType(
 			return process.SCDeployment, nil
 		}
 		return 0, process.ErrWrongTransaction
+	}
+
+	acntDst, err := sc.getAccountFromAddress(tx.RcvAddr)
+	if err != nil {
+		return 0, err
 	}
 
 	if acntDst == nil {
@@ -143,7 +145,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	// VM is formally verified and the output is correct
-	err = sc.processVMOutput(vmOutput, tx, acntSnd, acntDst, round)
+	err = sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
 	}
@@ -168,7 +170,7 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 }
 
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
-func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
+func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd state.AccountHandler, round uint32) error {
 	defer sc.fakeAccounts.CleanFakeAccounts()
 
 	if len(tx.RcvAddr) != 0 {
@@ -192,7 +194,7 @@ func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd,
 	}
 
 	// VM is formally verified, the output is correct
-	err = sc.processVMOutput(vmOutput, tx, acntSnd, acntDst, round)
+	err = sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
 	}
@@ -292,7 +294,7 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 	return operation, nil
 }
 
-func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
+func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd state.AccountHandler, round uint32) error {
 	if vmOutput == nil {
 		return process.ErrNilVMOutput
 	}
