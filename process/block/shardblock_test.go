@@ -2608,7 +2608,6 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	//put this metaBlock inside datapool
 	metaBlockHash := []byte("metablock hash")
 	dataPool.MetaBlocks().Put(metaBlockHash, &metaBlock)
-
 	//put the existing miniblock inside datapool
 	dataPool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
 
