@@ -410,8 +410,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 		}
 
-		isSCwithDataStorage := len(outAcc.StorageUpdates) > 0
-		if isSCwithDataStorage {
+		if len(outAcc.StorageUpdates) > 0 {
 			//SC with data variables
 			err := sc.accounts.SaveDataTrie(acc)
 			if err != nil {
