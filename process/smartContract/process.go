@@ -175,12 +175,12 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 		return err
 	}
 
-	totalBalance, err := sc.processSCPayment(tx, acntSnd)
+	_, err = sc.processSCPayment(tx, acntSnd)
 	if err != nil {
 		return err
 	}
 
-	sc.fakeAccounts.CreateFakeAccounts(tx.SndAddr, totalBalance, tx.Nonce)
+	sc.fakeAccounts.CreateFakeAccounts(tx.SndAddr, tx.Value, tx.Nonce)
 
 	return nil
 }
@@ -333,7 +333,9 @@ func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transact
 		return err
 	}
 
-	err = sc.refundGasToSender(vmOutput.GasRefund, tx, acntSnd)
+	totalGasRefund := big.NewInt(0)
+	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
+	err = sc.refundGasToSender(totalGasRefund, tx, acntSnd)
 	if err != nil {
 		return err
 	}
@@ -424,7 +426,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			}
 		}
 
-		if outAcc.Nonce == nil || outAcc.Nonce.Cmp(big.NewInt(int64(acc.GetNonce()))) < 0 {
+		if outAcc.Nonce == nil || outAcc.Nonce.Cmp(big.NewInt(int64(acc.GetNonce()))) <= 0 {
 			return process.ErrWrongNonceInVMOutput
 		}
 

@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"bytes"
 	"crypto/rand"
 	"math/big"
 	"testing"
@@ -1596,6 +1597,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	fakeAccountsHandler := &mock.FakeAccountsHandlerMock{}
+	accTracker := &mock.AccountTrackerStub{}
 
 	sc, err := NewSmartContractProcessor(
 		&mock.VMExecutionHandlerStub{},
@@ -1612,4 +1614,55 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
 	err = sc.ProcessSCOutputAccounts(outputAccounts)
 	assert.Nil(t, err)
+
+	outaddress := []byte("newsmartcontract")
+	outacc1 := &vmcommon.OutputAccount{}
+	outacc1.Address = outaddress
+	outacc1.Code = []byte("contract-code")
+	outacc1.Nonce = big.NewInt(int64(5))
+	outacc1.Balance = big.NewInt(int64(5))
+	outputAccounts = append(outputAccounts, outacc1)
+
+	testAddr := mock.NewAddressMock(outaddress)
+	testAcc, _ := state.NewAccount(testAddr, accTracker)
+
+	accountsDB.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		if bytes.Equal(addressContainer.Bytes(), testAddr.Bytes()) {
+			return testAcc, nil
+		}
+		return nil, state.ErrAccNotFound
+	}
+
+	accTracker.JournalizeCalled = func(entry state.JournalEntry) {
+		return
+	}
+	accTracker.SaveAccountCalled = func(accountHandler state.AccountHandler) error {
+		testAcc = accountHandler.(*state.Account)
+		return nil
+	}
+
+	err = sc.ProcessSCOutputAccounts(outputAccounts)
+	assert.Nil(t, err)
+
+	err = sc.ProcessSCOutputAccounts(outputAccounts)
+	assert.Equal(t, process.ErrWrongNonceInVMOutput, err)
+
+	outacc1.Balance = nil
+	outacc1.Nonce = outacc1.Nonce.Add(outacc1.Nonce, big.NewInt(1))
+	err = sc.processSCOutputAccounts(outputAccounts)
+	assert.Equal(t, process.ErrNilBalanceFromSC, err)
+
+	outacc1.Nonce = outacc1.Nonce.Add(outacc1.Nonce, big.NewInt(1))
+	outacc1.Balance = big.NewInt(int64(10))
+	fakeAccountsHandler.GetFakeAccountCalled = func(address []byte) state.AccountHandler {
+		fakeAcc, _ := state.NewAccount(mock.NewAddressMock(address), &mock.AccountTrackerStub{})
+		fakeAcc.Balance = big.NewInt(int64(5))
+		return fakeAcc
+	}
+
+	currentBalance := testAcc.Balance.Uint64()
+	vmOutBalance := outacc1.Balance.Uint64()
+	err = sc.processSCOutputAccounts(outputAccounts)
+	assert.Nil(t, err)
+	assert.Equal(t, currentBalance+vmOutBalance, testAcc.Balance.Uint64())
 }
