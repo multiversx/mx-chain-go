@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -276,11 +277,77 @@ func TestElasticIndexer_buildTransactionBulks(t *testing.T) {
 	body := newTestBlockBody()
 	txPool := newTestTxPool()
 
-	bulks := ei.BuildTransactionBulks(&body, header, txPool)
+	bulks := ei.BuildTransactionBulks(body, header, txPool)
 
 	for _, bulk := range bulks {
 		assert.NotNil(t, bulk)
 	}
+}
+
+func TestElasticIndexer_SaveBlockShouldWork(t *testing.T) {
+	var buf bytes.Buffer
+	testLogger := logger.NewElrondLogger(logger.WithFile(&buf))
+
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, testLogger)
+
+	header := newTestBlockHeader()
+	body := newTestBlockBody()
+	txPool := newTestTxPool()
+
+	ei.SaveBlock(body, header, txPool)
+
+	//TODO: add thread sleep
+
+	assert.Equal(t, 0, buf.Len())
+}
+
+func TestElasticIndexer_SaveBlockWithNilHeaderShouldErr(t *testing.T) {
+	var buf bytes.Buffer
+	testLogger := logger.NewElrondLogger(logger.WithFile(&buf))
+
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, testLogger)
+
+	body := newTestBlockBody()
+	txPool := newTestTxPool()
+
+	ei.SaveBlock(body, nil, txPool)
+
+	//TODO: add thread sleep
+
+	assert.True(t, strings.Contains(buf.String(), indexer.ErrNoHeader.Error()))
+}
+
+func TestElasticIndexer_SaveBlockWithNilBodyShouldErr(t *testing.T) {
+	var buf bytes.Buffer
+	testLogger := logger.NewElrondLogger(logger.WithFile(&buf))
+
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, testLogger)
+
+	header := newTestBlockHeader()
+	txPool := newTestTxPool()
+
+	ei.SaveBlock(nil, header, txPool)
+
+	//TODO: add thread sleep
+
+	assert.True(t, strings.Contains(buf.String(), indexer.ErrBodyTypeAssertion.Error()))
+}
+
+func TestElasticIndexer_SaveBlockWithEmptyBodyShouldErr(t *testing.T) {
+	var buf bytes.Buffer
+	testLogger := logger.NewElrondLogger(logger.WithFile(&buf))
+
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, testLogger)
+
+	header := newTestBlockHeader()
+	txPool := newTestTxPool()
+	body := block.Body{}
+
+	ei.SaveBlock(body, header, txPool)
+
+	//TODO: add thread sleep
+
+	assert.True(t, strings.Contains(buf.String(), indexer.ErrNoMiniblocks.Error()))
 }
 
 func TestElasticIndexer_serializeBulkTx(t *testing.T) {
@@ -290,7 +357,7 @@ func TestElasticIndexer_serializeBulkTx(t *testing.T) {
 	body := newTestBlockBody()
 	txPool := newTestTxPool()
 
-	bulks := ei.BuildTransactionBulks(&body, header, txPool)
+	bulks := ei.BuildTransactionBulks(body, header, txPool)
 
 	serializedTx := ei.SerializeBulkTx(bulks[0])
 

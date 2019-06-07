@@ -184,34 +184,28 @@ func (ei *elasticIndexer) SaveBlock(
 	headerhandler data.HeaderHandler,
 	txPool map[string]*transaction.Transaction) {
 
-	header, ok := headerhandler.(*block.Header)
+	if headerhandler == nil || headerhandler.IsInterfaceNil() {
+		ei.logger.Warn(ErrNoHeader.Error())
+		return
+	}
+
+	body, ok := bodyHandler.(block.Body)
 	if !ok {
-		fmt.Println("elasticsearch - header type assertion failed")
+		ei.logger.Warn(ErrBodyTypeAssertion.Error())
 		return
 	}
 
-	body, ok := bodyHandler.(*block.Body)
-	if !ok {
-		fmt.Println("elasticsearch - body type assertion failed")
+	go ei.saveHeader(headerhandler)
+
+	if len(body) == 0 {
+		ei.logger.Warn(ErrNoMiniblocks.Error())
 		return
 	}
 
-	if header == nil {
-		fmt.Println("elasticsearch - no header")
-		return
-	}
-
-	go ei.saveHeader(header)
-
-	if len(*body) == 0 {
-		fmt.Println("elasticsearch - no miniblocks")
-		return
-	}
-
-	go ei.saveTransactions(body, header, txPool)
+	go ei.saveTransactions(body, headerhandler, txPool)
 }
 
-func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header *block.Header) ([]byte, []byte) {
+func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.HeaderHandler) ([]byte, []byte) {
 	h, err := ei.marshalizer.Marshal(header)
 	if err != nil {
 		ei.logger.Warn("could not marshal header")
@@ -220,18 +214,18 @@ func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header *block.H
 
 	headerHash := ei.hasher.Compute(string(h))
 	elasticBlock := Block{
-		Nonce:   header.Nonce,
-		ShardID: header.ShardId,
+		Nonce:   header.GetNonce(),
+		ShardID: header.GetShardID(),
 		Hash:    hex.EncodeToString(headerHash),
 		// TODO: We should add functionality for proposer and validators
 		Proposer: hex.EncodeToString([]byte("mock proposer")),
 		//Validators: "mock validators",
-		PubKeyBitmap:  hex.EncodeToString(header.PubKeysBitmap),
+		PubKeyBitmap:  hex.EncodeToString(header.GetPubKeysBitmap()),
 		Size:          int64(len(h)),
-		Timestamp:     time.Duration(header.TimeStamp),
-		TxCount:       header.TxCount,
-		StateRootHash: hex.EncodeToString(header.RootHash),
-		PrevHash:      hex.EncodeToString(header.PrevHash),
+		Timestamp:     time.Duration(header.GetTimeStamp()),
+		TxCount:       header.GetTxCount(),
+		StateRootHash: hex.EncodeToString(header.GetRootHash()),
+		PrevHash:      hex.EncodeToString(header.GetPrevHash()),
 	}
 
 	serializedBlock, err := json.Marshal(elasticBlock)
@@ -243,7 +237,7 @@ func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header *block.H
 	return serializedBlock, headerHash
 }
 
-func (ei *elasticIndexer) saveHeader(header *block.Header) {
+func (ei *elasticIndexer) saveHeader(header data.HeaderHandler) {
 	var buff bytes.Buffer
 
 	serializedBlock, headerHash := ei.getSerializedElasticBlockAndHeaderHash(header)
@@ -293,8 +287,8 @@ func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
 }
 
 func (ei *elasticIndexer) saveTransactions(
-	body *block.Body,
-	header *block.Header,
+	body block.Body,
+	header data.HeaderHandler,
 	txPool map[string]*transaction.Transaction) {
 	bulks := ei.buildTransactionBulks(body, header, txPool)
 
@@ -313,8 +307,8 @@ func (ei *elasticIndexer) saveTransactions(
 // buildTransactionBulks creates bulks of maximum txBulkSize transactions to be indexed together
 //  using the elasticsearch bulk API
 func (ei *elasticIndexer) buildTransactionBulks(
-	body *block.Body,
-	header *block.Header,
+	body block.Body,
+	header data.HeaderHandler,
 	txPool map[string]*transaction.Transaction,
 ) [][]*Transaction {
 	processedTxCount := 0
@@ -322,7 +316,7 @@ func (ei *elasticIndexer) buildTransactionBulks(
 	blockMarshal, _ := ei.marshalizer.Marshal(header)
 	blockHash := ei.hasher.Compute(string(blockMarshal))
 
-	for _, mb := range *body {
+	for _, mb := range body {
 		mbMarshal, err := ei.marshalizer.Marshal(mb)
 		if err != nil {
 			ei.logger.Warn("could not marshal miniblock")
@@ -359,7 +353,7 @@ func (ei *elasticIndexer) buildTransactionBulks(
 				GasLimit:      currentTx.GasLimit,
 				Data:          hex.EncodeToString(currentTx.Data),
 				Signature:     hex.EncodeToString(currentTx.Signature),
-				Timestamp:     time.Duration(header.TimeStamp),
+				Timestamp:     time.Duration(header.GetTimeStamp()),
 				Status:        mbTxStatus,
 			})
 		}

@@ -173,11 +173,14 @@ func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
 		return
 	}
 
+	s.mut.RLock()
 	if mb.Nonce > s.blockNumber {
 		for i := s.blockNumber + 1; i < mb.Nonce; i++ {
 			s.addMissingNonce(i)
 		}
 	}
+	s.mut.RUnlock()
+
 	s.removeMissingNonce(mb.Nonce)
 	_ = s.updateStatistics(mb)
 }
