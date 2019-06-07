@@ -12,7 +12,7 @@ import (
 
 //TODO add integration and unit tests with generating and broadcasting transaction with empty recv address
 
-func deployFreeAndRunSmartContract(t *testing.T, runSCvalue *big.Int) {
+func deployAndRunSmartContract(t *testing.T, opGas uint64, txvalue *big.Int) {
 	accnts := createInMemoryShardAccountsDB()
 
 	senderPubkeyBytes := createDummyAddress().Bytes()
@@ -20,19 +20,21 @@ func deployFreeAndRunSmartContract(t *testing.T, runSCvalue *big.Int) {
 	senderBalance := big.NewInt(100000000)
 	_ = createAccount(accnts, senderPubkeyBytes, senderNonce, senderBalance)
 
-	gasOp := uint64(0)
-	txProcessor := createTxProcessorWithOneSCExecutorMockVM(accnts, gasOp)
+	txProcessor := createTxProcessorWithOneSCExecutorMockVM(accnts, opGas)
 	assert.NotNil(t, txProcessor)
 
+	gasPrice := uint64(1)
 	initialValueForInternalVariable := uint64(45)
 	scCode := "mocked code, not taken into account"
 	txData := fmt.Sprintf("%s@%X", scCode, initialValueForInternalVariable)
 	tx := &transaction.Transaction{
-		Nonce:   senderNonce,
-		Value:   big.NewInt(0),
-		SndAddr: senderPubkeyBytes,
-		RcvAddr: createEmptyAddress().Bytes(),
-		Data:    []byte(txData),
+		Nonce:    senderNonce,
+		Value:    big.NewInt(0),
+		SndAddr:  senderPubkeyBytes,
+		RcvAddr:  createEmptyAddress().Bytes(),
+		Data:     []byte(txData),
+		GasPrice: gasPrice,
+		GasLimit: opGas,
 	}
 	assert.NotNil(t, tx)
 
@@ -49,11 +51,13 @@ func deployFreeAndRunSmartContract(t *testing.T, runSCvalue *big.Int) {
 	txData = fmt.Sprintf("Add@%X", addValue)
 
 	txRun := &transaction.Transaction{
-		Nonce:   senderNonce + 1,
-		Value:   runSCvalue,
-		SndAddr: senderPubkeyBytes,
-		RcvAddr: destinationAddressBytes,
-		Data:    []byte(txData),
+		Nonce:    senderNonce + 1,
+		Value:    txvalue,
+		SndAddr:  senderPubkeyBytes,
+		RcvAddr:  destinationAddressBytes,
+		Data:     []byte(txData),
+		GasLimit: opGas,
+		GasPrice: gasPrice,
 	}
 
 	err = txProcessor.ProcessTransaction(txRun, round)
@@ -68,21 +72,28 @@ func deployFreeAndRunSmartContract(t *testing.T, runSCvalue *big.Int) {
 	senderRecovShardAccount := senderRecovAccount.(*state.Account)
 
 	assert.Equal(t, senderNonce+2, senderRecovShardAccount.GetNonce())
-	assert.Equal(t, senderBalance.Uint64()-runSCvalue.Uint64(), senderRecovShardAccount.Balance.Uint64())
 
+	expectedSenderBalance := big.NewInt(0).Sub(senderBalance, txvalue)
+	gasFunds := big.NewInt(0).Mul(big.NewInt(0).SetUint64(opGas), big.NewInt(0).SetUint64(gasPrice))
+	expectedSenderBalance.Sub(expectedSenderBalance, gasFunds)
+	expectedSenderBalance.Sub(expectedSenderBalance, gasFunds)
 	testDeployedContractContents(
 		t,
 		destinationAddressBytes,
 		accnts,
-		runSCvalue,
+		txvalue,
 		scCode,
 		map[string]*big.Int{"a": big.NewInt(0).SetUint64(initialValueForInternalVariable + addValue)})
 }
 
-func TestVmRUNSCCodeAddWithoutBalance(t *testing.T) {
-	deployFreeAndRunSmartContract(t, big.NewInt(0))
+func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
+	deployAndRunSmartContract(t, 0, big.NewInt(0))
 }
 
-func TestVmRUNSCCodeAddWithBalance(t *testing.T) {
-	deployFreeAndRunSmartContract(t, big.NewInt(45))
+func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
+	deployAndRunSmartContract(t, 0, big.NewInt(50))
+}
+
+func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
+	deployAndRunSmartContract(t, 1000, big.NewInt(50))
 }
