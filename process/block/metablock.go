@@ -36,6 +36,7 @@ type metaProcessor struct {
 
 	currHighestShardHdrNonces     map[uint32]uint64
 	requestedShardHeaderHashes    map[string]bool
+	allNeededShardHdrsFound       bool
 	mutRequestedShardHeaderHashes sync.RWMutex
 
 	nextKValidity         uint32
@@ -676,7 +677,7 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 
 	mp.mutRequestedShardHeaderHashes.Lock()
 
-	if len(mp.requestedShardHeaderHashes) > 0 {
+	if mp.allNeededShardHdrsFound == false {
 		if mp.requestedShardHeaderHashes[string(headerHash)] {
 			delete(mp.requestedShardHeaderHashes, string(headerHash))
 
@@ -708,16 +709,15 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 			}
 		}
 
+		mp.allNeededShardHdrsFound = lenReqHeadersHashes == 0 && areFinalityAttestingHdrsInCache
 		mp.mutRequestedShardHeaderHashes.Unlock()
 
 		if lenReqHeadersHashes == 0 && areFinalityAttestingHdrsInCache {
 			mp.chRcvAllHdrs <- true
 		}
-
-		return
+	} else {
+		mp.mutRequestedShardHeaderHashes.Unlock()
 	}
-
-	mp.mutRequestedShardHeaderHashes.Unlock()
 }
 
 func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
@@ -734,6 +734,10 @@ func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
 	for shardId, headerHash := range missingHeaderHashes {
 		mp.requestedShardHeaderHashes[string(headerHash)] = true
 		go mp.onRequestHeaderHandler(shardId, headerHash)
+	}
+
+	if len(missingHeaderHashes) > 0 {
+		mp.allNeededShardHdrsFound = false
 	}
 
 	mp.mutRequestedShardHeaderHashes.Unlock()

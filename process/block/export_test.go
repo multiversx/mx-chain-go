@@ -141,6 +141,7 @@ func (mp *metaProcessor) AddHdrHashToRequestedList(hdrHash []byte) {
 
 	if mp.requestedShardHeaderHashes == nil {
 		mp.requestedShardHeaderHashes = make(map[string]bool)
+		mp.allNeededShardHdrsFound = false
 	}
 
 	if mp.currHighestShardHdrNonces == nil {
@@ -179,7 +180,9 @@ func (bp *baseProcessor) SetHasher(hasher hashing.Hasher) {
 }
 
 func (mp *metaProcessor) SetNextKValidity(val uint32) {
+	mp.mutRequestedShardHeaderHashes.Lock()
 	mp.nextKValidity = val
+	mp.mutRequestedShardHeaderHashes.Unlock()
 }
 
 func (mp *metaProcessor) CreateLastNotarizedHdrs(header *block.MetaBlock) error {
