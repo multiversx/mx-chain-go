@@ -172,6 +172,8 @@ func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
 	if !s.isMetaBlockRelevant(mb) {
 		return
 	}
+	s.mut.RLock()
+	defer s.mut.RUnlock()
 
 	if mb.Nonce > s.blockNumber {
 		for i := s.blockNumber + 1; i < mb.Nonce; i++ {

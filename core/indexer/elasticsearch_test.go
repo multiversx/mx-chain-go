@@ -296,7 +296,7 @@ func TestElasticIndexer_SaveBlockShouldWork(t *testing.T) {
 
 	ei.SaveBlock(body, header, txPool)
 
-	time.Sleep(2 * time.Second)
+	//TODO: add thread sleep
 
 	assert.Equal(t, 0, buf.Len())
 }
@@ -312,6 +312,8 @@ func TestElasticIndexer_SaveBlockWithNilHeaderShouldErr(t *testing.T) {
 
 	ei.SaveBlock(body, nil, txPool)
 
+	//TODO: add thread sleep
+
 	assert.True(t, strings.Contains(buf.String(), indexer.ErrNoHeader.Error()))
 }
 
@@ -325,6 +327,8 @@ func TestElasticIndexer_SaveBlockWithNilBodyShouldErr(t *testing.T) {
 	txPool := newTestTxPool()
 
 	ei.SaveBlock(nil, header, txPool)
+
+	//TODO: add thread sleep
 
 	assert.True(t, strings.Contains(buf.String(), indexer.ErrBodyTypeAssertion.Error()))
 }
