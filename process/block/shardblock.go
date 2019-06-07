@@ -304,7 +304,10 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32) erro
 	return nil
 }
 
-func (sp *shardProcessor) indexBlockIfNeeded(body block.Body, header *block.Header, txPool map[string]*transaction.Transaction) {
+func (sp *shardProcessor) indexBlockIfNeeded(
+	body data.BodyHandler,
+	header data.HeaderHandler,
+	txPool map[string]*transaction.Transaction) {
 	if sp.core == nil || sp.core.Indexer() == nil {
 		return
 	}
@@ -641,7 +644,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 
-	sp.indexBlockIfNeeded(body, header, tempTxPool)
+	sp.indexBlockIfNeeded(bodyHandler, headerHandler, tempTxPool)
 
 	// write data to log
 	go sp.displayShardBlock(header, body)
@@ -1901,6 +1904,10 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	for i := 0; i < len(body); i++ {
 		miniblock := body[i]
 		receiverShardId := miniblock.ReceiverShardID
+		if receiverShardId == sp.shardCoordinator.SelfId() { // not taking into account miniblocks for current shard
+			continue
+		}
+
 		bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 
 		for _, txHash := range miniblock.TxHashes {

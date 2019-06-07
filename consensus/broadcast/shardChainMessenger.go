@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
@@ -20,7 +19,6 @@ type shardChainMessenger struct {
 	marshalizer      marshal.Marshalizer
 	messenger        consensus.P2PMessenger
 	shardCoordinator sharding.Coordinator
-	syncTimer        ntp.SyncTimer
 }
 
 // NewShardChainMessenger creates a new shardChainMessenger object
@@ -30,10 +28,9 @@ func NewShardChainMessenger(
 	privateKey crypto.PrivateKey,
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
-	syncTimer ntp.SyncTimer,
 ) (*shardChainMessenger, error) {
 
-	err := checkShardChainNilParameters(marshalizer, messenger, shardCoordinator, privateKey, singleSigner, syncTimer)
+	err := checkShardChainNilParameters(marshalizer, messenger, shardCoordinator, privateKey, singleSigner)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +48,6 @@ func NewShardChainMessenger(
 		marshalizer:      marshalizer,
 		messenger:        messenger,
 		shardCoordinator: shardCoordinator,
-		syncTimer:        syncTimer,
 	}
 
 	return scm, nil
@@ -63,7 +59,6 @@ func checkShardChainNilParameters(
 	shardCoordinator sharding.Coordinator,
 	privateKey crypto.PrivateKey,
 	singleSigner crypto.SingleSigner,
-	syncTimer ntp.SyncTimer,
 ) error {
 	if marshalizer == nil {
 		return spos.ErrNilMarshalizer
@@ -79,9 +74,6 @@ func checkShardChainNilParameters(
 	}
 	if singleSigner == nil {
 		return spos.ErrNilSingleSigner
-	}
-	if syncTimer == nil {
-		return spos.ErrNilSyncTimer
 	}
 
 	return nil
@@ -151,7 +143,7 @@ func (scm *shardChainMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte
 	}
 
 	if mbs > 0 {
-		log.Info(fmt.Sprintf("%sStep 1: Sent %d miniblocks\n", scm.syncTimer.FormattedCurrentTime(), mbs))
+		log.Info(fmt.Sprintf("sent %d miniblocks\n", mbs))
 	}
 
 	return nil
@@ -182,7 +174,7 @@ func (scm *shardChainMessenger) BroadcastTransactions(transactions map[uint32][]
 	}
 
 	if txs > 0 {
-		log.Info(fmt.Sprintf("%sStep 1: Sent %d transactions\n", scm.syncTimer.FormattedCurrentTime(), txs))
+		log.Info(fmt.Sprintf("sent %d transactions\n", txs))
 	}
 
 	return nil

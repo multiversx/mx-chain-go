@@ -343,7 +343,6 @@ func createShardNetNode(
 		shardCoordinator,
 		sk,
 		singleSigner,
-		&mock.SyncTimerMock{},
 	)
 
 	n, err := node.NewNode(
@@ -510,7 +509,6 @@ func createMetaNetNode(
 		shardCoordinator,
 		sk,
 		singleSigner,
-		&mock.SyncTimerMock{},
 	)
 
 	n, err := node.NewNode(
