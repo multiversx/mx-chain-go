@@ -87,38 +87,13 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	err := sr.broadcastMiniBlocksAndTransactions()
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	err = sr.SetSelfJobDone(sr.Current(), true)
+	err := sr.SetSelfJobDone(sr.Current(), true)
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
 	return true
-}
-
-func (sr *SubroundBlock) broadcastMiniBlocksAndTransactions() error {
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.BlockBody)
-	if err != nil {
-		return err
-	}
-
-	err = sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
-	if err != nil {
-		return err
-	}
-
-	err = sr.BroadcastMessenger().BroadcastTransactions(transactions)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // sendBlockBody method job the proposed block body in the subround Block

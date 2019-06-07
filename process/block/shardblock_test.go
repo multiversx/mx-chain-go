@@ -2273,23 +2273,14 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	assert.NotNil(t, msh)
 	assert.NotNil(t, mstx)
 	_, found := msh[0]
-	assert.True(t, found)
-	_, found = msh[1]
-	assert.True(t, found)
+	assert.False(t, found)
 
 	expectedBody := make(block.Body, 0)
-	err = marshalizer.Unmarshal(&expectedBody, msh[0])
-	assert.Nil(t, err)
-	assert.Equal(t, len(expectedBody), 2)
-	assert.Equal(t, expectedBody[0], &mb0)
-	assert.Equal(t, expectedBody[1], &mb0)
-
-	expectedBody = make(block.Body, 0)
 	err = marshalizer.Unmarshal(&expectedBody, msh[1])
 	assert.Nil(t, err)
 	assert.Equal(t, len(expectedBody), 2)
-	assert.Equal(t, expectedBody[0], &mb1)
-	assert.Equal(t, expectedBody[1], &mb1)
+	assert.Equal(t, &mb1, expectedBody[0])
+	assert.Equal(t, &mb1, expectedBody[1])
 }
 
 func TestShardProcessor_MarshalizedDataWrongType(t *testing.T) {
