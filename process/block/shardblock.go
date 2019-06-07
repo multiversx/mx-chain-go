@@ -28,6 +28,16 @@ var txsTotalProcessed = 0
 const maxTransactionsInBlock = 15000
 const metablockFinality = 1
 
+type txInfo struct {
+	txHashes   [][]byte
+	rcvShardId uint32
+}
+
+type txShardInfo struct {
+	sndShardId uint32
+	rcvShardId uint32
+}
+
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
@@ -39,9 +49,9 @@ type shardProcessor struct {
 	chRcvAllTxs            chan bool
 	onRequestTransaction   func(shardID uint32, txHashes [][]byte)
 	mutRequestedTxHashes   sync.RWMutex
-	requestedTxHashes      map[string]bool
+	requestedTxHashes      map[string]*txShardInfo
 	mutTxsForBlock         sync.RWMutex
-	txsForBlock            map[string]*transaction.Transaction
+	existingTxsForShard    map[uint32]map[string]interface{}
 	onRequestMiniBlock     func(shardId uint32, mbHash []byte)
 	chRcvAllMetaHdrs       chan bool
 	mutUsedMetaHdrs        sync.Mutex
@@ -124,9 +134,12 @@ func NewShardProcessor(
 	transactionPool.RegisterHandler(sp.receivedTransaction)
 
 	sp.onRequestMiniBlock = requestHandler.RequestMiniBlock
-	sp.requestedTxHashes = make(map[string]bool)
+	sp.requestedTxHashes = make(map[string]*txShardInfo)
 	sp.requestedMetaHdrHashes = make(map[string]bool)
-	sp.txsForBlock = make(map[string]*transaction.Transaction)
+	sp.existingTxsForShard = make(map[uint32]map[string]interface{})
+	for i := uint32(0); i < sp.shardCoordinator.NumberOfShards(); i++ {
+		sp.existingTxsForShard[i] = make(map[string]interface{})
+	}
 	sp.mapUsedMetaHdrs = make(map[uint32][][]byte)
 
 	metaBlockPool := sp.dataPool.MetaBlocks()
@@ -178,6 +191,13 @@ func (sp *shardProcessor) ProcessBlock(
 	if err != nil {
 		return err
 	}
+
+	sp.mutTxsForBlock.Lock()
+	sp.existingTxsForShard = make(map[uint32]map[string]interface{})
+	for i := uint32(0); i < sp.shardCoordinator.NumberOfShards(); i++ {
+		sp.existingTxsForShard[i] = make(map[string]interface{})
+	}
+	sp.mutTxsForBlock.Unlock()
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", sp.getNrTxsWithDst(header.ShardId)))
 
@@ -482,7 +502,14 @@ func (sp *shardProcessor) processBlockTransactions(body block.Body, round uint32
 			}
 
 			txHash := miniBlock.TxHashes[j]
-			tx := sp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
+			sp.mutTxsForBlock.RLock()
+			elem := sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)]
+			sp.mutTxsForBlock.RUnlock()
+			tx, ok := elem.(*transaction.Transaction)
+			if !ok {
+				return process.ErrWrongTypeAssertion
+			}
+
 			err := sp.processAndRemoveBadTransaction(
 				txHash,
 				tx,
@@ -569,7 +596,14 @@ func (sp *shardProcessor) CommitBlock(
 		miniBlock := (body)[i]
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
-			tx := sp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
+			sp.mutTxsForBlock.RLock()
+			elem := sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)]
+			sp.mutTxsForBlock.RUnlock()
+			tx, ok := elem.(*transaction.Transaction)
+			if !ok {
+				return process.ErrWrongTypeAssertion
+			}
+
 			if tx == nil {
 				err = process.ErrMissingTransaction
 				return err
@@ -636,7 +670,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
-
+	//TODO: Check if we can tempTxPool with existingTxsForShard
 	sp.indexBlockIfNeeded(body, header, tempTxPool)
 
 	// write data to log
@@ -768,6 +802,7 @@ func (sp *shardProcessor) getTransactionFromPool(
 
 	val, ok := txStore.Peek(txHash)
 	if !ok {
+		log.Debug(process.ErrTxNotFound.Error())
 		return nil
 	}
 
@@ -786,7 +821,15 @@ func (sp *shardProcessor) receivedTransaction(txHash []byte) {
 	sp.mutRequestedTxHashes.Lock()
 
 	if len(sp.requestedTxHashes) > 0 {
-		if sp.requestedTxHashes[string(txHash)] {
+		txShardInfo, ok := sp.requestedTxHashes[string(txHash)]
+		if ok {
+			tx := sp.getTransactionFromPool(txShardInfo.sndShardId, txShardInfo.rcvShardId, txHash)
+			if tx != nil {
+				sp.mutTxsForBlock.Lock()
+				sp.existingTxsForShard[txShardInfo.sndShardId][string(txHash)] = tx
+				sp.mutTxsForBlock.Unlock()
+			}
+
 			delete(sp.requestedTxHashes, string(txHash))
 		}
 
@@ -930,16 +973,16 @@ func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
 	sp.mutRequestedTxHashes.Lock()
 
 	requestedTxs := 0
-	missingTxsForShards := sp.computeMissingTxsForShards(body)
-	sp.requestedTxHashes = make(map[string]bool)
+	missingTxsForShards := sp.computeMissingAndExistingTxsForShards(body)
+	sp.requestedTxHashes = make(map[string]*txShardInfo)
 
-	for shardId, txHashes := range missingTxsForShards {
-		requestedTxs += len(txHashes)
-		for _, txHash := range txHashes {
-			sp.requestedTxHashes[string(txHash)] = true
+	for shardId, txInfo := range missingTxsForShards {
+		requestedTxs += len(txInfo.txHashes)
+		for _, txHash := range txInfo.txHashes {
+			sp.requestedTxHashes[string(txHash)] = &txShardInfo{sndShardId: shardId, rcvShardId: txInfo.rcvShardId}
 		}
 
-		sp.onRequestTransaction(shardId, txHashes)
+		sp.onRequestTransaction(shardId, txInfo.txHashes)
 	}
 
 	sp.mutRequestedTxHashes.Unlock()
@@ -947,12 +990,13 @@ func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
 	return requestedTxs
 }
 
-func (sp *shardProcessor) computeMissingTxsForShards(body block.Body) map[uint32][][]byte {
-	missingTxsForShard := make(map[uint32][][]byte)
+func (sp *shardProcessor) computeMissingAndExistingTxsForShards(body block.Body) map[uint32]*txInfo {
+	missingTxsForShard := make(map[uint32]*txInfo)
 
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		currentShardMissingTransactions := make([][]byte, 0)
+		currentShardExistingTransactions := make(map[string]interface{}, 0)
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
@@ -960,11 +1004,22 @@ func (sp *shardProcessor) computeMissingTxsForShards(body block.Body) map[uint32
 
 			if tx == nil {
 				currentShardMissingTransactions = append(currentShardMissingTransactions, txHash)
+			} else {
+				currentShardExistingTransactions[string(txHash)] = tx
 			}
 		}
 
 		if len(currentShardMissingTransactions) > 0 {
-			missingTxsForShard[miniBlock.SenderShardID] = currentShardMissingTransactions
+			missingTxsForShard[miniBlock.SenderShardID] = &txInfo{
+				txHashes:   currentShardMissingTransactions,
+				rcvShardId: miniBlock.ReceiverShardID,
+			}
+		}
+
+		if len(currentShardExistingTransactions) > 0 {
+			sp.mutTxsForBlock.Lock()
+			sp.existingTxsForShard[miniBlock.SenderShardID] = currentShardExistingTransactions
+			sp.mutTxsForBlock.Unlock()
 		}
 	}
 
@@ -1097,7 +1152,7 @@ func (sp *shardProcessor) processMiniBlockComplete(
 
 	sp.mutTxsForBlock.Lock()
 	for index, txHash := range miniBlockTxHashes {
-		sp.txsForBlock[string(txHash)] = miniBlockTxs[index]
+		sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)] = miniBlockTxs[index]
 	}
 	sp.mutTxsForBlock.Unlock()
 
@@ -1447,7 +1502,10 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	miniBlocks := make(block.Body, 0)
 	sp.mutTxsForBlock.Lock()
-	sp.txsForBlock = make(map[string]*transaction.Transaction)
+	sp.existingTxsForShard = make(map[uint32]map[string]interface{})
+	for i := uint32(0); i < sp.shardCoordinator.NumberOfShards(); i++ {
+		sp.existingTxsForShard[i] = make(map[string]interface{})
+	}
 	sp.mutTxsForBlock.Unlock()
 
 	if sp.accounts.JournalLen() != 0 {
@@ -1538,7 +1596,7 @@ func (sp *shardProcessor) createMiniBlocks(
 			}
 
 			sp.mutTxsForBlock.Lock()
-			sp.txsForBlock[string(orderedTxHashes[index])] = orderedTxes[index]
+			sp.existingTxsForShard[miniBlock.SenderShardID][string(orderedTxHashes[index])] = orderedTxes[index]
 			sp.mutTxsForBlock.Unlock()
 			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 			txs++
@@ -1862,7 +1920,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 
 		for _, txHash := range miniblock.TxHashes {
 			sp.mutTxsForBlock.RLock()
-			tx := sp.txsForBlock[string(txHash)]
+			tx := sp.existingTxsForShard[miniblock.SenderShardID][string(txHash)]
 			sp.mutTxsForBlock.RUnlock()
 			if tx != nil {
 				txMrs, err := sp.marshalizer.Marshal(tx)

@@ -78,9 +78,9 @@ func (sp *shardProcessor) AddTxHashToRequestedList(txHash []byte) {
 	defer sp.mutRequestedTxHashes.Unlock()
 
 	if sp.requestedTxHashes == nil {
-		sp.requestedTxHashes = make(map[string]bool)
+		sp.requestedTxHashes = make(map[string]*txShardInfo)
 	}
-	sp.requestedTxHashes[string(txHash)] = true
+	sp.requestedTxHashes[string(txHash)] = &txShardInfo{}
 }
 
 func (sp *shardProcessor) IsTxHashRequested(txHash []byte) bool {
@@ -213,4 +213,10 @@ func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body blo
 
 func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
 	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
+}
+
+func (sp *shardProcessor) SetExistingTxsForShard(shardId uint32, hash string, value interface{}) {
+	sp.mutTxsForBlock.Lock()
+	sp.existingTxsForShard[shardId][hash] = value
+	sp.mutTxsForBlock.Unlock()
 }
