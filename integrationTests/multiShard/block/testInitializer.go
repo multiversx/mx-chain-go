@@ -438,7 +438,6 @@ func createNodes(
 				shardCoordinator,
 				sk,
 				&singlesig.SchnorrSigner{},
-				&mock.SyncTimerMock{},
 			)
 
 			nodes[idx] = testNode
@@ -669,7 +668,6 @@ func createMetaNetNode(
 		shardCoordinator,
 		sk,
 		singleSigner,
-		&mock.SyncTimerMock{},
 	)
 
 	n, err := node.NewNode(

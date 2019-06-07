@@ -16,7 +16,6 @@ func TestShardChainMessenger_NewShardChainMessengerNilMarshalizerShouldFail(t *t
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, err := broadcast.NewShardChainMessenger(
 		nil,
@@ -24,7 +23,6 @@ func TestShardChainMessenger_NewShardChainMessengerNilMarshalizerShouldFail(t *t
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	assert.Nil(t, scm)
@@ -36,7 +34,6 @@ func TestShardChainMessenger_NewShardChainMessengerNilMessengerShouldFail(t *tes
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, err := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -44,7 +41,6 @@ func TestShardChainMessenger_NewShardChainMessengerNilMessengerShouldFail(t *tes
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	assert.Nil(t, scm)
@@ -56,7 +52,6 @@ func TestShardChainMessenger_NewShardChainMessengerNilPrivateKeyShouldFail(t *te
 	messengerMock := &mock.MessengerStub{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, err := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -64,7 +59,6 @@ func TestShardChainMessenger_NewShardChainMessengerNilPrivateKeyShouldFail(t *te
 		nil,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	assert.Nil(t, scm)
@@ -76,7 +70,6 @@ func TestShardChainMessenger_NewShardChainMessengerNilShardCoordinatorShouldFail
 	messengerMock := &mock.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, err := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -84,7 +77,6 @@ func TestShardChainMessenger_NewShardChainMessengerNilShardCoordinatorShouldFail
 		privateKeyMock,
 		nil,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	assert.Nil(t, scm)
@@ -96,7 +88,6 @@ func TestShardChainMessenger_NewShardChainMessengerNilSingleSignerShouldFail(t *
 	messengerMock := &mock.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, err := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -104,31 +95,10 @@ func TestShardChainMessenger_NewShardChainMessengerNilSingleSignerShouldFail(t *
 		privateKeyMock,
 		shardCoordinatorMock,
 		nil,
-		syncTimerMock,
 	)
 
 	assert.Nil(t, scm)
 	assert.Equal(t, spos.ErrNilSingleSigner, err)
-}
-
-func TestShardChainMessenger_NewShardChainMessengerNilSyncTimerShouldFail(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-
-	scm, err := broadcast.NewShardChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		nil,
-	)
-
-	assert.Nil(t, scm)
-	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestShardChainMessenger_NewShardChainMessengerShouldWork(t *testing.T) {
@@ -137,7 +107,6 @@ func TestShardChainMessenger_NewShardChainMessengerShouldWork(t *testing.T) {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, err := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -145,7 +114,6 @@ func TestShardChainMessenger_NewShardChainMessengerShouldWork(t *testing.T) {
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	assert.NotNil(t, scm)
@@ -158,7 +126,6 @@ func TestShardChainMessenger_BroadcastBlockShouldErrNilBody(t *testing.T) {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, _ := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -166,7 +133,6 @@ func TestShardChainMessenger_BroadcastBlockShouldErrNilBody(t *testing.T) {
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	err := scm.BroadcastBlock(nil, &block.Header{})
@@ -179,7 +145,6 @@ func TestShardChainMessenger_BroadcastBlockShouldErrNilHeader(t *testing.T) {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, _ := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -187,7 +152,6 @@ func TestShardChainMessenger_BroadcastBlockShouldErrNilHeader(t *testing.T) {
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	err := scm.BroadcastBlock(&block.Body{}, nil)
@@ -200,7 +164,6 @@ func TestShardChainMessenger_BroadcastBlockShouldErrMockMarshalizer(t *testing.T
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 	marshalizerMock.Fail = true
 
 	scm, _ := broadcast.NewShardChainMessenger(
@@ -209,7 +172,6 @@ func TestShardChainMessenger_BroadcastBlockShouldErrMockMarshalizer(t *testing.T
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	err := scm.BroadcastBlock(&block.Body{}, &block.Header{})
@@ -225,7 +187,6 @@ func TestShardChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, _ := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -233,7 +194,6 @@ func TestShardChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	err := scm.BroadcastBlock(&block.Body{}, &block.Header{})
@@ -246,7 +206,6 @@ func TestShardChainMessenger_BroadcastHeaderShouldErrNilHeader(t *testing.T) {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, _ := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -254,7 +213,6 @@ func TestShardChainMessenger_BroadcastHeaderShouldErrNilHeader(t *testing.T) {
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	err := scm.BroadcastHeader(nil)
@@ -267,7 +225,6 @@ func TestShardChainMessenger_BroadcastHeaderShouldErrMockMarshalizer(t *testing.
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 	marshalizerMock.Fail = true
 
 	scm, _ := broadcast.NewShardChainMessenger(
@@ -276,7 +233,6 @@ func TestShardChainMessenger_BroadcastHeaderShouldErrMockMarshalizer(t *testing.
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	err := scm.BroadcastHeader(&block.Header{})
@@ -292,7 +248,6 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, _ := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -300,7 +255,6 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	err := scm.BroadcastHeader(&block.Header{})
@@ -320,7 +274,6 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, _ := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -328,7 +281,6 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	miniBlocks := make(map[uint32][]byte)
@@ -365,7 +317,6 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, _ := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -373,7 +324,6 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	transactions := make(map[uint32][][]byte)
@@ -416,7 +366,6 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
 
 	scm, _ := broadcast.NewShardChainMessenger(
 		marshalizerMock,
@@ -424,7 +373,6 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock,
 	)
 
 	transactions := make(map[uint32][][]byte)
