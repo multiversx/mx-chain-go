@@ -184,27 +184,27 @@ func (ei *elasticIndexer) SaveBlock(
 	headerhandler data.HeaderHandler,
 	txPool map[string]*transaction.Transaction) {
 
+	if headerhandler == nil {
+		ei.logger.Warn(ErrNoHeader.Error())
+		return
+	}
+
 	header, ok := headerhandler.(*block.Header)
 	if !ok {
-		fmt.Println("elasticsearch - header type assertion failed")
+		ei.logger.Warn(ErrHeaderTypeAssertion.Error())
 		return
 	}
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
-		fmt.Println("elasticsearch - body type assertion failed")
-		return
-	}
-
-	if header == nil {
-		fmt.Println("elasticsearch - no header")
+		ei.logger.Warn(ErrBodyTypeAssertion.Error())
 		return
 	}
 
 	go ei.saveHeader(header)
 
 	if len(body) == 0 {
-		fmt.Println("elasticsearch - no miniblocks")
+		ei.logger.Warn(ErrNoMiniblocks.Error())
 		return
 	}
 

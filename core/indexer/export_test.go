@@ -46,7 +46,7 @@ func (ei *ElasticIndexer) GetSerializedElasticBlockAndHeaderHash(header *block.H
 }
 
 func (ei *ElasticIndexer) BuildTransactionBulks(
-	body *block.Body,
+	body block.Body,
 	header *block.Header,
 	txPool map[string]*transaction.Transaction,
 ) [][]*Transaction {
