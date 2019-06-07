@@ -1225,3 +1225,7 @@ func TestNode_CreateMetaGenesisBlockShouldCreateSaveAndStoreMetaBlock(t *testing
 	assert.Equal(t, savedHeaderHash, storedHeaderHash)
 	assert.Equal(t, savedHeaderHash, storedHeaderKey)
 }
+
+//------- GetAccount
+
+//TODO add tests

@@ -623,6 +623,14 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 
 	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
+		if err == state.ErrAccNotFound {
+			return &state.Account{
+				Balance:  big.NewInt(0),
+				Nonce:    0,
+				RootHash: nil,
+				CodeHash: nil,
+			}, nil
+		}
 		return nil, errors.New("could not fetch sender address from provided param")
 	}
 
