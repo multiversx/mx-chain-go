@@ -710,14 +710,15 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 		}
 
 		mp.allNeededShardHdrsFound = lenReqHeadersHashes == 0 && areFinalityAttestingHdrsInCache
-		mp.mutRequestedShardHeaderHashes.Unlock()
 
-		if lenReqHeadersHashes == 0 && areFinalityAttestingHdrsInCache {
+		if mp.allNeededShardHdrsFound {
+			mp.mutRequestedShardHeaderHashes.Unlock()
 			mp.chRcvAllHdrs <- true
+			return
 		}
-	} else {
-		mp.mutRequestedShardHeaderHashes.Unlock()
 	}
+
+	mp.mutRequestedShardHeaderHashes.Unlock()
 }
 
 func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
