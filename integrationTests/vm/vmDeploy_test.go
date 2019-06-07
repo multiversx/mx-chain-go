@@ -24,6 +24,65 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	testVMDeploy(t, 1000, big.NewInt(50))
 }
 
+func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
+	t.Skip("this test needs re-evaluation")
+
+	accnts := createInMemoryShardAccountsDB()
+
+	transferOnCalls := big.NewInt(50)
+
+	senderPubkeyBytes := createDummyAddress().Bytes()
+	senderNonce := uint64(11)
+	senderBalance := big.NewInt(100000000)
+	_ = createAccount(accnts, senderPubkeyBytes, senderNonce, senderBalance)
+
+	vmOpGas := uint64(10000)
+
+	txProcessor := createTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas)
+	assert.NotNil(t, txProcessor)
+
+	gasPrice := uint64(1)
+
+	initialValueForInternalVariable := uint64(45)
+	scCode := "mocked code, not taken into account"
+	txData := fmt.Sprintf("%s@%X", scCode, initialValueForInternalVariable)
+	tx := &transaction.Transaction{
+		Nonce:    senderNonce,
+		Value:    transferOnCalls,
+		SndAddr:  senderPubkeyBytes,
+		RcvAddr:  createEmptyAddress().Bytes(),
+		Data:     []byte(txData),
+		GasPrice: gasPrice,
+		//slightly lower than required
+		GasLimit: vmOpGas - 1,
+	}
+	assert.NotNil(t, tx)
+
+	round := uint32(444)
+
+	err := txProcessor.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
+
+	//we should now have the 2 accounts in the trie. Should get them and test all values
+	senderAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(senderPubkeyBytes)
+	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddress)
+	senderRecovShardAccount := senderRecovAccount.(*state.Account)
+
+	gasFunds := big.NewInt(0).Mul(big.NewInt(0).SetUint64(vmOpGas-1), big.NewInt(0).SetUint64(gasPrice))
+	expectedSenderBalance := big.NewInt(0).Sub(senderBalance, gasFunds)
+
+	assert.Equal(t, senderNonce+1, senderRecovShardAccount.GetNonce())
+	assert.Equal(t, expectedSenderBalance, senderRecovShardAccount.Balance)
+
+	destinationAddressBytes := computeSCDestinationAddressBytes(senderNonce, senderPubkeyBytes)
+	destinationAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(destinationAddressBytes)
+	destinationAccount, _ := accnts.GetExistingAccount(destinationAddress)
+	assert.Nil(t, destinationAccount)
+}
+
 func testVMDeploy(t *testing.T, opGas uint64, transferOnCalls *big.Int) {
 	accnts := createInMemoryShardAccountsDB()
 
