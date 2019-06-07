@@ -87,6 +87,11 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 
 	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been committed and broadcast\n", sr.SyncTimer().FormattedCurrentTime()))
 
+	err = sr.broadcastMiniBlocksAndTransactions()
+	if err != nil {
+		log.Error(err.Error())
+	}
+
 	actionMsg := "synchronized"
 	if sr.IsSelfLeaderInCurrentRound() {
 		actionMsg = "proposed"
@@ -96,6 +101,25 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
 	return true
+}
+
+func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.BlockBody)
+	if err != nil {
+		return err
+	}
+
+	err = sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
+	if err != nil {
+		return err
+	}
+
+	err = sr.BroadcastMessenger().BroadcastTransactions(transactions)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved in each subround from first subround to the given
