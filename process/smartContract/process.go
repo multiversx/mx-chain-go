@@ -426,7 +426,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			}
 		}
 
-		if outAcc.Nonce == nil || outAcc.Nonce.Cmp(big.NewInt(int64(acc.GetNonce()))) <= 0 {
+		if outAcc.Nonce == nil || outAcc.Nonce.Cmp(big.NewInt(int64(acc.GetNonce()))) < 0 {
 			return process.ErrWrongNonceInVMOutput
 		}
 

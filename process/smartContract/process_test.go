@@ -662,7 +662,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 
 	acntDst.SetCode([]byte("code"))
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 }
 
 func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
@@ -931,7 +931,10 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 
 	_, _, tx := createAccountsAndTransaction()
 
-	vmOutput := &vmcommon.VMOutput{}
+	vmOutput := &vmcommon.VMOutput{
+		GasRefund:    big.NewInt(0),
+		GasRemaining: big.NewInt(0),
+	}
 	err = sc.processVMOutput(vmOutput, tx, nil, 10)
 	assert.Nil(t, err)
 }
@@ -955,7 +958,10 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 
 	acntSnd, _, tx := createAccountsAndTransaction()
 
-	vmOutput := &vmcommon.VMOutput{}
+	vmOutput := &vmcommon.VMOutput{
+		GasRefund:    big.NewInt(0),
+		GasRemaining: big.NewInt(0),
+	}
 	err = sc.processVMOutput(vmOutput, tx, acntSnd, 10)
 	assert.Nil(t, err)
 }
@@ -1587,7 +1593,10 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
-	vmOutput := &vmcommon.VMOutput{}
+	vmOutput := &vmcommon.VMOutput{
+		GasRefund:    big.NewInt(0),
+		GasRemaining: big.NewInt(0),
+	}
 	err = sc.ProcessVMOutput(vmOutput, tx, acntSrc, round)
 	assert.Nil(t, err)
 }
@@ -1632,6 +1641,9 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 		}
 		return nil, state.ErrAccNotFound
 	}
+	accountsDB.PutCodeCalled = func(accountHandler state.AccountHandler, code []byte) error {
+		return nil
+	}
 
 	accTracker.JournalizeCalled = func(entry state.JournalEntry) {
 		return
@@ -1645,7 +1657,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = sc.ProcessSCOutputAccounts(outputAccounts)
-	assert.Equal(t, process.ErrWrongNonceInVMOutput, err)
+	assert.Nil(t, err)
 
 	outacc1.Balance = nil
 	outacc1.Nonce = outacc1.Nonce.Add(outacc1.Nonce, big.NewInt(1))
