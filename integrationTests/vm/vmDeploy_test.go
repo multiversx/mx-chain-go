@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -21,16 +22,26 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	txProcessor := createTxProcessorWithOneSCExecutorMockVM(accnts)
 	assert.NotNil(t, txProcessor)
 
+	initialValueForInternalVariable := 45
+	scCode := fmt.Sprintf("mocked code, not taken into account@%X", initialValueForInternalVariable)
 	tx := &transaction.Transaction{
 		Nonce:   senderNonce,
 		Value:   big.NewInt(0),
 		SndAddr: senderPubkeyBytes,
 		RcvAddr: createEmptyAddress().Bytes(),
+		Data:    []byte(scCode),
 	}
 	assert.NotNil(t, tx)
 
-	//round := uint32(444)
+	round := uint32(444)
 
-	//err := txProcessor.ProcessTransaction(tx, round)
-	//assert.Nil(t, err)
+	err := txProcessor.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
+
+	//we should now have the 2 accounts in the trie. Should get them and test all values
+	//senderRecovAccount := accnts.
+
 }

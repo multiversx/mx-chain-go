@@ -21,6 +21,12 @@ func generateRandomByteSlice(size int) []byte {
 	return buff
 }
 
+func generateEmptyByteSlice(size int) []byte {
+	buff := make([]byte, size)
+
+	return buff
+}
+
 func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.AccountHandler) {
 	journalizeCalled := 0
 	saveAccountCalled := 0
@@ -303,16 +309,16 @@ func TestScProcessor_ComputeTransactionTypeScDeployment(t *testing.T) {
 func TestScProcessor_ComputeTransactionTypeScInvoking(t *testing.T) {
 	t.Parallel()
 
+	addrConverter := &mock.AddressConverterMock{}
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
+	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	_, acntDst := createAccounts(tx)
 	acntDst.SetCode([]byte("code"))
-	addrConverter := &mock.AddressConverterMock{}
 
 	sc, err := NewSmartContractProcessor(
 		&mock.VMExecutionHandlerStub{},
@@ -337,6 +343,7 @@ func TestScProcessor_ComputeTransactionTypeScInvoking(t *testing.T) {
 func TestScProcessor_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	t.Parallel()
 
+	addrConverter := &mock.AddressConverterMock{}
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
@@ -346,7 +353,6 @@ func TestScProcessor_ComputeTransactionTypeMoveBalance(t *testing.T) {
 
 	_, acntDst := createAccounts(tx)
 
-	addrConverter := &mock.AddressConverterMock{}
 	sc, err := NewSmartContractProcessor(
 		&mock.VMExecutionHandlerStub{},
 		&mock.AtArgumentParserMock{},
@@ -370,6 +376,7 @@ func TestScProcessor_ComputeTransactionTypeMoveBalance(t *testing.T) {
 func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	t.Parallel()
 
+	addrConverter := &mock.AddressConverterMock{}
 	vm := &mock.VMExecutionHandlerStub{}
 	argParser := &mock.AtArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
@@ -379,7 +386,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
 		&mock.FakeAccountsHandlerMock{},
-		&mock.AddressConverterMock{},
+		addrConverter,
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -387,7 +394,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = nil
+	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
@@ -403,6 +410,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	t.Parallel()
 
+	addrConverter := &mock.AddressConverterMock{}
 	vm := &mock.VMExecutionHandlerStub{}
 	argParser := &mock.AtArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
@@ -412,7 +420,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
 		&mock.FakeAccountsHandlerMock{},
-		&mock.AddressConverterMock{},
+		addrConverter,
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -420,7 +428,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = nil
+	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
@@ -465,6 +473,7 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 func TestScProcessor_DeploySmartContract(t *testing.T) {
 	t.Parallel()
 
+	addrConverter := &mock.AddressConverterMock{}
 	vm := &mock.VMExecutionHandlerStub{}
 	argParser := &mock.AtArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
@@ -474,7 +483,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
 		&mock.FakeAccountsHandlerMock{},
-		&mock.AddressConverterMock{},
+		addrConverter,
 		mock.NewMultiShardsCoordinatorMock(5))
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -482,7 +491,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = nil
+	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)

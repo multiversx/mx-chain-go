@@ -10,6 +10,7 @@ import (
 )
 
 var errNilValue = errors.New("nil value provided")
+var errNoArgumentsProvided = errors.New("no arguments provided")
 
 const addFunc = "add"
 const getFunc = "get"
@@ -62,8 +63,8 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 	if input == nil {
 		return nil, errNilValue
 	}
-	if input.Arguments == nil {
-		return nil, errNilValue
+	if len(input.Arguments) == 0 {
+		return nil, errNoArgumentsProvided
 	}
 
 	initialValue := big.NewInt(0)

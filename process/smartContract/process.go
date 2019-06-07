@@ -85,16 +85,11 @@ func NewSmartContractProcessor(
 
 // ComputeTransactionType calculates the type of the transaction
 func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (process.TransactionType, error) {
-	if tx == nil {
-		return 0, process.ErrNilTransaction
+	isEmptyAddress, err := sc.checkRecvAddressAndTxValidityAndEmptiness(tx)
+	if err != nil {
+		return 0, err
 	}
 
-	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.RcvAddr)
-	if recvAddressIsInvalid {
-		return 0, process.ErrWrongTransaction
-	}
-
-	isEmptyAddress := bytes.Equal(tx.RcvAddr, make([]byte, sc.adrConv.AddressLen()))
 	if isEmptyAddress {
 		if len(tx.Data) > 0 {
 			return process.SCDeployment, nil
@@ -116,6 +111,20 @@ func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (proc
 	}
 
 	return process.MoveBalance, nil
+}
+
+func (sc *scProcessor) checkRecvAddressAndTxValidityAndEmptiness(tx *transaction.Transaction) (bool, error) {
+	if tx == nil {
+		return false, process.ErrNilTransaction
+	}
+
+	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.RcvAddr)
+	if recvAddressIsInvalid {
+		return false, process.ErrWrongTransaction
+	}
+
+	isEmptyAddress := bytes.Equal(tx.RcvAddr, make([]byte, sc.adrConv.AddressLen()))
+	return isEmptyAddress, nil
 }
 
 // ExecuteSmartContractTransaction processes the transaction, call the VM and processes the SC call output
@@ -180,11 +189,15 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd state.AccountHandler, round uint32) error {
 	defer sc.fakeAccounts.CleanFakeAccounts()
 
-	if len(tx.RcvAddr) != 0 {
+	isEmptyAddress, err := sc.checkRecvAddressAndTxValidityAndEmptiness(tx)
+	if err != nil {
+		return err
+	}
+	if !isEmptyAddress {
 		return process.ErrWrongTransaction
 	}
 
-	err := sc.prepareSmartContractCall(tx, acntSnd)
+	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
 		return err
 	}
