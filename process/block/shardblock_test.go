@@ -2278,7 +2278,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	expectedBody := make(block.Body, 0)
 	err = marshalizer.Unmarshal(&expectedBody, msh[1])
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(expectedBody))
+	assert.Equal(t, len(expectedBody), 2)
 	assert.Equal(t, &mb1, expectedBody[0])
 	assert.Equal(t, &mb1, expectedBody[1])
 }
