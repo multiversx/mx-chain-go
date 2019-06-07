@@ -215,8 +215,8 @@ func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]da
 	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
 }
 
-func (sp *shardProcessor) SetExistingTxsForShard(shardId uint32, hash string, value interface{}) {
+func (sp *shardProcessor) SetExistingTxsForShard(shardId uint32, hash string, tx *transaction.Transaction) {
 	sp.mutTxsForBlock.Lock()
-	sp.existingTxsForShard[shardId][hash] = value
+	sp.existingTxsForShard[shardId][hash] = tx
 	sp.mutTxsForBlock.Unlock()
 }

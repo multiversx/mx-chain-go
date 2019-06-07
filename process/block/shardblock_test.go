@@ -502,7 +502,7 @@ func TestShardProcessor_ProcessBlockHeaderBodyMismatchShouldErr(t *testing.T) {
 func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	txHash := []byte("tx_hash1")
+	txHash := []byte("tx1_hash")
 	// invalid transaction
 	txProcess := func(transaction *transaction.Transaction, round uint32) error {
 		return process.ErrHigherNonceInTransaction
@@ -568,9 +568,12 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.RequestHandlerMock{},
 	)
 
+	sp.SetExistingTxsForShard(0, string(txHash), &transaction.Transaction{Nonce: 10})
+
 	go func() {
 		sp.ChRcvAllTxs() <- true
 	}()
+
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
@@ -679,7 +682,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldRevertState(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	txHash := []byte("tx_hash1")
+	txHash := []byte("tx1_hash")
 	err := errors.New("process block transaction error")
 	txProcess := func(transaction *transaction.Transaction, round uint32) error {
 		return err
@@ -753,9 +756,12 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.RequestHandlerMock{},
 	)
 
+	sp.SetExistingTxsForShard(0, string(txHash), &transaction.Transaction{Nonce: 10})
+
 	go func() {
 		sp.ChRcvAllTxs() <- true
 	}()
+
 	// should return err
 	err2 := sp.ProcessBlock(blkc, &hdr, body, haveTime)
 	assert.Equal(t, err, err2)
@@ -765,7 +771,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	txHash := []byte("tx_hash1")
+	txHash := []byte("tx1_hash")
 	txProcess := func(transaction *transaction.Transaction, round uint32) error {
 		return nil
 	}
@@ -838,19 +844,22 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		&mock.RequestHandlerMock{},
 	)
 
+	sp.SetExistingTxsForShard(0, string(txHash), &transaction.Transaction{Nonce: 10})
+
 	go func() {
 		sp.ChRcvAllTxs() <- true
 	}()
+
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
 	assert.Equal(t, process.ErrRootStateMissmatch, err)
 	assert.True(t, wasCalled)
 }
 
-func TestShardProcessor_ProcessBlockOnyIntraShardShouldPass(t *testing.T) {
+func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	txHash := []byte("tx_hash1")
+	txHash := []byte("tx1_hash")
 	txProcess := func(transaction *transaction.Transaction, round uint32) error {
 		return nil
 	}
@@ -923,9 +932,12 @@ func TestShardProcessor_ProcessBlockOnyIntraShardShouldPass(t *testing.T) {
 		&mock.RequestHandlerMock{},
 	)
 
+	sp.SetExistingTxsForShard(0, string(txHash), &transaction.Transaction{Nonce: 10})
+
 	go func() {
 		sp.ChRcvAllTxs() <- true
 	}()
+
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
 	assert.Nil(t, err)
@@ -1451,8 +1463,9 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		}
 	}
 	blkc := createTestBlockchain()
+	sp.SetExistingTxsForShard(0, string(txHash), nil)
 	err := sp.CommitBlock(blkc, hdr, body)
-	assert.Equal(t, process.ErrMissingTransaction, err)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
 func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {

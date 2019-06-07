@@ -51,7 +51,7 @@ type shardProcessor struct {
 	mutRequestedTxHashes   sync.RWMutex
 	requestedTxHashes      map[string]*txShardInfo
 	mutTxsForBlock         sync.RWMutex
-	existingTxsForShard    map[uint32]map[string]interface{}
+	existingTxsForShard    map[uint32]map[string]*transaction.Transaction
 	onRequestMiniBlock     func(shardId uint32, mbHash []byte)
 	chRcvAllMetaHdrs       chan bool
 	mutUsedMetaHdrs        sync.Mutex
@@ -136,9 +136,9 @@ func NewShardProcessor(
 	sp.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	sp.requestedTxHashes = make(map[string]*txShardInfo)
 	sp.requestedMetaHdrHashes = make(map[string]bool)
-	sp.existingTxsForShard = make(map[uint32]map[string]interface{})
+	sp.existingTxsForShard = make(map[uint32]map[string]*transaction.Transaction)
 	for i := uint32(0); i < sp.shardCoordinator.NumberOfShards(); i++ {
-		sp.existingTxsForShard[i] = make(map[string]interface{})
+		sp.existingTxsForShard[i] = make(map[string]*transaction.Transaction)
 	}
 	sp.mapUsedMetaHdrs = make(map[uint32][][]byte)
 
@@ -193,9 +193,9 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	sp.mutTxsForBlock.Lock()
-	sp.existingTxsForShard = make(map[uint32]map[string]interface{})
+	sp.existingTxsForShard = make(map[uint32]map[string]*transaction.Transaction)
 	for i := uint32(0); i < sp.shardCoordinator.NumberOfShards(); i++ {
-		sp.existingTxsForShard[i] = make(map[string]interface{})
+		sp.existingTxsForShard[i] = make(map[string]*transaction.Transaction)
 	}
 	sp.mutTxsForBlock.Unlock()
 
@@ -506,9 +506,9 @@ func (sp *shardProcessor) processBlockTransactions(body block.Body, round uint32
 
 			txHash := miniBlock.TxHashes[j]
 			sp.mutTxsForBlock.RLock()
-			elem := sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)]
+			tx, ok := sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)]
 			sp.mutTxsForBlock.RUnlock()
-			tx, ok := elem.(*transaction.Transaction)
+			//tx, ok := elem.(*transaction.Transaction)
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}
@@ -600,17 +600,17 @@ func (sp *shardProcessor) CommitBlock(
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			sp.mutTxsForBlock.RLock()
-			elem := sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)]
+			tx, ok := sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)]
 			sp.mutTxsForBlock.RUnlock()
-			tx, ok := elem.(*transaction.Transaction)
+			//tx, ok := elem.(*transaction.Transaction)
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}
 
-			if tx == nil {
-				err = process.ErrMissingTransaction
-				return err
-			}
+			//if tx == nil {
+			//	err = process.ErrMissingTransaction
+			//	return err
+			//}
 
 			tempTxPool[string(txHash)] = tx
 
@@ -999,7 +999,7 @@ func (sp *shardProcessor) computeMissingAndExistingTxsForShards(body block.Body)
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		currentShardMissingTransactions := make([][]byte, 0)
-		currentShardExistingTransactions := make(map[string]interface{}, 0)
+		currentShardExistingTransactions := make(map[string]*transaction.Transaction, 0)
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
@@ -1505,9 +1505,9 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	miniBlocks := make(block.Body, 0)
 	sp.mutTxsForBlock.Lock()
-	sp.existingTxsForShard = make(map[uint32]map[string]interface{})
+	sp.existingTxsForShard = make(map[uint32]map[string]*transaction.Transaction)
 	for i := uint32(0); i < sp.shardCoordinator.NumberOfShards(); i++ {
-		sp.existingTxsForShard[i] = make(map[string]interface{})
+		sp.existingTxsForShard[i] = make(map[string]*transaction.Transaction)
 	}
 	sp.mutTxsForBlock.Unlock()
 
