@@ -345,6 +345,8 @@ func TestElasticIndexer_SaveBlockWithEmptyBodyShouldErr(t *testing.T) {
 
 	ei.SaveBlock(body, header, txPool)
 
+	//TODO: add thread sleep
+
 	assert.True(t, strings.Contains(buf.String(), indexer.ErrNoMiniblocks.Error()))
 }
 
