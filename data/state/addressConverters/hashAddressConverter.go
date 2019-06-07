@@ -109,3 +109,8 @@ func (hac *HashAddressConverter) PrepareAddressBytes(addressBytes []byte) ([]byt
 
 	return addressBytes, nil
 }
+
+// AddressLen returns the address length
+func (hac *HashAddressConverter) AddressLen() int {
+	return hac.addressLen
+}

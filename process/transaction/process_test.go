@@ -2,6 +2,7 @@ package transaction_test
 
 import (
 	"bytes"
+	"crypto/rand"
 	"errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract"
 	"math/big"
@@ -14,6 +15,13 @@ import (
 	txproc "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/stretchr/testify/assert"
 )
+
+func generateRandomByteSlice(size int) []byte {
+	buff := make([]byte, size)
+	_, _ = rand.Reader.Read(buff)
+
+	return buff
+}
 
 func createAccountStub(sndAddr, rcvAddr []byte,
 	acntSrc, acntDst *state.Account,
@@ -914,10 +922,12 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		},
 	}
 
+	addrConverter := &mock.AddressConverterMock{}
+
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
+	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
 	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
@@ -938,7 +948,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		accounts,
 		&mock.FakeAccountsHandlerMock{},
-		&mock.AddressConverterMock{},
+		addrConverter,
 		mock.NewOneShardCoordinatorMock())
 	scProcessorMock := &mock.SCProcessorMock{}
 
@@ -978,10 +988,12 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		},
 	}
 
+	addrConverter := &mock.AddressConverterMock{}
+
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
+	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
 	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
@@ -1000,7 +1012,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		&mock.MarshalizerMock{},
 		accounts,
 		&mock.FakeAccountsHandlerMock{},
-		&mock.AddressConverterMock{},
+		addrConverter,
 		mock.NewOneShardCoordinatorMock())
 	scProcessorMock := &mock.SCProcessorMock{}
 
@@ -1042,10 +1054,12 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		},
 	}
 
+	addrConverter := &mock.AddressConverterMock{}
+
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
+	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
 	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
@@ -1072,7 +1086,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		&mock.MarshalizerMock{},
 		accounts,
 		&mock.FakeAccountsHandlerMock{},
-		&mock.AddressConverterMock{},
+		addrConverter,
 		mock.NewOneShardCoordinatorMock())
 	scProcessorMock := &mock.SCProcessorMock{}
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
