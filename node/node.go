@@ -238,8 +238,7 @@ func (n *Node) StartConsensus() error {
 		n.messenger,
 		n.shardCoordinator,
 		n.privKey,
-		n.singleSigner,
-		n.syncTimer)
+		n.singleSigner)
 
 	if err != nil {
 		return err
