@@ -1557,6 +1557,9 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
 		return hdrHash
 	}
+
+	sp.SetExistingTxsForShard(0, string(txHash), &transaction.Transaction{Nonce: 10})
+
 	err := sp.CommitBlock(blkc, hdr, body)
 	assert.Nil(t, err)
 	assert.True(t, removeTxWasCalled)
