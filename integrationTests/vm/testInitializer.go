@@ -3,10 +3,12 @@ package vm
 import (
 	"crypto/rand"
 	"math/big"
+	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -17,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
+	"github.com/stretchr/testify/assert"
 )
 
 var testMarshalizer = &marshal.JsonMarshalizer{}
@@ -90,4 +93,46 @@ func createTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter) proc
 	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
 
 	return txProcessor
+}
+
+func testDeployedContractContents(
+	t *testing.T,
+	destinationAddressBytes []byte,
+	accnts state.AccountsAdapter,
+	requiredBalance *big.Int,
+	scCode string,
+	dataValues map[string]*big.Int,
+) {
+
+	destinationAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(destinationAddressBytes)
+	destinationRecovAccount, _ := accnts.GetExistingAccount(destinationAddress)
+	destinationRecovShardAccount, ok := destinationRecovAccount.(*state.Account)
+
+	assert.True(t, ok)
+	assert.NotNil(t, destinationRecovShardAccount)
+	assert.Equal(t, uint64(0), destinationRecovShardAccount.GetNonce())
+	assert.Equal(t, requiredBalance, destinationRecovShardAccount.Balance)
+	//test codehash
+	assert.Equal(t, testHasher.Compute(scCode), destinationRecovAccount.GetCodeHash())
+	//test code
+	assert.Equal(t, []byte(scCode), destinationRecovAccount.GetCode())
+	//in this test we know we have a as a variable inside the contract, we can ask directly its value
+	// using trackableDataTrie functionality
+	assert.NotNil(t, destinationRecovShardAccount.GetRootHash())
+
+	for variable, requiredVal := range dataValues {
+		contractVariableData, err := destinationRecovShardAccount.DataTrieTracker().RetrieveValue([]byte(variable))
+		assert.Nil(t, err)
+		assert.NotNil(t, contractVariableData)
+
+		contractVariableValue := big.NewInt(0).SetBytes(contractVariableData)
+		assert.Equal(t, requiredVal, contractVariableValue)
+	}
+}
+
+func computeSCDestinationAddressBytes(senderNonce uint64, senderAddressBytes []byte) []byte {
+	//TODO change this when receipts are implemented, take the newly created account address (SC account)
+	// from receipt, do not recompute here
+	senderNonceBytes := big.NewInt(0).SetUint64(senderNonce).Bytes()
+	return keccak.Keccak{}.Compute(string(append(senderAddressBytes, senderNonceBytes...)))
 }

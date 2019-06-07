@@ -2,7 +2,6 @@ package mock
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -77,7 +76,8 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 		return nil, err
 	}
 
-	newSCAddr, err := vm.cryptoHook.Sha256(string(input.CallerAddr) + fmt.Sprintf("%d", senderNonce))
+	senderNonceBytes := senderNonce.Bytes()
+	newSCAddr, err := vm.cryptoHook.Keccak256(string(append(input.CallerAddr, senderNonceBytes...)))
 	if err != nil {
 		return nil, err
 	}
@@ -90,8 +90,8 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 		StorageUpdates: []*vmcommon.StorageUpdate{
 			{
 				//only one variable: a
-				Data:   variableA,
-				Offset: initialValue.Bytes(),
+				Offset: variableA,
+				Data:   initialValue.Bytes(),
 			},
 		},
 	}
@@ -166,8 +166,8 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 		StorageUpdates: []*vmcommon.StorageUpdate{
 			{
 				//only one variable: a
-				Data:   variableA,
-				Offset: newValue.Bytes(),
+				Offset: variableA,
+				Data:   newValue.Bytes(),
 			},
 		},
 	}

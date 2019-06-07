@@ -408,14 +408,17 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 		}
 
-		if len(outAcc.Code) > 0 {
-			err = acc.SetCodeWithJournal(outAcc.Code)
+		isSCwithDataStorage := len(outAcc.StorageUpdates) > 0
+		if isSCwithDataStorage {
+			//SC with data variables
+			err := sc.accounts.SaveDataTrie(acc)
 			if err != nil {
 				return err
 			}
+		}
 
-			hash := sc.hasher.Compute(string(outAcc.Code))
-			err = acc.SetCodeHashWithJournal(hash)
+		if len(outAcc.Code) > 0 {
+			err = sc.accounts.PutCode(acc, outAcc.Code)
 			if err != nil {
 				return err
 			}

@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,14 +23,15 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	txProcessor := createTxProcessorWithOneSCExecutorMockVM(accnts)
 	assert.NotNil(t, txProcessor)
 
-	initialValueForInternalVariable := 45
-	scCode := fmt.Sprintf("mocked code, not taken into account@%X", initialValueForInternalVariable)
+	initialValueForInternalVariable := uint64(45)
+	scCode := "mocked code, not taken into account"
+	txData := fmt.Sprintf("%s@%X", scCode, initialValueForInternalVariable)
 	tx := &transaction.Transaction{
 		Nonce:   senderNonce,
 		Value:   big.NewInt(0),
 		SndAddr: senderPubkeyBytes,
 		RcvAddr: createEmptyAddress().Bytes(),
-		Data:    []byte(scCode),
+		Data:    []byte(txData),
 	}
 	assert.NotNil(t, tx)
 
@@ -42,6 +44,20 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	assert.Nil(t, err)
 
 	//we should now have the 2 accounts in the trie. Should get them and test all values
-	//senderRecovAccount := accnts.
+	senderAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(senderPubkeyBytes)
+	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddress)
+	senderRecovShardAccount := senderRecovAccount.(*state.Account)
 
+	assert.Equal(t, senderNonce+1, senderRecovShardAccount.GetNonce())
+	assert.Equal(t, senderBalance, senderRecovShardAccount.Balance)
+
+	destinationAddressBytes := computeSCDestinationAddressBytes(senderNonce, senderPubkeyBytes)
+
+	testDeployedContractContents(
+		t,
+		destinationAddressBytes,
+		accnts,
+		big.NewInt(0),
+		scCode,
+		map[string]*big.Int{"a": big.NewInt(0).SetUint64(initialValueForInternalVariable)})
 }
