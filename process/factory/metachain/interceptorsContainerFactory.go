@@ -36,7 +36,6 @@ func NewInterceptorsContainerFactory(
 	multiSigner crypto.MultiSigner,
 	dataPool dataRetriever.MetaPoolsHolder,
 	chronologyValidator process.ChronologyValidator,
-	tpsBenchmark *statistics.TpsBenchmark,
 ) (*interceptorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -73,7 +72,6 @@ func NewInterceptorsContainerFactory(
 		multiSigner:         multiSigner,
 		dataPool:            dataPool,
 		chronologyValidator: chronologyValidator,
-		tpsBenchmark:        tpsBenchmark,
 	}, nil
 }
 
@@ -126,7 +124,6 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 		icf.marshalizer,
 		icf.dataPool.MetaChainBlocks(),
 		icf.dataPool.MetaBlockNonces(),
-		icf.tpsBenchmark,
 		metachainHeaderStorer,
 		icf.multiSigner,
 		icf.hasher,

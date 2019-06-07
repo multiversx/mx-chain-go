@@ -931,12 +931,20 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, &mock.AtArgumentParserMock{})
+	scProcessor, err := smartContract.NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.AtArgumentParserMock{},
+		mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accounts,
+		&mock.FakeAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewOneShardCoordinatorMock())
 	scProcessorMock := &mock.SCProcessorMock{}
 
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
 		wasCalled = true
 		return nil
 	}
@@ -985,12 +993,20 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, &mock.AtArgumentParserMock{})
+	scProcessor, err := smartContract.NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.AtArgumentParserMock{},
+		mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accounts,
+		&mock.FakeAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewOneShardCoordinatorMock())
 	scProcessorMock := &mock.SCProcessorMock{}
 
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}
@@ -1049,11 +1065,19 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, &mock.AtArgumentParserMock{})
+	scProcessor, err := smartContract.NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.AtArgumentParserMock{},
+		mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accounts,
+		&mock.FakeAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewOneShardCoordinatorMock())
 	scProcessorMock := &mock.SCProcessorMock{}
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}

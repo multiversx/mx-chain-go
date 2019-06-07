@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Handler interface defines methods that can be used from `elrondFacade` context variable
+// FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
 	IsNodeRunning() bool
 	StartNode() error
