@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
@@ -49,11 +48,10 @@ func GetBroadcastMessenger(
 	shardCoordinator sharding.Coordinator,
 	privateKey crypto.PrivateKey,
 	singleSigner crypto.SingleSigner,
-	syncTimer ntp.SyncTimer,
 ) (consensus.BroadcastMessenger, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return broadcast.NewShardChainMessenger(marshalizer, messenger, privateKey, shardCoordinator, singleSigner, syncTimer)
+		return broadcast.NewShardChainMessenger(marshalizer, messenger, privateKey, shardCoordinator, singleSigner)
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {

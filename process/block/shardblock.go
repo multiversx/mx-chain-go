@@ -1861,6 +1861,10 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	for i := 0; i < len(body); i++ {
 		miniblock := body[i]
 		receiverShardId := miniblock.ReceiverShardID
+		if receiverShardId == sp.shardCoordinator.SelfId() { // not taking into account miniblocks for current shard
+			continue
+		}
+
 		bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 
 		for _, txHash := range miniblock.TxHashes {
