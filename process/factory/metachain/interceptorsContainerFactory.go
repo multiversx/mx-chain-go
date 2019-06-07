@@ -170,6 +170,7 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identif
 	interceptor, err := metablock.NewShardHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.ShardHeaders(),
+		icf.dataPool.ShardHeadersNonces(),
 		hdrStorer,
 		icf.multiSigner,
 		icf.hasher,

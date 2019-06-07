@@ -497,3 +497,11 @@ func (b Body) IntegrityAndValidity() error {
 
 	return nil
 }
+
+// IsInterfaceNil return if there is no value under the interface
+func (h *Header) IsInterfaceNil() bool {
+	if h == nil {
+		return true
+	}
+	return false
+}

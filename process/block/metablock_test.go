@@ -1035,6 +1035,8 @@ func TestMetaProcessor_ReceivedHeaderShouldEraseRequested(t *testing.T) {
 	mp.AddHdrHashToRequestedList(hdrHash3)
 
 	//received txHash2
+	hdr := &block.Header{Nonce: 1}
+	dataPool.ShardHeaders().Put(hdrHash2, hdr)
 	mp.ReceivedHeader(hdrHash2)
 
 	assert.True(t, mp.IsHdrHashRequested(hdrHash1))
