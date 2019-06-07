@@ -1087,7 +1087,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		accounts,
 		&mock.FakeAccountsHandlerMock{},
 		addrConverter,
-		mock.NewOneShardCoordinatorMock())
+		shardCoordinator)
 	scProcessorMock := &mock.SCProcessorMock{}
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
