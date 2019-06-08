@@ -118,3 +118,11 @@ func (imh *InterceptedMetaHeader) VerifySig() error {
 	// TODO: verify that the block proposer is among the signers
 	return nil
 }
+
+// IsInterfaceNil return if there is no value under the interface
+func (mb *InterceptedMetaHeader) IsInterfaceNil() bool {
+	if mb == nil {
+		return true
+	}
+	return false
+}

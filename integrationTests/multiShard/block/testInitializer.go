@@ -218,7 +218,6 @@ func createNetNode(
 		dPool,
 		testAddressConverter,
 		&mock.ChronologyValidatorMock{},
-		nil,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -248,6 +247,7 @@ func createNetNode(
 	)
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 	blockProcessor, _ := block.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		dPool,
 		store,
 		testHasher,
@@ -442,7 +442,6 @@ func createNodes(
 				shardCoordinator,
 				sk,
 				&singlesig.SchnorrSigner{},
-				&mock.SyncTimerMock{},
 			)
 
 			nodes[idx] = testNode
@@ -574,6 +573,9 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	shardHeaders, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
+	shardHeadersNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	shardHeadersNonces, _ := dataPool.NewNonceToHashCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	metaBlockNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	metaBlockNonces, _ := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
@@ -583,6 +585,7 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 		miniblockHashes,
 		shardHeaders,
 		metaBlockNonces,
+		shardHeadersNonces,
 	)
 
 	return dPool
@@ -619,7 +622,6 @@ func createMetaNetNode(
 		testMultiSig,
 		dPool,
 		&mock.ChronologyValidatorMock{},
-		nil,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -641,6 +643,7 @@ func createMetaNetNode(
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 	blkProc, _ := block.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{
@@ -672,7 +675,6 @@ func createMetaNetNode(
 		shardCoordinator,
 		sk,
 		singleSigner,
-		&mock.SyncTimerMock{},
 	)
 
 	n, err := node.NewNode(

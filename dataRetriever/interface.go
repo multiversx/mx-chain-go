@@ -157,11 +157,11 @@ type ShardedDataCacherNotifier interface {
 // Uint64Cacher defines a cacher-type struct that uses uint64 keys and []byte values (usually hashes)
 type Uint64Cacher interface {
 	Clear()
-	Put(uint64, []byte) bool
-	Get(uint64) ([]byte, bool)
+	Put(uint64, interface{}) bool
+	Get(uint64) (interface{}, bool)
 	Has(uint64) bool
-	Peek(uint64) ([]byte, bool)
-	HasOrAdd(uint64, []byte) (bool, bool)
+	Peek(uint64) (interface{}, bool)
+	HasOrAdd(uint64, interface{}) (bool, bool)
 	Remove(uint64)
 	RemoveOldest()
 	Keys() []uint64
@@ -186,6 +186,7 @@ type MetaPoolsHolder interface {
 	MiniBlockHashes() ShardedDataCacherNotifier
 	ShardHeaders() storage.Cacher
 	MetaBlockNonces() Uint64Cacher
+	ShardHeadersNonces() Uint64Cacher
 }
 
 // StorageService is the interface for data storage unit provided services

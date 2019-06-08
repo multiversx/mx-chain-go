@@ -9,22 +9,49 @@ services:
     command: bash -c "go run cmd/node/main.go -port 4000 -max-allowed-peers 4 -private-key \"ZBis8aK5I66x1hwD+fE8sIw2nwQR5EBlTM8EiAOLZwE=\""
     ports:
       - 8080:8080
-  elrond2:
-    build:
-      context: ./
-      dockerfile: ./docker/elrond/Dockerfile
 
-    command: bash -c "go run cmd/node/main.go -port 4001 -max-allowed-peers 4 -private-key \"unkVM1J1JvlNFqY3uo/CvAay6BsIL3IzDH9GDgmfUAA=\""
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.1.0
+    container_name: es01
+    environment:
+      - node.name=es01
+      - discovery.seed_hosts=es02
+      - cluster.name=elrond-cluster
+      - bootstrap.memory_lock=true
+      - cluster.initial_master_nodes=es01,es02
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./esdata/node1:/usr/share/elasticsearch/data
+      - ./docker/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
     ports:
-      - 8081:8080
-  elrond3:
-    build:
-      context: ./
-      dockerfile: ./docker/elrond/Dockerfile
+      - 9200:9200
+#    networks:
+#      - elrond
 
-    command: bash -c "go run cmd/node/main.go -port 4002 -max-allowed-peers 4 -private-key \"Or0C7+gvlr/kIZLS+tiBBQfbUQ+pqS9FTE3dXfs5Swg=\""
-    ports:
-      - 8082:8080
+  es02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.1.0
+    container_name: es02
+    environment:
+      - node.name=es02
+      - discovery.seed_hosts=es01
+      - cluster.name=elrond-cluster
+      - bootstrap.memory_lock=true
+      - cluster.initial_master_nodes=es01,es02
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./esdata/node2:/usr/share/elasticsearch/data
+      - ./docker/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+
+#   networks:
+#     - elrond
   filebeat:
     build: docker/filebeat
     environment:
@@ -35,3 +62,8 @@ services:
     - ./docker/filebeat/filebeat.yml:/filebeat.yml
     - ./docker/filebeat/logstash-beats.crt:/etc/pki/tls/certs/logstash-beats.crt
     - ${ELROND_LOG_LOCATION}:/elogs
+
+#networks:
+#  elrond:
+#    external:
+#      name: "elrond"

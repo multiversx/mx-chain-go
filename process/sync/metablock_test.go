@@ -42,7 +42,7 @@ func createMockMetaPools() *mock.MetaPoolsHolderStub {
 	}
 	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64Cacher {
 		hnc := &mock.Uint64CacherStub{
-			GetCalled: func(u uint64) (bytes []byte, b bool) {
+			GetCalled: func(u uint64) (bytes interface{}, b bool) {
 				return nil, false
 			},
 			RegisterHandlerCalled: func(handler func(nonce uint64)) {},
@@ -861,7 +861,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 		}
 
-		hnc.GetCalled = func(u uint64) (bytes []byte, b bool) {
+		hnc.GetCalled = func(u uint64) (bytes interface{}, b bool) {
 			mutDataAvailable.RLock()
 			defer mutDataAvailable.RUnlock()
 
@@ -959,7 +959,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 		}
 
-		hnc.GetCalled = func(u uint64) (bytes []byte, b bool) {
+		hnc.GetCalled = func(u uint64) (bytes interface{}, b bool) {
 			if u == 2 {
 				return []byte("aaa"), false
 			}
@@ -1046,7 +1046,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 		}
 		hnc.RemoveCalled = func(u uint64) {
 		}
-		hnc.GetCalled = func(u uint64) (bytes []byte, b bool) {
+		hnc.GetCalled = func(u uint64) (bytes interface{}, b bool) {
 			if u == 2 {
 				return []byte("aaa"), false
 			}
@@ -1323,7 +1323,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		hnc := &mock.Uint64CacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 		}
-		hnc.GetCalled = func(u uint64) (i []byte, b bool) {
+		hnc.GetCalled = func(u uint64) (i interface{}, b bool) {
 			if u == 0 {
 				return []byte("aaa"), true
 			}

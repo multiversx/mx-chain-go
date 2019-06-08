@@ -95,10 +95,13 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 // in the block headers pool
 func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64) {
 	headerHash, _ := boot.headersNonces.Get(nonce)
+	byteHeaderHash, ok := headerHash.([]byte)
 
-	log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n",
-		nonce,
-		core.ToB64(headerHash)))
+	if ok {
+		log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n",
+			nonce,
+			core.ToB64(byteHeaderHash)))
+	}
 
 	n := boot.requestedHeaderNonce()
 	if n == nil {
@@ -177,11 +180,16 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	return !isNodeSynchronized
 }
 
-func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) (hash []byte) {
-	hash, _ = boot.headersNonces.Get(header.GetNonce())
+func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
+	value, _ := boot.headersNonces.Get(header.GetNonce())
 	boot.headersNonces.Remove(header.GetNonce())
-	boot.headers.Remove(hash)
-	return
+
+	hash, ok := value.([]byte)
+	if ok {
+		boot.headers.Remove(hash)
+	}
+
+	return hash
 }
 
 func (boot *baseBootstrap) cleanCachesOnRollback(

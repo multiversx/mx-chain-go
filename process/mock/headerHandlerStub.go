@@ -107,3 +107,11 @@ func (hhs *HeaderHandlerStub) GetMiniBlockProcessed(hash []byte) bool {
 func (hhs *HeaderHandlerStub) SetMiniBlockProcessed(hash []byte, processed bool) {
 	panic("implement me")
 }
+
+// IsInterfaceNil return if there is no value under the interface
+func (hhs *HeaderHandlerStub) IsInterfaceNil() bool {
+	if hhs == nil {
+		return true
+	}
+	return false
+}

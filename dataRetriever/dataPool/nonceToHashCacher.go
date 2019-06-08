@@ -43,19 +43,19 @@ func (nthc *NonceToHashCacher) Clear() {
 }
 
 // Put adds a value to the cache.  Returns true if an eviction occurred.
-func (nthc *NonceToHashCacher) Put(nonce uint64, hash []byte) (evicted bool) {
-	return nthc.cacher.Put(nthc.nonceConverter.ToByteSlice(nonce), hash)
+func (nthc *NonceToHashCacher) Put(nonce uint64, data interface{}) (evicted bool) {
+	return nthc.cacher.Put(nthc.nonceConverter.ToByteSlice(nonce), data)
 }
 
 // Get looks up for a nonce in cache.
-func (nthc *NonceToHashCacher) Get(nonce uint64) ([]byte, bool) {
+func (nthc *NonceToHashCacher) Get(nonce uint64) (interface{}, bool) {
 	val, ok := nthc.cacher.Peek(nthc.nonceConverter.ToByteSlice(nonce))
 
 	if !ok {
-		return []byte(nil), ok
+		return nil, ok
 	}
 
-	return val.([]byte), ok
+	return val, ok
 }
 
 // Has checks if a nonce is in the cache, without updating the
@@ -66,21 +66,21 @@ func (nthc *NonceToHashCacher) Has(nonce uint64) bool {
 
 // Peek returns the nonce value (or nil if not found) without updating
 // the "recently used"-ness of the nonce.
-func (nthc *NonceToHashCacher) Peek(nonce uint64) ([]byte, bool) {
+func (nthc *NonceToHashCacher) Peek(nonce uint64) (interface{}, bool) {
 	val, ok := nthc.cacher.Peek(nthc.nonceConverter.ToByteSlice(nonce))
 
 	if !ok {
-		return []byte(nil), ok
+		return nil, ok
 	}
 
-	return val.([]byte), ok
+	return val, ok
 }
 
 // HasOrAdd checks if a nonce is in the cache without updating the
 // recent-ness or deleting it for being stale, and if not, adds the hash.
 // Returns whether found and whether an eviction occurred.
-func (nthc *NonceToHashCacher) HasOrAdd(nonce uint64, hash []byte) (ok, evicted bool) {
-	return nthc.cacher.HasOrAdd(nthc.nonceConverter.ToByteSlice(nonce), hash)
+func (nthc *NonceToHashCacher) HasOrAdd(nonce uint64, data interface{}) (ok, evicted bool) {
+	return nthc.cacher.HasOrAdd(nthc.nonceConverter.ToByteSlice(nonce), data)
 }
 
 // Remove removes the provided nonce from the cache.

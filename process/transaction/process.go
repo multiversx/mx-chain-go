@@ -113,10 +113,10 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 
 		return nil
 	case process.SCDeployment:
-		err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, acntDst)
+		err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, acntDst, roundIndex)
 		return err
 	case process.SCInvoking:
-		err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+		err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
 		return err
 	}
 

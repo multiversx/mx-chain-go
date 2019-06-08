@@ -293,66 +293,9 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	assert.False(t, r)
 
 	bpm = mock.InitBlockProcessorMock()
-	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
-		return make(map[uint32][]byte, 0), make(map[uint32][][]byte, 0), err
-	}
 	container.SetBlockProcessor(bpm)
 	bm := &mock.BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-			return nil
-		},
-		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
-			return err
-		},
-	}
-	container.SetBroadcastMessenger(bm)
-	r = sr.DoBlockJob()
-	assert.False(t, r)
-
-	bpm = mock.InitBlockProcessorMock()
-	container.SetBlockProcessor(bpm)
-	bm = &mock.BroadcastMessengerMock{
-		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-			return nil
-		},
-		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
-			return err
-		},
-		BroadcastTransactionsCalled: func(bytes map[uint32][][]byte) error {
-			return nil
-		},
-	}
-	container.SetBroadcastMessenger(bm)
-	r = sr.DoBlockJob()
-	assert.False(t, r)
-
-	bpm = mock.InitBlockProcessorMock()
-	container.SetBlockProcessor(bpm)
-	bm = &mock.BroadcastMessengerMock{
-		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-			return nil
-		},
-		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
-			return nil
-		},
-		BroadcastTransactionsCalled: func(bytes map[uint32][][]byte) error {
-			return err
-		},
-	}
-	container.SetBroadcastMessenger(bm)
-	r = sr.DoBlockJob()
-	assert.False(t, r)
-
-	bpm = mock.InitBlockProcessorMock()
-	container.SetBlockProcessor(bpm)
-	bm = &mock.BroadcastMessengerMock{
-		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-			return nil
-		},
-		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
-			return nil
-		},
-		BroadcastTransactionsCalled: func(bytes map[uint32][][]byte) error {
 			return nil
 		},
 	}
