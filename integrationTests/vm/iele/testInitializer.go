@@ -1,4 +1,4 @@
-package vm
+package mockVM
 
 import (
 	"crypto/rand"
@@ -19,6 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
+	ielecommon "github.com/ElrondNetwork/elrond-vm/iele/common"
+	eiele "github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,11 +77,10 @@ func createAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 	return hashCreated
 }
 
-func createTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
+func createTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter) process.TransactionProcessor {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 	cryptoHook := &hooks.VMCryptoHook{}
-	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, cryptoHook)
-	vm.GasForOperation = opGas
+	vm := eiele.NewElrondIeleVM(blockChainHook, cryptoHook, ielecommon.Danse)
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		vm,

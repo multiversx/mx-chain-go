@@ -277,6 +277,8 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	scCallHeader.Timestamp = big.NewInt(0)
 	scCallHeader.Beneficiary = big.NewInt(0)
 
+	vmInput.Header = scCallHeader
+
 	return vmInput, nil
 }
 
