@@ -2398,6 +2398,7 @@ func TestShardProcessor_MarshalizedDataNilInput(t *testing.T) {
 func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
+	wasCalled := false
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
 		ReceiverShardID: 1,
@@ -2408,6 +2409,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	body = append(body, &mb0)
 	marshalizer := &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			wasCalled = true
 			return nil, process.ErrMarshalWithoutSuccess
 		},
 	}
@@ -2427,9 +2429,10 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.RequestHandlerMock{},
 	)
 	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, body)
-	assert.Equal(t, process.ErrMarshalWithoutSuccess, err)
-	assert.Nil(t, msh)
-	assert.Nil(t, mstx)
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+	assert.Equal(t, 0, len(msh))
+	assert.Equal(t, 0, len(mstx))
 }
 
 //------- GetAllTxsFromMiniBlock
