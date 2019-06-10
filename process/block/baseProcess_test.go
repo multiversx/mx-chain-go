@@ -88,7 +88,7 @@ func initDataPool() *mock.PoolsHolderStub {
 		},
 		HeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
 			return &mock.Uint64CacherStub{
-				PutCalled: func(u uint64, i []byte) bool {
+				PutCalled: func(u uint64, i interface{}) bool {
 					return true
 				},
 			}
@@ -152,7 +152,7 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 	mdp := &mock.MetaPoolsHolderStub{
 		MetaBlockNoncesCalled: func() dataRetriever.Uint64Cacher {
 			return &mock.Uint64CacherStub{
-				PutCalled: func(u uint64, i []byte) bool {
+				PutCalled: func(u uint64, i interface{}) bool {
 					return true
 				},
 			}
