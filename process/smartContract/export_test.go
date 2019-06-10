@@ -60,3 +60,11 @@ func (sc *scProcessor) SaveLogsIntoState(logs []*vmcommon.LogEntry, round uint32
 func (sc *scProcessor) ProcessSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) (*big.Int, error) {
 	return sc.processSCPayment(tx, acntSnd)
 }
+
+func (sc *scProcessor) CreateCrossShardTransactions(
+	crossOutAccs []*vmcommon.OutputAccount,
+	tx *transaction.Transaction,
+	txHash []byte,
+) ([]*smartContractResult.SmartContractResult, error) {
+	return sc.createCrossShardTransactions(crossOutAccs, tx, txHash)
+}

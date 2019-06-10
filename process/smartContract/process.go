@@ -348,7 +348,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, err
 	}
 
-	crossTxs, err := sc.createCrossShardTransactions(crossOutAccs, vmOutput.GasRemaining, tx, txHash)
+	crossTxs, err := sc.createCrossShardTransactions(crossOutAccs, tx, txHash)
 	if err != nil {
 		return nil, err
 	}
@@ -406,11 +406,11 @@ func (sc *scProcessor) createSmartContractCrossShardTx(
 
 func (sc *scProcessor) createCrossShardTransactions(
 	crossOutAccs []*vmcommon.OutputAccount,
-	gasRemaining *big.Int,
 	tx *transaction.Transaction,
 	txHash []byte,
 ) ([]*smartContractResult.SmartContractResult, error) {
 	crossSCTxs := make([]*smartContractResult.SmartContractResult, 0)
+
 	for i := 0; i < len(crossOutAccs); i++ {
 		scTx := sc.createSmartContractCrossShardTx(crossOutAccs[i], tx.RcvAddr, txHash)
 		crossSCTxs = append(crossSCTxs, scTx)
