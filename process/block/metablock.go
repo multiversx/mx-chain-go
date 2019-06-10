@@ -361,9 +361,9 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	headerHash := mp.hasher.Compute(string(buff))
-	err = mp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
-	if err != nil {
-		return err
+	errNotCritical := mp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
+	if errNotCritical != nil {
+		log.Error(errNotCritical.Error())
 	}
 
 	header, ok := headerHandler.(*block.MetaBlock)
@@ -400,9 +400,9 @@ func (mp *metaProcessor) CommitBlock(
 			return err
 		}
 
-		err = mp.store.Put(dataRetriever.BlockHeaderUnit, shardData.HeaderHash, buff)
-		if err != nil {
-			return err
+		errNotCritical = mp.store.Put(dataRetriever.BlockHeaderUnit, shardData.HeaderHash, buff)
+		if errNotCritical != nil {
+			log.Error(errNotCritical.Error())
 		}
 	}
 
@@ -428,7 +428,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	errNotCritical := mp.removeBlockInfoFromPool(header)
+	errNotCritical = mp.removeBlockInfoFromPool(header)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
