@@ -565,9 +565,9 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	headerHash := sp.hasher.Compute(string(buff))
-	err = sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
-	if err != nil {
-		return err
+	errNotCritical := sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
+	if errNotCritical != nil {
+		log.Error(errNotCritical.Error())
 	}
 
 	body, ok := bodyHandler.(block.Body)
@@ -583,9 +583,9 @@ func (sp *shardProcessor) CommitBlock(
 		}
 
 		miniBlockHash := sp.hasher.Compute(string(buff))
-		err = sp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, buff)
-		if err != nil {
-			return err
+		errNotCritical = sp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, buff)
+		if errNotCritical != nil {
+			log.Error(errNotCritical.Error())
 		}
 	}
 
@@ -615,9 +615,9 @@ func (sp *shardProcessor) CommitBlock(
 				return err
 			}
 
-			err = sp.store.Put(dataRetriever.TransactionUnit, txHash, buff)
-			if err != nil {
-				return err
+			errNotCritical = sp.store.Put(dataRetriever.TransactionUnit, txHash, buff)
+			if errNotCritical != nil {
+				log.Error(errNotCritical.Error())
 			}
 		}
 	}
@@ -633,7 +633,7 @@ func (sp *shardProcessor) CommitBlock(
 		header.Nonce,
 		core.ToB64(headerHash)))
 
-	errNotCritical := sp.removeTxBlockFromPools(body)
+	errNotCritical = sp.removeTxBlockFromPools(body)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
@@ -755,20 +755,20 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 
 		errNotCritical := sp.blocksTracker.RemoveNotarisedBlocks(hdr)
 		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
+			log.Error(errNotCritical.Error())
 		}
 
 		// metablock was processed and finalized
 		buff, err := sp.marshalizer.Marshal(hdr)
 		if err != nil {
-			log.Debug(err.Error())
+			log.Error(err.Error())
 			continue
 		}
 
 		key := sp.hasher.Compute(string(buff))
 		err = sp.store.Put(dataRetriever.MetaBlockUnit, key, buff)
 		if err != nil {
-			log.Debug(err.Error())
+			log.Error(err.Error())
 			continue
 		}
 		sp.dataPool.MetaBlocks().Remove(key)
