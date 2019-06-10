@@ -605,7 +605,8 @@ func (sp *shardProcessor) CommitBlock(
 			txInfo := sp.txsForBlock[string(txHash)]
 			sp.mutTxsForBlock.RUnlock()
 			if txInfo == nil || txInfo.tx == nil {
-				return process.ErrMissingTransaction
+				err := process.ErrMissingTransaction
+				return err
 			}
 
 			tempTxPool[string(txHash)] = txInfo.tx
