@@ -3463,18 +3463,16 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	// wrong header type in pool and defer called
 	dataPool.MetaBlocks().Put(currHash, shardHdr)
-	dataPool.MetaBlocks().Put(prevHash, prevHdr)
 
 	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(shardBlock)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, putCalledNr)
+	assert.Equal(t, nil, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, putCalledNr)
+	assert.Equal(t, 0, putCalledNr)
 
 	lastNodesHdrs = sp.LastNotarizedHdrs()
 	assert.Equal(t, firstNonce, lastNodesHdrs[sharding.MetachainShardId].GetNonce())
@@ -3491,7 +3489,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, putCalledNr)
+	assert.Equal(t, 2, putCalledNr)
 
 	lastNodesHdrs = sp.LastNotarizedHdrs()
 	assert.Equal(t, currHdr, lastNodesHdrs[sharding.MetachainShardId])

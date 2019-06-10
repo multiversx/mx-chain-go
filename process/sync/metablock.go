@@ -269,7 +269,7 @@ func (boot *MetaBootstrap) getHeaderWithNonce(nonce uint64) (*block.MetaBlock, e
 		}
 	}
 
-	return hdr, err
+	return hdr, nil
 }
 
 // getHeaderFromPoolWithNonce method returns the block header from a given nonce

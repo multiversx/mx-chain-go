@@ -281,7 +281,7 @@ func (boot *ShardBootstrap) getHeaderWithNonce(nonce uint64) (*block.Header, err
 		}
 	}
 
-	return hdr, err
+	return hdr, nil
 }
 
 // getHeaderFromPoolWithNonce method returns the block header from a given nonce
@@ -290,7 +290,8 @@ func (boot *ShardBootstrap) getHeaderFromPoolWithNonce(nonce uint64) (*block.Hea
 	hash, ok := value.([]byte)
 
 	if hash == nil || !ok {
-		return nil, process.ErrMissingHashForHeaderNonce	}
+		return nil, process.ErrMissingHashForHeaderNonce
+	}
 
 	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
