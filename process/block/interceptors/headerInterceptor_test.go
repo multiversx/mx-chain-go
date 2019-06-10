@@ -145,7 +145,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 		},
 	}
 	headersNonces := &mock.Uint64CacherStub{}
-	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
+	headersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
 		if u == testedNonce {
 			wg.Done()
 		}
@@ -222,7 +222,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 		},
 	}
 	headersNonces := &mock.Uint64CacherStub{}
-	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
+	headersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
 		if u == testedNonce {
 			chanDone <- struct{}{}
 		}
@@ -295,7 +295,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 		},
 	}
 	headersNonces := &mock.Uint64CacherStub{}
-	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
+	headersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
 		if u == testedNonce {
 			chanDone <- struct{}{}
 		}
