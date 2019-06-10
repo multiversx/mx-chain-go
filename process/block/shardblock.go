@@ -152,7 +152,24 @@ func NewShardProcessor(
 	//TODO: This should be injected when BlockProcessor will be refactored
 	sp.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
+	//sp.initFromStorer()
+
 	return &sp, nil
+}
+
+func (sp *shardProcessor) initFromStorer() {
+	nonce := uint64(1)
+
+	for {
+		nonceToByteSlice := sp.uint64Converter.ToByteSlice(nonce)
+		err := sp.store.Has(dataRetriever.HdrNonceHashDataUnit, nonceToByteSlice)
+		if err != nil {
+			break
+		}
+		nonce++
+	}
+
+	log.Info("last nonce committed is %d", nonce-1)
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
