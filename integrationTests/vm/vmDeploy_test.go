@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//TODO add integration and unit tests with generating and broadcasting transaction with empty recv address
-
 func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	testVMDeploy(t, 0, big.NewInt(0))
 }
@@ -25,8 +23,6 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 }
 
 func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
-	t.Skip("this test needs re-evaluation")
-
 	accnts := createInMemoryShardAccountsDB()
 
 	transferOnCalls := big.NewInt(50)

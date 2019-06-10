@@ -268,8 +268,19 @@ func (vm *OneSCExecutorMockVM) unavailableFunc(input *vmcommon.ContractCallInput
 }
 
 func (vm *OneSCExecutorMockVM) outOfGasFunc(input *vmcommon.VMInput) (*vmcommon.VMOutput, error) {
+	nonce, err := vm.blockchainHook.GetNonce(input.CallerAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	vmo := &vmcommon.OutputAccount{
+		Balance: input.CallValue,
+		Address: input.CallerAddr,
+		Nonce:   big.NewInt(0).SetUint64(nonce.Uint64() + 1),
+	}
+
 	return &vmcommon.VMOutput{
-		OutputAccounts:  []*vmcommon.OutputAccount{},
+		OutputAccounts:  []*vmcommon.OutputAccount{vmo},
 		Error:           true,
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
