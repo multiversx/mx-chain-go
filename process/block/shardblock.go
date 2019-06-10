@@ -669,7 +669,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
-	//TODO: Check if we can tempTxPool with txsForBlock
+	//TODO: Check if we can replace tempTxPool with txsForBlock
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, tempTxPool)
 
 	// write data to log
