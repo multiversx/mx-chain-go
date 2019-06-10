@@ -40,7 +40,7 @@ func deployAndRunSmartContract(t *testing.T, opGas uint64, txvalue *big.Int) {
 
 	round := uint32(444)
 
-	err := txProcessor.ProcessTransaction(tx, round)
+	_, err := txProcessor.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -60,7 +60,7 @@ func deployAndRunSmartContract(t *testing.T, opGas uint64, txvalue *big.Int) {
 		GasPrice: gasPrice,
 	}
 
-	err = txProcessor.ProcessTransaction(txRun, round)
+	_, err = txProcessor.ProcessTransaction(txRun, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()

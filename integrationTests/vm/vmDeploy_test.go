@@ -56,7 +56,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 
 	round := uint32(444)
 
-	err := txProcessor.ProcessTransaction(tx, round)
+	_, err := txProcessor.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -108,7 +108,7 @@ func testVMDeploy(t *testing.T, opGas uint64, transferOnCalls *big.Int) {
 
 	round := uint32(444)
 
-	err := txProcessor.ProcessTransaction(tx, round)
+	_, err := txProcessor.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()

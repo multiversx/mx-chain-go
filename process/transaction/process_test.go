@@ -595,7 +595,7 @@ func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 func TestTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 	execTx := *createTxProcessor()
 
-	err := execTx.ProcessTransaction(nil, 4)
+	_, err := execTx.ProcessTransaction(nil, 4)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -613,7 +613,7 @@ func TestTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
 
 	addressConv.Fail = true
 
-	err := execTx.ProcessTransaction(&transaction.Transaction{}, 4)
+	_, err := execTx.ProcessTransaction(&transaction.Transaction{}, 4)
 	assert.NotNil(t, err)
 }
 
@@ -635,7 +635,7 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	err := execTx.ProcessTransaction(&tx, 4)
+	_, err := execTx.ProcessTransaction(&tx, 4)
 	assert.NotNil(t, err)
 }
 
@@ -664,7 +664,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	_, err = execTx.ProcessTransaction(&tx, 4)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -713,7 +713,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 		&mock.SCProcessorMock{},
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	_, err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
@@ -754,7 +754,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	_, err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, journalizeCalled)
 	assert.Equal(t, 3, saveAccountCalled)
@@ -805,7 +805,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 		&mock.SCProcessorMock{},
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	_, err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
@@ -856,7 +856,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 		&mock.SCProcessorMock{},
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	_, err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
@@ -901,7 +901,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	_, err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(5), acntSrc.Nonce)
 	assert.Equal(t, big.NewInt(29), acntSrc.Balance)
@@ -969,7 +969,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		scProcessorMock,
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	_, err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, journalizeCalled)
@@ -1033,7 +1033,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		scProcessorMock,
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	_, err = execTx.ProcessTransaction(&tx, 4)
 	assert.Equal(t, process.ErrNoVM, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, journalizeCalled)
@@ -1106,7 +1106,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		scProcessorMock,
 	)
 
-	err = execTx.ProcessTransaction(&tx, 4)
+	_, err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
 	assert.False(t, wasCalled)
 	assert.Equal(t, 2, journalizeCalled)

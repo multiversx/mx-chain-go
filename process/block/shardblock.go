@@ -1030,7 +1030,7 @@ func (sp *shardProcessor) processAndRemoveBadTransaction(
 		return process.ErrNilTransactionPool
 	}
 
-	err := sp.txProcessor.ProcessTransaction(transaction, round)
+	_, err := sp.txProcessor.ProcessTransaction(transaction, round)
 	if err == process.ErrLowerNonceInTransaction ||
 		err == process.ErrInsufficientFunds {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
@@ -1123,7 +1123,7 @@ func (sp *shardProcessor) processMiniBlockComplete(
 			break
 		}
 
-		err = sp.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
+		_, err = sp.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
 		if err != nil {
 			break
 		}

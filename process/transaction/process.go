@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
@@ -65,19 +66,19 @@ func NewTxProcessor(
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex uint32) error {
+func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex uint32) ([]*smartContractResult.SmartContractResult, error) {
 	if tx == nil {
-		return process.ErrNilTransaction
+		return nil, process.ErrNilTransaction
 	}
 
 	adrSrc, adrDst, err := txProc.getAddresses(tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	txType, err := txProc.scProcessor.ComputeTransactionType(tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch txType {
@@ -86,7 +87,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 		acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		value := tx.Value
@@ -94,47 +95,47 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		if acntSrc != nil {
 			err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		err = txProc.moveBalances(acntSrc, acntDst, value)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		// is sender address in node shard
 		if acntSrc != nil {
 			err = txProc.increaseNonce(acntSrc)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
-		return nil
+		return nil, nil
 	case process.SCDeployment:
 		// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 		// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 		acntSrc, err := txProc.getAccountFromAddress(adrSrc)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		_, err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
-		return err
+		scTxs, err := txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
+		return scTxs, err
 	case process.SCInvoking:
 		// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 		// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 		acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		_, err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
-		return err
+		scTxs, err := txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
+		return scTxs, err
 	}
 
-	return process.ErrWrongTransaction
+	return nil, process.ErrWrongTransaction
 }
 
 func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
