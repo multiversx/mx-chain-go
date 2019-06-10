@@ -23,6 +23,11 @@ type SmartContractProcessor interface {
 	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) error
 }
 
+// SmartContractDataGetter can execute Get functions over SC to fetch stored values
+type SmartContractDataGetter interface {
+	Get(scAddress []byte, funcName string, args ...[]byte) ([][]byte, error)
+}
+
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
 	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
