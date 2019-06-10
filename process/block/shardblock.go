@@ -28,14 +28,19 @@ var txsTotalProcessed = 0
 const maxTransactionsInBlock = 15000
 const metablockFinality = 1
 
-type txInfo struct {
-	txHashes   [][]byte
-	rcvShardId uint32
+type txShardInfo struct {
+	senderShardID   uint32
+	receiverShardID uint32
 }
 
-type txShardInfo struct {
-	sndShardId uint32
-	rcvShardId uint32
+type txInfo struct {
+	tx *transaction.Transaction
+	*txShardInfo
+}
+
+type txsHashesInfo struct {
+	txHashes        [][]byte
+	receiverShardID uint32
 }
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
@@ -51,7 +56,7 @@ type shardProcessor struct {
 	mutRequestedTxHashes   sync.RWMutex
 	requestedTxHashes      map[string]*txShardInfo
 	mutTxsForBlock         sync.RWMutex
-	existingTxsForShard    map[uint32]map[string]*transaction.Transaction
+	txsForBlock            map[string]*txInfo
 	onRequestMiniBlock     func(shardId uint32, mbHash []byte)
 	chRcvAllMetaHdrs       chan bool
 	mutUsedMetaHdrs        sync.Mutex
@@ -136,10 +141,7 @@ func NewShardProcessor(
 	sp.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	sp.requestedTxHashes = make(map[string]*txShardInfo)
 	sp.requestedMetaHdrHashes = make(map[string]bool)
-	sp.existingTxsForShard = make(map[uint32]map[string]*transaction.Transaction)
-	for i := uint32(0); i < sp.shardCoordinator.NumberOfShards(); i++ {
-		sp.existingTxsForShard[i] = make(map[string]*transaction.Transaction)
-	}
+	sp.txsForBlock = make(map[string]*txInfo)
 	sp.mapUsedMetaHdrs = make(map[uint32][][]byte)
 
 	metaBlockPool := sp.dataPool.MetaBlocks()
@@ -193,10 +195,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	sp.mutTxsForBlock.Lock()
-	sp.existingTxsForShard = make(map[uint32]map[string]*transaction.Transaction)
-	for i := uint32(0); i < sp.shardCoordinator.NumberOfShards(); i++ {
-		sp.existingTxsForShard[i] = make(map[string]*transaction.Transaction)
-	}
+	sp.txsForBlock = make(map[string]*txInfo)
 	sp.mutTxsForBlock.Unlock()
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", sp.getNrTxsWithDst(header.ShardId)))
@@ -506,15 +505,15 @@ func (sp *shardProcessor) processBlockTransactions(body block.Body, round uint32
 
 			txHash := miniBlock.TxHashes[j]
 			sp.mutTxsForBlock.RLock()
-			tx := sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)]
+			txInfo := sp.txsForBlock[string(txHash)]
 			sp.mutTxsForBlock.RUnlock()
-			if tx == nil {
+			if txInfo == nil || txInfo.tx == nil {
 				return process.ErrMissingTransaction
 			}
 
 			err := sp.processAndRemoveBadTransaction(
 				txHash,
-				tx,
+				txInfo.tx,
 				txPool,
 				round,
 				miniBlock.SenderShardID,
@@ -599,15 +598,15 @@ func (sp *shardProcessor) CommitBlock(
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			sp.mutTxsForBlock.RLock()
-			tx := sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)]
+			txInfo := sp.txsForBlock[string(txHash)]
 			sp.mutTxsForBlock.RUnlock()
-			if tx == nil {
+			if txInfo == nil || txInfo.tx == nil {
 				return process.ErrMissingTransaction
 			}
 
-			tempTxPool[string(txHash)] = tx
+			tempTxPool[string(txHash)] = txInfo.tx
 
-			buff, err = sp.marshalizer.Marshal(tx)
+			buff, err = sp.marshalizer.Marshal(txInfo.tx)
 			if err != nil {
 				return err
 			}
@@ -666,7 +665,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
-	//TODO: Check if we can tempTxPool with existingTxsForShard
+	//TODO: Check if we can tempTxPool with txsForBlock
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, tempTxPool)
 
 	// write data to log
@@ -819,10 +818,10 @@ func (sp *shardProcessor) receivedTransaction(txHash []byte) {
 	if len(sp.requestedTxHashes) > 0 {
 		txShardInfo, ok := sp.requestedTxHashes[string(txHash)]
 		if ok {
-			tx := sp.getTransactionFromPool(txShardInfo.sndShardId, txShardInfo.rcvShardId, txHash)
+			tx := sp.getTransactionFromPool(txShardInfo.senderShardID, txShardInfo.receiverShardID, txHash)
 			if tx != nil {
 				sp.mutTxsForBlock.Lock()
-				sp.existingTxsForShard[txShardInfo.sndShardId][string(txHash)] = tx
+				sp.txsForBlock[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo}
 				sp.mutTxsForBlock.Unlock()
 			}
 
@@ -972,13 +971,14 @@ func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
 	missingTxsForShards := sp.computeMissingAndExistingTxsForShards(body)
 	sp.requestedTxHashes = make(map[string]*txShardInfo)
 
-	for shardId, txInfo := range missingTxsForShards {
-		requestedTxs += len(txInfo.txHashes)
-		for _, txHash := range txInfo.txHashes {
-			sp.requestedTxHashes[string(txHash)] = &txShardInfo{sndShardId: shardId, rcvShardId: txInfo.rcvShardId}
+	for senderShardID, txsHashesInfo := range missingTxsForShards {
+		txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: txsHashesInfo.receiverShardID}
+		requestedTxs += len(txsHashesInfo.txHashes)
+		for _, txHash := range txsHashesInfo.txHashes {
+			sp.requestedTxHashes[string(txHash)] = txShardInfo
 		}
 
-		sp.onRequestTransaction(shardId, txInfo.txHashes)
+		sp.onRequestTransaction(senderShardID, txsHashesInfo.txHashes)
 	}
 
 	sp.mutRequestedTxHashes.Unlock()
@@ -986,36 +986,34 @@ func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
 	return requestedTxs
 }
 
-func (sp *shardProcessor) computeMissingAndExistingTxsForShards(body block.Body) map[uint32]*txInfo {
-	missingTxsForShard := make(map[uint32]*txInfo)
+func (sp *shardProcessor) computeMissingAndExistingTxsForShards(body block.Body) map[uint32]*txsHashesInfo {
+	missingTxsForShard := make(map[uint32]*txsHashesInfo)
 
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
-		currentShardMissingTransactions := make([][]byte, 0)
-		currentShardExistingTransactions := make(map[string]*transaction.Transaction, 0)
+		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
+		txHashes := make([][]byte, 0)
+
+		sp.mutTxsForBlock.Lock()
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			tx := sp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
 
 			if tx == nil {
-				currentShardMissingTransactions = append(currentShardMissingTransactions, txHash)
+				txHashes = append(txHashes, txHash)
 			} else {
-				currentShardExistingTransactions[string(txHash)] = tx
+				sp.txsForBlock[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo}
 			}
 		}
 
-		if len(currentShardMissingTransactions) > 0 {
-			missingTxsForShard[miniBlock.SenderShardID] = &txInfo{
-				txHashes:   currentShardMissingTransactions,
-				rcvShardId: miniBlock.ReceiverShardID,
-			}
-		}
+		sp.mutTxsForBlock.Unlock()
 
-		if len(currentShardExistingTransactions) > 0 {
-			sp.mutTxsForBlock.Lock()
-			sp.existingTxsForShard[miniBlock.SenderShardID] = currentShardExistingTransactions
-			sp.mutTxsForBlock.Unlock()
+		if len(txHashes) > 0 {
+			missingTxsForShard[miniBlock.SenderShardID] = &txsHashesInfo{
+				txHashes:        txHashes,
+				receiverShardID: miniBlock.ReceiverShardID,
+			}
 		}
 	}
 
@@ -1146,10 +1144,14 @@ func (sp *shardProcessor) processMiniBlockComplete(
 		return err
 	}
 
+	txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
+
 	sp.mutTxsForBlock.Lock()
+
 	for index, txHash := range miniBlockTxHashes {
-		sp.existingTxsForShard[miniBlock.SenderShardID][string(txHash)] = miniBlockTxs[index]
+		sp.txsForBlock[string(txHash)] = &txInfo{tx: miniBlockTxs[index], txShardInfo: txShardInfo}
 	}
+
 	sp.mutTxsForBlock.Unlock()
 
 	return nil
@@ -1498,10 +1500,7 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	miniBlocks := make(block.Body, 0)
 	sp.mutTxsForBlock.Lock()
-	sp.existingTxsForShard = make(map[uint32]map[string]*transaction.Transaction)
-	for i := uint32(0); i < sp.shardCoordinator.NumberOfShards(); i++ {
-		sp.existingTxsForShard[i] = make(map[string]*transaction.Transaction)
-	}
+	sp.txsForBlock = make(map[string]*txInfo)
 	sp.mutTxsForBlock.Unlock()
 
 	if sp.accounts.JournalLen() != 0 {
@@ -1563,6 +1562,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		miniBlock.SenderShardID = sp.shardCoordinator.SelfId()
 		miniBlock.ReceiverShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
+		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
 		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ReceiverShardID))
 
 		for index := range orderedTxes {
@@ -1592,7 +1592,7 @@ func (sp *shardProcessor) createMiniBlocks(
 			}
 
 			sp.mutTxsForBlock.Lock()
-			sp.existingTxsForShard[miniBlock.SenderShardID][string(orderedTxHashes[index])] = orderedTxes[index]
+			sp.txsForBlock[string(orderedTxHashes[index])] = &txInfo{tx: orderedTxes[index], txShardInfo: txShardInfo}
 			sp.mutTxsForBlock.Unlock()
 			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 			txs++
@@ -1920,15 +1920,17 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 
 		for _, txHash := range miniblock.TxHashes {
 			sp.mutTxsForBlock.RLock()
-			tx := sp.existingTxsForShard[miniblock.SenderShardID][string(txHash)]
+			txInfo := sp.txsForBlock[string(txHash)]
 			sp.mutTxsForBlock.RUnlock()
-			if tx != nil {
-				txMrs, err := sp.marshalizer.Marshal(tx)
-				if err != nil {
-					return nil, nil, process.ErrMarshalWithoutSuccess
-				}
-				mrsTxs[receiverShardId] = append(mrsTxs[receiverShardId], txMrs)
+			if txInfo == nil || txInfo.tx == nil {
+				continue
 			}
+
+			txMrs, err := sp.marshalizer.Marshal(txInfo.tx)
+			if err != nil {
+				return nil, nil, process.ErrMarshalWithoutSuccess
+			}
+			mrsTxs[receiverShardId] = append(mrsTxs[receiverShardId], txMrs)
 		}
 	}
 

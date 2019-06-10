@@ -568,7 +568,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.RequestHandlerMock{},
 	)
 
-	sp.SetExistingTxsForShard(0, string(txHash), &transaction.Transaction{Nonce: 10})
+	sp.SetTxsForBlock(string(txHash), sp.CreateTxInfo(&transaction.Transaction{Nonce: 10}, 0, 0))
 
 	go func() {
 		sp.ChRcvAllTxs() <- true
@@ -756,7 +756,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.RequestHandlerMock{},
 	)
 
-	sp.SetExistingTxsForShard(0, string(txHash), &transaction.Transaction{Nonce: 10})
+	sp.SetTxsForBlock(string(txHash), sp.CreateTxInfo(&transaction.Transaction{Nonce: 10}, 0, 0))
 
 	go func() {
 		sp.ChRcvAllTxs() <- true
@@ -844,7 +844,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		&mock.RequestHandlerMock{},
 	)
 
-	sp.SetExistingTxsForShard(0, string(txHash), &transaction.Transaction{Nonce: 10})
+	sp.SetTxsForBlock(string(txHash), sp.CreateTxInfo(&transaction.Transaction{Nonce: 10}, 0, 0))
 
 	go func() {
 		sp.ChRcvAllTxs() <- true
@@ -932,7 +932,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 		&mock.RequestHandlerMock{},
 	)
 
-	sp.SetExistingTxsForShard(0, string(txHash), &transaction.Transaction{Nonce: 10})
+	sp.SetTxsForBlock(string(txHash), sp.CreateTxInfo(&transaction.Transaction{Nonce: 10}, 0, 0))
 
 	go func() {
 		sp.ChRcvAllTxs() <- true
@@ -1463,7 +1463,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		}
 	}
 	blkc := createTestBlockchain()
-	sp.SetExistingTxsForShard(0, string(txHash), nil)
+	sp.SetTxsForBlock(string(txHash), sp.CreateTxInfo(nil, 0, 0))
 	err := sp.CommitBlock(blkc, hdr, body)
 	assert.Equal(t, process.ErrMissingTransaction, err)
 }
@@ -1571,7 +1571,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		return hdrHash
 	}
 
-	sp.SetExistingTxsForShard(0, string(txHash), &transaction.Transaction{Nonce: 10})
+	sp.SetTxsForBlock(string(txHash), sp.CreateTxInfo(&transaction.Transaction{Nonce: 10}, 0, 0))
 
 	err := sp.CommitBlock(blkc, hdr, body)
 	assert.Nil(t, err)

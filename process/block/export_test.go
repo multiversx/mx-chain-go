@@ -215,8 +215,13 @@ func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]da
 	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
 }
 
-func (sp *shardProcessor) SetExistingTxsForShard(shardId uint32, hash string, tx *transaction.Transaction) {
+func (sp *shardProcessor) CreateTxInfo(tx *transaction.Transaction, senderShardID uint32, receiverShardID uint32) *txInfo {
+	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+	return &txInfo{tx: tx, txShardInfo: txShardInfo}
+}
+
+func (sp *shardProcessor) SetTxsForBlock(hash string, txInfo *txInfo) {
 	sp.mutTxsForBlock.Lock()
-	sp.existingTxsForShard[shardId][hash] = tx
+	sp.txsForBlock[hash] = txInfo
 	sp.mutTxsForBlock.Unlock()
 }
