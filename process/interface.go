@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"math/big"
 	"time"
 
@@ -19,8 +20,8 @@ type TransactionProcessor interface {
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
-	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
-	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) error
+	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
+	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
 }
 
 // BlockProcessor is the main interface for block execution engine
@@ -162,6 +163,7 @@ type ArgumentsParser interface {
 	GetCode() ([]byte, error)
 	GetFunction() (string, error)
 	ParseData(data []byte) error
+	GetSeparator() string
 }
 
 // FakeAccountsHandler defines the functionality to create fake accounts and pass to VM.

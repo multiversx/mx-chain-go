@@ -2,6 +2,7 @@ package smartContract
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"math/big"
 	"sync"
 
@@ -132,41 +133,41 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	tx *transaction.Transaction,
 	acntSnd, acntDst state.AccountHandler,
 	round uint32,
-) error {
+) ([]*smartContractResult.SmartContractResult, error) {
 	defer sc.fakeAccounts.CleanFakeAccounts()
 
 	if tx == nil {
-		return process.ErrNilTransaction
+		return nil, process.ErrNilTransaction
 	}
 	if acntDst == nil {
-		return process.ErrNilSCDestAccount
+		return nil, process.ErrNilSCDestAccount
 	}
 	if acntDst.IsInterfaceNil() || acntDst.GetCode() == nil {
-		return process.ErrNilSCDestAccount
+		return nil, process.ErrNilSCDestAccount
 	}
 
 	err := sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	vmInput, err := sc.createVMCallInput(tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	vmOutput, err := sc.vm.RunSmartContractCall(vmInput)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// VM is formally verified and the output is correct
-	err = sc.processVMOutput(vmOutput, tx, acntSnd, round)
+	crossTxs, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return crossTxs, nil
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
@@ -186,40 +187,44 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 }
 
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
-func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd state.AccountHandler, round uint32) error {
+func (sc *scProcessor) DeploySmartContract(
+	tx *transaction.Transaction,
+	acntSnd state.AccountHandler,
+	round uint32,
+) ([]*smartContractResult.SmartContractResult, error) {
 	defer sc.fakeAccounts.CleanFakeAccounts()
 
 	isEmptyAddress, err := sc.checkRecvAddressAndTxValidityAndEmptiness(tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !isEmptyAddress {
-		return process.ErrWrongTransaction
+		return nil, process.ErrWrongTransaction
 	}
 
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	vmInput, err := sc.createVMDeployInput(tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// TODO: Smart contract address calculation
 	vmOutput, err := sc.vm.RunSmartContractCreate(vmInput)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// VM is formally verified, the output is correct
-	err = sc.processVMOutput(vmOutput, tx, acntSnd, round)
+	crossTxs, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return crossTxs, nil
 }
 
 func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction) (*vmcommon.ContractCallInput, error) {
@@ -314,94 +319,158 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 	return operation, nil
 }
 
-func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd state.AccountHandler, round uint32) error {
+func (sc *scProcessor) processVMOutput(
+	vmOutput *vmcommon.VMOutput,
+	tx *transaction.Transaction,
+	acntSnd state.AccountHandler,
+	round uint32,
+) ([]*smartContractResult.SmartContractResult, error) {
 	if vmOutput == nil {
-		return process.ErrNilVMOutput
+		return nil, process.ErrNilVMOutput
 	}
 	if tx == nil {
-		return process.ErrNilTransaction
+		return nil, process.ErrNilTransaction
 	}
 
 	txBytes, err := sc.marshalizer.Marshal(tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	txHash := sc.hasher.Compute(string(txBytes))
 
 	err = sc.saveSCOutputToCurrentState(vmOutput, round, txHash)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	crossOutAccs, err := sc.processSCOutputAccounts(vmOutput.OutputAccounts)
+	if err != nil {
+		return nil, err
+	}
+
+	crossTxs, err := sc.createCrossShardTransactions(crossOutAccs, vmOutput.GasRemaining, tx, txHash)
+	if err != nil {
+		return nil, err
 	}
 
 	totalGasRefund := big.NewInt(0)
 	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
-	err = sc.refundGasToSender(totalGasRefund, tx, acntSnd)
+	crossRefundTx, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts)
-	if err != nil {
-		return err
+	if crossRefundTx != nil {
+		crossTxs = append(crossTxs, crossRefundTx)
 	}
 
 	err = sc.deleteAccounts(vmOutput.DeletedAccounts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = sc.processTouchedAccounts(vmOutput.TouchedAccounts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return crossTxs, nil
+}
+
+func (sc *scProcessor) createSmartContractCrossShardTx(
+	outAcc *vmcommon.OutputAccount,
+	scAddress []byte,
+	txHash []byte,
+) *smartContractResult.SmartContractResult {
+	crossSc := &smartContractResult.SmartContractResult{}
+
+	crossSc.Value = outAcc.Balance
+	crossSc.Nonce = outAcc.Nonce.Uint64()
+	crossSc.RcvAddr = outAcc.Address
+	crossSc.SndAddr = scAddress
+
+	crossSc.Code = outAcc.Code
+
+	for i := 0; i < len(outAcc.StorageUpdates); i++ {
+		storageUpdate := outAcc.StorageUpdates[i]
+		crossSc.Data = append(crossSc.Data, []byte(sc.argsParser.GetSeparator())...)
+		crossSc.Data = append(crossSc.Data, storageUpdate.Offset...)
+		crossSc.Data = append(crossSc.Data, []byte(sc.argsParser.GetSeparator())...)
+		crossSc.Data = append(crossSc.Data, storageUpdate.Data...)
+	}
+
+	crossSc.TxHash = txHash
+
+	return crossSc
+}
+
+func (sc *scProcessor) createCrossShardTransactions(
+	crossOutAccs []*vmcommon.OutputAccount,
+	gasRemaining *big.Int,
+	tx *transaction.Transaction,
+	txHash []byte,
+) ([]*smartContractResult.SmartContractResult, error) {
+	crossSCTxs := make([]*smartContractResult.SmartContractResult, 0)
+	for i := 0; i < len(crossOutAccs); i++ {
+		scTx := sc.createSmartContractCrossShardTx(crossOutAccs[i], tx.RcvAddr, txHash)
+		crossSCTxs = append(crossSCTxs, scTx)
+	}
+
+	return crossSCTxs, nil
 }
 
 // give back the user the unused gas money
-func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, tx *transaction.Transaction, acntSnd state.AccountHandler) error {
+func (sc *scProcessor) refundGasToSender(
+	gasRefund *big.Int,
+	tx *transaction.Transaction,
+	txHash []byte,
+	acntSnd state.AccountHandler,
+) (*smartContractResult.SmartContractResult, error) {
 	if gasRefund == nil || gasRefund.Cmp(big.NewInt(0)) <= 0 {
-		return nil
-	}
-
-	if acntSnd == nil || acntSnd.IsInterfaceNil() {
-		//TODO: sharded smart contract processing
-		//TODO: create cross shard transaction here...
-		return nil
-	}
-
-	stAcc, ok := acntSnd.(*state.Account)
-	if !ok {
-		return process.ErrWrongTypeAssertion
+		return nil, nil
 	}
 
 	refundErd := big.NewInt(0)
 	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GasPrice)))
 
+	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+		scTx := &smartContractResult.SmartContractResult{}
+		scTx.Value = refundErd
+		scTx.RcvAddr = tx.SndAddr
+		scTx.SndAddr = tx.RcvAddr
+		scTx.Nonce = tx.Nonce
+		scTx.TxHash = txHash
+		return scTx, nil
+	}
+
+	stAcc, ok := acntSnd.(*state.Account)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
 	operation := big.NewInt(0)
 	err := stAcc.SetBalanceWithJournal(operation.Add(stAcc.Balance, refundErd))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return nil, nil
 }
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
-func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount) error {
+func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount) ([]*vmcommon.OutputAccount, error) {
+	crossOutAccs := make([]*vmcommon.OutputAccount, 0)
 	for i := 0; i < len(outputAccounts); i++ {
 		outAcc := outputAccounts[i]
 		acc, err := sc.getAccountFromAddress(outAcc.Address)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		fakeAcc := sc.fakeAccounts.GetFakeAccount(outAcc.Address)
 
 		if acc == nil || acc.IsInterfaceNil() {
-			//TODO: sharded smart contract processing
-			//TODO: create cross shard transaction here...
-			//if fakeAcc use the difference between outacc and fakeAcc for the new transaction
+			crossOutAccs = append(crossOutAccs, outAcc)
 			continue
 		}
 
@@ -414,36 +483,36 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			//SC with data variables
 			err := sc.accounts.SaveDataTrie(acc)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		if len(outAcc.Code) > 0 {
 			err = sc.accounts.PutCode(acc, outAcc.Code)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		if outAcc.Nonce == nil || outAcc.Nonce.Cmp(big.NewInt(int64(acc.GetNonce()))) < 0 {
-			return process.ErrWrongNonceInVMOutput
+			return nil, process.ErrWrongNonceInVMOutput
 		}
 
 		err = acc.SetNonceWithJournal(outAcc.Nonce.Uint64())
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if outAcc.Balance == nil {
-			return process.ErrNilBalanceFromSC
+			return nil, process.ErrNilBalanceFromSC
 		}
 
 		stAcc, ok := acc.(*state.Account)
 		if !ok {
-			return process.ErrWrongTypeAssertion
+			return nil, process.ErrWrongTypeAssertion
 		}
 
-		// if fake account, than VM so only transaction value plus fee as balance, so anything remaining is a plus
+		// if fake account, than VM only has transaction value as balance, so anything remaining is a plus
 		if fakeAcc != nil && !fakeAcc.IsInterfaceNil() {
 			outAcc.Balance = outAcc.Balance.Add(outAcc.Balance, stAcc.Balance)
 		}
@@ -451,11 +520,11 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		// update the values according to SC output
 		err = stAcc.SetBalanceWithJournal(outAcc.Balance)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return crossOutAccs, nil
 }
 
 // delete accounts - only suicide by current SC or another SC called by current SC - protected by VM

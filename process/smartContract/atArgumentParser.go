@@ -69,3 +69,8 @@ func (at *atArgumentParser) GetFunction() (string, error) {
 	}
 	return string(at.code), nil
 }
+
+// GetSeparator returns the separator used for parsing the data
+func (at *atArgumentParser) GetSeparator() string {
+	return atSep
+}

@@ -404,7 +404,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	argParser.ParseDataCalled = func(data []byte) error {
 		return tmpError
 	}
-	err = sc.DeploySmartContract(tx, acntSrc, 10)
+	_, err = sc.DeploySmartContract(tx, acntSrc, 10)
 	assert.Equal(t, tmpError, err)
 }
 
@@ -438,7 +438,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	vm.RunSmartContractCreateCalled = func(input *vmcommon.ContractCreateInput) (output *vmcommon.VMOutput, e error) {
 		return nil, tmpError
 	}
-	err = sc.DeploySmartContract(tx, acntSrc, 10)
+	_, err = sc.DeploySmartContract(tx, acntSrc, 10)
 	assert.Equal(t, tmpError, err)
 }
 
@@ -467,7 +467,7 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
-	err = sc.DeploySmartContract(tx, acntSrc, 10)
+	_, err = sc.DeploySmartContract(tx, acntSrc, 10)
 	assert.Equal(t, process.ErrWrongTransaction, err)
 }
 
@@ -497,7 +497,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
-	err = sc.DeploySmartContract(tx, acntSrc, 10)
+	_, err = sc.DeploySmartContract(tx, acntSrc, 10)
 	assert.Equal(t, nil, err)
 }
 
@@ -526,7 +526,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
-	err = sc.ExecuteSmartContractTransaction(nil, acntSrc, acntDst, 10)
+	_, err = sc.ExecuteSmartContractTransaction(nil, acntSrc, acntDst, 10)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -555,15 +555,15 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil, 10)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil, 10)
 	assert.Equal(t, process.ErrNilSCDestAccount, err)
 
 	acntDst.SetCode(nil)
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, process.ErrNilSCDestAccount, err)
 
 	acntDst = nil
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, process.ErrNilSCDestAccount, err)
 }
 
@@ -597,7 +597,7 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 	argParser.ParseDataCalled = func(data []byte) error {
 		return tmpError
 	}
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, tmpError, err)
 }
 
@@ -631,7 +631,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	vm.RunSmartContractCallCalled = func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
 		return nil, tmpError
 	}
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, tmpError, err)
 }
 
@@ -661,7 +661,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	acntSrc, acntDst := createAccounts(tx)
 
 	acntDst.SetCode([]byte("code"))
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Nil(t, err)
 }
 
@@ -884,7 +884,7 @@ func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 
 	acntSrc, _, tx := createAccountsAndTransaction()
 
-	err = sc.processVMOutput(nil, tx, acntSrc, 10)
+	_, err = sc.processVMOutput(nil, tx, acntSrc, 10)
 	assert.Equal(t, process.ErrNilVMOutput, err)
 }
 
@@ -908,7 +908,7 @@ func TestScProcessor_processVMOutputNilTx(t *testing.T) {
 	acntSrc, _, _ := createAccountsAndTransaction()
 
 	vmOutput := &vmcommon.VMOutput{}
-	err = sc.processVMOutput(vmOutput, nil, acntSrc, 10)
+	_, err = sc.processVMOutput(vmOutput, nil, acntSrc, 10)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -935,7 +935,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 		GasRefund:    big.NewInt(0),
 		GasRemaining: big.NewInt(0),
 	}
-	err = sc.processVMOutput(vmOutput, tx, nil, 10)
+	_, err = sc.processVMOutput(vmOutput, tx, nil, 10)
 	assert.Nil(t, err)
 }
 
@@ -962,7 +962,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 		GasRefund:    big.NewInt(0),
 		GasRemaining: big.NewInt(0),
 	}
-	err = sc.processVMOutput(vmOutput, tx, acntSnd, 10)
+	_, err = sc.processVMOutput(vmOutput, tx, acntSnd, 10)
 	assert.Nil(t, err)
 }
 
@@ -1441,14 +1441,16 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 
+	txHash := []byte("txHash")
+
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 
-	err = sc.refundGasToSender(nil, tx, acntSrc)
+	_, err = sc.refundGasToSender(nil, tx, txHash, acntSrc)
 	assert.Nil(t, err)
 	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
 
-	err = sc.refundGasToSender(big.NewInt(0), tx, acntSrc)
+	_, err = sc.refundGasToSender(big.NewInt(0), tx, txHash, acntSrc)
 	assert.Nil(t, err)
 	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
@@ -1477,18 +1479,18 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	tx.GasPrice = 10
 	tx.GasLimit = 10
-
+	txHash := []byte("txHash")
 	acntSrc, _ := createAccounts(tx)
 
-	err = sc.refundGasToSender(big.NewInt(10), tx, nil)
+	_, err = sc.refundGasToSender(big.NewInt(10), tx, txHash, nil)
 	assert.Nil(t, err)
 
 	acntSrc = nil
-	err = sc.refundGasToSender(big.NewInt(10), tx, acntSrc)
+	_, err = sc.refundGasToSender(big.NewInt(10), tx, txHash, acntSrc)
 	assert.Nil(t, err)
 
 	badAcc := &mock.AccountWrapMock{}
-	err = sc.refundGasToSender(big.NewInt(10), tx, badAcc)
+	_, err = sc.refundGasToSender(big.NewInt(10), tx, txHash, badAcc)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
@@ -1516,12 +1518,12 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	tx.GasPrice = 10
 	tx.GasLimit = 15
-
+	txHash := []byte("txHash")
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 
 	refundGas := big.NewInt(10)
-	err = sc.refundGasToSender(refundGas, tx, acntSrc)
+	_, err = sc.refundGasToSender(refundGas, tx, txHash, acntSrc)
 	assert.Nil(t, err)
 
 	totalRefund := refundGas.Uint64() * tx.GasPrice
@@ -1546,7 +1548,7 @@ func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
-	err = sc.ProcessVMOutput(nil, tx, acntSrc, round)
+	_, err = sc.ProcessVMOutput(nil, tx, acntSrc, round)
 
 	assert.Equal(t, process.ErrNilVMOutput, err)
 }
@@ -1570,7 +1572,7 @@ func TestScProcessor_processVMOutputNilTransaction(t *testing.T) {
 	assert.Nil(t, err)
 
 	vmOutput := &vmcommon.VMOutput{}
-	err = sc.ProcessVMOutput(vmOutput, nil, acntSrc, round)
+	_, err = sc.ProcessVMOutput(vmOutput, nil, acntSrc, round)
 
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
@@ -1597,7 +1599,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 		GasRefund:    big.NewInt(0),
 		GasRemaining: big.NewInt(0),
 	}
-	err = sc.ProcessVMOutput(vmOutput, tx, acntSrc, round)
+	_, err = sc.ProcessVMOutput(vmOutput, tx, acntSrc, round)
 	assert.Nil(t, err)
 }
 
@@ -1621,7 +1623,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	assert.Nil(t, err)
 
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
-	err = sc.ProcessSCOutputAccounts(outputAccounts)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts)
 	assert.Nil(t, err)
 
 	outaddress := []byte("newsmartcontract")
@@ -1653,15 +1655,15 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 		return nil
 	}
 
-	err = sc.ProcessSCOutputAccounts(outputAccounts)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts)
 	assert.Nil(t, err)
 
-	err = sc.ProcessSCOutputAccounts(outputAccounts)
+	_, err = sc.ProcessSCOutputAccounts(outputAccounts)
 	assert.Nil(t, err)
 
 	outacc1.Balance = nil
 	outacc1.Nonce = outacc1.Nonce.Add(outacc1.Nonce, big.NewInt(1))
-	err = sc.processSCOutputAccounts(outputAccounts)
+	_, err = sc.processSCOutputAccounts(outputAccounts)
 	assert.Equal(t, process.ErrNilBalanceFromSC, err)
 
 	outacc1.Nonce = outacc1.Nonce.Add(outacc1.Nonce, big.NewInt(1))
@@ -1674,7 +1676,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	currentBalance := testAcc.Balance.Uint64()
 	vmOutBalance := outacc1.Balance.Uint64()
-	err = sc.processSCOutputAccounts(outputAccounts)
+	_, err = sc.processSCOutputAccounts(outputAccounts)
 	assert.Nil(t, err)
 	assert.Equal(t, currentBalance+vmOutBalance, testAcc.Balance.Uint64())
 }

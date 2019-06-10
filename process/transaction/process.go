@@ -120,7 +120,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 			return err
 		}
 
-		err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
+		_, err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
 		return err
 	case process.SCInvoking:
 		// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
@@ -130,7 +130,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 			return err
 		}
 
-		err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
+		_, err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
 		return err
 	}
 

@@ -9,6 +9,7 @@ type AtArgumentParserMock struct {
 	GetArgumentsCalled func() ([]*big.Int, error)
 	GetCodeCalled      func() ([]byte, error)
 	GetFunctionCalled  func() (string, error)
+	GetSeparatorCalled func() string
 }
 
 func (at *AtArgumentParserMock) ParseData(data []byte) error {
@@ -37,4 +38,11 @@ func (at *AtArgumentParserMock) GetFunction() (string, error) {
 		return "", nil
 	}
 	return at.GetFunctionCalled()
+}
+
+func (at *AtArgumentParserMock) GetSeparator() string {
+	if at.GetSeparatorCalled == nil {
+		return "@"
+	}
+	return at.GetSeparatorCalled()
 }
