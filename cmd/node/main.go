@@ -1622,7 +1622,7 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 }
 
 func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
-	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit *storageUnit.Unit
+	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, scrUnit, metachainHeaderUnit *storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -1640,6 +1640,9 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 			if txUnit != nil {
 				_ = txUnit.DestroyUnit()
 			}
+			if scrUnit != nil {
+				_ = scrUnit.DestroyUnit()
+			}
 			if metachainHeaderUnit != nil {
 				_ = metachainHeaderUnit.DestroyUnit()
 			}
@@ -1650,6 +1653,14 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 		getCacherFromConfig(config.TxStorage.Cache),
 		getDBFromConfig(config.TxStorage.DB),
 		getBloomFromConfig(config.TxStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
+	scrUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.ScrStorage.Cache),
+		getDBFromConfig(config.ScrStorage.DB),
+		getBloomFromConfig(config.ScrStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -1692,6 +1703,7 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 	store.AddStorer(dataRetriever.PeerChangesUnit, peerBlockUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaBlockUnit, metachainHeaderUnit)
+	store.AddStorer(dataRetriever.SmartContractResultUnit, scrUnit)
 
 	return store, err
 }

@@ -121,12 +121,16 @@ func (inScr *InterceptedSmartContractResult) integrity() error {
 		return process.ErrNegativeValue
 	}
 
+	if len(inScr.scr.TxHash) == 0 {
+		return process.ErrNilTxHash
+	}
+
 	return nil
 }
 
 // verifyIfNotarized checks if the scr was already notarized
 func (inScr *InterceptedSmartContractResult) verifyIfNotarized(scrBuff []byte) error {
-	// TODO: implement this
+	// TODO: implement this for flood protection purposes
 	return nil
 }
 
