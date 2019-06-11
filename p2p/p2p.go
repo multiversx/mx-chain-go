@@ -68,8 +68,8 @@ type Messenger interface {
 	// Peers is the list of IDs of peers known to the Messenger.
 	Peers() []PeerID
 
-	// Addresses is the list of addresses we are currently bound to and listening
-	// to.
+	// Addresses is the list of addresses that the Messenger is currently bound
+	// to and listening to.
 	Addresses() []string
 
 	// Explicitly connect to a specific peer with a known address (note that the
