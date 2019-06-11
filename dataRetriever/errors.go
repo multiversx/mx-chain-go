@@ -176,6 +176,9 @@ var ErrNilResolverFinder = errors.New("nil resolvers finder")
 // ErrEmptyTxRequestTopic signals that an empty transaction topic has been provided
 var ErrEmptyTxRequestTopic = errors.New("empty transaction request topic")
 
+// ErrEmptyScrRequestTopic signals that an empty smart contract result topic has been provided
+var ErrEmptyScrRequestTopic = errors.New("empty smart contract result request topic")
+
 // ErrEmptyMiniBlockRequestTopic signals that an empty miniblock topic has been provided
 var ErrEmptyMiniBlockRequestTopic = errors.New("empty miniblock request topic")
 

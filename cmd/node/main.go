@@ -911,7 +911,7 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	requestHandler, err := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, maxTxsToRequest)
+	requestHandler, err := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.SmartContractResultTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, maxTxsToRequest)
 	if err != nil {
 		return nil, nil, nil, err
 	}

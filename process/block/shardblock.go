@@ -32,18 +32,19 @@ const metablockFinality = 1
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
-	dataPool             dataRetriever.PoolsHolder
-	txProcessor          process.TransactionProcessor
-	blocksTracker        process.BlocksTracker
-	metaBlockFinality    int
-	chRcvAllTxs          chan bool
-	onRequestTransaction func(shardID uint32, txHashes [][]byte)
-	mutRequestedTxHashes sync.RWMutex
-	requestedTxHashes    map[string]bool
-	onRequestMiniBlock   func(shardId uint32, mbHash []byte)
-	chRcvAllMetaHdrs     chan bool
-	mutUsedMetaHdrs      sync.Mutex
-	mapUsedMetaHdrs      map[uint32][][]byte
+	dataPool                      dataRetriever.PoolsHolder
+	txProcessor                   process.TransactionProcessor
+	blocksTracker                 process.BlocksTracker
+	metaBlockFinality             int
+	chRcvAllTxs                   chan bool
+	onRequestTransaction          func(shardID uint32, txHashes [][]byte)
+	onRequestSmartContractResults func(shardID uint32, srcHashes [][]byte)
+	mutRequestedTxHashes          sync.RWMutex
+	requestedTxHashes             map[string]bool
+	onRequestMiniBlock            func(shardId uint32, mbHash []byte)
+	chRcvAllMetaHdrs              chan bool
+	mutUsedMetaHdrs               sync.Mutex
+	mapUsedMetaHdrs               map[uint32][][]byte
 
 	mutRequestedMetaHdrs    sync.RWMutex
 	requestedMetaHdrHashes  map[string]bool
@@ -121,6 +122,7 @@ func NewShardProcessor(
 	sp.chRcvAllMetaHdrs = make(chan bool)
 	sp.chRcvAllTxs = make(chan bool)
 	sp.onRequestTransaction = requestHandler.RequestTransaction
+	sp.onRequestSmartContractResults = requestHandler.RequestSmartContractResults
 
 	transactionPool := sp.dataPool.Transactions()
 	if transactionPool == nil {

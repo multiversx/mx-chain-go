@@ -236,7 +236,7 @@ func createNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
-	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
+	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.SmartContractResultTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,

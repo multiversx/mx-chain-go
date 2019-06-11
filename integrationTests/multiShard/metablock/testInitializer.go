@@ -308,7 +308,7 @@ func createShardNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
-	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(tn.resolvers, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
+	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(tn.resolvers, factory.TransactionTopic, factory.SmartContractResultTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
 
 	blockProcessor, _ := block.NewShardProcessor(
 		&mock.ServiceContainerMock{},
