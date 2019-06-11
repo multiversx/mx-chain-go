@@ -105,11 +105,11 @@ func (inScr *InterceptedSmartContractResult) processFields(scrBuffWithSig []byte
 
 // integrity checks for not nil fields and negative value
 func (inScr *InterceptedSmartContractResult) integrity() error {
-	if inScr.scr.RcvAddr == nil {
+	if len(inScr.scr.RcvAddr) == 0 {
 		return process.ErrNilRcvAddr
 	}
 
-	if inScr.scr.SndAddr == nil {
+	if len(inScr.scr.SndAddr) == 0 {
 		return process.ErrNilSndAddr
 	}
 

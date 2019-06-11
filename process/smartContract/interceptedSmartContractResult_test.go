@@ -14,9 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var errSingleSignKeyGenMock = errors.New("errSingleSignKeyGenMock")
-var errSignerMockVerifySigFails = errors.New("errSignerMockVerifySigFails")
-
 var senderShard = uint32(2)
 var recvShard = uint32(3)
 var senderAddress = []byte("sender")
@@ -149,30 +146,6 @@ func TestNewInterceptedSmartContractResult_UnmarshalingTxFailsShouldErr(t *testi
 	assert.Equal(t, errExpected, err)
 }
 
-func TestNewInterceptedSmartContractResult_MarshalingCopiedTxFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected error")
-
-	txi, err := smartContract.NewInterceptedSmartContractResult(
-		make([]byte, 0),
-		&mock.MarshalizerStub{
-			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
-				return nil, errExpected
-			},
-			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return nil
-			},
-		},
-		mock.HasherMock{},
-		&mock.AddressConverterMock{},
-		mock.NewOneShardCoordinatorMock(),
-	)
-
-	assert.Nil(t, txi)
-	assert.Equal(t, errExpected, err)
-}
-
 func TestNewInterceptedSmartContractResult_AddrConvFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -207,7 +180,7 @@ func TestNewInterceptedSmartContractResult_NilTxHashShouldErr(t *testing.T) {
 	txi, err := createInterceptedScrFromPlainScr(tx)
 
 	assert.Nil(t, txi)
-	assert.Equal(t, process.ErrNilSignature, err)
+	assert.Equal(t, process.ErrNilTxHash, err)
 }
 
 func TestNewInterceptedSmartContractResult_NilSenderAddressShouldErr(t *testing.T) {
@@ -297,25 +270,7 @@ func TestNewInterceptedSmartContractResult_InvalidSenderShouldErr(t *testing.T) 
 	txi, err := createInterceptedScrFromPlainScr(tx)
 
 	assert.Nil(t, txi)
-	assert.Equal(t, errSingleSignKeyGenMock, err)
-}
-
-func TestNewInterceptedSmartContractResult_VerifyFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	tx := &smartContractResult.SmartContractResult{
-		Nonce:   1,
-		Value:   big.NewInt(2),
-		Data:    []byte("data"),
-		RcvAddr: recvAddress,
-		SndAddr: senderAddress,
-		TxHash:  []byte("WRONGTX"),
-	}
-
-	txi, err := createInterceptedScrFromPlainScr(tx)
-
-	assert.Nil(t, txi)
-	assert.Equal(t, errSignerMockVerifySigFails, err)
+	assert.Equal(t, process.ErrNilSndAddr, err)
 }
 
 func TestNewInterceptedSmartContractResult_ShouldWork(t *testing.T) {
