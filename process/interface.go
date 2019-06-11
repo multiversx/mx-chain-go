@@ -2,6 +2,7 @@ package process
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"math/big"
 	"time"
 
@@ -168,7 +169,9 @@ type ArgumentsParser interface {
 	GetCode() ([]byte, error)
 	GetFunction() (string, error)
 	ParseData(data []byte) error
-	GetSeparator() string
+
+	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) []byte
+	GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error)
 }
 
 // FakeAccountsHandler defines the functionality to create fake accounts and pass to VM.

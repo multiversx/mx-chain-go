@@ -348,3 +348,9 @@ var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
 
 // ErrNilFakeAccountsHandler signals that fake accounts handler is nil
 var ErrNilFakeAccountsHandler = errors.New("fake accounts handler is nil")
+
+// ErrNilSmartContractResult signals that the smart contract result is nil
+var ErrNilSmartContractResult = errors.New("smart contract result is nil")
+
+// ErrInvalidDataInput signals that the data input is invalid for parsing
+var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")

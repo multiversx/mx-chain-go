@@ -1037,6 +1037,10 @@ func (sp *shardProcessor) processAndRemoveBadTransaction(
 		txPool.RemoveData(transactionHash, strCache)
 	}
 
+	//TODO: here processing is called for validation and for create purposes as well.
+	//TODO: add results into miniblocks, in case of validation those miniblocks have to match with the one proposed
+	// by the block
+
 	return err
 }
 
@@ -1127,6 +1131,8 @@ func (sp *shardProcessor) processMiniBlockComplete(
 		if err != nil {
 			break
 		}
+
+		//TODO: add the output of processTransaction into miniblocks with the type of smart contract results here
 	}
 
 	// all txs from miniblock has to be processed together

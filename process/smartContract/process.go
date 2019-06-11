@@ -388,17 +388,8 @@ func (sc *scProcessor) createSmartContractCrossShardTx(
 	crossSc.Nonce = outAcc.Nonce.Uint64()
 	crossSc.RcvAddr = outAcc.Address
 	crossSc.SndAddr = scAddress
-
 	crossSc.Code = outAcc.Code
-
-	for i := 0; i < len(outAcc.StorageUpdates); i++ {
-		storageUpdate := outAcc.StorageUpdates[i]
-		crossSc.Data = append(crossSc.Data, []byte(sc.argsParser.GetSeparator())...)
-		crossSc.Data = append(crossSc.Data, storageUpdate.Offset...)
-		crossSc.Data = append(crossSc.Data, []byte(sc.argsParser.GetSeparator())...)
-		crossSc.Data = append(crossSc.Data, storageUpdate.Data...)
-	}
-
+	crossSc.Data = sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)
 	crossSc.TxHash = txHash
 
 	return crossSc
@@ -632,5 +623,63 @@ func (sc *scProcessor) saveReturnCode(returnCode vmcommon.ReturnCode, round uint
 // save vm output logs into accounts
 func (sc *scProcessor) saveLogsIntoState(logs []*vmcommon.LogEntry, round uint32, txHash []byte) error {
 	sc.mapExecState[round].allLogs[string(txHash)] = logs
+	return nil
+}
+
+// ProcessSmartContractResult updates the account state from the smart contract result
+func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
+	if scr == nil {
+		return process.ErrNilSmartContractResult
+	}
+
+	accHandler, err := sc.getAccountFromAddress(scr.RcvAddr)
+	if err != nil {
+		return err
+	}
+	if accHandler == nil || accHandler.IsInterfaceNil() {
+		return process.ErrNilSCDestAccount
+	}
+
+	stAcc, ok := accHandler.(*state.Account)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	storageUpdates, err := sc.argsParser.GetStorageUpdates(scr.Data)
+	for i := 0; i < len(storageUpdates); i++ {
+		stAcc.DataTrieTracker().SaveKeyValue(storageUpdates[i].Offset, storageUpdates[i].Data)
+	}
+
+	if len(scr.Data) > 0 {
+		//SC with data variables
+		err := sc.accounts.SaveDataTrie(stAcc)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(scr.Code) > 0 {
+		err = sc.accounts.PutCode(stAcc, scr.Code)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = stAcc.SetNonceWithJournal(stAcc.Nonce + 1)
+	if err != nil {
+		return err
+	}
+
+	if scr.Value == nil {
+		return process.ErrNilBalanceFromSC
+	}
+
+	operation := big.NewInt(0)
+	operation = operation.Add(scr.Value, stAcc.Balance)
+	err = stAcc.SetBalanceWithJournal(operation)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
