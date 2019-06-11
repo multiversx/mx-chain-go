@@ -96,6 +96,16 @@ func createTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	return txProcessor
 }
 
+func createScDataGetterWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.SmartContractDataGetter {
+	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+	cryptoHook := &hooks.VMCryptoHook{}
+	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, cryptoHook)
+	vm.GasForOperation = opGas
+	scdg, _ := smartContract.NewSCDataGetter(vm)
+
+	return scdg
+}
+
 func testDeployedContractContents(
 	t *testing.T,
 	destinationAddressBytes []byte,

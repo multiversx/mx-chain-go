@@ -12,7 +12,7 @@ import (
 
 //TODO add integration and unit tests with generating and broadcasting transaction with empty recv address
 
-func deployAndRunSmartContract(t *testing.T, opGas uint64, txvalue *big.Int) {
+func deployAndRunSmartContract(t *testing.T, opGas uint64, txvalue *big.Int) (state.AccountsAdapter, []byte, *big.Int) {
 	accnts := createInMemoryShardAccountsDB()
 
 	senderPubkeyBytes := createDummyAddress().Bytes()
@@ -77,13 +77,16 @@ func deployAndRunSmartContract(t *testing.T, opGas uint64, txvalue *big.Int) {
 	gasFunds := big.NewInt(0).Mul(big.NewInt(0).SetUint64(opGas), big.NewInt(0).SetUint64(gasPrice))
 	expectedSenderBalance.Sub(expectedSenderBalance, gasFunds)
 	expectedSenderBalance.Sub(expectedSenderBalance, gasFunds)
+	expectedValueForVar := big.NewInt(0).SetUint64(initialValueForInternalVariable + addValue)
 	testDeployedContractContents(
 		t,
 		destinationAddressBytes,
 		accnts,
 		txvalue,
 		scCode,
-		map[string]*big.Int{"a": big.NewInt(0).SetUint64(initialValueForInternalVariable + addValue)})
+		map[string]*big.Int{"a": expectedValueForVar})
+
+	return accnts, destinationAddressBytes, expectedValueForVar
 }
 
 func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {

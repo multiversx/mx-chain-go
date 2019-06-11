@@ -25,7 +25,7 @@ type SmartContractProcessor interface {
 
 // SmartContractDataGetter can execute Get functions over SC to fetch stored values
 type SmartContractDataGetter interface {
-	Get(scAddress []byte, funcName string, args ...[]byte) ([][]byte, error)
+	Get(scAddress []byte, funcName string, args ...[]byte) ([]byte, error)
 }
 
 // BlockProcessor is the main interface for block execution engine

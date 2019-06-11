@@ -348,3 +348,9 @@ var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
 
 // ErrNilFakeAccountsHandler signals that fake accounts handler is nil
 var ErrNilFakeAccountsHandler = errors.New("fake accounts handler is nil")
+
+// ErrNilScAddress signals that a nil smart contract address has been provided
+var ErrNilScAddress = errors.New("nil SC address")
+
+// ErrEmptyFunctionName signals that an empty function name has been provided
+var ErrEmptyFunctionName = errors.New("empty function name")

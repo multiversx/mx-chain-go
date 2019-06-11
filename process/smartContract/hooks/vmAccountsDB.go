@@ -8,6 +8,7 @@ import (
 )
 
 // VMAccountsDB is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
+// Calls should not produce effects on the data stored inside AccountsDB
 type VMAccountsDB struct {
 	accounts state.AccountsAdapter
 	addrConv state.AddressConverter

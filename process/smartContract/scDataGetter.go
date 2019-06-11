@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
@@ -16,35 +16,24 @@ var maxGasValue = big.NewInt(math.MaxInt64)
 // scDataGetter can execute Get functions over SC to fetch stored values
 type scDataGetter struct {
 	vm       vmcommon.VMExecutionHandler
-	addrConv state.AddressConverter
-	accounts state.AccountsAdapter
+	mutRunSc sync.Mutex
 }
 
 // NewSCDataGetter returns a new instance of scDataGetter
 func NewSCDataGetter(
 	vm vmcommon.VMExecutionHandler,
-	addrConv state.AddressConverter,
-	accountsDB state.AccountsAdapter,
 ) (*scDataGetter, error) {
 
 	if vm == nil {
 		return nil, process.ErrNoVM
 	}
-	if addrConv == nil {
-		return nil, process.ErrNilAddressConverter
-	}
-	if accountsDB == nil {
-		return nil, process.ErrNilAccountsAdapter
-	}
 
 	return &scDataGetter{
-		vm:       vm,
-		addrConv: addrConv,
-		accounts: accountsDB,
+		vm: vm,
 	}, nil
 }
 
-func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte) ([][]byte, error) {
+func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte) ([]byte, error) {
 	if scAddress == nil {
 		return nil, process.ErrNilScAddress
 	}
@@ -52,11 +41,10 @@ func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte)
 		return nil, process.ErrEmptyFunctionName
 	}
 
-	vmInput, err := scdg.createVMCallInput(scAddress, funcName, args...)
-	if err != nil {
-		return nil, err
-	}
+	scdg.mutRunSc.Lock()
+	defer scdg.mutRunSc.Unlock()
 
+	vmInput := scdg.createVMCallInput(scAddress, funcName, args...)
 	vmOutput, err := scdg.vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		return nil, err
@@ -66,10 +54,22 @@ func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte)
 	return scdg.processVMOutput(vmOutput)
 }
 
-func (scdg *scDataGetter) createVMCallInput(scAddress []byte, funcName string, args ...[]byte) (*vmcommon.ContractCallInput, error) {
+func (scdg *scDataGetter) createVMCallInput(
+	scAddress []byte,
+	funcName string,
+	args ...[]byte,
+) *vmcommon.ContractCallInput {
+
 	argsInt := make([]*big.Int, 0)
 	for _, arg := range args {
 		argsInt = append(argsInt, big.NewInt(0).SetBytes(arg))
+	}
+
+	header := &vmcommon.SCCallHeader{
+		GasLimit:    big.NewInt(0),
+		Timestamp:   big.NewInt(0),
+		Beneficiary: big.NewInt(0),
+		Number:      big.NewInt(0),
 	}
 
 	vmInput := vmcommon.VMInput{
@@ -78,6 +78,7 @@ func (scdg *scDataGetter) createVMCallInput(scAddress []byte, funcName string, a
 		GasPrice:    big.NewInt(0),
 		GasProvided: maxGasValue,
 		Arguments:   argsInt,
+		Header:      header,
 	}
 	vmContractCallInput := &vmcommon.ContractCallInput{
 		RecipientAddr: scAddress,
@@ -85,20 +86,17 @@ func (scdg *scDataGetter) createVMCallInput(scAddress []byte, funcName string, a
 		VMInput:       vmInput,
 	}
 
-	return vmContractCallInput, nil
+	return vmContractCallInput
 }
 
-func (scdg *scDataGetter) processVMOutput(vmOutput *vmcommon.VMOutput) ([][]byte, error) {
-	returnedData := make([][]byte, 0)
-
+func (scdg *scDataGetter) processVMOutput(vmOutput *vmcommon.VMOutput) ([]byte, error) {
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		//TODO generate a stringified version of the error (after PR #7 will be merged in master)
-		return nil, errors.New(fmt.Sprintf("error running vm func: code: %d", vmOutput.ReturnCode))
+		return nil, errors.New(fmt.Sprintf("error running vm func: code: %d, %s", vmOutput.ReturnCode, vmOutput.ReturnCode))
 	}
 
-	for _, val := range vmOutput.ReturnData {
-		returnedData = append(returnedData, val.Bytes())
+	if len(vmOutput.ReturnData) > 0 {
+		return vmOutput.ReturnData[0].Bytes(), nil
 	}
 
-	return returnedData, nil
+	return make([]byte, 0), nil
 }
