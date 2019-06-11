@@ -539,7 +539,14 @@ func (t *Trie) Commit(onleaf LeafCallback) (root []byte, err error) {
 	}
 	t.root = cached
 	t.cachegen++
-	return hash.(hashNode), nil
+
+	hashRoot := hash.(hashNode)
+	err = t.dbw.Commit(hashRoot, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return hashRoot, nil
 }
 
 func (t *Trie) hashRoot(db DBWriteCacher, onleaf LeafCallback) (Node, Node, error) {
