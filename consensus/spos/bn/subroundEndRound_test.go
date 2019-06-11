@@ -28,12 +28,12 @@ func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bn.Sub
 		"(END_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	srEndRound, _ := bn.NewSubroundEndRound(
 		sr,
-		broadcastBlock,
 		extend,
 	)
 
@@ -49,7 +49,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 	t.Parallel()
 	srEndRound, err := bn.NewSubroundEndRound(
 		nil,
-		broadcastBlock,
 		extend,
 	)
 
@@ -74,12 +73,12 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		"(END_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetBlockchain(nil)
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		broadcastBlock,
 		extend,
 	)
 
@@ -104,12 +103,12 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		"(END_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetBlockProcessor(nil)
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		broadcastBlock,
 		extend,
 	)
 
@@ -133,13 +132,13 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		"(END_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	sr.ConsensusState = nil
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		broadcastBlock,
 		extend,
 	)
 
@@ -164,12 +163,12 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 		"(END_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetMultiSigner(nil)
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		broadcastBlock,
 		extend,
 	)
 
@@ -194,12 +193,12 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 		"(END_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetRounder(nil)
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		broadcastBlock,
 		extend,
 	)
 
@@ -224,47 +223,17 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		"(END_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetSyncTimer(nil)
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		broadcastBlock,
 		extend,
 	)
 
 	assert.Nil(t, srEndRound)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
-}
-
-func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastBlockFunctionShouldFail(t *testing.T) {
-	t.Parallel()
-
-	container := mock.InitConsensusCore()
-
-	consensusState := initConsensusState()
-	ch := make(chan bool, 1)
-
-	sr, _ := spos.NewSubround(
-		int(bn.SrSignature),
-		int(bn.SrEndRound),
-		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
-		"(END_ROUND)",
-		consensusState,
-		ch,
-		container,
-	)
-
-	srEndRound, err := bn.NewSubroundEndRound(
-		sr,
-		nil,
-		extend,
-	)
-
-	assert.Nil(t, srEndRound)
-	assert.Equal(t, spos.ErrNilBroadcastBlockFunction, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
@@ -284,12 +253,12 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		"(END_ROUND)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
-		broadcastBlock,
 		extend,
 	)
 
@@ -341,11 +310,14 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundEndRound()
-
-	sr.SetBroadcastBlock(func(data.BodyHandler, data.HeaderHandler) error {
-		return spos.ErrNilBroadcastBlockFunction
-	})
+	container := mock.InitConsensusCore()
+	bm := &mock.BroadcastMessengerMock{
+		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
+			return errors.New("error")
+		},
+	}
+	container.SetBroadcastMessenger(bm)
+	sr := *initSubroundEndRoundWithContainer(container)
 
 	sr.Header = &block.Header{}
 
@@ -353,10 +325,119 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 	assert.True(t, r)
 }
 
+func TestSubroundEndRound_DoEndRoundJobErrMarshalizedDataToBroadcastOK(t *testing.T) {
+	t.Parallel()
+
+	err := errors.New("")
+	container := mock.InitConsensusCore()
+
+	bpm := mock.InitBlockProcessorMock()
+	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
+		err = errors.New("error marshalized data to broadcast")
+		return make(map[uint32][]byte, 0), make(map[uint32][][]byte, 0), err
+	}
+	container.SetBlockProcessor(bpm)
+
+	bm := &mock.BroadcastMessengerMock{
+		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
+			return nil
+		},
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
+			return nil
+		},
+		BroadcastTransactionsCalled: func(bytes map[uint32][][]byte) error {
+			return nil
+		},
+	}
+	container.SetBroadcastMessenger(bm)
+	sr := *initSubroundEndRoundWithContainer(container)
+
+	sr.Header = &block.Header{}
+
+	r := sr.DoEndRoundJob()
+	assert.True(t, r)
+	assert.Equal(t, errors.New("error marshalized data to broadcast"), err)
+}
+
+func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
+	t.Parallel()
+
+	err := errors.New("")
+	container := mock.InitConsensusCore()
+
+	bpm := mock.InitBlockProcessorMock()
+	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
+		return make(map[uint32][]byte, 0), make(map[uint32][][]byte, 0), nil
+	}
+	container.SetBlockProcessor(bpm)
+
+	bm := &mock.BroadcastMessengerMock{
+		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
+			return nil
+		},
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
+			err = errors.New("error broadcast miniblocks")
+			return err
+		},
+		BroadcastTransactionsCalled: func(bytes map[uint32][][]byte) error {
+			return nil
+		},
+	}
+	container.SetBroadcastMessenger(bm)
+	sr := *initSubroundEndRoundWithContainer(container)
+
+	sr.Header = &block.Header{}
+
+	r := sr.DoEndRoundJob()
+	assert.True(t, r)
+	assert.Equal(t, errors.New("error broadcast miniblocks"), err)
+}
+
+func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) {
+	t.Parallel()
+
+	err := errors.New("")
+	container := mock.InitConsensusCore()
+
+	bpm := mock.InitBlockProcessorMock()
+	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
+		return make(map[uint32][]byte, 0), make(map[uint32][][]byte, 0), nil
+	}
+	container.SetBlockProcessor(bpm)
+
+	bm := &mock.BroadcastMessengerMock{
+		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
+			return nil
+		},
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
+			return nil
+		},
+		BroadcastTransactionsCalled: func(bytes map[uint32][][]byte) error {
+			err = errors.New("error broadcast transactions")
+			return err
+		},
+	}
+	container.SetBroadcastMessenger(bm)
+	sr := *initSubroundEndRoundWithContainer(container)
+
+	sr.Header = &block.Header{}
+
+	r := sr.DoEndRoundJob()
+	assert.True(t, r)
+	assert.Equal(t, errors.New("error broadcast transactions"), err)
+}
+
 func TestSubroundEndRound_DoEndRoundJobAllOK(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundEndRound()
+	container := mock.InitConsensusCore()
+	bm := &mock.BroadcastMessengerMock{
+		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
+			return nil
+		},
+	}
+	container.SetBroadcastMessenger(bm)
+	sr := *initSubroundEndRoundWithContainer(container)
 
 	sr.Header = &block.Header{}
 

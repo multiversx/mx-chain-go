@@ -114,7 +114,7 @@ func createMockPools() *mock.PoolsHolderStub {
 	}
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		hnc := &mock.Uint64CacherStub{
-			GetCalled: func(u uint64) (bytes []byte, b bool) {
+			GetCalled: func(u uint64) (bytes interface{}, b bool) {
 				return nil, false
 			},
 			RegisterHandlerCalled: func(handler func(nonce uint64)) {},
@@ -209,7 +209,7 @@ func createHeadersNoncesDataPool(
 
 	hnc := &mock.Uint64CacherStub{
 		RegisterHandlerCalled: func(handler func(nonce uint64)) {},
-		GetCalled: func(u uint64) (i []byte, b bool) {
+		GetCalled: func(u uint64) (i interface{}, b bool) {
 			if u == getNonceCompare {
 				return getRetHash, true
 			}
@@ -1017,7 +1017,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 		}
 
-		hnc.GetCalled = func(u uint64) (bytes []byte, b bool) {
+		hnc.GetCalled = func(u uint64) (bytes interface{}, b bool) {
 			if u == 2 {
 				return []byte("aaa"), false
 			}
@@ -1158,7 +1158,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 		}
 
-		hnc.GetCalled = func(u uint64) (bytes []byte, b bool) {
+		hnc.GetCalled = func(u uint64) (bytes interface{}, b bool) {
 			mutDataAvailable.RLock()
 			defer mutDataAvailable.RUnlock()
 
@@ -1271,7 +1271,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 		}
 
-		hnc.GetCalled = func(u uint64) (bytes []byte, b bool) {
+		hnc.GetCalled = func(u uint64) (bytes interface{}, b bool) {
 			if u == 2 {
 				return []byte("aaa"), false
 			}
@@ -1373,7 +1373,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		}
 		hnc.RemoveCalled = func(u uint64) {
 		}
-		hnc.GetCalled = func(u uint64) (bytes []byte, b bool) {
+		hnc.GetCalled = func(u uint64) (bytes interface{}, b bool) {
 			if u == 2 {
 				return []byte("aaa"), false
 			}
@@ -1662,7 +1662,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		hnc := &mock.Uint64CacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 		}
-		hnc.GetCalled = func(u uint64) (i []byte, b bool) {
+		hnc.GetCalled = func(u uint64) (i interface{}, b bool) {
 			if u == 0 {
 				return []byte("aaa"), true
 			}

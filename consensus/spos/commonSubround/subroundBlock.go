@@ -19,14 +19,11 @@ type SubroundBlock struct {
 	mtBlockHeader                 int
 	processingThresholdPercentage int
 	getSubroundName               func(subroundId int) string
-
-	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundBlock creates a SubroundBlock object
 func NewSubroundBlock(
 	baseSubround *spos.Subround,
-	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 	mtBlockBody int,
 	mtBlockHeader int,
@@ -35,7 +32,6 @@ func NewSubroundBlock(
 ) (*SubroundBlock, error) {
 	err := checkNewSubroundBlockParams(
 		baseSubround,
-		sendConsensusMessage,
 	)
 	if err != nil {
 		return nil, err
@@ -47,7 +43,6 @@ func NewSubroundBlock(
 		mtBlockHeader,
 		processingThresholdPercentage,
 		getSubroundName,
-		sendConsensusMessage,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -59,7 +54,6 @@ func NewSubroundBlock(
 
 func checkNewSubroundBlockParams(
 	baseSubround *spos.Subround,
-	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if baseSubround == nil {
 		return spos.ErrNilSubround
@@ -67,10 +61,6 @@ func checkNewSubroundBlockParams(
 
 	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
-	}
-
-	if sendConsensusMessage == nil {
-		return spos.ErrNilSendConsensusMessageFunction
 	}
 
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
@@ -115,11 +105,6 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
 	}
 
-	if sr.Rounder().Index() < 0 {
-		log.Error("invalid round, round must be always > 0")
-		return false
-	}
-
 	blockBody, err := sr.BlockProcessor().CreateBlockBody(
 		uint32(sr.Rounder().Index()),
 		haveTimeInCurrentSubround,
@@ -144,7 +129,9 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
 
-	if !sr.sendConsensusMessage(msg) {
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
+	if err != nil {
+		log.Error(err.Error())
 		return false
 	}
 
@@ -180,7 +167,9 @@ func (sr *SubroundBlock) sendBlockHeader() bool {
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
 
-	if !sr.sendConsensusMessage(msg) {
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
+	if err != nil {
+		log.Error(err.Error())
 		return false
 	}
 

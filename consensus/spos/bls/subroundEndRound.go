@@ -5,24 +5,19 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 )
 
 type subroundEndRound struct {
 	*spos.Subround
-
-	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
 	baseSubround *spos.Subround,
-	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 	extend func(subroundId int),
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
-		broadcastBlock,
 	)
 	if err != nil {
 		return nil, err
@@ -30,7 +25,6 @@ func NewSubroundEndRound(
 
 	srEndRound := subroundEndRound{
 		baseSubround,
-		broadcastBlock,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -41,16 +35,12 @@ func NewSubroundEndRound(
 
 func checkNewSubroundEndRoundParams(
 	baseSubround *spos.Subround,
-	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 ) error {
 	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
-	}
-	if broadcastBlock == nil {
-		return spos.ErrNilBroadcastBlockFunction
 	}
 
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
@@ -95,17 +85,47 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
 	// broadcast block body and header
-	err = sr.broadcastBlock(sr.ConsensusState.BlockBody, sr.ConsensusState.Header)
+	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	// broadcast header to metachain
+	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
 	if err != nil {
 		log.Error(err.Error())
 	}
 
 	log.Info(fmt.Sprintf("%sStep 3: BlockBody and Header has been committed and broadcast\n", sr.SyncTimer().FormattedCurrentTime()))
 
+	err = sr.broadcastMiniBlocksAndTransactions()
+	if err != nil {
+		log.Error(err.Error())
+	}
+
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
 	return true
+}
+
+func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.BlockBody)
+	if err != nil {
+		return err
+	}
+
+	err = sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
+	if err != nil {
+		return err
+	}
+
+	err = sr.BroadcastMessenger().BroadcastTransactions(transactions)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved

@@ -19,8 +19,8 @@ type TransactionProcessor interface {
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) (TransactionType, error)
-	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error
-	DeploySmartContract(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) error
+	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
+	DeploySmartContract(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
 }
 
 // BlockProcessor is the main interface for block execution engine
@@ -162,4 +162,11 @@ type ArgumentsParser interface {
 	GetCode() ([]byte, error)
 	GetFunction() (string, error)
 	ParseData(data []byte) error
+}
+
+// FakeAccountsHandler defines the functionality to create fake accounts and pass to VM.
+type FakeAccountsHandler interface {
+	CreateFakeAccounts(address []byte, balance *big.Int, nonce uint64)
+	CleanFakeAccounts()
+	GetFakeAccount(address []byte) state.AccountHandler
 }

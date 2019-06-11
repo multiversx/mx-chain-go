@@ -62,6 +62,16 @@ func (a *Account) SetNonceWithJournal(nonce uint64) error {
 	return a.accountTracker.SaveAccount(a)
 }
 
+//SetNonce saves the nonce to the account
+func (a *Account) SetNonce(nonce uint64) {
+	a.Nonce = nonce
+}
+
+// GetNonce gets the nonce of the account
+func (a *Account) GetNonce() uint64 {
+	return a.Nonce
+}
+
 // SetBalanceWithJournal sets the account's balance, saving the old balance before changing
 func (a *Account) SetBalanceWithJournal(balance *big.Int) error {
 	entry, err := NewJournalEntryBalance(a, a.Balance)
@@ -108,6 +118,19 @@ func (a *Account) GetCode() []byte {
 // SetCode sets the actual code that needs to be run in the VM
 func (a *Account) SetCode(code []byte) {
 	a.code = code
+}
+
+// SetCodeWithJournal sets the account's code, saving the old code before changing
+func (a *Account) SetCodeWithJournal(code []byte) error {
+	entry, err := NewBaseJournalEntryCode(a, a.code)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.code = code
+
+	return a.accountTracker.SaveAccount(a)
 }
 
 //------- data trie / root hash

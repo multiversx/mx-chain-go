@@ -54,7 +54,12 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 
 	fmt.Println("Generating header and block body...")
 	body, hdr := generateHeaderAndBody(senderShard, recvShards...)
-	err := nodes[0].node.BroadcastShardBlock(body, hdr)
+	err := nodes[0].broadcastMessenger.BroadcastBlock(body, hdr)
+	assert.Nil(t, err)
+	miniBlocks, transactions, _ := nodes[0].blkProcessor.MarshalizedDataToBroadcast(hdr, body)
+	err = nodes[0].broadcastMessenger.BroadcastMiniBlocks(miniBlocks)
+	assert.Nil(t, err)
+	err = nodes[0].broadcastMessenger.BroadcastTransactions(transactions)
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second * 10)

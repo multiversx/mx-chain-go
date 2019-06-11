@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
@@ -67,26 +69,27 @@ func init() {
 }
 
 type testNode struct {
-	node             *node.Node
-	messenger        p2p.Messenger
-	shardId          uint32
-	accntState       state.AccountsAdapter
-	blkc             data.ChainHandler
-	blkProcessor     process.BlockProcessor
-	sk               crypto.PrivateKey
-	pk               crypto.PublicKey
-	dPool            dataRetriever.PoolsHolder
-	resFinder        dataRetriever.ResolversFinder
-	headersRecv      int32
-	miniblocksRecv   int32
-	mutHeaders       sync.Mutex
-	headersHashes    [][]byte
-	headers          []data.HeaderHandler
-	mutMiniblocks    sync.Mutex
-	miniblocksHashes [][]byte
-	miniblocks       []*dataBlock.MiniBlock
-	metachainHdrRecv int32
-	txsRecv          int32
+	node               *node.Node
+	messenger          p2p.Messenger
+	shardId            uint32
+	accntState         state.AccountsAdapter
+	blkc               data.ChainHandler
+	blkProcessor       process.BlockProcessor
+	broadcastMessenger consensus.BroadcastMessenger
+	sk                 crypto.PrivateKey
+	pk                 crypto.PublicKey
+	dPool              dataRetriever.PoolsHolder
+	resFinder          dataRetriever.ResolversFinder
+	headersRecv        int32
+	miniblocksRecv     int32
+	mutHeaders         sync.Mutex
+	headersHashes      [][]byte
+	headers            []data.HeaderHandler
+	mutMiniblocks      sync.Mutex
+	miniblocksHashes   [][]byte
+	miniblocks         []*dataBlock.MiniBlock
+	metachainHdrRecv   int32
+	txsRecv            int32
 }
 
 func createTestShardChain() *blockchain.BlockChain {
@@ -214,7 +217,6 @@ func createNetNode(
 		dPool,
 		testAddressConverter,
 		&mock.ChronologyValidatorMock{},
-		nil,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -244,6 +246,7 @@ func createNetNode(
 	)
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 	blockProcessor, _ := block.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		dPool,
 		store,
 		testHasher,
@@ -292,6 +295,7 @@ func createNetNode(
 		node.WithResolversFinder(resolversFinder),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithDataStore(store),
+		node.WithSyncer(&mock.SyncTimerMock{}),
 	)
 
 	if err != nil {
@@ -428,6 +432,13 @@ func createNodes(
 			testNode.dPool.Transactions().RegisterHandler(func(key []byte) {
 				atomic.AddInt32(&testNode.txsRecv, 1)
 			})
+			testNode.broadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
+				testMarshalizer,
+				mes,
+				shardCoordinator,
+				sk,
+				&singlesig.SchnorrSigner{},
+			)
 
 			nodes[idx] = testNode
 			idx++
@@ -558,6 +569,9 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	shardHeaders, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
+	shardHeadersNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	shardHeadersNonces, _ := dataPool.NewNonceToHashCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	metaBlockNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	metaBlockNonces, _ := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
@@ -567,6 +581,7 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 		miniblockHashes,
 		shardHeaders,
 		metaBlockNonces,
+		shardHeadersNonces,
 	)
 
 	return dPool
@@ -603,7 +618,6 @@ func createMetaNetNode(
 		testMultiSig,
 		dPool,
 		&mock.ChronologyValidatorMock{},
-		nil,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -625,6 +639,7 @@ func createMetaNetNode(
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 	blkProc, _ := block.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{
@@ -647,6 +662,14 @@ func createMetaNetNode(
 
 	tn.blkProcessor = blkProc
 
+	tn.broadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
+		testMarshalizer,
+		tn.messenger,
+		shardCoordinator,
+		sk,
+		singleSigner,
+	)
+
 	n, err := node.NewNode(
 		node.WithMessenger(tn.messenger),
 		node.WithMarshalizer(testMarshalizer),
@@ -666,6 +689,7 @@ func createMetaNetNode(
 		node.WithResolversFinder(resolvers),
 		node.WithBlockProcessor(tn.blkProcessor),
 		node.WithDataStore(store),
+		node.WithSyncer(&mock.SyncTimerMock{}),
 	)
 	if err != nil {
 		fmt.Println(err.Error())

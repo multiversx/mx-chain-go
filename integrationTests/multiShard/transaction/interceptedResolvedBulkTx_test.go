@@ -307,7 +307,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	recvTxs := make(map[int]map[string]struct{})
 	mutRecvTxs := sync.Mutex{}
 	for i := 0; i < nodesPerShard; i++ {
-		dPool := createRequesterDataPool(t, recvTxs, mutRecvTxs, i)
+		dPool := createRequesterDataPool(t, recvTxs, &mutRecvTxs, i)
 
 		tn := createNode(
 			0,
@@ -374,7 +374,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 func createRequesterDataPool(
 	t *testing.T,
 	recvTxs map[int]map[string]struct{},
-	mutRecvTxs sync.Mutex,
+	mutRecvTxs *sync.Mutex,
 	nodeIndex int,
 ) dataRetriever.PoolsHolder {
 

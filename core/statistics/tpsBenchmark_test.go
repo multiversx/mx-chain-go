@@ -5,7 +5,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/stretchr/testify/assert"
@@ -46,7 +45,7 @@ func TestTpsBenchmark_NewTPSBenchmarkReturnsErrorOnInvalidDuration(t *testing.T)
 	roundDuration := uint64(0)
 	tpsBenchmark, err := statistics.NewTPSBenchmark(nrOfShards, roundDuration)
 	assert.Nil(t, tpsBenchmark)
-	assert.Equal(t, err, core.ErrInvalidRoundDuration)
+	assert.Equal(t, err, statistics.ErrInvalidRoundDuration)
 }
 
 func TestTpsBenchmark_NewTPSBenchmark(t *testing.T) {
