@@ -483,25 +483,47 @@ func (sp *shardProcessor) processBlockTransactions(body block.Body, round uint32
 
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			if haveTime() < 0 {
-				return process.ErrTimeIsOut
-			}
+		if miniBlock.Type != block.TxBlock {
+			continue
+		}
 
-			txHash := miniBlock.TxHashes[j]
-			tx := sp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
-			err := sp.processAndRemoveBadTransaction(
-				txHash,
-				tx,
-				txPool,
-				round,
-				miniBlock.SenderShardID,
-				miniBlock.ReceiverShardID,
-			)
+		switch miniBlock.Type {
+		case block.TxBlock:
+			for j := 0; j < len(miniBlock.TxHashes); j++ {
+				if haveTime() < 0 {
+					return process.ErrTimeIsOut
+				}
 
-			if err != nil {
-				return err
+				txHash := miniBlock.TxHashes[j]
+				tx := sp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
+				err := sp.processAndRemoveBadTransaction(
+					txHash,
+					tx,
+					txPool,
+					round,
+					miniBlock.SenderShardID,
+					miniBlock.ReceiverShardID,
+				)
+
+				if err != nil {
+					return err
+				}
 			}
+		case block.SmartContractResultBlock:
+			for j := 0; j < len(miniBlock.TxHashes); j++ {
+				if haveTime() < 0 {
+					return process.ErrTimeIsOut
+				}
+
+				scrHash := miniBlock.TxHashes[j]
+				scr := sp.getSmartContractResultFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, scrHash)
+				err := sp.txProcessor.ProcessSmartContractResult(scr)
+				if err != nil {
+					return err
+				}
+			}
+		default:
+			return process.ErrUnknownMiniBlockType
 		}
 	}
 	return nil
@@ -1030,16 +1052,14 @@ func (sp *shardProcessor) processAndRemoveBadTransaction(
 		return process.ErrNilTransactionPool
 	}
 
-	_, err := sp.txProcessor.ProcessTransaction(transaction, round)
+	scResults, err := sp.txProcessor.ProcessTransaction(transaction, round)
 	if err == process.ErrLowerNonceInTransaction ||
 		err == process.ErrInsufficientFunds {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 		txPool.RemoveData(transactionHash, strCache)
 	}
 
-	//TODO: here processing is called for validation and for create purposes as well.
-	//TODO: add results into miniblocks, in case of validation those miniblocks have to match with the one proposed
-	// by the block
+	sp.addSmartContractResultsToMiniBlocks(scResults)
 
 	return err
 }
@@ -1127,12 +1147,12 @@ func (sp *shardProcessor) processMiniBlockComplete(
 			break
 		}
 
-		_, err = sp.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
+		scResults, err := sp.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
 		if err != nil {
 			break
 		}
 
-		//TODO: add the output of processTransaction into miniblocks with the type of smart contract results here
+		sp.addSmartContractResultsToMiniBlocks(scResults)
 	}
 
 	// all txs from miniblock has to be processed together
@@ -1346,13 +1366,30 @@ func (sp *shardProcessor) processMiniBlocksFromHeader(
 			return miniBlocks, nrTxAdded, false
 		}
 
-		requestedTxs := sp.requestBlockTransactionsForMiniBlock(miniBlock)
-		if requestedTxs > 0 {
-			continue
-		}
+		switch miniBlock.Type {
+		case block.TxBlock:
+			requestedTxs := sp.requestBlockTransactionsForMiniBlock(miniBlock)
+			if requestedTxs > 0 {
+				continue
+			}
 
-		err := sp.processMiniBlockComplete(miniBlock, round, haveTime)
-		if err != nil {
+			err := sp.processMiniBlockComplete(miniBlock, round, haveTime)
+			if err != nil {
+				continue
+			}
+		case block.SmartContractResultBlock:
+			requestedSMRs := sp.requestSmartContractResultsForMiniBlock(miniBlock)
+			if requestedSMRs > 0 {
+				continue
+			}
+
+			err := sp.processSmartContractResults(miniBlock, round, haveTime)
+			if err != nil {
+				continue
+			}
+			continue
+		default:
+			log.Error("block type cannot be processed")
 			continue
 		}
 
@@ -1532,7 +1569,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		return miniBlocks, nil
 	}
 
-	if txs > uint32(maxTxInBlock) {
+	if txs+sp.getSmartContractResultsNr() > uint32(maxTxInBlock) {
 		log.Info(fmt.Sprintf("block is full: added %d transactions\n", txs))
 		return miniBlocks, nil
 	}
@@ -1561,6 +1598,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		miniBlock.SenderShardID = sp.shardCoordinator.SelfId()
 		miniBlock.ReceiverShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
+		miniBlock.Type = block.TxBlock
 		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ReceiverShardID))
 
 		for index := range orderedTxes {
@@ -1595,11 +1633,16 @@ func (sp *shardProcessor) createMiniBlocks(
 			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 			txs++
 
-			if txs >= uint32(maxTxInBlock) { // max transactions count in one block was reached
+			if txs+sp.getSmartContractResultsNr() >= uint32(maxTxInBlock) { // max transactions count in one block was reached
 				log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
 
 				if len(miniBlock.TxHashes) > 0 {
 					miniBlocks = append(miniBlocks, &miniBlock)
+				}
+
+				scrMBs := sp.getAllSmartContractResultMiniblocks()
+				if len(scrMBs) > 0 {
+					miniBlocks = append(miniBlocks, scrMBs)
 				}
 
 				log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
@@ -1614,6 +1657,11 @@ func (sp *shardProcessor) createMiniBlocks(
 				miniBlocks = append(miniBlocks, &miniBlock)
 			}
 
+			scrMBs := sp.getAllSmartContractResultMiniblocks()
+			if len(scrMBs) > 0 {
+				miniBlocks = append(miniBlocks, scrMBs)
+			}
+
 			log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
 			return miniBlocks, nil
 		}
@@ -1621,6 +1669,11 @@ func (sp *shardProcessor) createMiniBlocks(
 		if len(miniBlock.TxHashes) > 0 {
 			miniBlocks = append(miniBlocks, &miniBlock)
 		}
+	}
+
+	scrMBs := sp.getAllSmartContractResultMiniblocks()
+	if len(scrMBs) > 0 {
+		miniBlocks = append(miniBlocks, scrMBs)
 	}
 
 	log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
@@ -1666,6 +1719,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 			SenderShardID:   body[i].SenderShardID,
 			ReceiverShardID: body[i].ReceiverShardID,
 			TxCount:         uint32(txCount),
+			Type:            body[i].Type,
 		}
 	}
 

@@ -16,10 +16,6 @@ import (
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error)
-}
-
-// SmartContractResultProcessor is the main interface for transaction execution engine
-type SmartContractResultProcessor interface {
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
 }
 
@@ -28,6 +24,7 @@ type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
 	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
 	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
+	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
 }
 
 // BlockProcessor is the main interface for block execution engine

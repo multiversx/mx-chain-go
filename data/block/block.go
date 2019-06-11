@@ -32,6 +32,8 @@ const (
 	StateBlock Type = 1
 	// PeerBlock identifies a block holding peer assignation
 	PeerBlock Type = 2
+	// SmartContractResult identifies a block holding miniblocks
+	SmartContractResultBlock Type = 3
 )
 
 // String returns the string representation of the Type
@@ -43,6 +45,8 @@ func (bType Type) String() string {
 		return "StateBody"
 	case PeerBlock:
 		return "PeerBody"
+	case SmartContractResultBlock:
+		return "SmartContractResultBody"
 	default:
 		return fmt.Sprintf("Unknown(%d)", bType)
 	}
@@ -53,7 +57,7 @@ type MiniBlock struct {
 	TxHashes        [][]byte `capid:"0"`
 	ReceiverShardID uint32   `capid:"1"`
 	SenderShardID   uint32   `capid:"2"`
-	Type            uint8    `capid:"3"`
+	Type            Type     `capid:"3"`
 }
 
 // MiniBlockHeader holds the hash of a miniblock together with sender/deastination shard id pair.
@@ -63,7 +67,7 @@ type MiniBlockHeader struct {
 	SenderShardID   uint32 `capid:"1"`
 	ReceiverShardID uint32 `capid:"2"`
 	TxCount         uint32 `capid:"3"`
-	Type            uint8  `capid:"4"`
+	Type            Type   `capid:"4"`
 }
 
 // PeerChange holds a change in one peer to shard assignation
@@ -240,6 +244,7 @@ func MiniBlockCapnToGo(src capnp.MiniBlockCapn, dest *MiniBlock) *MiniBlock {
 
 	dest.ReceiverShardID = src.ReceiverShardID()
 	dest.SenderShardID = src.SenderShardID()
+	dest.Type = src.Type()
 
 	return dest
 }
@@ -255,6 +260,7 @@ func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnp.MiniBlockCapn {
 	dest.SetTxHashes(mylist1)
 	dest.SetReceiverShardID(src.ReceiverShardID)
 	dest.SetSenderShardID(src.SenderShardID)
+	dest.SetType(src.Type)
 
 	return dest
 }
@@ -327,6 +333,7 @@ func MiniBlockHeaderCapnToGo(src capnp.MiniBlockHeaderCapn, dest *MiniBlockHeade
 	dest.ReceiverShardID = src.ReceiverShardID()
 	dest.SenderShardID = src.SenderShardID()
 	dest.TxCount = src.TxCount()
+	dest.Type = src.Type()
 
 	return dest
 }
@@ -339,6 +346,7 @@ func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.Mini
 	dest.SetReceiverShardID(src.ReceiverShardID)
 	dest.SetSenderShardID(src.SenderShardID)
 	dest.SetTxCount(src.TxCount)
+	dest.SetType(src.Type)
 
 	return dest
 }

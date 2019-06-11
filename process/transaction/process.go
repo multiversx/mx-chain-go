@@ -269,3 +269,8 @@ func (txProc *txProcessor) moveBalances(acntSrc, acntDst *state.Account,
 func (txProc *txProcessor) increaseNonce(acntSrc *state.Account) error {
 	return acntSrc.SetNonceWithJournal(acntSrc.Nonce + 1)
 }
+
+// ProcessSmartContractResult processed the smart contract result
+func (txProc *txProcessor) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
+	return txProc.scProcessor.ProcessSmartContractResult(scr)
+}
