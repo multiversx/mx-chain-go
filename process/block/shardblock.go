@@ -146,7 +146,7 @@ func NewShardProcessor(
 	}
 	miniBlockPool.RegisterHandler(sp.receivedMiniBlock)
 
-	sp.metaBlockFinality = process.MetablockFinality
+	sp.metaBlockFinality = process.MetaBlockFinality
 
 	//TODO: This should be injected when BlockProcessor will be refactored
 	sp.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
@@ -543,14 +543,13 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	headerHash := sp.hasher.Compute(string(buff))
-	//hadThisHeader := sp.store.Has(dataRetriever.BlockHeaderUnit, headerHash) == nil
 	errNotCritical := sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
 	if errNotCritical != nil {
 		log.Error(errNotCritical.Error())
 	}
 
 	nonceToByteSlice := sp.uint64Converter.ToByteSlice(headerHandler.GetNonce())
-	err = sp.store.Put(dataRetriever.HdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	err = sp.store.Put(dataRetriever.ShardHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if err != nil {
 		return err
 	}
@@ -611,9 +610,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	//if !hadThisHeader {
 	sp.blocksTracker.AddBlock(header)
-	//}
 
 	log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been committed successfully\n",
 		header.Nonce,
@@ -729,7 +726,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body) ([]dat
 }
 
 func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
-	lastNoterizedMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	lastNotarisedMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -739,7 +736,7 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 		hdr := processedMetaHdrs[i]
 
 		// remove process finished
-		if hdr.GetNonce() > lastNoterizedMetaHdr.GetNonce() {
+		if hdr.GetNonce() > lastNotarisedMetaHdr.GetNonce() {
 			continue
 		}
 
@@ -757,6 +754,13 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 
 		key := sp.hasher.Compute(string(buff))
 		err = sp.store.Put(dataRetriever.MetaBlockUnit, key, buff)
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		nonceToByteSlice := sp.uint64Converter.ToByteSlice(hdr.GetNonce())
+		err = sp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, key)
 		if err != nil {
 			log.Error(err.Error())
 			continue
@@ -865,7 +869,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		if sp.requestedMetaHdrHashes[string(metaBlockHash)] {
 			delete(sp.requestedMetaHdrHashes, string(metaBlockHash))
 
-			if sp.currHighestMetaHdrNonce < hdr.GetNonce() {
+			if hdr.GetNonce() > sp.currHighestMetaHdrNonce {
 				sp.currHighestMetaHdrNonce = hdr.GetNonce()
 			}
 		}
@@ -1026,50 +1030,12 @@ func (sp *shardProcessor) computeMissingTxsForShards(body block.Body) map[uint32
 			}
 		}
 
-		////TODO: This request should be managed by data retriever after it will be implemented (genericTransactionResolver.go)
-		//nonceDiffernce := sp.forkDetector.ProbableHighestNonce() - sp.forkDetector.GetHighestFinalBlockNonce()
-		//if len(currentShardMissingTransactions) > 0 && nonceDiffernce > blocksGapWhenUseStorage {
-		//	currentShardMissingTransactions = sp.getTransactionsFromStorer(
-		//		currentShardMissingTransactions,
-		//		miniBlock.SenderShardID,
-		//		miniBlock.ReceiverShardID)
-		//}
-
 		if len(currentShardMissingTransactions) > 0 {
 			missingTxsForShard[miniBlock.SenderShardID] = currentShardMissingTransactions
 		}
 	}
 
 	return missingTxsForShard
-}
-
-func (sp *shardProcessor) getTransactionsFromStorer(txHashes [][]byte, senderShardID uint32, receiverShardID uint32) [][]byte {
-	transactionPool := sp.dataPool.Transactions()
-	if transactionPool == nil {
-		return txHashes
-	}
-
-	strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
-	currentShardMissingTransactions := make([][]byte, 0)
-
-	for _, txHash := range txHashes {
-		txBuff, err := sp.store.Get(dataRetriever.TransactionUnit, txHash)
-		if err != nil {
-			currentShardMissingTransactions = append(currentShardMissingTransactions, txHash)
-			continue
-		}
-
-		tx := transaction.Transaction{}
-		err = sp.marshalizer.Unmarshal(&tx, txBuff)
-		if err != nil {
-			currentShardMissingTransactions = append(currentShardMissingTransactions, txHash)
-			continue
-		}
-
-		transactionPool.AddData([]byte(txHash), &tx, strCache)
-	}
-
-	return currentShardMissingTransactions
 }
 
 func (sp *shardProcessor) processAndRemoveBadTransaction(

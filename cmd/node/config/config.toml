@@ -78,12 +78,22 @@
         BatchDelaySeconds = 10
         MaxBatchSize = 5000
 
-[HdrNonceHashStorage]
-    [HdrNonceHashStorage.Cache]
+[ShardHdrNonceHashStorage]
+    [ShardHdrNonceHashStorage.Cache]
         Size = 100
         Type = "LRU"
-    [HdrNonceHashStorage.DB]
-        FilePath = "HdrHashNonce"
+    [ShardHdrNonceHashStorage.DB]
+        FilePath = "ShardHdrHashNonce"
+        Type = "LvlDB"
+        BatchDelaySeconds = 10
+        MaxBatchSize = 1
+
+[MetaHdrNonceHashStorage]
+    [MetaHdrNonceHashStorage.Cache]
+        Size = 100
+        Type = "LRU"
+    [MetaHdrNonceHashStorage.DB]
+        FilePath = "MetaHdrHashNonce"
         Type = "LvlDB"
         BatchDelaySeconds = 10
         MaxBatchSize = 1

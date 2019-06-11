@@ -170,7 +170,7 @@ func createFullStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.HdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	return store
 }
 

@@ -39,8 +39,7 @@ type metaProcessor struct {
 	allNeededShardHdrsFound       bool
 	mutRequestedShardHeaderHashes sync.RWMutex
 
-	nextKValidity         uint32
-	finalityAttestingHdrs []*block.Header // PMS: Not used
+	nextKValidity uint32
 
 	chRcvAllHdrs chan bool
 }
@@ -109,7 +108,6 @@ func NewMetaProcessor(
 
 	mp.chRcvAllHdrs = make(chan bool)
 
-	mp.finalityAttestingHdrs = make([]*block.Header, 0)
 	mp.nextKValidity = process.ShardBlockFinality
 
 	//TODO: This should be injected when BlockProcessor will be refactored
@@ -370,7 +368,7 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	nonceToByteSlice := mp.uint64Converter.ToByteSlice(headerHandler.GetNonce())
-	err = mp.store.Put(dataRetriever.HdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	err = mp.store.Put(dataRetriever.ShardHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if err != nil {
 		return err
 	}
@@ -842,8 +840,6 @@ func (mp *metaProcessor) createShardInfo(
 	}
 	mp.mutNotarizedHdrs.RUnlock()
 
-	mp.finalityAttestingHdrs = make([]*block.Header, 0)
-
 	for index := range orderedHdrs {
 		shId := orderedHdrs[index].ShardId
 
@@ -852,7 +848,7 @@ func (mp *metaProcessor) createShardInfo(
 			continue
 		}
 
-		isFinal, attestingHdrIds := mp.isShardHeaderValidFinal(orderedHdrs[index], lastHdr, sortedHdrPerShard[shId])
+		isFinal, _ := mp.isShardHeaderValidFinal(orderedHdrs[index], lastHdr, sortedHdrPerShard[shId])
 		if !isFinal {
 			continue
 		}
@@ -903,12 +899,6 @@ func (mp *metaProcessor) createShardInfo(
 
 				if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
 					shardInfo = append(shardInfo, shardData)
-
-					// message to broadcast
-					for k := 0; k < len(attestingHdrIds); k++ {
-						hdrId := attestingHdrIds[k]
-						mp.finalityAttestingHdrs = append(mp.finalityAttestingHdrs, sortedHdrPerShard[shId][hdrId])
-					}
 				}
 
 				log.Info(fmt.Sprintf("creating shard info has been finished: created %d shard data\n", len(shardInfo)))
@@ -921,11 +911,6 @@ func (mp *metaProcessor) createShardInfo(
 
 			if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
 				shardInfo = append(shardInfo, shardData)
-
-				for k := 0; k < len(attestingHdrIds); k++ {
-					hdrId := attestingHdrIds[k]
-					mp.finalityAttestingHdrs = append(mp.finalityAttestingHdrs, sortedHdrPerShard[shId][hdrId])
-				}
 			}
 
 			log.Info(fmt.Sprintf("creating shard info has been finished: created %d shard data\n", len(shardInfo)))
@@ -934,11 +919,6 @@ func (mp *metaProcessor) createShardInfo(
 
 		if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
 			shardInfo = append(shardInfo, shardData)
-
-			for k := 0; k < len(attestingHdrIds); k++ {
-				hdrId := attestingHdrIds[k]
-				mp.finalityAttestingHdrs = append(mp.finalityAttestingHdrs, sortedHdrPerShard[shId][hdrId])
-			}
 		}
 	}
 

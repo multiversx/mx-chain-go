@@ -26,8 +26,10 @@ const (
 	MetaShardDataUnit UnitType = 5
 	// MetaPeerDataUnit is the metachain peer data unit identifier
 	MetaPeerDataUnit UnitType = 6
-	// HdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
-	HdrNonceHashDataUnit UnitType = 7
+	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
+	ShardHdrNonceHashDataUnit UnitType = 7
+	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
+	MetaHdrNonceHashDataUnit UnitType = 8
 )
 
 // Resolver defines what a data resolver should do

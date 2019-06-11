@@ -25,4 +25,4 @@ const (
 )
 
 const ShardBlockFinality = 1
-const MetablockFinality = 1
+const MetaBlockFinality = 1

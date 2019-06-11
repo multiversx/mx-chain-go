@@ -121,7 +121,7 @@ func NewMetaBootstrap(
 func (boot *MetaBootstrap) getHeader(hash []byte) (*block.MetaBlock, error) {
 	hdr, err := boot.getHeaderFromPool(hash)
 	if err != nil {
-		hdr, err = boot.getHeaderFromStorage(hash)
+		hdr, err = process.GetMetaHeaderFromStorage(hash, boot.marshalizer, boot.store)
 		if err != nil {
 			return nil, err
 		}
@@ -139,26 +139,6 @@ func (boot *MetaBootstrap) getHeaderFromPool(hash []byte) (*block.MetaBlock, err
 	header, ok := hdr.(*block.MetaBlock)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
-	}
-
-	return header, nil
-}
-
-func (boot *MetaBootstrap) getHeaderFromStorage(hash []byte) (*block.MetaBlock, error) {
-	headerStore := boot.store.GetStorer(dataRetriever.MetaBlockUnit)
-	if headerStore == nil {
-		return nil, process.ErrNilHeadersStorage
-	}
-
-	buffHeader, err := headerStore.Get(hash)
-	if err != nil {
-		return nil, process.ErrMissingHeader
-	}
-
-	header := &block.MetaBlock{}
-	err = boot.marshalizer.Unmarshal(header, buffHeader)
-	if err != nil {
-		return nil, process.ErrUnmarshalWithoutSuccess
 	}
 
 	return header, nil
@@ -263,7 +243,7 @@ func (boot *MetaBootstrap) getHeaderWithNonce(nonce uint64) (*block.MetaBlock, e
 			return nil, err
 		}
 
-		hdr, err = boot.getHeaderFromStorage(hash)
+		hdr, err = process.GetMetaHeaderFromStorage(hash, boot.marshalizer, boot.store)
 		if err != nil {
 			return nil, err
 		}
@@ -296,7 +276,7 @@ func (boot *MetaBootstrap) getHeaderFromPoolWithNonce(nonce uint64) (*block.Meta
 
 // getHeaderHashFromStorage method returns the block header hash from a given nonce
 func (boot *MetaBootstrap) getHeaderHashFromStorage(nonce uint64) ([]byte, error) {
-	headerStore := boot.store.GetStorer(dataRetriever.HdrNonceHashDataUnit)
+	headerStore := boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	if headerStore == nil {
 		return nil, process.ErrNilHeadersStorage
 	}
@@ -387,7 +367,7 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 	if headerStore == nil {
 		return process.ErrNilHeadersStorage
 	}
-	headerNonceHashStore := boot.store.GetStorer(dataRetriever.HdrNonceHashDataUnit)
+	headerNonceHashStore := boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	if headerNonceHashStore == nil {
 		return process.ErrNilHeadersNonceHashStorage
 	}

@@ -32,7 +32,7 @@ func GetShardHeader(
 		}
 	}
 
-	return hdr, err
+	return hdr, nil
 }
 
 // GetShardHeaderFromPool gets the header, which is associated with the given hash, from pool
@@ -63,6 +63,7 @@ func GetShardHeaderFromStorage(
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 ) (*block.Header, error) {
+
 	if marshalizer == nil {
 		return nil, ErrNilMarshalizer
 	}
@@ -81,6 +82,38 @@ func GetShardHeaderFromStorage(
 	}
 
 	header := &block.Header{}
+	err = marshalizer.Unmarshal(header, buffHeader)
+	if err != nil {
+		return nil, ErrUnmarshalWithoutSuccess
+	}
+
+	return header, nil
+}
+
+func GetMetaHeaderFromStorage(
+	hash []byte,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+) (*block.MetaBlock, error) {
+
+	if marshalizer == nil {
+		return nil, ErrNilMarshalizer
+	}
+	if storageService == nil {
+		return nil, ErrNilStorage
+	}
+
+	headerStore := storageService.GetStorer(dataRetriever.MetaBlockUnit)
+	if headerStore == nil {
+		return nil, ErrNilHeadersStorage
+	}
+
+	buffHeader, err := headerStore.Get(hash)
+	if err != nil {
+		return nil, ErrMissingHeader
+	}
+
+	header := &block.MetaBlock{}
 	err = marshalizer.Unmarshal(header, buffHeader)
 	if err != nil {
 		return nil, ErrUnmarshalWithoutSuccess

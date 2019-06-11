@@ -22,10 +22,6 @@ import (
 
 var log = logger.DefaultLogger()
 
-// blocksGapWhenUseStorage defines the max gap difference between the last check point block nonce and the probable
-// highest nonce, under which the node stops using the storage when it tries to achieve the missed transactions
-const blocksGapWhenUseStorage = 3
-
 type hashAndHdr struct {
 	hdr  data.HeaderHandler
 	hash []byte
@@ -40,7 +36,7 @@ type baseProcessor struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	store            dataRetriever.StorageService
-	uint64Converter               typeConverters.Uint64ByteSliceConverter
+	uint64Converter  typeConverters.Uint64ByteSliceConverter
 
 	mutNotarizedHdrs   sync.RWMutex
 	lastNotarizedHdrs  mapShardLastHeaders
@@ -74,6 +70,12 @@ func (bp *baseProcessor) RevertAccountState() {
 	if err != nil {
 		log.Error(err.Error())
 	}
+}
+
+// SetLastNotarizedHdr sets the last notarized header
+func (bp *baseProcessor) SetLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
+	bp.finalNotarizedHdrs[shardId] = bp.lastNotarizedHdrs[shardId]
+	bp.lastNotarizedHdrs[shardId] = processedHdr
 }
 
 // checkBlockValidity method checks if the given block is valid

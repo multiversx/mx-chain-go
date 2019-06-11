@@ -135,12 +135,17 @@ func NewShardBootstrap(
 }
 
 func (boot *ShardBootstrap) syncFromStorer() {
+	boot.loadShardBlock()
+	boot.loadMetaBlock()
+}
+
+func (boot *ShardBootstrap) loadShardBlock() {
 	highestNonceInStorer := uint64(0)
 
 	for {
 		highestNonceInStorer++
 		nonceToByteSlice := boot.uint64Converter.ToByteSlice(highestNonceInStorer)
-		err := boot.store.Has(dataRetriever.HdrNonceHashDataUnit, nonceToByteSlice)
+		err := boot.store.Has(dataRetriever.ShardHdrNonceHashDataUnit, nonceToByteSlice)
 		if err != nil {
 			highestNonceInStorer--
 			break
@@ -150,17 +155,25 @@ func (boot *ShardBootstrap) syncFromStorer() {
 	log.Info(fmt.Sprintf("the highest shard header nonce committed in storer is %d\n", highestNonceInStorer))
 
 	var err error
+	lastBlocksToSkip := uint64(0)
 
 	for {
-		if highestNonceInStorer <= process.ShardBlockFinality {
+		if highestNonceInStorer <= process.ShardBlockFinality+lastBlocksToSkip {
 			return
 		}
 
-		for i := highestNonceInStorer - process.ShardBlockFinality; i <= highestNonceInStorer; i++ {
-			err := boot.loadBlock(i)
-			if err != nil {
-				highestNonceInStorer--
-				break
+		for i := highestNonceInStorer - process.ShardBlockFinality - lastBlocksToSkip; i <= highestNonceInStorer; i++ {
+			if i > highestNonceInStorer-lastBlocksToSkip {
+				errNotCritical := boot.removeBlock(i)
+				if errNotCritical != nil {
+					log.Debug(errNotCritical.Error())
+				}
+			} else {
+				err = boot.applyShardBlock(i)
+				if err != nil {
+					lastBlocksToSkip++
+					break
+				}
 			}
 		}
 
@@ -169,15 +182,19 @@ func (boot *ShardBootstrap) syncFromStorer() {
 		}
 	}
 
-	err = boot.accounts.RecreateTrie(boot.blkc.GetCurrentBlockHeader().GetRootHash())
+	headerRootHash := boot.blkc.GetCurrentBlockHeader().GetRootHash()
+	err = boot.accounts.RecreateTrie(headerRootHash)
 	if err != nil {
-		return
+		log.Info(fmt.Sprintf("%s", err.Error()))
 	}
+	accountRootHash := boot.accounts.RootHash()
+
+	log.Info(fmt.Sprintf("header root hash: %s account root hash: %s", core.ToB64(headerRootHash), core.ToB64(accountRootHash)))
 }
 
-func (boot *ShardBootstrap) loadBlock(nonce uint64) error {
+func (boot *ShardBootstrap) applyShardBlock(nonce uint64) error {
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-	headerHash, err := boot.store.Get(dataRetriever.HdrNonceHashDataUnit, nonceToByteSlice)
+	headerHash, err := boot.store.Get(dataRetriever.ShardHdrNonceHashDataUnit, nonceToByteSlice)
 	if err != nil {
 		return err
 	}
@@ -205,9 +222,7 @@ func (boot *ShardBootstrap) loadBlock(nonce uint64) error {
 	for i := 0; i < miniBlocksLen; i++ {
 		miniBlockHashes[i] = header.MiniBlockHeaders[i].Hash
 	}
-
 	miniBlockSlice := boot.miniBlockResolver.GetMiniBlocks(miniBlockHashes)
-
 	blockBody := block.Body(miniBlockSlice)
 
 	err = boot.blkc.SetCurrentBlockBody(blockBody)
@@ -221,6 +236,92 @@ func (boot *ShardBootstrap) loadBlock(nonce uint64) error {
 	}
 
 	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
+
+	return nil
+}
+
+func (boot *ShardBootstrap) removeBlock(nonce uint64) error {
+	headerStore := boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	if headerStore == nil {
+		return process.ErrNilHeadersStorage
+	}
+
+	headerNonceHashStore := boot.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
+	if headerNonceHashStore == nil {
+		return process.ErrNilHeadersNonceHashStorage
+	}
+
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	headerHash, err := boot.store.Get(dataRetriever.ShardHdrNonceHashDataUnit, nonceToByteSlice)
+	if err != nil {
+		return err
+	}
+
+	err = headerStore.Remove(headerHash)
+	if err != nil {
+		return err
+	}
+
+	err = headerNonceHashStore.Remove(nonceToByteSlice)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (boot *ShardBootstrap) loadMetaBlock() {
+	highestNonceInStorer := uint64(0)
+
+	for {
+		highestNonceInStorer++
+		nonceToByteSlice := boot.uint64Converter.ToByteSlice(highestNonceInStorer)
+		err := boot.store.Has(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice)
+		if err != nil {
+			highestNonceInStorer--
+			break
+		}
+	}
+
+	log.Info(fmt.Sprintf("the highest meta header nonce committed in storer is %d\n", highestNonceInStorer))
+
+	var err error
+	lastBlocksToSkip := uint64(0)
+
+	for {
+		if highestNonceInStorer <= process.MetaBlockFinality+lastBlocksToSkip {
+			return
+		}
+
+		for i := highestNonceInStorer - process.MetaBlockFinality - lastBlocksToSkip; i <= highestNonceInStorer-lastBlocksToSkip; i++ {
+			err = boot.applyMetaBlock(i)
+			if err != nil {
+				lastBlocksToSkip++
+				break
+			}
+		}
+
+		if err == nil {
+			break
+		}
+	}
+
+	return
+}
+
+func (boot *ShardBootstrap) applyMetaBlock(nonce uint64) error {
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	headerHash, err := boot.store.Get(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice)
+	if err != nil {
+		return err
+	}
+
+	header, err := process.GetMetaHeaderFromStorage(headerHash, boot.marshalizer, boot.store)
+	if err != nil {
+		return err
+	}
+
+	boot.blkExecutor.SetLastNotarizedHdr(sharding.MetachainShardId, header)
 
 	return nil
 }
@@ -401,7 +502,7 @@ func (boot *ShardBootstrap) getHeaderFromPoolWithNonce(nonce uint64) (*block.Hea
 
 // getHeaderHashFromStorage method returns the block header hash from a given nonce
 func (boot *ShardBootstrap) getHeaderHashFromStorage(nonce uint64) ([]byte, error) {
-	headerStore := boot.store.GetStorer(dataRetriever.HdrNonceHashDataUnit)
+	headerStore := boot.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
 	if headerStore == nil {
 		return nil, process.ErrNilHeadersStorage
 	}
@@ -539,7 +640,7 @@ func (boot *ShardBootstrap) rollback(header *block.Header) error {
 	if headerStore == nil {
 		return process.ErrNilHeadersStorage
 	}
-	headerNonceHashStore := boot.store.GetStorer(dataRetriever.HdrNonceHashDataUnit)
+	headerNonceHashStore := boot.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
 	if headerNonceHashStore == nil {
 		return process.ErrNilHeadersNonceHashStorage
 	}

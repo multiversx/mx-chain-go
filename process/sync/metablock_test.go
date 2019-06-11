@@ -94,7 +94,7 @@ func createMetaBlockProcessor() *mock.BlockProcessorMock {
 func createMetaStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.HdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	return store
 }
 
