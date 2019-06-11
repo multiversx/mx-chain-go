@@ -166,7 +166,7 @@ func (boot *ShardBootstrap) loadShardBlock() {
 			if i > highestNonceInStorer-lastBlocksToSkip {
 				errNotCritical := boot.removeBlock(i)
 				if errNotCritical != nil {
-					log.Debug(errNotCritical.Error())
+					log.Info(errNotCritical.Error())
 				}
 			} else {
 				err = boot.applyShardBlock(i)
@@ -183,10 +183,12 @@ func (boot *ShardBootstrap) loadShardBlock() {
 	}
 
 	headerRootHash := boot.blkc.GetCurrentBlockHeader().GetRootHash()
+
 	err = boot.accounts.RecreateTrie(headerRootHash)
 	if err != nil {
-		log.Info(fmt.Sprintf("%s", err.Error()))
+		log.Info(err.Error())
 	}
+
 	accountRootHash := boot.accounts.RootHash()
 
 	log.Info(fmt.Sprintf("header root hash: %s account root hash: %s", core.ToB64(headerRootHash), core.ToB64(accountRootHash)))
@@ -214,7 +216,7 @@ func (boot *ShardBootstrap) applyShardBlock(nonce uint64) error {
 
 	errNotCritical := boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
 	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
+		log.Info(errNotCritical.Error())
 	}
 
 	miniBlocksLen := len(header.MiniBlockHeaders)
