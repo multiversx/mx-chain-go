@@ -698,7 +698,11 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 
 					value, okPeek := shardHdrsNoncesCache.Peek(i)
 					mapOfHashes, okTypeAssertion := value.(*sync.Map)
-					_, okLoad := mapOfHashes.Load(shardId)
+
+					var okLoad bool
+					if okTypeAssertion {
+						_, okLoad = mapOfHashes.Load(shardId)
+					}
 
 					finalityAttestingHeaderForShardNotFound := !okPeek || !okTypeAssertion || !okLoad
 					if finalityAttestingHeaderForShardNotFound {
