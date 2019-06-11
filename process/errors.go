@@ -357,3 +357,6 @@ var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
 
 // ErrNilFakeAccountsHandler signals that fake accounts handler is nil
 var ErrNilFakeAccountsHandler = errors.New("fake accounts handler is nil")
+
+// ErrBoostrapFromStorage signals that boostrap from storage has been failed
+var ErrBoostrapFromStorage = errors.New("boostrap from storage has been failed")

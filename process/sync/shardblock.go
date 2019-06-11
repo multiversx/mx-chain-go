@@ -135,11 +135,19 @@ func NewShardBootstrap(
 }
 
 func (boot *ShardBootstrap) syncFromStorer() {
-	boot.loadShardBlock()
-	boot.loadMetaBlock()
+	err := boot.loadShardBlock()
+	if err != nil {
+		log.Info(err.Error())
+		return
+	}
+
+	err = boot.loadMetaBlock()
+	if err != nil {
+		log.Info(err.Error())
+	}
 }
 
-func (boot *ShardBootstrap) loadShardBlock() {
+func (boot *ShardBootstrap) loadShardBlock() error {
 	highestNonceInStorer := uint64(0)
 
 	for {
@@ -159,7 +167,7 @@ func (boot *ShardBootstrap) loadShardBlock() {
 
 	for {
 		if highestNonceInStorer <= process.ShardBlockFinality+lastBlocksToSkip {
-			return
+			return process.ErrBoostrapFromStorage
 		}
 
 		for i := highestNonceInStorer - process.ShardBlockFinality - lastBlocksToSkip; i <= highestNonceInStorer; i++ {
@@ -182,16 +190,12 @@ func (boot *ShardBootstrap) loadShardBlock() {
 		}
 	}
 
-	headerRootHash := boot.blkc.GetCurrentBlockHeader().GetRootHash()
-
-	err = boot.accounts.RecreateTrie(headerRootHash)
+	err = boot.accounts.RecreateTrie(boot.blkc.GetCurrentBlockHeader().GetRootHash())
 	if err != nil {
-		log.Info(err.Error())
+		return err
 	}
 
-	accountRootHash := boot.accounts.RootHash()
-
-	log.Info(fmt.Sprintf("header root hash: %s account root hash: %s", core.ToB64(headerRootHash), core.ToB64(accountRootHash)))
+	return nil
 }
 
 func (boot *ShardBootstrap) applyShardBlock(nonce uint64) error {
@@ -272,7 +276,7 @@ func (boot *ShardBootstrap) removeBlock(nonce uint64) error {
 	return nil
 }
 
-func (boot *ShardBootstrap) loadMetaBlock() {
+func (boot *ShardBootstrap) loadMetaBlock() error {
 	highestNonceInStorer := uint64(0)
 
 	for {
@@ -292,7 +296,7 @@ func (boot *ShardBootstrap) loadMetaBlock() {
 
 	for {
 		if highestNonceInStorer <= process.MetaBlockFinality+lastBlocksToSkip {
-			return
+			return process.ErrBoostrapFromStorage
 		}
 
 		for i := highestNonceInStorer - process.MetaBlockFinality - lastBlocksToSkip; i <= highestNonceInStorer-lastBlocksToSkip; i++ {
@@ -308,7 +312,7 @@ func (boot *ShardBootstrap) loadMetaBlock() {
 		}
 	}
 
-	return
+	return nil
 }
 
 func (boot *ShardBootstrap) applyMetaBlock(nonce uint64) error {
