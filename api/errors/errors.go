@@ -51,6 +51,3 @@ var ErrGetTransaction = errors.New("transaction getting failed")
 
 // ErrTxNotFound signals an error happend trying to fetch a transaction
 var ErrTxNotFound = errors.New("transaction was not found")
-
-// ErrEmptyFuncName signals that an empty function name has been provided
-var ErrEmptyFuncName = errors.New("empty function name provided")
