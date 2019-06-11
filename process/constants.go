@@ -23,3 +23,6 @@ const (
 	// SCInvoking defines ID of a transaction of type smart contract call
 	SCInvoking
 )
+
+const ShardBlockFinality = 1
+const MetablockFinality = 1

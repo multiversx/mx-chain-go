@@ -134,6 +134,97 @@ func NewShardBootstrap(
 	return &boot, nil
 }
 
+func (boot *ShardBootstrap) syncFromStorer() {
+	highestNonceInStorer := uint64(0)
+
+	for {
+		highestNonceInStorer++
+		nonceToByteSlice := boot.uint64Converter.ToByteSlice(highestNonceInStorer)
+		err := boot.store.Has(dataRetriever.HdrNonceHashDataUnit, nonceToByteSlice)
+		if err != nil {
+			highestNonceInStorer--
+			break
+		}
+	}
+
+	log.Info(fmt.Sprintf("the highest shard header nonce committed in storer is %d\n", highestNonceInStorer))
+
+	var err error
+
+	for {
+		if highestNonceInStorer <= process.ShardBlockFinality {
+			return
+		}
+
+		for i := highestNonceInStorer - process.ShardBlockFinality; i <= highestNonceInStorer; i++ {
+			err := boot.loadBlock(i)
+			if err != nil {
+				highestNonceInStorer--
+				break
+			}
+		}
+
+		if err == nil {
+			break
+		}
+	}
+
+	err = boot.accounts.RecreateTrie(boot.blkc.GetCurrentBlockHeader().GetRootHash())
+	if err != nil {
+		return
+	}
+}
+
+func (boot *ShardBootstrap) loadBlock(nonce uint64) error {
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	headerHash, err := boot.store.Get(dataRetriever.HdrNonceHashDataUnit, nonceToByteSlice)
+	if err != nil {
+		return err
+	}
+
+	header, err := process.GetShardHeaderFromStorage(headerHash, boot.marshalizer, boot.store)
+	if err != nil {
+		return err
+	}
+
+	//headerNoncePool := boot.headersNonces
+	//if headerNoncePool == nil {
+	//	err = process.ErrNilDataPoolHolder
+	//	return
+	//}
+	//
+	//_ = headerNoncePool.Put(header.Nonce, headerHash)
+
+	errNotCritical := boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+
+	miniBlocksLen := len(header.MiniBlockHeaders)
+	miniBlockHashes := make([][]byte, miniBlocksLen)
+	for i := 0; i < miniBlocksLen; i++ {
+		miniBlockHashes[i] = header.MiniBlockHeaders[i].Hash
+	}
+
+	miniBlockSlice := boot.miniBlockResolver.GetMiniBlocks(miniBlockHashes)
+
+	blockBody := block.Body(miniBlockSlice)
+
+	err = boot.blkc.SetCurrentBlockBody(blockBody)
+	if err != nil {
+		return err
+	}
+
+	err = boot.blkc.SetCurrentBlockHeader(header)
+	if err != nil {
+		return err
+	}
+
+	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
+
+	return nil
+}
+
 func (boot *ShardBootstrap) receivedHeaders(headerHash []byte) {
 	header, err := process.GetShardHeader(headerHash, boot.headers, boot.marshalizer, boot.store)
 	if err != nil {
@@ -176,6 +267,8 @@ func (boot *ShardBootstrap) StopSync() {
 
 // syncBlocks method calls repeatedly synchronization method SyncBlock
 func (boot *ShardBootstrap) syncBlocks() {
+	boot.syncFromStorer()
+
 	for {
 		time.Sleep(sleepTime)
 		select {

@@ -27,7 +27,6 @@ var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
 const maxTransactionsInBlock = 15000
-const metablockFinality = 1
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
@@ -147,29 +146,12 @@ func NewShardProcessor(
 	}
 	miniBlockPool.RegisterHandler(sp.receivedMiniBlock)
 
-	sp.metaBlockFinality = metablockFinality
+	sp.metaBlockFinality = process.MetablockFinality
 
 	//TODO: This should be injected when BlockProcessor will be refactored
 	sp.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
-	//sp.initFromStorer()
-
 	return &sp, nil
-}
-
-func (sp *shardProcessor) initFromStorer() {
-	nonce := uint64(1)
-
-	for {
-		nonceToByteSlice := sp.uint64Converter.ToByteSlice(nonce)
-		err := sp.store.Has(dataRetriever.HdrNonceHashDataUnit, nonceToByteSlice)
-		if err != nil {
-			break
-		}
-		nonce++
-	}
-
-	log.Info("last nonce committed is %d", nonce-1)
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -561,7 +543,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	headerHash := sp.hasher.Compute(string(buff))
-	hadThisHeader := sp.store.Has(dataRetriever.BlockHeaderUnit, headerHash) == nil
+	//hadThisHeader := sp.store.Has(dataRetriever.BlockHeaderUnit, headerHash) == nil
 	errNotCritical := sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
 	if errNotCritical != nil {
 		log.Error(errNotCritical.Error())
@@ -629,9 +611,9 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	if !hadThisHeader {
-		sp.blocksTracker.AddBlock(header)
-	}
+	//if !hadThisHeader {
+	sp.blocksTracker.AddBlock(header)
+	//}
 
 	log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been committed successfully\n",
 		header.Nonce,

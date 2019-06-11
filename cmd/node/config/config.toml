@@ -85,6 +85,8 @@
     [HdrNonceHashStorage.DB]
         FilePath = "HdrHashNonce"
         Type = "LvlDB"
+        BatchDelaySeconds = 10
+        MaxBatchSize = 1
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]

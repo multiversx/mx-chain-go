@@ -27,7 +27,6 @@ var shardMBHeadersCurrentBlockProcessed = 0
 var shardMBHeadersTotalProcessed = 0
 
 const maxHeadersInBlock = 256
-const blockFinality = 1
 
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
@@ -111,7 +110,7 @@ func NewMetaProcessor(
 	mp.chRcvAllHdrs = make(chan bool)
 
 	mp.finalityAttestingHdrs = make([]*block.Header, 0)
-	mp.nextKValidity = blockFinality
+	mp.nextKValidity = process.ShardBlockFinality
 
 	//TODO: This should be injected when BlockProcessor will be refactored
 	mp.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
