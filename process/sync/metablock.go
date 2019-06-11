@@ -252,8 +252,10 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 // getHeaderFromPoolWithNonce method returns the block header from a given nonce
 func (boot *MetaBootstrap) getHeaderFromPoolWithNonce(nonce uint64) *block.MetaBlock {
-	hash, _ := boot.headersNonces.Get(nonce)
-	if hash == nil {
+	value, _ := boot.headersNonces.Get(nonce)
+	hash, ok := value.([]byte)
+
+	if hash == nil || !ok {
 		log.Debug(fmt.Sprintf("nonce %d not found in headers-nonces cache\n", nonce))
 		return nil
 	}

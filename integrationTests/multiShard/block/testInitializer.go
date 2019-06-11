@@ -438,7 +438,6 @@ func createNodes(
 				shardCoordinator,
 				sk,
 				&singlesig.SchnorrSigner{},
-				&mock.SyncTimerMock{},
 			)
 
 			nodes[idx] = testNode
@@ -570,6 +569,9 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	shardHeaders, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
+	shardHeadersNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	shardHeadersNonces, _ := dataPool.NewNonceToHashCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	metaBlockNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	metaBlockNonces, _ := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
@@ -579,6 +581,7 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 		miniblockHashes,
 		shardHeaders,
 		metaBlockNonces,
+		shardHeadersNonces,
 	)
 
 	return dPool
@@ -665,7 +668,6 @@ func createMetaNetNode(
 		shardCoordinator,
 		sk,
 		singleSigner,
-		&mock.SyncTimerMock{},
 	)
 
 	n, err := node.NewNode(

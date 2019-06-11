@@ -1210,8 +1210,12 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	t.Parallel()
 	tdp := initDataPool()
 	errPersister := errors.New("failure")
+	wasCalled := false
 	rootHash := []byte("root hash to be tested")
 	accounts := &mock.AccountsStub{
+		CommitCalled: func() ([]byte, error) {
+			return nil, nil
+		},
 		RootHashCalled: func() []byte {
 			return rootHash
 		},
@@ -1230,6 +1234,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	body := make(block.Body, 0)
 	hdrUnit := &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
+			wasCalled = true
 			return errPersister
 		},
 	}
@@ -1245,8 +1250,15 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		&mock.TxProcessorMock{},
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
+		&mock.ForkDetectorMock{
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+				return nil
+			},
+		},
+		&mock.BlocksTrackerMock{
+			AddBlockCalled: func(headerHandler data.HeaderHandler) {
+			},
+		},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		true,
 		&mock.RequestHandlerMock{},
@@ -1256,12 +1268,14 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		generateTestCache(),
 	)
 	err := sp.CommitBlock(blkc, hdr, body)
-	assert.Equal(t, errPersister, err)
+	assert.True(t, wasCalled)
+	assert.Nil(t, err)
 }
 
-func TestShardProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
+func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
+	wasCalled := false
 	errPersister := errors.New("failure")
 	rootHash := []byte("root hash to be tested")
 	accounts := &mock.AccountsStub{
@@ -1289,6 +1303,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 
 	miniBlockUnit := &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
+			wasCalled = true
 			return errPersister
 		},
 	}
@@ -1309,7 +1324,10 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 				return nil
 			},
 		},
-		&mock.BlocksTrackerMock{},
+		&mock.BlocksTrackerMock{
+			AddBlockCalled: func(headerHandler data.HeaderHandler) {
+			},
+		},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		true,
 		&mock.RequestHandlerMock{},
@@ -1320,7 +1338,8 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 	)
 	err := sp.CommitBlock(blkc, hdr, body)
 
-	assert.Equal(t, errPersister, err)
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
 }
 
 func TestShardProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
@@ -2273,23 +2292,14 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	assert.NotNil(t, msh)
 	assert.NotNil(t, mstx)
 	_, found := msh[0]
-	assert.True(t, found)
-	_, found = msh[1]
-	assert.True(t, found)
+	assert.False(t, found)
 
 	expectedBody := make(block.Body, 0)
-	err = marshalizer.Unmarshal(&expectedBody, msh[0])
-	assert.Nil(t, err)
-	assert.Equal(t, len(expectedBody), 2)
-	assert.Equal(t, expectedBody[0], &mb0)
-	assert.Equal(t, expectedBody[1], &mb0)
-
-	expectedBody = make(block.Body, 0)
 	err = marshalizer.Unmarshal(&expectedBody, msh[1])
 	assert.Nil(t, err)
 	assert.Equal(t, len(expectedBody), 2)
-	assert.Equal(t, expectedBody[0], &mb1)
-	assert.Equal(t, expectedBody[1], &mb1)
+	assert.Equal(t, &mb1, expectedBody[0])
+	assert.Equal(t, &mb1, expectedBody[1])
 }
 
 func TestShardProcessor_MarshalizedDataWrongType(t *testing.T) {
@@ -2617,7 +2627,6 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	//put this metaBlock inside datapool
 	metaBlockHash := []byte("metablock hash")
 	dataPool.MetaBlocks().Put(metaBlockHash, &metaBlock)
-
 	//put the existing miniblock inside datapool
 	dataPool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
 
