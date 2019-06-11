@@ -2493,6 +2493,20 @@ func TestShardProcessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	dataPool := mock.NewPoolsHolderFake()
 
+	shardedDataStub := &mock.ShardedDataStub{
+		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
+			return &mock.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					return &transaction.Transaction{}, true
+				},
+			}
+		},
+		RegisterHandlerCalled: func(i func(key []byte)) {
+		},
+	}
+
+	dataPool.SetTransactions(shardedDataStub)
+
 	bp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
 		dataPool,
@@ -2517,6 +2531,8 @@ func TestShardProcessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
 	bp.AddTxHashToRequestedList(txHash1)
 	bp.AddTxHashToRequestedList(txHash2)
 	bp.AddTxHashToRequestedList(txHash3)
+
+	bp.SetMissingTxs(3)
 
 	//received txHash2
 	bp.ReceivedTransaction(txHash2)

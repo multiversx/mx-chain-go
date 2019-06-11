@@ -74,21 +74,26 @@ func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
 }
 
 func (sp *shardProcessor) AddTxHashToRequestedList(txHash []byte) {
-	sp.mutRequestedTxHashes.Lock()
-	defer sp.mutRequestedTxHashes.Unlock()
+	sp.mutTxsForBlock.Lock()
+	defer sp.mutTxsForBlock.Unlock()
 
-	if sp.requestedTxHashes == nil {
-		sp.requestedTxHashes = make(map[string]*txShardInfo)
+	if sp.txsForBlock == nil {
+		sp.txsForBlock = make(map[string]*txInfo)
 	}
-	sp.requestedTxHashes[string(txHash)] = &txShardInfo{}
+	sp.txsForBlock[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
 }
 
 func (sp *shardProcessor) IsTxHashRequested(txHash []byte) bool {
-	sp.mutRequestedTxHashes.Lock()
-	defer sp.mutRequestedTxHashes.Unlock()
+	sp.mutTxsForBlock.Lock()
+	defer sp.mutTxsForBlock.Unlock()
 
-	_, found := sp.requestedTxHashes[string(txHash)]
-	return found
+	return !sp.txsForBlock[string(txHash)].has
+}
+
+func (sp *shardProcessor) SetMissingTxs(missingTxs int) {
+	sp.mutMissingTxs.Lock()
+	sp.missingTxs = missingTxs
+	sp.mutMissingTxs.Unlock()
 }
 
 func (sp *shardProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, round uint32, haveTime func() bool) error {
