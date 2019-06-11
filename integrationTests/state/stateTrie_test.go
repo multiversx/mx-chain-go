@@ -310,7 +310,6 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 
 	tr1.Update(key, value)
 	h1, err := tr1.Commit(nil)
-	_ = tr1.DBW().Commit(h1, false)
 	assert.Nil(t, err)
 
 	dbw, _ = trie.NewDBWriteCache(store)
