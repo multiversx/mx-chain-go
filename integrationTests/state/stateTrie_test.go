@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,6 +25,17 @@ func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker 
 }
 
 //------- Helper funcs
+
+func adbCreateAccountsDBWithStorage() (*state.AccountsDB, storage.Storer) {
+	marsh := &marshal.JsonMarshalizer{}
+
+	store := createMemUnit()
+	dbw, _ := trie.NewDBWriteCache(store)
+	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &accountFactory{})
+
+	return adb, store
+}
 
 func adbCreateAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
@@ -284,6 +296,111 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	valRecovered, err := newState2.DataTrieTracker().RetrieveValue(key)
 	assert.Nil(t, err)
 	assert.Equal(t, val, valRecovered)
+}
+
+func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
+	hasher := sha256.Sha256{}
+
+	store := createMemUnit()
+	dbw, _ := trie.NewDBWriteCache(store)
+	tr1, _ := trie.NewTrie(make([]byte, 32), dbw, hasher)
+
+	key := hasher.Compute("key")
+	value := hasher.Compute("value")
+
+	tr1.Update(key, value)
+	h1, err := tr1.Commit(nil)
+	assert.Nil(t, err)
+
+	dbw, _ = trie.NewDBWriteCache(store)
+	tr2, err := trie.NewTrie(h1, dbw, hasher)
+	assert.Nil(t, err)
+
+	valRecov, err := tr2.Get(key)
+	assert.Nil(t, err)
+	assert.Equal(t, value, valRecov)
+}
+
+func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *testing.T) {
+	//test creates 2 accounts (one with a data root)
+	//verifies that commit saves the new tries and that can be loaded back
+	t.Parallel()
+
+	adb, mu := adbCreateAccountsDBWithStorage()
+	adr1 := createDummyAddress()
+	buff := make([]byte, sha256.Sha256{}.Size())
+	rand.Read(buff)
+	adr2 := createDummyAddress()
+
+	//first account has the balance of 40
+	balance1 := big.NewInt(40)
+	state1, err := adb.GetAccountWithJournal(adr1)
+	assert.Nil(t, err)
+	err = state1.(*state.Account).SetBalanceWithJournal(balance1)
+	assert.Nil(t, err)
+
+	//second account has the balance of 50 and some data
+	balance2 := big.NewInt(50)
+	state2, err := adb.GetAccountWithJournal(adr2)
+	assert.Nil(t, err)
+
+	err = state2.(*state.Account).SetBalanceWithJournal(balance2)
+	assert.Nil(t, err)
+	key := []byte{65, 66, 67}
+	val := []byte{32, 33, 34}
+	state2.DataTrieTracker().SaveKeyValue(key, val)
+	err = adb.SaveDataTrie(state2)
+
+	//states are now prepared, committing
+
+	h, err := adb.Commit()
+	assert.Nil(t, err)
+	fmt.Printf("Result hash: %v\n", base64.StdEncoding.EncodeToString(h))
+
+	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(adb.RootHash()))
+
+	dbw, _ := trie.NewDBWriteCache(mu)
+	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+	adb, _ = state.NewAccountsDB(tr, sha256.Sha256{}, &marshal.JsonMarshalizer{}, &accountFactory{})
+
+	//reloading a new trie to test if data is inside
+	err = adb.RecreateTrie(h)
+	assert.Nil(t, err)
+
+	//checking state1
+	newState1, err := adb.GetAccountWithJournal(adr1)
+	assert.Nil(t, err)
+	assert.Equal(t, newState1.(*state.Account).Balance, balance1)
+
+	//checking state2
+	newState2, err := adb.GetAccountWithJournal(adr2)
+	assert.Nil(t, err)
+	assert.Equal(t, newState2.(*state.Account).Balance, balance2)
+	assert.NotNil(t, newState2.(*state.Account).RootHash)
+	//get data
+	err = adb.LoadDataTrie(newState2)
+	assert.Nil(t, err)
+	valRecovered, err := newState2.DataTrieTracker().RetrieveValue(key)
+	assert.Nil(t, err)
+	assert.Equal(t, val, valRecovered)
+}
+
+func TestAccountsDB_CommitAnEmptyStateShouldWork(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "this test should not have paniced")
+		}
+	}()
+
+	adb, _ := adbCreateAccountsDBWithStorage()
+
+	hash, err := adb.Commit()
+
+	assert.Nil(t, err)
+	assert.Equal(t, make([]byte, state.HashLength), hash)
 }
 
 func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
