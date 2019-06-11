@@ -17,6 +17,11 @@ type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error)
 }
 
+// SmartContractResultProcessor is the main interface for transaction execution engine
+type SmartContractResultProcessor interface {
+	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
+}
+
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)

@@ -53,6 +53,7 @@ type MiniBlock struct {
 	TxHashes        [][]byte `capid:"0"`
 	ReceiverShardID uint32   `capid:"1"`
 	SenderShardID   uint32   `capid:"2"`
+	Type            uint8    `capid:"3"`
 }
 
 // MiniBlockHeader holds the hash of a miniblock together with sender/deastination shard id pair.
@@ -62,6 +63,7 @@ type MiniBlockHeader struct {
 	SenderShardID   uint32 `capid:"1"`
 	ReceiverShardID uint32 `capid:"2"`
 	TxCount         uint32 `capid:"3"`
+	Type            uint8  `capid:"4"`
 }
 
 // PeerChange holds a change in one peer to shard assignation
@@ -89,7 +91,7 @@ type Header struct {
 	RootHash         []byte            `capid:"13"`
 	MetaBlockHashes  [][]byte          `capid:"14"`
 	TxCount          uint32            `capid:"15"`
-	processedMBs     map[string]bool   // TODO remove this field when metachain processing is running
+	processedMBs     map[string]bool
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
