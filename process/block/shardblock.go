@@ -1002,15 +1002,15 @@ func (sp *shardProcessor) requestMetaHeaders(hdr *block.Header) int {
 		}
 	}
 
+	if len(sp.requestedMetaHdrHashes) > 0 {
+		sp.metaHdrsFound = false
+	}
+
 	sp.mutRequestedMetaHdrHashes.Unlock()
 
 	for _, hash := range hashes {
 		requestedMetaHdrs++
 		sp.onRequestHeaderHandler(sharding.MetachainShardId, hash)
-	}
-
-	if requestedMetaHdrs > 0 {
-		sp.metaHdrsFound = false
 	}
 
 	return requestedMetaHdrs
