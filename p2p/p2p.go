@@ -61,58 +61,61 @@ type Reconnecter interface {
 type Messenger interface {
 	io.Closer
 
-	// ID is our unique peer identifier across the network (a string).
+	// ID is the Messenger's unique peer identifier across the network (a
+	// string). It is derived from the public key of the P2P credentials.
 	ID() PeerID
 
-	// Peers is the list of IDs of peers known to us.
+	// Peers is the list of IDs of peers known to the Messenger.
 	Peers() []PeerID
 
 	// Addresses is the list of addresses we are currently bound to and listening
 	// to.
 	Addresses() []string
 
-	// Explicitly connect to a specific peer with a known ID. This is usually not
-	// called manually, because any underlying implementation of the Messenger
-	// interface should be keeping connections to peers open.
+	// Explicitly connect to a specific peer with a known address (note that the
+	// address contains the peer ID). This function is usually not called
+	// manually, because any underlying implementation of the Messenger interface
+	// should be keeping connections to peers open.
 	ConnectToPeer(address string) error
 
-	// IsConnected returns true if we are connected to a specific peer.
+	// IsConnected returns true if the Messenger are connected to a specific peer.
 	IsConnected(peerID PeerID) bool
 
-	// ConnectedPeers returns the list of IDs of the peers we're currently
-	// connected to.
+	// ConnectedPeers returns the list of IDs of the peers the Messenger is
+	// currently connected to.
 	ConnectedPeers() []PeerID
 
-	// ConnectedAddresses returns the list of addresses of the peers we're
-	// currently connected to.
+	// ConnectedAddresses returns the list of addresses of the peers to which the
+	// Messenger is currently connected.
 	ConnectedAddresses() []string
 
 	// PeerAddress builds an address for the given peer ID, e.g.
 	// ConnectToPeer(PeerAddress(somePeerID)).
 	PeerAddress(pid PeerID) string
 
-	// ConnectedPeersOnTopic returns the IDs of the peers we're currently
-	// connected to, but filtered by a topic they are registered to.
+	// ConnectedPeersOnTopic returns the IDs of the peers to which the Messenger
+	// is currently connected, but filtered by a topic they are registered to.
 	ConnectedPeersOnTopic(topic string) []PeerID
 
 	// TrimConnections tries to optimize the number of open connections, closing
 	// those that are considered expendable.
 	TrimConnections()
 
-	// Bootstrap runs the initialization phase which, among other things, could
-	// include peer discovery, setting up initial connections and
-	// self-announcement in the network.
+	// Bootstrap runs the initialization phase which includes peer discovery,
+	// setting up initial connections and self-announcement in the network.
 	Bootstrap() error
 
-	// CreateTopic registers a new topic for sending messages, and optionally
+	// CreateTopic defines a new topic for sending messages, and optionally
 	// creates a channel in the LoadBalancer for this topic (otherwise, the topic
 	// will use a default channel).
 	CreateTopic(name string, createChannelForTopic bool) error
 
-	// HasTopic returns true if we have declared our interest in a topic and we're listening to messages referencing it.
+	// HasTopic returns true if the Messenger has declared interest in a topic
+	// and it is listening to messages referencing it.
 	HasTopic(name string) bool
 
-	// HasTopicValidator returns true if we have registered a custom validator for a given topic name.
+	// HasTopicValidator returns true if the Messenger has registered a custom
+	// validator for a given topic name.
 	HasTopicValidator(name string) bool
 
 	// RegisterMessageProcessor adds the provided MessageProcessor to the list
@@ -120,27 +123,30 @@ type Messenger interface {
 	// specified topic.
 	RegisterMessageProcessor(topic string, handler MessageProcessor) error
 
-	// UnregisterMessageProcessor removes our MessageProcessor from the list of
-	// registered handlers for the messages on the given topic.
+	// UnregisterMessageProcessor removes the MessageProcessor set by the
+	// Messenger from the list of registered handlers for the messages on the
+	// given topic.
 	UnregisterMessageProcessor(topic string) error
 
 	// OutgoingChannelLoadBalancer returns the ChannelLoadBalancer instance
-	// through which we are sending messages to the network.
+	// through which the Messenger is sending messages to the network.
 	OutgoingChannelLoadBalancer() ChannelLoadBalancer
 
-	// BroadcastOnChannelBlocking synchronously sends a message on a given topic
-	// through a specified channel, blocking until the message is sent.
+	// BroadcastOnChannelBlocking asynchronously waits until it can send a
+	// message on the channel, but once it is able to, it synchronously sends the
+	// message, blocking until sending is completed.
 	BroadcastOnChannelBlocking(channel string, topic string, buff []byte)
 
 	// BroadcastOnChannelBlocking asynchronously sends a message on a given topic
 	// through a specified channel.
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 
-	// Broadcast does what exactly?
+	// Broadcast is a convenience function that calls BroadcastOnChannelBlocking,
+	// but implicitly sets the channel to be identical to the specified topic.
 	Broadcast(topic string, buff []byte)
 
 	// SendToConnectedPeer asynchronously sends a message to a peer directly,
-	// bypassing any network management. It opens a new connection with the given
+	// bypassing pubsub and topics. It opens a new connection with the given
 	// peer, but reuses a connection and a stream if possible.
 	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error
 }
