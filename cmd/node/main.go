@@ -692,7 +692,6 @@ func createNode(
 	}
 
 	initialPubKeys := nodesConfig.InitialNodesPubKeys()
-
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return nil, nil, nil, err
@@ -741,6 +740,9 @@ func createNode(
 		if err != nil {
 			return nil, nil, nil, errors.New("could not create shard data pools: " + err.Error())
 		}
+	}
+	if datapool == nil && metaDatapool == nil {
+		return nil, nil, nil, errors.New("could not create data pools: ")
 	}
 
 	txSingleSigner := &singlesig.SchnorrSigner{}
@@ -795,8 +797,9 @@ func createNode(
 
 	log.Info("Starting with tx sign public key: " + getPkEncoded(txSignPubKey))
 
-	interceptorContainerFactory, resolversContainerFactory, err := getInterceptorAndResolverContainerFactory(shardCoordinator, netMessenger, store, marshalizer,
-		hasher, txSignKeyGen, txSingleSigner, multiSigner, datapool, metaDatapool, addressConverter, uint64ByteSliceConverter)
+	interceptorContainerFactory, resolversContainerFactory, err := getInterceptorAndResolverContainerFactory(
+		shardCoordinator, netMessenger, store, marshalizer, hasher, txSignKeyGen, txSingleSigner,
+		multiSigner, datapool, metaDatapool, addressConverter, uint64ByteSliceConverter)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -862,8 +865,9 @@ func createNode(
 		return nil, nil, nil, err
 	}
 
-	blockProcessor, blockTracker, err := getBlockProcessorAndTracker(resolversFinder, shardCoordinator, datapool, metaDatapool, store, hasher, marshalizer,
-		accountsAdapter, forkDetector, shardsGenesisBlocks, nodesConfig, addressConverter)
+	blockProcessor, blockTracker, err := getBlockProcessorAndTracker(resolversFinder, shardCoordinator,
+		datapool, metaDatapool, store, hasher, marshalizer, accountsAdapter, forkDetector,
+		shardsGenesisBlocks, nodesConfig, addressConverter)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1056,32 +1060,35 @@ func getBlockProcessorAndTracker(
 
 		return blockProcessor, blockTracker, nil
 	}
-	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic)
-	if err != nil {
-		return nil, nil, err
-	}
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic)
+		if err != nil {
+			return nil, nil, err
+		}
 
-	blockTracker, err := track.NewMetaBlockTracker()
-	if err != nil {
-		return nil, nil, err
-	}
+		blockTracker, err := track.NewMetaBlockTracker()
+		if err != nil {
+			return nil, nil, err
+		}
 
-	metaProcessor, err := block.NewMetaProcessor(
-		coreServiceContainer,
-		accountsAdapter,
-		metaDatapool,
-		forkDetector,
-		shardCoordinator,
-		hasher,
-		marshalizer,
-		store,
-		shardsGenesisBlocks,
-		requestHandler,
-	)
-	if err != nil {
-		return nil, nil, errors.New("could not create block processor: " + err.Error())
+		metaProcessor, err := block.NewMetaProcessor(
+			coreServiceContainer,
+			accountsAdapter,
+			metaDatapool,
+			forkDetector,
+			shardCoordinator,
+			hasher,
+			marshalizer,
+			store,
+			shardsGenesisBlocks,
+			requestHandler,
+		)
+		if err != nil {
+			return nil, nil, errors.New("could not create block processor: " + err.Error())
+		}
+		return metaProcessor, blockTracker, nil
 	}
-	return metaProcessor, blockTracker, nil
+	return nil, nil, errors.New("could not create block processor and tracker")
 }
 
 func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *statistics.TpsBenchmark) error {
@@ -1093,13 +1100,16 @@ func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *st
 		}
 		return nil
 	}
-	coreServiceContainer, err = serviceContainer.NewServiceContainer(
-		serviceContainer.WithIndexer(dbIndexer),
-		serviceContainer.WithTPSBenchmark(tpsBenchmark))
-	if err != nil {
-		return err
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		coreServiceContainer, err = serviceContainer.NewServiceContainer(
+			serviceContainer.WithIndexer(dbIndexer),
+			serviceContainer.WithTPSBenchmark(tpsBenchmark))
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	return nil
+	return errors.New("could not init core service container")
 }
 
 func getInterceptorAndResolverContainerFactory(
@@ -1155,34 +1165,35 @@ func getInterceptorAndResolverContainerFactory(
 
 		return interceptorContainerFactory, resolversContainerFactory, nil
 	}
-	//TODO add a real chronology validator and remove null chronology validator
-	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
-		shardCoordinator,
-		netMessenger,
-		store,
-		marshalizer,
-		hasher,
-		multiSigner,
-		metaDatapool,
-		&nullChronologyValidator{},
-	)
-	if err != nil {
-		return nil, nil, err
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		//TODO add a real chronology validator and remove null chronology validator
+		interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
+			shardCoordinator,
+			netMessenger,
+			store,
+			marshalizer,
+			hasher,
+			multiSigner,
+			metaDatapool,
+			&nullChronologyValidator{},
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+		resolversContainerFactory, err := metafactoryDataRetriever.NewResolversContainerFactory(
+			shardCoordinator,
+			netMessenger,
+			store,
+			marshalizer,
+			metaDatapool,
+			uint64ByteSliceConverter,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+		return interceptorContainerFactory, resolversContainerFactory, nil
 	}
-
-	resolversContainerFactory, err := metafactoryDataRetriever.NewResolversContainerFactory(
-		shardCoordinator,
-		netMessenger,
-		store,
-		marshalizer,
-		metaDatapool,
-		uint64ByteSliceConverter,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return interceptorContainerFactory, resolversContainerFactory, nil
+	return nil, nil, errors.New("could not create interceptor and resolver container factory")
 }
 
 func createNetMessenger(
@@ -1472,7 +1483,10 @@ func createDataStoreFromConfig(config *config.Config, shardCoordinator sharding.
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return createShardDataStoreFromConfig(config)
 	}
-	return createMetaChainDataStoreFromConfig(config)
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return createMetaChainDataStoreFromConfig(config)
+	}
+	return nil, errors.New("can not create data store")
 }
 
 func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
