@@ -1532,6 +1532,12 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
+	scrPool, err := shardedData.NewShardedData(getCacherFromConfig(config.ScrResultDataPool))
+	if err != nil {
+		fmt.Println("error creating smart contract result")
+		return nil, err
+	}
+
 	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
 	hdrPool, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
@@ -1586,6 +1592,7 @@ func createShardDataPoolFromConfig(
 
 	return dataPool.NewShardedDataPool(
 		txPool,
+		scrPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,

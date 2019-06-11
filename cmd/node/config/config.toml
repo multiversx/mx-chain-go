@@ -78,6 +78,16 @@
         BatchDelaySeconds = 10
         MaxBatchSize = 5000
 
+[SmartContractResultStorage]
+    [SmartContractResult.Cache]
+        Size = 100000
+        Type = "LRU"
+    [SmartContractResultStorage.DB]
+        FilePath = "SmartContractResult"
+        Type = "LvlDB"
+        BatchDelaySeconds = 10
+        MaxBatchSize = 5000
+
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
         Size = 100000
@@ -121,6 +131,10 @@
     Type = "LRU"
 
 [TxDataPool]
+    Size = 100000
+    Type = "LRU"
+
+[SmartContractDataPool]
     Size = 100000
     Type = "LRU"
 

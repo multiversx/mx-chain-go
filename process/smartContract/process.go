@@ -2,6 +2,7 @@ package smartContract
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"math/big"
 	"sync"
@@ -35,6 +36,8 @@ type scProcessor struct {
 	mutSCState   sync.Mutex
 	mapExecState map[uint32]scExecutionState
 }
+
+var log = logger.DefaultLogger()
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
 func NewSmartContractProcessor(
