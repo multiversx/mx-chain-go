@@ -2,6 +2,7 @@ package getValues_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
@@ -63,6 +64,13 @@ func startNodeServerWrongFacade() *gin.Engine {
 	return ws
 }
 
+//------- GetDataValueAsHexBytes
+
+func TestGetDataValueAsHexBytes_WithWrongFacadeShouldErr(t *testing.T) {
+	t.Parallel()
+
+}
+
 func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.T) {
 	t.Parallel()
 
@@ -70,7 +78,7 @@ func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.
 	fName := "function"
 	args := []string{"argument 1", "argument 2"}
 	errUnexpected := errors.New("unexpected error")
-	value := "DEADBEEF"
+	valueBuff, _ := hex.DecodeString("DEADBEEF")
 
 	facade := mock.Facade{
 		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
@@ -83,7 +91,7 @@ func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.
 				}
 
 				if paramsOk {
-					return []byte(value), nil
+					return valueBuff, nil
 				}
 			}
 
@@ -93,10 +101,16 @@ func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.
 
 	ws := startNodeServer(&facade)
 
+	argsHex := make([]string, len(args))
+	for i := 0; i < len(args); i++ {
+		argsHex[i] = hex.EncodeToString([]byte(args[i]))
+	}
+	argsJson, _ := json.Marshal(argsHex)
+
 	jsonStr := fmt.Sprintf(
-		`{"address":"%s",`+
-			`"func":"%s",`+
-			`"args":%s}`, scAddress, fName, args)
+		`{"scAddress":"%s",`+
+			`"funcName":"%s",`+
+			`"args":%s}`, scAddress, fName, argsJson)
 	fmt.Printf("Request: %s\n", jsonStr)
 
 	req, _ := http.NewRequest("POST", "/get-values/as-hex", bytes.NewBuffer([]byte(jsonStr)))
@@ -109,5 +123,5 @@ func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, "", response.Error)
-	assert.Equal(t, value, response.Data)
+	assert.Equal(t, hex.EncodeToString(valueBuff), response.Data)
 }

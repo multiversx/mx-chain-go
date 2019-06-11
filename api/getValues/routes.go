@@ -16,6 +16,13 @@ type FacadeHandler interface {
 	GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
 }
 
+// GetValueRequest represents the structure on which user input for generating a new transaction will validate against
+type GetValueRequest struct {
+	ScAddress string   `form:"scAddress" json:"scAddress"`
+	FuncName  string   `form:"funcName" json:"funcName"`
+	Args      []string `form:"args"  json:"args"`
+}
+
 // Routes defines address related routes
 func Routes(router *gin.RouterGroup) {
 	router.POST("/as-hex", GetDataValueAsHexBytes)
@@ -29,32 +36,25 @@ func getDataValueFromAccount(c *gin.Context) ([]byte, int, error) {
 		return nil, http.StatusInternalServerError, apiErrors.ErrInvalidAppContext
 	}
 
-	addr := c.Param("address")
-	if addr == "" {
-		return nil, http.StatusBadRequest, apiErrors.ErrEmptyAddress
-	}
-
-	funcName := c.Param("func")
-	if funcName == "" {
-		return nil, http.StatusBadRequest, apiErrors.ErrEmptyFuncName
+	var gval = GetValueRequest{}
+	err := c.ShouldBindJSON(&gval)
+	if err != nil {
+		return nil, http.StatusBadRequest, err
 	}
 
 	argsBuff := make([][]byte, 0)
-	argsString, exists := c.GetPostFormArray("args")
-	if exists {
-		for _, arg := range argsString {
-			buff, err := hex.DecodeString(arg)
-			if err != nil {
-				return nil,
-					http.StatusBadRequest,
-					errors.New(fmt.Sprintf("'%s' is not a valid hex string: %s", arg, err.Error()))
-			}
-
-			argsBuff = append(argsBuff, buff)
+	for _, arg := range gval.Args {
+		buff, err := hex.DecodeString(arg)
+		if err != nil {
+			return nil,
+				http.StatusBadRequest,
+				errors.New(fmt.Sprintf("'%s' is not a valid hex string: %s", arg, err.Error()))
 		}
+
+		argsBuff = append(argsBuff, buff)
 	}
 
-	returnedData, err := ef.GetDataValue(addr, funcName, argsBuff...)
+	returnedData, err := ef.GetDataValue(gval.ScAddress, gval.FuncName, argsBuff...)
 	if err != nil {
 		return nil, http.StatusBadRequest, err
 	}
