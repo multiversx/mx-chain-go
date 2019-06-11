@@ -91,9 +91,9 @@ func (sp *shardProcessor) IsTxHashRequested(txHash []byte) bool {
 }
 
 func (sp *shardProcessor) SetMissingTxs(missingTxs int) {
-	sp.mutMissingTxs.Lock()
+	sp.mutTxsForBlock.Lock()
 	sp.missingTxs = missingTxs
-	sp.mutMissingTxs.Unlock()
+	sp.mutTxsForBlock.Unlock()
 }
 
 func (sp *shardProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, round uint32, haveTime func() bool) error {
