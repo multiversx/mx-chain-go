@@ -612,13 +612,16 @@ func (n *Node) GetCurrentPublicKey() string {
 
 // GetAccount will return acount details for a given address
 func (n *Node) GetAccount(address string) (*state.Account, error) {
-	if n.addrConverter == nil || n.accounts == nil {
-		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
+	if n.addrConverter == nil {
+		return nil, ErrNilAddressConverter
+	}
+	if n.accounts == nil {
+		return nil, ErrNilAccountsAdapter
 	}
 
 	addr, err := n.addrConverter.CreateAddressFromHex(address)
 	if err != nil {
-		return nil, errors.New("could not create address object from provided string")
+		return nil, err
 	}
 
 	accWrp, err := n.accounts.GetExistingAccount(addr)
@@ -631,7 +634,7 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 				CodeHash: nil,
 			}, nil
 		}
-		return nil, errors.New("could not fetch sender address from provided param")
+		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
 	account, ok := accWrp.(*state.Account)
