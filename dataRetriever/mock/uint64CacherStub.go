@@ -2,11 +2,11 @@ package mock
 
 type Uint64CacherStub struct {
 	ClearCalled           func()
-	PutCalled             func(uint64, []byte) bool
-	GetCalled             func(uint64) ([]byte, bool)
+	PutCalled             func(uint64, interface{}) bool
+	GetCalled             func(uint64) (interface{}, bool)
 	HasCalled             func(uint64) bool
-	PeekCalled            func(uint64) ([]byte, bool)
-	HasOrAddCalled        func(uint64, []byte) (bool, bool)
+	PeekCalled            func(uint64) (interface{}, bool)
+	HasOrAddCalled        func(uint64, interface{}) (bool, bool)
 	RemoveCalled          func(uint64)
 	RemoveOldestCalled    func()
 	KeysCalled            func() []uint64
@@ -18,11 +18,11 @@ func (ucs *Uint64CacherStub) Clear() {
 	ucs.ClearCalled()
 }
 
-func (ucs *Uint64CacherStub) Put(nonce uint64, value []byte) bool {
+func (ucs *Uint64CacherStub) Put(nonce uint64, value interface{}) bool {
 	return ucs.PutCalled(nonce, value)
 }
 
-func (ucs *Uint64CacherStub) Get(nonce uint64) ([]byte, bool) {
+func (ucs *Uint64CacherStub) Get(nonce uint64) (interface{}, bool) {
 	return ucs.GetCalled(nonce)
 }
 
@@ -30,11 +30,11 @@ func (ucs *Uint64CacherStub) Has(nonce uint64) bool {
 	return ucs.HasCalled(nonce)
 }
 
-func (ucs *Uint64CacherStub) Peek(nonce uint64) ([]byte, bool) {
+func (ucs *Uint64CacherStub) Peek(nonce uint64) (interface{}, bool) {
 	return ucs.PeekCalled(nonce)
 }
 
-func (ucs *Uint64CacherStub) HasOrAdd(nonce uint64, value []byte) (bool, bool) {
+func (ucs *Uint64CacherStub) HasOrAdd(nonce uint64, value interface{}) (bool, bool) {
 	return ucs.HasOrAddCalled(nonce, value)
 }
 

@@ -17,6 +17,7 @@ func TestNewMetaDataPool_NilMetaBlockShouldErr(t *testing.T) {
 		nil,
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
+		&mock.Uint64CacherStub{},
 		&mock.Uint64CacherStub{})
 
 	assert.Equal(t, data.ErrNilMetaBlockPool, err)
@@ -28,6 +29,7 @@ func TestNewMetaDataPool_NilMiniBlockHeaderHashesShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		nil,
 		&mock.CacherStub{},
+		&mock.Uint64CacherStub{},
 		&mock.Uint64CacherStub{})
 
 	assert.Equal(t, data.ErrNilMiniBlockHashesPool, err)
@@ -39,6 +41,7 @@ func TestNewMetaDataPool_NilShardHeaderShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.ShardedDataStub{},
 		nil,
+		&mock.Uint64CacherStub{},
 		&mock.Uint64CacherStub{})
 
 	assert.Equal(t, data.ErrNilShardHeaderPool, err)
@@ -50,9 +53,22 @@ func TestNewMetaDataPool_NilMetaHeaderNouncesShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
-		nil)
+		nil,
+		&mock.Uint64CacherStub{})
 
 	assert.Equal(t, dataRetriever.ErrNilMetaBlockNoncesPool, err)
+	assert.Nil(t, tdp)
+}
+
+func TestNewMetaDataPool_NilShardHeaderNouncesShouldErr(t *testing.T) {
+	tdp, err := dataPool.NewMetaDataPool(
+		&mock.CacherStub{},
+		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
+		&mock.Uint64CacherStub{},
+		nil)
+
+	assert.Equal(t, dataRetriever.ErrNilHeadersNoncesDataPool, err)
 	assert.Nil(t, tdp)
 }
 
@@ -61,12 +77,14 @@ func TestNewMetaDataPool_ConfigOk(t *testing.T) {
 	shardHeaders := &mock.CacherStub{}
 	miniBlockheaders := &mock.ShardedDataStub{}
 	metaBlockNonce := &mock.Uint64CacherStub{}
+	shardHdrsNonces := &mock.Uint64CacherStub{}
 
 	tdp, err := dataPool.NewMetaDataPool(
 		metaChainBlocks,
 		miniBlockheaders,
 		shardHeaders,
-		metaBlockNonce)
+		metaBlockNonce,
+		shardHdrsNonces)
 
 	assert.Nil(t, err)
 	//pointer checking
@@ -74,4 +92,5 @@ func TestNewMetaDataPool_ConfigOk(t *testing.T) {
 	assert.True(t, shardHeaders == tdp.ShardHeaders())
 	assert.True(t, miniBlockheaders == tdp.MiniBlockHashes())
 	assert.True(t, metaBlockNonce == tdp.MetaBlockNonces())
+	assert.True(t, shardHdrsNonces == tdp.ShardHeadersNonces())
 }

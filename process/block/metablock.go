@@ -26,9 +26,7 @@ var shardMBHeadersCurrentBlockProcessed = 0
 var shardMBHeadersTotalProcessed = 0
 
 const maxHeadersInBlock = 256
-const blockFinality = 0
-
-// TODO: change block finality to 1, add resolvers and pool for prevhash and integration test.
+const blockFinality = 1
 
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
@@ -36,7 +34,9 @@ type metaProcessor struct {
 	core     serviceContainer.Core
 	dataPool dataRetriever.MetaPoolsHolder
 
+	currHighestShardHdrNonces     map[uint32]uint64
 	requestedShardHeaderHashes    map[string]bool
+	allNeededShardHdrsFound       bool
 	mutRequestedShardHeaderHashes sync.RWMutex
 
 	nextKValidity         uint32
@@ -156,8 +156,6 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrAccountStateDirty
 	}
 
-	//TODO: block finality verification is done, need a new pool where headers are put with their key = previousHeaderHash
-	// this way it can be easily calculated if the block is final. and method to ask for headers which has a given previous hash
 	highestNonceHdrs, err := mp.checkShardHeadersValidity(header)
 	if err != nil {
 		return err
@@ -363,9 +361,9 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	headerHash := mp.hasher.Compute(string(buff))
-	err = mp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
-	if err != nil {
-		return err
+	errNotCritical := mp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
+	if errNotCritical != nil {
+		log.Error(errNotCritical.Error())
 	}
 
 	header, ok := headerHandler.(*block.MetaBlock)
@@ -402,9 +400,9 @@ func (mp *metaProcessor) CommitBlock(
 			return err
 		}
 
-		err = mp.store.Put(dataRetriever.BlockHeaderUnit, shardData.HeaderHash, buff)
-		if err != nil {
-			return err
+		errNotCritical = mp.store.Put(dataRetriever.BlockHeaderUnit, shardData.HeaderHash, buff)
+		if errNotCritical != nil {
+			log.Error(errNotCritical.Error())
 		}
 	}
 
@@ -430,7 +428,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	errNotCritical := mp.removeBlockInfoFromPool(header)
+	errNotCritical = mp.removeBlockInfoFromPool(header)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
@@ -657,21 +655,67 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 // receivedHeader is a call back function which is called when a new header
 // is added in the headers pool
 func (mp *metaProcessor) receivedHeader(headerHash []byte) {
+	shardHeaderCache := mp.dataPool.ShardHeaders()
+	if shardHeaderCache == nil {
+		return
+	}
+
+	shardHdrsNoncesCache := mp.dataPool.ShardHeadersNonces()
+	if shardHdrsNoncesCache == nil && mp.nextKValidity > 0 {
+		return
+	}
+
+	value, ok := shardHeaderCache.Peek(headerHash)
+	if !ok {
+		return
+	}
+
+	hdr, ok := value.(data.HeaderHandler)
+	if !ok {
+		return
+	}
+
 	mp.mutRequestedShardHeaderHashes.Lock()
 
-	if len(mp.requestedShardHeaderHashes) > 0 {
+	if !mp.allNeededShardHdrsFound {
 		if mp.requestedShardHeaderHashes[string(headerHash)] {
 			delete(mp.requestedShardHeaderHashes, string(headerHash))
+
+			if hdr.GetNonce() > mp.currHighestShardHdrNonces[hdr.GetShardID()] {
+				mp.currHighestShardHdrNonces[hdr.GetShardID()] = hdr.GetNonce()
+			}
 		}
 
 		lenReqHeadersHashes := len(mp.requestedShardHeaderHashes)
-		mp.mutRequestedShardHeaderHashes.Unlock()
-
+		areFinalityAttestingHdrsInCache := true
 		if lenReqHeadersHashes == 0 {
-			mp.chRcvAllHdrs <- true
+			for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
+				// ask for finality attesting hdrs if it is not yet in cache
+				for i := mp.currHighestShardHdrNonces[shardId] + 1; i <= mp.currHighestShardHdrNonces[shardId]+uint64(mp.nextKValidity); i++ {
+					if mp.currHighestShardHdrNonces[shardId] == uint64(0) {
+						continue
+					}
+
+					value, okPeek := shardHdrsNoncesCache.Peek(i)
+					mapOfHashes, okTypeAssertion := value.(sync.Map)
+					_, okLoad := mapOfHashes.Load(shardId)
+
+					finalityAttestingHeaderForShardNotFound := !okPeek || !okTypeAssertion || !okLoad
+					if finalityAttestingHeaderForShardNotFound {
+						go mp.onRequestHeaderHandlerByNonce(shardId, i)
+						areFinalityAttestingHdrsInCache = false
+					}
+				}
+			}
 		}
 
-		return
+		mp.allNeededShardHdrsFound = lenReqHeadersHashes == 0 && areFinalityAttestingHdrsInCache
+
+		if mp.allNeededShardHdrsFound {
+			mp.mutRequestedShardHeaderHashes.Unlock()
+			mp.chRcvAllHdrs <- true
+			return
+		}
 	}
 
 	mp.mutRequestedShardHeaderHashes.Unlock()
@@ -680,13 +724,21 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
 	mp.mutRequestedShardHeaderHashes.Lock()
 
+	mp.currHighestShardHdrNonces = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
+	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
+		mp.currHighestShardHdrNonces[i] = uint64(0)
+	}
+
 	missingHeaderHashes := mp.computeMissingHeaders(header)
 	mp.requestedShardHeaderHashes = make(map[string]bool)
 
 	for shardId, headerHash := range missingHeaderHashes {
 		mp.requestedShardHeaderHashes[string(headerHash)] = true
-		//TODO: It should be analyzed if launching the next line(request) on go routine is better or not
 		go mp.onRequestHeaderHandler(shardId, headerHash)
+	}
+
+	if len(missingHeaderHashes) > 0 {
+		mp.allNeededShardHdrsFound = false
 	}
 
 	mp.mutRequestedShardHeaderHashes.Unlock()
@@ -702,6 +754,11 @@ func (mp *metaProcessor) computeMissingHeaders(header *block.MetaBlock) map[uint
 		header, _ := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
 		if header == nil {
 			missingHeaders[shardData.ShardId] = shardData.HeaderHash
+			continue
+		}
+
+		if header.GetNonce() > mp.currHighestShardHdrNonces[shardData.ShardId] {
+			mp.currHighestShardHdrNonces[shardData.ShardId] = header.GetNonce()
 		}
 	}
 
@@ -1059,7 +1116,7 @@ func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte
 			continue
 		}
 
-		if hdr.GetRound() >= round {
+		if hdr.GetRound() > round {
 			continue
 		}
 

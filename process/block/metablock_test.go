@@ -607,16 +607,18 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
+	wasCalled := false
 	errPersister := errors.New("failure")
 	accounts := &mock.AccountsStub{
-		RevertToSnapshotCalled: func(snapshot int) error {
-			return nil
+		CommitCalled: func() (i []byte, e error) {
+			return nil, nil
 		},
 	}
 	hdr := createMetaBlockHeader()
 	body := &block.MetaBlockBody{}
 	hdrUnit := &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
+			wasCalled = true
 			return errPersister
 		},
 	}
@@ -627,7 +629,11 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 		&mock.ServiceContainerMock{},
 		accounts,
 		mdp,
-		&mock.ForkDetectorMock{},
+		&mock.ForkDetectorMock{
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+				return nil
+			},
+		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
@@ -640,7 +646,8 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 		generateTestCache(),
 	)
 	err := mp.CommitBlock(blkc, hdr, body)
-	assert.Equal(t, errPersister, err)
+	assert.True(t, wasCalled)
+	assert.Nil(t, err)
 }
 
 func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
@@ -1035,6 +1042,8 @@ func TestMetaProcessor_ReceivedHeaderShouldEraseRequested(t *testing.T) {
 	mp.AddHdrHashToRequestedList(hdrHash3)
 
 	//received txHash2
+	hdr := &block.Header{Nonce: 1}
+	dataPool.ShardHeaders().Put(hdrHash2, hdr)
 	mp.ReceivedHeader(hdrHash2)
 
 	assert.True(t, mp.IsHdrHashRequested(hdrHash1))
