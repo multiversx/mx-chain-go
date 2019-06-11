@@ -297,7 +297,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 	requestedNonce := uint64(67)
 
 	headersNonces := &mock.Uint64CacherStub{}
-	headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
+	headersNonces.GetCalled = func(u uint64) (i interface{}, b bool) {
 		return nil, false
 	}
 
@@ -345,7 +345,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	}
 
 	headersNonces := &mock.Uint64CacherStub{}
-	headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
+	headersNonces.GetCalled = func(u uint64) (i interface{}, b bool) {
 		if u == requestedNonce {
 			return []byte("aaaa"), true
 		}
@@ -393,7 +393,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	}
 
 	headersNonces := &mock.Uint64CacherStub{}
-	headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
+	headersNonces.GetCalled = func(u uint64) (i interface{}, b bool) {
 		if u == requestedNonce {
 			return []byte("aaaa"), true
 		}
@@ -450,7 +450,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	}
 
 	headersNonces := &mock.Uint64CacherStub{}
-	headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
+	headersNonces.GetCalled = func(u uint64) (i interface{}, b bool) {
 		if u == requestedNonce {
 			return []byte("aaaa"), true
 		}

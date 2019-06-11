@@ -85,6 +85,12 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		log.Error(err.Error())
 	}
 
+	// broadcast header to metachain
+	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
+	if err != nil {
+		log.Error(err.Error())
+	}
+
 	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been committed and broadcast\n", sr.SyncTimer().FormattedCurrentTime()))
 
 	err = sr.broadcastMiniBlocksAndTransactions()
