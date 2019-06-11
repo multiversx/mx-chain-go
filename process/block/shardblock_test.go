@@ -2832,9 +2832,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.RequestHandlerMock{},
 	)
 
-	err := bp.ProcessMiniBlockComplete(&miniBlock, 0, func() bool {
-		return true
-	})
+	err := bp.ProcessMiniBlockComplete(&miniBlock, 0, func() bool { return true })
 
 	assert.Equal(t, errTxProcessor, err)
 	assert.True(t, revertAccntStateCalled)

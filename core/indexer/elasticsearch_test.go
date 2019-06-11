@@ -67,8 +67,8 @@ func newTestMetaBlock() *block.MetaBlock {
 
 func newTestBlockBody() block.Body {
 	return block.Body{
-		{[][]byte{[]byte("tx1"), []byte("tx2")}, 2, 2},
-		{[][]byte{[]byte("tx3")}, 4, 1},
+		{[][]byte{[]byte("tx1"), []byte("tx2")}, 2, 2, 0},
+		{[][]byte{[]byte("tx3")}, 4, 1, 0},
 	}
 }
 

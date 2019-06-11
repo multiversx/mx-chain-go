@@ -244,7 +244,7 @@ func MiniBlockCapnToGo(src capnp.MiniBlockCapn, dest *MiniBlock) *MiniBlock {
 
 	dest.ReceiverShardID = src.ReceiverShardID()
 	dest.SenderShardID = src.SenderShardID()
-	dest.Type = src.Type()
+	dest.Type = Type(src.Type())
 
 	return dest
 }
@@ -260,7 +260,7 @@ func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnp.MiniBlockCapn {
 	dest.SetTxHashes(mylist1)
 	dest.SetReceiverShardID(src.ReceiverShardID)
 	dest.SetSenderShardID(src.SenderShardID)
-	dest.SetType(src.Type)
+	dest.SetType(uint8(src.Type))
 
 	return dest
 }
@@ -333,7 +333,7 @@ func MiniBlockHeaderCapnToGo(src capnp.MiniBlockHeaderCapn, dest *MiniBlockHeade
 	dest.ReceiverShardID = src.ReceiverShardID()
 	dest.SenderShardID = src.SenderShardID()
 	dest.TxCount = src.TxCount()
-	dest.Type = src.Type()
+	dest.Type = Type(src.Type())
 
 	return dest
 }
@@ -346,7 +346,7 @@ func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.Mini
 	dest.SetReceiverShardID(src.ReceiverShardID)
 	dest.SetSenderShardID(src.SenderShardID)
 	dest.SetTxCount(src.TxCount)
-	dest.SetType(src.Type)
+	dest.SetType(uint8(src.Type))
 
 	return dest
 }

@@ -1,15 +1,18 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"math/big"
 )
 
 type AtArgumentParserMock struct {
-	ParseDataCalled    func(data []byte) error
-	GetArgumentsCalled func() ([]*big.Int, error)
-	GetCodeCalled      func() ([]byte, error)
-	GetFunctionCalled  func() (string, error)
-	GetSeparatorCalled func() string
+	ParseDataCalled                   func(data []byte) error
+	GetArgumentsCalled                func() ([]*big.Int, error)
+	GetCodeCalled                     func() ([]byte, error)
+	GetFunctionCalled                 func() (string, error)
+	GetSeparatorCalled                func() string
+	CreateDataFromStorageUpdateCalled func(storageUpdates []*vmcommon.StorageUpdate) []byte
+	GetStorageUpdatesCalled           func(data []byte) ([]*vmcommon.StorageUpdate, error)
 }
 
 func (at *AtArgumentParserMock) ParseData(data []byte) error {
@@ -45,4 +48,18 @@ func (at *AtArgumentParserMock) GetSeparator() string {
 		return "@"
 	}
 	return at.GetSeparatorCalled()
+}
+
+func (at *AtArgumentParserMock) CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) []byte {
+	if at.CreateDataFromStorageUpdateCalled == nil {
+		return nil
+	}
+	return at.CreateDataFromStorageUpdateCalled(storageUpdates)
+}
+
+func (at *AtArgumentParserMock) GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error) {
+	if at.GetStorageUpdatesCalled == nil {
+		return nil, nil
+	}
+	return at.GetStorageUpdatesCalled(data)
 }

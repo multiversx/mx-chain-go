@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"sort"
 	"sync"
 	"time"
@@ -1064,6 +1065,34 @@ func (sp *shardProcessor) processAndRemoveBadTransaction(
 	return err
 }
 
+func (sp *shardProcessor) addSmartContractResultsToMiniBlocks([]*smartContractResult.SmartContractResult) {
+	// TODO: implement
+}
+
+func (sp *shardProcessor) getSmartContractResultFromPool(senderShardId, receiverShardId uint32, hash []byte) *smartContractResult.SmartContractResult {
+	// TODO: implement
+	return nil
+}
+
+func (sp *shardProcessor) requestSmartContractResultsForMiniBlock(miniblock *block.MiniBlock) uint32 {
+	// TODO: implement
+	return 0
+}
+
+func (sp *shardProcessor) processSmartContractResults(miniBlock *block.MiniBlock, round uint32, haveTime func() bool) error {
+	// TODO: implement
+	return nil
+}
+
+func (sp *shardProcessor) getSmartContractResultsNr() uint32 {
+	// TODO: implement
+	return 0
+}
+
+func (sp *shardProcessor) getAllSmartContractResultMiniblocks() block.MiniBlockSlice {
+	return nil
+}
+
 func (sp *shardProcessor) requestBlockTransactionsForMiniBlock(mb *block.MiniBlock) int {
 	missingTxsForMiniBlock := sp.computeMissingTxsForMiniBlock(mb)
 	sp.onRequestTransaction(mb.SenderShardID, missingTxsForMiniBlock)
@@ -1147,7 +1176,8 @@ func (sp *shardProcessor) processMiniBlockComplete(
 			break
 		}
 
-		scResults, err := sp.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
+		var scResults []*smartContractResult.SmartContractResult
+		scResults, err = sp.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
 		if err != nil {
 			break
 		}
@@ -1642,7 +1672,7 @@ func (sp *shardProcessor) createMiniBlocks(
 
 				scrMBs := sp.getAllSmartContractResultMiniblocks()
 				if len(scrMBs) > 0 {
-					miniBlocks = append(miniBlocks, scrMBs)
+					miniBlocks = append(miniBlocks, scrMBs...)
 				}
 
 				log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
@@ -1659,7 +1689,7 @@ func (sp *shardProcessor) createMiniBlocks(
 
 			scrMBs := sp.getAllSmartContractResultMiniblocks()
 			if len(scrMBs) > 0 {
-				miniBlocks = append(miniBlocks, scrMBs)
+				miniBlocks = append(miniBlocks, scrMBs...)
 			}
 
 			log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
@@ -1673,7 +1703,7 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	scrMBs := sp.getAllSmartContractResultMiniblocks()
 	if len(scrMBs) > 0 {
-		miniBlocks = append(miniBlocks, scrMBs)
+		miniBlocks = append(miniBlocks, scrMBs...)
 	}
 
 	log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
