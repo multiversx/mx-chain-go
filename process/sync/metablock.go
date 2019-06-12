@@ -130,13 +130,7 @@ func (boot *MetaBootstrap) applyNotarizedBlock(nonce uint64) error {
 		return err
 	}
 
-	//err = mp.createLastNotarizedHdrs(header)
-	//if err != nil {
-	//	return err
-	//}
-
-	boot.blkExecutor.SetLastNotarizedHdr(sharding.MetachainShardId, header)
-
+	boot.blkExecutor.SetLastNotarizedHdr(header.ShardId, header)
 	return nil
 }
 

@@ -583,7 +583,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.Error(errNotCritical.Error())
 	}
 
-	nonceToByteSlice := sp.uint64Converter.ToByteSlice(headerHandler.GetNonce())
+	nonceToByteSlice := sp.uint64Converter.ToByteSlice(header.Nonce)
 	err = sp.store.Put(dataRetriever.ShardHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if err != nil {
 		return err
@@ -786,21 +786,21 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 			continue
 		}
 
-		key := sp.hasher.Compute(string(buff))
-		err = sp.store.Put(dataRetriever.MetaBlockUnit, key, buff)
+		headerHash := sp.hasher.Compute(string(buff))
+		err = sp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
 		if err != nil {
 			log.Error(err.Error())
 			continue
 		}
 
 		nonceToByteSlice := sp.uint64Converter.ToByteSlice(hdr.GetNonce())
-		err = sp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, key)
+		err = sp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 		if err != nil {
 			log.Error(err.Error())
 			continue
 		}
 
-		sp.dataPool.MetaBlocks().Remove(key)
+		sp.dataPool.MetaBlocks().Remove(headerHash)
 		log.Info(fmt.Sprintf("metablock with nonce %d has been processed completely and removed from pool\n",
 			hdr.GetNonce()))
 	}

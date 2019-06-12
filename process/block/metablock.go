@@ -356,7 +356,13 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	buff, err := mp.marshalizer.Marshal(headerHandler)
+	header, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		err = process.ErrWrongTypeAssertion
+		return err
+	}
+
+	buff, err := mp.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
@@ -367,15 +373,9 @@ func (mp *metaProcessor) CommitBlock(
 		log.Error(errNotCritical.Error())
 	}
 
-	nonceToByteSlice := mp.uint64Converter.ToByteSlice(headerHandler.GetNonce())
+	nonceToByteSlice := mp.uint64Converter.ToByteSlice(header.Nonce)
 	err = mp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if err != nil {
-		return err
-	}
-
-	header, ok := headerHandler.(*block.MetaBlock)
-	if !ok {
-		err = process.ErrWrongTypeAssertion
 		return err
 	}
 
@@ -408,6 +408,12 @@ func (mp *metaProcessor) CommitBlock(
 		}
 
 		errNotCritical = mp.store.Put(dataRetriever.BlockHeaderUnit, shardData.HeaderHash, buff)
+		if errNotCritical != nil {
+			log.Error(errNotCritical.Error())
+		}
+
+		nonceToByteSlice := mp.uint64Converter.ToByteSlice(header.Nonce)
+		errNotCritical = mp.store.Put(dataRetriever.ShardHdrNonceHashDataUnit, nonceToByteSlice, shardData.HeaderHash)
 		if errNotCritical != nil {
 			log.Error(errNotCritical.Error())
 		}
