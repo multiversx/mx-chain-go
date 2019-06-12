@@ -358,12 +358,18 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 		}
 	}
 
+	requested := 0
 	for _, nonce := range missingNonces {
 		// do the request here
 		if bp.onRequestHeaderHandlerByNonce == nil {
 			return process.ErrNilRequestHeaderHandlerByNonce
 		}
 
+		if requested >= process.MaxHeaderRequestsAllowed {
+			break
+		}
+
+		requested++
 		go bp.onRequestHeaderHandlerByNonce(shardId, nonce)
 	}
 

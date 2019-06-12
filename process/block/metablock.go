@@ -152,6 +152,21 @@ func (mp *metaProcessor) ProcessBlock(
 			return err
 		}
 	}
+	//else {
+	mp.mutRequestedShardHeaderHashes.Lock()
+	requestedBlockHeaders = mp.requestFinalMissingHeaders()
+	mp.mutRequestedShardHeaderHashes.Unlock()
+
+	if requestedBlockHeaders > 0 {
+		return process.ErrHeaderNotFinal
+		//log.Info(fmt.Sprintf("requested %d missing final block headers\n", requestedBlockHeaders))
+		//err = mp.waitForBlockHeaders(haveTime())
+		//if err != nil {
+		//	return err
+		//}
+		//log.Info(fmt.Sprintf("received all missing final block headers\n"))
+	}
+	//}
 
 	if mp.accounts.JournalLen() != 0 {
 		return process.ErrAccountStateDirty
@@ -190,6 +205,36 @@ func (mp *metaProcessor) ProcessBlock(
 	go mp.checkAndRequestIfShardHeadersMissing(header.Round)
 
 	return nil
+}
+
+func (mp *metaProcessor) requestFinalMissingHeaders() int {
+	requestedBlockHeaders := 0
+	// I have all the needed, but I do not know if I have the ones which would finalize them
+	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
+		// ask for finality attesting hdrs if it is not yet in cache
+		for i := mp.currHighestShardHdrNonces[shardId] + 1; i <= mp.currHighestShardHdrNonces[shardId]+uint64(mp.nextKValidity); i++ {
+			if mp.currHighestShardHdrNonces[shardId] == uint64(0) {
+				continue
+			}
+
+			value, okPeek := mp.dataPool.ShardHeadersNonces().Peek(i)
+			mapOfHashes, okTypeAssertion := value.(*sync.Map)
+
+			var okLoad bool
+			if okTypeAssertion {
+				_, okLoad = mapOfHashes.Load(shardId)
+			}
+
+			finalityAttestingHeaderForShardNotFound := !okPeek || !okTypeAssertion || !okLoad
+			if finalityAttestingHeaderForShardNotFound {
+				//mp.allNeededShardHdrsFound = false
+				requestedBlockHeaders++
+				go mp.onRequestHeaderHandlerByNonce(shardId, i)
+			}
+		}
+	}
+
+	return requestedBlockHeaders
 }
 
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint32) error {
@@ -585,6 +630,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 		return err
 	}
 
+	//allHeadersAreFinal := true
 	for index, lastVerifiedHdr := range highestNonceHdrs {
 		if index != lastVerifiedHdr.GetShardID() {
 			return process.ErrShardIdMissmatch
@@ -613,8 +659,14 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 
 		if nextBlocksVerified < mp.nextKValidity {
 			return process.ErrHeaderNotFinal
+			//allHeadersAreFinal = false
+			//go mp.onRequestHeaderHandlerByNonce(index, lastVerifiedHdr.GetNonce()+1)
 		}
 	}
+
+	//if !allHeadersAreFinal {
+	//	return process.ErrHeaderNotFinal
+	//}
 
 	return nil
 }
@@ -688,9 +740,9 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 		return
 	}
 
-	mp.mutRequestedShardHeaderHashes.Lock()
-
 	if !mp.allNeededShardHdrsFound {
+		mp.mutRequestedShardHeaderHashes.Lock()
+
 		if mp.requestedShardHeaderHashes[string(headerHash)] {
 			delete(mp.requestedShardHeaderHashes, string(headerHash))
 
@@ -700,29 +752,11 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 		}
 
 		lenReqHeadersHashes := len(mp.requestedShardHeaderHashes)
-		areFinalityAttestingHdrsInCache := true
+		areFinalityAttestingHdrsInCache := false
 		if lenReqHeadersHashes == 0 {
-			for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
-				// ask for finality attesting hdrs if it is not yet in cache
-				for i := mp.currHighestShardHdrNonces[shardId] + 1; i <= mp.currHighestShardHdrNonces[shardId]+uint64(mp.nextKValidity); i++ {
-					if mp.currHighestShardHdrNonces[shardId] == uint64(0) {
-						continue
-					}
-
-					value, okPeek := shardHdrsNoncesCache.Peek(i)
-					mapOfHashes, okTypeAssertion := value.(*sync.Map)
-
-					var okLoad bool
-					if okTypeAssertion {
-						_, okLoad = mapOfHashes.Load(shardId)
-					}
-
-					finalityAttestingHeaderForShardNotFound := !okPeek || !okTypeAssertion || !okLoad
-					if finalityAttestingHeaderForShardNotFound {
-						go mp.onRequestHeaderHandlerByNonce(shardId, i)
-						areFinalityAttestingHdrsInCache = false
-					}
-				}
+			requestedBlockHeaders := mp.requestFinalMissingHeaders()
+			if requestedBlockHeaders == 0 {
+				areFinalityAttestingHdrsInCache = true
 			}
 		}
 
@@ -733,9 +767,9 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 			mp.chRcvAllHdrs <- true
 			return
 		}
-	}
 
-	mp.mutRequestedShardHeaderHashes.Unlock()
+		mp.mutRequestedShardHeaderHashes.Unlock()
+	}
 }
 
 func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
