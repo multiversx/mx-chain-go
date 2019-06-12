@@ -83,7 +83,7 @@ func NewElasticIndexer(
 		hasher,
 		logger}
 
-	err = indexer.checkAndCreateIndex(blockIndex, nil)
+	err = indexer.checkAndCreateIndex(blockIndex, timestampMapping())
 	if err != nil {
 		return nil, err
 	}
