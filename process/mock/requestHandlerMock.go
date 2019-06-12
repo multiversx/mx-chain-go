@@ -12,7 +12,6 @@ func (rrh *RequestHandlerMock) RequestTransaction(destShardID uint32, txHashes [
 	if rrh.RequestTransactionHandlerCalled == nil {
 		return
 	}
-
 	rrh.RequestTransactionHandlerCalled(destShardID, txHashes)
 }
 
@@ -20,7 +19,6 @@ func (rrh *RequestHandlerMock) RequestSmartContractResults(destShardID uint32, t
 	if rrh.RequestScrHandlerCalled == nil {
 		return
 	}
-
 	rrh.RequestScrHandlerCalled(destShardID, txHashes)
 }
 
