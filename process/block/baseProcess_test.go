@@ -229,6 +229,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	return store
 }
 

@@ -717,7 +717,7 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, r)
 }
 
-func TestMetaBootstrap_ShouldReturnMissingHeader(t *testing.T) {
+func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	t.Parallel()
 
 	hdr := block.MetaBlock{Nonce: 1}
@@ -765,7 +765,7 @@ func TestMetaBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 
 	r := bs.SyncBlock()
 
-	assert.Equal(t, process.ErrMissingHashForHeaderNonce, r)
+	assert.Equal(t, process.ErrTimeIsOut, r)
 }
 
 func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {

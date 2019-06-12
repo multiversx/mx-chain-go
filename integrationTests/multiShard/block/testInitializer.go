@@ -558,8 +558,8 @@ func createTestMetaChain() data.ChainHandler {
 func createTestMetaStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
-	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, createMemUnit())
 
 	return store
 }
