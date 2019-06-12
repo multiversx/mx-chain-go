@@ -1,3 +1,5 @@
+package memp2p
+
 import "github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 
 type MemP2PMessage struct {
@@ -23,9 +25,16 @@ type MemP2PMessage struct {
 	peer p2p.PeerID
 }
 
-func (message *MemP2PMessage) NewMemP2PMessageFromString(content string) *MemP2PMessage {
+func NewMemP2PMessage(topic string, data []byte, peerID p2p.PeerID) *MemP2PMessage {
+	var empty []byte
 	return &MemP2PMessage{
-		data: []byte(string),
+		from:      []byte(string(peerID)),
+		data:      data,
+		seqNo:     empty,
+		topicIds:  []string{topic},
+		signature: empty,
+		key:       []byte(string(peerID)),
+		peer:      peerID,
 	}
 }
 
@@ -63,4 +72,3 @@ func (message *MemP2PMessage) Key() []byte {
 func (message *MemP2PMessage) Peer() p2p.PeerID {
 	return message.peer
 }
-
