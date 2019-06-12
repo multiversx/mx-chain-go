@@ -377,3 +377,15 @@ func WithTxStorageSize(txStorageSize uint32) Option {
 		return nil
 	}
 }
+
+// WithDataGetter sets up a SC data getter
+func WithDataGetter(dataGetter process.SmartContractDataGetter) Option {
+	return func(n *Node) error {
+		if dataGetter == nil {
+			return ErrNilDataGetter
+		}
+
+		n.dataGetter = dataGetter
+		return nil
+	}
+}

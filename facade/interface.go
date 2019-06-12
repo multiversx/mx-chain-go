@@ -56,6 +56,9 @@ type NodeWrapper interface {
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 	GetHeartbeats() []heartbeat.PubKeyHeartbeat
+
+	// GetDataValue will return the SC variable data value through a get func available in SC
+	GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
 }
 
 // ExternalResolver defines what functionality can be exposed to an external component (REST API, RPC, etc.)

@@ -25,6 +25,7 @@ type NodeMock struct {
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	GetHeartbeatsHandler                           func() []heartbeat.PubKeyHeartbeat
+	GetDataValueHandler                            func(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
 }
 
 func (nm *NodeMock) Address() (string, error) {
@@ -89,4 +90,8 @@ func (nm *NodeMock) GetAccount(address string) (*state.Account, error) {
 
 func (nm *NodeMock) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 	return nm.GetHeartbeatsHandler()
+}
+
+func (nm *NodeMock) GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
+	return nm.GetDataValueHandler(address, funcName, argsBuff...)
 }

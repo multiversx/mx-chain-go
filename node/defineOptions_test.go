@@ -739,3 +739,27 @@ func TestWithConsensusBls_ShouldWork(t *testing.T) {
 	assert.Equal(t, consensusType, node.consensusType)
 	assert.Nil(t, err)
 }
+
+func TestWithDataGetter_NilShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithDataGetter(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.dataGetter)
+	assert.Equal(t, ErrNilDataGetter, err)
+}
+
+func TestWithDataGetter_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithDataGetter(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.dataGetter)
+	assert.Equal(t, ErrNilDataGetter, err)
+}

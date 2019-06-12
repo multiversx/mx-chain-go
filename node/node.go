@@ -98,6 +98,7 @@ type Node struct {
 	isMetachainActive        bool
 	txStorageSize            uint32
 	currentSendingGoRoutines int32
+	dataGetter               process.SmartContractDataGetter
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -747,4 +748,19 @@ func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 		return nil
 	}
 	return n.heartbeatMonitor.GetHeartbeats()
+}
+
+// GetDataValue returns the data from a SC by invoking a Get function.
+// TODO move this func into a special struct after main refactor is completely done
+func (n *Node) GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
+	if n.dataGetter == nil {
+		return nil, ErrNilDataGetter
+	}
+
+	addressContainer, err := n.addrConverter.CreateAddressFromHex(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return n.dataGetter.Get(addressContainer.Bytes(), funcName, argsBuff...)
 }

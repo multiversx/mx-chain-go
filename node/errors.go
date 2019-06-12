@@ -85,12 +85,6 @@ var ErrNilResolversFinder = errors.New("nil resolvers finder")
 // ErrNilBlockHeader is raised when a valid block header is expected but nil was used
 var ErrNilBlockHeader = errors.New("block header is nil")
 
-// ErrNilTxBlockBody is raised when a valid tx block body is expected but nil was used
-var ErrNilTxBlockBody = errors.New("tx block body is nil")
-
-// ErrNilMetaBlockHeader is raised when a valid metablock is expected but nil was provided
-var ErrNilMetaBlockHeader = errors.New("meta block header is nil")
-
 // ErrWrongTypeAssertion is raised when a type assertion occurs
 var ErrWrongTypeAssertion = errors.New("wrong type assertion: expected *block.Header")
 
@@ -120,3 +114,6 @@ var ErrTooManyTransactionsInPool = errors.New("too many transactions in pool")
 
 // ErrSystemBusyGeneratingTransactions signals that to many transactions are trying to get generated
 var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generating bulk transactions")
+
+// ErrNilDataGetter signals that a nil data getter has been provided
+var ErrNilDataGetter = errors.New("nil data getter")

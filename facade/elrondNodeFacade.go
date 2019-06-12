@@ -177,3 +177,8 @@ func (ef *ElrondNodeFacade) RecentNotarizedBlocks(maxShardHeadersNum int) ([]*ex
 func (ef *ElrondNodeFacade) RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error) {
 	return ef.resolver.RetrieveShardBlock(blockHash)
 }
+
+// GetDataValue will return the SC variable data value through a get func available in SC
+func (ef *ElrondNodeFacade) GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
+	return ef.node.GetDataValue(address, funcName, argsBuff...)
+}

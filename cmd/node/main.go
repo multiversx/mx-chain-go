@@ -53,6 +53,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	integrationTestsMock "github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/external"
@@ -61,11 +62,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	factoryP2P "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
@@ -75,9 +76,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/google/gops/agent"
-	crypto2 "github.com/libp2p/go-libp2p-crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
 )
@@ -718,13 +720,21 @@ func createShardNode(
 		return nil, nil, nil, err
 	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(accountsAdapter, addressConverter)
+	_, _, fakeAccounts, vmProcessor, err := vmFactory(accountsAdapter, addressConverter)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	//TODO: change the mock
-	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser, hasher, marshalizer, accountsAdapter, vmAccountsDB, addressConverter, shardCoordinator)
+	scProcessor, err := smartContract.NewSmartContractProcessor(
+		vmProcessor,
+		argsParser,
+		hasher,
+		marshalizer,
+		accountsAdapter,
+		fakeAccounts,
+		addressConverter,
+		shardCoordinator,
+	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1286,6 +1296,18 @@ func createMetaNode(
 		return nil, nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
+	//TODO move this when main refactor is completed
+	//we need to recreate a new instance of the vm here as to not interfere with execution of the blocks
+	_, _, _, vmDataGetter, err := vmFactory(accountsAdapter, addressConverter)
+	if err != nil {
+		return nil, nil, nil, errors.New("could not create vm for data getter: " + err.Error())
+	}
+
+	dataGetter, err := smartContract.NewSCDataGetter(vmDataGetter)
+	if err != nil {
+		return nil, nil, nil, errors.New("could data getter: " + err.Error())
+	}
+
 	nd, err := node.NewNode(
 		node.WithMessenger(netMessenger),
 		node.WithHasher(hasher),
@@ -1318,6 +1340,7 @@ func createMetaNode(
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(txSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
+		node.WithDataGetter(dataGetter),
 	)
 	if err != nil {
 		return nil, nil, nil, errors.New("error creating meta-node: " + err.Error())
@@ -1362,7 +1385,7 @@ func createNetMessenger(
 	log.Info(fmt.Sprintf("Starting with peer discovery: %s", pDiscoverer.Name()))
 
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
-	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
 	nm, err := libp2p.NewNetworkMessenger(
 		context.Background(),
@@ -1939,4 +1962,24 @@ func createMemUnit() storage.Storer {
 
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 	return unit
+}
+
+func vmFactory(
+	accnts state.AccountsAdapter,
+	addrConv state.AddressConverter,
+) (vmcommon.BlockchainHook, vmcommon.CryptoHook, process.FakeAccountsHandler, vmcommon.VMExecutionHandler, error) {
+
+	vmAccountsDB, err := hooks.NewVMAccountsDB(accnts, addrConv)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	cryptoHook := &hooks.VMCryptoHook{}
+	//TODO change this mock after iele integration tests are completed
+	vmHandler, err := integrationTestsMock.NewOneSCExecutorMockVM(vmAccountsDB, cryptoHook)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	return vmAccountsDB, cryptoHook, vmAccountsDB, vmHandler, nil
 }
