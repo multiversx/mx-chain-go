@@ -102,7 +102,7 @@ func TestMissingRoot(t *testing.T) {
 }
 
 func TestMissingNodeDisk(t *testing.T)    { testMissingNode(t, false) }
-func TestMissingNodeMemonly(t *testing.T) { testMissingNode(t, true) }
+func TestMissingNodeMemOnly(t *testing.T) { testMissingNode(t, false) }
 
 func testMissingNode(t *testing.T, memonly bool) {
 	diskdb := mock.NewMemoryStorerMock()
