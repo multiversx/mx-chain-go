@@ -15,11 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func sendConsensusMessage(cnsMsg *consensus.Message) bool {
-	fmt.Println(cnsMsg)
-	return true
-}
-
 func extend(subroundId int) {
 	fmt.Println(subroundId)
 }
@@ -35,6 +30,7 @@ func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool
 		"(BLOCK)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 }
@@ -42,7 +38,6 @@ func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool
 func defaultSubroundBlockFromSubround(sr *spos.Subround) (*commonSubround.SubroundBlock, error) {
 	srBlock, err := commonSubround.NewSubroundBlock(
 		sr,
-		sendConsensusMessage,
 		extend,
 		int(MtBlockBody),
 		int(MtBlockHeader),
@@ -112,7 +107,6 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 
 	srBlock, err := commonSubround.NewSubroundBlock(
 		nil,
-		sendConsensusMessage,
 		extend,
 		int(MtBlockBody),
 		int(MtBlockHeader),
@@ -259,26 +253,6 @@ func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
-func TestSubroundBlock_NewSubroundBlockNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
-	t.Parallel()
-	container := mock.InitConsensusCore()
-
-	consensusState := initConsensusState()
-	ch := make(chan bool, 1)
-	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container)
-	srBlock, err := commonSubround.NewSubroundBlock(
-		sr,
-		nil,
-		extend,
-		int(MtBlockBody),
-		int(MtBlockHeader),
-		processingThresholdPercent,
-		getSubroundName,
-	)
-	assert.Nil(t, srBlock)
-	assert.Equal(t, spos.ErrNilSendConsensusMessageFunction, err)
-}
-
 func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
 	t.Parallel()
 	container := mock.InitConsensusCore()
@@ -315,12 +289,17 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		return nil, err
 	}
 	container.SetBlockProcessor(bpm)
-
 	r = sr.DoBlockJob()
 	assert.False(t, r)
 
 	bpm = mock.InitBlockProcessorMock()
 	container.SetBlockProcessor(bpm)
+	bm := &mock.BroadcastMessengerMock{
+		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+			return nil
+		},
+	}
+	container.SetBroadcastMessenger(bm)
 	r = sr.DoBlockJob()
 	assert.True(t, r)
 	assert.Equal(t, uint64(1), sr.Header.GetNonce())

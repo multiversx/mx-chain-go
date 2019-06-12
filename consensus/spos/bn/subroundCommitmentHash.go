@@ -9,19 +9,15 @@ import (
 
 type subroundCommitmentHash struct {
 	*spos.Subround
-
-	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundCommitmentHash creates a subroundCommitmentHash object
 func NewSubroundCommitmentHash(
 	baseSubround *spos.Subround,
-	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundCommitmentHash, error) {
 	err := checkNewSubroundCommitmentHashParams(
 		baseSubround,
-		sendConsensusMessage,
 	)
 	if err != nil {
 		return nil, err
@@ -29,7 +25,6 @@ func NewSubroundCommitmentHash(
 
 	srCommitmentHash := subroundCommitmentHash{
 		baseSubround,
-		sendConsensusMessage,
 	}
 	srCommitmentHash.Job = srCommitmentHash.doCommitmentHashJob
 	srCommitmentHash.Check = srCommitmentHash.doCommitmentHashConsensusCheck
@@ -40,7 +35,6 @@ func NewSubroundCommitmentHash(
 
 func checkNewSubroundCommitmentHashParams(
 	baseSubround *spos.Subround,
-	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if baseSubround == nil {
 		return spos.ErrNilSubround
@@ -48,10 +42,6 @@ func checkNewSubroundCommitmentHashParams(
 
 	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
-	}
-
-	if sendConsensusMessage == nil {
-		return spos.ErrNilSendConsensusMessageFunction
 	}
 
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
@@ -80,7 +70,9 @@ func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
 
-	if !sr.sendConsensusMessage(msg) {
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
+	if err != nil {
+		log.Error(err.Error())
 		return false
 	}
 

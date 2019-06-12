@@ -91,6 +91,7 @@ type Config struct {
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
+	Explorer        ExplorerConfig
 
 	NTPConfig NTPConfig
 }
@@ -140,4 +141,21 @@ type HeartbeatConfig struct {
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
+}
+
+// ExplorerConfig will hold the configuration for the explorer indexer
+type ExplorerConfig struct {
+	Enabled    bool
+	IndexerURL string
+}
+
+// ServersConfig will hold all the confidential settings for servers
+type ServersConfig struct {
+	ElasticSearch ElasticSearchConfig
+}
+
+// ExplorerConfig will hold the configuration for the explorer indexer
+type ElasticSearchConfig struct {
+	Username string
+	Password string
 }

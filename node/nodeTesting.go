@@ -7,6 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
@@ -15,13 +16,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
-//TODO convert this const into a var and read it from config when this code moves to another binary
-const maxBulkTransactionSize = 2 << 17 //128KB bulks
-
 // maxLoadThresholdPercent specifies the max load percent accepted from txs storage size when generates new txs
 const maxLoadThresholdPercent = 70
 
-const maxGoRoutinesSendMessage = 10000
+const maxGoRoutinesSendMessage = 30
 
 //TODO move this funcs in a new benchmarking/stress-test binary
 
@@ -44,7 +42,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 			return ErrNilTransactionPool
 		}
 
-		maxNoOfTx := uint64(0)
+		maxNoOfTx := int64(0)
 		txStorageSize := uint64(n.txStorageSize) * maxLoadThresholdPercent / 100
 		for i := uint32(0); i < n.shardCoordinator.NumberOfShards(); i++ {
 			strCache := process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), i)
@@ -53,13 +51,15 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 				continue
 			}
 
-			if uint64(txStore.Len())+noOfTx > txStorageSize {
-				maxNoOfTx = txStorageSize - uint64(txStore.Len())
-				if noOfTx > maxNoOfTx {
-					noOfTx = maxNoOfTx
-					if noOfTx <= 0 {
+			txStoreLen := uint64(txStore.Len())
+			if txStoreLen+noOfTx > txStorageSize {
+				maxNoOfTx = int64(txStorageSize) - int64(txStoreLen)
+				if int64(noOfTx) > maxNoOfTx {
+					if maxNoOfTx <= 0 {
 						return ErrTooManyTransactionsInPool
 					}
+
+					noOfTx = uint64(maxNoOfTx)
 				}
 			}
 		}
@@ -124,7 +124,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
 	fmt.Printf("Identifier: %s\n", identifier)
 
-	packets, err := dataPacker.PackDataInChunks(transactions, maxBulkTransactionSize)
+	packets, err := dataPacker.PackDataInChunks(transactions, core.MaxBulkTransactionSize)
 	if err != nil {
 		return err
 	}

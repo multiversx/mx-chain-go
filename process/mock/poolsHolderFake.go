@@ -29,8 +29,9 @@ func NewPoolsHolderFake() *PoolsHolderFake {
 		cacheHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
+	cacheMetaHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	phf.metaHdrNonces, _ = dataPool.NewNonceToHashCacher(
-		cacheHdrNonces,
+		cacheMetaHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
 	phf.miniBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
@@ -64,4 +65,8 @@ func (phf *PoolsHolderFake) MetaBlocks() storage.Cacher {
 
 func (phf *PoolsHolderFake) MetaHeadersNonces() dataRetriever.Uint64Cacher {
 	return phf.metaHdrNonces
+}
+
+func (phf *PoolsHolderFake) SetTransactions(transactions dataRetriever.ShardedDataCacherNotifier) {
+	phf.transactions = transactions
 }

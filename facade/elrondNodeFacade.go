@@ -115,7 +115,7 @@ func (ef *ElrondNodeFacade) SendTransaction(
 	value *big.Int,
 	transactionData string,
 	signature []byte,
-) (*transaction.Transaction, error) {
+) (string, error) {
 
 	return ef.node.SendTransaction(nonce, senderHex, receiverHex, value, transactionData, signature)
 }

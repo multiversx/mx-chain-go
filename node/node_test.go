@@ -2,10 +2,11 @@ package node_test
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
@@ -23,13 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 )
-
-type wrongBody struct {
-}
-
-func (wr wrongBody) IntegrityAndValidity() error {
-	return nil
-}
 
 func logError(err error) {
 	if err != nil {
@@ -280,16 +275,10 @@ func createDummyHexAddress(chars int) string {
 		return ""
 	}
 
-	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
+	buff := make([]byte, chars/2)
+	_, _ = rand.Reader.Read(buff)
 
-	rdm := rand.New(rand.NewSource(time.Now().Unix()))
-
-	buff := make([]byte, chars)
-	for i := 0; i < chars; i++ {
-		buff[i] = characters[rdm.Int()%16]
-	}
-
-	return string(buff)
+	return hex.EncodeToString(buff)
 }
 
 func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
@@ -568,11 +557,16 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 		},
 	}
 
+	marshalizer := &mock.MarshalizerFake{}
+	hasher := &mock.HasherFake{}
+	adrConverter := mock.NewAddressConverterFake(32, "0x")
+
 	n, _ := node.NewNode(
-		node.WithMarshalizer(&mock.MarshalizerFake{}),
-		node.WithAddressConverter(mock.NewAddressConverterFake(32, "0x")),
+		node.WithMarshalizer(marshalizer),
+		node.WithAddressConverter(adrConverter),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithMessenger(mes),
+		node.WithHasher(hasher),
 	)
 
 	nonce := uint64(50)
@@ -582,7 +576,10 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	txData := "data"
 	signature := []byte("signature")
 
-	tx, err := n.SendTransaction(
+	senderBuff, _ := adrConverter.CreateAddressFromHex(sender)
+	receiverBuff, _ := adrConverter.CreateAddressFromHex(receiver)
+
+	txHexHashResulted, err := n.SendTransaction(
 		nonce,
 		sender,
 		receiver,
@@ -590,8 +587,18 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 		txData,
 		signature)
 
+	marshalizedTx, _ := marshalizer.Marshal(&transaction.Transaction{
+		Nonce:     nonce,
+		Value:     value,
+		SndAddr:   senderBuff.Bytes(),
+		RcvAddr:   receiverBuff.Bytes(),
+		Data:      []byte(txData),
+		Signature: signature,
+	})
+	txHexHashExpected := hex.EncodeToString(hasher.Compute(string(marshalizedTx)))
+
 	assert.Nil(t, err)
-	assert.NotNil(t, tx)
+	assert.Equal(t, txHexHashExpected, txHexHashResulted)
 	assert.True(t, txSent)
 }
 
@@ -725,216 +732,6 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	assert.True(t, containString(process.ShardCacherIdentifier(0, 0), txShardedStores))
 	assert.True(t, containString(process.ShardCacherIdentifier(0, 1), txShardedStores))
 	assert.True(t, containString(process.ShardCacherIdentifier(1, 0), txShardedStores))
-}
-
-func TestNode_BroadcastBlockShouldFailWhenTxBlockBodyNil(t *testing.T) {
-	n, _ := node.NewNode()
-	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
-		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
-	}}
-
-	_ = n.ApplyOptions(
-		node.WithMessenger(messenger),
-		node.WithMarshalizer(mock.MarshalizerMock{}),
-		node.WithBlockProcessor(bp),
-	)
-
-	err := n.BroadcastShardBlock(nil, &block.Header{})
-	assert.Equal(t, node.ErrNilTxBlockBody, err)
-}
-
-func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
-	n, _ := node.NewNode()
-	messenger := getMessenger()
-
-	marshalizerMock := mock.MarshalizerMock{}
-	err := errors.New("error marshal tx vlock body")
-	marshalizerMock.MarshalHandler = func(obj interface{}) ([]byte, error) {
-		switch obj.(type) {
-		case block.Body:
-			return nil, err
-		}
-
-		return []byte("marshalized ok"), nil
-	}
-	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
-		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
-	}}
-
-	_ = n.ApplyOptions(
-		node.WithMessenger(messenger),
-		node.WithMarshalizer(marshalizerMock),
-		node.WithBlockProcessor(bp),
-	)
-
-	txHash0 := []byte("txHash0")
-	mb0 := block.MiniBlock{
-		ReceiverShardID: 0,
-		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash0)},
-	}
-
-	body := make(block.Body, 0)
-	body = append(body, &mb0)
-
-	err2 := n.BroadcastShardBlock(body, &block.Header{})
-	assert.Equal(t, err, err2)
-}
-
-func TestNode_BroadcastBlockShouldFailWhenBlockIsNotGoodType(t *testing.T) {
-	n, _ := node.NewNode()
-	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
-		return nil, nil, process.ErrWrongTypeAssertion
-	}}
-	_ = n.ApplyOptions(
-		node.WithMessenger(messenger),
-		node.WithMarshalizer(mock.MarshalizerMock{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithBlockProcessor(bp),
-	)
-
-	wr := wrongBody{}
-	err := n.BroadcastShardBlock(wr, &block.Header{})
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-}
-
-func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
-	n, _ := node.NewNode()
-	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
-		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
-	}}
-	_ = n.ApplyOptions(
-		node.WithMessenger(messenger),
-		node.WithMarshalizer(mock.MarshalizerMock{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithBlockProcessor(bp),
-	)
-
-	txHash0 := []byte("txHash0")
-	mb0 := block.MiniBlock{
-		ReceiverShardID: 0,
-		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash0)},
-	}
-
-	body := make(block.Body, 0)
-	body = append(body, &mb0)
-
-	err := n.BroadcastShardBlock(body, nil)
-	assert.Equal(t, node.ErrNilBlockHeader, err)
-}
-
-func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
-	n, _ := node.NewNode()
-	messenger := getMessenger()
-
-	marshalizerMock := mock.MarshalizerMock{}
-	err := errors.New("error marshal header")
-	marshalizerMock.MarshalHandler = func(obj interface{}) ([]byte, error) {
-		switch obj.(type) {
-		case *block.Header:
-			return nil, err
-		}
-
-		return []byte("marshalized ok"), nil
-	}
-
-	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
-		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
-	}}
-
-	_ = n.ApplyOptions(
-		node.WithMessenger(messenger),
-		node.WithMarshalizer(marshalizerMock),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithBlockProcessor(bp),
-	)
-
-	txHash0 := []byte("txHash0")
-	mb0 := block.MiniBlock{
-		ReceiverShardID: 0,
-		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash0)},
-	}
-
-	body := make(block.Body, 0)
-	body = append(body, &mb0)
-
-	err2 := n.BroadcastShardBlock(body, &block.Header{})
-	assert.Equal(t, err, err2)
-}
-
-func TestNode_BroadcastBlockShouldWorkWithOneShard(t *testing.T) {
-	n, _ := node.NewNode()
-	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
-		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
-	}}
-	_ = n.ApplyOptions(
-		node.WithMessenger(messenger),
-		node.WithMarshalizer(mock.MarshalizerMock{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithBlockProcessor(bp),
-		node.WithHasher(mock.HasherFake{}),
-	)
-
-	txHash0 := []byte("txHash0")
-	mb0 := block.MiniBlock{
-		ReceiverShardID: 0,
-		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash0)},
-	}
-
-	body := make(block.Body, 0)
-	body = append(body, &mb0)
-
-	err := n.BroadcastShardBlock(body, &block.Header{})
-	assert.Nil(t, err)
-}
-
-func TestNode_BroadcastBlockShouldWorkMultiShard(t *testing.T) {
-	n, _ := node.NewNode()
-	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
-		return make(map[uint32][]byte, 0), make(map[uint32][][]byte, 1), nil
-	}}
-	_ = n.ApplyOptions(
-		node.WithMessenger(messenger),
-		node.WithMarshalizer(mock.MarshalizerMock{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithBlockProcessor(bp),
-		node.WithHasher(mock.HasherFake{}),
-	)
-
-	txHash0 := []byte("txHash0")
-	mb0 := block.MiniBlock{
-		ReceiverShardID: 0,
-		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash0)},
-	}
-
-	txHash1 := []byte("txHash1")
-	mb1 := block.MiniBlock{
-		ReceiverShardID: 1,
-		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash1)},
-	}
-
-	body := make(block.Body, 0)
-	body = append(body, &mb0)
-	body = append(body, &mb0)
-	body = append(body, &mb0)
-	body = append(body, &mb1)
-	body = append(body, &mb1)
-	body = append(body, &mb1)
-	body = append(body, &mb1)
-	body = append(body, &mb1)
-
-	err := n.BroadcastShardBlock(body, &block.Header{})
-	assert.Nil(t, err)
 }
 
 //------- StartHeartbeat
@@ -1421,4 +1218,135 @@ func TestNode_CreateMetaGenesisBlockShouldCreateSaveAndStoreMetaBlock(t *testing
 	savedHeaderHash := testHasher.Compute(string(marshalizedSavedHeader))
 	assert.Equal(t, savedHeaderHash, storedHeaderHash)
 	assert.Equal(t, savedHeaderHash, storedHeaderKey)
+}
+
+//------- GetAccount
+
+func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithAddressConverter(mock.NewAddressConverterFake(32, "")),
+	)
+
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+
+	assert.Nil(t, recovAccnt)
+	assert.Equal(t, node.ErrNilAccountsAdapter, err)
+}
+
+func TestNode_GetAccountWithNilAddressConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	accDB := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return nil, state.ErrAccNotFound
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accDB),
+	)
+
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+
+	assert.Nil(t, recovAccnt)
+	assert.Equal(t, node.ErrNilAddressConverter, err)
+}
+
+func TestNode_GetAccountAddressConverterFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	accDB := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return nil, state.ErrAccNotFound
+		},
+	}
+
+	errExpected := errors.New("expected error")
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accDB),
+		node.WithAddressConverter(mock.AddressConverterStub{
+			CreateAddressFromHexHandler: func(hexAddress string) (container state.AddressContainer, e error) {
+				return nil, errExpected
+			},
+		}),
+	)
+
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+
+	assert.Nil(t, recovAccnt)
+	assert.Equal(t, errExpected, err)
+}
+
+func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
+	t.Parallel()
+
+	accDB := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return nil, state.ErrAccNotFound
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accDB),
+		node.WithAddressConverter(mock.NewAddressConverterFake(32, "")),
+	)
+
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(0), recovAccnt.Nonce)
+	assert.Equal(t, big.NewInt(0), recovAccnt.Balance)
+	assert.Nil(t, recovAccnt.CodeHash)
+	assert.Nil(t, recovAccnt.RootHash)
+}
+
+func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("expected error")
+	accDB := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return nil, errExpected
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accDB),
+		node.WithAddressConverter(mock.NewAddressConverterFake(32, "")),
+	)
+
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+
+	assert.Nil(t, recovAccnt)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), errExpected.Error())
+}
+
+func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
+	t.Parallel()
+
+	accnt := &state.Account{
+		Balance:  big.NewInt(1),
+		Nonce:    2,
+		RootHash: []byte("root hash"),
+		CodeHash: []byte("code hash"),
+	}
+
+	accDB := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return accnt, nil
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accDB),
+		node.WithAddressConverter(mock.NewAddressConverterFake(32, "")),
+	)
+
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+
+	assert.Nil(t, err)
+	assert.Equal(t, accnt, recovAccnt)
 }

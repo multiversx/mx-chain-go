@@ -2,11 +2,11 @@ package block
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"io"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/glycerine/go-capnproto"
 )
 
@@ -457,4 +457,12 @@ func (m *MetaBlock) SetMiniBlockProcessed(hash []byte, processed bool) {
 // IntegrityAndValidity return true as block is nil for metablock.
 func (mb *MetaBlockBody) IntegrityAndValidity() error {
 	return nil
+}
+
+// IsInterfaceNil return if there is no value under the interface
+func (mb *MetaBlock) IsInterfaceNil() bool {
+	if mb == nil {
+		return true
+	}
+	return false
 }

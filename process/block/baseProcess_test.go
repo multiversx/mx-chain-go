@@ -88,7 +88,7 @@ func initDataPool() *mock.PoolsHolderStub {
 		},
 		HeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
 			return &mock.Uint64CacherStub{
-				PutCalled: func(u uint64, i []byte) bool {
+				PutCalled: func(u uint64, i interface{}) bool {
 					return true
 				},
 			}
@@ -152,7 +152,7 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 	mdp := &mock.MetaPoolsHolderStub{
 		MetaBlockNoncesCalled: func() dataRetriever.Uint64Cacher {
 			return &mock.Uint64CacherStub{
-				PutCalled: func(u uint64, i []byte) bool {
+				PutCalled: func(u uint64, i interface{}) bool {
 					return true
 				},
 			}
@@ -293,6 +293,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	bp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		tdp,
 		initStore(),
 		&mock.HasherMock{},
@@ -365,6 +366,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	store := initStore()
 
 	bp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		tdp,
 		store,
 		&mock.HasherStub{},
@@ -388,6 +390,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 	tdp := initDataPool()
 	marshalizer := &mock.MarshalizerStub{}
 	bp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -423,6 +426,7 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerStub{}
 	hasher := &mock.HasherStub{}
 	bp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
 		tdp,
 		initStore(),
 		hasher,

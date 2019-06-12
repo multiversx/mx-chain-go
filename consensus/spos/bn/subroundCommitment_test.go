@@ -25,12 +25,12 @@ func initSubroundCommitment() bn.SubroundCommitment {
 		"(COMMITMENT)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	srCommitment, _ := bn.NewSubroundCommitment(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -42,7 +42,6 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSubroundShouldFail(t *testin
 
 	srCommitment, err := bn.NewSubroundCommitment(
 		nil,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -66,13 +65,13 @@ func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *
 		"(COMMITMENT)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	sr.ConsensusState = nil
 	srCommitment, err := bn.NewSubroundCommitment(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -97,12 +96,12 @@ func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *tes
 		"(COMMITMENT)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetMultiSigner(nil)
 	srCommitment, err := bn.NewSubroundCommitment(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -127,12 +126,12 @@ func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing
 		"(COMMITMENT)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetRounder(nil)
 	srCommitment, err := bn.NewSubroundCommitment(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
@@ -157,47 +156,17 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testi
 		"(COMMITMENT)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 	container.SetSyncTimer(nil)
 	srCommitment, err := bn.NewSubroundCommitment(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
 	assert.Nil(t, srCommitment)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
-}
-
-func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
-	t.Parallel()
-
-	container := mock.InitConsensusCore()
-
-	consensusState := initConsensusState()
-	ch := make(chan bool, 1)
-
-	sr, _ := spos.NewSubround(
-		int(bn.SrBitmap),
-		int(bn.SrCommitment),
-		int(bn.SrSignature),
-		int64(55*roundTimeDuration/100),
-		int64(70*roundTimeDuration/100),
-		"(COMMITMENT)",
-		consensusState,
-		ch,
-		container,
-	)
-
-	srCommitment, err := bn.NewSubroundCommitment(
-		sr,
-		nil,
-		extend,
-	)
-
-	assert.Nil(t, srCommitment)
-	assert.Equal(t, spos.ErrNilSendConsensusMessageFunction, err)
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentShouldWork(t *testing.T) {
@@ -217,12 +186,12 @@ func TestSubroundCommitment_NewSubroundCommitmentShouldWork(t *testing.T) {
 		"(COMMITMENT)",
 		consensusState,
 		ch,
+		executeStoredMessages,
 		container,
 	)
 
 	srCommitment, err := bn.NewSubroundCommitment(
 		sr,
-		sendConsensusMessage,
 		extend,
 	)
 
