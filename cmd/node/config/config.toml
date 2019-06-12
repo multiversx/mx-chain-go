@@ -15,8 +15,8 @@
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
         Type = "LvlDB"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        BatchDelaySeconds = 30
+        MaxBatchSize = 10
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
@@ -25,8 +25,8 @@
     [PeerBlockBodyStorage.DB]
         FilePath = "PeerBlocks"
         Type = "LvlDB"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        BatchDelaySeconds = 30
+        MaxBatchSize = 10
 
 [BlockHeaderStorage]
     [BlockHeaderStorage.Cache]
@@ -35,8 +35,8 @@
     [BlockHeaderStorage.DB]
         FilePath = "BlockHeaders"
         Type = "LvlDB"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        BatchDelaySeconds = 30
+        MaxBatchSize = 10
 
 [ShardDataStorage]
     [ShardDataStorage.Cache]
@@ -45,8 +45,8 @@
     [ShardDataStorage.DB]
         FilePath = "ShardData"
         Type = "LvlDB"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        BatchDelaySeconds = 30
+        MaxBatchSize = 10
 
 [PeerDataStorage]
     [PeerDataStorage.Cache]
@@ -55,8 +55,8 @@
     [PeerDataStorage.DB]
         FilePath = "PeerData"
         Type = "LvlDB"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        BatchDelaySeconds = 30
+        MaxBatchSize = 10
 
 [MetaBlockStorage]
     [MetaBlockStorage.Cache]
@@ -65,8 +65,8 @@
     [MetaBlockStorage.DB]
         FilePath = "MetaBlock"
         Type = "LvlDB"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        BatchDelaySeconds = 30
+        MaxBatchSize = 10
 
 [TxStorage]
     [TxStorage.Cache]
@@ -76,7 +76,7 @@
         FilePath = "Transactions"
         Type = "LvlDB"
         BatchDelaySeconds = 10
-        MaxBatchSize = 5000
+        MaxBatchSize = 30000
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
@@ -86,7 +86,7 @@
         FilePath = "AccountsTrie"
         Type = "LvlDB"
         BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        MaxBatchSize = 30000
 
     [AccountsTrieStorage.Bloom]
         Size = 2048
