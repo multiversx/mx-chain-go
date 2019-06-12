@@ -368,7 +368,7 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	nonceToByteSlice := mp.uint64Converter.ToByteSlice(headerHandler.GetNonce())
-	err = mp.store.Put(dataRetriever.ShardHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	err = mp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if err != nil {
 		return err
 	}

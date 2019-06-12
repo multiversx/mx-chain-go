@@ -38,3 +38,6 @@ func (err ErrSignedBlock) Error() string {
 
 // ErrRandomSeedNotValid signals that the random seed is not valid
 var ErrRandomSeedNotValid = errors.New("random seed is not valid")
+
+// ErrInvalidShardId signals that an invalid shard id has been provided
+var ErrInvalidShardId = errors.New("invalid shard id")

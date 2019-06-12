@@ -118,34 +118,45 @@ func NewMetaBootstrap(
 	return &boot, nil
 }
 
-func (boot *MetaBootstrap) getHeader(hash []byte) (*block.MetaBlock, error) {
-	hdr, err := boot.getHeaderFromPool(hash)
+func (boot *MetaBootstrap) applyNotarizedBlock(nonce uint64) error {
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	headerHash, err := boot.store.Get(dataRetriever.ShardHdrNonceHashDataUnit, nonceToByteSlice)
 	if err != nil {
-		hdr, err = process.GetMetaHeaderFromStorage(hash, boot.marshalizer, boot.store)
-		if err != nil {
-			return nil, err
-		}
+		return err
 	}
 
-	return hdr, err
+	header, err := process.GetShardHeaderFromStorage(headerHash, boot.marshalizer, boot.store)
+	if err != nil {
+		return err
+	}
+
+	//err = mp.createLastNotarizedHdrs(header)
+	//if err != nil {
+	//	return err
+	//}
+
+	boot.blkExecutor.SetLastNotarizedHdr(sharding.MetachainShardId, header)
+
+	return nil
 }
 
-func (boot *MetaBootstrap) getHeaderFromPool(hash []byte) (*block.MetaBlock, error) {
-	hdr, ok := boot.headers.Peek(hash)
-	if !ok {
-		return nil, process.ErrMissingHeader
+func (boot *MetaBootstrap) getHeaderFromStorage(nonce uint64) (data.HeaderHandler, []byte, error) {
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	headerHash, err := boot.store.Get(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	header, ok := hdr.(*block.MetaBlock)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
+	header, err := process.GetMetaHeaderFromStorage(headerHash, boot.marshalizer, boot.store)
+	return header, headerHash, err
+}
 
-	return header, nil
+func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	return &block.MetaBlockBody{}, nil
 }
 
 func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
-	header, err := boot.getHeader(headerHash)
+	header, err := process.GetMetaHeader(headerHash, boot.headers, boot.marshalizer, boot.store)
 	if err != nil {
 		log.Debug(err.Error())
 		return
@@ -166,6 +177,16 @@ func (boot *MetaBootstrap) StopSync() {
 
 // syncBlocks method calls repeatedly synchronization method SyncBlock
 func (boot *MetaBootstrap) syncBlocks() {
+	// when a node starts it tries firstly to boostrap from storage, if there already exist a database saved
+	boot.syncFromStorer(process.MetaBlockFinality,
+		dataRetriever.MetaBlockUnit,
+		dataRetriever.MetaHdrNonceHashDataUnit,
+		boot.getHeaderFromStorage,
+		boot.getBlockBody,
+		process.ShardBlockFinality,
+		dataRetriever.ShardHdrNonceHashDataUnit,
+		boot.applyNotarizedBlock)
+
 	for {
 		time.Sleep(sleepTime)
 		select {
@@ -309,7 +330,11 @@ func (boot *MetaBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Me
 	if err != nil {
 		emptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
-		boot.waitForHeaderNonce()
+		err := boot.waitForHeaderNonce()
+		if err != nil {
+			return nil, err
+		}
+
 		hdr, err = boot.getHeaderFromPoolWithNonce(nonce)
 		if err != nil {
 			return nil, err
