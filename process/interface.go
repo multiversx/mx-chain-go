@@ -1,6 +1,8 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"math/big"
 	"time"
 
@@ -21,6 +23,26 @@ type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) (TransactionType, error)
 	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
 	DeploySmartContract(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
+}
+
+type PreProcessor interface {
+	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
+	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
+	RestoreTxBlockIntoPools(body block.Body, miniBlockHashes map[int][]byte, miniBlockPool storage.Cacher) error
+	ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error
+	RequestBlockTransactions(body block.Body) int
+	GetNrTxsWithDst(dstShardId uint32) int
+	GetAllCurrentUsedTxs() map[string]*transaction.Transaction
+	SaveTxBlockToStorage(body block.Body) error
+	RequestBlockTransactionsForMiniBlock(mb block.MiniBlock) int
+	GetAllTxsFromMiniBlock(mb *block.MiniBlock, haveTime func() bool) ([]*transaction.Transaction, [][]byte, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error
+	ProcessAndRemoveBadTransaction(transactionHash []byte, tx *transaction.Transaction, round uint32, sndId uint32, dstId uint32) error
+	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
+	GetTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error)
+	InitCacherStructure()
+	GetCurrentAndTotalTxsProcessed() (int, int)
+	AddCurrentProcessTxsNr(processedTxs int)
 }
 
 // BlockProcessor is the main interface for block execution engine
