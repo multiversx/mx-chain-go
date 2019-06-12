@@ -74,21 +74,26 @@ func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
 }
 
 func (sp *shardProcessor) AddTxHashToRequestedList(txHash []byte) {
-	sp.mutRequestedTxHashes.Lock()
-	defer sp.mutRequestedTxHashes.Unlock()
+	sp.mutTxsForBlock.Lock()
+	defer sp.mutTxsForBlock.Unlock()
 
-	if sp.requestedTxHashes == nil {
-		sp.requestedTxHashes = make(map[string]bool)
+	if sp.txsForBlock == nil {
+		sp.txsForBlock = make(map[string]*txInfo)
 	}
-	sp.requestedTxHashes[string(txHash)] = true
+	sp.txsForBlock[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
 }
 
 func (sp *shardProcessor) IsTxHashRequested(txHash []byte) bool {
-	sp.mutRequestedTxHashes.Lock()
-	defer sp.mutRequestedTxHashes.Unlock()
+	sp.mutTxsForBlock.Lock()
+	defer sp.mutTxsForBlock.Unlock()
 
-	_, found := sp.requestedTxHashes[string(txHash)]
-	return found
+	return !sp.txsForBlock[string(txHash)].has
+}
+
+func (sp *shardProcessor) SetMissingTxs(missingTxs int) {
+	sp.mutTxsForBlock.Lock()
+	sp.missingTxs = missingTxs
+	sp.mutTxsForBlock.Unlock()
 }
 
 func (sp *shardProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, round uint32, haveTime func() bool) error {
@@ -223,4 +228,15 @@ func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body blo
 
 func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
 	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
+}
+
+func (sp *shardProcessor) CreateTxInfo(tx *transaction.Transaction, senderShardID uint32, receiverShardID uint32) *txInfo {
+	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+	return &txInfo{tx: tx, txShardInfo: txShardInfo}
+}
+
+func (sp *shardProcessor) SetTxsForBlock(hash string, txInfo *txInfo) {
+	sp.mutTxsForBlock.Lock()
+	sp.txsForBlock[hash] = txInfo
+	sp.mutTxsForBlock.Unlock()
 }
