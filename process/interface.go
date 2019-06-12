@@ -18,6 +18,7 @@ type TransactionProcessor interface {
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
+	// TODO move this func in another interface
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
 	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
 	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) error
