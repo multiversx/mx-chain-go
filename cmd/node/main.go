@@ -411,23 +411,86 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		}
 	}
 
-	var currentNode *node.Node
-	var tpsBenchmark *statistics.TpsBenchmark
-	var externalResolver *external.ExternalResolver
+	coreComponents, err := coreComponentsFactory(generalConfig)
+	if err != nil {
+		return err
+	}
 
-	currentNode, externalResolver, tpsBenchmark, err = createNode(
-		ctx,
+	stateComponents, err := stateComponentsFactory(generalConfig, genesisConfig, shardCoordinator, coreComponents)
+	if err != nil {
+		return err
+	}
+
+	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log)
+	if err != nil {
+		return err
+	}
+
+	dataComponents, err := dataComponentsFactory(generalConfig, shardCoordinator, coreComponents)
+	if err != nil {
+		return err
+	}
+
+	cryptoComponents, err := cryptoComponentsFactory(ctx, generalConfig, nodesConfig, shardCoordinator, keyGen, privKey, log)
+	if err != nil {
+		return err
+	}
+
+	processComponents, err := processComponentsFactory(genesisConfig, nodesConfig, p2pConfig, syncer, shardCoordinator,
+		dataComponents, coreComponents, cryptoComponents, stateComponents, log)
+	if err != nil {
+		return err
+	}
+
+	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), nodesConfig.RoundDuration/1000)
+	if err != nil {
+		return err
+	}
+
+	if generalConfig.Explorer.Enabled {
+		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
+		dbIndexer, err = CreateElasticIndexer(
+			serversConfigurationFileName,
+			generalConfig.Explorer.IndexerURL,
+			shardCoordinator,
+			coreComponents.marshalizer,
+			coreComponents.hasher,
+			log)
+		if err != nil {
+			return err
+		}
+
+		err = setServiceContainer(shardCoordinator, tpsBenchmark)
+		if err != nil {
+			return err
+		}
+	}
+
+	currentNode, err := createNode(
 		generalConfig,
-		genesisConfig,
 		nodesConfig,
-		p2pConfig,
 		syncer,
 		keyGen,
 		privKey,
 		pubKey,
 		shardCoordinator,
-		log)
+		coreComponents,
+		stateComponents,
+		dataComponents,
+		cryptoComponents,
+		processComponents,
+	)
+	if err != nil {
+		return err
+	}
 
+	externalResolver, err := external.NewExternalResolver(
+		shardCoordinator,
+		dataComponents.blkc,
+		dataComponents.store,
+		coreComponents.marshalizer,
+		&mockProposerResolver{},
+	)
 	if err != nil {
 		return err
 	}
@@ -575,158 +638,87 @@ func CreateElasticIndexer(
 }
 
 func createNode(
-	ctx *cli.Context,
 	config *config.Config,
-	genesisConfig *sharding.Genesis,
 	nodesConfig *sharding.NodesSetup,
-	p2pConfig *config.P2PConfig,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
 	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
-	log *logger.Logger,
-) (*node.Node, *external.ExternalResolver, *statistics.TpsBenchmark, error) {
-	coreComponents, err := coreComponentsFactory(config)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	stateComponents, err := stateComponentsFactory(config, shardCoordinator, coreComponents)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	err = initLogFileAndStatsMonitor(config, pubKey, log)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	dataComponents, err := dataComponentsFactory(config, shardCoordinator, coreComponents)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	cryptoComponents, err := cryptoComponentsFactory(ctx, config, nodesConfig, shardCoordinator, keyGen, privKey, log)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	processComponents, err := processComponentsFactory(genesisConfig, nodesConfig, p2pConfig, syncer, shardCoordinator,
-		dataComponents, coreComponents, cryptoComponents, stateComponents, log)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), nodesConfig.RoundDuration/1000)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	if config.Explorer.Enabled {
-		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
-		dbIndexer, err = CreateElasticIndexer(
-			serversConfigurationFileName,
-			config.Explorer.IndexerURL,
-			shardCoordinator,
-			coreComponents.marshalizer,
-			coreComponents.hasher,
-			log)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		err = setServiceContainer(shardCoordinator, tpsBenchmark)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-	}
-
+	core *Core,
+	state *State,
+	data *Data,
+	crypto *Crypto,
+	process *Process,
+) (*node.Node, error) {
 	nd, err := node.NewNode(
-		node.WithMessenger(processComponents.netMessenger),
-		node.WithHasher(coreComponents.hasher),
-		node.WithMarshalizer(coreComponents.marshalizer),
-		node.WithInitialNodesPubKeys(cryptoComponents.initialPubKeys),
-		node.WithAddressConverter(stateComponents.addressConverter),
-		node.WithAccountsAdapter(stateComponents.accountsAdapter),
-		node.WithBlockChain(dataComponents.blkc),
-		node.WithDataStore(dataComponents.store),
+		node.WithMessenger(process.netMessenger),
+		node.WithHasher(core.hasher),
+		node.WithMarshalizer(core.marshalizer),
+		node.WithInitialNodesPubKeys(crypto.initialPubKeys),
+		node.WithAddressConverter(state.addressConverter),
+		node.WithAccountsAdapter(state.accountsAdapter),
+		node.WithBlockChain(data.blkc),
+		node.WithDataStore(data.store),
 		node.WithRoundDuration(nodesConfig.RoundDuration),
 		node.WithConsensusGroupSize(int(nodesConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
-		node.WithBlockProcessor(processComponents.blockProcessor),
-		node.WithBlockTracker(processComponents.blockTracker),
+		node.WithBlockProcessor(process.blockProcessor),
+		node.WithBlockTracker(process.blockTracker),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
-		node.WithRounder(processComponents.rounder),
+		node.WithRounder(process.rounder),
 		node.WithShardCoordinator(shardCoordinator),
-		node.WithUint64ByteSliceConverter(coreComponents.uint64ByteSliceConverter),
-		node.WithSingleSigner(cryptoComponents.singleSigner),
-		node.WithMultiSigner(cryptoComponents.multiSigner),
+		node.WithUint64ByteSliceConverter(core.uint64ByteSliceConverter),
+		node.WithSingleSigner(crypto.singleSigner),
+		node.WithMultiSigner(crypto.multiSigner),
 		node.WithKeyGen(keyGen),
-		node.WithTxSignPubKey(cryptoComponents.txSignPubKey),
-		node.WithTxSignPrivKey(cryptoComponents.txSignPrivKey),
+		node.WithTxSignPubKey(crypto.txSignPubKey),
+		node.WithTxSignPrivKey(crypto.txSignPrivKey),
 		node.WithPubKey(pubKey),
 		node.WithPrivKey(privKey),
-		node.WithForkDetector(processComponents.forkDetector),
-		node.WithInterceptorsContainer(processComponents.interceptorsContainer),
-		node.WithResolversFinder(processComponents.resolversFinder),
+		node.WithForkDetector(process.forkDetector),
+		node.WithInterceptorsContainer(process.interceptorsContainer),
+		node.WithResolversFinder(process.resolversFinder),
 		node.WithConsensusType(config.Consensus.Type),
-		node.WithTxSingleSigner(cryptoComponents.txSingleSigner),
+		node.WithTxSingleSigner(crypto.txSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 	)
 	if err != nil {
-		return nil, nil, nil, errors.New("error creating node: " + err.Error())
+		return nil, errors.New("error creating node: " + err.Error())
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator, stateComponents.addressConverter)
-		if err != nil {
-			return nil, nil, nil, errors.New("initial balances could not be processed " + err.Error())
-		}
 		err = nd.ApplyOptions(
-			node.WithInitialNodesBalances(inBalanceForShard),
-			node.WithDataPool(dataComponents.datapool),
+			node.WithInitialNodesBalances(state.inBalanceForShard),
+			node.WithDataPool(data.datapool),
 			node.WithActiveMetachain(nodesConfig.MetaChainActive))
 		if err != nil {
-			return nil, nil, nil, errors.New("error creating node: " + err.Error())
+			return nil, errors.New("error creating node: " + err.Error())
 		}
 		err = nd.CreateShardedStores()
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 		err = nd.StartHeartbeat(config.Heartbeat)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 		err = nd.CreateShardGenesisBlock()
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		err = nd.ApplyOptions(node.WithMetaDataPool(dataComponents.metaDatapool))
+		err = nd.ApplyOptions(node.WithMetaDataPool(data.metaDatapool))
 		if err != nil {
-			return nil, nil, nil, errors.New("error creating meta-node: " + err.Error())
+			return nil, errors.New("error creating meta-node: " + err.Error())
 		}
 		err = nd.CreateMetaGenesisBlock()
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 	}
-
-	externalResolver, err := external.NewExternalResolver(
-		shardCoordinator,
-		dataComponents.blkc,
-		dataComponents.store,
-		coreComponents.marshalizer,
-		&mockProposerResolver{},
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return nd, externalResolver, tpsBenchmark, nil
-
+	return nd, nil
 }
 
 func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger) error {

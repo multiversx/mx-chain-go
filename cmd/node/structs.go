@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
@@ -70,8 +71,9 @@ type Core struct {
 }
 
 type State struct {
-	addressConverter state.AddressConverter
-	accountsAdapter  state.AccountsAdapter
+	addressConverter  state.AddressConverter
+	accountsAdapter   state.AccountsAdapter
+	inBalanceForShard map[string]*big.Int
 }
 
 type Data struct {
@@ -126,7 +128,7 @@ func coreComponentsFactory(config *config.Config) (*Core, error) {
 	}, nil
 }
 
-func stateComponentsFactory(config *config.Config, shardCoordinator sharding.Coordinator, core *Core) (*State, error) {
+func stateComponentsFactory(config *config.Config, genesisConfig *sharding.Genesis, shardCoordinator sharding.Coordinator, core *Core) (*State, error) {
 	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
@@ -142,9 +144,15 @@ func stateComponentsFactory(config *config.Config, shardCoordinator sharding.Coo
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
+	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
+	if err != nil {
+		return nil, errors.New("initial balances could not be processed " + err.Error())
+	}
+
 	return &State{
-		addressConverter: addressConverter,
-		accountsAdapter:  accountsAdapter,
+		addressConverter:  addressConverter,
+		accountsAdapter:   accountsAdapter,
+		inBalanceForShard: inBalanceForShard,
 	}, nil
 }
 
