@@ -1529,15 +1529,15 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 
 func createDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator) (dataRetriever.StorageService, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return createShardDataStoreFromConfig(config)
+		return createShardDataStoreFromConfig(config, shardCoordinator)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return createMetaChainDataStoreFromConfig(config)
+		return createMetaChainDataStoreFromConfig(config, shardCoordinator)
 	}
 	return nil, errors.New("can not create data store")
 }
 
-func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
+func createShardDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator) (dataRetriever.StorageService, error) {
 	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit, shardHdrHashNonceUnit, metaHdrHashNonceUnit *storageUnit.Unit
 	var err error
 
@@ -1632,15 +1632,17 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 	store.AddStorer(dataRetriever.PeerChangesUnit, peerBlockUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaBlockUnit, metachainHeaderUnit)
-	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, shardHdrHashNonceUnit)
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()), shardHdrHashNonceUnit)
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 
 	return store, err
 }
 
-func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
-	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, shardHdrHashNonceUnit, metaHdrHashNonceUnit  *storageUnit.Unit
+func createMetaChainDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator) (dataRetriever.StorageService, error) {
+	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, metaHdrHashNonceUnit  *storageUnit.Unit
+	var shardHdrHashNonceUnits []*storageUnit.Unit
 	var err error
+
 
 	defer func() {
 		// cleanup
@@ -1657,8 +1659,10 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 			if headerUnit != nil {
 				_ = headerUnit.DestroyUnit()
 			}
-			if shardHdrHashNonceUnit != nil {
-				_ = shardHdrHashNonceUnit.DestroyUnit()
+			if shardHdrHashNonceUnits != nil {
+				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+					_ = shardHdrHashNonceUnits[i].DestroyUnit()
+				}
 			}
 			if metaHdrHashNonceUnit != nil {
 				_ = metaHdrHashNonceUnit.DestroyUnit()
@@ -1698,13 +1702,17 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 		return nil, err
 	}
 
-	shardHdrHashNonceUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.ShardHdrNonceHashStorage.Cache),
-		getDBFromConfig(config.ShardHdrNonceHashStorage.DB),
-		getBloomFromConfig(config.ShardHdrNonceHashStorage.Bloom),
-	)
-	if err != nil {
-		return nil, err
+	shardHdrHashNonceUnits = make([]*storageUnit.Unit, shardCoordinator.NumberOfShards())
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+		shardHdrHashNonceUnits[i], err = storageUnit.NewShardedStorageUnitFromConf(
+			getCacherFromConfig(config.ShardHdrNonceHashStorage.Cache),
+			getDBFromConfig(config.ShardHdrNonceHashStorage.DB),
+			getBloomFromConfig(config.ShardHdrNonceHashStorage.Bloom),
+			i,
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	metaHdrHashNonceUnit, err = storageUnit.NewStorageUnitFromConf(
@@ -1721,7 +1729,11 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
 	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
-	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, shardHdrHashNonceUnit)
+
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i), shardHdrHashNonceUnits[i])
+	}
+
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 
 	return store, err

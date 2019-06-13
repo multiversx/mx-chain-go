@@ -419,7 +419,7 @@ func (mp *metaProcessor) CommitBlock(
 		}
 
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(header.Nonce)
-		errNotCritical = mp.store.Put(dataRetriever.ShardHdrNonceHashDataUnit, nonceToByteSlice, shardData.HeaderHash)
+		errNotCritical = mp.store.Put(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(header.ShardId), nonceToByteSlice, shardData.HeaderHash)
 		if errNotCritical != nil {
 			log.Error(errNotCritical.Error())
 		}
@@ -522,7 +522,7 @@ func (mp *metaProcessor) getSortedShardHdrsFromMetablock(header *block.MetaBlock
 			return nil, err
 		}
 
-		sortedShardHdrs[header.ShardId] = append(sortedShardHdrs[header.ShardId], header)
+		sortedShardHdrs[shardData.ShardId] = append(sortedShardHdrs[shardData.ShardId], header)
 	}
 
 	for shId := uint32(0); shId < mp.shardCoordinator.NumberOfShards(); shId++ {

@@ -587,7 +587,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	nonceToByteSlice := sp.uint64Converter.ToByteSlice(header.Nonce)
-	err = sp.store.Put(dataRetriever.ShardHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	err = sp.store.Put(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(header.ShardId), nonceToByteSlice, headerHash)
 	if err != nil {
 		return err
 	}

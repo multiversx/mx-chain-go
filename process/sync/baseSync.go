@@ -86,11 +86,24 @@ func (boot *baseBootstrap) syncFromStorer(
 		return
 	}
 
-	err = boot.loadNotarizedBlocks(notarizedBlockFinality,
-		notarizedHdrNonceHashDataUnit,
-		applyNotarisedBlock)
-	if err != nil {
-		log.Info(err.Error())
+	if boot.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
+			err = boot.loadNotarizedBlocks(notarizedBlockFinality,
+				notarizedHdrNonceHashDataUnit+dataRetriever.UnitType(i),
+				applyNotarisedBlock)
+			if err != nil {
+				log.Info(err.Error())
+			}
+		}
+	}
+
+	if boot.shardCoordinator.SelfId() < boot.shardCoordinator.NumberOfShards() {
+		err = boot.loadNotarizedBlocks(notarizedBlockFinality,
+			notarizedHdrNonceHashDataUnit,
+			applyNotarisedBlock)
+		if err != nil {
+			log.Info(err.Error())
+		}
 	}
 }
 
@@ -245,7 +258,7 @@ func (boot *baseBootstrap) loadNotarizedBlocks(blockFinality uint64,
 		}
 	}
 
-	log.Info(fmt.Sprintf("the highest notarized header nonce committed in storer is %d\n", highestNonceInStorer))
+	log.Info(fmt.Sprintf("the highest notarized header nonce committed in unit storer %d is %d\n", hdrNonceHashDataUnit, highestNonceInStorer))
 
 	var err error
 	lastBlocksToSkip := uint64(0)

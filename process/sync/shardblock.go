@@ -162,7 +162,7 @@ func (boot *ShardBootstrap) applyNotarizedBlock(nonce uint64) error {
 
 func (boot *ShardBootstrap) getHeaderFromStorage(nonce uint64) (data.HeaderHandler, []byte, error) {
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-	headerHash, err := boot.store.Get(dataRetriever.ShardHdrNonceHashDataUnit, nonceToByteSlice)
+	headerHash, err := boot.store.Get(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(boot.shardCoordinator.SelfId()), nonceToByteSlice)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -360,7 +360,7 @@ func (boot *ShardBootstrap) getHeaderFromPoolWithNonce(nonce uint64) (*block.Hea
 
 // getHeaderHashFromStorage method returns the block header hash from a given nonce
 func (boot *ShardBootstrap) getHeaderHashFromStorage(nonce uint64) ([]byte, error) {
-	headerStore := boot.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
+	headerStore := boot.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId()))
 	if headerStore == nil {
 		return nil, process.ErrNilHeadersStorage
 	}
@@ -506,7 +506,7 @@ func (boot *ShardBootstrap) rollback(header *block.Header) error {
 	if headerStore == nil {
 		return process.ErrNilHeadersStorage
 	}
-	headerNonceHashStore := boot.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
+	headerNonceHashStore := boot.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId()))
 	if headerNonceHashStore == nil {
 		return process.ErrNilHeadersNonceHashStorage
 	}
