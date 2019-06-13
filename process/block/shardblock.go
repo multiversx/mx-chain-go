@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"sync"
 	"time"
@@ -183,7 +184,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	defer func() {
-		go sp.checkAndRequestIfMetaHeadersMissing(headerHandler.GetRound())
+		go sp.checkAndRequestIfMetaHeadersMissing(math.MaxUint32)
 	}()
 
 	err := sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)

@@ -3,6 +3,7 @@ package block
 import (
 	"encoding/base64"
 	"fmt"
+	"math"
 	"sort"
 	"sync"
 	"time"
@@ -131,7 +132,7 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	defer func() {
-		go mp.checkAndRequestIfShardHeadersMissing(headerHandler.GetRound())
+		go mp.checkAndRequestIfShardHeadersMissing(math.MaxUint32)
 	}()
 
 	err := mp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
