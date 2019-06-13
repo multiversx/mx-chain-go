@@ -98,28 +98,6 @@ func (txProc *txProcessor) processMoveBalance(
 	adrSrc, adrDst state.AddressContainer,
 ) error {
 
-	txType, err := txProc.scProcessor.ComputeTransactionType(tx)
-	if err != nil {
-		return err
-	}
-
-	switch txType {
-	case process.MoveBalance:
-		return txProc.processMoveBalance(tx, adrSrc, adrDst)
-	case process.SCDeployment:
-		return txProc.processSCDeployment(tx, adrSrc, roundIndex)
-	case process.SCInvoking:
-		return txProc.processSCInvoking(tx, adrSrc, adrDst, roundIndex)
-	}
-
-	return process.ErrWrongTransaction
-}
-
-func (txProc *txProcessor) processMoveBalance(
-	tx *transaction.Transaction,
-	adrSrc, adrDst state.AddressContainer,
-) error {
-
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
