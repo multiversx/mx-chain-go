@@ -47,7 +47,7 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderNonce+1,
 		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, gasLimit, gasPrice))
-	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce, senderAddressBytes)
+	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce+1, senderAddressBytes)
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
@@ -96,7 +96,7 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderNonce+1,
 		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, gasLimit, gasPrice))
-	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce, senderAddressBytes)
+	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce+1, senderAddressBytes)
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
@@ -147,7 +147,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderNonce+1,
 		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, gasLimit, gasPrice))
 
-	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce, senderAddressBytes)
+	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce+1, senderAddressBytes)
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
@@ -199,7 +199,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		senderNonce+1,
 		//the transfer should get back to the sender as the tx failed
 		vm.ComputeExpectedBalance(senderBalance, big.NewInt(0), gasLimit, gasPrice))
-	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce, senderAddressBytes)
+	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce+1, senderAddressBytes)
 
 	assert.False(t, vm.AccountExists(accnts, destinationAddressBytes))
 }

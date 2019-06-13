@@ -40,7 +40,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce, senderAddressBytes)
+	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce+1, senderAddressBytes)
 	addValue := uint64(128)
 	//contract call tx
 	txRun := vm.CreateTx(
@@ -107,7 +107,7 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce, senderAddressBytes)
+	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce+1, senderAddressBytes)
 	addValue := uint64(128)
 	//contract call tx
 	txRun := vm.CreateTx(
@@ -174,7 +174,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce, senderAddressBytes)
+	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce+1, senderAddressBytes)
 	addValue := uint64(128)
 	//contract call tx
 	txRun := vm.CreateTx(
@@ -242,7 +242,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce, senderAddressBytes)
+	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce+1, senderAddressBytes)
 	addValue := uint64(128)
 	//contract call tx
 	txRun := vm.CreateTx(
