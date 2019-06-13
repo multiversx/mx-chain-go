@@ -947,7 +947,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accounts,
-		&mock.FakeAccountsHandlerMock{},
+		&mock.TemporaryAccountsHandlerMock{},
 		addrConverter,
 		mock.NewOneShardCoordinatorMock())
 	scProcessorMock := &mock.SCProcessorMock{}
@@ -1011,7 +1011,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accounts,
-		&mock.FakeAccountsHandlerMock{},
+		&mock.TemporaryAccountsHandlerMock{},
 		addrConverter,
 		mock.NewOneShardCoordinatorMock())
 	scProcessorMock := &mock.SCProcessorMock{}
@@ -1085,7 +1085,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accounts,
-		&mock.FakeAccountsHandlerMock{},
+		&mock.TemporaryAccountsHandlerMock{},
 		addrConverter,
 		shardCoordinator)
 	scProcessorMock := &mock.SCProcessorMock{}
