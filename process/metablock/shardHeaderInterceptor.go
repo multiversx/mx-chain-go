@@ -96,11 +96,11 @@ func (shi *ShardHeaderInterceptor) processHeader(hdrIntercepted *block.Intercept
 	nonce := hdrIntercepted.GetHeader().GetNonce()
 
 	value, okPeek := shi.hdrsNonces.Peek(nonce)
-	mapOfHashes, okTypeAssertion := value.(sync.Map)
+	mapOfHashes, okTypeAssertion := value.(*sync.Map)
 
 	if !okPeek || !okTypeAssertion {
 		// repair saved data
-		mapOfHashes = sync.Map{}
+		mapOfHashes = &sync.Map{}
 	}
 
 	mapOfHashes.Store(hdrIntercepted.GetHeader().GetShardID(), hdrIntercepted.Hash())

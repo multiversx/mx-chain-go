@@ -5,8 +5,8 @@ go 1.12
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/BurntSushi/toml v0.3.1 // indirect
-	github.com/ElrondNetwork/concurrent-map v0.1.1
-	github.com/ElrondNetwork/elrond-vm-common v0.0.4
+	github.com/ElrondNetwork/concurrent-map v0.1.2
+	github.com/ElrondNetwork/elrond-vm-common v0.0.5
 	github.com/beevik/ntp v0.2.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/btcsuite/btcd v0.0.0-20190315201642-aa6e0f35703c
@@ -39,6 +39,7 @@ require (
 	github.com/libp2p/go-libp2p-peerstore v0.0.1
 	github.com/libp2p/go-libp2p-protocol v0.0.1
 	github.com/libp2p/go-libp2p-pubsub v0.0.3
+	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mr-tron/base58 v1.1.1
 	github.com/multiformats/go-multiaddr v0.0.2
 	github.com/multiformats/go-multistream v0.0.1

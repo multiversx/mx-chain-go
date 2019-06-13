@@ -2,13 +2,14 @@ package vm
 
 import (
 	"crypto/rand"
+	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
+	dataTransaction "github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -35,14 +36,14 @@ func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker 
 }
 
 func createDummyAddress() state.AddressContainer {
-	buff := make([]byte, sha256.Sha256{}.Size())
+	buff := make([]byte, testHasher.Size())
 	_, _ = rand.Reader.Read(buff)
 
 	return state.NewAddress(buff)
 }
 
 func createEmptyAddress() state.AddressContainer {
-	buff := make([]byte, sha256.Sha256{}.Size())
+	buff := make([]byte, testHasher.Size())
 
 	return state.NewAddress(buff)
 }
@@ -59,8 +60,8 @@ func createInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &accountFactory{})
+	tr, _ := trie.NewTrie(make([]byte, 32), dbw, testHasher)
+	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
 	return adb
 }
@@ -77,8 +78,7 @@ func createAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 
 func createTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
-	cryptoHook := &hooks.VMCryptoHook{}
-	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, cryptoHook)
+	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 	vm.GasForOperation = opGas
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
@@ -131,9 +131,90 @@ func testDeployedContractContents(
 	}
 }
 
+func accountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
+	address, _ := addrConv.CreateAddressFromPublicKeyBytes(addressBytes)
+	accnt, _ := accnts.GetExistingAccount(address)
+
+	return accnt != nil
+}
+
 func computeSCDestinationAddressBytes(senderNonce uint64, senderAddressBytes []byte) []byte {
 	//TODO change this when receipts are implemented, take the newly created account address (SC account)
 	// from receipt, do not recompute here
 	senderNonceBytes := big.NewInt(0).SetUint64(senderNonce).Bytes()
-	return keccak.Keccak{}.Compute(string(append(senderAddressBytes, senderNonceBytes...)))
+	return testHasher.Compute(string(append(senderAddressBytes, senderNonceBytes...)))
+}
+
+func createPreparedTxProcessorAndAccounts(
+	t *testing.T,
+	vmOpGas uint64,
+	senderNonce uint64,
+	senderAddressBytes []byte,
+	senderBalance *big.Int,
+) (process.TransactionProcessor, state.AccountsAdapter) {
+
+	accnts := createInMemoryShardAccountsDB()
+	_ = createAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+
+	txProcessor := createTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas)
+	assert.NotNil(t, txProcessor)
+
+	return txProcessor, accnts
+}
+
+func createTx(
+	t *testing.T,
+	senderAddressBytes []byte,
+	receiverAddressBytes []byte,
+	senderNonce uint64,
+	value *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
+	scCodeOrFunc string,
+	scValue uint64,
+) *dataTransaction.Transaction {
+
+	txData := fmt.Sprintf("%s@%X", scCodeOrFunc, scValue)
+	tx := &dataTransaction.Transaction{
+		Nonce:    senderNonce,
+		Value:    value,
+		SndAddr:  senderAddressBytes,
+		RcvAddr:  receiverAddressBytes,
+		Data:     []byte(txData),
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+	}
+	assert.NotNil(t, tx)
+
+	return tx
+}
+
+func testAccount(
+	t *testing.T,
+	accnts state.AccountsAdapter,
+	senderAddressBytes []byte,
+	expectedNonce uint64,
+	expectedBalance *big.Int,
+) {
+
+	senderAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(senderAddressBytes)
+	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddress)
+	senderRecovShardAccount := senderRecovAccount.(*state.Account)
+
+	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
+	assert.Equal(t, expectedBalance, senderRecovShardAccount.Balance)
+}
+
+func computeExpectedBalance(
+	existing *big.Int,
+	transferred *big.Int,
+	gasLimit uint64,
+	gasPrice uint64,
+) *big.Int {
+
+	expectedSenderBalance := big.NewInt(0).Sub(existing, transferred)
+	gasFunds := big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasLimit), big.NewInt(0).SetUint64(gasPrice))
+	expectedSenderBalance.Sub(expectedSenderBalance, gasFunds)
+
+	return expectedSenderBalance
 }

@@ -57,7 +57,7 @@ func (sc *scProcessor) SaveLogsIntoState(logs []*vmcommon.LogEntry, round uint32
 	return sc.saveLogsIntoState(logs, round, txHash)
 }
 
-func (sc *scProcessor) ProcessSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) (*big.Int, error) {
+func (sc *scProcessor) ProcessSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
 	return sc.processSCPayment(tx, acntSnd)
 }
 

@@ -199,6 +199,9 @@ var ErrNilBlocksTracker = errors.New("nil blocks tracker")
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
 
+// ErrInvalidTxInPool signals that a transaction is not found
+var ErrTxNotFound = errors.New("transaction not found")
+
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
 
@@ -346,8 +349,8 @@ var ErrNilVMOutput = errors.New("nil vm output")
 // ErrNilBalanceFromSC signals that balance is nil
 var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
 
-// ErrNilFakeAccountsHandler signals that fake accounts handler is nil
-var ErrNilFakeAccountsHandler = errors.New("fake accounts handler is nil")
+// ErrNilTemporaryAccountsHandler signals that temporary accounts handler is nil
+var ErrNilTemporaryAccountsHandler = errors.New("temporary accounts handler is nil")
 
 // ErrNilSmartContractResult signals that the smart contract result is nil
 var ErrNilSmartContractResult = errors.New("smart contract result is nil")

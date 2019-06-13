@@ -2,11 +2,11 @@ package node_test
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -275,16 +275,10 @@ func createDummyHexAddress(chars int) string {
 		return ""
 	}
 
-	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
+	buff := make([]byte, chars/2)
+	_, _ = rand.Reader.Read(buff)
 
-	rdm := rand.New(rand.NewSource(time.Now().Unix()))
-
-	buff := make([]byte, chars)
-	for i := 0; i < chars; i++ {
-		buff[i] = characters[rdm.Int()%16]
-	}
-
-	return string(buff)
+	return hex.EncodeToString(buff)
 }
 
 func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
@@ -1228,4 +1222,131 @@ func TestNode_CreateMetaGenesisBlockShouldCreateSaveAndStoreMetaBlock(t *testing
 
 //------- GetAccount
 
-//TODO add tests
+func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithAddressConverter(mock.NewAddressConverterFake(32, "")),
+	)
+
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+
+	assert.Nil(t, recovAccnt)
+	assert.Equal(t, node.ErrNilAccountsAdapter, err)
+}
+
+func TestNode_GetAccountWithNilAddressConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	accDB := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return nil, state.ErrAccNotFound
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accDB),
+	)
+
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+
+	assert.Nil(t, recovAccnt)
+	assert.Equal(t, node.ErrNilAddressConverter, err)
+}
+
+func TestNode_GetAccountAddressConverterFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	accDB := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return nil, state.ErrAccNotFound
+		},
+	}
+
+	errExpected := errors.New("expected error")
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accDB),
+		node.WithAddressConverter(mock.AddressConverterStub{
+			CreateAddressFromHexHandler: func(hexAddress string) (container state.AddressContainer, e error) {
+				return nil, errExpected
+			},
+		}),
+	)
+
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+
+	assert.Nil(t, recovAccnt)
+	assert.Equal(t, errExpected, err)
+}
+
+func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
+	t.Parallel()
+
+	accDB := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return nil, state.ErrAccNotFound
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accDB),
+		node.WithAddressConverter(mock.NewAddressConverterFake(32, "")),
+	)
+
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(0), recovAccnt.Nonce)
+	assert.Equal(t, big.NewInt(0), recovAccnt.Balance)
+	assert.Nil(t, recovAccnt.CodeHash)
+	assert.Nil(t, recovAccnt.RootHash)
+}
+
+func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("expected error")
+	accDB := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return nil, errExpected
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accDB),
+		node.WithAddressConverter(mock.NewAddressConverterFake(32, "")),
+	)
+
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+
+	assert.Nil(t, recovAccnt)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), errExpected.Error())
+}
+
+func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
+	t.Parallel()
+
+	accnt := &state.Account{
+		Balance:  big.NewInt(1),
+		Nonce:    2,
+		RootHash: []byte("root hash"),
+		CodeHash: []byte("code hash"),
+	}
+
+	accDB := &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return accnt, nil
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accDB),
+		node.WithAddressConverter(mock.NewAddressConverterFake(32, "")),
+	)
+
+	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+
+	assert.Nil(t, err)
+	assert.Equal(t, accnt, recovAccnt)
+}
