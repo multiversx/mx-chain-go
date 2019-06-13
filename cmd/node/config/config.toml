@@ -14,7 +14,7 @@
         Type = "LRU"
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
-        Type = "LvlDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 10
 
@@ -24,7 +24,7 @@
         Type = "LRU"
     [PeerBlockBodyStorage.DB]
         FilePath = "PeerBlocks"
-        Type = "LvlDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 10
 
@@ -34,7 +34,7 @@
         Type = "LRU"
     [BlockHeaderStorage.DB]
         FilePath = "BlockHeaders"
-        Type = "LvlDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 10
 
@@ -44,7 +44,7 @@
         Type = "LRU"
     [ShardDataStorage.DB]
         FilePath = "ShardData"
-        Type = "LvlDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 10
 
@@ -54,7 +54,7 @@
         Type = "LRU"
     [PeerDataStorage.DB]
         FilePath = "PeerData"
-        Type = "LvlDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 10
 
@@ -64,7 +64,7 @@
         Type = "LRU"
     [MetaBlockStorage.DB]
         FilePath = "MetaBlock"
-        Type = "LvlDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 10
 
@@ -74,7 +74,7 @@
         Type = "LRU"
     [TxStorage.DB]
         FilePath = "Transactions"
-        Type = "LvlDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 10
         MaxBatchSize = 30000
 
@@ -84,7 +84,7 @@
         Type = "LRU"
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie"
-        Type = "LvlDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 10
         MaxBatchSize = 30000
 
