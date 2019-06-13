@@ -43,6 +43,7 @@ func SubstractRestoredTxs(txsNr int) {
 	txCounterMutex.Unlock()
 }
 
+// DisplayLogInfo writes to the output information about the block and transactions
 func DisplayLogInfo(
 	header *block.Header,
 	body block.Body,
