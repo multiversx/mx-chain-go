@@ -20,8 +20,8 @@ func (sc *scProcessor) CreateVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	return sc.createVMInput(tx)
 }
 
-func (sc *scProcessor) ProcessVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
-	return sc.processVMOutput(vmOutput, tx, acntSnd, acntDst, round)
+func (sc *scProcessor) ProcessVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd state.AccountHandler, round uint32) error {
+	return sc.processVMOutput(vmOutput, tx, acntSnd, round)
 }
 
 func (sc *scProcessor) RefundGasToSender(gasRefund *big.Int, tx *transaction.Transaction, acntSnd state.AccountHandler) error {
@@ -56,6 +56,6 @@ func (sc *scProcessor) SaveLogsIntoState(logs []*vmcommon.LogEntry, round uint32
 	return sc.saveLogsIntoState(logs, round, txHash)
 }
 
-func (sc *scProcessor) ProcessSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) (*big.Int, error) {
+func (sc *scProcessor) ProcessSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
 	return sc.processSCPayment(tx, acntSnd)
 }

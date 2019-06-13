@@ -33,16 +33,22 @@ func (vm *VMExecutionHandlerStub) G0Call(input *vmcommon.ContractCallInput) (*bi
 // Computes how a smart contract creation should be performed
 func (vm *VMExecutionHandlerStub) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 	if vm.RunSmartContractCreateCalled == nil {
-		return &vmcommon.VMOutput{}, nil
+		return &vmcommon.VMOutput{
+			GasRefund:    big.NewInt(0),
+			GasRemaining: big.NewInt(0),
+		}, nil
 	}
 
 	return vm.RunSmartContractCreateCalled(input)
 }
 
-// Computes the result of a smart contract call and how the system must change after the execution
+// RunSmartContractCall Computes the result of a smart contract call and how the system must change after the execution
 func (vm *VMExecutionHandlerStub) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	if vm.RunSmartContractCallCalled == nil {
-		return &vmcommon.VMOutput{}, nil
+		return &vmcommon.VMOutput{
+			GasRefund:    big.NewInt(0),
+			GasRemaining: big.NewInt(0),
+		}, nil
 	}
 
 	return vm.RunSmartContractCallCalled(input)
