@@ -192,7 +192,7 @@ func (boot *MetaBootstrap) syncBlocks() {
 		default:
 			err := boot.SyncBlock()
 			if err != nil {
-				log.Info(err.Error())
+				log.Debug(err.Error())
 			}
 		}
 	}

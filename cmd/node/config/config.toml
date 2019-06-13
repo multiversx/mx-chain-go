@@ -16,7 +16,7 @@
         FilePath = "MiniBlocks"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 10
+        MaxBatchSize = 1
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
@@ -36,7 +36,7 @@
         FilePath = "BlockHeaders"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 10
+        MaxBatchSize = 1
 
 [ShardDataStorage]
     [ShardDataStorage.Cache]
@@ -66,7 +66,7 @@
         FilePath = "MetaBlock"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 10
+        MaxBatchSize = 1
 
 [TxStorage]
     [TxStorage.Cache]
@@ -75,7 +75,7 @@
     [TxStorage.DB]
         FilePath = "Transactions"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 10
+        BatchDelaySeconds = 15
         MaxBatchSize = 30000
 
 [ShardHdrNonceHashStorage]
@@ -84,7 +84,7 @@
         Type = "LRU"
     [ShardHdrNonceHashStorage.DB]
         FilePath = "ShardHdrHashNonce"
-        Type = "LvlDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 10
         MaxBatchSize = 1
 
@@ -94,7 +94,7 @@
         Type = "LRU"
     [MetaHdrNonceHashStorage.DB]
         FilePath = "MetaHdrHashNonce"
-        Type = "LvlDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 10
         MaxBatchSize = 1
 

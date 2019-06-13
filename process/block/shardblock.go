@@ -182,6 +182,10 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
+	defer func() {
+		go sp.checkAndRequestIfMetaHeadersMissing(headerHandler.GetRound())
+	}()
+
 	err := sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
@@ -264,8 +268,6 @@ func (sp *shardProcessor) ProcessBlock(
 		err = process.ErrRootStateMissmatch
 		return err
 	}
-
-	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound())
 
 	return nil
 }

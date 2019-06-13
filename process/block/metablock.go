@@ -130,6 +130,10 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
+	defer func() {
+		go mp.checkAndRequestIfShardHeadersMissing(headerHandler.GetRound())
+	}()
+
 	err := mp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
@@ -192,8 +196,6 @@ func (mp *metaProcessor) ProcessBlock(
 		err = process.ErrRootStateMissmatch
 		return err
 	}
-
-	go mp.checkAndRequestIfShardHeadersMissing(header.Round)
 
 	return nil
 }
