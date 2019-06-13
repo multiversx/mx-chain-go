@@ -451,7 +451,7 @@ func (txs *transactions) computeMissingTxsForMiniBlock(mb block.MiniBlock) [][]b
 }
 
 // getAllTxsFromMiniBlock gets all the transactions from a miniblock into a new structure
-func (txs *transactions) GetAllTxsFromMiniBlock(
+func (txs *transactions) getAllTxsFromMiniBlock(
 	mb *block.MiniBlock,
 	haveTime func() bool,
 ) ([]*transaction.Transaction, [][]byte, error) {
@@ -487,7 +487,7 @@ func (txs *transactions) GetAllTxsFromMiniBlock(
 }
 
 func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error {
-	miniBlockTxs, miniBlockTxHashes, err := txs.GetAllTxsFromMiniBlock(miniBlock, haveTime)
+	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return err
 	}

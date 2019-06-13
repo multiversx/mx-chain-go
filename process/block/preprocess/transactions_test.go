@@ -416,9 +416,7 @@ func TestShardProcessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		TxHashes:        transactionsHashes,
 	}
 
-	txsRetrieved, txHashesRetrieved, err := txs.GetAllTxsFromMiniBlock(mb, func() bool {
-		return true
-	})
+	txsRetrieved, txHashesRetrieved, err := txs.getAllTxsFromMiniBlock(mb, func() bool { return true })
 
 	assert.Nil(t, err)
 	assert.Equal(t, len(transactions), len(txsRetrieved))
