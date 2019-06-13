@@ -91,7 +91,7 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 		Nonce:   big.NewInt(0),
 		Code:    input.ContractCode,
 		Balance: input.CallValue,
-		Address: newSCAddrBuff,
+		Address: []byte(newSCAddr),
 		StorageUpdates: []*vmcommon.StorageUpdate{
 			{
 				//only one variable: a
@@ -111,7 +111,6 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 
 	return &vmcommon.VMOutput{
 		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount, senderOutputAccount},
-		Error:           false,
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    big.NewInt(0).Sub(input.GasProvided, big.NewInt(0).SetUint64(vm.GasForOperation)),
@@ -206,7 +205,6 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 	gasRemaining := big.NewInt(0).Sub(input.GasProvided, big.NewInt(0).SetUint64(vm.GasForOperation))
 	return &vmcommon.VMOutput{
 		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount, senderOutputAccount},
-		Error:           false,
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    gasRemaining,
@@ -245,7 +243,6 @@ func (vm *OneSCExecutorMockVM) processGetFunc(input *vmcommon.ContractCallInput)
 	gasRemaining := big.NewInt(0).Sub(input.GasProvided, big.NewInt(0).SetUint64(vm.GasForOperation))
 	return &vmcommon.VMOutput{
 		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount},
-		Error:           false,
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    gasRemaining,
@@ -276,7 +273,6 @@ func (vm *OneSCExecutorMockVM) unavailableFunc(input *vmcommon.ContractCallInput
 
 	return &vmcommon.VMOutput{
 		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount},
-		Error:           false,
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    big.NewInt(0),
@@ -301,7 +297,6 @@ func (vm *OneSCExecutorMockVM) outOfGasFunc(input *vmcommon.VMInput) (*vmcommon.
 
 	return &vmcommon.VMOutput{
 		OutputAccounts:  []*vmcommon.OutputAccount{vmo},
-		Error:           true,
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
 		GasRemaining:    big.NewInt(0),
