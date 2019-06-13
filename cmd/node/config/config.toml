@@ -109,15 +109,15 @@
         MaxBatchSize = 1
 
 [BadBlocksCache]
-    Size = 100
+    Size = 10000
     Type = "LRU"
 
 [TxBlockBodyDataPool]
-    Size = 100
+    Size = 10000
     Type = "LRU"
 
 [StateBlockBodyDataPool]
-    Size = 100
+    Size = 10000
     Type = "LRU"
 
 [PeerBlockBodyDataPool]
@@ -129,11 +129,11 @@
     Type = "LRU"
 
 [BlockHeaderNoncesDataPool]
-    Size = 100000
+    Size = 10000
     Type = "LRU"
 
 [MetaHeaderNoncesDataPool]
-    Size = 100000
+    Size = 10000
     Type = "LRU"
 
 [TxDataPool]
@@ -149,7 +149,7 @@
     Type = "LRU"
 
 [MetaBlockBodyDataPool]
-    Size = 1000
+    Size = 10000
     Type = "LRU"
 
 [Logger]
