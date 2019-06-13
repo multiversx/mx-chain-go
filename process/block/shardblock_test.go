@@ -1310,6 +1310,9 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		&mock.BlocksTrackerMock{
 			AddBlockCalled: func(headerHandler data.HeaderHandler) {
 			},
+			UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+				return make([]data.HeaderHandler, 0)
+			},
 		},
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
 		true,
@@ -1378,6 +1381,9 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 		},
 		&mock.BlocksTrackerMock{
 			AddBlockCalled: func(headerHandler data.HeaderHandler) {
+			},
+			UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+				return make([]data.HeaderHandler, 0)
 			},
 		},
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
@@ -1583,6 +1589,9 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		fd,
 		&mock.BlocksTrackerMock{
 			AddBlockCalled: func(headerHandler data.HeaderHandler) {
+			},
+			UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+				return make([]data.HeaderHandler, 0)
 			},
 		},
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
@@ -3445,6 +3454,9 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
 				return nil
 			},
+			UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+				return make([]data.HeaderHandler, 0)
+			},
 		},
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
 		true,
@@ -3595,6 +3607,9 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
 				return nil
 			},
+			UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+				return make([]data.HeaderHandler, 0)
+			},
 		},
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
 		true,
@@ -3715,6 +3730,9 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 		&mock.BlocksTrackerMock{
 			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
 				return nil
+			},
+			UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+				return make([]data.HeaderHandler, 0)
 			},
 		},
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),

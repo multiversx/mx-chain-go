@@ -240,3 +240,9 @@ func (sp *shardProcessor) SetTxsForBlock(hash string, txInfo *txInfo) {
 	sp.txsForBlock[hash] = txInfo
 	sp.mutTxsForBlock.Unlock()
 }
+
+func (mp *metaProcessor) SetAllNeededShardHdrsFound(allNeededShardHdrsFound bool) {
+	mp.mutRequestedShardHdrsHashes.Lock()
+	mp.allNeededShardHdrsFound = allNeededShardHdrsFound
+	mp.mutRequestedShardHdrsHashes.Unlock()
+}

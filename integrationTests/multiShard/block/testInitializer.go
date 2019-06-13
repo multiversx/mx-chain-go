@@ -272,6 +272,9 @@ func createNetNode(
 			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
 				return nil
 			},
+			UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+				return make([]data.HeaderHandler, 0)
+			},
 		},
 		genesisBlocks,
 		true,

@@ -1032,6 +1032,8 @@ func TestMetaProcessor_ReceivedHeaderShouldEraseRequested(t *testing.T) {
 		&mock.RequestHandlerMock{},
 	)
 
+	mp.SetAllNeededShardHdrsFound(false)
+
 	//add 3 tx hashes on requested list
 	hdrHash1 := []byte("hdr hash 1")
 	hdrHash2 := []byte("hdr hash 2")
