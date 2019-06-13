@@ -1,10 +1,12 @@
 package storage
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
 	"math/big"
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -27,6 +29,9 @@ var rcvAddr = make([]byte, 32)
 var sndAddr = make([]byte, 32)
 var sig = make([]byte, 64)
 
+const batchDelaySeconds = 10
+const maxBatchSize = 30000
+
 func createStoredData(nonce uint64) ([]byte, []byte) {
 	tx := &transaction.Transaction{
 		Nonce:     nonce,
@@ -45,8 +50,8 @@ func createStoredData(nonce uint64) ([]byte, []byte) {
 }
 
 func createStorage() storage.Storer {
-	db, _ := leveldb.NewDB("Transactions", 10, 30000)
-	cacher, _ := lrucache.NewCache(100000)
+	db, _ := leveldb.NewSerialDB("Transactions", batchDelaySeconds, maxBatchSize)
+	cacher, _ := lrucache.NewCache(50000)
 	store, _ := storageUnit.NewStorageUnit(
 		cacher,
 		db,
@@ -56,18 +61,19 @@ func createStorage() storage.Storer {
 }
 
 func TestWriteContinously(t *testing.T) {
-	t.Skip("infinite test")
+	t.Skip("this is not a short test")
 	rand.Reader.Read(rcvAddr)
 	rand.Reader.Read(sndAddr)
 	rand.Reader.Read(sig)
 
+	nbTxsWrite := 1000000
 	store := createStorage()
 	defer func() {
 		store.DestroyUnit()
 	}()
 
 	startTime := time.Now()
-	for i := 0; ; i++ {
+	for i := 1; i <= nbTxsWrite; i++ {
 		written := 10000
 		if i%written == 0 {
 			endTime := time.Now()
@@ -83,12 +89,10 @@ func TestWriteContinously(t *testing.T) {
 	}
 }
 
-func TestWriteReadAnDeleteContinously(t *testing.T) {
-	t.Skip("infinite test")
-	chWriteStop := make(chan struct{}, 1)
-	chRemoveStop := make(chan struct{}, 1)
-	chReadStop := make(chan struct{}, 1)
-	chErrors := make(chan error, 2)
+func TestWriteReadAnDelete(t *testing.T) {
+	t.Skip("this is not a short test")
+	wg := &sync.WaitGroup{}
+	errors := int32(0)
 
 	rand.Reader.Read(rcvAddr)
 	rand.Reader.Read(sndAddr)
@@ -99,25 +103,25 @@ func TestWriteReadAnDeleteContinously(t *testing.T) {
 		store.DestroyUnit()
 	}()
 
+	nbTxsWrite := 1000000
 	var maxWritten = uint64(0)
 
+	wg.Add(3)
+	chWriteDone := make(chan struct{})
+
 	//write anonymous func
-	go func() {
+	go func(wg *sync.WaitGroup, chWriteDone chan struct{}) {
+		defer wg.Done()
+
 		written := 10000
 		initTime := time.Now()
 		startTime := time.Now()
-		for counter := 0; ; counter++ {
-			select {
-			case <-chWriteStop:
-				return
-			default:
-			}
-
+		for counter := 1; counter <= nbTxsWrite; counter++ {
 			if counter%written == 0 {
 				endTime := time.Now()
 				diff := endTime.Sub(startTime)
 				cumul := endTime.Sub(initTime)
-				fmt.Printf("Written %d, total %d in %f s\nCumulativeTime %f\n", written, counter, diff.Seconds(), cumul.Seconds())
+				fmt.Printf("Written %d, total %d in %f s\nCumulativeWriteTime %f\n", written, counter, diff.Seconds(), cumul.Seconds())
 				var memStats runtime.MemStats
 				runtime.ReadMemStats(&memStats)
 
@@ -136,71 +140,28 @@ func TestWriteReadAnDeleteContinously(t *testing.T) {
 
 			errPut := store.Put(key, val)
 			if errPut != nil {
-				chErrors <- errPut
+				fmt.Print(errPut.Error())
+				atomic.AddInt32(&errors, 1)
 				return
 			}
 
 			atomic.StoreUint64(&maxWritten, uint64(counter))
 		}
-	}()
+		fmt.Println("Done Writing!")
+		chWriteDone <- struct{}{}
+		chWriteDone <- struct{}{}
+	}(wg, chWriteDone)
 
-	//read anonymous func
-	go func() {
-		maxRoutines := make(chan struct{}, 5000)
+	mapRemovedKeys := sync.Map{}
+
+	// remove
+	go func(wg *sync.WaitGroup, chWriteDone chan struct{}) {
+		defer wg.Done()
 
 		for {
 			select {
-			case <-chReadStop:
-				return
-			case <-time.After(time.Microsecond * 10):
-				//reads happen less often than writes
-			}
-			maxRoutines <- struct{}{}
-			if atomic.LoadUint64(&maxWritten) == 0 {
-				//not written yet
-				continue
-			}
-
-			go func() {
-				defer func() {
-					<-maxRoutines
-				}()
-				randOp, _ := rand.Int(rand.Reader, big.NewInt(10))
-
-				var errGet error
-				if randOp.Cmp(big.NewInt(7)) < 0 {
-					//read an existing value
-					maxWrittenBigInt := big.NewInt(0).SetUint64(atomic.LoadUint64(&maxWritten))
-					existingNonce, _ := rand.Int(rand.Reader, maxWrittenBigInt)
-
-					key, _ := createStoredData(existingNonce.Uint64())
-					_, errGet = store.Get(key)
-					if errGet == storage.ErrKeyNotFound {
-						//fmt.Printf("Not getting tx with nonce %d, maxwritten: %d\n", existingNonce.Uint64(),
-						//	maxWrittenBigInt.Uint64())
-						errGet = nil
-					}
-
-				} else {
-					//read a not existing hash
-					_, errGet = store.Get(make([]byte, 32))
-					if errGet == storage.ErrKeyNotFound {
-						errGet = nil
-					}
-				}
-
-				if errGet != nil {
-					chErrors <- errGet
-					return
-				}
-			}()
-		}
-	}()
-
-	go func() {
-		for {
-			select {
-			case <-chRemoveStop:
+			case <-chWriteDone:
+				fmt.Println("Done Removing!")
 				return
 			case <-time.After(time.Millisecond * 100):
 				//remove happen less often than writes
@@ -211,25 +172,105 @@ func TestWriteReadAnDeleteContinously(t *testing.T) {
 				continue
 			}
 
-			maxWrittenBigInt := big.NewInt(0).SetUint64(atomic.LoadUint64(&maxWritten))
+			maxWrittenUint64 := atomic.LoadUint64(&maxWritten)
+			maxWrittenBigInt := big.NewInt(0).SetUint64(maxWrittenUint64)
 			existingNonce, _ := rand.Int(rand.Reader, maxWrittenBigInt)
 			key, _ := createStoredData(existingNonce.Uint64())
 			errRemove := store.Remove(key)
 
+			mapRemovedKeys.Store(string(key), struct{}{})
+
 			if errRemove != nil {
-				chErrors <- errRemove
+				fmt.Println(errRemove.Error())
+				atomic.AddInt32(&errors, 1)
 				return
 			}
 
+			if maxWrittenUint64 == uint64(nbTxsWrite) {
+				fmt.Println("Done Removing!")
+				return
+			}
 		}
-	}()
+	}(wg, chWriteDone)
 
-	select {
-	case err := <-chErrors:
-		assert.Nil(t, err)
-	}
+	// read
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		read := uint64(10000)
 
-	chWriteStop <- struct{}{}
-	chReadStop <- struct{}{}
-	chRemoveStop <- struct{}{}
+		<-chWriteDone
+
+		initTime := time.Now()
+		startTime := time.Now()
+
+		maxRoutines := make(chan struct{}, 5000)
+		actualRead := uint64(0)
+
+		wgRead := &sync.WaitGroup{}
+		wgRead.Add(nbTxsWrite)
+		for cnt := 1; cnt <= nbTxsWrite; cnt++ {
+			maxRoutines <- struct{}{}
+			go func(count uint64) {
+				defer func() {
+					<-maxRoutines
+					wgRead.Done()
+				}()
+
+				var maxWrittenUint64 uint64
+
+				for {
+					maxWrittenUint64 = atomic.LoadUint64(&maxWritten)
+					if count <= maxWrittenUint64 {
+						break
+					}
+
+					select {
+					case <-time.After(time.Microsecond):
+					}
+				}
+
+				key, val := createStoredData(count)
+				v, errGet := store.Get(key)
+				_, ok := mapRemovedKeys.Load(string(key))
+
+				if !ok && errGet != nil {
+					fmt.Printf("Not getting tx with nonce %d\n", count)
+					atomic.AddInt32(&errors, 1)
+					return
+				}
+
+				if !ok && !bytes.Equal(val, v) {
+					fmt.Printf("Not equal values with nonce %d\n", count)
+					atomic.AddInt32(&errors, 1)
+					return
+				}
+
+				aRead := atomic.AddUint64(&actualRead, 1)
+
+				if aRead%read == 0 {
+					endTime := time.Now()
+					diff := endTime.Sub(startTime)
+					cumul := endTime.Sub(initTime)
+					fmt.Printf("Read %d, total %d in %f s\nCumulativeReadTime %f\n", read, aRead, diff.Seconds(), cumul.Seconds())
+					var memStats runtime.MemStats
+					runtime.ReadMemStats(&memStats)
+
+					fmt.Printf("timestamp: %d, num go: %d, go mem: %s, sys mem: %s, total mem: %s, num GC: %d\n",
+						time.Now().Unix(),
+						runtime.NumGoroutine(),
+						core.ConvertBytes(memStats.Alloc),
+						core.ConvertBytes(memStats.Sys),
+						core.ConvertBytes(memStats.TotalAlloc),
+						memStats.NumGC,
+					)
+					startTime = time.Now()
+				}
+			}(uint64(cnt))
+		}
+		wgRead.Wait()
+		fmt.Println("Done Reading!")
+	}(wg)
+
+	wg.Wait()
+	assert.Equal(t, int32(0), errors)
 }
