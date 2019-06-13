@@ -157,7 +157,6 @@ func (gbbRes *GenericBlockBodyResolver) GetMiniBlocks(hashes [][]byte) block.Min
 		if err != nil {
 			gbbRes.miniBlockPool.Remove(hashes[i])
 			err = gbbRes.miniBlockStorage.Remove(hashes[i])
-			log.LogIfError(err)
 			return nil
 		}
 

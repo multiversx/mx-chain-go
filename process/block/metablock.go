@@ -113,6 +113,8 @@ func NewMetaProcessor(
 	//TODO: This should be injected when BlockProcessor will be refactored
 	mp.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
+	mp.allNeededShardHdrsFound = true
+
 	return &mp, nil
 }
 
@@ -147,9 +149,10 @@ func (mp *metaProcessor) ProcessBlock(
 	if requestedBlockHeaders > 0 {
 		log.Info(fmt.Sprintf("requested %d missing block headers\n", requestedBlockHeaders))
 		err = mp.waitForBlockHeaders(haveTime())
-		mp.mutRequestedShardHdrsHashes.RLock()
+		mp.mutRequestedShardHdrsHashes.Lock()
+		mp.allNeededShardHdrsFound = true
 		requestedShardHdrsHashes := len(mp.requestedShardHdrsHashes)
-		mp.mutRequestedShardHdrsHashes.RUnlock()
+		mp.mutRequestedShardHdrsHashes.Unlock()
 		log.Info(fmt.Sprintf("received %d missing block headers\n", requestedBlockHeaders-requestedShardHdrsHashes))
 		if err != nil {
 			return err
@@ -759,6 +762,12 @@ func (mp *metaProcessor) requestFinalMissingHeaders() int {
 func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
 	mp.mutRequestedShardHdrsHashes.Lock()
 
+	if len(header.ShardInfo) == 0 {
+		mp.allNeededShardHdrsFound = true
+		mp.mutRequestedShardHdrsHashes.Unlock()
+		return 0
+	}
+
 	missingHeaderHashes := mp.computeMissingHeaders(header)
 
 	requestedBlockHeaders := 0
@@ -778,6 +787,10 @@ func (mp *metaProcessor) requestBlockHeaders(header *block.MetaBlock) int {
 		if requestedBlockHeaders > 0 {
 			mp.allNeededShardHdrsFound = false
 		}
+	}
+
+	if requestedBlockHeaders == 0 {
+		mp.allNeededShardHdrsFound = true
 	}
 
 	mp.mutRequestedShardHdrsHashes.Unlock()
