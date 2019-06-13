@@ -1530,8 +1530,8 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		store,
 		hasher,
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
-			return nil
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+			return nil, nil
 		}},
 		accounts,
 		mock.NewMultiShardsCoordinatorMock(3),

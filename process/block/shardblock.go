@@ -2,7 +2,6 @@ package block
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"sort"
 	"sync"
 	"time"
@@ -1186,11 +1185,6 @@ func (sp *shardProcessor) createMiniBlocks(
 		return miniBlocks, nil
 	}
 
-	if txs+sp.getSmartContractResultsNr() > uint32(maxTxInBlock) {
-		log.Info(fmt.Sprintf("block is full: added %d transactions\n", txs))
-		return miniBlocks, nil
-	}
-
 	addedTxs := 0
 	for i := 0; i < int(noShards); i++ {
 		miniBlock, err := sp.txPreProcess.CreateAndProcessMiniBlock(sp.shardCoordinator.SelfId(), uint32(i), maxTxInBlock-addedTxs, haveTime, round)
@@ -1203,11 +1197,6 @@ func (sp *shardProcessor) createMiniBlocks(
 		if err != nil {
 			return miniBlocks, nil
 		}
-	}
-
-	scrMBs := sp.getAllSmartContractResultMiniblocks()
-	if len(scrMBs) > 0 {
-		miniBlocks = append(miniBlocks, scrMBs...)
 	}
 
 	log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
