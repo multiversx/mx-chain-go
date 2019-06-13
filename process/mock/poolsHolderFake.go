@@ -72,3 +72,7 @@ func (phf *PoolsHolderFake) MetaBlocks() storage.Cacher {
 func (phf *PoolsHolderFake) MetaHeadersNonces() dataRetriever.Uint64Cacher {
 	return phf.metaHdrNonces
 }
+
+func (phf *PoolsHolderFake) SetTransactions(transactions dataRetriever.ShardedDataCacherNotifier) {
+	phf.transactions = transactions
+}

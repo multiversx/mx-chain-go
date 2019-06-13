@@ -25,7 +25,7 @@ type scExecutionState struct {
 
 type scProcessor struct {
 	accounts         state.AccountsAdapter
-	fakeAccounts     process.FakeAccountsHandler
+	tempAccounts     process.TemporaryAccountsHandler
 	adrConv          state.AddressConverter
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
@@ -46,7 +46,7 @@ func NewSmartContractProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountsDB state.AccountsAdapter,
-	fakeAccounts process.FakeAccountsHandler,
+	tempAccounts process.TemporaryAccountsHandler,
 	adrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
 ) (*scProcessor, error) {
@@ -65,8 +65,8 @@ func NewSmartContractProcessor(
 	if accountsDB == nil {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if fakeAccounts == nil {
-		return nil, process.ErrNilFakeAccountsHandler
+	if tempAccounts == nil {
+		return nil, process.ErrNilTemporaryAccountsHandler
 	}
 	if adrConv == nil {
 		return nil, process.ErrNilAddressConverter
@@ -81,7 +81,7 @@ func NewSmartContractProcessor(
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		accounts:         accountsDB,
-		fakeAccounts:     fakeAccounts,
+		tempAccounts:     tempAccounts,
 		adrConv:          adrConv,
 		shardCoordinator: coordinator,
 		mapExecState:     make(map[uint32]scExecutionState)}, nil
@@ -89,11 +89,12 @@ func NewSmartContractProcessor(
 
 // ComputeTransactionType calculates the type of the transaction
 func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (process.TransactionType, error) {
-	isEmptyAddress, err := sc.checkRecvAddressAndTxValidityAndEmptiness(tx)
+	err := sc.checkTxValidity(tx)
 	if err != nil {
 		return 0, err
 	}
 
+	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if isEmptyAddress {
 		if len(tx.Data) > 0 {
 			return process.SCDeployment, nil
@@ -117,18 +118,22 @@ func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (proc
 	return process.MoveBalance, nil
 }
 
-func (sc *scProcessor) checkRecvAddressAndTxValidityAndEmptiness(tx *transaction.Transaction) (bool, error) {
+func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
 	if tx == nil {
-		return false, process.ErrNilTransaction
+		return process.ErrNilTransaction
 	}
 
 	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.RcvAddr)
 	if recvAddressIsInvalid {
-		return false, process.ErrWrongTransaction
+		return process.ErrWrongTransaction
 	}
 
+	return nil
+}
+
+func (sc *scProcessor) isDestAddressEmpty(tx *transaction.Transaction) bool {
 	isEmptyAddress := bytes.Equal(tx.RcvAddr, make([]byte, sc.adrConv.AddressLen()))
-	return isEmptyAddress, nil
+	return isEmptyAddress
 }
 
 // ExecuteSmartContractTransaction processes the transaction, call the VM and processes the SC call output
@@ -137,7 +142,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	acntSnd, acntDst state.AccountHandler,
 	round uint32,
 ) ([]*smartContractResult.SmartContractResult, error) {
-	defer sc.fakeAccounts.CleanFakeAccounts()
+	defer sc.tempAccounts.CleanTempAccounts()
 
 	if tx == nil {
 		return nil, process.ErrNilTransaction
@@ -179,12 +184,12 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 		return err
 	}
 
-	_, err = sc.processSCPayment(tx, acntSnd)
+	err = sc.processSCPayment(tx, acntSnd)
 	if err != nil {
 		return err
 	}
 
-	sc.fakeAccounts.CreateFakeAccounts(tx.SndAddr, tx.Value, tx.Nonce)
+	sc.tempAccounts.AddTempAccount(tx.SndAddr, tx.Value, tx.Nonce)
 
 	return nil
 }
@@ -195,12 +200,14 @@ func (sc *scProcessor) DeploySmartContract(
 	acntSnd state.AccountHandler,
 	round uint32,
 ) ([]*smartContractResult.SmartContractResult, error) {
-	defer sc.fakeAccounts.CleanFakeAccounts()
+	defer sc.tempAccounts.CleanTempAccounts()
 
-	isEmptyAddress, err := sc.checkRecvAddressAndTxValidityAndEmptiness(tx)
+	err := sc.checkTxValidity(tx)
 	if err != nil {
 		return nil, err
 	}
+
+	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if !isEmptyAddress {
 		return nil, process.ErrWrongTransaction
 	}
@@ -289,37 +296,37 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 }
 
 // taking money from sender, as VM might not have access to him because of state sharding
-func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) (*big.Int, error) {
+func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
 	operation := big.NewInt(0)
 	operation = operation.Mul(big.NewInt(int64(tx.GasPrice)), big.NewInt(int64(tx.GasLimit)))
 	operation = operation.Add(operation, tx.Value)
 
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
 		// transaction was already done at sender shard
-		return operation, nil
+		return nil
 	}
 
 	stAcc, ok := acntSnd.(*state.Account)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return process.ErrWrongTypeAssertion
 	}
 
 	if stAcc.Balance.Cmp(operation) < 0 {
-		return nil, process.ErrInsufficientFunds
+		return process.ErrInsufficientFunds
 	}
 
 	totalCost := big.NewInt(0)
 	err := stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, operation))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = stAcc.SetNonceWithJournal(stAcc.GetNonce() + 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return operation, nil
+	return nil
 }
 
 func (sc *scProcessor) processVMOutput(
@@ -461,7 +468,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			return nil, err
 		}
 
-		fakeAcc := sc.fakeAccounts.GetFakeAccount(outAcc.Address)
+		fakeAcc := sc.tempAccounts.TempAccount(outAcc.Address)
 
 		if acc == nil || acc.IsInterfaceNil() {
 			crossOutAccs = append(crossOutAccs, outAcc)

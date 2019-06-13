@@ -83,59 +83,83 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 
 	switch txType {
 	case process.MoveBalance:
-		// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
-		// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
-		acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
-		if err != nil {
-			return nil, err
-		}
-
-		value := tx.Value
-		// is sender address in node shard
-		if acntSrc != nil {
-			err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		err = txProc.moveBalances(acntSrc, acntDst, value)
-		if err != nil {
-			return nil, err
-		}
-
-		// is sender address in node shard
-		if acntSrc != nil {
-			err = txProc.increaseNonce(acntSrc)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		return nil, nil
+		return nil, txProc.processMoveBalance(tx, adrSrc, adrDst)
 	case process.SCDeployment:
-		// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
-		// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
-		acntSrc, err := txProc.getAccountFromAddress(adrSrc)
-		if err != nil {
-			return nil, err
-		}
-
-		scTxs, err := txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
-		return scTxs, err
+		return txProc.processSCDeployment(tx, adrSrc, roundIndex)
 	case process.SCInvoking:
-		// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
-		// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
-		acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
-		if err != nil {
-			return nil, err
-		}
-
-		scTxs, err := txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
-		return scTxs, err
+		return txProc.processSCInvoking(tx, adrSrc, adrDst, roundIndex)
 	}
 
 	return nil, process.ErrWrongTransaction
+}
+
+func (txProc *txProcessor) processMoveBalance(
+	tx *transaction.Transaction,
+	adrSrc, adrDst state.AddressContainer,
+) error {
+
+	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
+	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
+	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
+	if err != nil {
+		return err
+	}
+
+	value := tx.Value
+	// is sender address in node shard
+	if acntSrc != nil {
+		err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = txProc.moveBalances(acntSrc, acntDst, value)
+	if err != nil {
+		return err
+	}
+
+	// is sender address in node shard
+	if acntSrc != nil {
+		err = txProc.increaseNonce(acntSrc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (txProc *txProcessor) processSCDeployment(
+	tx *transaction.Transaction,
+	adrSrc state.AddressContainer,
+	roundIndex uint32,
+) ([]*smartContractResult.SmartContractResult, error) {
+	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
+	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
+	acntSrc, err := txProc.getAccountFromAddress(adrSrc)
+	if err != nil {
+		return nil, err
+	}
+
+	scrs, err := txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
+	return scrs, err
+}
+
+func (txProc *txProcessor) processSCInvoking(
+	tx *transaction.Transaction,
+	adrSrc, adrDst state.AddressContainer,
+	roundIndex uint32,
+) ([]*smartContractResult.SmartContractResult, error) {
+	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
+	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
+	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
+	if err != nil {
+		return nil, err
+	}
+
+	scrs, err := txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
+	return scrs, err
 }
 
 func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
@@ -208,14 +232,14 @@ func (txProc *txProcessor) getAccounts(adrSrc, adrDst state.AddressContainer,
 	return
 }
 
-func (tx *txProcessor) getAccountFromAddress(adrSrc state.AddressContainer) (state.AccountHandler, error) {
-	shardForCurrentNode := tx.shardCoordinator.SelfId()
-	shardForSrc := tx.shardCoordinator.ComputeId(adrSrc)
+func (txProc *txProcessor) getAccountFromAddress(adrSrc state.AddressContainer) (state.AccountHandler, error) {
+	shardForCurrentNode := txProc.shardCoordinator.SelfId()
+	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
 	if shardForCurrentNode != shardForSrc {
 		return nil, nil
 	}
 
-	acnt, err := tx.accounts.GetAccountWithJournal(adrSrc)
+	acnt, err := txProc.accounts.GetAccountWithJournal(adrSrc)
 	if err != nil {
 		return nil, err
 	}
