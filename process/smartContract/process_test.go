@@ -1273,7 +1273,7 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	assert.Equal(t, len(deletedAccounts), computeIdCalled)
 }
 
-func TestScProcessor_ProcessSCPaymentAccNotInShard(t *testing.T) {
+func TestScProcessor_ProcessSCPaymentAccNotInShardShouldNotReturnError(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
@@ -1298,16 +1298,8 @@ func TestScProcessor_ProcessSCPaymentAccNotInShard(t *testing.T) {
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 
-	totalPayed, err := sc.ProcessSCPayment(tx, nil)
+	err = sc.ProcessSCPayment(tx, nil)
 	assert.Nil(t, err)
-	assert.Equal(t, tx.Value.Uint64()+(tx.GasLimit*tx.GasPrice), totalPayed.Uint64())
-
-	acntSnd, _ := createAccounts(tx)
-	acntSnd = nil
-
-	totalPayed, err = sc.ProcessSCPayment(tx, acntSnd)
-	assert.Nil(t, err)
-	assert.Equal(t, tx.Value.Uint64()+(tx.GasLimit*tx.GasPrice), totalPayed.Uint64())
 }
 
 func TestScProcessor_ProcessSCPaymentWrongTypeAssertion(t *testing.T) {
@@ -1337,9 +1329,8 @@ func TestScProcessor_ProcessSCPaymentWrongTypeAssertion(t *testing.T) {
 
 	acntSrc := &mock.AccountWrapMock{}
 
-	totalPayed, err := sc.ProcessSCPayment(tx, acntSrc)
+	err = sc.ProcessSCPayment(tx, acntSrc)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-	assert.Nil(t, totalPayed)
 }
 
 func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
@@ -1373,9 +1364,8 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 
 	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 
-	totalPayed, err := sc.ProcessSCPayment(tx, acntSrc)
+	err = sc.ProcessSCPayment(tx, acntSrc)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
-	assert.Nil(t, totalPayed)
 	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
 
@@ -1404,15 +1394,12 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 
-	toPay := tx.Value.Uint64() + tx.GasLimit*tx.GasLimit
-
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 	modifiedBalance := currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
 
-	totalPayed, err := sc.ProcessSCPayment(tx, acntSrc)
+	err = sc.ProcessSCPayment(tx, acntSrc)
 	assert.Nil(t, err)
-	assert.Equal(t, toPay, totalPayed.Uint64())
 	assert.Equal(t, modifiedBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
 
