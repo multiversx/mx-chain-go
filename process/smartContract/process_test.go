@@ -1679,7 +1679,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 	t.Parallel()
 
 	accountsDB := &mock.AccountsStub{}
-	fakeAccountsHandler := &mock.FakeAccountsHandlerMock{}
+	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
 		&mock.VMExecutionHandlerStub{},
@@ -1718,7 +1718,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	t.Parallel()
 
 	accountsDB := &mock.AccountsStub{}
-	fakeAccountsHandler := &mock.FakeAccountsHandlerMock{}
+	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
 		&mock.VMExecutionHandlerStub{},

@@ -139,7 +139,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	acntSnd, acntDst state.AccountHandler,
 	round uint32,
 ) ([]*smartContractResult.SmartContractResult, error) {
-	defer sc.tempAccounts.CleanFakeAccounts()
+	defer sc.tempAccounts.CleanTempAccounts()
 
 	if tx == nil {
 		return nil, process.ErrNilTransaction
@@ -197,7 +197,7 @@ func (sc *scProcessor) DeploySmartContract(
 	acntSnd state.AccountHandler,
 	round uint32,
 ) ([]*smartContractResult.SmartContractResult, error) {
-	defer sc.tempAccounts.CleanFakeAccounts()
+	defer sc.tempAccounts.CleanTempAccounts()
 
 	err := sc.checkTxValidity(tx)
 	if err != nil {

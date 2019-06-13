@@ -34,7 +34,7 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 
 	txProc, accnts := createPreparedTxProcessorAndAccounts(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 
-	err := txProc.ProcessTransaction(tx, round)
+	_, err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -83,7 +83,7 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 
 	txProc, accnts := createPreparedTxProcessorAndAccounts(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 
-	err := txProc.ProcessTransaction(tx, round)
+	_, err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -133,7 +133,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 
 	txProc, accnts := createPreparedTxProcessorAndAccounts(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 
-	err := txProc.ProcessTransaction(tx, round)
+	_, err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -185,7 +185,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 
 	txProc, accnts := createPreparedTxProcessorAndAccounts(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 
-	err := txProc.ProcessTransaction(tx, round)
+	_, err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()

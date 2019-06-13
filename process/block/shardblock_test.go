@@ -772,7 +772,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	txHash := []byte("tx_hash1")
+	txHash := []byte("tx1_hash")
 	txProcess := func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
 		return nil, nil
 	}
@@ -860,7 +860,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	txHash := []byte("tx_hash1")
+	txHash := []byte("tx1_hash")
 	txProcess := func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
 		return nil, nil
 	}

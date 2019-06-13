@@ -526,22 +526,22 @@ func (sp *shardProcessor) processBlockTransactions(body block.Body, round uint32
 					return process.ErrTimeIsOut
 				}
 
-			txHash := miniBlock.TxHashes[j]
-			sp.mutTxsForBlock.RLock()
-			txInfo := sp.txsForBlock[string(txHash)]
-			sp.mutTxsForBlock.RUnlock()
-			if txInfo == nil || txInfo.tx == nil {
-				return process.ErrMissingTransaction
-			}
+				txHash := miniBlock.TxHashes[j]
+				sp.mutTxsForBlock.RLock()
+				txInfo := sp.txsForBlock[string(txHash)]
+				sp.mutTxsForBlock.RUnlock()
+				if txInfo == nil || txInfo.tx == nil {
+					return process.ErrMissingTransaction
+				}
 
-			err := sp.processAndRemoveBadTransaction(
-				txHash,
-				txInfo.tx,
-				txPool,
-				round,
-				miniBlock.SenderShardID,
-				miniBlock.ReceiverShardID,
-			)
+				err := sp.processAndRemoveBadTransaction(
+					txHash,
+					txInfo.tx,
+					txPool,
+					round,
+					miniBlock.SenderShardID,
+					miniBlock.ReceiverShardID,
+				)
 
 				if err != nil {
 					return err
@@ -1684,6 +1684,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		miniBlock.SenderShardID = sp.shardCoordinator.SelfId()
 		miniBlock.ReceiverShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
+		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
 		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ReceiverShardID))
 
 		for index := range orderedTxes {

@@ -83,14 +83,14 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 
 	switch txType {
 	case process.MoveBalance:
-		return txProc.processMoveBalance(tx, adrSrc, adrDst)
+		return nil, txProc.processMoveBalance(tx, adrSrc, adrDst)
 	case process.SCDeployment:
 		return txProc.processSCDeployment(tx, adrSrc, roundIndex)
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, adrSrc, adrDst, roundIndex)
 	}
 
-	return process.ErrWrongTransaction
+	return nil, process.ErrWrongTransaction
 }
 
 func (txProc *txProcessor) processMoveBalance(
@@ -134,31 +134,32 @@ func (txProc *txProcessor) processSCDeployment(
 	tx *transaction.Transaction,
 	adrSrc state.AddressContainer,
 	roundIndex uint32,
-) error {
+) ([]*smartContractResult.SmartContractResult, error) {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, err := txProc.getAccountFromAddress(adrSrc)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
-	return err
+	scrs, err := txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
+	return scrs, err
 }
 
 func (txProc *txProcessor) processSCInvoking(
 	tx *transaction.Transaction,
 	adrSrc, adrDst state.AddressContainer,
-	roundIndex uint32) error {
+	roundIndex uint32,
+) ([]*smartContractResult.SmartContractResult, error) {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
-	return err
+	scrs, err := txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
+	return scrs, err
 }
 
 func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
