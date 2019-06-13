@@ -51,7 +51,7 @@ type transactions struct {
 	accounts             state.AccountsAdapter
 }
 
-// NewShardProcessor creates a new shardProcessor object
+// NewTransactionPreprocessor creates a new transaction preprocessor object
 func NewTransactionPreprocessor(
 	txDataPool dataRetriever.ShardedDataCacherNotifier,
 	store dataRetriever.StorageService,
@@ -132,7 +132,7 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 	return nil
 }
 
-// removeTxBlockFromPools removes transactions and miniblocks from associated pools
+// RemoveTxBlockFromPools removes transactions and miniblocks from associated pools
 func (txs *transactions) RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error {
 	if body == nil {
 		return process.ErrNilTxBlockBody
@@ -158,7 +158,7 @@ func (txs *transactions) RemoveTxBlockFromPools(body block.Body, miniBlockPool s
 	return nil
 }
 
-// restoreTxBlockIntoPools restores the transactions and miniblocks to associated pools
+// RestoreTxBlockIntoPools restores the transactions and miniblocks to associated pools
 func (txs *transactions) RestoreTxBlockIntoPools(
 	body block.Body,
 	miniBlockHashes map[int][]byte,
@@ -204,7 +204,7 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 	return txsRestored, nil
 }
 
-// ProcessBlockTransactions
+// ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
 func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error {
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
@@ -222,7 +222,7 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32,
 				return process.ErrMissingTransaction
 			}
 
-			err := txs.ProcessAndRemoveBadTransaction(
+			err := txs.processAndRemoveBadTransaction(
 				txHash,
 				txInfo.tx,
 				round,
@@ -238,7 +238,7 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32,
 	return nil
 }
 
-// SaveTxBlockToStorage saves processed transactions into storage
+// SaveTxBlockToStorage saves transactions from body into storage
 func (txs *transactions) SaveTxBlockToStorage(body block.Body) error {
 	for i := 0; i < len(body); i++ {
 		miniBlock := (body)[i]
@@ -324,30 +324,16 @@ func (txs *transactions) receivedTransaction(txHash []byte) {
 	}
 }
 
-// requestTxsFromHashes send requests for txs from a set of hashes
-func (txs *transactions) requestTxsFromHashes(senderShardId, destShardId uint32, txHashes [][]byte) {
-	requestedTxs := make([][]byte, 0)
-	for _, txHash := range txHashes {
-		tx := txs.getTransactionFromPool(senderShardId, destShardId, txHash)
-		if tx == nil {
-			requestedTxs = append(requestedTxs, txHash)
-		}
-	}
-
-	txs.onRequestTransaction(senderShardId, requestedTxs)
-}
-
+// CreatedBlockStarted cleans the local cache map for processed/created transactions at this round
 func (txs *transactions) CreateBlockStarted() {
 	txs.mutTxsForBlock.Lock()
 	txs.txsForBlock = make(map[string]*txInfo)
 	txs.mutTxsForBlock.Unlock()
 }
 
-// requestBlockTransactions request for transactions if missing from a block.Body
+// RequestBlockTransactions request for transactions if missing from a block.Body
 func (txs *transactions) RequestBlockTransactions(body block.Body) int {
-	txs.mutTxsForBlock.Lock()
-	txs.txsForBlock = make(map[string]*txInfo)
-	txs.mutTxsForBlock.Unlock()
+	txs.CreateBlockStarted()
 
 	requestedTxs := 0
 	missingTxsForShards := txs.computeMissingAndExistingTxsForShards(body)
@@ -405,7 +391,7 @@ func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) 
 }
 
 // processAndRemoveBadTransactions processed transactions, if txs are with error it removes them from pool
-func (txs *transactions) ProcessAndRemoveBadTransaction(
+func (txs *transactions) processAndRemoveBadTransaction(
 	transactionHash []byte,
 	transaction *transaction.Transaction,
 	round uint32,
@@ -489,12 +475,13 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	return transactions, txHashes, nil
 }
 
+// CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
 func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txStore := txs.txPool.ShardDataStore(strCache)
 
 	timeBefore := time.Now()
-	orderedTxes, orderedTxHashes, err := txs.GetTxs(txStore)
+	orderedTxes, orderedTxHashes, err := txs.getTxs(txStore)
 	timeAfter := time.Now()
 
 	if !haveTime() {
@@ -523,7 +510,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		snapshot := txs.accounts.JournalLen()
 
 		// execute transaction to change the trie root hash
-		err := txs.ProcessAndRemoveBadTransaction(
+		err := txs.processAndRemoveBadTransaction(
 			orderedTxHashes[index],
 			orderedTxes[index],
 			round,
@@ -552,6 +539,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	return miniBlock, nil
 }
 
+// ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
 func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error {
 	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
@@ -581,7 +569,7 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 	return nil
 }
 
-// sortTxByNonce sort transactions according to nonces
+// SortTxByNonce sort transactions according to nonces
 func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
 	if txShardStore == nil {
 		return nil, nil, process.ErrNilCacher
@@ -655,7 +643,7 @@ func (txs *transactions) CreateMarshalizedData(txHashes [][]byte) ([][]byte, err
 }
 
 // getTxs gets all the available transactions from the pool
-func (txs *transactions) GetTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
+func (txs *transactions) getTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
 	if txShardStore == nil {
 		return nil, nil, process.ErrNilCacher
 	}

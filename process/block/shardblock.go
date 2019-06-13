@@ -145,6 +145,7 @@ func NewShardProcessor(
 
 	sp.metaBlockFinality = metablockFinality
 
+	// TODO: inject all preprocessors together, find a good structure for them
 	sp.txPreProcess, err = preprocess.NewTransactionPreprocessor(
 		sp.dataPool.Transactions(),
 		sp.store,
@@ -193,7 +194,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	log.Info(fmt.Sprintf("Total txs in pool: %d\n", GetNrTxsWithDst(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())))
+	log.Info(fmt.Sprintf("Total txs in pool: %d\n", GetNumTxsWithDst(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())))
 
 	requestedTxs := sp.txPreProcess.RequestBlockTransactions(body)
 	requestedMetaHdrs := sp.requestMetaHeaders(header)

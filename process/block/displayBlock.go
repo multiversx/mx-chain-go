@@ -15,7 +15,8 @@ var txCounterMutex = sync.RWMutex{}
 var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
-func GetNrTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
+// GetNumTxsWithDst returns the number of transactions for a certain destination shard
+func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
 	txPool := dataPool.Transactions()
 	if txPool == nil {
 		return 0
@@ -35,6 +36,7 @@ func GetNrTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrSh
 	return sumTxs
 }
 
+// SubstractRestoredTxs updated the total processed txs in case of restore
 func SubstractRestoredTxs(txsNr int) {
 	txCounterMutex.Lock()
 	txsTotalProcessed = txsTotalProcessed - txsNr
@@ -45,7 +47,7 @@ func DisplayLogInfo(
 	header *block.Header,
 	body block.Body,
 	headerHash []byte,
-	nrShards uint32,
+	numShards uint32,
 	selfId uint32,
 	dataPool dataRetriever.PoolsHolder,
 ) {
@@ -64,8 +66,8 @@ func DisplayLogInfo(
 		core.ToB64(headerHash),
 		txsTotalProcessed,
 		txsCurrentBlockProcessed,
-		GetNrTxsWithDst(selfId, dataPool, nrShards),
-		nrShards,
+		GetNumTxsWithDst(selfId, dataPool, numShards),
+		numShards,
 		selfId)
 	txCounterMutex.RUnlock()
 	log.Info(tblString)
@@ -92,7 +94,7 @@ func createDisplayableShardHeaderAndBlockBody(
 	shardLines = append(shardLines, lines...)
 
 	if header.BlockBodyType == block.TxBlock {
-		shardLines := displayTxBlockBody(shardLines, body)
+		shardLines = displayTxBlockBody(shardLines, body)
 
 		return tableHeader, shardLines
 	}
