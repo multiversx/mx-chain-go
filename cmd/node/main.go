@@ -597,28 +597,7 @@ func createNode(
 		return nil, nil, nil, err
 	}
 
-	initialPubKeys := nodesConfig.InitialNodesPubKeys()
-	publicKey, err := pubKey.ToByteArray()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
-	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	err = log.ApplyOptions(logger.WithFile(logFile))
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
+	err = initLogFileAndStatsMonitor(config, pubKey, log)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -644,8 +623,6 @@ func createNode(
 		return nil, nil, nil, err
 	}
 
-	log.Info("Starting with tx sign public key: " + getPkEncoded(cryptoComponents.txSignPubKey))
-
 	if config.Explorer.Enabled {
 		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
 		dbIndexer, err = CreateElasticIndexer(
@@ -669,7 +646,7 @@ func createNode(
 		node.WithMessenger(processComponents.netMessenger),
 		node.WithHasher(coreComponents.hasher),
 		node.WithMarshalizer(coreComponents.marshalizer),
-		node.WithInitialNodesPubKeys(initialPubKeys),
+		node.WithInitialNodesPubKeys(cryptoComponents.initialPubKeys),
 		node.WithAddressConverter(stateComponents.addressConverter),
 		node.WithAccountsAdapter(stateComponents.accountsAdapter),
 		node.WithBlockChain(dataComponents.blkc),
@@ -735,7 +712,6 @@ func createNode(
 		if err != nil {
 			return nil, nil, nil, err
 		}
-
 	}
 
 	externalResolver, err := external.NewExternalResolver(
@@ -751,6 +727,34 @@ func createNode(
 
 	return nd, externalResolver, tpsBenchmark, nil
 
+}
+
+func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger) error {
+	publicKey, err := pubKey.ToByteArray()
+	if err != nil {
+		return err
+	}
+
+	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
+	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
+	if err != nil {
+		return err
+	}
+
+	err = log.ApplyOptions(logger.WithFile(logFile))
+	if err != nil {
+		return err
+	}
+
+	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
+	if err != nil {
+		return err
+	}
+	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *statistics.TpsBenchmark) error {

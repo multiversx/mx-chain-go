@@ -88,6 +88,7 @@ type Crypto struct {
 	txSignKeyGen   crypto.KeyGenerator
 	txSignPrivKey  crypto.PrivateKey
 	txSignPubKey   crypto.PublicKey
+	initialPubKeys map[uint32][]string
 }
 
 type Process struct {
@@ -193,6 +194,7 @@ func cryptoComponentsFactory(
 	privKey crypto.PrivateKey,
 	log *logger.Logger,
 ) (*Crypto, error) {
+	initialPubKeys := nodesConfig.InitialNodesPubKeys()
 	txSingleSigner := &singlesig.SchnorrSigner{}
 	singleSigner, err := createSingleSigner(config)
 	if err != nil {
@@ -225,6 +227,7 @@ func cryptoComponentsFactory(
 	if err != nil {
 		return nil, err
 	}
+	log.Info("Starting with tx sign public key: " + getPkEncoded(txSignPubKey))
 
 	return &Crypto{
 		txSingleSigner: txSingleSigner,
@@ -233,6 +236,7 @@ func cryptoComponentsFactory(
 		txSignKeyGen:   txSignKeyGen,
 		txSignPrivKey:  txSignPrivKey,
 		txSignPubKey:   txSignPubKey,
+		initialPubKeys: initialPubKeys,
 	}, nil
 }
 
