@@ -873,7 +873,7 @@ func getBlockProcessorAndTracker(
 		}
 
 		requestHandler, err := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic,
-			factory.MiniBlocksTopic, factory.MetachainBlocksTopic, maxTxsToRequest)
+			factory.SmartContractResultTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, maxTxsToRequest)
 		if err != nil {
 			return nil, nil, err
 		}
