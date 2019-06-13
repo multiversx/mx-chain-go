@@ -10,7 +10,7 @@
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
-        Size = 1000
+        Size = 10000
         Type = "LRU"
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
@@ -20,7 +20,7 @@
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
-        Size = 100
+        Size = 10000
         Type = "LRU"
     [PeerBlockBodyStorage.DB]
         FilePath = "PeerBlocks"
@@ -30,7 +30,7 @@
 
 [BlockHeaderStorage]
     [BlockHeaderStorage.Cache]
-        Size = 100
+        Size = 10000
         Type = "LRU"
     [BlockHeaderStorage.DB]
         FilePath = "BlockHeaders"
@@ -40,7 +40,7 @@
 
 [ShardDataStorage]
     [ShardDataStorage.Cache]
-        Size = 1000
+        Size = 10000
         Type = "LRU"
     [ShardDataStorage.DB]
         FilePath = "ShardData"
@@ -50,7 +50,7 @@
 
 [PeerDataStorage]
     [PeerDataStorage.Cache]
-        Size = 100
+        Size = 10000
         Type = "LRU"
     [PeerDataStorage.DB]
         FilePath = "PeerData"
@@ -60,7 +60,7 @@
 
 [MetaBlockStorage]
     [MetaBlockStorage.Cache]
-        Size = 100
+        Size = 10000
         Type = "LRU"
     [MetaBlockStorage.DB]
         FilePath = "MetaBlock"
@@ -80,7 +80,7 @@
 
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
-        Size = 100
+        Size = 10000
         Type = "LRU"
     [ShardHdrNonceHashStorage.DB]
         FilePath = "ShardHdrHashNonce"
@@ -90,7 +90,7 @@
 
 [MetaHdrNonceHashStorage]
     [MetaHdrNonceHashStorage.Cache]
-        Size = 100
+        Size = 10000
         Type = "LRU"
     [MetaHdrNonceHashStorage.DB]
         FilePath = "MetaHdrHashNonce"
