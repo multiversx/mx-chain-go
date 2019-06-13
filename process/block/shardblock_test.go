@@ -1127,6 +1127,15 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 
 	tdp.MetaBlocks().Put(metaHash, meta)
 
+	meta = block.MetaBlock{
+		Nonce:     2,
+		ShardInfo: make([]block.ShardData, 0),
+	}
+	metaBytes, _ = marshalizer.Marshal(meta)
+	metaHash = hasher.Compute(string(metaBytes))
+
+	tdp.MetaBlocks().Put(metaHash, meta)
+
 	// set accounts not dirty
 	journalLen := func() int { return 0 }
 	wasCalled := false

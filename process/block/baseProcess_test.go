@@ -144,6 +144,13 @@ func initDataPool() *mock.PoolsHolderStub {
 			}
 			return cs
 		},
+		MetaHeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
+			cs := &mock.Uint64CacherStub{}
+			cs.HasCalled = func(u uint64) bool {
+				return true
+			}
+			return cs
+		},
 	}
 	return sdp
 }

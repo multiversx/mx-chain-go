@@ -141,29 +141,29 @@ func (mp *metaProcessor) ReceivedHeader(hdrHash []byte) {
 }
 
 func (mp *metaProcessor) AddHdrHashToRequestedList(hdrHash []byte) {
-	mp.mutRequestedShardHeaderHashes.Lock()
-	defer mp.mutRequestedShardHeaderHashes.Unlock()
+	mp.mutRequestedShardHdrsHashes.Lock()
+	defer mp.mutRequestedShardHdrsHashes.Unlock()
 
-	if mp.requestedShardHeaderHashes == nil {
-		mp.requestedShardHeaderHashes = make(map[string]bool)
+	if mp.requestedShardHdrsHashes == nil {
+		mp.requestedShardHdrsHashes = make(map[string]bool)
 		mp.allNeededShardHdrsFound = false
 	}
 
-	if mp.currHighestShardHdrNonces == nil {
-		mp.currHighestShardHdrNonces = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
+	if mp.currHighestShardHdrNonce == nil {
+		mp.currHighestShardHdrNonce = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
 		for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-			mp.currHighestShardHdrNonces[i] = uint64(0)
+			mp.currHighestShardHdrNonce[i] = uint64(0)
 		}
 	}
 
-	mp.requestedShardHeaderHashes[string(hdrHash)] = true
+	mp.requestedShardHdrsHashes[string(hdrHash)] = true
 }
 
 func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
-	mp.mutRequestedShardHeaderHashes.Lock()
-	defer mp.mutRequestedShardHeaderHashes.Unlock()
+	mp.mutRequestedShardHdrsHashes.Lock()
+	defer mp.mutRequestedShardHdrsHashes.Unlock()
 
-	_, found := mp.requestedShardHeaderHashes[string(hdrHash)]
+	_, found := mp.requestedShardHdrsHashes[string(hdrHash)]
 
 	return found
 }
@@ -185,9 +185,9 @@ func (bp *baseProcessor) SetHasher(hasher hashing.Hasher) {
 }
 
 func (mp *metaProcessor) SetNextKValidity(val uint32) {
-	mp.mutRequestedShardHeaderHashes.Lock()
+	mp.mutRequestedShardHdrsHashes.Lock()
 	mp.nextKValidity = val
-	mp.mutRequestedShardHeaderHashes.Unlock()
+	mp.mutRequestedShardHdrsHashes.Unlock()
 }
 
 func (mp *metaProcessor) CreateLastNotarizedHdrs(header *block.MetaBlock) error {

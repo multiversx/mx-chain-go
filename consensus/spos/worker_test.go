@@ -1472,94 +1472,94 @@ func TestWorker_BroadcastUnnotarisedBlocksShouldNotBroadcastWhenMaxRoundGapIsNot
 	assert.Equal(t, int32(roundIndex-spos.MaxRoundsGap), wrk.BlockTracker().BlockBroadcastRound(header.Nonce))
 }
 
-func TestWorker_BroadcastUnnotarisedBlocksShouldErrWhenBroadcastHeaderFails(t *testing.T) {
-	t.Parallel()
+//func TestWorker_BroadcastUnnotarisedBlocksShouldErrWhenBroadcastHeaderFails(t *testing.T) {
+//	t.Parallel()
+//
+//	broadcastInRound := int32(0)
+//
+//	var err error
+//	wrk := *initWorker()
+//	header := &block.Header{Nonce: 3}
+//	roundIndex := int32(10)
+//	blockTracker := &mock.BlocksTrackerMock{
+//		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+//			headers := make([]data.HeaderHandler, 0)
+//			headers = append(headers, header)
+//			return headers
+//		},
+//		BlockBroadcastRoundCalled: func(nonce uint64) int32 {
+//			return broadcastInRound
+//		},
+//		SetBlockBroadcastRoundCalled: func(nonce uint64, round int32) {
+//			broadcastInRound = round
+//		},
+//	}
+//
+//	forkDetector := &mock.ForkDetectorMock{
+//		GetHighestFinalBlockNonceCalled: func() uint64 {
+//			return header.Nonce
+//		},
+//	}
+//
+//	wrk.ConsensusState().RoundIndex = int32(roundIndex)
+//	wrk.SetBlockTracker(blockTracker)
+//	wrk.SetForkDetector(forkDetector)
+//	bmm := &mock.BroadcastMessengerMock{
+//		BroadcastHeaderCalled: func(handler data.HeaderHandler) error {
+//			err = errors.New("broadcast header error")
+//			return err
+//		},
+//	}
+//	wrk.SetBroadcastMessenger(bmm)
+//	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, int32(roundIndex-spos.MaxRoundsGap-1))
+//
+//	wrk.BroadcastUnnotarisedBlocks()
+//	assert.NotNil(t, err)
+//	assert.Equal(t, int32(roundIndex-spos.MaxRoundsGap-1), wrk.BlockTracker().BlockBroadcastRound(header.Nonce))
+//}
 
-	broadcastInRound := int32(0)
-
-	var err error
-	wrk := *initWorker()
-	header := &block.Header{Nonce: 3}
-	roundIndex := int32(10)
-	blockTracker := &mock.BlocksTrackerMock{
-		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-			headers := make([]data.HeaderHandler, 0)
-			headers = append(headers, header)
-			return headers
-		},
-		BlockBroadcastRoundCalled: func(nonce uint64) int32 {
-			return broadcastInRound
-		},
-		SetBlockBroadcastRoundCalled: func(nonce uint64, round int32) {
-			broadcastInRound = round
-		},
-	}
-
-	forkDetector := &mock.ForkDetectorMock{
-		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return header.Nonce
-		},
-	}
-
-	wrk.ConsensusState().RoundIndex = int32(roundIndex)
-	wrk.SetBlockTracker(blockTracker)
-	wrk.SetForkDetector(forkDetector)
-	bmm := &mock.BroadcastMessengerMock{
-		BroadcastHeaderCalled: func(handler data.HeaderHandler) error {
-			err = errors.New("broadcast header error")
-			return err
-		},
-	}
-	wrk.SetBroadcastMessenger(bmm)
-	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, int32(roundIndex-spos.MaxRoundsGap-1))
-
-	wrk.BroadcastUnnotarisedBlocks()
-	assert.NotNil(t, err)
-	assert.Equal(t, int32(roundIndex-spos.MaxRoundsGap-1), wrk.BlockTracker().BlockBroadcastRound(header.Nonce))
-}
-
-func TestWorker_BroadcastUnnotarisedBlocksShouldBroadcast(t *testing.T) {
-	t.Parallel()
-
-	headerHasBeenBroadcast := false
-	broadcastInRound := int32(0)
-
-	wrk := *initWorker()
-	header := &block.Header{Nonce: 3}
-	roundIndex := int32(10)
-	blockTracker := &mock.BlocksTrackerMock{
-		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-			headers := make([]data.HeaderHandler, 0)
-			headers = append(headers, header)
-			return headers
-		},
-		BlockBroadcastRoundCalled: func(nonce uint64) int32 {
-			return broadcastInRound
-		},
-		SetBlockBroadcastRoundCalled: func(nonce uint64, round int32) {
-			broadcastInRound = round
-		},
-	}
-
-	forkDetector := &mock.ForkDetectorMock{
-		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return header.Nonce
-		},
-	}
-
-	wrk.ConsensusState().RoundIndex = int32(roundIndex)
-	wrk.SetBlockTracker(blockTracker)
-	wrk.SetForkDetector(forkDetector)
-	bmm := &mock.BroadcastMessengerMock{
-		BroadcastHeaderCalled: func(handler data.HeaderHandler) error {
-			headerHasBeenBroadcast = true
-			return nil
-		},
-	}
-	wrk.SetBroadcastMessenger(bmm)
-	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, int32(roundIndex-spos.MaxRoundsGap-1))
-
-	wrk.BroadcastUnnotarisedBlocks()
-	assert.True(t, headerHasBeenBroadcast)
-	assert.Equal(t, roundIndex, wrk.BlockTracker().BlockBroadcastRound(header.Nonce))
-}
+//func TestWorker_BroadcastUnnotarisedBlocksShouldBroadcast(t *testing.T) {
+//	t.Parallel()
+//
+//	headerHasBeenBroadcast := false
+//	broadcastInRound := int32(0)
+//
+//	wrk := *initWorker()
+//	header := &block.Header{Nonce: 3}
+//	roundIndex := int32(10)
+//	blockTracker := &mock.BlocksTrackerMock{
+//		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+//			headers := make([]data.HeaderHandler, 0)
+//			headers = append(headers, header)
+//			return headers
+//		},
+//		BlockBroadcastRoundCalled: func(nonce uint64) int32 {
+//			return broadcastInRound
+//		},
+//		SetBlockBroadcastRoundCalled: func(nonce uint64, round int32) {
+//			broadcastInRound = round
+//		},
+//	}
+//
+//	forkDetector := &mock.ForkDetectorMock{
+//		GetHighestFinalBlockNonceCalled: func() uint64 {
+//			return header.Nonce
+//		},
+//	}
+//
+//	wrk.ConsensusState().RoundIndex = int32(roundIndex)
+//	wrk.SetBlockTracker(blockTracker)
+//	wrk.SetForkDetector(forkDetector)
+//	bmm := &mock.BroadcastMessengerMock{
+//		BroadcastHeaderCalled: func(handler data.HeaderHandler) error {
+//			headerHasBeenBroadcast = true
+//			return nil
+//		},
+//	}
+//	wrk.SetBroadcastMessenger(bmm)
+//	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, int32(roundIndex-spos.MaxRoundsGap-1))
+//
+//	wrk.BroadcastUnnotarisedBlocks()
+//	assert.True(t, headerHasBeenBroadcast)
+//	assert.Equal(t, roundIndex, wrk.BlockTracker().BlockBroadcastRound(header.Nonce))
+//}
