@@ -131,6 +131,16 @@ func NewShardBootstrap(
 	//TODO: This should be injected when BlockProcessor will be refactored
 	boot.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
+	// when a node starts it tries firstly to boostrap from storage, if there already exist a database saved
+	boot.syncFromStorer(process.ShardBlockFinality,
+		dataRetriever.BlockHeaderUnit,
+		dataRetriever.ShardHdrNonceHashDataUnit,
+		boot.getHeaderFromStorage,
+		boot.getBlockBody,
+		process.MetaBlockFinality,
+		dataRetriever.MetaHdrNonceHashDataUnit,
+		boot.applyNotarizedBlock)
+
 	return &boot, nil
 }
 
@@ -218,16 +228,6 @@ func (boot *ShardBootstrap) StopSync() {
 
 // syncBlocks method calls repeatedly synchronization method SyncBlock
 func (boot *ShardBootstrap) syncBlocks() {
-	// when a node starts it tries firstly to boostrap from storage, if there already exist a database saved
-	boot.syncFromStorer(process.ShardBlockFinality,
-		dataRetriever.BlockHeaderUnit,
-		dataRetriever.ShardHdrNonceHashDataUnit,
-		boot.getHeaderFromStorage,
-		boot.getBlockBody,
-		process.MetaBlockFinality,
-		dataRetriever.MetaHdrNonceHashDataUnit,
-		boot.applyNotarizedBlock)
-
 	for {
 		time.Sleep(sleepTime)
 		select {
@@ -398,7 +398,7 @@ func (boot *ShardBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.H
 			return nil, err
 		}
 
-		hdr, err = boot.getHeaderFromPoolWithNonce(nonce)
+		hdr, err = boot.getHeaderWithNonce(nonce)
 		if err != nil {
 			return nil, err
 		}

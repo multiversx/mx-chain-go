@@ -1019,10 +1019,10 @@ func (sp *shardProcessor) requestMetaHeaders(header *block.Header) int {
 	if requestedBlockHeaders > 0 {
 		sp.allNeededMetaHdrsFound = false
 	} else {
-		requestedBlockHeaders = sp.requestFinalMissingHeaders()
-		if requestedBlockHeaders > 0 {
-			sp.allNeededMetaHdrsFound = false
-		}
+		//requestedBlockHeaders = sp.requestFinalMissingHeaders()
+		//if requestedBlockHeaders > 0 {
+		//	sp.allNeededMetaHdrsFound = false
+		//}
 	}
 
 	sp.mutRequestedMetaHdrsHashes.Unlock()
