@@ -226,6 +226,7 @@ github.com/libp2p/go-testutil v0.0.1 h1:Xg+O0G2HIMfHqBOBDcMS1iSZJ3GEcId4qOxCQvsG
 github.com/libp2p/go-testutil v0.0.1/go.mod h1:iAcJc/DKJQanJ5ws2V+u5ywdL2n12X1WbbEG+Jjy69I=
 github.com/libp2p/go-ws-transport v0.0.1 h1:9ytMqq86Xvp8rcnC/1ZNuH612eXLDglvcu4ZHseJl8s=
 github.com/libp2p/go-ws-transport v0.0.1/go.mod h1:p3bKjDWHEgtuKKj+2OdPYs5dAPIjtpQGHF2tJfGz7Ww=
+github.com/magiconair/properties v1.8.1/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/mattn/go-colorable v0.1.1 h1:G1f5SKeVxmagw/IyvzvtZE4Gybcc4Tr1tf7I8z0XgOg=
 github.com/mattn/go-colorable v0.1.1/go.mod h1:FuOcm+DKB9mbwrcAfNl7/TZVBZ6rcnceauSikq3lYCQ=
 github.com/mattn/go-isatty v0.0.4/go.mod h1:M+lRXTBqGeGNdLjl/ufCoiOlB5xdOkqRJdNxMWT7Zi4=
