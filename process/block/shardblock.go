@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -186,7 +185,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	log.Info(fmt.Sprintf("Total txs in pool: %d\n", sp.txPreProcess.GetNrTxsWithDst(header.ShardId)))
+	log.Info(fmt.Sprintf("Total txs in pool: %d\n", GetNrTxsWithDst(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())))
 
 	requestedTxs := sp.txPreProcess.RequestBlockTransactions(body)
 	requestedMetaHdrs := sp.requestMetaHeaders(header)
@@ -330,7 +329,8 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	}
 
 	miniBlockHashes := make(map[int][]byte, 0)
-	err := sp.txPreProcess.RestoreTxBlockIntoPools(body, miniBlockHashes, sp.dataPool.MiniBlocks())
+	restoredTxNr, err := sp.txPreProcess.RestoreTxBlockIntoPools(body, miniBlockHashes, sp.dataPool.MiniBlocks())
+	go SubstractRestoredTxs(restoredTxNr)
 	if err != nil {
 		return err
 	}
@@ -514,7 +514,7 @@ func (sp *shardProcessor) CommitBlock(
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler)
 
 	// write data to log
-	go sp.displayShardBlock(header, body)
+	go DisplayLogInfo(header, body, headerHash, sp.shardCoordinator.NumberOfShards(), sp.shardCoordinator.SelfId(), sp.dataPool)
 
 	return nil
 }
@@ -1331,120 +1331,6 @@ func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 	case <-time.After(waitTime):
 		return process.ErrTimeIsOut
 	}
-}
-
-func (sp *shardProcessor) displayShardBlock(header *block.Header, body block.Body) {
-	if header == nil || body == nil {
-		return
-	}
-
-	headerHash, err := sp.computeHeaderHash(header)
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-
-	sp.displayLogInfo(header, body, headerHash)
-}
-
-func (sp *shardProcessor) displayLogInfo(
-	header *block.Header,
-	body block.Body,
-	headerHash []byte,
-) {
-	dispHeader, dispLines, processedTxs := createDisplayableShardHeaderAndBlockBody(header, body)
-
-	tblString, err := display.CreateTableString(dispHeader, dispLines)
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-
-	sp.txPreProcess.AddCurrentProcessTxsNr(processedTxs)
-	txsTotalProcessed, txsCurrentBlockProcessed := sp.txPreProcess.GetCurrentAndTotalTxsProcessed()
-
-	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\n"+
-		"Total txs processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n\n"+
-		"Total shards: %d. Current shard id: %d\n",
-		core.ToB64(headerHash),
-		txsTotalProcessed,
-		txsCurrentBlockProcessed,
-		sp.txPreProcess.GetNrTxsWithDst(header.ShardId),
-		sp.shardCoordinator.NumberOfShards(),
-		sp.shardCoordinator.SelfId())
-
-	log.Info(tblString)
-}
-
-func createDisplayableShardHeaderAndBlockBody(
-	header *block.Header,
-	body block.Body,
-) ([]string, []*display.LineData, int) {
-
-	tableHeader := []string{"Part", "Parameter", "Value"}
-
-	lines := displayHeader(header)
-
-	shardLines := make([]*display.LineData, 0)
-	shardLines = append(shardLines, display.NewLineData(false, []string{
-		"Header",
-		"Block type",
-		"TxBlock"}))
-	shardLines = append(shardLines, display.NewLineData(false, []string{
-		"",
-		"Shard",
-		fmt.Sprintf("%d", header.ShardId)}))
-	shardLines = append(shardLines, lines...)
-
-	if header.BlockBodyType == block.TxBlock {
-		shardLines, processedTxs := displayTxBlockBody(shardLines, body)
-
-		return tableHeader, shardLines, processedTxs
-	}
-
-	// TODO: implement the other block bodies
-
-	shardLines = append(shardLines, display.NewLineData(false, []string{"Unknown", "", ""}))
-	return tableHeader, shardLines, 0
-}
-
-func displayTxBlockBody(lines []*display.LineData, body block.Body) ([]*display.LineData, int) {
-	txsCurrentBlockProcessed := 0
-
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
-
-		part := fmt.Sprintf("MiniBlock_%d", miniBlock.ReceiverShardID)
-
-		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
-			lines = append(lines, display.NewLineData(false, []string{
-				part, "", "<EMPTY>"}))
-		}
-
-		txsCurrentBlockProcessed += len(miniBlock.TxHashes)
-
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			if j == 0 || j >= len(miniBlock.TxHashes)-1 {
-				lines = append(lines, display.NewLineData(false, []string{
-					part,
-					fmt.Sprintf("TxHash_%d", j+1),
-					core.ToB64(miniBlock.TxHashes[j])}))
-
-				part = ""
-			} else if j == 1 {
-				lines = append(lines, display.NewLineData(false, []string{
-					part,
-					fmt.Sprintf("..."),
-					fmt.Sprintf("...")}))
-
-				part = ""
-			}
-		}
-
-		lines[len(lines)-1].HorizontalRuleAfter = true
-	}
-
-	return lines, txsCurrentBlockProcessed
 }
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination

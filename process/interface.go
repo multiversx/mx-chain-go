@@ -29,7 +29,7 @@ type PreProcessor interface {
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
 
 	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
-	RestoreTxBlockIntoPools(body block.Body, miniBlockHashes map[int][]byte, miniBlockPool storage.Cacher) error
+	RestoreTxBlockIntoPools(body block.Body, miniBlockHashes map[int][]byte, miniBlockPool storage.Cacher) (int, error)
 	SaveTxBlockToStorage(body block.Body) error
 
 	ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error
@@ -39,13 +39,12 @@ type PreProcessor interface {
 
 	RequestBlockTransactionsForMiniBlock(mb block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error
+
 	ProcessAndRemoveBadTransaction(transactionHash []byte, tx *transaction.Transaction, round uint32, sndId uint32, dstId uint32) error
+
 	GetTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error)
 
 	InitCacherStructure()
-	GetCurrentAndTotalTxsProcessed() (int, int)
-	AddCurrentProcessTxsNr(processedTxs int)
-	GetNrTxsWithDst(dstShardId uint32) int
 	GetAllCurrentUsedTxs() map[string]*transaction.Transaction
 }
 

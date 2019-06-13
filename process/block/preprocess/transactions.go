@@ -17,10 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-var txCounterMutex = sync.RWMutex{}
-var txsCurrentBlockProcessed = 0
-var txsTotalProcessed = 0
-
 var log = logger.DefaultLogger()
 
 type txShardInfo struct {
@@ -166,24 +162,25 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 	body block.Body,
 	miniBlockHashes map[int][]byte,
 	miniBlockPool storage.Cacher,
-) error {
+) (int, error) {
 	if miniBlockPool == nil {
-		return process.ErrNilMiniBlockPool
+		return 0, process.ErrNilMiniBlockPool
 	}
 
+	txsRestored := 0
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 		if err != nil {
-			return err
+			return txsRestored, err
 		}
 
 		for txHash, txBuff := range txsBuff {
 			tx := transaction.Transaction{}
 			err = txs.marshalizer.Unmarshal(&tx, txBuff)
 			if err != nil {
-				return err
+				return txsRestored, err
 			}
 
 			txs.txPool.AddData([]byte(txHash), &tx, strCache)
@@ -191,7 +188,7 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 
 		buff, err := txs.marshalizer.Marshal(miniBlock)
 		if err != nil {
-			return err
+			return txsRestored, err
 		}
 
 		miniBlockHash := txs.hasher.Compute(string(buff))
@@ -199,12 +196,11 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 		if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
 			miniBlockHashes[i] = miniBlockHash
 		}
-		txCounterMutex.Lock()
-		txsTotalProcessed -= len(miniBlock.TxHashes)
-		txCounterMutex.Unlock()
+
+		txsRestored += len(miniBlock.TxHashes)
 	}
 
-	return nil
+	return txsRestored, nil
 }
 
 // ProcessBlockTransactions
@@ -566,22 +562,6 @@ func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 	return transactions, txHashes, nil
 }
 
-// GetNrTxsWithDst calculate the number of transactions for a certain shard
-func (txs *transactions) GetNrTxsWithDst(dstShardId uint32) int {
-	sumTxs := 0
-
-	for i := uint32(0); i < txs.shardCoordinator.NumberOfShards(); i++ {
-		strCache := process.ShardCacherIdentifier(i, dstShardId)
-		txStore := txs.txPool.ShardDataStore(strCache)
-		if txStore == nil {
-			continue
-		}
-		sumTxs += txStore.Len()
-	}
-
-	return sumTxs
-}
-
 // CreateMarshalizedData marshalizes transactions and creates and saves them into a new structure
 func (txs *transactions) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
 	mrsTxs := make([][]byte, 0)
@@ -641,22 +621,4 @@ func (txs *transactions) GetAllCurrentUsedTxs() map[string]*transaction.Transact
 	txs.mutTxsForBlock.RUnlock()
 
 	return txPool
-}
-
-func (txs *transactions) AddCurrentProcessTxsNr(processedTxs int) {
-	txCounterMutex.Lock()
-	txsCurrentBlockProcessed = processedTxs
-	txsTotalProcessed += processedTxs
-	txCounterMutex.Unlock()
-}
-
-func (txs *transactions) GetCurrentAndTotalTxsProcessed() (int, int) {
-	txCounterMutex.RLock()
-
-	txsTotal := txsTotalProcessed
-	txsCurr := txsCurrentBlockProcessed
-
-	txCounterMutex.RUnlock()
-
-	return txsCurr, txsTotal
 }
