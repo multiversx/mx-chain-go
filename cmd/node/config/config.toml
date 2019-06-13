@@ -138,7 +138,8 @@
 
 [TxDataPool]
     Size = 100000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 32
 
 [ShardHeadersDataPool]
     Size = 10000
