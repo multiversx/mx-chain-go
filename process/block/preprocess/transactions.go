@@ -324,7 +324,7 @@ func (txs *transactions) receivedTransaction(txHash []byte) {
 	}
 }
 
-// CreatedBlockStarted cleans the local cache map for processed/created transactions at this round
+// CreateBlockStarted cleans the local cache map for processed/created transactions at this round
 func (txs *transactions) CreateBlockStarted() {
 	txs.mutTxsForBlock.Lock()
 	txs.txsForBlock = make(map[string]*txInfo)
@@ -669,6 +669,7 @@ func (txs *transactions) getTxs(txShardStore storage.Cacher) ([]*transaction.Tra
 	return transactions, txHashes, nil
 }
 
+// GetAllCurrentUsedTxs returns all the transactions used at current creation / processing
 func (txs *transactions) GetAllCurrentUsedTxs() map[string]*transaction.Transaction {
 	txPool := make(map[string]*transaction.Transaction)
 
