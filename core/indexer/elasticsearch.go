@@ -83,7 +83,7 @@ func NewElasticIndexer(
 		hasher,
 		logger}
 
-	err = indexer.checkAndCreateIndex(blockIndex, nil)
+	err = indexer.checkAndCreateIndex(blockIndex, timestampMapping())
 	if err != nil {
 		return nil, err
 	}
@@ -447,5 +447,10 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 }
 
 func timestampMapping() io.Reader {
-	return strings.NewReader(`{"mappings": {"properties": {"timestamp": {"type": "date"}}}}`)
+	return strings.NewReader(
+		`{
+				"settings": {"index": {"sort.field": "timestamp", "sort.order": "desc"}},
+				"mappings": {"properties": {"timestamp": {"type": "date"}}}
+			}`,
+	)
 }
