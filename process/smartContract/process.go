@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"bytes"
 	"math/big"
 	"sync"
 
@@ -22,7 +23,7 @@ type scExecutionState struct {
 
 type scProcessor struct {
 	accounts         state.AccountsAdapter
-	fakeAccounts     process.FakeAccountsHandler
+	tempAccounts     process.TemporaryAccountsHandler
 	adrConv          state.AddressConverter
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
@@ -41,7 +42,7 @@ func NewSmartContractProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountsDB state.AccountsAdapter,
-	fakeAccounts process.FakeAccountsHandler,
+	tempAccounts process.TemporaryAccountsHandler,
 	adrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
 ) (*scProcessor, error) {
@@ -60,8 +61,8 @@ func NewSmartContractProcessor(
 	if accountsDB == nil {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if fakeAccounts == nil {
-		return nil, process.ErrNilFakeAccountsHandler
+	if tempAccounts == nil {
+		return nil, process.ErrNilTemporaryAccountsHandler
 	}
 	if adrConv == nil {
 		return nil, process.ErrNilAddressConverter
@@ -76,26 +77,30 @@ func NewSmartContractProcessor(
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		accounts:         accountsDB,
-		fakeAccounts:     fakeAccounts,
+		tempAccounts:     tempAccounts,
 		adrConv:          adrConv,
 		shardCoordinator: coordinator,
 		mapExecState:     make(map[uint32]scExecutionState)}, nil
 }
 
 // ComputeTransactionType calculates the type of the transaction
-func (sc *scProcessor) ComputeTransactionType(
-	tx *transaction.Transaction,
-	acntSrc, acntDst state.AccountHandler,
-) (process.TransactionType, error) {
-	if tx == nil {
-		return 0, process.ErrNilTransaction
+func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (process.TransactionType, error) {
+	err := sc.checkTxValidity(tx)
+	if err != nil {
+		return 0, err
 	}
 
-	if len(tx.RcvAddr) == 0 {
+	isEmptyAddress := sc.isDestAddressEmpty(tx)
+	if isEmptyAddress {
 		if len(tx.Data) > 0 {
 			return process.SCDeployment, nil
 		}
 		return 0, process.ErrWrongTransaction
+	}
+
+	acntDst, err := sc.getAccountFromAddress(tx.RcvAddr)
+	if err != nil {
+		return 0, err
 	}
 
 	if acntDst == nil {
@@ -109,13 +114,31 @@ func (sc *scProcessor) ComputeTransactionType(
 	return process.MoveBalance, nil
 }
 
+func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
+	if tx == nil {
+		return process.ErrNilTransaction
+	}
+
+	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.RcvAddr)
+	if recvAddressIsInvalid {
+		return process.ErrWrongTransaction
+	}
+
+	return nil
+}
+
+func (sc *scProcessor) isDestAddressEmpty(tx *transaction.Transaction) bool {
+	isEmptyAddress := bytes.Equal(tx.RcvAddr, make([]byte, sc.adrConv.AddressLen()))
+	return isEmptyAddress
+}
+
 // ExecuteSmartContractTransaction processes the transaction, call the VM and processes the SC call output
 func (sc *scProcessor) ExecuteSmartContractTransaction(
 	tx *transaction.Transaction,
 	acntSnd, acntDst state.AccountHandler,
 	round uint32,
 ) error {
-	defer sc.fakeAccounts.CleanFakeAccounts()
+	defer sc.tempAccounts.CleanTempAccounts()
 
 	if tx == nil {
 		return process.ErrNilTransaction
@@ -143,7 +166,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	// VM is formally verified and the output is correct
-	err = sc.processVMOutput(vmOutput, tx, acntSnd, acntDst, round)
+	err = sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
 	}
@@ -157,25 +180,31 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 		return err
 	}
 
-	totalBalance, err := sc.processSCPayment(tx, acntSnd)
+	err = sc.processSCPayment(tx, acntSnd)
 	if err != nil {
 		return err
 	}
 
-	sc.fakeAccounts.CreateFakeAccounts(tx.SndAddr, totalBalance, tx.Nonce)
+	sc.tempAccounts.AddTempAccount(tx.SndAddr, tx.Value, tx.Nonce)
 
 	return nil
 }
 
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
-func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
-	defer sc.fakeAccounts.CleanFakeAccounts()
+func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd state.AccountHandler, round uint32) error {
+	defer sc.tempAccounts.CleanTempAccounts()
 
-	if len(tx.RcvAddr) != 0 {
+	err := sc.checkTxValidity(tx)
+	if err != nil {
+		return err
+	}
+
+	isEmptyAddress := sc.isDestAddressEmpty(tx)
+	if !isEmptyAddress {
 		return process.ErrWrongTransaction
 	}
 
-	err := sc.prepareSmartContractCall(tx, acntSnd)
+	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
 		return err
 	}
@@ -192,7 +221,7 @@ func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd,
 	}
 
 	// VM is formally verified, the output is correct
-	err = sc.processVMOutput(vmOutput, tx, acntSnd, acntDst, round)
+	err = sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
 	}
@@ -259,40 +288,40 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 }
 
 // taking money from sender, as VM might not have access to him because of state sharding
-func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) (*big.Int, error) {
+func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
 	operation := big.NewInt(0)
 	operation = operation.Mul(big.NewInt(int64(tx.GasPrice)), big.NewInt(int64(tx.GasLimit)))
 	operation = operation.Add(operation, tx.Value)
 
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
 		// transaction was already done at sender shard
-		return operation, nil
+		return nil
 	}
 
 	stAcc, ok := acntSnd.(*state.Account)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return process.ErrWrongTypeAssertion
 	}
 
 	if stAcc.Balance.Cmp(operation) < 0 {
-		return nil, process.ErrInsufficientFunds
+		return process.ErrInsufficientFunds
 	}
 
 	totalCost := big.NewInt(0)
 	err := stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, operation))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = stAcc.SetNonceWithJournal(stAcc.GetNonce() + 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return operation, nil
+	return nil
 }
 
-func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd, acntDst state.AccountHandler, round uint32) error {
+func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd state.AccountHandler, round uint32) error {
 	if vmOutput == nil {
 		return process.ErrNilVMOutput
 	}
@@ -311,7 +340,9 @@ func (sc *scProcessor) processVMOutput(vmOutput *vmcommon.VMOutput, tx *transact
 		return err
 	}
 
-	err = sc.refundGasToSender(vmOutput.GasRefund, tx, acntSnd)
+	totalGasRefund := big.NewInt(0)
+	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
+	err = sc.refundGasToSender(totalGasRefund, tx, acntSnd)
 	if err != nil {
 		return err
 	}
@@ -372,7 +403,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			return err
 		}
 
-		fakeAcc := sc.fakeAccounts.GetFakeAccount(outAcc.Address)
+		fakeAcc := sc.tempAccounts.TempAccount(outAcc.Address)
 
 		if acc == nil || acc.IsInterfaceNil() {
 			//TODO: sharded smart contract processing
@@ -386,14 +417,16 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 		}
 
-		if len(outAcc.Code) > 0 {
-			err = acc.SetCodeWithJournal(outAcc.Code)
+		if len(outAcc.StorageUpdates) > 0 {
+			//SC with data variables
+			err := sc.accounts.SaveDataTrie(acc)
 			if err != nil {
 				return err
 			}
+		}
 
-			hash := sc.hasher.Compute(string(outAcc.Code))
-			err = acc.SetCodeHashWithJournal(hash)
+		if len(outAcc.Code) > 0 {
+			err = sc.accounts.PutCode(acc, outAcc.Code)
 			if err != nil {
 				return err
 			}
