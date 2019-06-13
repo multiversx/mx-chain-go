@@ -101,3 +101,8 @@ func (pac *PlainAddressConverter) PrepareAddressBytes(addressBytes []byte) ([]by
 
 	return addressBytes, nil
 }
+
+// AddressLen returns the address length
+func (pac *PlainAddressConverter) AddressLen() int {
+	return pac.addressLen
+}

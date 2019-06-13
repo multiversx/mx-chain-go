@@ -9,6 +9,7 @@ type AddressConverterStub struct {
 	ConvertToHexCalled                    func(addressContainer state.AddressContainer) (string, error)
 	CreateAddressFromHexCalled            func(hexAddress string) (state.AddressContainer, error)
 	PrepareAddressBytesCalled             func(addressBytes []byte) ([]byte, error)
+	AddressLenHandler                     func() int
 }
 
 func (acs *AddressConverterStub) CreateAddressFromPublicKeyBytes(pubKey []byte) (state.AddressContainer, error) {
@@ -25,4 +26,8 @@ func (acs *AddressConverterStub) CreateAddressFromHex(hexAddress string) (state.
 
 func (acs *AddressConverterStub) PrepareAddressBytes(addressBytes []byte) ([]byte, error) {
 	return acs.PrepareAddressBytesCalled(addressBytes)
+}
+
+func (ac AddressConverterStub) AddressLen() int {
+	return ac.AddressLenHandler()
 }
