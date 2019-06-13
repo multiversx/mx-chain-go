@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/preprocess"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -33,36 +34,8 @@ func DisplayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	return displayHeader(headerHandler)
 }
 
-func (sp *shardProcessor) GetTransactionFromPool(senderShardID, destShardID uint32, txHash []byte) *transaction.Transaction {
-	return sp.getTransactionFromPool(senderShardID, destShardID, txHash)
-}
-
-func (sp *shardProcessor) RequestBlockTransactions(body block.Body) int {
-	return sp.requestBlockTransactions(body)
-}
-
-func (sp *shardProcessor) RequestBlockTransactionsForMiniBlock(mb *block.MiniBlock) int {
-	return sp.requestBlockTransactionsForMiniBlock(mb)
-}
-
-func (sp *shardProcessor) WaitForTxHashes(waitTime time.Duration) {
-	sp.waitForTxHashes(waitTime)
-}
-
-func (sp *shardProcessor) ReceivedTransaction(txHash []byte) {
-	sp.receivedTransaction(txHash)
-}
-
-func (sp *shardProcessor) DisplayShardBlock(header *block.Header, txBlock block.Body) {
-	sp.displayShardBlock(header, txBlock)
-}
-
 func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
-	return sortTxByNonce(txShardStore)
-}
-
-func (sp *shardProcessor) GetAllTxsFromMiniBlock(mb *block.MiniBlock, haveTime func() bool) ([]*transaction.Transaction, [][]byte, error) {
-	return sp.getAllTxsFromMiniBlock(mb, haveTime)
+	return preprocess.SortTxByNonce(txShardStore)
 }
 
 func (sp *shardProcessor) ReceivedMiniBlock(miniBlockHash []byte) {
@@ -73,31 +46,8 @@ func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
 	sp.receivedMetaBlock(metaBlockHash)
 }
 
-func (sp *shardProcessor) AddTxHashToRequestedList(txHash []byte) {
-	sp.mutTxsForBlock.Lock()
-	defer sp.mutTxsForBlock.Unlock()
-
-	if sp.txsForBlock == nil {
-		sp.txsForBlock = make(map[string]*txInfo)
-	}
-	sp.txsForBlock[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
-}
-
-func (sp *shardProcessor) IsTxHashRequested(txHash []byte) bool {
-	sp.mutTxsForBlock.Lock()
-	defer sp.mutTxsForBlock.Unlock()
-
-	return !sp.txsForBlock[string(txHash)].has
-}
-
-func (sp *shardProcessor) SetMissingTxs(missingTxs int) {
-	sp.mutTxsForBlock.Lock()
-	sp.missingTxs = missingTxs
-	sp.mutTxsForBlock.Unlock()
-}
-
 func (sp *shardProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, round uint32, haveTime func() bool) error {
-	return sp.processMiniBlockComplete(miniBlock, round, haveTime)
+	return sp.createAndProcessMiniBlockComplete(miniBlock, round, haveTime)
 }
 
 func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, round uint32, haveTime func() bool) (block.Body, error) {
@@ -110,14 +60,6 @@ func (sp *shardProcessor) GetProcessedMetaBlocksFromPool(body block.Body) ([]dat
 
 func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
 	return sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
-}
-
-func (sp *shardProcessor) RemoveTxBlockFromPools(blockBody block.Body) error {
-	return sp.removeTxBlockFromPools(blockBody)
-}
-
-func (sp *shardProcessor) ChRcvAllTxs() chan bool {
-	return sp.chRcvAllTxs
 }
 
 func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) int {
@@ -233,10 +175,4 @@ func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]da
 func (sp *shardProcessor) CreateTxInfo(tx *transaction.Transaction, senderShardID uint32, receiverShardID uint32) *txInfo {
 	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
 	return &txInfo{tx: tx, txShardInfo: txShardInfo}
-}
-
-func (sp *shardProcessor) SetTxsForBlock(hash string, txInfo *txInfo) {
-	sp.mutTxsForBlock.Lock()
-	sp.txsForBlock[hash] = txInfo
-	sp.mutTxsForBlock.Unlock()
 }

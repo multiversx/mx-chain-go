@@ -3,6 +3,8 @@ package process
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"math/big"
 	"time"
 
@@ -25,6 +27,26 @@ type SmartContractProcessor interface {
 	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
 	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
+}
+
+type PreProcessor interface {
+	CreateBlockStarted()
+	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
+
+	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
+	RestoreTxBlockIntoPools(body block.Body, miniBlockHashes map[int][]byte, miniBlockPool storage.Cacher) (int, error)
+	SaveTxBlockToStorage(body block.Body) error
+
+	ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error
+	RequestBlockTransactions(body block.Body) int
+
+	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
+
+	RequestTransactionsForMiniBlock(mb block.MiniBlock) int
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error
+	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error)
+
+	GetAllCurrentUsedTxs() map[string]*transaction.Transaction
 }
 
 // BlockProcessor is the main interface for block execution engine
