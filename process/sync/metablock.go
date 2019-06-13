@@ -128,21 +128,19 @@ func NewMetaBootstrap(
 	return &boot, nil
 }
 
-func (boot *MetaBootstrap) applyNotarizedBlock(nonce uint64) error {
-	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-		headerHash, err := boot.store.Get(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), nonceToByteSlice)
-		if err != nil {
-			return err
-		}
-
-		header, err := process.GetShardHeaderFromStorage(headerHash, boot.marshalizer, boot.store)
-		if err != nil {
-			return err
-		}
-
-		boot.blkExecutor.SetLastNotarizedHdr(header.ShardId, header)
+func (boot *MetaBootstrap) applyNotarizedBlock(nonce uint64, notarizedHdrNonceHashDataUnit dataRetriever.UnitType) error {
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	headerHash, err := boot.store.Get(notarizedHdrNonceHashDataUnit, nonceToByteSlice)
+	if err != nil {
+		return err
 	}
+
+	header, err := process.GetShardHeaderFromStorage(headerHash, boot.marshalizer, boot.store)
+	if err != nil {
+		return err
+	}
+
+	boot.blkExecutor.SetLastNotarizedHdr(header.ShardId, header)
 
 	return nil
 }

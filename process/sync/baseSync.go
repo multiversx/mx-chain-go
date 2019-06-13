@@ -74,7 +74,7 @@ func (boot *baseBootstrap) syncFromStorer(
 	getBlockBody func(data.HeaderHandler) (data.BodyHandler, error),
 	notarizedBlockFinality uint64,
 	notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
-	applyNotarisedBlock func(uint64) error,
+	applyNotarisedBlock func(uint64, dataRetriever.UnitType) error,
 ) {
 	err := boot.loadBlocks(blockFinality,
 		blockUnit,
@@ -244,7 +244,7 @@ func (boot *baseBootstrap) removeBlock(
 
 func (boot *baseBootstrap) loadNotarizedBlocks(blockFinality uint64,
 	hdrNonceHashDataUnit dataRetriever.UnitType,
-	applyNotarisedBlock func(uint64) error,
+	applyNotarisedBlock func(uint64, dataRetriever.UnitType) error,
 ) error {
 	highestNonceInStorer := uint64(0)
 
@@ -269,7 +269,7 @@ func (boot *baseBootstrap) loadNotarizedBlocks(blockFinality uint64,
 		}
 
 		for i := highestNonceInStorer - blockFinality - lastBlocksToSkip; i <= highestNonceInStorer-lastBlocksToSkip; i++ {
-			err = applyNotarisedBlock(i)
+			err = applyNotarisedBlock(i, hdrNonceHashDataUnit)
 			if err != nil {
 				lastBlocksToSkip++
 				break
