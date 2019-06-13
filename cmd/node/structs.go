@@ -69,7 +69,7 @@ type Crypto struct {
 //	blockTracker          process.BlocksTracker
 //}
 
-func initCoreComponents(config *config.Config) (*Core, error) {
+func coreComponentsFactory(config *config.Config) (*Core, error) {
 	hasher, err := getHasherFromConfig(config)
 	if err != nil {
 		return nil, errors.New("could not create hasher: " + err.Error())
@@ -94,7 +94,7 @@ func initCoreComponents(config *config.Config) (*Core, error) {
 	}, nil
 }
 
-func initStateComponents(config *config.Config, shardCoordinator sharding.Coordinator, core *Core) (*State, error) {
+func stateComponentsFactory(config *config.Config, shardCoordinator sharding.Coordinator, core *Core) (*State, error) {
 	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
@@ -116,7 +116,7 @@ func initStateComponents(config *config.Config, shardCoordinator sharding.Coordi
 	}, nil
 }
 
-func initDataComponents(config *config.Config, shardCoordinator sharding.Coordinator, core *Core) (*Data, error) {
+func dataComponentsFactory(config *config.Config, shardCoordinator sharding.Coordinator, core *Core) (*Data, error) {
 	var datapool dataRetriever.PoolsHolder
 	var metaDatapool dataRetriever.MetaPoolsHolder
 	blkc, err := createBlockChainFromConfig(config, shardCoordinator)
@@ -153,7 +153,7 @@ func initDataComponents(config *config.Config, shardCoordinator sharding.Coordin
 	}, nil
 }
 
-func initCryptoComponents(ctx *cli.Context, config *config.Config, nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator,
+func cryptoComponentsFactory(ctx *cli.Context, config *config.Config, nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator,
 	keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, log *logger.Logger,
 ) (*Crypto, error) {
 	txSingleSigner := &singlesig.SchnorrSigner{}

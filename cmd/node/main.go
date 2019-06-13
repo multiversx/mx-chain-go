@@ -618,12 +618,12 @@ func createNode(
 	shardCoordinator sharding.Coordinator,
 	log *logger.Logger,
 ) (*node.Node, *external.ExternalResolver, *statistics.TpsBenchmark, error) {
-	coreComponents, err := initCoreComponents(config)
+	coreComponents, err := coreComponentsFactory(config)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	stateComponents, err := initStateComponents(config, shardCoordinator, coreComponents)
+	stateComponents, err := stateComponentsFactory(config, shardCoordinator, coreComponents)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -654,12 +654,12 @@ func createNode(
 		return nil, nil, nil, err
 	}
 
-	dataComponents, err := initDataComponents(config, shardCoordinator, coreComponents)
+	dataComponents, err := dataComponentsFactory(config, shardCoordinator, coreComponents)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	cryptoComponents, err := initCryptoComponents(ctx, config, nodesConfig, shardCoordinator, keyGen, privKey, log)
+	cryptoComponents, err := cryptoComponentsFactory(ctx, config, nodesConfig, shardCoordinator, keyGen, privKey, log)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -797,7 +797,8 @@ func createNode(
 		if err != nil {
 			return nil, nil, nil, errors.New("initial balances could not be processed " + err.Error())
 		}
-		err = nd.ApplyOptions(node.WithInitialNodesBalances(inBalanceForShard),
+		err = nd.ApplyOptions(
+			node.WithInitialNodesBalances(inBalanceForShard),
 			node.WithDataPool(dataComponents.datapool),
 			node.WithActiveMetachain(nodesConfig.MetaChainActive))
 		if err != nil {
