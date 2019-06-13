@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -47,6 +48,7 @@ type transactions struct {
 	marshalizer          marshal.Marshalizer
 	txProcessor          process.TransactionProcessor
 	shardCoordinator     sharding.Coordinator
+	accounts             state.AccountsAdapter
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -57,6 +59,7 @@ func NewTransactionPreprocessor(
 	marshalizer marshal.Marshalizer,
 	txProcessor process.TransactionProcessor,
 	shardCoordinator sharding.Coordinator,
+	accounts state.AccountsAdapter,
 	onRequestTransaction func(shardID uint32, txHashes [][]byte),
 ) (*transactions, error) {
 
@@ -78,6 +81,9 @@ func NewTransactionPreprocessor(
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if accounts == nil {
+		return nil, process.ErrNilAccountsAdapter
+	}
 	if onRequestTransaction == nil {
 		return nil, process.ErrNilRequestHandler
 	}
@@ -90,6 +96,7 @@ func NewTransactionPreprocessor(
 		txPool:               txDataPool,
 		onRequestTransaction: onRequestTransaction,
 		txProcessor:          txProcessor,
+		accounts:             accounts,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -97,12 +104,6 @@ func NewTransactionPreprocessor(
 	txs.txsForBlock = make(map[string]*txInfo)
 
 	return txs, nil
-}
-
-func (txs *transactions) InitCacherStructure() {
-	txs.mutTxsForBlock.Lock()
-	txs.txsForBlock = make(map[string]*txInfo)
-	txs.mutTxsForBlock.Unlock()
 }
 
 // waitForTxHashes waits for a call whether all the requested transactions appeared
@@ -336,6 +337,12 @@ func (txs *transactions) requestTxsFromHashes(senderShardId, destShardId uint32,
 	txs.onRequestTransaction(senderShardId, requestedTxs)
 }
 
+func (txs *transactions) CreateBlockStarted() {
+	txs.mutTxsForBlock.Lock()
+	txs.txsForBlock = make(map[string]*txInfo)
+	txs.mutTxsForBlock.Unlock()
+}
+
 // requestBlockTransactions request for transactions if missing from a block.Body
 func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 	txs.mutTxsForBlock.Lock()
@@ -425,8 +432,8 @@ func (txs *transactions) ProcessAndRemoveBadTransaction(
 	return nil
 }
 
-// requestBlockTransactionsForMiniBlock requests missing transactions for a certain miniblock
-func (txs *transactions) RequestBlockTransactionsForMiniBlock(mb block.MiniBlock) int {
+// RequestTransactionsForMiniBlock requests missing transactions for a certain miniblock
+func (txs *transactions) RequestTransactionsForMiniBlock(mb block.MiniBlock) int {
 	missingTxsForMiniBlock := txs.computeMissingTxsForMiniBlock(mb)
 	txs.onRequestTransaction(mb.SenderShardID, missingTxsForMiniBlock)
 
@@ -480,6 +487,69 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	}
 
 	return transactions, txHashes, nil
+}
+
+func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error) {
+	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+	txStore := txs.txPool.ShardDataStore(strCache)
+
+	timeBefore := time.Now()
+	orderedTxes, orderedTxHashes, err := txs.GetTxs(txStore)
+	timeAfter := time.Now()
+
+	if !haveTime() {
+		log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
+		return nil, nil
+	}
+
+	log.Info(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
+
+	if err != nil {
+		log.Debug(fmt.Sprintf("when trying to order txs: %s", err.Error()))
+	}
+
+	miniBlock := &block.MiniBlock{}
+	miniBlock.SenderShardID = sndShardId
+	miniBlock.ReceiverShardID = dstShardId
+	miniBlock.TxHashes = make([][]byte, 0)
+	log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ReceiverShardID))
+
+	addedTxs := 0
+	for index := range orderedTxes {
+		if !haveTime() {
+			break
+		}
+
+		snapshot := txs.accounts.JournalLen()
+
+		// execute transaction to change the trie root hash
+		err := txs.ProcessAndRemoveBadTransaction(
+			orderedTxHashes[index],
+			orderedTxes[index],
+			round,
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
+		)
+
+		if err != nil {
+			log.Error(err.Error())
+			err = txs.accounts.RevertToSnapshot(snapshot)
+			if err != nil {
+				log.Error(err.Error())
+			}
+			continue
+		}
+
+		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
+		addedTxs++
+
+		if addedTxs >= spaceRemained { // max transactions count in one block was reached
+			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
+			return miniBlock, nil
+		}
+	}
+
+	return miniBlock, nil
 }
 
 func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error {

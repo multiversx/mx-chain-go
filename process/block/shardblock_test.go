@@ -1765,6 +1765,7 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	tdp := initDataPool([]byte("tx_hash1"))
 	hasher := mock.HasherMock{}
 	hdr, txBlock := createTestHdrTxBlockBody()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
 		tdp,
@@ -1773,15 +1774,16 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		initAccountsMock(),
-		mock.NewMultiShardsCoordinatorMock(3),
+		shardCoordinator,
 		&mock.ForkDetectorMock{},
 		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		createGenesisBlocks(shardCoordinator),
 		true,
 		&mock.RequestHandlerMock{},
 	)
+	assert.NotNil(t, sp)
 	hdr.PrevHash = hasher.Compute("prev hash")
-	sp.DisplayShardBlock(hdr, txBlock)
+	blproc.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp)
 }
 
 //------- SortTxByNonce

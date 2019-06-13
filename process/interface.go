@@ -26,6 +26,7 @@ type SmartContractProcessor interface {
 }
 
 type PreProcessor interface {
+	CreateBlockStarted()
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
 
 	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
@@ -37,14 +38,10 @@ type PreProcessor interface {
 
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 
-	RequestBlockTransactionsForMiniBlock(mb block.MiniBlock) int
+	RequestTransactionsForMiniBlock(mb block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error
+	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error)
 
-	ProcessAndRemoveBadTransaction(transactionHash []byte, tx *transaction.Transaction, round uint32, sndId uint32, dstId uint32) error
-
-	GetTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error)
-
-	InitCacherStructure()
 	GetAllCurrentUsedTxs() map[string]*transaction.Transaction
 }
 

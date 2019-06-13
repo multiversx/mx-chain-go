@@ -118,6 +118,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 
@@ -137,6 +138,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 
@@ -156,6 +158,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 
@@ -175,6 +178,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		nil,
 		&mock.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 
@@ -194,6 +198,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 		&mock.MarshalizerMock{},
 		nil,
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 
@@ -213,11 +218,32 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		nil,
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	txs, err := NewTransactionPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		nil,
+		requestTransaction,
+	)
+
+	assert.Nil(t, txs)
+	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) {
@@ -231,6 +257,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		nil,
 	)
 
@@ -249,6 +276,7 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 	txHash := []byte("tx1_hash")
@@ -268,6 +296,7 @@ func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 	shardId := uint32(1)
@@ -294,6 +323,7 @@ func TestShardProcessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testi
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 
@@ -304,7 +334,7 @@ func TestShardProcessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testi
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
 	mb := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
-	txsRequested := txs.RequestBlockTransactionsForMiniBlock(mb)
+	txsRequested := txs.RequestTransactionsForMiniBlock(mb)
 	assert.Equal(t, 2, txsRequested)
 }
 
@@ -335,6 +365,7 @@ func TestShardProcessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 
@@ -407,6 +438,7 @@ func TestShardProcessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 
@@ -440,6 +472,7 @@ func TestShardProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 	err := txs.RemoveTxBlockFromPools(nil, tdp.MiniBlocks())
@@ -458,6 +491,7 @@ func TestShardProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
 		requestTransaction,
 	)
 	body := make(block.Body, 0)

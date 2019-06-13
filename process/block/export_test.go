@@ -34,10 +34,6 @@ func DisplayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	return displayHeader(headerHandler)
 }
 
-func (sp *shardProcessor) DisplayShardBlock(header *block.Header, txBlock block.Body) {
-	sp.displayShardBlock(header, txBlock)
-}
-
 func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
 	return preprocess.SortTxByNonce(txShardStore)
 }
@@ -51,7 +47,7 @@ func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
 }
 
 func (sp *shardProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, round uint32, haveTime func() bool) error {
-	return sp.processMiniBlockComplete(miniBlock, round, haveTime)
+	return sp.createAndProcessMiniBlockComplete(miniBlock, round, haveTime)
 }
 
 func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, round uint32, haveTime func() bool) (block.Body, error) {
