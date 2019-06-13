@@ -94,47 +94,58 @@
 
 [BadBlocksCache]
     Size = 100
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [TxBlockBodyDataPool]
     Size = 100
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [StateBlockBodyDataPool]
     Size = 100
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [PeerBlockBodyDataPool]
     Size = 10000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [BlockHeaderDataPool]
     Size = 10000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [BlockHeaderNoncesDataPool]
     Size = 100000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [MetaHeaderNoncesDataPool]
     Size = 100000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [TxDataPool]
     Size = 100000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [ShardHeadersDataPool]
     Size = 10000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [MiniBlockHeaderHashesDataPool]
     Size = 10000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [MetaBlockBodyDataPool]
     Size = 1000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 128
 
 [Logger]
     Path = "logs"

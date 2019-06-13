@@ -1,21 +1,25 @@
-package state
+package node
 
 import (
 	"crypto/rand"
 	"encoding/hex"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 )
 
-func createDummyAddress() state.AddressContainer {
-	buff := make([]byte, sha256.Sha256{}.Size())
-	_, _ = rand.Reader.Read(buff)
+var testMarshalizer = &marshal.JsonMarshalizer{}
 
-	return state.NewAddress(buff)
+type accountFactory struct {
+}
+
+func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
+	return state.NewAccount(address, tracker)
 }
 
 func createMemUnit() storage.Storer {
@@ -35,4 +39,12 @@ func createDummyHexAddress(chars int) string {
 	_, _ = rand.Reader.Read(buff)
 
 	return hex.EncodeToString(buff)
+}
+
+func createInMemoryShardAccountsDB() *state.AccountsDB {
+	dbw, _ := trie.NewDBWriteCache(createMemUnit())
+	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer, &accountFactory{})
+
+	return adb
 }

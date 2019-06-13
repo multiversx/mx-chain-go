@@ -18,9 +18,10 @@ type TransactionProcessor interface {
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	ComputeTransactionType(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler) (TransactionType, error)
+	// TODO move this func in another interface
+	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
 	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
-	DeploySmartContract(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
+	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) error
 }
 
 // BlockProcessor is the main interface for block execution engine
@@ -164,9 +165,11 @@ type ArgumentsParser interface {
 	ParseData(data []byte) error
 }
 
-// FakeAccountsHandler defines the functionality to create fake accounts and pass to VM.
-type FakeAccountsHandler interface {
-	CreateFakeAccounts(address []byte, balance *big.Int, nonce uint64)
-	CleanFakeAccounts()
-	GetFakeAccount(address []byte) state.AccountHandler
+// TemporaryAccountsHandler defines the functionality to create temporary accounts and pass to VM.
+// This holder will contain usually one account from shard X that calls a SC in shard Y
+// so when executing the code in shard Y, this impl will hold an ephemeral copy of the sender account from shard X
+type TemporaryAccountsHandler interface {
+	AddTempAccount(address []byte, balance *big.Int, nonce uint64)
+	CleanTempAccounts()
+	TempAccount(address []byte) state.AccountHandler
 }

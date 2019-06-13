@@ -12,8 +12,8 @@ type VMAccountsDB struct {
 	accounts state.AccountsAdapter
 	addrConv state.AddressConverter
 
-	mutFakeAccounts sync.Mutex
-	fakeAccounts    map[string]state.AccountHandler
+	mutTempAccounts sync.Mutex
+	tempAccounts    map[string]state.AccountHandler
 }
 
 // NewVMAccountsDB creates a new VMAccountsDB instance
@@ -34,7 +34,7 @@ func NewVMAccountsDB(
 		addrConv: addrConv,
 	}
 
-	vmAccountsDB.fakeAccounts = make(map[string]state.AccountHandler, 0)
+	vmAccountsDB.tempAccounts = make(map[string]state.AccountHandler, 0)
 
 	return vmAccountsDB, nil
 }
@@ -116,9 +116,9 @@ func (vadb *VMAccountsDB) GetBlockhash(offset *big.Int) ([]byte, error) {
 }
 
 func (vadb *VMAccountsDB) getAccountFromAddressBytes(address []byte) (state.AccountHandler, error) {
-	fakeAcc, success := vadb.getAccountFromFakeAccounts(address)
+	tempAcc, success := vadb.getAccountFromTemporaryAccounts(address)
 	if success {
-		return fakeAcc, nil
+		return tempAcc, nil
 	}
 
 	addr, err := vadb.addrConv.CreateAddressFromPublicKeyBytes(address)
@@ -143,33 +143,36 @@ func (vadb *VMAccountsDB) getShardAccountFromAddressBytes(address []byte) (*stat
 	return shardAccount, nil
 }
 
-func (vadb *VMAccountsDB) getAccountFromFakeAccounts(address []byte) (state.AccountHandler, bool) {
-	vadb.mutFakeAccounts.Lock()
-	defer vadb.mutFakeAccounts.Unlock()
+func (vadb *VMAccountsDB) getAccountFromTemporaryAccounts(address []byte) (state.AccountHandler, bool) {
+	vadb.mutTempAccounts.Lock()
+	defer vadb.mutTempAccounts.Unlock()
 
-	if fakeAcc, ok := vadb.fakeAccounts[string(address)]; ok {
-		return fakeAcc, true
+	if tempAcc, ok := vadb.tempAccounts[string(address)]; ok {
+		return tempAcc, true
 	}
 
 	return nil, false
 }
 
-func (vadb *VMAccountsDB) CreateFakeAccounts(address []byte, balance *big.Int, nonce uint64) {
-	vadb.mutFakeAccounts.Lock()
-	vadb.fakeAccounts[string(address)] = &state.Account{Balance: balance, Nonce: nonce}
-	vadb.mutFakeAccounts.Unlock()
+// AddTempAccount will add a temporary account in temporary store
+func (vadb *VMAccountsDB) AddTempAccount(address []byte, balance *big.Int, nonce uint64) {
+	vadb.mutTempAccounts.Lock()
+	vadb.tempAccounts[string(address)] = &state.Account{Balance: balance, Nonce: nonce}
+	vadb.mutTempAccounts.Unlock()
 }
 
-func (vadb *VMAccountsDB) CleanFakeAccounts() {
-	vadb.mutFakeAccounts.Lock()
-	vadb.fakeAccounts = make(map[string]state.AccountHandler, 0)
-	vadb.mutFakeAccounts.Unlock()
+// CleanTempAccounts cleans the map holding the temporary accounts
+func (vadb *VMAccountsDB) CleanTempAccounts() {
+	vadb.mutTempAccounts.Lock()
+	vadb.tempAccounts = make(map[string]state.AccountHandler, 0)
+	vadb.mutTempAccounts.Unlock()
 }
 
-func (vadb *VMAccountsDB) GetFakeAccount(address []byte) state.AccountHandler {
-	fakeAcc, success := vadb.getAccountFromFakeAccounts(address)
+// TempAccount can retrieve a temporary account from provided address
+func (vadb *VMAccountsDB) TempAccount(address []byte) state.AccountHandler {
+	tempAcc, success := vadb.getAccountFromTemporaryAccounts(address)
 	if success {
-		return fakeAcc
+		return tempAcc
 	}
 
 	return nil

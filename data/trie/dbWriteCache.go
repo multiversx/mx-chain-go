@@ -240,11 +240,11 @@ func (db *DBWriteCache) Dereference(root []byte) {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	nodes, storage, start := len(db.nodes), db.nodesSize, time.Now()
+	nodes, storeSize, start := len(db.nodes), db.nodesSize, time.Now()
 	db.dereference(rHash, encoding.Hash{})
 
 	db.gcnodes += uint64(nodes - len(db.nodes))
-	db.gcsize += storage - db.nodesSize
+	db.gcsize += storeSize - db.nodesSize
 	db.gctime += time.Since(start)
 }
 
@@ -303,7 +303,7 @@ func (db *DBWriteCache) Cap(limit float64) error {
 	// by only uncaching existing data when the database write finalizes.
 	db.lock.RLock()
 
-	nodes, storage, start := len(db.nodes), db.nodesSize, time.Now()
+	nodes, storeSize, start := len(db.nodes), db.nodesSize, time.Now()
 
 	// db.nodesSize only contains the useful data in the cache, but when reporting
 	// the total memory consumption, the maintenance metadata is also needed to be
@@ -354,7 +354,7 @@ func (db *DBWriteCache) Cap(limit float64) error {
 		db.nodes[db.oldest].flushPrev = encoding.Hash{}
 	}
 	db.flushnodes += uint64(nodes - len(db.nodes))
-	db.flushsize += storage - db.nodesSize
+	db.flushsize += storeSize - db.nodesSize
 	db.flushtime += time.Since(start)
 
 	return nil
@@ -365,6 +365,17 @@ func (db *DBWriteCache) Cap(limit float64) error {
 //
 // As a side effect, all pre-images accumulated up to this point are also written.
 func (db *DBWriteCache) Commit(node []byte, report bool) error {
+	isEmpty := true
+	for _, b := range node {
+		if b != 0 {
+			isEmpty = false
+			break
+		}
+	}
+	if isEmpty {
+		return nil
+	}
+
 	// Create a database batch to flush persistent data out. It is important that
 	// outside code doesn't see an inconsistent state (referenced data removed from
 	// memory cache during commit but not yet in persistent storage). This is ensured
