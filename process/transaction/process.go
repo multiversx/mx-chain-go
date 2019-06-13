@@ -127,7 +127,6 @@ func (txProc *txProcessor) processMoveBalance(
 	}
 
 	return nil
-
 }
 
 func (txProc *txProcessor) processSCDeployment(

@@ -23,7 +23,7 @@ type scExecutionState struct {
 
 type scProcessor struct {
 	accounts         state.AccountsAdapter
-	fakeAccounts     process.FakeAccountsHandler
+	tempAccounts     process.TemporaryAccountsHandler
 	adrConv          state.AddressConverter
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
@@ -42,7 +42,7 @@ func NewSmartContractProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountsDB state.AccountsAdapter,
-	fakeAccounts process.FakeAccountsHandler,
+	tempAccounts process.TemporaryAccountsHandler,
 	adrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
 ) (*scProcessor, error) {
@@ -61,8 +61,8 @@ func NewSmartContractProcessor(
 	if accountsDB == nil {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if fakeAccounts == nil {
-		return nil, process.ErrNilFakeAccountsHandler
+	if tempAccounts == nil {
+		return nil, process.ErrNilTemporaryAccountsHandler
 	}
 	if adrConv == nil {
 		return nil, process.ErrNilAddressConverter
@@ -77,7 +77,7 @@ func NewSmartContractProcessor(
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		accounts:         accountsDB,
-		fakeAccounts:     fakeAccounts,
+		tempAccounts:     tempAccounts,
 		adrConv:          adrConv,
 		shardCoordinator: coordinator,
 		mapExecState:     make(map[uint32]scExecutionState)}, nil
@@ -138,7 +138,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	acntSnd, acntDst state.AccountHandler,
 	round uint32,
 ) error {
-	defer sc.fakeAccounts.CleanFakeAccounts()
+	defer sc.tempAccounts.CleanTempAccounts()
 
 	if tx == nil {
 		return process.ErrNilTransaction
@@ -185,14 +185,14 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 		return err
 	}
 
-	sc.fakeAccounts.CreateFakeAccounts(tx.SndAddr, tx.Value, tx.Nonce)
+	sc.tempAccounts.AddTempAccount(tx.SndAddr, tx.Value, tx.Nonce)
 
 	return nil
 }
 
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx *transaction.Transaction, acntSnd state.AccountHandler, round uint32) error {
-	defer sc.fakeAccounts.CleanFakeAccounts()
+	defer sc.tempAccounts.CleanTempAccounts()
 
 	err := sc.checkTxValidity(tx)
 	if err != nil {
@@ -403,7 +403,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			return err
 		}
 
-		fakeAcc := sc.fakeAccounts.GetFakeAccount(outAcc.Address)
+		fakeAcc := sc.tempAccounts.TempAccount(outAcc.Address)
 
 		if acc == nil || acc.IsInterfaceNil() {
 			//TODO: sharded smart contract processing
