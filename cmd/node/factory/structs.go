@@ -71,16 +71,25 @@ import (
 )
 
 const (
-	BlsHashSize      = 16
+	// BlsHashSize specifies the hash size for using bls scheme
+	BlsHashSize = 16
+
+	// BlsConsensusType specifies te signature scheme used in the consensus
 	BlsConsensusType = "bls"
-	BnConsensusType  = "bn"
-	MaxTxsToRequest  = 100
+
+	// BnConsensusType specifies te signature scheme used in the consensus
+	BnConsensusType = "bn"
+
+	// MaxTxsToRequest specifies the maximum number of txs to request
+	MaxTxsToRequest = 100
 )
 
+// Network struct holds the network components of the Elrond protocol
 type Network struct {
 	NetMessenger p2p.Messenger
 }
 
+// Core struct holds the core components of the Elrond protocol
 type Core struct {
 	Hasher                   hashing.Hasher
 	Marshalizer              marshal.Marshalizer
@@ -88,12 +97,14 @@ type Core struct {
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
+// State struct holds the state components of the Elrond protocol
 type State struct {
 	AddressConverter  state.AddressConverter
 	AccountsAdapter   state.AccountsAdapter
 	InBalanceForShard map[string]*big.Int
 }
 
+// Data struct holds the data components of the Elrond protocol
 type Data struct {
 	Blkc         data.ChainHandler
 	Store        dataRetriever.StorageService
@@ -101,6 +112,7 @@ type Data struct {
 	MetaDatapool dataRetriever.MetaPoolsHolder
 }
 
+// Crypto struct holds the crypto components of the Elrond protocol
 type Crypto struct {
 	TxSingleSigner crypto.SingleSigner
 	SingleSigner   crypto.SingleSigner
@@ -111,6 +123,7 @@ type Crypto struct {
 	InitialPubKeys map[uint32][]string
 }
 
+// Process struct holds the process components of the Elrond protocol
 type Process struct {
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversFinder       dataRetriever.ResolversFinder
@@ -120,19 +133,21 @@ type Process struct {
 	BlockTracker          process.BlocksTracker
 }
 
-type CoreComponentsFactoryArgs struct {
+type coreComponentsFactoryArgs struct {
 	config   *config.Config
 	uniqueID string
 }
 
-func InitCoreComponentsFactoryArgs(config *config.Config, uniqueID string) *CoreComponentsFactoryArgs {
-	return &CoreComponentsFactoryArgs{
+// InitCoreComponentsFactoryArgs initializes the arguments necessary for creating the core components
+func InitCoreComponentsFactoryArgs(config *config.Config, uniqueID string) *coreComponentsFactoryArgs {
+	return &coreComponentsFactoryArgs{
 		config:   config,
 		uniqueID: uniqueID,
 	}
 }
 
-func CoreComponentsFactory(args *CoreComponentsFactoryArgs) (*Core, error) {
+// CoreComponentsFactory creates the core components
+func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 	hasher, err := getHasherFromConfig(args.config)
 	if err != nil {
 		return nil, errors.New("could not create hasher: " + err.Error())
@@ -157,20 +172,21 @@ func CoreComponentsFactory(args *CoreComponentsFactoryArgs) (*Core, error) {
 	}, nil
 }
 
-type StateComponentsFactoryArgs struct {
+type stateComponentsFactoryArgs struct {
 	config           *config.Config
 	genesisConfig    *sharding.Genesis
 	shardCoordinator sharding.Coordinator
 	core             *Core
 }
 
+// InitStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
 func InitStateComponentsFactoryArgs(
 	config *config.Config,
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
 	core *Core,
-) *StateComponentsFactoryArgs {
-	return &StateComponentsFactoryArgs{
+) *stateComponentsFactoryArgs {
+	return &stateComponentsFactoryArgs{
 		config:           config,
 		genesisConfig:    genesisConfig,
 		shardCoordinator: shardCoordinator,
@@ -178,7 +194,8 @@ func InitStateComponentsFactoryArgs(
 	}
 }
 
-func StateComponentsFactory(args *StateComponentsFactoryArgs) (*State, error) {
+// StateComponentsFactory creates the state components
+func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 	addressConverter, err := addressConverters.NewPlainAddressConverter(args.config.Address.Length, args.config.Address.Prefix)
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
@@ -206,15 +223,16 @@ func StateComponentsFactory(args *StateComponentsFactoryArgs) (*State, error) {
 	}, nil
 }
 
-type DataComponentsFactoryArgs struct {
+type dataComponentsFactoryArgs struct {
 	config           *config.Config
 	shardCoordinator sharding.Coordinator
 	core             *Core
 	uniqueID         string
 }
 
-func InitDataComponentsFactoryArgs(config *config.Config, shardCoordinator sharding.Coordinator, core *Core, uniqueID string) *DataComponentsFactoryArgs {
-	return &DataComponentsFactoryArgs{
+// InitDataComponentsFactoryArgs initializes the arguments necessary for creating the data components
+func InitDataComponentsFactoryArgs(config *config.Config, shardCoordinator sharding.Coordinator, core *Core, uniqueID string) *dataComponentsFactoryArgs {
+	return &dataComponentsFactoryArgs{
 		config:           config,
 		shardCoordinator: shardCoordinator,
 		core:             core,
@@ -222,7 +240,8 @@ func InitDataComponentsFactoryArgs(config *config.Config, shardCoordinator shard
 	}
 }
 
-func DataComponentsFactory(args *DataComponentsFactoryArgs) (*Data, error) {
+// DataComponentsFactory creates the data components
+func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 	var datapool dataRetriever.PoolsHolder
 	var metaDatapool dataRetriever.MetaPoolsHolder
 	blkc, err := createBlockChainFromConfig(args.config, args.shardCoordinator)
@@ -259,7 +278,7 @@ func DataComponentsFactory(args *DataComponentsFactoryArgs) (*Data, error) {
 	}, nil
 }
 
-type CryptoComponentsFactoryArgs struct {
+type cryptoComponentsFactoryArgs struct {
 	ctx                          *cli.Context
 	config                       *config.Config
 	nodesConfig                  *sharding.NodesSetup
@@ -272,6 +291,7 @@ type CryptoComponentsFactoryArgs struct {
 	txSignSkIndexName            string
 }
 
+// InitCryptoComponentsFactoryArgs initializes the arguments necessary for creating the crypto components
 func InitCryptoComponentsFactoryArgs(
 	ctx *cli.Context,
 	config *config.Config,
@@ -283,8 +303,8 @@ func InitCryptoComponentsFactoryArgs(
 	initialBalancesSkPemFileName string,
 	txSignSkName string,
 	txSignSkIndexName string,
-) *CryptoComponentsFactoryArgs {
-	return &CryptoComponentsFactoryArgs{
+) *cryptoComponentsFactoryArgs {
+	return &cryptoComponentsFactoryArgs{
 		ctx:                          ctx,
 		config:                       config,
 		nodesConfig:                  nodesConfig,
@@ -298,7 +318,8 @@ func InitCryptoComponentsFactoryArgs(
 	}
 }
 
-func CryptoComponentsFactory(args *CryptoComponentsFactoryArgs) (*Crypto, error) {
+// CryptoComponentsFactory creates the crypto components
+func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error) {
 	initialPubKeys := args.nodesConfig.InitialNodesPubKeys()
 	txSingleSigner := &singlesig.SchnorrSigner{}
 	singleSigner, err := createSingleSigner(args.config)
@@ -345,6 +366,7 @@ func CryptoComponentsFactory(args *CryptoComponentsFactoryArgs) (*Crypto, error)
 	}, nil
 }
 
+// NetworkComponentsFactory creates the network components
 func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log *logger.Logger, core *Core) (*Network, error) {
 	var randReader io.Reader
 	if p2pConfig.Node.Seed != "" {
@@ -363,7 +385,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log *logger.Logger, c
 	}, nil
 }
 
-type ProcessComponentsFactoryArgs struct {
+type processComponentsFactoryArgs struct {
 	genesisConfig        *sharding.Genesis
 	nodesConfig          *sharding.NodesSetup
 	syncer               ntp.SyncTimer
@@ -376,7 +398,8 @@ type ProcessComponentsFactoryArgs struct {
 	coreServiceContainer serviceContainer.Core
 }
 
-func InitProcessComponentsFactory(
+// InitProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
+func InitProcessComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
 	nodesConfig *sharding.NodesSetup,
 	syncer ntp.SyncTimer,
@@ -387,8 +410,8 @@ func InitProcessComponentsFactory(
 	state *State,
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
-) *ProcessComponentsFactoryArgs {
-	return &ProcessComponentsFactoryArgs{
+) *processComponentsFactoryArgs {
+	return &processComponentsFactoryArgs{
 		genesisConfig:        genesisConfig,
 		nodesConfig:          nodesConfig,
 		syncer:               syncer,
@@ -402,8 +425,8 @@ func InitProcessComponentsFactory(
 	}
 }
 
-func ProcessComponentsFactory(args *ProcessComponentsFactoryArgs) (*Process, error) {
-
+// ProcessComponentsFactory creates the process components
+func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
 	interceptorContainerFactory, resolversContainerFactory, err := getInterceptorAndResolverContainerFactory(
 		args.shardCoordinator, args.data, args.core, args.crypto, args.state, args.network)
 	if err != nil {
@@ -1239,6 +1262,7 @@ func createMemUnit() storage.Storer {
 	return unit
 }
 
+// GetSigningParams returns a key generator, a private key, and a public key
 func GetSigningParams(
 	ctx *cli.Context,
 	log *logger.Logger,
@@ -1265,6 +1289,7 @@ func GetSigningParams(
 	return keyGen, privKey, pubKey, err
 }
 
+// GetPkEncoded returns the encoded public key
 func GetPkEncoded(pubKey crypto.PublicKey) string {
 	pk, err := pubKey.ToByteArray()
 	if err != nil {

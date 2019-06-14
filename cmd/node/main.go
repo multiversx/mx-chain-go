@@ -411,7 +411,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		}
 	}
 
-	processArgs := factory.InitProcessComponentsFactory(genesisConfig, nodesConfig, syncer, shardCoordinator,
+	processArgs := factory.InitProcessComponentsFactoryArgs(genesisConfig, nodesConfig, syncer, shardCoordinator,
 		dataComponents, coreComponents, cryptoComponents, stateComponents, networkComponents, coreServiceContainer)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -563,6 +563,8 @@ func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConf
 	return uint32(val), err
 }
 
+// CreateElasticIndexer creates a new elasticIndexer where the server listens on the url,
+// authentication for the server is using the username and password
 func CreateElasticIndexer(
 	serversConfigurationFileName string,
 	url string,
