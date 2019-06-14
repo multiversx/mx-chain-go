@@ -197,6 +197,13 @@ VERSION:
 		Name:  "storage-cleanup",
 		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk",
 	}
+
+	// restApiPort defines a flag for port on which the rest API will start on
+	restApiPort = cli.StringFlag{
+		Name:  "rest-api-port",
+		Usage: "The port on which the rest API will start on",
+		Value: "8080",
+	}
 	// initialBalancesSkPemFile defines a flag for the path to the ...
 	initialBalancesSkPemFile = cli.StringFlag{
 		Name:  "initialBalancesSkPemFile",
@@ -307,6 +314,7 @@ func main() {
 		initialNodesSkPemFile,
 		gopsEn,
 		serversConfigurationFile,
+		restApiPort,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -499,9 +507,13 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	ef := facade.NewElrondNodeFacade(currentNode, externalResolver)
 
+	efConfig := &config.FacadeConfig{
+		RestApiPort: ctx.GlobalString(restApiPort.Name),
+	}
 	ef.SetLogger(log)
 	ef.SetSyncer(syncer)
 	ef.SetTpsBenchmark(tpsBenchmark)
+	ef.SetConfig(efConfig)
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)

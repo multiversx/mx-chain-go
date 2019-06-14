@@ -1,10 +1,13 @@
 package facade
 
 import (
+	"fmt"
 	"math/big"
+	"strconv"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api"
+	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -14,6 +17,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 )
 
+// DefaultRestPort is the default port the REST API will start on if not specified
+const DefaultRestPort = "8080"
+// DefaultRestPortOff is the default value that should be passed if it is desired
+//  to start the node without a REST endpoint available
+const DefaultRestPortOff = "off"
+
 // ElrondNodeFacade represents a facade for grouping the functionality for node, transaction and address
 type ElrondNodeFacade struct {
 	node         NodeWrapper
@@ -21,6 +30,7 @@ type ElrondNodeFacade struct {
 	syncer       ntp.SyncTimer
 	log          *logger.Logger
 	tpsBenchmark *statistics.TpsBenchmark
+	config       *config.FacadeConfig
 }
 
 // NewElrondNodeFacade creates a new Facade with a NodeWrapper
@@ -58,6 +68,11 @@ func (ef *ElrondNodeFacade) TpsBenchmark() *statistics.TpsBenchmark {
 	return ef.tpsBenchmark
 }
 
+// SetConfig sets the configuration options for the facade
+func (ef *ElrondNodeFacade) SetConfig(facadeConfig *config.FacadeConfig) {
+	ef.config = facadeConfig
+}
+
 // StartNode starts the underlying node
 func (ef *ElrondNodeFacade) StartNode() error {
 	err := ef.node.Start()
@@ -85,13 +100,41 @@ func (ef *ElrondNodeFacade) IsNodeRunning() bool {
 	return ef.node.IsRunning()
 }
 
+// RestApiPort returns the port on which the api should start on, based on the config file provided.
+// The API will start on the DefaultRestPort value unless a correct value is passed or
+//  the value is explicitly set to off, in which case it will not start at all
+func (ef *ElrondNodeFacade) RestApiPort() string {
+	if ef.config == nil {
+		return DefaultRestPort
+	}
+	if ef.config.RestApiPort == "" {
+		return DefaultRestPort
+	}
+	if ef.config.RestApiPort == DefaultRestPortOff {
+		return DefaultRestPortOff
+	}
+
+	_, err := strconv.ParseInt(ef.config.RestApiPort, 10, 32)
+	if err != nil {
+		return DefaultRestPort
+	}
+
+	return ef.config.RestApiPort
+}
+
 func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	ef.log.Info("Starting web server...")
-	err := api.Start(ef)
-	if err != nil {
-		ef.log.Error("Could not start webserver", err.Error())
+	switch ef.RestApiPort() {
+	case DefaultRestPortOff:
+		fmt.Println("why this is not off: ", ef.RestApiPort())
+		break
+	default:
+		ef.log.Info("Starting web server...")
+		err := api.Start(ef)
+		if err != nil {
+			ef.log.Error("Could not start webserver", err.Error())
+		}
 	}
 }
 

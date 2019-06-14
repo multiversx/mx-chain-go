@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/gin-contrib/cors"
@@ -30,7 +31,7 @@ func Start(elrondFacade middleware.ElrondHandler) error {
 	}
 	registerRoutes(ws, elrondFacade)
 
-	return ws.Run()
+	return ws.Run(fmt.Sprintf(":%s", elrondFacade.RestApiPort()))
 }
 
 func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {

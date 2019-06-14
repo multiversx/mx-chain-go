@@ -154,8 +154,13 @@ type ServersConfig struct {
 	ElasticSearch ElasticSearchConfig
 }
 
-// ExplorerConfig will hold the configuration for the explorer indexer
+// ElasticSearchConfig will hold the configuration for the explorer indexer
 type ElasticSearchConfig struct {
 	Username string
 	Password string
+}
+
+// FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
+type FacadeConfig struct {
+	RestApiPort string
 }
