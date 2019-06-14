@@ -112,7 +112,7 @@ func (vadb *VMAccountsDB) GetStorageData(accountAddress []byte, index []byte) ([
 func (vadb *VMAccountsDB) IsCodeEmpty(address []byte) (bool, error) {
 	exists, err := vadb.AccountExists(address)
 	if err != nil {
-		return true, err
+		return false, err
 	}
 	if !exists {
 		return true, nil

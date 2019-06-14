@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"crypto/rand"
 	"fmt"
 	"math/big"
 	"testing"
@@ -35,13 +34,6 @@ type accountFactory struct {
 
 func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 	return state.NewAccount(address, tracker)
-}
-
-func CreateDummyAddress() state.AddressContainer {
-	buff := make([]byte, testHasher.Size())
-	_, _ = rand.Reader.Read(buff)
-
-	return state.NewAddress(buff)
 }
 
 func CreateEmptyAddress() state.AddressContainer {
@@ -160,13 +152,6 @@ func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 	accnt, _ := accnts.GetExistingAccount(address)
 
 	return accnt != nil
-}
-
-func ComputeSCDestinationAddressBytes(senderNonce uint64, senderAddressBytes []byte) []byte {
-	//TODO change this when receipts are implemented, take the newly created account address (SC account)
-	// from receipt, do not recompute here
-	senderNonceBytes := big.NewInt(0).SetUint64(senderNonce).Bytes()
-	return testHasher.Compute(string(append(senderAddressBytes, senderNonceBytes...)))
 }
 
 func CreatePreparedTxProcessorAndAccountsWithIeleVM(

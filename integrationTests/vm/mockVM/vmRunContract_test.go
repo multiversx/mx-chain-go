@@ -1,6 +1,7 @@
 package mockVM
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 
@@ -14,7 +15,7 @@ import (
 
 func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 	vmOpGas := uint64(0)
-	senderAddressBytes := vm.CreateDummyAddress().Bytes()
+	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	round := uint32(444)
@@ -40,7 +41,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce+1, senderAddressBytes)
+	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
 	addValue := uint64(128)
 	//contract call tx
 	txRun := vm.CreateTx(
@@ -80,7 +81,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 
 func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 	vmOpGas := uint64(0)
-	senderAddressBytes := vm.CreateDummyAddress().Bytes()
+	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	round := uint32(444)
@@ -107,7 +108,7 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce+1, senderAddressBytes)
+	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
 	addValue := uint64(128)
 	//contract call tx
 	txRun := vm.CreateTx(
@@ -147,7 +148,7 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 
 func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	vmOpGas := uint64(1000)
-	senderAddressBytes := vm.CreateDummyAddress().Bytes()
+	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	round := uint32(444)
@@ -174,7 +175,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce+1, senderAddressBytes)
+	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
 	addValue := uint64(128)
 	//contract call tx
 	txRun := vm.CreateTx(
@@ -215,7 +216,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 
 func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	vmOpGas := uint64(1000)
-	senderAddressBytes := vm.CreateDummyAddress().Bytes()
+	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	round := uint32(444)
@@ -242,7 +243,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes := vm.ComputeSCDestinationAddressBytes(senderNonce+1, senderAddressBytes)
+	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
 	addValue := uint64(128)
 	//contract call tx
 	txRun := vm.CreateTx(

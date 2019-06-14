@@ -297,9 +297,9 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 
 // taking money from sender, as VM might not have access to him because of state sharding
 func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
-	operation := big.NewInt(0)
-	operation = operation.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-	operation = operation.Add(operation, tx.Value)
+	cost := big.NewInt(0)
+	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+	cost = cost.Add(cost, tx.Value)
 
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
 		// transaction was already done at sender shard
@@ -311,12 +311,12 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 		return process.ErrWrongTypeAssertion
 	}
 
-	if stAcc.Balance.Cmp(operation) < 0 {
+	if stAcc.Balance.Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
 
 	totalCost := big.NewInt(0)
-	err := stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, operation))
+	err := stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, cost))
 	if err != nil {
 		return err
 	}
@@ -393,8 +393,8 @@ func (sc *scProcessor) refundGasToSender(gasRefund *big.Int, tx *transaction.Tra
 	refundErd := big.NewInt(0)
 	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GasPrice)))
 
-	operation := big.NewInt(0)
-	err := stAcc.SetBalanceWithJournal(operation.Add(stAcc.Balance, refundErd))
+	newBalance := big.NewInt(0).Add(stAcc.Balance, refundErd)
+	err := stAcc.SetBalanceWithJournal(newBalance)
 	if err != nil {
 		return err
 	}
