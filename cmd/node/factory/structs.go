@@ -1,22 +1,27 @@
-package main
+package factory
 
 import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
+	"path/filepath"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
 	blsMultiSig "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
@@ -57,126 +62,187 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/track"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/urfave/cli"
 )
 
+const (
+	BlsHashSize      = 16
+	BlsConsensusType = "bls"
+	BnConsensusType  = "bn"
+	MaxTxsToRequest  = 100
+)
+
+type Network struct {
+	NetMessenger p2p.Messenger
+}
+
 type Core struct {
-	hasher                   hashing.Hasher
-	marshalizer              marshal.Marshalizer
-	tr                       trie.PatriciaMerkelTree
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	Hasher                   hashing.Hasher
+	Marshalizer              marshal.Marshalizer
+	Tr                       trie.PatriciaMerkelTree
+	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
 type State struct {
-	addressConverter  state.AddressConverter
-	accountsAdapter   state.AccountsAdapter
-	inBalanceForShard map[string]*big.Int
+	AddressConverter  state.AddressConverter
+	AccountsAdapter   state.AccountsAdapter
+	InBalanceForShard map[string]*big.Int
 }
 
 type Data struct {
-	blkc         data.ChainHandler
-	store        dataRetriever.StorageService
-	datapool     dataRetriever.PoolsHolder
-	metaDatapool dataRetriever.MetaPoolsHolder
+	Blkc         data.ChainHandler
+	Store        dataRetriever.StorageService
+	Datapool     dataRetriever.PoolsHolder
+	MetaDatapool dataRetriever.MetaPoolsHolder
 }
 
 type Crypto struct {
-	txSingleSigner crypto.SingleSigner
-	singleSigner   crypto.SingleSigner
-	multiSigner    crypto.MultiSigner
-	txSignKeyGen   crypto.KeyGenerator
-	txSignPrivKey  crypto.PrivateKey
-	txSignPubKey   crypto.PublicKey
-	initialPubKeys map[uint32][]string
+	TxSingleSigner crypto.SingleSigner
+	SingleSigner   crypto.SingleSigner
+	MultiSigner    crypto.MultiSigner
+	TxSignKeyGen   crypto.KeyGenerator
+	TxSignPrivKey  crypto.PrivateKey
+	TxSignPubKey   crypto.PublicKey
+	InitialPubKeys map[uint32][]string
 }
 
 type Process struct {
-	interceptorsContainer process.InterceptorsContainer
-	resolversFinder       dataRetriever.ResolversFinder
-	rounder               consensus.Rounder
-	forkDetector          process.ForkDetector
-	blockProcessor        process.BlockProcessor
-	blockTracker          process.BlocksTracker
-	netMessenger          p2p.Messenger
+	InterceptorsContainer process.InterceptorsContainer
+	ResolversFinder       dataRetriever.ResolversFinder
+	Rounder               consensus.Rounder
+	ForkDetector          process.ForkDetector
+	BlockProcessor        process.BlockProcessor
+	BlockTracker          process.BlocksTracker
 }
 
-func coreComponentsFactory(config *config.Config) (*Core, error) {
-	hasher, err := getHasherFromConfig(config)
+type CoreComponentsFactoryArgs struct {
+	config   *config.Config
+	uniqueID string
+}
+
+func InitCoreComponentsFactoryArgs(config *config.Config, uniqueID string) *CoreComponentsFactoryArgs {
+	return &CoreComponentsFactoryArgs{
+		config:   config,
+		uniqueID: uniqueID,
+	}
+}
+
+func CoreComponentsFactory(args *CoreComponentsFactoryArgs) (*Core, error) {
+	hasher, err := getHasherFromConfig(args.config)
 	if err != nil {
 		return nil, errors.New("could not create hasher: " + err.Error())
 	}
 
-	marshalizer, err := getMarshalizerFromConfig(config)
+	marshalizer, err := getMarshalizerFromConfig(args.config)
 	if err != nil {
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	tr, err := getTrie(config.AccountsTrieStorage, hasher)
+	tr, err := getTrie(args.config.AccountsTrieStorage, hasher, args.uniqueID)
 	if err != nil {
 		return nil, errors.New("error creating trie: " + err.Error())
 	}
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
 	return &Core{
-		hasher:                   hasher,
-		marshalizer:              marshalizer,
-		tr:                       tr,
-		uint64ByteSliceConverter: uint64ByteSliceConverter,
+		Hasher:                   hasher,
+		Marshalizer:              marshalizer,
+		Tr:                       tr,
+		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 	}, nil
 }
 
-func stateComponentsFactory(config *config.Config, genesisConfig *sharding.Genesis, shardCoordinator sharding.Coordinator, core *Core) (*State, error) {
-	addressConverter, err := addressConverters.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
+type StateComponentsFactoryArgs struct {
+	config           *config.Config
+	genesisConfig    *sharding.Genesis
+	shardCoordinator sharding.Coordinator
+	core             *Core
+}
+
+func InitStateComponentsFactoryArgs(
+	config *config.Config,
+	genesisConfig *sharding.Genesis,
+	shardCoordinator sharding.Coordinator,
+	core *Core,
+) *StateComponentsFactoryArgs {
+	return &StateComponentsFactoryArgs{
+		config:           config,
+		genesisConfig:    genesisConfig,
+		shardCoordinator: shardCoordinator,
+		core:             core,
+	}
+}
+
+func StateComponentsFactory(args *StateComponentsFactoryArgs) (*State, error) {
+	addressConverter, err := addressConverters.NewPlainAddressConverter(args.config.Address.Length, args.config.Address.Prefix)
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
 	}
 
-	accountFactory, err := factoryState.NewAccountFactoryCreator(shardCoordinator)
+	accountFactory, err := factoryState.NewAccountFactoryCreator(args.shardCoordinator)
 	if err != nil {
 		return nil, errors.New("could not create account factory: " + err.Error())
 	}
 
-	accountsAdapter, err := state.NewAccountsDB(core.tr, core.hasher, core.marshalizer, accountFactory)
+	accountsAdapter, err := state.NewAccountsDB(args.core.Tr, args.core.Hasher, args.core.Marshalizer, accountFactory)
 	if err != nil {
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
+	inBalanceForShard, err := args.genesisConfig.InitialNodesBalances(args.shardCoordinator, addressConverter)
 	if err != nil {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
 	return &State{
-		addressConverter:  addressConverter,
-		accountsAdapter:   accountsAdapter,
-		inBalanceForShard: inBalanceForShard,
+		AddressConverter:  addressConverter,
+		AccountsAdapter:   accountsAdapter,
+		InBalanceForShard: inBalanceForShard,
 	}, nil
 }
 
-func dataComponentsFactory(config *config.Config, shardCoordinator sharding.Coordinator, core *Core) (*Data, error) {
+type DataComponentsFactoryArgs struct {
+	config           *config.Config
+	shardCoordinator sharding.Coordinator
+	core             *Core
+	uniqueID         string
+}
+
+func InitDataComponentsFactoryArgs(config *config.Config, shardCoordinator sharding.Coordinator, core *Core, uniqueID string) *DataComponentsFactoryArgs {
+	return &DataComponentsFactoryArgs{
+		config:           config,
+		shardCoordinator: shardCoordinator,
+		core:             core,
+		uniqueID:         uniqueID,
+	}
+}
+
+func DataComponentsFactory(args *DataComponentsFactoryArgs) (*Data, error) {
 	var datapool dataRetriever.PoolsHolder
 	var metaDatapool dataRetriever.MetaPoolsHolder
-	blkc, err := createBlockChainFromConfig(config, shardCoordinator)
+	blkc, err := createBlockChainFromConfig(args.config, args.shardCoordinator)
 	if err != nil {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
 
-	store, err := createDataStoreFromConfig(config, shardCoordinator)
+	store, err := createDataStoreFromConfig(args.config, args.shardCoordinator, args.uniqueID)
 	if err != nil {
 		return nil, errors.New("could not create local data store: " + err.Error())
 	}
 
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		datapool, err = createShardDataPoolFromConfig(config, core.uint64ByteSliceConverter)
+	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
+		datapool, err = createShardDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
 		if err != nil {
 			return nil, errors.New("could not create shard data pools: " + err.Error())
 		}
 	}
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		metaDatapool, err = createMetaDataPoolFromConfig(config, core.uint64ByteSliceConverter)
+	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		metaDatapool, err = createMetaDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
 		if err != nil {
 			return nil, errors.New("could not create shard data pools: " + err.Error())
 		}
@@ -186,14 +252,27 @@ func dataComponentsFactory(config *config.Config, shardCoordinator sharding.Coor
 	}
 
 	return &Data{
-		blkc:         blkc,
-		store:        store,
-		datapool:     datapool,
-		metaDatapool: metaDatapool,
+		Blkc:         blkc,
+		Store:        store,
+		Datapool:     datapool,
+		MetaDatapool: metaDatapool,
 	}, nil
 }
 
-func cryptoComponentsFactory(
+type CryptoComponentsFactoryArgs struct {
+	ctx                          *cli.Context
+	config                       *config.Config
+	nodesConfig                  *sharding.NodesSetup
+	shardCoordinator             sharding.Coordinator
+	keyGen                       crypto.KeyGenerator
+	privKey                      crypto.PrivateKey
+	log                          *logger.Logger
+	initialBalancesSkPemFileName string
+	txSignSkName                 string
+	txSignSkIndexName            string
+}
+
+func InitCryptoComponentsFactoryArgs(
 	ctx *cli.Context,
 	config *config.Config,
 	nodesConfig *sharding.NodesSetup,
@@ -201,69 +280,75 @@ func cryptoComponentsFactory(
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
 	log *logger.Logger,
-) (*Crypto, error) {
-	initialPubKeys := nodesConfig.InitialNodesPubKeys()
+	initialBalancesSkPemFileName string,
+	txSignSkName string,
+	txSignSkIndexName string,
+) *CryptoComponentsFactoryArgs {
+	return &CryptoComponentsFactoryArgs{
+		ctx:                          ctx,
+		config:                       config,
+		nodesConfig:                  nodesConfig,
+		shardCoordinator:             shardCoordinator,
+		keyGen:                       keyGen,
+		privKey:                      privKey,
+		log:                          log,
+		initialBalancesSkPemFileName: initialBalancesSkPemFileName,
+		txSignSkName:                 txSignSkName,
+		txSignSkIndexName:            txSignSkIndexName,
+	}
+}
+
+func CryptoComponentsFactory(args *CryptoComponentsFactoryArgs) (*Crypto, error) {
+	initialPubKeys := args.nodesConfig.InitialNodesPubKeys()
 	txSingleSigner := &singlesig.SchnorrSigner{}
-	singleSigner, err := createSingleSigner(config)
+	singleSigner, err := createSingleSigner(args.config)
 	if err != nil {
 		return nil, errors.New("could not create singleSigner: " + err.Error())
 	}
 
-	multisigHasher, err := getMultisigHasherFromConfig(config)
+	multisigHasher, err := getMultisigHasherFromConfig(args.config)
 	if err != nil {
 		return nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
-	currentShardPubKeys, err := nodesConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
+	currentShardPubKeys, err := args.nodesConfig.InitialNodesPubKeysForShard(args.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, errors.New("could not start creation of multiSigner: " + err.Error())
 	}
 
-	multiSigner, err := createMultiSigner(config, multisigHasher, currentShardPubKeys, privKey, keyGen)
+	multiSigner, err := createMultiSigner(args.config, multisigHasher, currentShardPubKeys, args.privKey, args.keyGen)
 	if err != nil {
 		return nil, err
 	}
 
-	initialBalancesSkPemFileName := ctx.GlobalString(initialBalancesSkPemFile.Name)
-	txSignKeyGen, txSignPrivKey, txSignPubKey, err := getSigningParams(
-		ctx,
-		log,
-		txSignSk.Name,
-		txSignSkIndex.Name,
+	initialBalancesSkPemFileName := args.ctx.GlobalString(args.initialBalancesSkPemFileName)
+	txSignKeyGen, txSignPrivKey, txSignPubKey, err := GetSigningParams(
+		args.ctx,
+		args.log,
+		args.txSignSkName,
+		args.txSignSkIndexName,
 		initialBalancesSkPemFileName,
 		kyber.NewBlakeSHA256Ed25519())
 	if err != nil {
 		return nil, err
 	}
-	log.Info("Starting with tx sign public key: " + getPkEncoded(txSignPubKey))
+	args.log.Info("Starting with tx sign public key: " + GetPkEncoded(txSignPubKey))
 
 	return &Crypto{
-		txSingleSigner: txSingleSigner,
-		singleSigner:   singleSigner,
-		multiSigner:    multiSigner,
-		txSignKeyGen:   txSignKeyGen,
-		txSignPrivKey:  txSignPrivKey,
-		txSignPubKey:   txSignPubKey,
-		initialPubKeys: initialPubKeys,
+		TxSingleSigner: txSingleSigner,
+		SingleSigner:   singleSigner,
+		MultiSigner:    multiSigner,
+		TxSignKeyGen:   txSignKeyGen,
+		TxSignPrivKey:  txSignPrivKey,
+		TxSignPubKey:   txSignPubKey,
+		InitialPubKeys: initialPubKeys,
 	}, nil
 }
 
-func processComponentsFactory(
-	genesisConfig *sharding.Genesis,
-	nodesConfig *sharding.NodesSetup,
-	p2pConfig *config.P2PConfig,
-	syncer ntp.SyncTimer,
-	shardCoordinator sharding.Coordinator,
-	data *Data,
-	core *Core,
-	crypto *Crypto,
-	state *State,
-	log *logger.Logger,
-) (*Process, error) {
-
+func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log *logger.Logger, core *Core) (*Network, error) {
 	var randReader io.Reader
 	if p2pConfig.Node.Seed != "" {
-		randReader = NewSeedRandReader(core.hasher.Compute(p2pConfig.Node.Seed))
+		randReader = NewSeedRandReader(core.Hasher.Compute(p2pConfig.Node.Seed))
 	} else {
 		randReader = rand.Reader
 	}
@@ -273,8 +358,54 @@ func processComponentsFactory(
 		return nil, err
 	}
 
+	return &Network{
+		NetMessenger: netMessenger,
+	}, nil
+}
+
+type ProcessComponentsFactoryArgs struct {
+	genesisConfig        *sharding.Genesis
+	nodesConfig          *sharding.NodesSetup
+	syncer               ntp.SyncTimer
+	shardCoordinator     sharding.Coordinator
+	data                 *Data
+	core                 *Core
+	crypto               *Crypto
+	state                *State
+	network              *Network
+	coreServiceContainer serviceContainer.Core
+}
+
+func InitProcessComponentsFactory(
+	genesisConfig *sharding.Genesis,
+	nodesConfig *sharding.NodesSetup,
+	syncer ntp.SyncTimer,
+	shardCoordinator sharding.Coordinator,
+	data *Data,
+	core *Core,
+	crypto *Crypto,
+	state *State,
+	network *Network,
+	coreServiceContainer serviceContainer.Core,
+) *ProcessComponentsFactoryArgs {
+	return &ProcessComponentsFactoryArgs{
+		genesisConfig:        genesisConfig,
+		nodesConfig:          nodesConfig,
+		syncer:               syncer,
+		shardCoordinator:     shardCoordinator,
+		data:                 data,
+		core:                 core,
+		crypto:               crypto,
+		state:                state,
+		network:              network,
+		coreServiceContainer: coreServiceContainer,
+	}
+}
+
+func ProcessComponentsFactory(args *ProcessComponentsFactoryArgs) (*Process, error) {
+
 	interceptorContainerFactory, resolversContainerFactory, err := getInterceptorAndResolverContainerFactory(
-		shardCoordinator, netMessenger, data, core, crypto, state)
+		args.shardCoordinator, args.data, args.core, args.crypto, args.state, args.network)
 	if err != nil {
 		return nil, err
 	}
@@ -290,16 +421,16 @@ func processComponentsFactory(
 		return nil, err
 	}
 
-	resolversFinder, err := containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	resolversFinder, err := containers.NewResolversFinder(resolversContainer, args.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
 	rounder, err := round.NewRound(
-		time.Unix(nodesConfig.StartTime, 0),
-		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(nodesConfig.RoundDuration),
-		syncer)
+		time.Unix(args.nodesConfig.StartTime, 0),
+		args.syncer.CurrentTime(),
+		time.Millisecond*time.Duration(args.nodesConfig.RoundDuration),
+		args.syncer)
 	if err != nil {
 		return nil, err
 	}
@@ -310,32 +441,79 @@ func processComponentsFactory(
 	}
 
 	shardsGenesisBlocks, err := generateGenesisHeadersForInit(
-		nodesConfig,
-		genesisConfig,
-		shardCoordinator,
-		state.addressConverter,
-		core.hasher,
-		core.marshalizer,
+		args.nodesConfig,
+		args.genesisConfig,
+		args.shardCoordinator,
+		args.state.AddressConverter,
+		args.core.Hasher,
+		args.core.Marshalizer,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	blockProcessor, blockTracker, err := getBlockProcessorAndTracker(resolversFinder, shardCoordinator,
-		data, core, state, forkDetector, shardsGenesisBlocks, nodesConfig)
+	blockProcessor, blockTracker, err := getBlockProcessorAndTracker(resolversFinder, args.shardCoordinator,
+		args.data, args.core, args.state, forkDetector, shardsGenesisBlocks, args.nodesConfig, args.coreServiceContainer)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Process{
-		interceptorsContainer: interceptorsContainer,
-		resolversFinder:       resolversFinder,
-		rounder:               rounder,
-		forkDetector:          forkDetector,
-		blockProcessor:        blockProcessor,
-		blockTracker:          blockTracker,
-		netMessenger:          netMessenger,
+		InterceptorsContainer: interceptorsContainer,
+		ResolversFinder:       resolversFinder,
+		Rounder:               rounder,
+		ForkDetector:          forkDetector,
+		BlockProcessor:        blockProcessor,
+		BlockTracker:          blockTracker,
 	}, nil
+}
+
+type seedRandReader struct {
+	index int
+	seed  []byte
+}
+
+// NewSeedRandReader will return a new instance of a seed-based reader
+func NewSeedRandReader(seed []byte) *seedRandReader {
+	return &seedRandReader{seed: seed, index: 0}
+}
+
+func (srr *seedRandReader) Read(p []byte) (n int, err error) {
+	if srr.seed == nil {
+		return 0, errors.New("nil seed")
+	}
+
+	if len(srr.seed) == 0 {
+		return 0, errors.New("empty seed")
+	}
+
+	if p == nil {
+		return 0, errors.New("nil buffer")
+	}
+
+	if len(p) == 0 {
+		return 0, errors.New("empty buffer")
+	}
+
+	for i := 0; i < len(p); i++ {
+		p[i] = srr.seed[srr.index]
+
+		srr.index++
+		srr.index = srr.index % len(srr.seed)
+	}
+
+	return len(p), nil
+}
+
+type nullChronologyValidator struct {
+}
+
+// ValidateReceivedBlock should validate if parameters to be checked are valid
+// In this implementation it just returns nil
+func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+	//TODO when implementing a workable variant take into account to receive headers "from future" (nonce or round > current round)
+	// as this might happen when clocks are slightly de-synchronized
+	return nil
 }
 
 func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
@@ -358,10 +536,10 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 	return nil, errors.New("no marshalizer provided in config file")
 }
 
-func getTrie(cfg config.StorageConfig, hasher hashing.Hasher) (*trie.Trie, error) {
+func getTrie(cfg config.StorageConfig, hasher hashing.Hasher, uniqueID string) (*trie.Trie, error) {
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(cfg.Cache),
-		getDBFromConfig(cfg.DB),
+		getDBFromConfig(cfg.DB, uniqueID),
 		getBloomFromConfig(cfg.Bloom),
 	)
 	if err != nil {
@@ -406,17 +584,17 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 	return nil, errors.New("can not create blockchain")
 }
 
-func createDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator) (dataRetriever.StorageService, error) {
+func createDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return createShardDataStoreFromConfig(config)
+		return createShardDataStoreFromConfig(config, uniqueID)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return createMetaChainDataStoreFromConfig(config)
+		return createMetaChainDataStoreFromConfig(config, uniqueID)
 	}
 	return nil, errors.New("can not create data store")
 }
 
-func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
+func createShardDataStoreFromConfig(config *config.Config, uniqueID string) (dataRetriever.StorageService, error) {
 	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit *storageUnit.Unit
 	var err error
 
@@ -443,7 +621,7 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 
 	txUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.TxStorage.Cache),
-		getDBFromConfig(config.TxStorage.DB),
+		getDBFromConfig(config.TxStorage.DB, uniqueID),
 		getBloomFromConfig(config.TxStorage.Bloom))
 	if err != nil {
 		return nil, err
@@ -451,7 +629,7 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 
 	miniBlockUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.MiniBlocksStorage.Cache),
-		getDBFromConfig(config.MiniBlocksStorage.DB),
+		getDBFromConfig(config.MiniBlocksStorage.DB, uniqueID),
 		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
 	if err != nil {
 		return nil, err
@@ -459,7 +637,7 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 
 	peerBlockUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.PeerBlockBodyStorage.Cache),
-		getDBFromConfig(config.PeerBlockBodyStorage.DB),
+		getDBFromConfig(config.PeerBlockBodyStorage.DB, uniqueID),
 		getBloomFromConfig(config.PeerBlockBodyStorage.Bloom))
 	if err != nil {
 		return nil, err
@@ -467,7 +645,7 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 
 	headerUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.BlockHeaderStorage.Cache),
-		getDBFromConfig(config.BlockHeaderStorage.DB),
+		getDBFromConfig(config.BlockHeaderStorage.DB, uniqueID),
 		getBloomFromConfig(config.BlockHeaderStorage.Bloom))
 	if err != nil {
 		return nil, err
@@ -475,7 +653,7 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 
 	metachainHeaderUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.MetaBlockStorage.Cache),
-		getDBFromConfig(config.MetaBlockStorage.DB),
+		getDBFromConfig(config.MetaBlockStorage.DB, uniqueID),
 		getBloomFromConfig(config.MetaBlockStorage.Bloom))
 	if err != nil {
 		return nil, err
@@ -491,7 +669,7 @@ func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.Storag
 	return store, err
 }
 
-func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
+func createMetaChainDataStoreFromConfig(config *config.Config, uniqueID string) (dataRetriever.StorageService, error) {
 	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit *storageUnit.Unit
 	var err error
 
@@ -515,7 +693,7 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 
 	metaBlockUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.MetaBlockStorage.Cache),
-		getDBFromConfig(config.MetaBlockStorage.DB),
+		getDBFromConfig(config.MetaBlockStorage.DB, uniqueID),
 		getBloomFromConfig(config.MetaBlockStorage.Bloom))
 	if err != nil {
 		return nil, err
@@ -523,7 +701,7 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 
 	shardDataUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.ShardDataStorage.Cache),
-		getDBFromConfig(config.ShardDataStorage.DB),
+		getDBFromConfig(config.ShardDataStorage.DB, uniqueID),
 		getBloomFromConfig(config.ShardDataStorage.Bloom))
 	if err != nil {
 		return nil, err
@@ -531,7 +709,7 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 
 	peerDataUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.PeerDataStorage.Cache),
-		getDBFromConfig(config.PeerDataStorage.DB),
+		getDBFromConfig(config.PeerDataStorage.DB, uniqueID),
 		getBloomFromConfig(config.PeerDataStorage.Bloom))
 	if err != nil {
 		return nil, err
@@ -539,7 +717,7 @@ func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.St
 
 	headerUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.BlockHeaderStorage.Cache),
-		getDBFromConfig(config.BlockHeaderStorage.DB),
+		getDBFromConfig(config.BlockHeaderStorage.DB, uniqueID),
 		getBloomFromConfig(config.BlockHeaderStorage.Bloom))
 	if err != nil {
 		return nil, err
@@ -682,9 +860,9 @@ func createMetaDataPoolFromConfig(
 
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
 	switch config.Consensus.Type {
-	case blsConsensusType:
+	case BlsConsensusType:
 		return &singlesig.BlsSingleSigner{}, nil
-	case bnConsensusType:
+	case BnConsensusType:
 		return &singlesig.SchnorrSigner{}, nil
 	}
 
@@ -692,7 +870,7 @@ func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
 }
 
 func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
-	if cfg.Consensus.Type == blsConsensusType && cfg.MultisigHasher.Type != "blake2b" {
+	if cfg.Consensus.Type == BlsConsensusType && cfg.MultisigHasher.Type != "blake2b" {
 		return nil, errors.New("wrong multisig hasher provided for bls consensus type")
 	}
 
@@ -700,8 +878,8 @@ func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	case "sha256":
 		return sha256.Sha256{}, nil
 	case "blake2b":
-		if cfg.Consensus.Type == blsConsensusType {
-			return blake2b.Blake2b{HashSize: blsHashSize}, nil
+		if cfg.Consensus.Type == BlsConsensusType {
+			return blake2b.Blake2b{HashSize: BlsHashSize}, nil
 		}
 		return blake2b.Blake2b{}, nil
 	}
@@ -718,10 +896,10 @@ func createMultiSigner(
 ) (crypto.MultiSigner, error) {
 
 	switch config.Consensus.Type {
-	case blsConsensusType:
+	case BlsConsensusType:
 		blsSigner := &blsMultiSig.KyberMultiSignerBLS{}
 		return multisig.NewBLSMultisig(blsSigner, hasher, pubKeys, privateKey, keyGen, uint16(0))
-	case bnConsensusType:
+	case BnConsensusType:
 		return multisig.NewBelNevMultisig(hasher, pubKeys, privateKey, keyGen, uint16(0))
 	}
 
@@ -768,43 +946,43 @@ func createNetMessenger(
 
 func getInterceptorAndResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
-	netMessenger p2p.Messenger,
 	data *Data,
 	core *Core,
 	crypto *Crypto,
 	state *State,
+	network *Network,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		//TODO add a real chronology validator and remove null chronology validator
 		interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 			shardCoordinator,
-			netMessenger,
-			data.store,
-			core.marshalizer,
-			core.hasher,
-			crypto.txSignKeyGen,
-			crypto.txSingleSigner,
-			crypto.multiSigner,
-			data.datapool,
-			state.addressConverter,
+			network.NetMessenger,
+			data.Store,
+			core.Marshalizer,
+			core.Hasher,
+			crypto.TxSignKeyGen,
+			crypto.TxSingleSigner,
+			crypto.MultiSigner,
+			data.Datapool,
+			state.AddressConverter,
 			&nullChronologyValidator{},
 		)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		dataPacker, err := partitioning.NewSizeDataPacker(core.marshalizer)
+		dataPacker, err := partitioning.NewSizeDataPacker(core.Marshalizer)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		resolversContainerFactory, err := shardfactoryDataRetriever.NewResolversContainerFactory(
 			shardCoordinator,
-			netMessenger,
-			data.store,
-			core.marshalizer,
-			data.datapool,
-			core.uint64ByteSliceConverter,
+			network.NetMessenger,
+			data.Store,
+			core.Marshalizer,
+			data.Datapool,
+			core.Uint64ByteSliceConverter,
 			dataPacker,
 		)
 		if err != nil {
@@ -817,12 +995,12 @@ func getInterceptorAndResolverContainerFactory(
 		//TODO add a real chronology validator and remove null chronology validator
 		interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
 			shardCoordinator,
-			netMessenger,
-			data.store,
-			core.marshalizer,
-			core.hasher,
-			crypto.multiSigner,
-			data.metaDatapool,
+			network.NetMessenger,
+			data.Store,
+			core.Marshalizer,
+			core.Hasher,
+			crypto.MultiSigner,
+			data.MetaDatapool,
 			&nullChronologyValidator{},
 		)
 		if err != nil {
@@ -830,11 +1008,11 @@ func getInterceptorAndResolverContainerFactory(
 		}
 		resolversContainerFactory, err := metafactoryDataRetriever.NewResolversContainerFactory(
 			shardCoordinator,
-			netMessenger,
-			data.store,
-			core.marshalizer,
-			data.metaDatapool,
-			core.uint64ByteSliceConverter,
+			network.NetMessenger,
+			data.Store,
+			core.Marshalizer,
+			data.MetaDatapool,
+			core.Uint64ByteSliceConverter,
 		)
 		if err != nil {
 			return nil, nil, err
@@ -919,6 +1097,7 @@ func getBlockProcessorAndTracker(
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	nodesConfig *sharding.NodesSetup,
+	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		argsParser, err := smartContract.NewAtArgumentParser()
@@ -926,43 +1105,43 @@ func getBlockProcessorAndTracker(
 			return nil, nil, err
 		}
 
-		vmAccountsDB, err := hooks.NewVMAccountsDB(state.accountsAdapter, state.addressConverter)
+		vmAccountsDB, err := hooks.NewVMAccountsDB(state.AccountsAdapter, state.AddressConverter)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		//TODO: change the mock
 		scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser,
-			core.hasher, core.marshalizer, state.accountsAdapter, vmAccountsDB, state.addressConverter, shardCoordinator)
+			core.Hasher, core.Marshalizer, state.AccountsAdapter, vmAccountsDB, state.AddressConverter, shardCoordinator)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		requestHandler, err := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic,
-			factory.MiniBlocksTopic, factory.MetachainBlocksTopic, maxTxsToRequest)
+			factory.MiniBlocksTopic, factory.MetachainBlocksTopic, MaxTxsToRequest)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		transactionProcessor, err := transaction.NewTxProcessor(state.accountsAdapter, core.hasher,
-			state.addressConverter, core.marshalizer, shardCoordinator, scProcessor)
+		transactionProcessor, err := transaction.NewTxProcessor(state.AccountsAdapter, core.Hasher,
+			state.AddressConverter, core.Marshalizer, shardCoordinator, scProcessor)
 		if err != nil {
 			return nil, nil, errors.New("could not create transaction processor: " + err.Error())
 		}
 
-		blockTracker, err := track.NewShardBlockTracker(data.datapool, core.marshalizer, shardCoordinator, data.store)
+		blockTracker, err := track.NewShardBlockTracker(data.Datapool, core.Marshalizer, shardCoordinator, data.Store)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		blockProcessor, err := block.NewShardProcessor(
 			coreServiceContainer,
-			data.datapool,
-			data.store,
-			core.hasher,
-			core.marshalizer,
+			data.Datapool,
+			data.Store,
+			core.Hasher,
+			core.Marshalizer,
 			transactionProcessor,
-			state.accountsAdapter,
+			state.AccountsAdapter,
 			shardCoordinator,
 			forkDetector,
 			blockTracker,
@@ -989,13 +1168,13 @@ func getBlockProcessorAndTracker(
 
 		metaProcessor, err := block.NewMetaProcessor(
 			coreServiceContainer,
-			state.accountsAdapter,
-			data.metaDatapool,
+			state.AccountsAdapter,
+			data.MetaDatapool,
 			forkDetector,
 			shardCoordinator,
-			core.hasher,
-			core.marshalizer,
-			data.store,
+			core.Hasher,
+			core.Marshalizer,
+			data.Store,
 			shardsGenesisBlocks,
 			requestHandler,
 		)
@@ -1005,4 +1184,116 @@ func getBlockProcessorAndTracker(
 		return metaProcessor, blockTracker, nil
 	}
 	return nil, nil, errors.New("could not create block processor and tracker")
+}
+
+func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
+	return storageUnit.CacheConfig{
+		Size:   cfg.Size,
+		Type:   storageUnit.CacheType(cfg.Type),
+		Shards: cfg.Shards,
+	}
+}
+
+func getDBFromConfig(cfg config.DBConfig, uniqueID string) storageUnit.DBConfig {
+	return storageUnit.DBConfig{
+		FilePath:          filepath.Join(config.DefaultPath()+uniqueID, cfg.FilePath),
+		Type:              storageUnit.DBType(cfg.Type),
+		MaxBatchSize:      cfg.MaxBatchSize,
+		BatchDelaySeconds: cfg.BatchDelaySeconds,
+	}
+}
+
+func getBloomFromConfig(cfg config.BloomFilterConfig) storageUnit.BloomConfig {
+	var hashFuncs []storageUnit.HasherType
+	if cfg.HashFunc != nil {
+		hashFuncs = make([]storageUnit.HasherType, 0)
+		for _, hf := range cfg.HashFunc {
+			hashFuncs = append(hashFuncs, storageUnit.HasherType(hf))
+		}
+	}
+
+	return storageUnit.BloomConfig{
+		Size:     cfg.Size,
+		HashFunc: hashFuncs,
+	}
+}
+
+func generateInMemoryAccountsAdapter(
+	accountFactory state.AccountFactory,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+) state.AccountsAdapter {
+
+	dbw, _ := trie.NewDBWriteCache(createMemUnit())
+	tr, _ := trie.NewTrie(make([]byte, 32), dbw, hasher)
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, accountFactory)
+
+	return adb
+}
+
+func createMemUnit() storage.Storer {
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+	persist, _ := memorydb.New()
+
+	unit, _ := storageUnit.NewStorageUnit(cache, persist)
+	return unit
+}
+
+func GetSigningParams(
+	ctx *cli.Context,
+	log *logger.Logger,
+	skName string,
+	skIndexName string,
+	skPemFileName string,
+	suite crypto.Suite,
+) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
+
+	sk, err := getSk(ctx, log, skName, skIndexName, skPemFileName)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	keyGen = signing.NewKeyGenerator(suite)
+
+	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	pubKey = privKey.GeneratePublic()
+
+	return keyGen, privKey, pubKey, err
+}
+
+func GetPkEncoded(pubKey crypto.PublicKey) string {
+	pk, err := pubKey.ToByteArray()
+	if err != nil {
+		return err.Error()
+	}
+
+	return encodeAddress(pk)
+}
+
+func encodeAddress(address []byte) string {
+	return hex.EncodeToString(address)
+}
+
+func decodeAddress(address string) ([]byte, error) {
+	return hex.DecodeString(address)
+}
+
+func getSk(ctx *cli.Context, log *logger.Logger, skName string, skIndexName string, skPemFileName string) ([]byte, error) {
+	//if flag is defined, it shall overwrite what was read from pem file
+	if ctx.GlobalIsSet(skName) {
+		encodedSk := []byte(ctx.GlobalString(skName))
+		return decodeAddress(string(encodedSk))
+	}
+
+	skIndex := ctx.GlobalInt(skIndexName)
+	encodedSk, err := core.LoadSkFromPemFile(skPemFileName, log, skIndex)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodeAddress(string(encodedSk))
 }

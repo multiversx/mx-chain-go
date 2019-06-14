@@ -7,7 +7,6 @@ import (
 	"math"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/indexer"
@@ -22,21 +22,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/external"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/google/gops/agent"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
@@ -46,10 +39,6 @@ const (
 	defaultLogPath     = "logs"
 	defaultStatsPath   = "stats"
 	metachainShardName = "metachain"
-	blsHashSize        = 16
-	blsConsensusType   = "bls"
-	bnConsensusType    = "bn"
-	maxTxsToRequest    = 100
 )
 
 var (
@@ -176,54 +165,6 @@ VERSION:
 	rm *statistics.ResourceMonitor
 )
 
-type seedRandReader struct {
-	index int
-	seed  []byte
-}
-
-// NewSeedRandReader will return a new instance of a seed-based reader
-func NewSeedRandReader(seed []byte) *seedRandReader {
-	return &seedRandReader{seed: seed, index: 0}
-}
-
-func (srr *seedRandReader) Read(p []byte) (n int, err error) {
-	if srr.seed == nil {
-		return 0, errors.New("nil seed")
-	}
-
-	if len(srr.seed) == 0 {
-		return 0, errors.New("empty seed")
-	}
-
-	if p == nil {
-		return 0, errors.New("nil buffer")
-	}
-
-	if len(p) == 0 {
-		return 0, errors.New("empty buffer")
-	}
-
-	for i := 0; i < len(p); i++ {
-		p[i] = srr.seed[srr.index]
-
-		srr.index++
-		srr.index = srr.index % len(srr.seed)
-	}
-
-	return len(p), nil
-}
-
-type nullChronologyValidator struct {
-}
-
-// ValidateReceivedBlock should validate if parameters to be checked are valid
-// In this implementation it just returns nil
-func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
-	//TODO when implementing a workable variant take into account to receive headers "from future" (nonce or round > current round)
-	// as this might happen when clocks are slightly de-synchronized
-	return nil
-}
-
 // TODO - remove this mock and replace with a valid implementation
 type mockProposerResolver struct {
 }
@@ -292,9 +233,9 @@ func main() {
 
 func getSuite(config *config.Config) (crypto.Suite, error) {
 	switch config.Consensus.Type {
-	case blsConsensusType:
+	case factory.BlsConsensusType:
 		return kyber.NewSuitePairingBn256(), nil
-	case bnConsensusType:
+	case factory.BnConsensusType:
 		return kyber.NewBlakeSHA256Ed25519(), nil
 	}
 
@@ -379,7 +320,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 
 	initialNodesSkPemFileName := ctx.GlobalString(initialNodesSkPemFile.Name)
-	keyGen, privKey, pubKey, err := getSigningParams(
+	keyGen, privKey, pubKey, err := factory.GetSigningParams(
 		ctx,
 		log,
 		sk.Name,
@@ -389,7 +330,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	if err != nil {
 		return err
 	}
-	log.Info("Starting with public key: " + getPkEncoded(pubKey))
+	log.Info("Starting with public key: " + factory.GetPkEncoded(pubKey))
 
 	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
@@ -411,12 +352,14 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		}
 	}
 
-	coreComponents, err := coreComponentsFactory(generalConfig)
+	coreArgs := factory.InitCoreComponentsFactoryArgs(generalConfig, uniqueID)
+	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
 	}
 
-	stateComponents, err := stateComponentsFactory(generalConfig, genesisConfig, shardCoordinator, coreComponents)
+	stateArgs := factory.InitStateComponentsFactoryArgs(generalConfig, genesisConfig, shardCoordinator, coreComponents)
+	stateComponents, err := factory.StateComponentsFactory(stateArgs)
 	if err != nil {
 		return err
 	}
@@ -426,18 +369,20 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	dataComponents, err := dataComponentsFactory(generalConfig, shardCoordinator, coreComponents)
+	dataArgs := factory.InitDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueID)
+	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
 	}
 
-	cryptoComponents, err := cryptoComponentsFactory(ctx, generalConfig, nodesConfig, shardCoordinator, keyGen, privKey, log)
+	cryptoArgs := factory.InitCryptoComponentsFactoryArgs(ctx, generalConfig, nodesConfig, shardCoordinator, keyGen,
+		privKey, log, initialBalancesSkPemFile.Name, txSignSk.Name, txSignSkIndex.Name)
+	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
 	if err != nil {
 		return err
 	}
 
-	processComponents, err := processComponentsFactory(genesisConfig, nodesConfig, p2pConfig, syncer, shardCoordinator,
-		dataComponents, coreComponents, cryptoComponents, stateComponents, log)
+	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
 	if err != nil {
 		return err
 	}
@@ -453,8 +398,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 			serversConfigurationFileName,
 			generalConfig.Explorer.IndexerURL,
 			shardCoordinator,
-			coreComponents.marshalizer,
-			coreComponents.hasher,
+			coreComponents.Marshalizer,
+			coreComponents.Hasher,
 			log)
 		if err != nil {
 			return err
@@ -464,6 +409,13 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	processArgs := factory.InitProcessComponentsFactory(genesisConfig, nodesConfig, syncer, shardCoordinator,
+		dataComponents, coreComponents, cryptoComponents, stateComponents, networkComponents, coreServiceContainer)
+	processComponents, err := factory.ProcessComponentsFactory(processArgs)
+	if err != nil {
+		return err
 	}
 
 	currentNode, err := createNode(
@@ -479,6 +431,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		dataComponents,
 		cryptoComponents,
 		processComponents,
+		networkComponents,
 	)
 	if err != nil {
 		return err
@@ -486,9 +439,9 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	externalResolver, err := external.NewExternalResolver(
 		shardCoordinator,
-		dataComponents.blkc,
-		dataComponents.store,
-		coreComponents.marshalizer,
+		dataComponents.Blkc,
+		dataComponents.Store,
+		coreComponents.Marshalizer,
 		&mockProposerResolver{},
 	)
 	if err != nil {
@@ -645,42 +598,43 @@ func createNode(
 	privKey crypto.PrivateKey,
 	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
-	core *Core,
-	state *State,
-	data *Data,
-	crypto *Crypto,
-	process *Process,
+	core *factory.Core,
+	state *factory.State,
+	data *factory.Data,
+	crypto *factory.Crypto,
+	process *factory.Process,
+	network *factory.Network,
 ) (*node.Node, error) {
 	nd, err := node.NewNode(
-		node.WithMessenger(process.netMessenger),
-		node.WithHasher(core.hasher),
-		node.WithMarshalizer(core.marshalizer),
-		node.WithInitialNodesPubKeys(crypto.initialPubKeys),
-		node.WithAddressConverter(state.addressConverter),
-		node.WithAccountsAdapter(state.accountsAdapter),
-		node.WithBlockChain(data.blkc),
-		node.WithDataStore(data.store),
+		node.WithMessenger(network.NetMessenger),
+		node.WithHasher(core.Hasher),
+		node.WithMarshalizer(core.Marshalizer),
+		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
+		node.WithAddressConverter(state.AddressConverter),
+		node.WithAccountsAdapter(state.AccountsAdapter),
+		node.WithBlockChain(data.Blkc),
+		node.WithDataStore(data.Store),
 		node.WithRoundDuration(nodesConfig.RoundDuration),
 		node.WithConsensusGroupSize(int(nodesConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
-		node.WithBlockProcessor(process.blockProcessor),
-		node.WithBlockTracker(process.blockTracker),
+		node.WithBlockProcessor(process.BlockProcessor),
+		node.WithBlockTracker(process.BlockTracker),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
-		node.WithRounder(process.rounder),
+		node.WithRounder(process.Rounder),
 		node.WithShardCoordinator(shardCoordinator),
-		node.WithUint64ByteSliceConverter(core.uint64ByteSliceConverter),
-		node.WithSingleSigner(crypto.singleSigner),
-		node.WithMultiSigner(crypto.multiSigner),
+		node.WithUint64ByteSliceConverter(core.Uint64ByteSliceConverter),
+		node.WithSingleSigner(crypto.SingleSigner),
+		node.WithMultiSigner(crypto.MultiSigner),
 		node.WithKeyGen(keyGen),
-		node.WithTxSignPubKey(crypto.txSignPubKey),
-		node.WithTxSignPrivKey(crypto.txSignPrivKey),
+		node.WithTxSignPubKey(crypto.TxSignPubKey),
+		node.WithTxSignPrivKey(crypto.TxSignPrivKey),
 		node.WithPubKey(pubKey),
 		node.WithPrivKey(privKey),
-		node.WithForkDetector(process.forkDetector),
-		node.WithInterceptorsContainer(process.interceptorsContainer),
-		node.WithResolversFinder(process.resolversFinder),
+		node.WithForkDetector(process.ForkDetector),
+		node.WithInterceptorsContainer(process.InterceptorsContainer),
+		node.WithResolversFinder(process.ResolversFinder),
 		node.WithConsensusType(config.Consensus.Type),
-		node.WithTxSingleSigner(crypto.txSingleSigner),
+		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 	)
 	if err != nil {
@@ -689,8 +643,8 @@ func createNode(
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		err = nd.ApplyOptions(
-			node.WithInitialNodesBalances(state.inBalanceForShard),
-			node.WithDataPool(data.datapool),
+			node.WithInitialNodesBalances(state.InBalanceForShard),
+			node.WithDataPool(data.Datapool),
 			node.WithActiveMetachain(nodesConfig.MetaChainActive))
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
@@ -709,7 +663,7 @@ func createNode(
 		}
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		err = nd.ApplyOptions(node.WithMetaDataPool(data.metaDatapool))
+		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}
@@ -770,97 +724,6 @@ func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *st
 	return errors.New("could not init core service container")
 }
 
-func getSk(ctx *cli.Context, log *logger.Logger, skName string, skIndexName string, skPemFileName string) ([]byte, error) {
-	//if flag is defined, it shall overwrite what was read from pem file
-	if ctx.GlobalIsSet(skName) {
-		encodedSk := []byte(ctx.GlobalString(skName))
-		return decodeAddress(string(encodedSk))
-	}
-
-	skIndex := ctx.GlobalInt(skIndexName)
-	encodedSk, err := core.LoadSkFromPemFile(skPemFileName, log, skIndex)
-	if err != nil {
-		return nil, err
-	}
-
-	return decodeAddress(string(encodedSk))
-}
-
-func getSigningParams(
-	ctx *cli.Context,
-	log *logger.Logger,
-	skName string,
-	skIndexName string,
-	skPemFileName string,
-	suite crypto.Suite,
-) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
-
-	sk, err := getSk(ctx, log, skName, skIndexName, skPemFileName)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	keyGen = signing.NewKeyGenerator(suite)
-
-	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	pubKey = privKey.GeneratePublic()
-
-	return keyGen, privKey, pubKey, err
-}
-
-func getPkEncoded(pubKey crypto.PublicKey) string {
-	pk, err := pubKey.ToByteArray()
-	if err != nil {
-		return err.Error()
-	}
-
-	return encodeAddress(pk)
-}
-
-func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
-	return storageUnit.CacheConfig{
-		Size:   cfg.Size,
-		Type:   storageUnit.CacheType(cfg.Type),
-		Shards: cfg.Shards,
-	}
-}
-
-func getDBFromConfig(cfg config.DBConfig) storageUnit.DBConfig {
-	return storageUnit.DBConfig{
-		FilePath:          filepath.Join(config.DefaultPath()+uniqueID, cfg.FilePath),
-		Type:              storageUnit.DBType(cfg.Type),
-		MaxBatchSize:      cfg.MaxBatchSize,
-		BatchDelaySeconds: cfg.BatchDelaySeconds,
-	}
-}
-
-func getBloomFromConfig(cfg config.BloomFilterConfig) storageUnit.BloomConfig {
-	var hashFuncs []storageUnit.HasherType
-	if cfg.HashFunc != nil {
-		hashFuncs = make([]storageUnit.HasherType, 0)
-		for _, hf := range cfg.HashFunc {
-			hashFuncs = append(hashFuncs, storageUnit.HasherType(hf))
-		}
-	}
-
-	return storageUnit.BloomConfig{
-		Size:     cfg.Size,
-		HashFunc: hashFuncs,
-	}
-}
-
-func decodeAddress(address string) ([]byte, error) {
-	return hex.DecodeString(address)
-}
-
-func encodeAddress(address []byte) string {
-	return hex.EncodeToString(address)
-}
-
 func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, log *logger.Logger) error {
 	if !config.Enabled {
 		return nil
@@ -884,25 +747,4 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	}()
 
 	return nil
-}
-
-func generateInMemoryAccountsAdapter(
-	accountFactory state.AccountFactory,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-) state.AccountsAdapter {
-
-	dbw, _ := trie.NewDBWriteCache(createMemUnit())
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, hasher)
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, accountFactory)
-
-	return adb
-}
-
-func createMemUnit() storage.Storer {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	persist, _ := memorydb.New()
-
-	unit, _ := storageUnit.NewStorageUnit(cache, persist)
-	return unit
 }
