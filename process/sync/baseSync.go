@@ -87,11 +87,6 @@ func (boot *baseBootstrap) loadBlocks(
 
 	log.Info(fmt.Sprintf("the highest header nonce committed in storer is %d\n", highestNonceInStorer))
 
-	////TODO: Remove this
-	//if highestNonceInStorer > 0 {
-	//	highestNonceInStorer--
-	//}
-
 	var err error
 	lastBlocksToSkip := uint64(0)
 
