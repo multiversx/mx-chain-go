@@ -215,7 +215,7 @@ func TestVMAccountsDB_GetStorageDataShouldWork(t *testing.T) {
 
 //------- IsCodeEmpty
 
-func TestVMAccountsDB_IsCodeEmptyAccountErrorsShouldErr(t *testing.T) {
+func TestVMAccountsDB_IsCodeEmptyAccountErrorsShouldErrAndRetTrue(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
@@ -228,7 +228,7 @@ func TestVMAccountsDB_IsCodeEmptyAccountErrorsShouldErr(t *testing.T) {
 	isEmpty, err := vadb.IsCodeEmpty(make([]byte, 0))
 
 	assert.Equal(t, errExpected, err)
-	assert.False(t, isEmpty)
+	assert.True(t, isEmpty)
 }
 
 func TestVMAccountsDB_IsCodeEmptyShouldWork(t *testing.T) {
