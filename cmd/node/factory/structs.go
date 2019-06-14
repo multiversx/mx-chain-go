@@ -138,8 +138,8 @@ type coreComponentsFactoryArgs struct {
 	uniqueID string
 }
 
-// InitCoreComponentsFactoryArgs initializes the arguments necessary for creating the core components
-func InitCoreComponentsFactoryArgs(config *config.Config, uniqueID string) *coreComponentsFactoryArgs {
+// NewCoreComponentsFactoryArgs initializes the arguments necessary for creating the core components
+func NewCoreComponentsFactoryArgs(config *config.Config, uniqueID string) *coreComponentsFactoryArgs {
 	return &coreComponentsFactoryArgs{
 		config:   config,
 		uniqueID: uniqueID,
@@ -179,8 +179,8 @@ type stateComponentsFactoryArgs struct {
 	core             *Core
 }
 
-// InitStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
-func InitStateComponentsFactoryArgs(
+// NewStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
+func NewStateComponentsFactoryArgs(
 	config *config.Config,
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
@@ -230,8 +230,8 @@ type dataComponentsFactoryArgs struct {
 	uniqueID         string
 }
 
-// InitDataComponentsFactoryArgs initializes the arguments necessary for creating the data components
-func InitDataComponentsFactoryArgs(config *config.Config, shardCoordinator sharding.Coordinator, core *Core, uniqueID string) *dataComponentsFactoryArgs {
+// NewDataComponentsFactoryArgs initializes the arguments necessary for creating the data components
+func NewDataComponentsFactoryArgs(config *config.Config, shardCoordinator sharding.Coordinator, core *Core, uniqueID string) *dataComponentsFactoryArgs {
 	return &dataComponentsFactoryArgs{
 		config:           config,
 		shardCoordinator: shardCoordinator,
@@ -291,8 +291,8 @@ type cryptoComponentsFactoryArgs struct {
 	txSignSkIndexName            string
 }
 
-// InitCryptoComponentsFactoryArgs initializes the arguments necessary for creating the crypto components
-func InitCryptoComponentsFactoryArgs(
+// NewCryptoComponentsFactoryArgs initializes the arguments necessary for creating the crypto components
+func NewCryptoComponentsFactoryArgs(
 	ctx *cli.Context,
 	config *config.Config,
 	nodesConfig *sharding.NodesSetup,
@@ -398,8 +398,8 @@ type processComponentsFactoryArgs struct {
 	coreServiceContainer serviceContainer.Core
 }
 
-// InitProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
-func InitProcessComponentsFactoryArgs(
+// NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
+func NewProcessComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
 	nodesConfig *sharding.NodesSetup,
 	syncer ntp.SyncTimer,

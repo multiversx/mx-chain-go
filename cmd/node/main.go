@@ -352,13 +352,13 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		}
 	}
 
-	coreArgs := factory.InitCoreComponentsFactoryArgs(generalConfig, uniqueID)
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueID)
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
 	}
 
-	stateArgs := factory.InitStateComponentsFactoryArgs(generalConfig, genesisConfig, shardCoordinator, coreComponents)
+	stateArgs := factory.NewStateComponentsFactoryArgs(generalConfig, genesisConfig, shardCoordinator, coreComponents)
 	stateComponents, err := factory.StateComponentsFactory(stateArgs)
 	if err != nil {
 		return err
@@ -369,13 +369,13 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	dataArgs := factory.InitDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueID)
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueID)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
 	}
 
-	cryptoArgs := factory.InitCryptoComponentsFactoryArgs(ctx, generalConfig, nodesConfig, shardCoordinator, keyGen,
+	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(ctx, generalConfig, nodesConfig, shardCoordinator, keyGen,
 		privKey, log, initialBalancesSkPemFile.Name, txSignSk.Name, txSignSkIndex.Name)
 	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
 	if err != nil {
@@ -411,7 +411,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		}
 	}
 
-	processArgs := factory.InitProcessComponentsFactoryArgs(genesisConfig, nodesConfig, syncer, shardCoordinator,
+	processArgs := factory.NewProcessComponentsFactoryArgs(genesisConfig, nodesConfig, syncer, shardCoordinator,
 		dataComponents, coreComponents, cryptoComponents, stateComponents, networkComponents, coreServiceContainer)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
