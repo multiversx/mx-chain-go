@@ -9,6 +9,7 @@ const HashLength = 32
 
 // AddressConverter is used to convert to/from AddressContainer
 type AddressConverter interface {
+	AddressLen() int
 	CreateAddressFromPublicKeyBytes(pubKey []byte) (AddressContainer, error)
 	ConvertToHex(addressContainer AddressContainer) (string, error)
 	CreateAddressFromHex(hexAddress string) (AddressContainer, error)
@@ -46,7 +47,6 @@ type AccountHandler interface {
 	SetCodeHashWithJournal([]byte) error
 	GetCode() []byte
 	SetCode(code []byte)
-	SetCodeWithJournal([]byte) error
 	SetNonce(nonce uint64)
 	GetNonce() uint64
 	SetNonceWithJournal(nonce uint64) error
