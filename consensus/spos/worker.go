@@ -127,7 +127,7 @@ func checkNewWorkerParams(
 		return ErrNilBlockProcessor
 	}
 	if blockTracker == nil {
-		return ErrNilBlockTracker
+		return ErrNilBlocksTracker
 	}
 	if bootstraper == nil {
 		return ErrNilBlootstraper
@@ -394,29 +394,25 @@ func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 
 //BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet
 func (wrk *Worker) BroadcastUnnotarisedBlocks() {
-	//headers := wrk.blockTracker.UnnotarisedBlocks()
-	//for _, header := range headers {
-	//	if header.GetNonce() > wrk.forkDetector.GetHighestFinalBlockNonce() {
-	//		continue
-	//	}
-	//
-	//	brodcastRound := wrk.blockTracker.BlockBroadcastRound(header.GetNonce())
-	//	if brodcastRound >= wrk.consensusState.RoundIndex-MaxRoundsGap {
-	//		continue
-	//	}
-	//
-	//	err := wrk.broadcastMessenger.BroadcastHeader(header)
-	//	if err != nil {
-	//		log.Info(err.Error())
-	//		continue
-	//	}
-	//
-	//	wrk.blockTracker.SetBlockBroadcastRound(header.GetNonce(), wrk.consensusState.RoundIndex)
-	//
-	//	log.Info(fmt.Sprintf("%sStep 0: Unnotarised header with nonce %d has been broadcast to metachain\n",
-	//		wrk.syncTimer.FormattedCurrentTime(),
-	//		header.GetNonce()))
-	//}
+	headers := wrk.blockTracker.UnnotarisedBlocks()
+	for _, header := range headers {
+		brodcastRound := wrk.blockTracker.BlockBroadcastRound(header.GetNonce())
+		if brodcastRound >= wrk.consensusState.RoundIndex-MaxRoundsGap {
+			continue
+		}
+
+		err := wrk.broadcastMessenger.BroadcastHeader(header)
+		if err != nil {
+			log.Info(err.Error())
+			continue
+		}
+
+		wrk.blockTracker.SetBlockBroadcastRound(header.GetNonce(), wrk.consensusState.RoundIndex)
+
+		log.Info(fmt.Sprintf("%sStep 0: Unnotarised header with nonce %d has been broadcast to metachain\n",
+			wrk.syncTimer.FormattedCurrentTime(),
+			header.GetNonce()))
+	}
 }
 
 //ExecuteStoredMessages tries to execute all the messages received which are valid for execution

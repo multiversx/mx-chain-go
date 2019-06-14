@@ -33,7 +33,7 @@
 
     #ServiceTag represents the subnetwork on which this node will respond to queries
     #To connect to other nodes, those nodes should have the same ServiceTag string
-    ServiceTag = "elrond"
+    ServiceTag = "oxsy"
 
 [KadDhtPeerDiscovery]
     #Enabled: true/false to enable/disable this discovery mechanism
@@ -44,7 +44,7 @@
 
     #RandezVous represents the meeting point that this node will advertize itself
     #To connect to other nodes, those nodes should have the same RandezVous string
-    RandezVous = "elrond"
+    RandezVous = "oxsy"
 
     #InitialPeerList represents the list of strings of some known nodes that will bootstrap this node
     #The address will be in a self-describing addressing format.
@@ -56,4 +56,4 @@
     #
     #If the initial peers list is left empty, the node will not try to connect to other peers during initial bootstrap
     #phase but will accept connections and will do the network discovery if another peer connects to it
-    InitialPeerList = ["/ip4/192.168.2.63/tcp/10000/p2p/16Uiu2HAmAzokH1ozUF52Vy3RKqRfCMr9ZdNDkUQFEkXRs9DqvmKf"]
+    InitialPeerList = ["/ip4/127.0.0.1/tcp/10000/p2p/16Uiu2HAmAPaxcnVCfC7F59LTbBU2UwWNWfJHmuxwQEdDDyjmaSW4"]

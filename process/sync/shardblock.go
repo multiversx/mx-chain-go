@@ -134,14 +134,36 @@ func NewShardBootstrap(
 	// when a node starts it tries firstly to boostrap from storage, if there already exist a database saved
 	boot.syncFromStorer(process.ShardBlockFinality,
 		dataRetriever.BlockHeaderUnit,
-		dataRetriever.ShardHdrNonceHashDataUnit,
-		boot.getHeaderFromStorage,
-		boot.getBlockBody,
+		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(boot.shardCoordinator.SelfId()),
 		process.MetaBlockFinality,
-		dataRetriever.MetaHdrNonceHashDataUnit,
-		boot.applyNotarizedBlock)
+		dataRetriever.MetaHdrNonceHashDataUnit)
 
 	return &boot, nil
+}
+
+func (boot *ShardBootstrap) syncFromStorer(
+	blockFinality uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+	notarizedBlockFinality uint64,
+	notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
+) {
+	err := boot.loadBlocks(blockFinality,
+		blockUnit,
+		hdrNonceHashDataUnit,
+		boot.getHeaderFromStorage,
+		boot.getBlockBody)
+	if err != nil {
+		log.Info(err.Error())
+		return
+	}
+
+	err = boot.loadNotarizedBlocks(notarizedBlockFinality,
+		notarizedHdrNonceHashDataUnit,
+		boot.applyNotarizedBlock)
+	if err != nil {
+		log.Info(err.Error())
+	}
 }
 
 func (boot *ShardBootstrap) applyNotarizedBlock(nonce uint64, notarizedHdrNonceHashDataUnit dataRetriever.UnitType) error {

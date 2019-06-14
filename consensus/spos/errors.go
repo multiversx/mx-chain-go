@@ -64,8 +64,8 @@ var ErrNilMessenger = errors.New("messenger is nil")
 // ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
 var ErrNilBlockProcessor = errors.New("block processor is nil")
 
-// ErrNilBlockTracker is raised when a valid block tracker is expected but nil used
-var ErrNilBlockTracker = errors.New("block tracker is nil")
+// ErrNilBlocksTracker is raised when a valid block tracker is expected but nil used
+var ErrNilBlocksTracker = errors.New("blocks tracker is nil")
 
 // ErrNilBlootstraper is raised when a valid block processor is expected but nil used
 var ErrNilBlootstraper = errors.New("boostraper is nil")

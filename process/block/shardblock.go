@@ -2,7 +2,6 @@ package block
 
 import (
 	"fmt"
-	"math"
 	"sort"
 	"sync"
 	"time"
@@ -183,10 +182,6 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
-	defer func() {
-		go sp.checkAndRequestIfMetaHeadersMissing(math.MaxUint32)
-	}()
-
 	err := sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
@@ -214,7 +209,7 @@ func (sp *shardProcessor) ProcessBlock(
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", sp.getNrTxsWithDst(header.ShardId)))
 
 	requestedTxs := sp.requestBlockTransactions(body)
-	requestedMetaHdrs := sp.requestMetaHeaders(header)
+	requestedMetaHdrs, requestedFinalMetaHdrs := sp.requestMetaHeaders(header)
 
 	if haveTime() < 0 {
 		return process.ErrTimeIsOut
@@ -233,17 +228,21 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	if requestedMetaHdrs > 0 {
-		log.Info(fmt.Sprintf("requested %d missing meta headers to confirm cross shard txs\n", requestedMetaHdrs))
+		log.Info(fmt.Sprintf("requested %d missing meta headers and %d final meta headers to confirm cross shard txs\n", requestedMetaHdrs, requestedFinalMetaHdrs))
 		err = sp.waitForMetaHdrHashes(haveTime())
 		sp.mutRequestedMetaHdrsHashes.Lock()
 		sp.allNeededMetaHdrsFound = true
-		requestedMetaHdrsHashes := len(sp.requestedMetaHdrsHashes)
+		unreceivedMetaHdrs := len(sp.requestedMetaHdrsHashes)
 		sp.mutRequestedMetaHdrsHashes.Unlock()
-		log.Info(fmt.Sprintf("received %d missing meta headers\n", requestedMetaHdrs-requestedMetaHdrsHashes))
+		log.Info(fmt.Sprintf("received %d missing meta headers\n", int(requestedMetaHdrs)-unreceivedMetaHdrs))
 		if err != nil {
 			return err
 		}
 	}
+
+	defer func() {
+		go sp.checkAndRequestIfMetaHeadersMissing(header.Round)
+	}()
 
 	err = sp.verifyCrossShardMiniBlockDstMe(header)
 	if err != nil {
@@ -976,8 +975,8 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	}
 }
 
-func (sp *shardProcessor) requestFinalMissingHeaders() int {
-	requestedBlockHeaders := 0
+func (sp *shardProcessor) requestFinalMissingHeaders() uint32 {
+	requestedBlockHeaders := uint32(0)
 	// ask for finality attesting metahdr if it is not yet in cache
 	for i := sp.currHighestMetaHdrNonce + 1; i <= sp.currHighestMetaHdrNonce+uint64(sp.metaBlockFinality); i++ {
 		if !sp.dataPool.MetaHeadersNonces().Has(i) {
@@ -1023,18 +1022,19 @@ func (sp *shardProcessor) receivedMiniBlock(miniBlockHash []byte) {
 	sp.onRequestTransaction(miniBlock.SenderShardID, requestedTxs)
 }
 
-func (sp *shardProcessor) requestMetaHeaders(header *block.Header) int {
+func (sp *shardProcessor) requestMetaHeaders(header *block.Header) (uint32, uint32) {
 	sp.mutRequestedMetaHdrsHashes.Lock()
 
+	sp.allNeededMetaHdrsFound = true
+
 	if len(header.MetaBlockHashes) == 0 {
-		sp.allNeededMetaHdrsFound = true
 		sp.mutRequestedMetaHdrsHashes.Unlock()
-		return 0
+		return 0, 0
 	}
 
 	missingHeaderHashes := sp.computeMissingHeaders(header)
 
-	requestedBlockHeaders := 0
+	requestedBlockHeaders := uint32(0)
 	sp.requestedMetaHdrsHashes = make(map[string]bool)
 	for _, hash := range missingHeaderHashes {
 		requestedBlockHeaders++
@@ -1042,22 +1042,19 @@ func (sp *shardProcessor) requestMetaHeaders(header *block.Header) int {
 		go sp.onRequestHeaderHandler(sharding.MetachainShardId, hash)
 	}
 
+	requestedFinalBlockHeaders := uint32(0)
 	if requestedBlockHeaders > 0 {
 		sp.allNeededMetaHdrsFound = false
 	} else {
-		requestedBlockHeaders = sp.requestFinalMissingHeaders()
-		if requestedBlockHeaders > 0 {
+		requestedFinalBlockHeaders = sp.requestFinalMissingHeaders()
+		if requestedFinalBlockHeaders > 0 {
 			sp.allNeededMetaHdrsFound = false
 		}
 	}
 
-	if requestedBlockHeaders == 0 {
-		sp.allNeededMetaHdrsFound = true
-	}
-
 	sp.mutRequestedMetaHdrsHashes.Unlock()
 
-	return requestedBlockHeaders
+	return requestedBlockHeaders, requestedFinalBlockHeaders
 }
 
 func (sp *shardProcessor) computeMissingHeaders(header *block.Header) [][]byte {

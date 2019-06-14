@@ -163,7 +163,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	if leader == sr.SelfPubKey() {
-		sr.broadcastUnnotarisedBlocks()
+		//TODO: Should be analyzed if call of sr.broadcastUnnotarisedBlocks() is still necessary
 	}
 
 	// execute stored messages which were received in this new round but before this initialisation

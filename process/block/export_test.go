@@ -120,8 +120,8 @@ func (sp *shardProcessor) ChRcvAllTxs() chan bool {
 	return sp.chRcvAllTxs
 }
 
-func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) int {
-	return mp.requestBlockHeaders(header)
+func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32) {
+	return mp.requestShardHeaders(header)
 }
 
 func (mp *metaProcessor) WaitForBlockHeaders(waitTime time.Duration) {

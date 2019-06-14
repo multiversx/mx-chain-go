@@ -119,13 +119,37 @@ func NewMetaBootstrap(
 	boot.syncFromStorer(process.MetaBlockFinality,
 		dataRetriever.MetaBlockUnit,
 		dataRetriever.MetaHdrNonceHashDataUnit,
-		boot.getHeaderFromStorage,
-		boot.getBlockBody,
 		process.ShardBlockFinality,
-		dataRetriever.ShardHdrNonceHashDataUnit,
-		boot.applyNotarizedBlock)
+		dataRetriever.ShardHdrNonceHashDataUnit)
 
 	return &boot, nil
+}
+
+func (boot *MetaBootstrap) syncFromStorer(
+	blockFinality uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+	notarizedBlockFinality uint64,
+	notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
+) {
+	err := boot.loadBlocks(blockFinality,
+		blockUnit,
+		hdrNonceHashDataUnit,
+		boot.getHeaderFromStorage,
+		boot.getBlockBody)
+	if err != nil {
+		log.Info(err.Error())
+		return
+	}
+
+	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
+		err = boot.loadNotarizedBlocks(notarizedBlockFinality,
+			notarizedHdrNonceHashDataUnit+dataRetriever.UnitType(i),
+			boot.applyNotarizedBlock)
+		if err != nil {
+			log.Info(err.Error())
+		}
+	}
 }
 
 func (boot *MetaBootstrap) applyNotarizedBlock(nonce uint64, notarizedHdrNonceHashDataUnit dataRetriever.UnitType) error {
