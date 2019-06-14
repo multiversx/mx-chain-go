@@ -427,12 +427,6 @@ func checkBootstrapNilParameters(
 	return nil
 }
 
-func emptyChannel(ch chan bool) {
-	for len(ch) > 0 {
-		<-ch
-	}
-}
-
 // isSigned verifies if a block is signed
 func isSigned(header data.HeaderHandler) bool {
 	// TODO: Later, here it should be done a more complex verification (signature for this round matches with the bitmap,

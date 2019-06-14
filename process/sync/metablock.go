@@ -347,7 +347,7 @@ func (boot *MetaBootstrap) requestHeader(nonce uint64) {
 func (boot *MetaBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.MetaBlock, error) {
 	hdr, err := boot.getHeaderWithNonce(nonce)
 	if err != nil {
-		emptyChannel(boot.chRcvHdr)
+		process.EmptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
 		err := boot.waitForHeaderNonce()
 		if err != nil {

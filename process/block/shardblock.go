@@ -218,9 +218,10 @@ func (sp *shardProcessor) ProcessBlock(
 	if requestedTxs > 0 {
 		log.Info(fmt.Sprintf("requested %d missing txs\n", requestedTxs))
 		err = sp.waitForTxHashes(haveTime())
-		sp.mutTxsForBlock.RLock()
+		sp.mutTxsForBlock.Lock()
 		missingTxs := sp.missingTxs
-		sp.mutTxsForBlock.RUnlock()
+		sp.missingTxs = 0
+		sp.mutTxsForBlock.Unlock()
 		log.Info(fmt.Sprintf("received %d missing txs\n", requestedTxs-missingTxs))
 		if err != nil {
 			return err
@@ -1052,6 +1053,10 @@ func (sp *shardProcessor) requestMetaHeaders(header *block.Header) (uint32, uint
 		}
 	}
 
+	if !sp.allNeededMetaHdrsFound {
+		process.EmptyChannel(sp.chRcvAllMetaHdrs)
+	}
+
 	sp.mutRequestedMetaHdrsHashes.Unlock()
 
 	return requestedBlockHeaders, requestedFinalBlockHeaders
@@ -1109,9 +1114,10 @@ func (sp *shardProcessor) requestBlockTransactions(body block.Body) int {
 
 func (sp *shardProcessor) computeMissingAndExistingTxsForShards(body block.Body) map[uint32]*txsHashesInfo {
 	missingTxsForShard := make(map[uint32]*txsHashesInfo)
-	sp.missingTxs = 0
 
 	sp.mutTxsForBlock.Lock()
+
+	sp.missingTxs = 0
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
@@ -1136,6 +1142,11 @@ func (sp *shardProcessor) computeMissingAndExistingTxsForShards(body block.Body)
 			}
 		}
 	}
+
+	if sp.missingTxs > 0 {
+		process.EmptyChannel(sp.chRcvAllTxs)
+	}
+
 	sp.mutTxsForBlock.Unlock()
 
 	return missingTxsForShard

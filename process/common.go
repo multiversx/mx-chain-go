@@ -7,6 +7,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
+// EmptyChannel empties the given channel
+func EmptyChannel(ch chan bool) {
+	for len(ch) > 0 {
+		<-ch
+	}
+}
+
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(hash []byte,
 	cacher storage.Cacher,

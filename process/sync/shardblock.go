@@ -413,7 +413,7 @@ func (boot *ShardBootstrap) requestHeader(nonce uint64) {
 func (boot *ShardBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Header, error) {
 	hdr, err := boot.getHeaderWithNonce(nonce)
 	if err != nil {
-		emptyChannel(boot.chRcvHdr)
+		process.EmptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
 		err := boot.waitForHeaderNonce()
 		if err != nil {
@@ -454,7 +454,7 @@ func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 func (boot *ShardBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (interface{}, error) {
 	miniBlocks := boot.miniBlockResolver.GetMiniBlocks(hashes)
 	if miniBlocks == nil {
-		emptyChannel(boot.chRcvMiniBlocks)
+		process.EmptyChannel(boot.chRcvMiniBlocks)
 		boot.requestMiniBlocks(hashes)
 		err := boot.waitForMiniBlocks()
 		if err != nil {

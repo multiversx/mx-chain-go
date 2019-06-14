@@ -793,6 +793,10 @@ func (mp *metaProcessor) requestShardHeaders(header *block.MetaBlock) (uint32, u
 		}
 	}
 
+	if !mp.allNeededShardHdrsFound {
+		process.EmptyChannel(mp.chRcvAllHdrs)
+	}
+
 	mp.mutRequestedShardHdrsHashes.Unlock()
 
 	return requestedBlockHeaders, requestedFinalBlockHeaders
