@@ -1,5 +1,7 @@
 package data
 
+import "math/big"
+
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
 	GetShardID() uint32
@@ -58,4 +60,18 @@ type ChainHandler interface {
 	SetNetworkHeight(height int64)
 	HasBadBlock(blockHash []byte) bool
 	PutBadBlock(blockHash []byte)
+}
+
+type TransactionHandler interface {
+	IsInterfaceNil() bool
+
+	GetValue() *big.Int
+	GetData() []byte
+	GetRecvAddress() []byte
+	GetSndAddress() []byte
+
+	SetValue(*big.Int)
+	SetData([]byte)
+	SetRecvAddress([]byte)
+	SetSndAddress([]byte)
 }
