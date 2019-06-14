@@ -156,11 +156,13 @@ func (ef *ElrondNodeFacade) SendTransaction(
 	senderHex string,
 	receiverHex string,
 	value *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
 	transactionData string,
 	signature []byte,
 ) (string, error) {
 
-	return ef.node.SendTransaction(nonce, senderHex, receiverHex, value, transactionData, signature)
+	return ef.node.SendTransaction(nonce, senderHex, receiverHex, value, gasPrice, gasLimit, transactionData, signature)
 }
 
 // GetTransaction gets the transaction with a specified hash

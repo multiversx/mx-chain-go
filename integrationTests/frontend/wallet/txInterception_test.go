@@ -107,7 +107,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		dataBuff, _ := hex.DecodeString(frontendData)
 		data = string(dataBuff)
 	}
-	txHexHash, err = n.SendTransaction(frontendNonce, frontendSenderHex, frontendReceiverHex, frontendValue, data, sig)
+	txHexHash, err = n.SendTransaction(frontendNonce, frontendSenderHex, frontendReceiverHex, frontendValue, 0, 0, data, sig)
 	assert.Nil(t, err)
 
 	select {

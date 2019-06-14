@@ -544,6 +544,8 @@ func (n *Node) SendTransaction(
 	senderHex string,
 	receiverHex string,
 	value *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
 	transactionData string,
 	signature []byte) (string, error) {
 
@@ -568,6 +570,8 @@ func (n *Node) SendTransaction(
 		Value:     value,
 		RcvAddr:   receiver.Bytes(),
 		SndAddr:   sender.Bytes(),
+		GasPrice:  gasPrice,
+		GasLimit:  gasLimit,
 		Data:      []byte(transactionData),
 		Signature: signature,
 	}

@@ -20,8 +20,13 @@ type validatorInput struct {
 	Validator validator.Func
 }
 
+// MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
+type MainApiHandler interface {
+	RestApiPort() string
+}
+
 // Start will boot up the api and appropriate routes, handlers and validators
-func Start(elrondFacade middleware.ElrondHandler) error {
+func Start(elrondFacade MainApiHandler) error {
 	ws := gin.Default()
 	ws.Use(cors.Default())
 

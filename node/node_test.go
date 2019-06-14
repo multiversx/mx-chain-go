@@ -584,6 +584,8 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 		sender,
 		receiver,
 		value,
+		0,
+		0,
 		txData,
 		signature)
 

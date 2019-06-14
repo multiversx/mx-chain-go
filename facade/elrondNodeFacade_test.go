@@ -399,7 +399,7 @@ func TestElrondNodeFacade_SendTransaction(t *testing.T) {
 		return "", nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
-	ef.SendTransaction(1, "test", "test", big.NewInt(0), "code", []byte{})
+	ef.SendTransaction(1, "test", "test", big.NewInt(0), 0, 0, "code", []byte{})
 	assert.Equal(t, called, 1)
 }
 
