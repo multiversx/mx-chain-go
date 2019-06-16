@@ -3,6 +3,7 @@ package smartContract
 import (
 	"bytes"
 	"crypto/rand"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"math/big"
 	"testing"
 
@@ -1754,4 +1755,232 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	scTxs, err := sc.CreateCrossShardTransactions(outputAccounts, tx, txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, len(outputAccounts), len(scTxs))
+}
+
+func TestScProcessor_ProcessSmartContractResultNilScr(t *testing.T) {
+	t.Parallel()
+
+	accountsDB := &mock.AccountsStub{}
+	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.ArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accountsDB,
+		fakeAccountsHandler,
+		&mock.AddressConverterMock{},
+		shardCoordinator)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	err = sc.ProcessSmartContractResult(nil)
+	assert.Equal(t, process.ErrNilSmartContractResult, err)
+}
+
+func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
+	t.Parallel()
+
+	accError := errors.New("account get error")
+	accountsDB := &mock.AccountsStub{GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		return nil, accError
+	}}
+	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.ArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accountsDB,
+		fakeAccountsHandler,
+		&mock.AddressConverterMock{},
+		shardCoordinator)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
+	err = sc.ProcessSmartContractResult(&scr)
+	assert.Equal(t, accError, err)
+}
+
+func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
+	t.Parallel()
+
+	accountsDB := &mock.AccountsStub{}
+	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.ArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accountsDB,
+		fakeAccountsHandler,
+		&mock.AddressConverterMock{},
+		shardCoordinator)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		return shardCoordinator.CurrentShard + 1
+	}
+	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
+	err = sc.ProcessSmartContractResult(&scr)
+	assert.Equal(t, process.ErrNilSCDestAccount, err)
+}
+
+func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
+	t.Parallel()
+
+	accountsDB := &mock.AccountsStub{GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		return &mock.AccountWrapMock{}, nil
+	}}
+	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.ArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accountsDB,
+		fakeAccountsHandler,
+		&mock.AddressConverterMock{},
+		shardCoordinator)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
+	err = sc.ProcessSmartContractResult(&scr)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
+	t.Parallel()
+
+	accountsDB := &mock.AccountsStub{
+		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return state.NewAccount(addressContainer,
+				&mock.AccountTrackerStub{JournalizeCalled: func(entry state.JournalEntry) {},
+					SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+						return nil
+					}})
+		},
+	}
+	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.ArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accountsDB,
+		fakeAccountsHandler,
+		&mock.AddressConverterMock{},
+		shardCoordinator)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	scr := smartContractResult.SmartContractResult{
+		RcvAddr: []byte("recv address")}
+	err = sc.ProcessSmartContractResult(&scr)
+	assert.Equal(t, process.ErrNilBalanceFromSC, err)
+}
+
+func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
+	t.Parallel()
+
+	putCodeCalled := 0
+	accountsDB := &mock.AccountsStub{
+		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return state.NewAccount(addressContainer,
+				&mock.AccountTrackerStub{JournalizeCalled: func(entry state.JournalEntry) {},
+					SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+						return nil
+					}})
+		},
+		PutCodeCalled: func(accountHandler state.AccountHandler, code []byte) error {
+			putCodeCalled++
+			return nil
+		},
+	}
+	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.ArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accountsDB,
+		fakeAccountsHandler,
+		&mock.AddressConverterMock{},
+		shardCoordinator)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	scr := smartContractResult.SmartContractResult{
+		RcvAddr: []byte("recv address"),
+		Code:    []byte("code"),
+		Value:   big.NewInt(15),
+	}
+	err = sc.ProcessSmartContractResult(&scr)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, putCodeCalled)
+}
+
+func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
+	t.Parallel()
+
+	saveTrieCalled := 0
+	accountsDB := &mock.AccountsStub{
+		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return state.NewAccount(addressContainer,
+				&mock.AccountTrackerStub{JournalizeCalled: func(entry state.JournalEntry) {},
+					SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+						return nil
+					}})
+		},
+		SaveDataTrieCalled: func(acountWrapper state.AccountHandler) error {
+			saveTrieCalled++
+			return nil
+		},
+	}
+	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.ArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accountsDB,
+		fakeAccountsHandler,
+		&mock.AddressConverterMock{},
+		shardCoordinator)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	test := []byte("test")
+	result := []byte("")
+	sep := []byte("@")
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+
+	scr := smartContractResult.SmartContractResult{
+		RcvAddr: []byte("recv address"),
+		Data:    result,
+		Value:   big.NewInt(15),
+	}
+	err = sc.ProcessSmartContractResult(&scr)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, saveTrieCalled)
 }
