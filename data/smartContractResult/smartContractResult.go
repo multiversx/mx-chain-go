@@ -8,7 +8,7 @@ import (
 	"github.com/glycerine/go-capnproto"
 )
 
-// Transaction holds all the data needed for a value transfer
+// SmartContractResult holds all the data needed for a value transfer
 type SmartContractResult struct {
 	Nonce   uint64   `capid:"0" json:"nonce"`
 	Value   *big.Int `capid:"1" json:"value"`
@@ -19,7 +19,7 @@ type SmartContractResult struct {
 	TxHash  []byte   `capid:"6" json:"txHash"`
 }
 
-// Save saves the serialized data of a Transaction into a stream through Capnp protocol
+// Save saves the serialized data of a SmartContractResult into a stream through Capnp protocol
 func (scr *SmartContractResult) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
 	SmartContractResultGoToCapn(seg, scr)
@@ -27,7 +27,7 @@ func (scr *SmartContractResult) Save(w io.Writer) error {
 	return err
 }
 
-// Load loads the data from the stream into a Transaction object through Capnp protocol
+// Load loads the data from the stream into a SmartContractResult object through Capnp protocol
 func (scr *SmartContractResult) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {

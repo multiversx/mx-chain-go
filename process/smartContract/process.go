@@ -189,7 +189,13 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 		return err
 	}
 
-	sc.tempAccounts.AddTempAccount(tx.SndAddr, tx.Value, tx.Nonce)
+	nonce := tx.Nonce
+	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+		// transaction was already done at sender shard - increase nonce
+		nonce = tx.Nonce + 1
+	}
+
+	sc.tempAccounts.AddTempAccount(tx.SndAddr, tx.Value, nonce)
 
 	return nil
 }
@@ -365,13 +371,13 @@ func (sc *scProcessor) processVMOutput(
 
 	totalGasRefund := big.NewInt(0)
 	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
-	crossRefundTx, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
+	scrIfCrossShard, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
 	if err != nil {
 		return nil, err
 	}
 
-	if crossRefundTx != nil {
-		crossTxs = append(crossTxs, crossRefundTx)
+	if scrIfCrossShard != nil {
+		crossTxs = append(crossTxs, scrIfCrossShard)
 	}
 
 	err = sc.deleteAccounts(vmOutput.DeletedAccounts)
@@ -387,7 +393,7 @@ func (sc *scProcessor) processVMOutput(
 	return crossTxs, nil
 }
 
-func (sc *scProcessor) createSmartContractCrossShardTx(
+func (sc *scProcessor) createSmartContractResult(
 	outAcc *vmcommon.OutputAccount,
 	scAddress []byte,
 	txHash []byte,
@@ -413,7 +419,7 @@ func (sc *scProcessor) createCrossShardTransactions(
 	crossSCTxs := make([]*smartContractResult.SmartContractResult, 0)
 
 	for i := 0; i < len(crossOutAccs); i++ {
-		scTx := sc.createSmartContractCrossShardTx(crossOutAccs[i], tx.RcvAddr, txHash)
+		scTx := sc.createSmartContractResult(crossOutAccs[i], tx.RcvAddr, txHash)
 		crossSCTxs = append(crossSCTxs, scTx)
 	}
 
@@ -574,7 +580,7 @@ func (sc *scProcessor) getAccountFromAddress(address []byte) (state.AccountHandl
 	return acnt, nil
 }
 
-// GetAllSmartContractCallRoothash returns the roothash of the state of the SC executions for defined round
+// GetAllSmartContractCallRootHash returns the roothash of the state of the SC executions for defined round
 func (sc *scProcessor) GetAllSmartContractCallRootHash(round uint32) []byte {
 	return []byte("roothash")
 }
@@ -675,6 +681,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		}
 	}
 
+	// increase nonce
 	err = stAcc.SetNonceWithJournal(stAcc.Nonce + 1)
 	if err != nil {
 		return err

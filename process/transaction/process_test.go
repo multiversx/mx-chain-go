@@ -944,7 +944,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		&mock.VMExecutionHandlerStub{},
-		&mock.AtArgumentParserMock{},
+		&mock.ArgumentParserMock{},
 		mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accounts,
@@ -1008,7 +1008,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		&mock.VMExecutionHandlerStub{},
-		&mock.AtArgumentParserMock{},
+		&mock.ArgumentParserMock{},
 		mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accounts,
@@ -1082,7 +1082,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		&mock.VMExecutionHandlerStub{},
-		&mock.AtArgumentParserMock{},
+		&mock.ArgumentParserMock{},
 		mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		accounts,

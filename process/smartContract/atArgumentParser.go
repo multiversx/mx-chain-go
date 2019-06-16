@@ -76,7 +76,7 @@ func (at *atArgumentParser) GetSeparator() string {
 	return atSep
 }
 
-// GetStorageUpdate parse data into storage updates
+// GetStorageUpdates parse data into storage updates
 func (at *atArgumentParser) GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error) {
 	splitString := strings.Split(string(data), atSep)
 	if len(splitString) == 0 || len(splitString[0]) == 0 {
@@ -101,10 +101,13 @@ func (at *atArgumentParser) CreateDataFromStorageUpdate(storageUpdates []*vmcomm
 	data := []byte{}
 	for i := 0; i < len(storageUpdates); i++ {
 		storageUpdate := storageUpdates[i]
-		data = append(data, []byte(at.GetSeparator())...)
 		data = append(data, storageUpdate.Offset...)
 		data = append(data, []byte(at.GetSeparator())...)
 		data = append(data, storageUpdate.Data...)
+
+		if i < len(storageUpdates)-1 {
+			data = append(data, []byte(at.GetSeparator())...)
+		}
 	}
 	return data
 }
