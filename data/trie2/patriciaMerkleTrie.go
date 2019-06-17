@@ -186,3 +186,29 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	}
 	return nil
 }
+
+// DBW returns the database used by the trie
+func (tr *patriciaMerkleTrie) DBW() DBWriteCacher {
+	return tr.db
+}
+
+// Recreate returns a new trie that has the given root hash and database
+func (tr *patriciaMerkleTrie) Recreate(root []byte, dbw DBWriteCacher) (Trie, error) {
+	newTr, err := NewTrie(dbw, tr.marshalizer, tr.hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	encRoot, err := dbw.Get(root)
+	if err != nil {
+		return nil, err
+	}
+
+	newRoot, err := decodeNode(encRoot, tr.marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	newTr.root = newRoot
+	return newTr, nil
+}

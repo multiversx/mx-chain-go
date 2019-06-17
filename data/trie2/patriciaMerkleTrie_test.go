@@ -298,6 +298,47 @@ func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
 	assert.Equal(t, root2, root1)
 }
 
+func TestPatriciaMerkleTrie_DBW(t *testing.T) {
+	db, _ := mock.NewMemDbMock()
+	db.Put([]byte("doe"), []byte("reindeer"))
+	db.Put([]byte("dog"), []byte("puppy"))
+	tr, _ := trie2.NewTrie(db, marshalizer, hasher)
+
+	assert.Equal(t, db, tr.DBW())
+}
+
+func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
+	tr := initTrie()
+	rootHash, _ := tr.Root()
+
+	tr.Commit()
+	db := tr.DBW()
+
+	newTr, err := tr.Recreate(rootHash, db)
+	assert.Nil(t, err)
+	assert.NotNil(t, newTr)
+
+	root, _ := newTr.Root()
+	assert.Equal(t, rootHash, root)
+}
+
+func TestPatriciaMerkleTrie_RecreateWithNilDB(t *testing.T) {
+	tr := initTrie()
+	rootHash, _ := tr.Root()
+
+	newTr, err := tr.Recreate(rootHash, nil)
+	assert.Equal(t, trie2.ErrNilDatabase, err)
+	assert.Nil(t, newTr)
+}
+
+func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
+	tr := initTrie()
+
+	newTr, err := tr.Recreate(nil, tr.DBW())
+	assert.NotNil(t, err)
+	assert.Nil(t, newTr)
+}
+
 func emptyTrie() trie2.Trie {
 	db, _ := mock.NewMemDbMock()
 	tr, _ := trie2.NewTrie(db, marshalizer, hasher)
