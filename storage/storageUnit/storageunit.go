@@ -38,9 +38,10 @@ const (
 // LvlDB currently the only supported DBs
 // More to be added
 const (
-	LvlDB    DBType = "LvlDB"
-	BadgerDB DBType = "BadgerDB"
-	BoltDB   DBType = "BoltDB"
+	LvlDB       DBType = "LvlDB"
+	LvlDbSerial DBType = "LvlDBSerial"
+	BadgerDB    DBType = "BadgerDB"
+	BoltDB      DBType = "BoltDB"
 )
 
 const (
@@ -357,6 +358,8 @@ func NewDB(dbType DBType, path string, batchDelaySeconds int, maxBatchSize int) 
 	switch dbType {
 	case LvlDB:
 		db, err = leveldb.NewDB(path, batchDelaySeconds, maxBatchSize)
+	case LvlDbSerial:
+		db, err = leveldb.NewSerialDB(path, batchDelaySeconds, maxBatchSize)
 	case BadgerDB:
 		db, err = badgerdb.NewDB(path, batchDelaySeconds, maxBatchSize)
 	case BoltDB:
