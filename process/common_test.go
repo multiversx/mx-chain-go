@@ -13,6 +13,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestEmptyChannelShouldWork(t *testing.T) {
+	ch := make(chan bool, 10)
+
+	ch <- true
+	ch <- true
+	ch <- true
+
+	assert.Equal(t, 3, len(ch))
+	process.EmptyChannel(ch)
+	assert.Equal(t, 0, len(ch))
+}
+
 func TestGetShardHeaderShouldErrNilCacher(t *testing.T) {
 	hash := []byte("X")
 
@@ -89,6 +101,82 @@ func TestGetShardHeaderShouldGetHeaderFromStorage(t *testing.T) {
 	assert.Equal(t, hdr, header)
 }
 
+func TestGetMetaHeaderShouldErrNilCacher(t *testing.T) {
+	hash := []byte("X")
+
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{}
+
+	header, err := process.GetMetaHeader(hash, nil, marshalizer, storageService)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrNilCacher, err)
+}
+
+func TestGetMetaHeaderShouldErrNilMarshalizer(t *testing.T) {
+	hash := []byte("X")
+
+	cacher := &mock.CacherStub{}
+	storageService := &mock.ChainStorerMock{}
+
+	header, err := process.GetMetaHeader(hash, cacher, nil, storageService)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestGetMetaHeaderShouldErrNilStorage(t *testing.T) {
+	hash := []byte("X")
+
+	cacher := &mock.CacherStub{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	header, err := process.GetMetaHeader(hash, cacher, marshalizer, nil)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrNilStorage, err)
+}
+
+func TestGetMetaHeaderShouldGetHeaderFromPool(t *testing.T) {
+	hash := []byte("X")
+
+	hdr := &block.MetaBlock{Nonce: 1}
+	cacher := &mock.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
+			return hdr, true
+		},
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{}
+
+	header, _ := process.GetMetaHeader(hash, cacher, marshalizer, storageService)
+	assert.Equal(t, hdr, header)
+}
+
+func TestGetMetaHeaderShouldGetHeaderFromStorage(t *testing.T) {
+	hash := []byte("X")
+
+	hdr := &block.MetaBlock{Nonce: 1}
+	cacher := &mock.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
+			return nil, false
+		},
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					if bytes.Equal(key, hash) {
+						return marshalizer.Marshal(hdr)
+					}
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+
+	header, _ := process.GetMetaHeader(hash, cacher, marshalizer, storageService)
+	assert.Equal(t, hdr, header)
+}
+
 func TestGetShardHeaderFromPoolShouldErrNilCacher(t *testing.T) {
 	hash := []byte("X")
 
@@ -136,6 +224,57 @@ func TestGetShardHeaderFromPoolShouldWork(t *testing.T) {
 	}
 
 	header, err := process.GetShardHeaderFromPool(hash, cacher)
+	assert.Nil(t, err)
+	assert.Equal(t, hdr, header)
+}
+
+func TestGetMetaHeaderFromPoolShouldErrNilCacher(t *testing.T) {
+	hash := []byte("X")
+
+	header, err := process.GetMetaHeaderFromPool(hash, nil)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrNilCacher, err)
+}
+
+func TestGetMetaHeaderFromPoolShouldErrMissingHeader(t *testing.T) {
+	hash := []byte("X")
+
+	cacher := &mock.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
+			return nil, false
+		},
+	}
+
+	header, err := process.GetMetaHeaderFromPool(hash, cacher)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrMissingHeader, err)
+}
+
+func TestGetMetaHeaderFromPoolShouldErrWrongTypeAssertion(t *testing.T) {
+	hash := []byte("X")
+
+	cacher := &mock.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
+			return &block.Header{}, true
+		},
+	}
+
+	header, err := process.GetMetaHeaderFromPool(hash, cacher)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestGetMetaHeaderFromPoolShouldWork(t *testing.T) {
+	hash := []byte("X")
+
+	hdr := &block.MetaBlock{Nonce: 10}
+	cacher := &mock.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
+			return hdr, true
+		},
+	}
+
+	header, err := process.GetMetaHeaderFromPool(hash, cacher)
 	assert.Nil(t, err)
 	assert.Equal(t, hdr, header)
 }
@@ -234,4 +373,178 @@ func TestGetShardHeaderFromStorageShouldWork(t *testing.T) {
 	header, err := process.GetShardHeaderFromStorage(hash, marshalizer, storageService)
 	assert.Nil(t, err)
 	assert.Equal(t, hdr, header)
+}
+
+func TestGetMetaHeaderFromStorageShouldErrNilCacher(t *testing.T) {
+	hash := []byte("X")
+
+	storageService := &mock.ChainStorerMock{}
+
+	header, err := process.GetMetaHeaderFromStorage(hash, nil, storageService)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestGetMetaHeaderFromStorageShouldErrNilStorage(t *testing.T) {
+	hash := []byte("X")
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	header, err := process.GetMetaHeaderFromStorage(hash, marshalizer, nil)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrNilStorage, err)
+}
+
+func TestGetMetaHeaderFromStorageShouldErrNilHeadersStorage(t *testing.T) {
+	hash := []byte("X")
+
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return nil
+		},
+	}
+
+	header, err := process.GetMetaHeaderFromStorage(hash, marshalizer, storageService)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrNilHeadersStorage, err)
+}
+
+func TestGetMetaHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
+	hash := []byte("X")
+
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+
+	header, err := process.GetMetaHeaderFromStorage(hash, marshalizer, storageService)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrMissingHeader, err)
+}
+
+func TestGetMetaHeaderFromStorageShouldErrUnmarshalWithoutSuccess(t *testing.T) {
+	hash := []byte("X")
+
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return nil, nil
+				},
+			}
+		},
+	}
+
+	header, err := process.GetMetaHeaderFromStorage(hash, marshalizer, storageService)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrUnmarshalWithoutSuccess, err)
+}
+
+func TestGetMetaHeaderFromStorageShouldWork(t *testing.T) {
+	hash := []byte("X")
+
+	hdr := &block.MetaBlock{}
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					if bytes.Equal(key, hash) {
+						return marshalizer.Marshal(hdr)
+					}
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+
+	header, err := process.GetMetaHeaderFromStorage(hash, marshalizer, storageService)
+	assert.Nil(t, err)
+	assert.Equal(t, hdr, header)
+}
+
+func TestGetMarshalizedHeaderFromStorageShouldErrNilMarshalizer(t *testing.T) {
+	hash := []byte("X")
+
+	storageService := &mock.ChainStorerMock{}
+
+	headerMarsh, err := process.GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, nil, storageService)
+	assert.Nil(t, headerMarsh)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestGetMarshalizedHeaderFromStorageShouldErrNilStorage(t *testing.T) {
+	hash := []byte("X")
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	headerMarsh, err := process.GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, nil)
+	assert.Nil(t, headerMarsh)
+	assert.Equal(t, process.ErrNilStorage, err)
+}
+
+func TestGetMarshalizedHeaderFromStorageShouldErrNilHeadersStorage(t *testing.T) {
+	hash := []byte("X")
+
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return nil
+		},
+	}
+
+	headerMarsh, err := process.GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, storageService)
+	assert.Nil(t, headerMarsh)
+	assert.Equal(t, process.ErrNilHeadersStorage, err)
+}
+
+func TestGetMarshalizedHeaderFromStorageShouldErrMissingHeader(t *testing.T) {
+	hash := []byte("X")
+
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+
+	headerMarsh, err := process.GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, storageService)
+	assert.Nil(t, headerMarsh)
+	assert.Equal(t, process.ErrMissingHeader, err)
+}
+
+func TestGetMarshalizedHeaderFromStorageShouldWork(t *testing.T) {
+	hash := []byte("X")
+
+	hdr := &block.Header{Nonce: 1}
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					if bytes.Equal(key, hash) {
+						return marshalizer.Marshal(hdr)
+					}
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+
+	hdrMarsh, err := marshalizer.Marshal(hdr)
+	headerMarsh, err := process.GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, storageService)
+	assert.Equal(t, hdrMarsh, headerMarsh)
+	assert.Nil(t, err)
 }
