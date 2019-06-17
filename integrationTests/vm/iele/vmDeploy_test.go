@@ -49,6 +49,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderNonce+1,
 		expectedBalance)
 	destinationAddressBytes, _ := hex.DecodeString("195d84b4aec942d3534d2ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,

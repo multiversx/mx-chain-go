@@ -24,7 +24,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	initialValueForInternalVariable := uint64(45)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
-	//deploy will transfer 0
+
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -130,21 +130,20 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedBalance := big.NewInt(0).SetUint64(99981547)
+	//following operations happened: deploy and call, deploy succeed, call failed, transfer has been reverted, gas consumed
 	vm.TestAccount(
 		t,
 		accnts,
 		senderAddressBytes,
 		senderNonce+2,
-		//following operations happened: deploy and call, deploy succeed, call failed, transfer has been reverted, gas consumed
 		expectedBalance)
 
-	//value did not change, remained initial
+	//value did not change, remained initial so the transfer did not happened
 	expectedValueForVariable := big.NewInt(0).SetUint64(initialValueForInternalVariable)
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
 		accnts,
-		//transfer did not happened
 		big.NewInt(0),
 		string(scCode),
 		map[string]*big.Int{"a": expectedValueForVariable})

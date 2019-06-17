@@ -49,6 +49,7 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 		senderNonce+1,
 		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, gasLimit, gasPrice))
 	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
+
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
