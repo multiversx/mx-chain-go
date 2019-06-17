@@ -35,7 +35,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 
-	err := txProc.ProcessTransaction(tx, round)
+	_, err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -86,7 +86,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 
-	err := txProc.ProcessTransaction(tx, round)
+	_, err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()

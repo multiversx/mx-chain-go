@@ -7,8 +7,8 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -192,9 +192,8 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 	}
 
 	nonce := tx.Nonce
-	if acntSnd == nil || acntSnd.IsInterfaceNil() {
-		// transaction was already done at sender shard - increase nonce
-		nonce = tx.Nonce + 1
+	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
+		nonce = acntSnd.GetNonce()
 	}
 	txValue := big.NewInt(0).Set(tx.Value)
 	sc.tempAccounts.AddTempAccount(tx.SndAddr, txValue, nonce)

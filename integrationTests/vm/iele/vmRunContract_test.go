@@ -54,7 +54,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		addValue,
 	)
 
-	err := txProc.ProcessTransaction(txRun, round)
+	_, err := txProc.ProcessTransaction(txRun, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -123,7 +123,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		addValue,
 	)
 
-	err := txProc.ProcessTransaction(txRun, round)
+	_, err := txProc.ProcessTransaction(txRun, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -176,7 +176,7 @@ func deployContract(
 		initialValueForInternalVariable,
 	)
 
-	err := txProc.ProcessTransaction(tx, round)
+	_, err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
