@@ -84,20 +84,22 @@ func writeMultipleWithNotif(
 	written := 10000
 	initTime := time.Now()
 	startTime := time.Now()
+
 	for counter := 1; counter <= nbTxsWrite; counter++ {
 		if counter%written == 0 {
+			var memStats runtime.MemStats
+			runtime.ReadMemStats(&memStats)
 			endTime := time.Now()
 			diff := endTime.Sub(startTime)
 			cumul := endTime.Sub(initTime)
 			writesPerSecond := float64(counter) / cumul.Seconds()
+
 			fmt.Printf("Written %d, total %d in %f s\nCumulativeWriteTime %f writes/s:%f\n",
 				written,
 				counter,
 				diff.Seconds(),
 				cumul.Seconds(),
 				writesPerSecond)
-			var memStats runtime.MemStats
-			runtime.ReadMemStats(&memStats)
 
 			fmt.Printf("timestamp: %d, num go: %d, go mem: %s, sys mem: %s, total mem: %s, num GC: %d\n",
 				time.Now().Unix(),
@@ -111,7 +113,6 @@ func writeMultipleWithNotif(
 		}
 
 		key, val := createStoredData(uint64(counter))
-
 		errPut := store.Put(key, val)
 		if errPut != nil {
 			fmt.Print(errPut.Error())
@@ -121,7 +122,9 @@ func writeMultipleWithNotif(
 
 		atomic.StoreUint64(&maxWritten, uint64(counter))
 	}
+
 	fmt.Println("Done Writing!")
+
 	for i := 0; i < nbNotifDone; i++ {
 		chWriteDone <- struct{}{}
 	}
@@ -155,8 +158,8 @@ func removeMultiple(
 		existingNonce, _ := rand.Int(rand.Reader, maxWrittenBigInt)
 		key, _ := createStoredData(existingNonce.Uint64())
 		mapRemovedKeys.Store(string(key), struct{}{})
-		errRemove := store.Remove(key)
 
+		errRemove := store.Remove(key)
 		if errRemove != nil {
 			fmt.Println(errRemove.Error())
 			atomic.AddInt32(errors, 1)
@@ -211,7 +214,6 @@ func readMultiple(
 			key, val := createStoredData(count)
 			v, errGet := store.Get(key)
 			_, ok := mapRemovedKeys.Load(string(key))
-
 			if !ok && errGet != nil {
 				fmt.Printf("Not getting tx with nonce %d\n", count)
 				atomic.AddInt32(errors, 1)
@@ -225,12 +227,14 @@ func readMultiple(
 			}
 
 			aRead := atomic.AddUint64(&actualRead, 1)
-
 			if aRead%read == 0 {
+				var memStats runtime.MemStats
+				runtime.ReadMemStats(&memStats)
 				endTime := time.Now()
 				diff := endTime.Sub(startTime)
 				cumul := endTime.Sub(initTime)
 				readsPerSecond := float64(aRead) / cumul.Seconds()
+
 				fmt.Printf("Read %d, total %d in %f s\nCumulativeReadTime %f reads/s %f\n",
 					read,
 					aRead,
@@ -238,8 +242,6 @@ func readMultiple(
 					cumul.Seconds(),
 					readsPerSecond,
 				)
-				var memStats runtime.MemStats
-				runtime.ReadMemStats(&memStats)
 
 				fmt.Printf("timestamp: %d, num go: %d, go mem: %s, sys mem: %s, total mem: %s, num GC: %d\n",
 					time.Now().Unix(),
