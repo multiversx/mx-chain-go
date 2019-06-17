@@ -66,7 +66,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
-	crypto2 "github.com/libp2p/go-libp2p-crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/urfave/cli"
 )
 
@@ -427,7 +427,7 @@ func NewProcessComponentsFactoryArgs(
 
 // ProcessComponentsFactory creates the process components
 func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
-	interceptorContainerFactory, resolversContainerFactory, err := getInterceptorAndResolverContainerFactory(
+	interceptorContainerFactory, resolversContainerFactory, err := newInterceptorAndResolverContainerFactory(
 		args.shardCoordinator, args.data, args.core, args.crypto, args.state, args.network)
 	if err != nil {
 		return nil, err
@@ -475,7 +475,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	blockProcessor, blockTracker, err := getBlockProcessorAndTracker(resolversFinder, args.shardCoordinator,
+	blockProcessor, blockTracker, err := newBlockProcessorAndTracker(resolversFinder, args.shardCoordinator,
 		args.data, args.core, args.state, forkDetector, shardsGenesisBlocks, args.nodesConfig, args.coreServiceContainer)
 	if err != nil {
 		return nil, err
@@ -505,15 +505,12 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 	if srr.seed == nil {
 		return 0, errors.New("nil seed")
 	}
-
 	if len(srr.seed) == 0 {
 		return 0, errors.New("empty seed")
 	}
-
 	if p == nil {
 		return 0, errors.New("nil buffer")
 	}
-
 	if len(p) == 0 {
 		return 0, errors.New("empty buffer")
 	}
@@ -949,7 +946,7 @@ func createNetMessenger(
 	log.Info(fmt.Sprintf("Starting with peer discovery: %s", pDiscoverer.Name()))
 
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
-	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
 	nm, err := libp2p.NewNetworkMessenger(
 		context.Background(),
@@ -960,14 +957,14 @@ func createNetMessenger(
 		pDiscoverer,
 		libp2p.ListenAddrWithIp4AndTcp,
 	)
-
 	if err != nil {
 		return nil, err
 	}
+
 	return nm, nil
 }
 
-func getInterceptorAndResolverContainerFactory(
+func newInterceptorAndResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	data *Data,
 	core *Core,
@@ -976,73 +973,95 @@ func getInterceptorAndResolverContainerFactory(
 	network *Network,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		//TODO add a real chronology validator and remove null chronology validator
-		interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
-			shardCoordinator,
-			network.NetMessenger,
-			data.Store,
-			core.Marshalizer,
-			core.Hasher,
-			crypto.TxSignKeyGen,
-			crypto.TxSingleSigner,
-			crypto.MultiSigner,
-			data.Datapool,
-			state.AddressConverter,
-			&nullChronologyValidator{},
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		dataPacker, err := partitioning.NewSizeDataPacker(core.Marshalizer)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		resolversContainerFactory, err := shardfactoryDataRetriever.NewResolversContainerFactory(
-			shardCoordinator,
-			network.NetMessenger,
-			data.Store,
-			core.Marshalizer,
-			data.Datapool,
-			core.Uint64ByteSliceConverter,
-			dataPacker,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return interceptorContainerFactory, resolversContainerFactory, nil
+		return newShardInterceptorAndResolverContainerFactory(shardCoordinator, data, core, crypto, state, network)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		//TODO add a real chronology validator and remove null chronology validator
-		interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
-			shardCoordinator,
-			network.NetMessenger,
-			data.Store,
-			core.Marshalizer,
-			core.Hasher,
-			crypto.MultiSigner,
-			data.MetaDatapool,
-			&nullChronologyValidator{},
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-		resolversContainerFactory, err := metafactoryDataRetriever.NewResolversContainerFactory(
-			shardCoordinator,
-			network.NetMessenger,
-			data.Store,
-			core.Marshalizer,
-			data.MetaDatapool,
-			core.Uint64ByteSliceConverter,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-		return interceptorContainerFactory, resolversContainerFactory, nil
+		return newMetaInterceptorAndResolverContainerFactory(shardCoordinator, data, core, crypto, network)
 	}
+
 	return nil, nil, errors.New("could not create interceptor and resolver container factory")
+}
+
+func newShardInterceptorAndResolverContainerFactory(
+	shardCoordinator sharding.Coordinator,
+	data *Data,
+	core *Core,
+	crypto *Crypto,
+	state *State,
+	network *Network,
+) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
+	//TODO add a real chronology validator and remove null chronology validator
+	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
+		shardCoordinator,
+		network.NetMessenger,
+		data.Store,
+		core.Marshalizer,
+		core.Hasher,
+		crypto.TxSignKeyGen,
+		crypto.TxSingleSigner,
+		crypto.MultiSigner,
+		data.Datapool,
+		state.AddressConverter,
+		&nullChronologyValidator{},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dataPacker, err := partitioning.NewSizeDataPacker(core.Marshalizer)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resolversContainerFactory, err := shardfactoryDataRetriever.NewResolversContainerFactory(
+		shardCoordinator,
+		network.NetMessenger,
+		data.Store,
+		core.Marshalizer,
+		data.Datapool,
+		core.Uint64ByteSliceConverter,
+		dataPacker,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return interceptorContainerFactory, resolversContainerFactory, nil
+}
+
+func newMetaInterceptorAndResolverContainerFactory(
+	shardCoordinator sharding.Coordinator,
+	data *Data,
+	core *Core,
+	crypto *Crypto,
+	network *Network,
+) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
+	//TODO add a real chronology validator and remove null chronology validator
+	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
+		shardCoordinator,
+		network.NetMessenger,
+		data.Store,
+		core.Marshalizer,
+		core.Hasher,
+		crypto.MultiSigner,
+		data.MetaDatapool,
+		&nullChronologyValidator{},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	resolversContainerFactory, err := metafactoryDataRetriever.NewResolversContainerFactory(
+		shardCoordinator,
+		network.NetMessenger,
+		data.Store,
+		core.Marshalizer,
+		data.MetaDatapool,
+		core.Uint64ByteSliceConverter,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	return interceptorContainerFactory, resolversContainerFactory, nil
 }
 
 func generateGenesisHeadersForInit(
@@ -1111,7 +1130,7 @@ func generateGenesisHeadersForInit(
 	return shardsGenesisBlocks, nil
 }
 
-func getBlockProcessorAndTracker(
+func newBlockProcessorAndTracker(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	data *Data,
@@ -1123,92 +1142,120 @@ func getBlockProcessorAndTracker(
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		argsParser, err := smartContract.NewAtArgumentParser()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		vmAccountsDB, err := hooks.NewVMAccountsDB(state.AccountsAdapter, state.AddressConverter)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		//TODO: change the mock
-		scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser,
-			core.Hasher, core.Marshalizer, state.AccountsAdapter, vmAccountsDB, state.AddressConverter, shardCoordinator)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		requestHandler, err := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic,
-			factory.MiniBlocksTopic, factory.MetachainBlocksTopic, MaxTxsToRequest)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		transactionProcessor, err := transaction.NewTxProcessor(state.AccountsAdapter, core.Hasher,
-			state.AddressConverter, core.Marshalizer, shardCoordinator, scProcessor)
-		if err != nil {
-			return nil, nil, errors.New("could not create transaction processor: " + err.Error())
-		}
-
-		blockTracker, err := track.NewShardBlockTracker(data.Datapool, core.Marshalizer, shardCoordinator, data.Store)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		blockProcessor, err := block.NewShardProcessor(
-			coreServiceContainer,
-			data.Datapool,
-			data.Store,
-			core.Hasher,
-			core.Marshalizer,
-			transactionProcessor,
-			state.AccountsAdapter,
-			shardCoordinator,
-			forkDetector,
-			blockTracker,
-			shardsGenesisBlocks,
-			nodesConfig.MetaChainActive,
-			requestHandler,
-		)
-		if err != nil {
-			return nil, nil, errors.New("could not create block processor: " + err.Error())
-		}
-
-		return blockProcessor, blockTracker, nil
+		return newShardBlockProcessorAndTracker(resolversFinder, shardCoordinator, data, core, state, forkDetector, shardsGenesisBlocks, nodesConfig, coreServiceContainer)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		blockTracker, err := track.NewMetaBlockTracker()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		metaProcessor, err := block.NewMetaProcessor(
-			coreServiceContainer,
-			state.AccountsAdapter,
-			data.MetaDatapool,
-			forkDetector,
-			shardCoordinator,
-			core.Hasher,
-			core.Marshalizer,
-			data.Store,
-			shardsGenesisBlocks,
-			requestHandler,
-		)
-		if err != nil {
-			return nil, nil, errors.New("could not create block processor: " + err.Error())
-		}
-		return metaProcessor, blockTracker, nil
+		return newMetaBlockProcessorAndTracker(resolversFinder, shardCoordinator, data, core, state, forkDetector, shardsGenesisBlocks, coreServiceContainer)
 	}
+
 	return nil, nil, errors.New("could not create block processor and tracker")
 }
 
+func newShardBlockProcessorAndTracker(
+	resolversFinder dataRetriever.ResolversFinder,
+	shardCoordinator sharding.Coordinator,
+	data *Data,
+	core *Core,
+	state *State,
+	forkDetector process.ForkDetector,
+	shardsGenesisBlocks map[uint32]data.HeaderHandler,
+	nodesConfig *sharding.NodesSetup,
+	coreServiceContainer serviceContainer.Core,
+) (process.BlockProcessor, process.BlocksTracker, error) {
+	argsParser, err := smartContract.NewAtArgumentParser()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	vmAccountsDB, err := hooks.NewVMAccountsDB(state.AccountsAdapter, state.AddressConverter)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	//TODO: change the mock
+	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser,
+		core.Hasher, core.Marshalizer, state.AccountsAdapter, vmAccountsDB, state.AddressConverter, shardCoordinator)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	requestHandler, err := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic,
+		factory.MiniBlocksTopic, factory.MetachainBlocksTopic, MaxTxsToRequest)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	transactionProcessor, err := transaction.NewTxProcessor(state.AccountsAdapter, core.Hasher,
+		state.AddressConverter, core.Marshalizer, shardCoordinator, scProcessor)
+	if err != nil {
+		return nil, nil, errors.New("could not create transaction processor: " + err.Error())
+	}
+
+	blockTracker, err := track.NewShardBlockTracker(data.Datapool, core.Marshalizer, shardCoordinator, data.Store)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	blockProcessor, err := block.NewShardProcessor(
+		coreServiceContainer,
+		data.Datapool,
+		data.Store,
+		core.Hasher,
+		core.Marshalizer,
+		transactionProcessor,
+		state.AccountsAdapter,
+		shardCoordinator,
+		forkDetector,
+		blockTracker,
+		shardsGenesisBlocks,
+		nodesConfig.MetaChainActive,
+		requestHandler,
+	)
+	if err != nil {
+		return nil, nil, errors.New("could not create block processor: " + err.Error())
+	}
+
+	return blockProcessor, blockTracker, nil
+}
+
+func newMetaBlockProcessorAndTracker(
+	resolversFinder dataRetriever.ResolversFinder,
+	shardCoordinator sharding.Coordinator,
+	data *Data,
+	core *Core,
+	state *State,
+	forkDetector process.ForkDetector,
+	shardsGenesisBlocks map[uint32]data.HeaderHandler,
+	coreServiceContainer serviceContainer.Core,
+) (process.BlockProcessor, process.BlocksTracker, error) {
+	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	blockTracker, err := track.NewMetaBlockTracker()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	metaProcessor, err := block.NewMetaProcessor(
+		coreServiceContainer,
+		state.AccountsAdapter,
+		data.MetaDatapool,
+		forkDetector,
+		shardCoordinator,
+		core.Hasher,
+		core.Marshalizer,
+		data.Store,
+		shardsGenesisBlocks,
+		requestHandler,
+	)
+	if err != nil {
+		return nil, nil, errors.New("could not create block processor: " + err.Error())
+	}
+
+	return metaProcessor, blockTracker, nil
+}
 func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
 	return storageUnit.CacheConfig{
 		Size:   cfg.Size,
@@ -1257,7 +1304,6 @@ func generateInMemoryAccountsAdapter(
 func createMemUnit() storage.Storer {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
-
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 	return unit
 }
