@@ -18,8 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
-var log = logger.DefaultLogger()
-
 type scExecutionState struct {
 	allLogs       map[string][]*vmcommon.LogEntry
 	allReturnData map[string][]*big.Int
