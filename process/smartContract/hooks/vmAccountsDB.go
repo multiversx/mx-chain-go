@@ -53,6 +53,14 @@ func (vadb *VMAccountsDB) AccountExists(address []byte) (bool, error) {
 
 // GetBalance returns the balance of a shard account
 func (vadb *VMAccountsDB) GetBalance(address []byte) (*big.Int, error) {
+	exists, err := vadb.AccountExists(address)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return big.NewInt(0), nil
+	}
+
 	shardAccount, err := vadb.getShardAccountFromAddressBytes(address)
 	if err != nil {
 		return nil, err
@@ -63,6 +71,14 @@ func (vadb *VMAccountsDB) GetBalance(address []byte) (*big.Int, error) {
 
 // GetNonce returns the nonce of a shard account
 func (vadb *VMAccountsDB) GetNonce(address []byte) (*big.Int, error) {
+	exists, err := vadb.AccountExists(address)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return big.NewInt(0), nil
+	}
+
 	shardAccount, err := vadb.getShardAccountFromAddressBytes(address)
 	if err != nil {
 		return nil, err
@@ -76,6 +92,14 @@ func (vadb *VMAccountsDB) GetNonce(address []byte) (*big.Int, error) {
 
 // GetStorageData returns the storage value of a variable held in account's data trie
 func (vadb *VMAccountsDB) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
+	exists, err := vadb.AccountExists(accountAddress)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return make([]byte, 0), nil
+	}
+
 	account, err := vadb.getAccountFromAddressBytes(accountAddress)
 	if err != nil {
 		return nil, err
@@ -86,6 +110,14 @@ func (vadb *VMAccountsDB) GetStorageData(accountAddress []byte, index []byte) ([
 
 // IsCodeEmpty returns if the code is empty
 func (vadb *VMAccountsDB) IsCodeEmpty(address []byte) (bool, error) {
+	exists, err := vadb.AccountExists(address)
+	if err != nil {
+		return false, err
+	}
+	if !exists {
+		return true, nil
+	}
+
 	account, err := vadb.getAccountFromAddressBytes(address)
 	if err != nil {
 		return false, err

@@ -215,7 +215,7 @@ func TestVMAccountsDB_GetStorageDataShouldWork(t *testing.T) {
 
 //------- IsCodeEmpty
 
-func TestVMAccountsDB_IsCodeEmptyAccountErrorsShouldErr(t *testing.T) {
+func TestVMAccountsDB_IsCodeEmptyAccountErrorsShouldErrAndRetFalse(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
