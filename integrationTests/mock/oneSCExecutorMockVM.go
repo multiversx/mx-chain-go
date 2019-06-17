@@ -101,10 +101,10 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 		},
 	}
 
-	newSenderNonce := big.NewInt(0).Add(senderNonce, big.NewInt(1))
 	senderOutputAccount := &vmcommon.OutputAccount{
 		Address: input.CallerAddr,
-		Nonce:   newSenderNonce,
+		//VM does not increment sender's nonce
+		Nonce: senderNonce,
 		//tx succeed, return 0 back to the sender
 		Balance: big.NewInt(0),
 	}
@@ -194,10 +194,11 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 	if err != nil {
 		return nil, err
 	}
-	newSenderNonce := big.NewInt(0).Add(senderNonce, big.NewInt(1))
+
 	senderOutputAccount := &vmcommon.OutputAccount{
 		Address: input.CallerAddr,
-		Nonce:   newSenderNonce,
+		//VM does not increment sender's nonce
+		Nonce: senderNonce,
 		//tx succeed, return 0 back to the sender
 		Balance: big.NewInt(0),
 	}
@@ -292,7 +293,7 @@ func (vm *OneSCExecutorMockVM) outOfGasFunc(input *vmcommon.VMInput) (*vmcommon.
 	vmo := &vmcommon.OutputAccount{
 		Balance: input.CallValue,
 		Address: input.CallerAddr,
-		Nonce:   big.NewInt(0).SetUint64(nonce.Uint64() + 1),
+		Nonce:   big.NewInt(0).SetUint64(nonce.Uint64()),
 	}
 
 	return &vmcommon.VMOutput{
