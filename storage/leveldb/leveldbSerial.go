@@ -99,12 +99,8 @@ func (s *SerialDB) Put(key, val []byte) error {
 	s.mutBatch.Unlock()
 
 	err = s.putBatch()
-	if err != nil {
-		log.Error(err.Error())
-		return err
-	}
 
-	return nil
+	return err
 }
 
 // Get returns the value associated to the key
@@ -160,14 +156,12 @@ func (s *SerialDB) putBatch() error {
 	s.mutBatch.Unlock()
 
 	ch := make(chan error)
-	//request
 	req := &putBatchAct{
 		batch:   batch,
 		resChan: ch,
 	}
 
 	s.dbAccess <- req
-	// await response
 	result := <-ch
 	close(ch)
 
@@ -186,6 +180,7 @@ func (s *SerialDB) Close() error {
 
 	_ = s.putBatch()
 	s.cancel()
+
 	return s.db.Close()
 }
 
@@ -196,14 +191,12 @@ func (s *SerialDB) Remove(key []byte) error {
 	s.mutBatch.Unlock()
 
 	ch := make(chan error)
-	//request
 	req := &delAct{
 		key:     key,
 		resChan: ch,
 	}
 
 	s.dbAccess <- req
-	// await response
 	result := <-ch
 	close(ch)
 
