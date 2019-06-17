@@ -2,11 +2,13 @@ package smartContract
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -15,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var log = logger.DefaultLogger()
 
 type scExecutionState struct {
 	allLogs       map[string][]*vmcommon.LogEntry
@@ -119,7 +123,7 @@ func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (proc
 }
 
 func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
-	if tx == nil {
+	if tx == nil || tx.IsInterfaceNil() {
 		return process.ErrNilTransaction
 	}
 
@@ -190,12 +194,11 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 	}
 
 	nonce := tx.Nonce
-	if acntSnd == nil || acntSnd.IsInterfaceNil() {
-		// transaction was already done at sender shard - increase nonce
-		nonce = tx.Nonce + 1
+	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
+		nonce = acntSnd.GetNonce()
 	}
-
-	sc.tempAccounts.AddTempAccount(tx.SndAddr, tx.Value, nonce)
+	txValue := big.NewInt(0).Set(tx.Value)
+	sc.tempAccounts.AddTempAccount(tx.SndAddr, txValue, nonce)
 
 	return nil
 }
@@ -298,14 +301,16 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	scCallHeader.Timestamp = big.NewInt(0)
 	scCallHeader.Beneficiary = big.NewInt(0)
 
+	vmInput.Header = scCallHeader
+
 	return vmInput, nil
 }
 
 // taking money from sender, as VM might not have access to him because of state sharding
 func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
-	operation := big.NewInt(0)
-	operation = operation.Mul(big.NewInt(int64(tx.GasPrice)), big.NewInt(int64(tx.GasLimit)))
-	operation = operation.Add(operation, tx.Value)
+	cost := big.NewInt(0)
+	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+	cost = cost.Add(cost, tx.Value)
 
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
 		// transaction was already done at sender shard
@@ -317,12 +322,12 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 		return process.ErrWrongTypeAssertion
 	}
 
-	if stAcc.Balance.Cmp(operation) < 0 {
+	if stAcc.Balance.Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
 
 	totalCost := big.NewInt(0)
-	err := stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, operation))
+	err := stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, cost))
 	if err != nil {
 		return err
 	}
@@ -455,8 +460,8 @@ func (sc *scProcessor) refundGasToSender(
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	operation := big.NewInt(0)
-	err := stAcc.SetBalanceWithJournal(operation.Add(stAcc.Balance, refundErd))
+	newBalance := big.NewInt(0).Add(stAcc.Balance, refundErd)
+	err := stAcc.SetBalanceWithJournal(newBalance)
 	if err != nil {
 		return nil, err
 	}
@@ -499,6 +504,9 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			if err != nil {
 				return nil, err
 			}
+
+			//TODO remove this when receipts are implemented
+			log.Info(fmt.Sprintf("*** Generated/called SC account: %s ***", hex.EncodeToString(outAcc.Address)))
 		}
 
 		if outAcc.Nonce == nil || outAcc.Nonce.Cmp(big.NewInt(int64(acc.GetNonce()))) < 0 {
@@ -679,12 +687,6 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		if err != nil {
 			return err
 		}
-	}
-
-	// increase nonce
-	err = stAcc.SetNonceWithJournal(stAcc.Nonce + 1)
-	if err != nil {
-		return err
 	}
 
 	if scr.Value == nil {

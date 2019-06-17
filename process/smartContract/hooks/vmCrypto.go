@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"encoding/hex"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
@@ -12,14 +13,14 @@ import (
 type VMCryptoHook struct {
 }
 
-// Sha256 returns a sha 256 hash of the input string
+// Sha256 returns a sha 256 hash of the input string. Should return in hex format.
 func (vmch *VMCryptoHook) Sha256(str string) (string, error) {
-	return string(sha256.Sha256{}.Compute(str)), nil
+	return hex.EncodeToString(sha256.Sha256{}.Compute(str)), nil
 }
 
-// Keccak256 returns a keccak 256 hash of the input string
+// Keccak256 returns a keccak 256 hash of the input string. Should return in hex format.
 func (vmch *VMCryptoHook) Keccak256(str string) (string, error) {
-	return string(keccak.Keccak{}.Compute(str)), nil
+	return hex.EncodeToString(keccak.Keccak{}.Compute(str)), nil
 }
 
 // Ripemd160 is deprecated and should be removed as soon as the vmcommon interface has been updated
