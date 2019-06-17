@@ -678,12 +678,6 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		}
 	}
 
-	// increase nonce
-	err = stAcc.SetNonceWithJournal(stAcc.Nonce + 1)
-	if err != nil {
-		return err
-	}
-
 	if scr.Value == nil {
 		return process.ErrNilBalanceFromSC
 	}
