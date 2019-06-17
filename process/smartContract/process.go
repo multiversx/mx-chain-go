@@ -121,7 +121,7 @@ func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (proc
 }
 
 func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
-	if tx == nil {
+	if tx == nil || tx.IsInterfaceNil() {
 		return process.ErrNilTransaction
 	}
 
