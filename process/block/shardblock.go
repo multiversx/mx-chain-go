@@ -1185,11 +1185,6 @@ func (sp *shardProcessor) createMiniBlocks(
 		return miniBlocks, nil
 	}
 
-	if txs > uint32(maxTxInBlock) {
-		log.Info(fmt.Sprintf("block is full: added %d transactions\n", txs))
-		return miniBlocks, nil
-	}
-
 	addedTxs := 0
 	for i := 0; i < int(noShards); i++ {
 		miniBlock, err := sp.txPreProcess.CreateAndProcessMiniBlock(sp.shardCoordinator.SelfId(), uint32(i), maxTxInBlock-addedTxs, haveTime, round)
@@ -1247,6 +1242,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 			SenderShardID:   body[i].SenderShardID,
 			ReceiverShardID: body[i].ReceiverShardID,
 			TxCount:         uint32(txCount),
+			Type:            body[i].Type,
 		}
 	}
 
