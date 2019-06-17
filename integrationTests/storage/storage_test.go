@@ -89,7 +89,13 @@ func writeMultipleWithNotif(
 			endTime := time.Now()
 			diff := endTime.Sub(startTime)
 			cumul := endTime.Sub(initTime)
-			fmt.Printf("Written %d, total %d in %f s\nCumulativeWriteTime %f\n", written, counter, diff.Seconds(), cumul.Seconds())
+			writesPerSecond := float64(counter) / cumul.Seconds()
+			fmt.Printf("Written %d, total %d in %f s\nCumulativeWriteTime %f writes/s:%f\n",
+				written,
+				counter,
+				diff.Seconds(),
+				cumul.Seconds(),
+				writesPerSecond)
 			var memStats runtime.MemStats
 			runtime.ReadMemStats(&memStats)
 
@@ -148,8 +154,8 @@ func removeMultiple(
 		maxWrittenBigInt := big.NewInt(0).SetUint64(maxWrittenUint64)
 		existingNonce, _ := rand.Int(rand.Reader, maxWrittenBigInt)
 		key, _ := createStoredData(existingNonce.Uint64())
-		errRemove := store.Remove(key)
 		mapRemovedKeys.Store(string(key), struct{}{})
+		errRemove := store.Remove(key)
 
 		if errRemove != nil {
 			fmt.Println(errRemove.Error())
@@ -224,7 +230,14 @@ func readMultiple(
 				endTime := time.Now()
 				diff := endTime.Sub(startTime)
 				cumul := endTime.Sub(initTime)
-				fmt.Printf("Read %d, total %d in %f s\nCumulativeReadTime %f\n", read, aRead, diff.Seconds(), cumul.Seconds())
+				readsPerSecond := float64(aRead) / cumul.Seconds()
+				fmt.Printf("Read %d, total %d in %f s\nCumulativeReadTime %f reads/s %f\n",
+					read,
+					aRead,
+					diff.Seconds(),
+					cumul.Seconds(),
+					readsPerSecond,
+				)
 				var memStats runtime.MemStats
 				runtime.ReadMemStats(&memStats)
 
@@ -292,7 +305,6 @@ func TestWriteReadDeleteLevelDB(t *testing.T) {
 	go writeMultipleWithNotif(nbTxsWrite, store, wg, chWriteDone, 2, &errors)
 	go removeMultiple(nbTxsWrite, store, wg, chWriteDone, &errors)
 	go readMultiple(nbTxsWrite, store, wg, chWriteDone, &errors)
-
 	wg.Wait()
 
 	assert.Equal(t, int32(0), errors)
@@ -317,7 +329,6 @@ func TestWriteReadDeleteLevelDBSerial(t *testing.T) {
 	go writeMultipleWithNotif(nbTxsWrite, store, wg, chWriteDone, 2, &errors)
 	go removeMultiple(nbTxsWrite, store, wg, chWriteDone, &errors)
 	go readMultiple(nbTxsWrite, store, wg, chWriteDone, &errors)
-
 	wg.Wait()
 
 	assert.Equal(t, int32(0), errors)

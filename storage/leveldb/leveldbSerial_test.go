@@ -127,7 +127,7 @@ func TestSerialDB_HasPresent(t *testing.T) {
 
 func TestSerialDB_HasNotPresent(t *testing.T) {
 	key := []byte("key4")
-	ldb := createLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1)
 
 	err := ldb.Has(key)
 
@@ -164,16 +164,25 @@ func TestSerialDB_RemoveNotPresent(t *testing.T) {
 
 func TestSerialDB_Close(t *testing.T) {
 	ldb := createSerialLevelDb(t, 10, 1)
-
 	err := ldb.Close()
+	<-time.After(10 * time.Millisecond)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 }
 
+func TestSerialDB_CloseTwice(t *testing.T) {
+	ldb := createSerialLevelDb(t, 10, 1)
+	err := ldb.Close()
+	<-time.After(time.Millisecond)
+	err = ldb.Close()
+
+	assert.Nil(t, err)
+}
+
 func TestSerialDB_Destroy(t *testing.T) {
 	ldb := createSerialLevelDb(t, 10, 1)
-
 	err := ldb.Destroy()
+	<-time.After(time.Millisecond)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 }
