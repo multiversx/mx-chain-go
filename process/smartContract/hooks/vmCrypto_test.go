@@ -1,6 +1,7 @@
 package hooks_test
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
@@ -16,11 +17,11 @@ func TestVMCrypto_Sha256ReturnsASha256Hash(t *testing.T) {
 	vmch := &hooks.VMCryptoHook{}
 
 	inputString := "input string for hashing"
-	expectedHash := sha256.Sha256{}.Compute(inputString)
+	expectedHash := hex.EncodeToString(sha256.Sha256{}.Compute(inputString))
 	resultedHash, err := vmch.Sha256(inputString)
 
 	assert.Nil(t, err)
-	assert.Equal(t, string(expectedHash), resultedHash)
+	assert.Equal(t, expectedHash, resultedHash)
 }
 
 func TestVMCrypto_Keccak256ReturnsAKeccak256Hash(t *testing.T) {
@@ -29,11 +30,11 @@ func TestVMCrypto_Keccak256ReturnsAKeccak256Hash(t *testing.T) {
 	vmch := &hooks.VMCryptoHook{}
 
 	inputString := "input string for hashing"
-	expectedHash := keccak.Keccak{}.Compute(inputString)
+	expectedHash := hex.EncodeToString(keccak.Keccak{}.Compute(inputString))
 	resultedHash, err := vmch.Keccak256(inputString)
 
 	assert.Nil(t, err)
-	assert.Equal(t, string(expectedHash), resultedHash)
+	assert.Equal(t, expectedHash, resultedHash)
 }
 
 func TestVMCrypto_DeprecatedFuncsReturnErr(t *testing.T) {
