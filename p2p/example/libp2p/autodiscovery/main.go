@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
-	cr "github.com/libp2p/go-libp2p-crypto"
+	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
 var r *rand.Rand
@@ -88,8 +88,8 @@ func getConnectableAddress(peer p2p.Messenger) string {
 	return ""
 }
 
-func genPrivKey() cr.PrivKey {
-	prv, _, _ := cr.GenerateKeyPairWithReader(cr.Ed25519, 0, r)
+func genPrivKey() crypto.PrivKey {
+	prv, _, _ := crypto.GenerateKeyPairWithReader(crypto.Ed25519, 0, r)
 	return prv
 }
 

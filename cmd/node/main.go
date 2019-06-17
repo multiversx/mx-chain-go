@@ -68,7 +68,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/google/gops/agent"
-	crypto2 "github.com/libp2p/go-libp2p-crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
 )
@@ -1060,7 +1060,7 @@ func createNetMessenger(
 	log.Info(fmt.Sprintf("Starting with peer discovery: %s", pDiscoverer.Name()))
 
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
-	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
 	nm, err := libp2p.NewNetworkMessenger(
 		context.Background(),

@@ -1,9 +1,9 @@
 package mock
 
 import (
-	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -15,9 +15,9 @@ type ConnStub struct {
 	RemotePublicKeyCalled func() crypto.PubKey
 	LocalMultiaddrCalled  func() multiaddr.Multiaddr
 	RemoteMultiaddrCalled func() multiaddr.Multiaddr
-	NewStreamCalled       func() (net.Stream, error)
-	GetStreamsCalled      func() []net.Stream
-	StatCalled            func() net.Stat
+	NewStreamCalled       func() (network.Stream, error)
+	GetStreamsCalled      func() []network.Stream
+	StatCalled            func() network.Stat
 }
 
 func (cs *ConnStub) Close() error {
@@ -48,14 +48,14 @@ func (cs *ConnStub) RemoteMultiaddr() multiaddr.Multiaddr {
 	return cs.RemoteMultiaddrCalled()
 }
 
-func (cs *ConnStub) NewStream() (net.Stream, error) {
+func (cs *ConnStub) NewStream() (network.Stream, error) {
 	return cs.NewStreamCalled()
 }
 
-func (cs *ConnStub) GetStreams() []net.Stream {
+func (cs *ConnStub) GetStreams() []network.Stream {
 	return cs.GetStreamsCalled()
 }
 
-func (cs *ConnStub) Stat() net.Stat {
+func (cs *ConnStub) Stat() network.Stat {
 	return cs.StatCalled()
 }

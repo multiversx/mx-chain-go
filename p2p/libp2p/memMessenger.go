@@ -2,10 +2,12 @@ package libp2p
 
 import (
 	"context"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
-	crypto "github.com/libp2p/go-libp2p-crypto"
-	ifconnmgr "github.com/libp2p/go-libp2p-interface-connmgr"
+	"github.com/libp2p/go-libp2p-core/connmgr"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
@@ -34,7 +36,7 @@ func NewMemoryMessenger(
 		return nil, err
 	}
 
-	lctx, err := NewLibp2pContext(ctx, NewConnectableHost(h))
+	lctx, err := NewLibp2pContext(ctx, NewConnectableHost(host.Host(h)))
 	if err != nil {
 		log.LogIfError(h.Close())
 		return nil, err
@@ -57,7 +59,7 @@ func NewMemoryMessenger(
 // Should be used only in testing!
 func NewNetworkMessengerOnFreePort(ctx context.Context,
 	p2pPrivKey crypto.PrivKey,
-	conMgr ifconnmgr.ConnManager,
+	conMgr connmgr.ConnManager,
 	outgoingPLB p2p.ChannelLoadBalancer,
 	peerDiscoverer p2p.PeerDiscoverer,
 ) (*networkMessenger, error) {

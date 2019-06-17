@@ -9,11 +9,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-interface-connmgr"
-	"github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p-protocol"
+	"github.com/libp2p/go-libp2p-core/connmgr"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
@@ -51,7 +51,7 @@ func NewNetworkMessenger(
 	ctx context.Context,
 	port int,
 	p2pPrivKey crypto.PrivKey,
-	conMgr ifconnmgr.ConnManager,
+	conMgr connmgr.ConnManager,
 	outgoingPLB p2p.ChannelLoadBalancer,
 	peerDiscoverer p2p.PeerDiscoverer,
 	listenAddress string,
@@ -245,7 +245,7 @@ func (netMes *networkMessenger) IsConnected(peerID p2p.PeerID) bool {
 
 	connectedness := h.Network().Connectedness(peer.ID(peerID))
 
-	return connectedness == net.Connected
+	return connectedness == network.Connected
 }
 
 // ConnectedPeers returns the current connected peers list

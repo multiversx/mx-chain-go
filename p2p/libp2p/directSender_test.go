@@ -14,10 +14,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/btcsuite/btcd/btcec"
 	ggio "github.com/gogo/protobuf/io"
-	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p-protocol"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,18 +30,18 @@ var blankMessageHandler = func(msg p2p.MessageP2P) error {
 
 func generateHostStub() *mock.ConnectableHostStub {
 	return &mock.ConnectableHostStub{
-		SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
+		SetStreamHandlerCalled: func(pid protocol.ID, handler network.StreamHandler) {},
 	}
 }
 
-func createConnStub(stream net.Stream, id peer.ID, sk crypto.PrivKey, remotePeer peer.ID) *mock.ConnStub {
+func createConnStub(stream network.Stream, id peer.ID, sk crypto.PrivKey, remotePeer peer.ID) *mock.ConnStub {
 	return &mock.ConnStub{
-		GetStreamsCalled: func() []net.Stream {
+		GetStreamsCalled: func() []network.Stream {
 			if stream == nil {
-				return make([]net.Stream, 0)
+				return make([]network.Stream, 0)
 			}
 
-			return []net.Stream{stream}
+			return []network.Stream{stream}
 		},
 		LocalPeerCalled: func() peer.ID {
 			return id
@@ -103,10 +103,10 @@ func TestNewDirectSender_OkValsShouldWork(t *testing.T) {
 
 func TestNewDirectSender_OkValsShouldCallSetStreamHandlerWithCorrectValues(t *testing.T) {
 	var pidCalled protocol.ID
-	var handlerCalled net.StreamHandler
+	var handlerCalled network.StreamHandler
 
 	hs := &mock.ConnectableHostStub{
-		SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {
+		SetStreamHandlerCalled: func(pid protocol.ID, handler network.StreamHandler) {
 			pidCalled = pid
 			handlerCalled = handler
 		},
@@ -279,15 +279,15 @@ func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing
 
 	cs := createConnStub(stream, id, sk, remotePeer)
 
-	netw.ConnsToPeerCalled = func(p peer.ID) []net.Conn {
-		return []net.Conn{cs}
+	netw.ConnsToPeerCalled = func(p peer.ID) []network.Conn {
+		return []network.Conn{cs}
 	}
 
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		&mock.ConnectableHostStub{
-			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-			NetworkCalled: func() net.Network {
+			SetStreamHandlerCalled: func(pid protocol.ID, handler network.StreamHandler) {},
+			NetworkCalled: func() network.Network {
 				return netw
 			},
 		},
@@ -303,16 +303,16 @@ func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing
 
 func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *testing.T) {
 	netw := &mock.NetworkStub{
-		ConnsToPeerCalled: func(p peer.ID) []net.Conn {
-			return make([]net.Conn, 0)
+		ConnsToPeerCalled: func(p peer.ID) []network.Conn {
+			return make([]network.Conn, 0)
 		},
 	}
 
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		&mock.ConnectableHostStub{
-			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-			NetworkCalled: func() net.Network {
+			SetStreamHandlerCalled: func(pid protocol.ID, handler network.StreamHandler) {},
+			NetworkCalled: func() network.Network {
 				return netw
 			},
 		},
@@ -330,8 +330,8 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testi
 	netw := &mock.NetworkStub{}
 
 	hs := &mock.ConnectableHostStub{
-		SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-		NetworkCalled: func() net.Network {
+		SetStreamHandlerCalled: func(pid protocol.ID, handler network.StreamHandler) {},
+		NetworkCalled: func() network.Network {
 			return netw
 		},
 	}
@@ -348,11 +348,11 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testi
 
 	cs := createConnStub(nil, id, sk, remotePeer)
 
-	netw.ConnsToPeerCalled = func(p peer.ID) []net.Conn {
-		return []net.Conn{cs}
+	netw.ConnsToPeerCalled = func(p peer.ID) []network.Conn {
+		return []network.Conn{cs}
 	}
 
-	hs.NewStreamCalled = func(ctx context.Context, p peer.ID, pids ...protocol.ID) (net.Stream, error) {
+	hs.NewStreamCalled = func(ctx context.Context, p peer.ID, pids ...protocol.ID) (network.Stream, error) {
 		return nil, errNewStream
 	}
 
@@ -369,8 +369,8 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		&mock.ConnectableHostStub{
-			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-			NetworkCalled: func() net.Network {
+			SetStreamHandlerCalled: func(pid protocol.ID, handler network.StreamHandler) {},
+			NetworkCalled: func() network.Network {
 				return netw
 			},
 		},
@@ -387,14 +387,14 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 
 	cs := createConnStub(stream, id, sk, remotePeer)
 
-	netw.ConnsToPeerCalled = func(p peer.ID) []net.Conn {
-		return []net.Conn{cs}
+	netw.ConnsToPeerCalled = func(p peer.ID) []network.Conn {
+		return []network.Conn{cs}
 	}
 
 	receivedMsg := &pubsub_pb.Message{}
 	chanDone := make(chan bool)
 
-	go func(s net.Stream) {
+	go func(s network.Stream) {
 		reader := ggio.NewDelimitedReader(s, 1<<20)
 		for {
 			err := reader.ReadMsg(receivedMsg)
@@ -428,8 +428,8 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 	netw := &mock.NetworkStub{}
 
 	hs := &mock.ConnectableHostStub{
-		SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-		NetworkCalled: func() net.Network {
+		SetStreamHandlerCalled: func(pid protocol.ID, handler network.StreamHandler) {},
+		NetworkCalled: func() network.Network {
 			return netw
 		},
 	}
@@ -450,11 +450,11 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 
 	cs := createConnStub(stream, id, sk, remotePeer)
 
-	netw.ConnsToPeerCalled = func(p peer.ID) []net.Conn {
-		return []net.Conn{cs}
+	netw.ConnsToPeerCalled = func(p peer.ID) []network.Conn {
+		return []network.Conn{cs}
 	}
 
-	hs.NewStreamCalled = func(ctx context.Context, p peer.ID, pids ...protocol.ID) (net.Stream, error) {
+	hs.NewStreamCalled = func(ctx context.Context, p peer.ID, pids ...protocol.ID) (network.Stream, error) {
 		if p == remotePeer && pids[0] == libp2p.DirectSendID {
 			return stream, nil
 		}
@@ -464,7 +464,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 	receivedMsg := &pubsub_pb.Message{}
 	chanDone := make(chan bool)
 
-	go func(s net.Stream) {
+	go func(s network.Stream) {
 		reader := ggio.NewDelimitedReader(s, 1<<20)
 		for {
 			err := reader.ReadMsg(receivedMsg)
@@ -497,14 +497,14 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 //------- received mesages tests
 
 func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t *testing.T) {
-	var streamHandler net.StreamHandler
+	var streamHandler network.StreamHandler
 	netw := &mock.NetworkStub{}
 
 	hs := &mock.ConnectableHostStub{
-		SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {
+		SetStreamHandlerCalled: func(pid protocol.ID, handler network.StreamHandler) {
 			streamHandler = handler
 		},
-		NetworkCalled: func() net.Network {
+		NetworkCalled: func() network.Network {
 			return netw
 		},
 	}
@@ -532,8 +532,8 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 
 	cs := createConnStub(stream, id, sk, remotePeer)
 
-	netw.ConnsToPeerCalled = func(p peer.ID) []net.Conn {
-		return []net.Conn{cs}
+	netw.ConnsToPeerCalled = func(p peer.ID) []network.Conn {
+		return []network.Conn{cs}
 	}
 
 	data := []byte("data")

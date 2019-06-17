@@ -13,11 +13,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	ggio "github.com/gogo/protobuf/io"
 	"github.com/gogo/protobuf/proto"
-	"github.com/libp2p/go-libp2p-host"
-	"github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p-pubsub/pb"
+	"github.com/libp2p/go-libp2p-core/helpers"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	pubsub_pb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/whyrusleeping/timecache"
 )
 
@@ -66,7 +67,7 @@ func NewDirectSender(
 	return ds, nil
 }
 
-func (ds *directSender) directStreamHandler(s net.Stream) {
+func (ds *directSender) directStreamHandler(s network.Stream) {
 	reader := ggio.NewDelimitedReader(s, 1<<20)
 
 	go func(r ggio.ReadCloser) {
@@ -165,7 +166,7 @@ func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
 		if err != nil {
 			log.LogIfError(err)
 			_ = stream.Reset()
-			_ = net.FullClose(stream)
+			_ = helpers.FullClose(stream)
 			return
 		}
 
@@ -173,7 +174,7 @@ func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
 		if err != nil {
 			log.LogIfError(err)
 			_ = stream.Reset()
-			_ = net.FullClose(stream)
+			_ = helpers.FullClose(stream)
 			return
 		}
 	}(msg)
@@ -181,7 +182,7 @@ func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
 	return nil
 }
 
-func (ds *directSender) getConnection(p p2p.PeerID) (net.Conn, error) {
+func (ds *directSender) getConnection(p p2p.PeerID) (network.Conn, error) {
 	conns := ds.hostP2P.Network().ConnsToPeer(peer.ID(p))
 
 	if len(conns) == 0 {
@@ -191,12 +192,12 @@ func (ds *directSender) getConnection(p p2p.PeerID) (net.Conn, error) {
 	return conns[0], nil
 }
 
-func (ds *directSender) getOrCreateStream(conn net.Conn) (net.Stream, error) {
+func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, error) {
 	streams := conn.GetStreams()
-	var foundStream net.Stream
+	var foundStream network.Stream
 	for i := 0; i < len(streams); i++ {
 		isExpectedStream := streams[i].Protocol() == DirectSendID
-		isSendableStream := streams[i].Stat().Direction == net.DirOutbound
+		isSendableStream := streams[i].Stat().Direction == network.DirOutbound
 
 		if isExpectedStream && isSendableStream {
 			foundStream = streams[i]
@@ -216,7 +217,7 @@ func (ds *directSender) getOrCreateStream(conn net.Conn) (net.Stream, error) {
 	return foundStream, nil
 }
 
-func (ds *directSender) createMessage(topic string, buff []byte, conn net.Conn) *pubsub_pb.Message {
+func (ds *directSender) createMessage(topic string, buff []byte, conn network.Conn) *pubsub_pb.Message {
 	seqno := ds.NextSeqno(&ds.counter)
 	mes := pubsub_pb.Message{}
 	mes.Data = buff
