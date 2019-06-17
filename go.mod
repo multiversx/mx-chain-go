@@ -40,7 +40,6 @@ require (
 	github.com/libp2p/go-libp2p-peerstore v0.0.1
 	github.com/libp2p/go-libp2p-protocol v0.0.1
 	github.com/libp2p/go-libp2p-pubsub v0.0.3
-	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mr-tron/base58 v1.1.1
 	github.com/multiformats/go-multiaddr v0.0.2
 	github.com/multiformats/go-multistream v0.0.1
@@ -50,7 +49,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.4.0
 	github.com/stretchr/testify v1.3.0
-	github.com/syndtr/goleveldb v1.0.0
+	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.20.0
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
