@@ -828,6 +828,8 @@ func (s MiniBlockHeaderCapn) SenderShardID() uint32       { return C.Struct(s).G
 func (s MiniBlockHeaderCapn) SetSenderShardID(v uint32)   { C.Struct(s).Set32(4, v) }
 func (s MiniBlockHeaderCapn) TxCount() uint32             { return C.Struct(s).Get32(8) }
 func (s MiniBlockHeaderCapn) SetTxCount(v uint32)         { C.Struct(s).Set32(8, v) }
+func (s MiniBlockHeaderCapn) Type() uint8                 { return C.Struct(s).Get8(12) }
+func (s MiniBlockHeaderCapn) SetType(v uint8)             { C.Struct(s).Set8(12, v) }
 func (s MiniBlockHeaderCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -900,6 +902,25 @@ func (s MiniBlockHeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.TxCount()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"type\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Type()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -1002,6 +1023,25 @@ func (s MiniBlockHeaderCapn) WriteCapLit(w io.Writer) error {
 			return err
 		}
 	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("type = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Type()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
 	err = b.WriteByte(')')
 	if err != nil {
 		return err
@@ -1038,9 +1078,9 @@ func (s MiniBlockHeaderCapn_List) Set(i int, item MiniBlockHeaderCapn) {
 
 type MiniBlockCapn C.Struct
 
-func NewMiniBlockCapn(s *C.Segment) MiniBlockCapn      { return MiniBlockCapn(s.NewStruct(8, 1)) }
-func NewRootMiniBlockCapn(s *C.Segment) MiniBlockCapn  { return MiniBlockCapn(s.NewRootStruct(8, 1)) }
-func AutoNewMiniBlockCapn(s *C.Segment) MiniBlockCapn  { return MiniBlockCapn(s.NewStructAR(8, 1)) }
+func NewMiniBlockCapn(s *C.Segment) MiniBlockCapn      { return MiniBlockCapn(s.NewStruct(16, 1)) }
+func NewRootMiniBlockCapn(s *C.Segment) MiniBlockCapn  { return MiniBlockCapn(s.NewRootStruct(16, 1)) }
+func AutoNewMiniBlockCapn(s *C.Segment) MiniBlockCapn  { return MiniBlockCapn(s.NewStructAR(16, 1)) }
 func ReadRootMiniBlockCapn(s *C.Segment) MiniBlockCapn { return MiniBlockCapn(s.Root(0).ToStruct()) }
 func (s MiniBlockCapn) TxHashes() C.DataList           { return C.DataList(C.Struct(s).GetObject(0)) }
 func (s MiniBlockCapn) SetTxHashes(v C.DataList)       { C.Struct(s).SetObject(0, C.Object(v)) }
@@ -1048,6 +1088,8 @@ func (s MiniBlockCapn) ReceiverShardID() uint32        { return C.Struct(s).Get3
 func (s MiniBlockCapn) SetReceiverShardID(v uint32)    { C.Struct(s).Set32(0, v) }
 func (s MiniBlockCapn) SenderShardID() uint32          { return C.Struct(s).Get32(4) }
 func (s MiniBlockCapn) SetSenderShardID(v uint32)      { C.Struct(s).Set32(4, v) }
+func (s MiniBlockCapn) Type() uint8                    { return C.Struct(s).Get8(8) }
+func (s MiniBlockCapn) SetType(v uint8)                { C.Struct(s).Set8(8, v) }
 func (s MiniBlockCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -1119,6 +1161,25 @@ func (s MiniBlockCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.SenderShardID()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"type\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Type()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -1220,6 +1281,25 @@ func (s MiniBlockCapn) WriteCapLit(w io.Writer) error {
 			return err
 		}
 	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("type = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Type()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
 	err = b.WriteByte(')')
 	if err != nil {
 		return err
@@ -1236,7 +1316,7 @@ func (s MiniBlockCapn) MarshalCapLit() ([]byte, error) {
 type MiniBlockCapn_List C.PointerList
 
 func NewMiniBlockCapnList(s *C.Segment, sz int) MiniBlockCapn_List {
-	return MiniBlockCapn_List(s.NewCompositeList(8, 1, sz))
+	return MiniBlockCapn_List(s.NewCompositeList(16, 1, sz))
 }
 func (s MiniBlockCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s MiniBlockCapn_List) At(i int) MiniBlockCapn {

@@ -149,19 +149,6 @@ func (a *MetaAccount) SetCode(code []byte) {
 	a.code = code
 }
 
-// SetCodeWithJournal sets the account's code, saving the old code before changing
-func (a *MetaAccount) SetCodeWithJournal(code []byte) error {
-	entry, err := NewBaseJournalEntryCode(a, a.code)
-	if err != nil {
-		return err
-	}
-
-	a.accountTracker.Journalize(entry)
-	a.code = code
-
-	return a.accountTracker.SaveAccount(a)
-}
-
 //------- data trie / root hash
 
 // GetRootHash returns the root hash associated with this account

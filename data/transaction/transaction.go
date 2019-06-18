@@ -94,3 +94,48 @@ func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnp.TransactionC
 
 	return dest
 }
+
+// IsInterfaceNil verifies if underlying object is nil
+func (tx *Transaction) IsInterfaceNil() bool {
+	return tx == nil
+}
+
+// GetValue returns the value of the transaction
+func (tx *Transaction) GetValue() *big.Int {
+	return tx.Value
+}
+
+// GetData returns the data of the transaction
+func (tx *Transaction) GetData() []byte {
+	return tx.Data
+}
+
+// GetRecvAddress returns the receiver address from the transaction
+func (tx *Transaction) GetRecvAddress() []byte {
+	return tx.RcvAddr
+}
+
+// GetSndAddress returns the sender address from the transaction
+func (tx *Transaction) GetSndAddress() []byte {
+	return tx.SndAddr
+}
+
+// SetValue sets the value of the transaction
+func (tx *Transaction) SetValue(value *big.Int) {
+	tx.Value = value
+}
+
+// SetData sets the data of the transaction
+func (tx *Transaction) SetData(data []byte) {
+	tx.Data = data
+}
+
+// SetRecvAddress sets the receiver address of the transaction
+func (tx *Transaction) SetRecvAddress(addr []byte) {
+	tx.RcvAddr = addr
+}
+
+// SetSndAddress sets the sender address of the transaction
+func (tx *Transaction) SetSndAddress(addr []byte) {
+	tx.SndAddr = addr
+}

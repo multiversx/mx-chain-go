@@ -14,9 +14,9 @@
         Type = "LRU"
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
-        Type = "LvlDB"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 30
+        MaxBatchSize = 10
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
@@ -24,9 +24,9 @@
         Type = "LRU"
     [PeerBlockBodyStorage.DB]
         FilePath = "PeerBlocks"
-        Type = "LvlDB"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 30
+        MaxBatchSize = 10
 
 [BlockHeaderStorage]
     [BlockHeaderStorage.Cache]
@@ -34,9 +34,9 @@
         Type = "LRU"
     [BlockHeaderStorage.DB]
         FilePath = "BlockHeaders"
-        Type = "LvlDB"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 30
+        MaxBatchSize = 10
 
 [ShardDataStorage]
     [ShardDataStorage.Cache]
@@ -44,9 +44,9 @@
         Type = "LRU"
     [ShardDataStorage.DB]
         FilePath = "ShardData"
-        Type = "LvlDB"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 30
+        MaxBatchSize = 10
 
 [PeerDataStorage]
     [PeerDataStorage.Cache]
@@ -54,9 +54,9 @@
         Type = "LRU"
     [PeerDataStorage.DB]
         FilePath = "PeerData"
-        Type = "LvlDB"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 30
+        MaxBatchSize = 10
 
 [MetaBlockStorage]
     [MetaBlockStorage.Cache]
@@ -64,9 +64,9 @@
         Type = "LRU"
     [MetaBlockStorage.DB]
         FilePath = "MetaBlock"
-        Type = "LvlDB"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 30
+        MaxBatchSize = 10
 
 [TxStorage]
     [TxStorage.Cache]
@@ -74,9 +74,9 @@
         Type = "LRU"
     [TxStorage.DB]
         FilePath = "Transactions"
-        Type = "LvlDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 10
-        MaxBatchSize = 5000
+        MaxBatchSize = 30000
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
@@ -84,9 +84,9 @@
         Type = "LRU"
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie"
-        Type = "LvlDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        MaxBatchSize = 30000
 
     [AccountsTrieStorage.Bloom]
         Size = 2048
