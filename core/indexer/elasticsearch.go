@@ -35,6 +35,7 @@ const shardTpsDocIDPrefix = "shard"
 
 const badRequest = 400
 
+//TODO refactor this and split in 3: glue code, interface and logic code
 type elasticIndexer struct {
 	db               *elasticsearch.Client
 	shardCoordinator sharding.Coordinator
@@ -258,6 +259,14 @@ func (ei *elasticIndexer) saveHeader(header data.HeaderHandler) {
 	}
 
 	defer func() {
+		if res == nil {
+			return
+		}
+
+		if res.Body == nil {
+			return
+		}
+
 		_ = res.Body.Close()
 	}()
 
