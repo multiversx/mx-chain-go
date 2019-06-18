@@ -8,9 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
+	trie "github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract"
@@ -52,9 +53,10 @@ func CreateMemUnit() storage.Storer {
 
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
+	store := CreateMemUnit()
 
-	dbw, _ := trie.NewDBWriteCache(CreateMemUnit())
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, testHasher)
+	pmt, _ := trie2.NewTrie(store, marsh, testHasher)
+	tr := trie.AdapterTrie{pmt}
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
 	return adb
