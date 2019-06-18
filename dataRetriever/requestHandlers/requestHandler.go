@@ -119,7 +119,7 @@ func (rrh *ResolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 	}()
 }
 
-// RequestTransaction method asks for transactions from the connected peers
+// RequestSmartContractResults method asks for smart contract results from the connected peers
 func (rrh *ResolverRequestHandler) RequestSmartContractResults(destShardID uint32, scrHashes [][]byte) {
 	rrh.requestByHashes(destShardID, scrHashes, rrh.scrRequestTopic)
 }

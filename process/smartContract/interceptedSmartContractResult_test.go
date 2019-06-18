@@ -18,7 +18,6 @@ var senderShard = uint32(2)
 var recvShard = uint32(3)
 var senderAddress = []byte("sender")
 var recvAddress = []byte("receiver")
-var sigOk = []byte("signature")
 
 func createInterceptedScrFromPlainScr(scr *smartContractResult.SmartContractResult) (*smartContract.InterceptedSmartContractResult, error) {
 	marshalizer := &mock.MarshalizerMock{}
