@@ -32,7 +32,7 @@ func adbCreateAccountsDBWithStorage() (*state.AccountsDB, storage.Storer) {
 	store := createMemUnit()
 
 	pmt, _ := trie2.NewTrie(store, marsh, hasher)
-	tr := adapterTrie{pmt}
+	tr := AdapterTrie{pmt}
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &accountFactory{})
 
 	return adb, store
@@ -294,7 +294,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
 	pmt1, _ := trie2.NewTrie(store, marsh, hasher)
-	tr1 := adapterTrie{pmt1}
+	tr1 := AdapterTrie{pmt1}
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
@@ -350,7 +350,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(adb.RootHash()))
 
 	pmt, _ := trie2.NewTrie(mu, &marshal.JsonMarshalizer{}, sha256.Sha256{})
-	tr := adapterTrie{pmt}
+	tr := AdapterTrie{pmt}
 
 	adb, _ = state.NewAccountsDB(tr, sha256.Sha256{}, &marshal.JsonMarshalizer{}, &accountFactory{})
 

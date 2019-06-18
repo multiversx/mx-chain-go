@@ -6,15 +6,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-type adapterTrie struct {
+type AdapterTrie struct {
 	trie2.Trie
 }
 
-func (adapterTrie) SetCacheLimit(l uint16) {
+func (AdapterTrie) SetCacheLimit(l uint16) {
 	panic("implement me")
 }
 
-func (at adapterTrie) Root() []byte {
+func (at AdapterTrie) Root() []byte {
 	rootHash, err := at.Trie.Root()
 	if err != nil {
 		return nil
@@ -22,24 +22,24 @@ func (at adapterTrie) Root() []byte {
 	return rootHash
 }
 
-func (at adapterTrie) Commit(onleaf trie.LeafCallback) (root []byte, err error) {
+func (at AdapterTrie) Commit(onleaf trie.LeafCallback) (root []byte, err error) {
 	root = at.Root()
 	err = at.Trie.Commit()
 	return root, err
 }
 
-func (at adapterTrie) DBW() trie.DBWriteCacher {
+func (at AdapterTrie) DBW() trie.DBWriteCacher {
 	db := at.Trie.DBW()
 	return adapterDB{db}
 }
 
-func (at adapterTrie) Recreate(root []byte, dbw trie.DBWriteCacher) (trie.PatriciaMerkelTree, error) {
+func (at AdapterTrie) Recreate(root []byte, dbw trie.DBWriteCacher) (trie.PatriciaMerkelTree, error) {
 	tr, _ := at.Trie.Recreate(root, at.Trie.DBW())
 
-	return adapterTrie{tr}, nil
+	return AdapterTrie{tr}, nil
 }
 
-func (adapterTrie) Copy() trie.PatriciaMerkelTree {
+func (AdapterTrie) Copy() trie.PatriciaMerkelTree {
 	panic("implement me")
 }
 

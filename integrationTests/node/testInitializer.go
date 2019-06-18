@@ -5,8 +5,9 @@ import (
 	"encoding/hex"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	trie "github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
@@ -42,8 +43,11 @@ func createDummyHexAddress(chars int) string {
 }
 
 func createInMemoryShardAccountsDB() *state.AccountsDB {
-	dbw, _ := trie.NewDBWriteCache(createMemUnit())
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+	hasher := sha256.Sha256{}
+	store := createMemUnit()
+
+	pmt, _ := trie2.NewTrie(store, testMarshalizer, hasher)
+	tr := trie.AdapterTrie{pmt}
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer, &accountFactory{})
 
 	return adb
