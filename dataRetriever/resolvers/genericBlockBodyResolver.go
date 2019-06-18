@@ -157,6 +157,10 @@ func (gbbRes *GenericBlockBodyResolver) GetMiniBlocks(hashes [][]byte) block.Min
 		if err != nil {
 			gbbRes.miniBlockPool.Remove(hashes[i])
 			err = gbbRes.miniBlockStorage.Remove(hashes[i])
+			if err != nil {
+				log.Debug(err.Error())
+			}
+
 			return nil
 		}
 
@@ -191,9 +195,11 @@ func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromCache(hashes [][]byte) 
 		}
 
 		buff, err := gbbRes.marshalizer.Marshal(cachedMB)
-
 		if err != nil {
-			log.LogIfError(err)
+			log.Debug(err.Error())
+		}
+
+		if buff == nil {
 			return nil
 		}
 
@@ -211,9 +217,11 @@ func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte)
 
 	for i := 0; i < miniBlocksLen; i++ {
 		buff, err := gbbRes.miniBlockStorage.Get(hashes[i])
+		if err != nil {
+			log.Debug(err.Error())
+		}
 
 		if buff == nil {
-			log.LogIfError(err)
 			return nil
 		}
 
