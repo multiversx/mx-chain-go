@@ -70,7 +70,7 @@
 
 [TxStorage]
     [TxStorage.Cache]
-        Size = 1000000
+        Size = 100000
         Type = "LRU"
     [TxStorage.DB]
         FilePath = "Transactions"
@@ -100,7 +100,7 @@
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
-        Size = 1000000
+        Size = 100000
         Type = "LRU"
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie"
@@ -137,7 +137,7 @@
     Type = "LRU"
 
 [TxDataPool]
-    Size = 1000000
+    Size = 100000
     Type = "LRU"
 
 [ShardHeadersDataPool]
