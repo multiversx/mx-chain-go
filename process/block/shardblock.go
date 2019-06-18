@@ -529,7 +529,7 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-// removeMetaBlockFromPool removes meta blocks from associated pool
+// getProcessedMetaBlocksFromPool returns all the meta blocks fully processed
 func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body) ([]data.HeaderHandler, error) {
 	if body == nil {
 		return nil, process.ErrNilTxBlockBody
