@@ -594,7 +594,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body) ([]dat
 }
 
 func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
-	lastNotarisedMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	lastNotarizedMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -606,7 +606,7 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 		hdr := processedMetaHdrs[i]
 
 		// remove process finished
-		if hdr.GetNonce() > lastNotarisedMetaHdr.GetNonce() {
+		if hdr.GetNonce() > lastNotarizedMetaHdr.GetNonce() {
 			continue
 		}
 
