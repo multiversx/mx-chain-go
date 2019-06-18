@@ -2,7 +2,7 @@
 [GeneralSettings]
    # DestinationShardAsObserver represents the desired shard when running as observer
    # value will be given as string. For example: "0", "1", "15", "metachain"
-   DestinationShardAsObserver = "0"
+   DestinationShardAsObserver = "1"
 
 [Explorer]
     Enabled = false
