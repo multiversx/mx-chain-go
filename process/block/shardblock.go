@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -22,17 +21,6 @@ import (
 )
 
 const maxTransactionsInBlock = 15000
-
-type txShardInfo struct {
-	senderShardID   uint32
-	receiverShardID uint32
-}
-
-type txInfo struct {
-	tx *transaction.Transaction
-	*txShardInfo
-	has bool
-}
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
@@ -213,7 +201,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	if requestedMetaHdrs > 0 {
+	if requestedMetaHdrs > 0 || requestedFinalMetaHdrs > 0 {
 		log.Info(fmt.Sprintf("requested %d missing meta headers and %d final meta headers to confirm cross shard txs\n", requestedMetaHdrs, requestedFinalMetaHdrs))
 		err = sp.waitForMetaHdrHashes(haveTime())
 		sp.mutRequestedMetaHdrsHashes.Lock()
@@ -405,7 +393,6 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][]byt
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error) {
 	miniBlocks, err := sp.createMiniBlocks(sp.shardCoordinator.NumberOfShards(), maxTransactionsInBlock, round, haveTime)
-
 	if err != nil {
 		return nil, err
 	}
@@ -1235,7 +1222,7 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	if !haveTime() {
 		log.Info(fmt.Sprintf("time is up after entered in createMiniBlocks method\n"))
-		return miniBlocks, nil
+		return nil, process.ErrTimeIsOut
 	}
 
 	txPool := sp.dataPool.Transactions()
@@ -1256,20 +1243,19 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	if !haveTime() {
 		log.Info(fmt.Sprintf("time is up added %d transactions\n", txs))
-		return miniBlocks, nil
+		return nil, process.ErrTimeIsOut
 	}
 
 	addedTxs := 0
 	for i := 0; i < int(noShards); i++ {
 		miniBlock, err := sp.txPreProcess.CreateAndProcessMiniBlock(sp.shardCoordinator.SelfId(), uint32(i), maxTxInBlock-addedTxs, haveTime, round)
+		if err != nil {
+			return miniBlocks, nil
+		}
 
 		if len(miniBlock.TxHashes) > 0 {
 			addedTxs += len(miniBlock.TxHashes)
 			miniBlocks = append(miniBlocks, miniBlock)
-		}
-
-		if err != nil {
-			return miniBlocks, nil
 		}
 	}
 

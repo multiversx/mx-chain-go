@@ -1674,9 +1674,9 @@ func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 	}
 	bl, err := sp.CreateBlockBody(0, haveTime)
 	// no error
-	assert.Nil(t, err)
+	assert.Equal(t, process.ErrTimeIsOut, err)
 	// no miniblocks
-	assert.Equal(t, len(bl.(block.Body)), 0)
+	assert.Nil(t, bl)
 }
 
 func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {

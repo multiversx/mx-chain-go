@@ -130,6 +130,7 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -493,7 +494,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 
 	if !haveTime() {
 		log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
-		return nil, nil
+		return nil, process.ErrTimeIsOut
 	}
 
 	log.Info(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))

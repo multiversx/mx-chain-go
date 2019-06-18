@@ -86,10 +86,10 @@ func (mp *metaProcessor) AddHdrHashToRequestedList(hdrHash []byte) {
 		mp.allNeededShardHdrsFound = false
 	}
 
-	if mp.currHighestShardHdrNonce == nil {
-		mp.currHighestShardHdrNonce = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
+	if mp.currHighestShardHdrsNonces == nil {
+		mp.currHighestShardHdrsNonces = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
 		for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-			mp.currHighestShardHdrNonce[i] = uint64(0)
+			mp.currHighestShardHdrsNonces[i] = uint64(0)
 		}
 	}
 
