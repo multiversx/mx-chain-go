@@ -1,7 +1,9 @@
 package smartContract
 
 import (
+	"bytes"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -140,4 +142,106 @@ func TestAtArgumentParser_ParseDataNil(t *testing.T) {
 
 	err = parser.ParseData(nil)
 	assert.Equal(t, process.ErrStringSplitFailed, err)
+}
+
+func TestAtArgumentParser_CreateDataFromStorageUpdate(t *testing.T) {
+	t.Parallel()
+
+	parser, err := NewAtArgumentParser()
+	assert.Nil(t, err)
+	assert.NotNil(t, parser)
+
+	data := parser.CreateDataFromStorageUpdate(nil)
+	assert.Equal(t, 0, len(data))
+
+	test := []byte("test")
+	stUpd := vmcommon.StorageUpdate{Offset: test, Data: test}
+	stUpdates := make([]*vmcommon.StorageUpdate, 0)
+	stUpdates = append(stUpdates, &stUpd, &stUpd, &stUpd)
+	result := []byte("")
+	sep := []byte("@")
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+
+	data = parser.CreateDataFromStorageUpdate(stUpdates)
+
+	assert.True(t, bytes.Equal(result, data))
+}
+
+func TestAtArgumentParser_GetStorageUpdatesNilData(t *testing.T) {
+	t.Parallel()
+
+	parser, err := NewAtArgumentParser()
+	assert.Nil(t, err)
+	assert.NotNil(t, parser)
+
+	stUpdates, err := parser.GetStorageUpdates(nil)
+
+	assert.Nil(t, stUpdates)
+	assert.Equal(t, process.ErrStringSplitFailed, err)
+}
+
+func TestAtArgumentParser_GetStorageUpdatesWrongData(t *testing.T) {
+	t.Parallel()
+
+	parser, err := NewAtArgumentParser()
+	assert.Nil(t, err)
+	assert.NotNil(t, parser)
+
+	test := []byte("test")
+	result := []byte("")
+	sep := []byte("@")
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+
+	stUpdates, err := parser.GetStorageUpdates(result)
+
+	assert.Nil(t, stUpdates)
+	assert.Equal(t, process.ErrInvalidDataInput, err)
+}
+
+func TestAtArgumentParser_GetStorageUpdates(t *testing.T) {
+	t.Parallel()
+
+	parser, err := NewAtArgumentParser()
+	assert.Nil(t, err)
+	assert.NotNil(t, parser)
+
+	test := []byte("test")
+	result := []byte("")
+	sep := []byte("@")
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	result = append(result, sep...)
+	result = append(result, test...)
+	stUpdates, err := parser.GetStorageUpdates(result)
+
+	assert.Nil(t, err)
+	for i := 0; i < 2; i++ {
+		assert.Equal(t, test, stUpdates[i].Data)
+		assert.Equal(t, test, stUpdates[i].Offset)
+	}
 }

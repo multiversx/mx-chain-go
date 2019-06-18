@@ -28,12 +28,14 @@ struct MiniBlockHeaderCapn {
   receiverShardID @1: UInt32;
   senderShardID   @2: UInt32;
   txCount         @3: UInt32;
+  type            @4: UInt8;
 }
 
 struct MiniBlockCapn {
   txHashes        @0:   List(Data);
   receiverShardID @1:   UInt32;
   senderShardID   @2:   UInt32;
+  type            @3:   UInt8;
 }
 
 struct PeerChangeCapn {
