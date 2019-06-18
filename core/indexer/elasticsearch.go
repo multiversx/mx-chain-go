@@ -297,6 +297,7 @@ func (ei *elasticIndexer) saveTransactions(
 		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(txIndex))
 		if err != nil {
 			ei.logger.Warn("error indexing bulk of transactions")
+			continue
 		}
 		if res.IsError() {
 			ei.logger.Warn(res.String())
@@ -438,6 +439,7 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(tpsIndex))
 		if err != nil {
 			ei.logger.Warn("error indexing tps information")
+			continue
 		}
 		if res.IsError() {
 			fmt.Println(res.String())
