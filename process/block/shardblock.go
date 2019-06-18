@@ -1376,9 +1376,11 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		if err != nil {
 			log.Debug(err.Error())
 			continue
-			//return nil, nil, err
 		}
-		mrsTxs[receiverShardId] = append(mrsTxs[receiverShardId], currMrsTxs...)
+
+		if len(currMrsTxs) > 0 {
+			mrsTxs[receiverShardId] = append(mrsTxs[receiverShardId], currMrsTxs...)
+		}
 	}
 
 	for shardId, subsetBlockBody := range bodies {

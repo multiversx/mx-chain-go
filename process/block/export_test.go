@@ -2,7 +2,6 @@ package block
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/preprocess"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -62,20 +61,8 @@ func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []
 	return sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
 }
 
-func (sp *shardProcessor) RemoveTxBlockFromPools(blockBody block.Body) error {
-	return sp.removeTxBlockFromPools(blockBody)
-}
-
-func (sp *shardProcessor) ChRcvAllTxs() chan bool {
-	return sp.chRcvAllTxs
-}
-
 func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32) {
 	return mp.requestShardHeaders(header)
-}
-
-func (mp *metaProcessor) WaitForBlockHeaders(waitTime time.Duration) {
-	mp.waitForBlockHeaders(waitTime)
 }
 
 func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error {
@@ -178,17 +165,6 @@ func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body blo
 
 func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
 	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
-}
-
-func (sp *shardProcessor) CreateTxInfo(tx *transaction.Transaction, senderShardID uint32, receiverShardID uint32) *txInfo {
-	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	return &txInfo{tx: tx, txShardInfo: txShardInfo}
-}
-
-func (sp *shardProcessor) SetTxsForBlock(hash string, txInfo *txInfo) {
-	sp.mutTxsForBlock.Lock()
-	sp.txsForBlock[hash] = txInfo
-	sp.mutTxsForBlock.Unlock()
 }
 
 func (mp *metaProcessor) SetAllNeededShardHdrsFound(allNeededShardHdrsFound bool) {

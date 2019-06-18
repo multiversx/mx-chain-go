@@ -2247,6 +2247,7 @@ func TestShardProcessor_MarshalizedDataNilInput(t *testing.T) {
 
 func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	t.Parallel()
+	wasCalled := false
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
@@ -2277,6 +2278,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		true,
 		&mock.RequestHandlerMock{},
 	)
+
 	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, body)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
