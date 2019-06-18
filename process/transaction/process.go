@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
@@ -65,15 +66,37 @@ func NewTxProcessor(
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex uint32) error {
+func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex uint32) ([]*smartContractResult.SmartContractResult, error) {
 	if tx == nil {
-		return process.ErrNilTransaction
+		return nil, process.ErrNilTransaction
 	}
 
 	adrSrc, adrDst, err := txProc.getAddresses(tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	txType, err := txProc.scProcessor.ComputeTransactionType(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	switch txType {
+	case process.MoveBalance:
+		return nil, txProc.processMoveBalance(tx, adrSrc, adrDst)
+	case process.SCDeployment:
+		return txProc.processSCDeployment(tx, adrSrc, roundIndex)
+	case process.SCInvoking:
+		return txProc.processSCInvoking(tx, adrSrc, adrDst, roundIndex)
+	}
+
+	return nil, process.ErrWrongTransaction
+}
+
+func (txProc *txProcessor) processMoveBalance(
+	tx *transaction.Transaction,
+	adrSrc, adrDst state.AddressContainer,
+) error {
 
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
@@ -82,45 +105,61 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return err
 	}
 
-	txType, err := txProc.scProcessor.ComputeTransactionType(tx, acntSrc, acntDst)
+	value := tx.Value
+	// is sender address in node shard
+	if acntSrc != nil {
+		err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = txProc.moveBalances(acntSrc, acntDst, value)
 	if err != nil {
 		return err
 	}
 
-	switch txType {
-	case process.MoveBalance:
-		value := tx.Value
-		// is sender address in node shard
-		if acntSrc != nil {
-			err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = txProc.moveBalances(acntSrc, acntDst, value)
+	// is sender address in node shard
+	if acntSrc != nil {
+		err = txProc.increaseNonce(acntSrc)
 		if err != nil {
 			return err
 		}
-
-		// is sender address in node shard
-		if acntSrc != nil {
-			err = txProc.increaseNonce(acntSrc)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	case process.SCDeployment:
-		err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, acntDst, roundIndex)
-		return err
-	case process.SCInvoking:
-		err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
-		return err
 	}
 
-	return process.ErrWrongTransaction
+	return nil
+}
+
+func (txProc *txProcessor) processSCDeployment(
+	tx *transaction.Transaction,
+	adrSrc state.AddressContainer,
+	roundIndex uint32,
+) ([]*smartContractResult.SmartContractResult, error) {
+	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
+	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
+	acntSrc, err := txProc.getAccountFromAddress(adrSrc)
+	if err != nil {
+		return nil, err
+	}
+
+	scrs, err := txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
+	return scrs, err
+}
+
+func (txProc *txProcessor) processSCInvoking(
+	tx *transaction.Transaction,
+	adrSrc, adrDst state.AddressContainer,
+	roundIndex uint32,
+) ([]*smartContractResult.SmartContractResult, error) {
+	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
+	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
+	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
+	if err != nil {
+		return nil, err
+	}
+
+	scrs, err := txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
+	return scrs, err
 }
 
 func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
@@ -193,6 +232,21 @@ func (txProc *txProcessor) getAccounts(adrSrc, adrDst state.AddressContainer,
 	return
 }
 
+func (txProc *txProcessor) getAccountFromAddress(adrSrc state.AddressContainer) (state.AccountHandler, error) {
+	shardForCurrentNode := txProc.shardCoordinator.SelfId()
+	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
+	if shardForCurrentNode != shardForSrc {
+		return nil, nil
+	}
+
+	acnt, err := txProc.accounts.GetAccountWithJournal(adrSrc)
+	if err != nil {
+		return nil, err
+	}
+
+	return acnt, nil
+}
+
 func (txProc *txProcessor) checkTxValues(acntSrc *state.Account, value *big.Int, nonce uint64) error {
 	// TODO order transactions - than uncomment this
 	//if acntSrc.Nonce < nonce {
@@ -238,4 +292,9 @@ func (txProc *txProcessor) moveBalances(acntSrc, acntDst *state.Account,
 
 func (txProc *txProcessor) increaseNonce(acntSrc *state.Account) error {
 	return acntSrc.SetNonceWithJournal(acntSrc.Nonce + 1)
+}
+
+// ProcessSmartContractResult processed the smart contract result
+func (txProc *txProcessor) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
+	return txProc.scProcessor.ProcessSmartContractResult(scr)
 }

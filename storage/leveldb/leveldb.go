@@ -11,8 +11,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
-const maxOpenFilesPerTable = 50
-
 // read + write + execute for owner only
 const rwxOwner = 0700
 
@@ -39,7 +37,8 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err err
 	}
 
 	options := &opt.Options{
-		OpenFilesCacheCapacity: maxOpenFilesPerTable,
+		// disable internal cache
+		BlockCacheCapacity: -1,
 	}
 
 	db, err := leveldb.OpenFile(path, options)

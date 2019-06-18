@@ -30,3 +30,79 @@ func TestTransaction_SaveLoad(t *testing.T) {
 
 	assert.Equal(t, loadTx, tx)
 }
+
+func TestTransaction_GetData(t *testing.T) {
+	t.Parallel()
+
+	data := []byte("data")
+	tx := &transaction.Transaction{Data: data}
+
+	assert.Equal(t, data, tx.Data)
+}
+
+func TestTransaction_GetRecvAddr(t *testing.T) {
+	t.Parallel()
+
+	data := []byte("data")
+	tx := &transaction.Transaction{RcvAddr: data}
+
+	assert.Equal(t, data, tx.RcvAddr)
+}
+
+func TestTransaction_GetSndAddr(t *testing.T) {
+	t.Parallel()
+
+	data := []byte("data")
+	tx := &transaction.Transaction{SndAddr: data}
+
+	assert.Equal(t, data, tx.SndAddr)
+}
+
+func TestTransaction_GetValue(t *testing.T) {
+	t.Parallel()
+
+	value := big.NewInt(10)
+	tx := &transaction.Transaction{Value: value}
+
+	assert.Equal(t, value, tx.Value)
+}
+
+func TestTransaction_SetData(t *testing.T) {
+	t.Parallel()
+
+	data := []byte("data")
+	tx := &transaction.Transaction{}
+	tx.SetData(data)
+
+	assert.Equal(t, data, tx.Data)
+}
+
+func TestTransaction_SetRecvAddr(t *testing.T) {
+	t.Parallel()
+
+	data := []byte("data")
+	tx := &transaction.Transaction{}
+	tx.SetRecvAddress(data)
+
+	assert.Equal(t, data, tx.RcvAddr)
+}
+
+func TestTransaction_SetSndAddr(t *testing.T) {
+	t.Parallel()
+
+	data := []byte("data")
+	tx := &transaction.Transaction{}
+	tx.SetSndAddress(data)
+
+	assert.Equal(t, data, tx.SndAddr)
+}
+
+func TestTransaction_SetValue(t *testing.T) {
+	t.Parallel()
+
+	value := big.NewInt(10)
+	tx := &transaction.Transaction{}
+	tx.SetValue(value)
+
+	assert.Equal(t, value, tx.Value)
+}

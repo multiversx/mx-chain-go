@@ -65,3 +65,7 @@ func (acf *AddressConverterFake) CreateAddressFromHex(hexAddress string) (state.
 func (acf *AddressConverterFake) PrepareAddressBytes(addressBytes []byte) ([]byte, error) {
 	return addressBytes, nil
 }
+
+func (acf *AddressConverterFake) AddressLen() int {
+	return acf.addressLen
+}
