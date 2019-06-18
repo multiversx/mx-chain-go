@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"crypto/rand"
 	"fmt"
 	"math/big"
 	"testing"
@@ -20,6 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
+	ielecommon "github.com/ElrondNetwork/elrond-vm/iele/common"
+	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,20 +36,13 @@ func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker 
 	return state.NewAccount(address, tracker)
 }
 
-func createDummyAddress() state.AddressContainer {
-	buff := make([]byte, testHasher.Size())
-	_, _ = rand.Reader.Read(buff)
-
-	return state.NewAddress(buff)
-}
-
-func createEmptyAddress() state.AddressContainer {
+func CreateEmptyAddress() state.AddressContainer {
 	buff := make([]byte, testHasher.Size())
 
 	return state.NewAddress(buff)
 }
 
-func createMemUnit() storage.Storer {
+func CreateMemUnit() storage.Storer {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
 
@@ -56,17 +50,17 @@ func createMemUnit() storage.Storer {
 	return unit
 }
 
-func createInMemoryShardAccountsDB() *state.AccountsDB {
+func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 
-	dbw, _ := trie.NewDBWriteCache(createMemUnit())
+	dbw, _ := trie.NewDBWriteCache(CreateMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, testHasher)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
 	return adb
 }
 
-func createAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, balance *big.Int) []byte {
+func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, balance *big.Int) []byte {
 	address, _ := addrConv.CreateAddressFromPublicKeyBytes(pubKey)
 	account, _ := accnts.GetAccountWithJournal(address)
 	_ = account.(*state.Account).SetNonceWithJournal(nonce)
@@ -76,7 +70,7 @@ func createAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 	return hashCreated
 }
 
-func createTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
+func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 	vm.GasForOperation = opGas
@@ -96,7 +90,29 @@ func createTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	return txProcessor
 }
 
-func testDeployedContractContents(
+func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) process.TransactionProcessor {
+	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+	cryptoHook := &hooks.VMCryptoHook{}
+	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, ielecommon.Default)
+	//Uncomment this to enable trace printing of the vm
+	//vm.SetTracePretty()
+	argsParser, _ := smartContract.NewAtArgumentParser()
+	scProcessor, _ := smartContract.NewSmartContractProcessor(
+		vm,
+		argsParser,
+		testHasher,
+		testMarshalizer,
+		accnts,
+		blockChainHook,
+		addrConv,
+		oneShardCoordinator,
+	)
+	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
+
+	return txProcessor
+}
+
+func TestDeployedContractContents(
 	t *testing.T,
 	destinationAddressBytes []byte,
 	accnts state.AccountsAdapter,
@@ -131,21 +147,30 @@ func testDeployedContractContents(
 	}
 }
 
-func accountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
+func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 	address, _ := addrConv.CreateAddressFromPublicKeyBytes(addressBytes)
 	accnt, _ := accnts.GetExistingAccount(address)
 
 	return accnt != nil
 }
 
-func computeSCDestinationAddressBytes(senderNonce uint64, senderAddressBytes []byte) []byte {
-	//TODO change this when receipts are implemented, take the newly created account address (SC account)
-	// from receipt, do not recompute here
-	senderNonceBytes := big.NewInt(0).SetUint64(senderNonce).Bytes()
-	return testHasher.Compute(string(append(senderAddressBytes, senderNonceBytes...)))
+func CreatePreparedTxProcessorAndAccountsWithIeleVM(
+	t *testing.T,
+	senderNonce uint64,
+	senderAddressBytes []byte,
+	senderBalance *big.Int,
+) (process.TransactionProcessor, state.AccountsAdapter) {
+
+	accnts := CreateInMemoryShardAccountsDB()
+	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+
+	txProcessor := CreateTxProcessorWithOneSCExecutorIeleVM(accnts)
+	assert.NotNil(t, txProcessor)
+
+	return txProcessor, accnts
 }
 
-func createPreparedTxProcessorAndAccounts(
+func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 	t *testing.T,
 	vmOpGas uint64,
 	senderNonce uint64,
@@ -153,16 +178,16 @@ func createPreparedTxProcessorAndAccounts(
 	senderBalance *big.Int,
 ) (process.TransactionProcessor, state.AccountsAdapter) {
 
-	accnts := createInMemoryShardAccountsDB()
-	_ = createAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+	accnts := CreateInMemoryShardAccountsDB()
+	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
-	txProcessor := createTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas)
+	txProcessor := CreateTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas)
 	assert.NotNil(t, txProcessor)
 
 	return txProcessor, accnts
 }
 
-func createTx(
+func CreateTx(
 	t *testing.T,
 	senderAddressBytes []byte,
 	receiverAddressBytes []byte,
@@ -189,7 +214,7 @@ func createTx(
 	return tx
 }
 
-func testAccount(
+func TestAccount(
 	t *testing.T,
 	accnts state.AccountsAdapter,
 	senderAddressBytes []byte,
@@ -205,7 +230,7 @@ func testAccount(
 	assert.Equal(t, expectedBalance, senderRecovShardAccount.Balance)
 }
 
-func computeExpectedBalance(
+func ComputeExpectedBalance(
 	existing *big.Int,
 	transferred *big.Int,
 	gasLimit uint64,

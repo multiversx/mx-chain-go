@@ -20,9 +20,10 @@ type SerialDB struct {
 	sizeBatch         int
 	batch             storage.Batcher
 	mutBatch          sync.RWMutex
-	dbClosed          chan struct{}
 	dbAccess          chan serialQueryer
-	ctx               context.Context
+	cancel            context.CancelFunc
+	mutClosed         sync.Mutex
+	closed            bool
 }
 
 // NewSerialDB is a constructor for the leveldb persister
@@ -43,27 +44,29 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int) (s *Seria
 		return nil, err
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	dbStore := &SerialDB{
 		db:                db,
 		path:              path,
 		maxBatchSize:      maxBatchSize,
 		batchDelaySeconds: batchDelaySeconds,
 		sizeBatch:         0,
-		dbClosed:          make(chan struct{}),
 		dbAccess:          make(chan serialQueryer),
-		ctx:               ctx,
+		cancel:            cancel,
+		closed:            false,
 	}
 
-	dbStore.batch = dbStore.createBatch()
+	dbStore.batch = NewBatch()
 
-	go dbStore.batchTimeoutHandle()
+	go dbStore.batchTimeoutHandle(ctx)
 	go dbStore.processLoop(ctx)
 
 	return dbStore, nil
 }
 
-func (s *SerialDB) batchTimeoutHandle() {
+func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
+	ct, _ := context.WithCancel(ctx)
+
 	for {
 		select {
 		case <-time.After(time.Duration(s.batchDelaySeconds) * time.Second):
@@ -72,7 +75,8 @@ func (s *SerialDB) batchTimeoutHandle() {
 				log.Error(err.Error())
 				continue
 			}
-		case <-s.dbClosed:
+		case <-ct.Done():
+			log.Info("closing the timed batch handler")
 			return
 		}
 	}
@@ -95,12 +99,8 @@ func (s *SerialDB) Put(key, val []byte) error {
 	s.mutBatch.Unlock()
 
 	err = s.putBatch()
-	if err != nil {
-		log.Error(err.Error())
-		return err
-	}
 
-	return nil
+	return err
 }
 
 // Get returns the value associated to the key
@@ -112,14 +112,14 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 	}
 
 	s.dbAccess <- req
-	p := <-ch
+	result := <-ch
 	close(ch)
 
-	if p.err == leveldb.ErrNotFound {
+	if result.err == leveldb.ErrNotFound {
 		return nil, storage.ErrKeyNotFound
 	}
 
-	return p.value, nil
+	return result.value, nil
 }
 
 // Has returns true if the given key is present in the persistence medium
@@ -131,21 +131,16 @@ func (s *SerialDB) Has(key []byte) error {
 	}
 
 	s.dbAccess <- req
-	p := <-ch
+	result := <-ch
 	close(ch)
 
-	return p
+	return result
 }
 
 // Init initializes the storage medium and prepares it for usage
 func (s *SerialDB) Init() error {
 	// no special initialization needed
 	return nil
-}
-
-// CreateBatch returns a batcher to be used for batch writing data to the database
-func (s *SerialDB) createBatch() storage.Batcher {
-	return NewBatch()
 }
 
 // putBatch writes the Batch data into the database
@@ -157,31 +152,34 @@ func (s *SerialDB) putBatch() error {
 		return storage.ErrInvalidBatch
 	}
 	s.sizeBatch = 0
-	s.batch = s.createBatch()
+	s.batch = NewBatch()
 	s.mutBatch.Unlock()
 
 	ch := make(chan error)
-	//request
 	req := &putBatchAct{
 		batch:   batch,
 		resChan: ch,
 	}
 
 	s.dbAccess <- req
-	// await response
-	p := <-ch
+	result := <-ch
 	close(ch)
 
-	return p
+	return result
 }
 
 // Close closes the files/resources associated to the storage medium
 func (s *SerialDB) Close() error {
-	_ = s.putBatch()
+	s.mutClosed.Lock()
+	if s.closed {
+		s.mutClosed.Unlock()
+		return nil
+	}
+	s.closed = true
+	s.mutClosed.Unlock()
 
-	_, cancel := context.WithCancel(s.ctx)
-	cancel()
-	s.dbClosed <- struct{}{}
+	_ = s.putBatch()
+	s.cancel()
 
 	return s.db.Close()
 }
@@ -193,18 +191,16 @@ func (s *SerialDB) Remove(key []byte) error {
 	s.mutBatch.Unlock()
 
 	ch := make(chan error)
-	//request
 	req := &delAct{
 		key:     key,
 		resChan: ch,
 	}
 
 	s.dbAccess <- req
-	// await response
-	p := <-ch
+	result := <-ch
 	close(ch)
 
-	return p
+	return result
 }
 
 // Destroy removes the storage medium stored data
@@ -214,9 +210,7 @@ func (s *SerialDB) Destroy() error {
 	s.sizeBatch = 0
 	s.mutBatch.Unlock()
 
-	_, cancel := context.WithCancel(s.ctx)
-	cancel()
-	s.dbClosed <- struct{}{}
+	s.cancel()
 	err := s.db.Close()
 	if err != nil {
 		return err
@@ -228,15 +222,13 @@ func (s *SerialDB) Destroy() error {
 }
 
 func (s *SerialDB) processLoop(ctx context.Context) {
-	defer func() {
-		// TODO: clean up if needed
-	}()
+	ct, _ := context.WithCancel(ctx)
 
 	for {
 		select {
 		case queryer := <-s.dbAccess:
 			queryer.request(s)
-		case <-ctx.Done():
+		case <-ct.Done():
 			log.Info("closing the leveldb process loop")
 			return
 		}

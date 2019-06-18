@@ -32,6 +32,8 @@ const (
 	StateBlock Type = 1
 	// PeerBlock identifies a block holding peer assignation
 	PeerBlock Type = 2
+	// SmartContractResult identifies a block holding miniblocks
+	SmartContractResultBlock Type = 3
 )
 
 // String returns the string representation of the Type
@@ -43,6 +45,8 @@ func (bType Type) String() string {
 		return "StateBody"
 	case PeerBlock:
 		return "PeerBody"
+	case SmartContractResultBlock:
+		return "SmartContractResultBody"
 	default:
 		return fmt.Sprintf("Unknown(%d)", bType)
 	}
@@ -53,6 +57,7 @@ type MiniBlock struct {
 	TxHashes        [][]byte `capid:"0"`
 	ReceiverShardID uint32   `capid:"1"`
 	SenderShardID   uint32   `capid:"2"`
+	Type            Type     `capid:"3"`
 }
 
 // MiniBlockHeader holds the hash of a miniblock together with sender/deastination shard id pair.
@@ -62,6 +67,7 @@ type MiniBlockHeader struct {
 	SenderShardID   uint32 `capid:"1"`
 	ReceiverShardID uint32 `capid:"2"`
 	TxCount         uint32 `capid:"3"`
+	Type            Type   `capid:"4"`
 }
 
 // PeerChange holds a change in one peer to shard assignation
@@ -89,7 +95,7 @@ type Header struct {
 	RootHash         []byte            `capid:"13"`
 	MetaBlockHashes  [][]byte          `capid:"14"`
 	TxCount          uint32            `capid:"15"`
-	processedMBs     map[string]bool   // TODO remove this field when metachain processing is running
+	processedMBs     map[string]bool
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -238,6 +244,7 @@ func MiniBlockCapnToGo(src capnp.MiniBlockCapn, dest *MiniBlock) *MiniBlock {
 
 	dest.ReceiverShardID = src.ReceiverShardID()
 	dest.SenderShardID = src.SenderShardID()
+	dest.Type = Type(src.Type())
 
 	return dest
 }
@@ -253,6 +260,7 @@ func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnp.MiniBlockCapn {
 	dest.SetTxHashes(mylist1)
 	dest.SetReceiverShardID(src.ReceiverShardID)
 	dest.SetSenderShardID(src.SenderShardID)
+	dest.SetType(uint8(src.Type))
 
 	return dest
 }
@@ -325,6 +333,7 @@ func MiniBlockHeaderCapnToGo(src capnp.MiniBlockHeaderCapn, dest *MiniBlockHeade
 	dest.ReceiverShardID = src.ReceiverShardID()
 	dest.SenderShardID = src.SenderShardID()
 	dest.TxCount = src.TxCount()
+	dest.Type = Type(src.Type())
 
 	return dest
 }
@@ -337,6 +346,7 @@ func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.Mini
 	dest.SetReceiverShardID(src.ReceiverShardID)
 	dest.SetSenderShardID(src.SenderShardID)
 	dest.SetTxCount(src.TxCount)
+	dest.SetType(uint8(src.Type))
 
 	return dest
 }

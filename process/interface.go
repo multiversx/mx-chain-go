@@ -1,6 +1,10 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"math/big"
 	"time"
 
@@ -13,15 +17,36 @@ import (
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
-	ProcessTransaction(transaction *transaction.Transaction, round uint32) error
+	ProcessTransaction(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error)
+	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	// TODO move this func in another interface
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
-	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
-	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) error
+	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
+	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
+	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
+}
+
+type PreProcessor interface {
+	CreateBlockStarted()
+	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
+
+	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
+	RestoreTxBlockIntoPools(body block.Body, miniBlockHashes map[int][]byte, miniBlockPool storage.Cacher) (int, error)
+	SaveTxBlockToStorage(body block.Body) error
+
+	ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error
+	RequestBlockTransactions(body block.Body) int
+
+	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
+
+	RequestTransactionsForMiniBlock(mb block.MiniBlock) int
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error
+	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error)
+
+	GetAllCurrentUsedTxs() map[string]*transaction.Transaction
 }
 
 // BlockProcessor is the main interface for block execution engine
@@ -164,6 +189,9 @@ type ArgumentsParser interface {
 	GetCode() ([]byte, error)
 	GetFunction() (string, error)
 	ParseData(data []byte) error
+
+	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) []byte
+	GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error)
 }
 
 // TemporaryAccountsHandler defines the functionality to create temporary accounts and pass to VM.

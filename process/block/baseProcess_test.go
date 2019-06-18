@@ -56,7 +56,7 @@ func generateTestUnit() storage.Storer {
 	return storer
 }
 
-func initDataPool() *mock.PoolsHolderStub {
+func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	sdp := &mock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
@@ -64,7 +64,7 @@ func initDataPool() *mock.PoolsHolderStub {
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &mock.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, []byte("tx1_hash")) {
+							if reflect.DeepEqual(key, testHash) {
 								return &transaction.Transaction{Nonce: 10}, true
 							}
 							return nil, false
@@ -83,6 +83,8 @@ func initDataPool() *mock.PoolsHolderStub {
 						return &transaction.Transaction{Nonce: 10}, true
 					}
 					return nil, false
+				},
+				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
 				},
 			}
 		},
@@ -300,7 +302,7 @@ func (wr wrongBody) IntegrityAndValidity() error {
 
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	tdp := initDataPool([]byte(""))
 	bp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
 		tdp,
@@ -365,7 +367,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 
 func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	tdp := initDataPool([]byte(""))
 	rootHash := []byte("root hash to be tested")
 	accounts := &mock.AccountsStub{
 		RootHashCalled: func() []byte {
@@ -396,7 +398,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 
 func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	tdp := initDataPool([]byte(""))
 	marshalizer := &mock.MarshalizerStub{}
 	bp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
@@ -431,7 +433,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 
 func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	tdp := initDataPool([]byte(""))
 	marshalizer := &mock.MarshalizerStub{}
 	hasher := &mock.HasherStub{}
 	bp, _ := blproc.NewShardProcessor(
