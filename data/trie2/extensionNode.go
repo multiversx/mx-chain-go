@@ -233,19 +233,19 @@ func (en *extensionNode) tryGet(key []byte, db DBWriteCacher, marshalizer marsha
 	}
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
-		return nil, ErrNodeNotFound
+		return nil, nil
 	}
 	keysDontMatch := !bytes.Equal(en.Key, key[:len(en.Key)])
 	if keysDontMatch {
-		return nil, ErrNodeNotFound
+		return nil, nil
 	}
 	key = key[len(en.Key):]
 	err = resolveIfCollapsed(en, 0, db, marshalizer)
 	if err != nil {
 		return nil, err
 	}
-	value, err = en.child.tryGet(key, db, marshalizer)
-	return value, err
+
+	return en.child.tryGet(key, db, marshalizer)
 }
 
 func (en *extensionNode) getNext(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {

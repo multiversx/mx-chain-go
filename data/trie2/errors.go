@@ -4,12 +4,6 @@ import (
 	"errors"
 )
 
-// ErrNotAtLeaf is raised when the iterator is not positioned at a leaf
-var ErrNotAtLeaf = errors.New("iterator not positioned at leaf")
-
-// ErrIterationEnd is raised when the trie iteration has reached an end
-var ErrIterationEnd = errors.New("end of iteration")
-
 // ErrInvalidNode is raised when we reach an invalid node
 var ErrInvalidNode = errors.New("invalid node")
 

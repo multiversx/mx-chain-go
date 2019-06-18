@@ -229,7 +229,7 @@ func TestLeafNode_tryGetWrongKey(t *testing.T) {
 	key := []byte{1, 2, 3}
 	val, err := ln.tryGet(key, db, marsh)
 	assert.Nil(t, val)
-	assert.Equal(t, ErrNodeNotFound, err)
+	assert.Nil(t, err)
 }
 
 func TestLeafNode_tryGetEmptyNode(t *testing.T) {

@@ -13,6 +13,8 @@ const (
 	branch
 )
 
+var emptyTrieHash = make([]byte, 32)
+
 type patriciaMerkleTrie struct {
 	root        node
 	db          DBWriteCacher
@@ -38,11 +40,10 @@ func NewTrie(db DBWriteCacher, msh marshal.Marshalizer, hsh hashing.Hasher) (*pa
 // If the key is present in the tree, it returns the corresponding value
 func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
 	if tr.root == nil {
-		return nil, ErrNilNode
+		return nil, nil
 	}
 	hexKey := keyBytesToHex(key)
-	value, err := tr.root.tryGet(hexKey, tr.db, tr.marshalizer)
-	return value, err
+	return tr.root.tryGet(hexKey, tr.db, tr.marshalizer)
 }
 
 // Update updates the value at the given key.
@@ -91,7 +92,7 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 // Root returns the hash of the root node
 func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 	if tr.root == nil {
-		return nil, ErrNilNode
+		return emptyTrieHash, nil
 	}
 	hash := tr.root.getHash()
 	if hash != nil {
@@ -171,7 +172,7 @@ func (tr *patriciaMerkleTrie) VerifyProof(proofs [][]byte, key []byte) (bool, er
 // Commit adds all the dirty nodes to the database
 func (tr *patriciaMerkleTrie) Commit() error {
 	if tr.root == nil {
-		return ErrNilNode
+		return nil
 	}
 	if tr.root.isCollapsed() {
 		return nil
@@ -199,6 +200,10 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte, dbw DBWriteCacher) (Trie, er
 		return nil, err
 	}
 
+	if emptyTrie(root) {
+		return newTr, nil
+	}
+
 	encRoot, err := dbw.Get(root)
 	if err != nil {
 		return nil, err
@@ -211,4 +216,15 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte, dbw DBWriteCacher) (Trie, er
 
 	newTr.root = newRoot
 	return newTr, nil
+}
+
+func emptyTrie(root []byte) bool {
+	if bytes.Equal(root, make([]byte, 0)) {
+		return true
+	}
+	if bytes.Equal(root, emptyTrieHash) {
+		return true
+	}
+
+	return false
 }
