@@ -107,12 +107,20 @@ func generateFiles(ctx *cli.Context) error {
 	genForBlockSigningSk := signing.NewKeyGenerator(getSuiteForBlockSigningSk(consensusType))
 
 	pkHexBalance, skHex, err := getIdentifierAndPrivateKey(genForBalanceSk)
+	if err != nil {
+		return err
+	}
+
 	err = core.SaveSkToPemFile(initialBalancesSkFile, pkHexBalance, skHex)
 	if err != nil {
 		return err
 	}
 
 	pkHexBlockSigning, skHex, err := getIdentifierAndPrivateKey(genForBlockSigningSk)
+	if err != nil {
+		return err
+	}
+
 	err = core.SaveSkToPemFile(initialNodesSkFile, pkHexBlockSigning, skHex)
 	if err != nil {
 		return err
@@ -121,6 +129,7 @@ func generateFiles(ctx *cli.Context) error {
 	fmt.Println("Files generated successfully.")
 	fmt.Printf("   pk for balance: %s\n", pkHexBalance)
 	fmt.Printf("   pk for block signing: %s\n", pkHexBlockSigning)
+
 	return nil
 }
 
@@ -155,5 +164,6 @@ func getIdentifierAndPrivateKey(keyGen crypto.KeyGenerator) (string, []byte, err
 
 	skHex := []byte(hex.EncodeToString(skBytes))
 	pkHex := hex.EncodeToString(pkBytes)
+
 	return pkHex, skHex, nil
 }
