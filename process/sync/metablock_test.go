@@ -2045,7 +2045,6 @@ func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadBlocksFails(t *testing.T) 
 	account := &mock.AccountsStub{}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		return errors.New("key not found")
 	}
@@ -2102,7 +2101,6 @@ func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadNotarizedBlocksFails(t *te
 	}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		if bytes.Equal(key, uint64Converter.ToByteSlice(1)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(2)) ||
@@ -2181,7 +2179,6 @@ func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 	}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		if bytes.Equal(key, uint64Converter.ToByteSlice(1)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(2)) ||

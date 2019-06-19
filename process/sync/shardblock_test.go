@@ -2632,7 +2632,6 @@ func TestBootstrap_LoadBlocksShouldErrBoostrapFromStorage(t *testing.T) {
 	account := &mock.AccountsStub{}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		return errors.New("key not found")
 	}
@@ -2700,7 +2699,6 @@ func TestBootstrap_LoadBlocksShouldErrBoostrapFromStorageWhenBlocksAreNotValid(t
 	account := &mock.AccountsStub{}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		if bytes.Equal(key, uint64Converter.ToByteSlice(1)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(2)) {
@@ -2789,7 +2787,6 @@ func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 	}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		if bytes.Equal(key, uint64Converter.ToByteSlice(1)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(2)) {
@@ -2877,7 +2874,6 @@ func TestBootstrap_LoadBlocksShouldWorkAfterRemoveInvalidBlocks(t *testing.T) {
 	}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		if bytes.Equal(key, uint64Converter.ToByteSlice(1)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(2)) ||
@@ -3563,7 +3559,6 @@ func TestBootstrap_LoadNotarizedBlocksShouldErrBoostrapFromStorage(t *testing.T)
 	account := &mock.AccountsStub{}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		return errors.New("key not found")
 	}
@@ -3629,7 +3624,6 @@ func TestBootstrap_LoadNotarizedBlocksShouldErrBoostrapFromStorageWhenBlocksAreN
 	account := &mock.AccountsStub{}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		if bytes.Equal(key, uint64Converter.ToByteSlice(1)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(2)) {
@@ -3713,7 +3707,6 @@ func TestBootstrap_LoadNotarizedBlocksShouldWorkAfterRemoveInvalidBlocks(t *test
 	}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		if bytes.Equal(key, uint64Converter.ToByteSlice(1)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(2)) ||
@@ -3789,7 +3782,6 @@ func TestBootstrap_SyncFromStorerShouldErrWhenLoadBlocksFails(t *testing.T) {
 	account := &mock.AccountsStub{}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		return errors.New("key not found")
 	}
@@ -3871,7 +3863,6 @@ func TestBootstrap_SyncFromStorerShouldErrWhenLoadNotarizedBlocksFails(t *testin
 	}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		if bytes.Equal(key, uint64Converter.ToByteSlice(1)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(2)) ||
@@ -3975,7 +3966,6 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 	}
 
 	store := createStore()
-
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
 		if bytes.Equal(key, uint64Converter.ToByteSlice(1)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(2)) ||
