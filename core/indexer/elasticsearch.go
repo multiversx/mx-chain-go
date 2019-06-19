@@ -255,25 +255,15 @@ func (ei *elasticIndexer) saveHeader(header data.HeaderHandler) {
 
 	res, err := req.Do(context.Background(), ei.db)
 	if err != nil {
-		ei.logger.Warn("Could not index block header: %s", err)
+		ei.logger.Warn(fmt.Sprintf("Could not index block header: %s", err))
 		return
 	}
-
-	defer func() {
-		if res == nil {
-			return
-		}
-
-		if res.Body == nil {
-			return
-		}
-
-		_ = res.Body.Close()
-	}()
 
 	if res.IsError() {
 		ei.logger.Warn(res.String())
 	}
+
+	_ = res.Body.Close()
 }
 
 func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
