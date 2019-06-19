@@ -1,7 +1,7 @@
 package loadBalancer
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 func (oplb *OutgoingChannelLoadBalancer) Chans() []chan *p2p.SendableData {

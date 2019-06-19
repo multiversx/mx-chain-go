@@ -3,7 +3,7 @@ package node
 import (
 	"io"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // P2PMessenger defines a subset of the p2p.Messenger interface

@@ -3,9 +3,9 @@ package serviceContainer_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/mock"
+	"github.com/ElrondNetwork/elrond-go/core/mock"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/serviceContainer"
+	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/stretchr/testify/assert"
 )
 

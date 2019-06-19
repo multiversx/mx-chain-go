@@ -3,8 +3,8 @@ package trie2
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
-	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
+	"github.com/ElrondNetwork/elrond-go/data/mock"
+	protobuf "github.com/ElrondNetwork/elrond-go/data/trie2/proto"
 	"github.com/stretchr/testify/assert"
 )
 

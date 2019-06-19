@@ -3,7 +3,7 @@ package marshal
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // CapnpMarshalizer implements marshaling with capnproto

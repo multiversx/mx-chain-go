@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // BlockProcessorStub mocks the implementation for a blockProcessor

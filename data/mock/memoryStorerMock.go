@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go/data/trie/encoding"
 )
 
 var errMemoryStorerMock = errors.New("MemoryStorerMock generic error")

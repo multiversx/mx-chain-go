@@ -1,12 +1,12 @@
 package serviceContainer
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/indexer"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 )
 
 type serviceContainer struct {
-	indexer indexer.Indexer
+	indexer      indexer.Indexer
 	tpsBenchmark statistics.TPSBenchmark
 }
 
@@ -17,7 +17,7 @@ type Option func(container *serviceContainer) error
 // NewServiceContainer creates a new serviceContainer responsible in
 //  providing access to all injected core features
 func NewServiceContainer(opts ...Option) (Core, error) {
-	sc :=  &serviceContainer{}
+	sc := &serviceContainer{}
 	for _, opt := range opts {
 		err := opt(sc)
 		if err != nil {

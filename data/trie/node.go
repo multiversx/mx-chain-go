@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go/data/trie/encoding"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
+	"github.com/ElrondNetwork/elrond-go/data/trie/rlp"
 )
 
 var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "[17]"}

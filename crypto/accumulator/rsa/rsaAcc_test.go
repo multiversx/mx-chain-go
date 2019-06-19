@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/accumulator/rsa"
+	"github.com/ElrondNetwork/elrond-go/crypto/accumulator/rsa"
 	"github.com/stretchr/testify/assert"
 )
 

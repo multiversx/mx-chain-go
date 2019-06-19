@@ -8,10 +8,10 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"gopkg.in/go-playground/validator.v8"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/address"
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/middleware"
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/node"
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/transaction"
+	"github.com/ElrondNetwork/elrond-go/api/address"
+	"github.com/ElrondNetwork/elrond-go/api/middleware"
+	"github.com/ElrondNetwork/elrond-go/api/node"
+	"github.com/ElrondNetwork/elrond-go/api/transaction"
 )
 
 type validatorInput struct {

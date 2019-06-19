@@ -1,8 +1,8 @@
 package serviceContainer
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/indexer"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 )
 
 // Core interface will abstract all the subpackage functionalities and will

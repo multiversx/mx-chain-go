@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 )
 
 type subroundEndRound struct {

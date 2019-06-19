@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/beevik/ntp"
 )
 

@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/indexer"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 )
 
 // ServiceContainerMock is a mock implementation of the Core interface

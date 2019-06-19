@@ -3,7 +3,7 @@ package spos
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/stretchr/testify/assert"
 )
 
