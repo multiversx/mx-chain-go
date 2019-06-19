@@ -4,17 +4,17 @@ import (
 	"context"
 
 	"github.com/jbenet/goprocess"
-	"github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/multiformats/go-multiaddr"
 )
 
 type NetworkStub struct {
-	ConnsToPeerCalled   func(p peer.ID) []net.Conn
-	ConnsCalled         func() []net.Conn
-	ConnectednessCalled func(peer.ID) net.Connectedness
-	NotifyCalled        func(net.Notifiee)
+	ConnsToPeerCalled   func(p peer.ID) []network.Conn
+	ConnsCalled         func() []network.Conn
+	ConnectednessCalled func(peer.ID) network.Connectedness
+	NotifyCalled        func(network.Notifiee)
 }
 
 func (ns *NetworkStub) Peerstore() peerstore.Peerstore {
@@ -25,7 +25,7 @@ func (ns *NetworkStub) LocalPeer() peer.ID {
 	panic("implement me")
 }
 
-func (ns *NetworkStub) DialPeer(ctx context.Context, pid peer.ID) (net.Conn, error) {
+func (ns *NetworkStub) DialPeer(ctx context.Context, pid peer.ID) (network.Conn, error) {
 	panic("implement me")
 }
 
@@ -33,7 +33,7 @@ func (ns *NetworkStub) ClosePeer(pid peer.ID) error {
 	panic("implement me")
 }
 
-func (ns *NetworkStub) Connectedness(pid peer.ID) net.Connectedness {
+func (ns *NetworkStub) Connectedness(pid peer.ID) network.Connectedness {
 	return ns.ConnectednessCalled(pid)
 }
 
@@ -41,19 +41,19 @@ func (ns *NetworkStub) Peers() []peer.ID {
 	panic("implement me")
 }
 
-func (ns *NetworkStub) Conns() []net.Conn {
+func (ns *NetworkStub) Conns() []network.Conn {
 	return ns.ConnsCalled()
 }
 
-func (ns *NetworkStub) ConnsToPeer(p peer.ID) []net.Conn {
+func (ns *NetworkStub) ConnsToPeer(p peer.ID) []network.Conn {
 	return ns.ConnsToPeerCalled(p)
 }
 
-func (ns *NetworkStub) Notify(notifee net.Notifiee) {
+func (ns *NetworkStub) Notify(notifee network.Notifiee) {
 	ns.NotifyCalled(notifee)
 }
 
-func (ns *NetworkStub) StopNotify(net.Notifiee) {
+func (ns *NetworkStub) StopNotify(network.Notifiee) {
 	panic("implement me")
 }
 
@@ -61,15 +61,15 @@ func (ns *NetworkStub) Close() error {
 	panic("implement me")
 }
 
-func (ns *NetworkStub) SetStreamHandler(net.StreamHandler) {
+func (ns *NetworkStub) SetStreamHandler(network.StreamHandler) {
 	panic("implement me")
 }
 
-func (ns *NetworkStub) SetConnHandler(net.ConnHandler) {
+func (ns *NetworkStub) SetConnHandler(network.ConnHandler) {
 	panic("implement me")
 }
 
-func (ns *NetworkStub) NewStream(context.Context, peer.ID) (net.Stream, error) {
+func (ns *NetworkStub) NewStream(context.Context, peer.ID) (network.Stream, error) {
 	panic("implement me")
 }
 

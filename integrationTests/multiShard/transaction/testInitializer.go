@@ -44,7 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
-	crypto2 "github.com/libp2p/go-libp2p-crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
 var hasher = sha256.Sha256{}
@@ -91,6 +91,7 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+	store.AddStorer(dataRetriever.SmartContractResultUnit, createMemUnit())
 
 	return store
 }
@@ -100,6 +101,7 @@ func createTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetr
 		txPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	}
 
+	scrPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
@@ -120,6 +122,7 @@ func createTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetr
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
+		scrPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -283,7 +286,7 @@ func createNetNode(
 
 func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
-	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
 	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,

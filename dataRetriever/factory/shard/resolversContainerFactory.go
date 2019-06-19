@@ -74,7 +74,16 @@ func NewResolversContainerFactory(
 func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer, error) {
 	container := containers.NewResolversContainer()
 
-	keys, resolverSlice, err := rcf.generateTxResolvers()
+	keys, resolverSlice, err := rcf.generateTxResolvers(factory.TransactionTopic, dataRetriever.TransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, resolverSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, resolverSlice, err = rcf.generateTxResolvers(factory.SmartContractResultTopic, dataRetriever.SmartContractResultUnit)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +156,7 @@ func (rcf *resolversContainerFactory) createTopicAndAssignHandler(
 
 //------- Tx resolvers
 
-func (rcf *resolversContainerFactory) generateTxResolvers() ([]string, []dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) generateTxResolvers(topic string, unit dataRetriever.UnitType) ([]string, []dataRetriever.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
 	noOfShards := shardC.NumberOfShards()
@@ -156,10 +165,10 @@ func (rcf *resolversContainerFactory) generateTxResolvers() ([]string, []dataRet
 	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(idx)
-		excludePeersFromTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+		identifierTx := topic + shardC.CommunicationIdentifier(idx)
+		excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-		resolver, err := rcf.createOneTxResolver(identifierTx, excludePeersFromTopic)
+		resolver, err := rcf.createOneTxResolver(identifierTx, excludePeersFromTopic, unit)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -171,8 +180,8 @@ func (rcf *resolversContainerFactory) generateTxResolvers() ([]string, []dataRet
 	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createOneTxResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
-	txStorer := rcf.store.GetStorer(dataRetriever.TransactionUnit)
+func (rcf *resolversContainerFactory) createOneTxResolver(topic string, excludedTopic string, unit dataRetriever.UnitType) (dataRetriever.Resolver, error) {
+	txStorer := rcf.store.GetStorer(unit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,

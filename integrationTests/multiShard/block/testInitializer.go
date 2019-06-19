@@ -54,7 +54,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
-	crypto2 "github.com/libp2p/go-libp2p-crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
 var r *rand.Rand
@@ -118,12 +118,14 @@ func createTestShardStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+	store.AddStorer(dataRetriever.SmartContractResultUnit, createMemUnit())
 
 	return store
 }
 
 func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	scrPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
@@ -146,6 +148,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
+		scrPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -234,7 +237,7 @@ func createNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
-	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
+	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.SmartContractResultTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,
@@ -274,7 +277,7 @@ func createNetNode(
 		requestHandler,
 	)
 
-	blkc.SetGenesisHeader(genesisBlocks[shardCoordinator.SelfId()])
+	_ = blkc.SetGenesisHeader(genesisBlocks[shardCoordinator.SelfId()])
 
 	n, err := node.NewNode(
 		node.WithMessenger(messenger),
@@ -307,7 +310,7 @@ func createNetNode(
 
 func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
 	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,
@@ -658,7 +661,7 @@ func createMetaNetNode(
 		requestHandler,
 	)
 
-	tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])
+	_ = tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])
 
 	tn.blkProcessor = blkProc
 

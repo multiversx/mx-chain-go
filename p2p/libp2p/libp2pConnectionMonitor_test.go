@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
-	"github.com/libp2p/go-libp2p-net"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,9 +42,9 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 	}
 
 	ns := mock.NetworkStub{
-		ConnsCalled: func() []net.Conn {
+		ConnsCalled: func() []network.Conn {
 			//only one connection which is under the threshold
-			return []net.Conn{
+			return []network.Conn{
 				&mock.ConnStub{},
 			}
 		},

@@ -61,6 +61,7 @@ type Config struct {
 	PeerBlockBodyStorage StorageConfig
 	BlockHeaderStorage   StorageConfig
 	TxStorage            StorageConfig
+	ScrStorage           StorageConfig
 
 	ShardDataStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -75,6 +76,7 @@ type Config struct {
 	BlockHeaderDataPool       CacheConfig
 	BlockHeaderNoncesDataPool CacheConfig
 	TxDataPool                CacheConfig
+	ScrResultDataPool         CacheConfig
 	MetaBlockBodyDataPool     CacheConfig
 
 	MiniBlockHeaderHashesDataPool CacheConfig

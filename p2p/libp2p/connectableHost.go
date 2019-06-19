@@ -3,13 +3,13 @@ package libp2p
 import (
 	"context"
 
-	"github.com/libp2p/go-libp2p-host"
-	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
 
 // PeerInfoHandler is the signature of the handler that gets called whenever an action for a peerInfo is triggered
-type PeerInfoHandler func(pInfo peerstore.PeerInfo)
+type PeerInfoHandler func(pInfo peer.AddrInfo)
 
 // ConnectableHost is an enhanced Host interface that has the ability to connect to a string address
 type ConnectableHost interface {
@@ -35,7 +35,7 @@ func (connHost *connectableHost) ConnectToPeer(ctx context.Context, address stri
 		return err
 	}
 
-	pInfo, err := peerstore.InfoFromP2pAddr(multiAddr)
+	pInfo, err := peer.AddrInfoFromP2pAddr(multiAddr)
 	if err != nil {
 		return err
 	}
