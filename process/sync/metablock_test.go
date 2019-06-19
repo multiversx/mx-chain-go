@@ -520,10 +520,8 @@ func TestNewMetaBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 func TestNewMetaBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pools := createMockMetaPools()
-
 	errExpected := errors.New("expected error")
-
+	pools := createMockMetaPools()
 	resFinder := &mock.ResolversFinderStub{
 		MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.MetachainBlocksTopic) {
@@ -564,10 +562,8 @@ func TestNewMetaBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 func TestNewMetaBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pools := createMockMetaPools()
-
 	errExpected := errors.New("expected error")
-
+	pools := createMockMetaPools()
 	resFinder := &mock.ResolversFinderStub{
 		MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.MetachainBlocksTopic) {
@@ -2238,6 +2234,7 @@ func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenHeaderIsNotFound(t *testing.T) {
 	t.Parallel()
 
+	errExpected := errors.New("key not found")
 	pools := createMockMetaPools()
 	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
@@ -2251,7 +2248,7 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenHeaderIsNotFound(t *testi
 	store := createStore()
 	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 		if unitType == dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()) {
-			return nil, errors.New("key not found")
+			return nil, errExpected
 		}
 
 		return []byte("hash"), nil
@@ -2275,7 +2272,7 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenHeaderIsNotFound(t *testi
 	err := bs.ApplyNotarizedBlock(1,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
-	assert.Equal(t, errors.New("key not found"), err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenGetMetaHeaderFromStorageFails(t *testing.T) {

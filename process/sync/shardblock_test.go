@@ -721,10 +721,8 @@ func TestNewShardBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 func TestNewShardBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pools := createMockPools()
-
 	errExpected := errors.New("expected error")
-
+	pools := createMockPools()
 	resFinder := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.HeadersTopic) {
@@ -770,10 +768,8 @@ func TestNewShardBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 func TestNewShardBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pools := createMockPools()
-
 	errExpected := errors.New("expected error")
-
+	pools := createMockPools()
 	resFinder := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.HeadersTopic) {
@@ -2738,8 +2734,8 @@ func TestBootstrap_LoadBlocksShouldErrBoostrapFromStorageWhenBlocksAreNotValid(t
 func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 	t.Parallel()
 
+	errExpected := errors.New("error to recreate trie")
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-
 	pools := &mock.PoolsHolderStub{}
 	pools.HeadersCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
@@ -2782,7 +2778,7 @@ func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
-			return errors.New("error to recreate trie")
+			return errExpected
 		},
 	}
 
@@ -2818,7 +2814,7 @@ func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 		getBlockBody,
 	)
 
-	assert.Equal(t, errors.New("error to recreate trie"), err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestBootstrap_LoadBlocksShouldWorkAfterRemoveInvalidBlocks(t *testing.T) {
@@ -2966,13 +2962,14 @@ func TestBootstrap_ApplyBlockShouldErrWhenHeaderIsNotFound(t *testing.T) {
 		account,
 	)
 
+	errExpected := errors.New("header not found")
 	err := bs.ApplyBlock(1,
 		func(uint64) (data.HeaderHandler, []byte, error) {
-			return nil, nil, errors.New("header not found")
+			return nil, nil, errExpected
 		},
 		getBlockBody)
 
-	assert.Equal(t, errors.New("header not found"), err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestBootstrap_ApplyBlockShouldErrWhenBodyIsNotFound(t *testing.T) {
@@ -3034,18 +3031,20 @@ func TestBootstrap_ApplyBlockShouldErrWhenBodyIsNotFound(t *testing.T) {
 		account,
 	)
 
+	errExpected := errors.New("body not found")
 	err := bs.ApplyBlock(1,
 		getHeaderFromStorage,
 		func(handler data.HeaderHandler) (data.BodyHandler, error) {
-			return nil, errors.New("body not found")
+			return nil, errExpected
 		})
 
-	assert.Equal(t, errors.New("body not found"), err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestBootstrap_ApplyBlockShouldErrWhenSetCurrentBlockBodyFails(t *testing.T) {
 	t.Parallel()
 
+	errExpected := errors.New("set block body failed")
 	pools := &mock.PoolsHolderStub{}
 	pools.HeadersCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
@@ -3074,7 +3073,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenSetCurrentBlockBodyFails(t *testing.T)
 
 	blkc := initBlockchain()
 	blkc.SetCurrentBlockBodyCalled = func(handler data.BodyHandler) error {
-		return errors.New("set block body failed")
+		return errExpected
 	}
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
@@ -3109,12 +3108,13 @@ func TestBootstrap_ApplyBlockShouldErrWhenSetCurrentBlockBodyFails(t *testing.T)
 		getHeaderFromStorage,
 		getBlockBody)
 
-	assert.Equal(t, errors.New("set block body failed"), err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestBootstrap_ApplyBlockShouldErrWhenSetCurrentBlockHeaderFails(t *testing.T) {
 	t.Parallel()
 
+	errExpected := errors.New("set block header failed")
 	pools := &mock.PoolsHolderStub{}
 	pools.HeadersCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
@@ -3143,7 +3143,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenSetCurrentBlockHeaderFails(t *testing.
 
 	blkc := initBlockchain()
 	blkc.SetCurrentBlockHeaderCalled = func(handler data.HeaderHandler) error {
-		return errors.New("set block header failed")
+		return errExpected
 	}
 
 	rnd := &mock.RounderMock{}
@@ -3179,7 +3179,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenSetCurrentBlockHeaderFails(t *testing.
 		getHeaderFromStorage,
 		getBlockBody)
 
-	assert.Equal(t, errors.New("set block header failed"), err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestBootstrap_ApplyBlockShouldWork(t *testing.T) {
@@ -3251,6 +3251,7 @@ func TestBootstrap_ApplyBlockShouldWork(t *testing.T) {
 func TestBootstrap_RemoveBlockShouldErrWhenHeaderIsNotFound(t *testing.T) {
 	t.Parallel()
 
+	errExpected := errors.New("key not found")
 	pools := &mock.PoolsHolderStub{}
 	pools.HeadersCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
@@ -3285,7 +3286,7 @@ func TestBootstrap_RemoveBlockShouldErrWhenHeaderIsNotFound(t *testing.T) {
 
 	store := createStore()
 	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-		return nil, errors.New("key not found")
+		return nil, errExpected
 	}
 
 	bs, _ := sync.NewShardBootstrap(
@@ -3307,12 +3308,13 @@ func TestBootstrap_RemoveBlockShouldErrWhenHeaderIsNotFound(t *testing.T) {
 		dataRetriever.BlockHeaderUnit,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
-	assert.Equal(t, errors.New("key not found"), err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestBootstrap_RemoveBlockShouldErrWhenRemoveHeaderHashFails(t *testing.T) {
 	t.Parallel()
 
+	errExpected := errors.New("remove header hash failed")
 	pools := &mock.PoolsHolderStub{}
 	pools.HeadersCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
@@ -3350,7 +3352,7 @@ func TestBootstrap_RemoveBlockShouldErrWhenRemoveHeaderHashFails(t *testing.T) {
 		if unitType == dataRetriever.BlockHeaderUnit {
 			return &mock.StorerStub{
 				RemoveCalled: func(key []byte) error {
-					return errors.New("remove header hash failed")
+					return errExpected
 				},
 			}
 		}
@@ -3384,12 +3386,13 @@ func TestBootstrap_RemoveBlockShouldErrWhenRemoveHeaderHashFails(t *testing.T) {
 		dataRetriever.BlockHeaderUnit,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
-	assert.Equal(t, errors.New("remove header hash failed"), err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestBootstrap_RemoveBlockShouldErrWhenRemoveHeaderNonceFails(t *testing.T) {
 	t.Parallel()
 
+	errExpected := errors.New("remove header nonce failed")
 	pools := &mock.PoolsHolderStub{}
 	pools.HeadersCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
@@ -3434,7 +3437,7 @@ func TestBootstrap_RemoveBlockShouldErrWhenRemoveHeaderNonceFails(t *testing.T) 
 		if unitType == dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()) {
 			return &mock.StorerStub{
 				RemoveCalled: func(key []byte) error {
-					return errors.New("remove header nonce failed")
+					return errExpected
 				},
 			}
 		}
@@ -3461,7 +3464,7 @@ func TestBootstrap_RemoveBlockShouldErrWhenRemoveHeaderNonceFails(t *testing.T) 
 		dataRetriever.BlockHeaderUnit,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
-	assert.Equal(t, errors.New("remove header nonce failed"), err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestBootstrap_RemoveBlockShouldWork(t *testing.T) {
@@ -4025,6 +4028,7 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 func TestBootstrap_ApplyNotarizedBlockShouldErrWhenHeaderIsNotFound(t *testing.T) {
 	t.Parallel()
 
+	errExpected := errors.New("key not found")
 	pools := &mock.PoolsHolderStub{}
 	pools.HeadersCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
@@ -4060,7 +4064,7 @@ func TestBootstrap_ApplyNotarizedBlockShouldErrWhenHeaderIsNotFound(t *testing.T
 	store := createStore()
 	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 		if unitType == dataRetriever.MetaHdrNonceHashDataUnit {
-			return nil, errors.New("key not found")
+			return nil, errExpected
 		}
 
 		return []byte("hash"), nil
@@ -4084,7 +4088,7 @@ func TestBootstrap_ApplyNotarizedBlockShouldErrWhenHeaderIsNotFound(t *testing.T
 	err := bs.ApplyNotarizedBlock(1,
 		dataRetriever.MetaHdrNonceHashDataUnit)
 
-	assert.Equal(t, errors.New("key not found"), err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestBootstrap_ApplyNotarizedBlockShouldErrWhenGetMetaHeaderFromStorageFails(t *testing.T) {
