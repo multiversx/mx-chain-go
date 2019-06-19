@@ -43,7 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
-	crypto2 "github.com/libp2p/go-libp2p-crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
 const blsConsensusType = "bls"
@@ -75,7 +75,7 @@ type testNode struct {
 
 func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
 	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,
@@ -286,7 +286,7 @@ func createConsensusOnlyNode(
 		RandSeed:      rootHash,
 	}
 
-	blockChain.SetGenesisHeader(header)
+	_ = blockChain.SetGenesisHeader(header)
 	hdrMarshalized, _ := testMarshalizer.Marshal(header)
 	blockChain.SetGenesisHeaderHash(testHasher.Compute(string(hdrMarshalized)))
 
