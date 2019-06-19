@@ -121,14 +121,16 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 	if requestedTxs > 0 {
 		log.Info(fmt.Sprintf("requested %d missing txs\n", requestedTxs))
 		err := txs.waitForTxHashes(haveTime())
-		txs.mutTxsForBlock.RLock()
+		txs.mutTxsForBlock.Lock()
 		missingTxs := txs.missingTxs
-		txs.mutTxsForBlock.RUnlock()
+		txs.missingTxs = 0
+		txs.mutTxsForBlock.Unlock()
 		log.Info(fmt.Sprintf("received %d missing txs\n", requestedTxs-missingTxs))
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -358,9 +360,10 @@ func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 // computeMissingAndExistingTxsForShards calculates what transactions are available and what are missing from block.Body
 func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) map[uint32]*txsHashesInfo {
 	missingTxsForShard := make(map[uint32]*txsHashesInfo)
-	txs.missingTxs = 0
 
 	txs.mutTxsForBlock.Lock()
+
+	txs.missingTxs = 0
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
@@ -385,6 +388,11 @@ func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) 
 			}
 		}
 	}
+
+	if txs.missingTxs > 0 {
+		process.EmptyChannel(txs.chRcvAllTxs)
+	}
+
 	txs.mutTxsForBlock.Unlock()
 
 	return missingTxsForShard
@@ -486,7 +494,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 
 	if !haveTime() {
 		log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
-		return nil, nil
+		return nil, process.ErrTimeIsOut
 	}
 
 	log.Info(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
@@ -634,7 +642,8 @@ func (txs *transactions) CreateMarshalizedData(txHashes [][]byte) ([][]byte, err
 
 		txMrs, err := txs.marshalizer.Marshal(txInfo.tx)
 		if err != nil {
-			return nil, process.ErrMarshalWithoutSuccess
+			log.Debug(process.ErrMarshalWithoutSuccess.Error())
+			continue
 		}
 		mrsTxs = append(mrsTxs, txMrs)
 	}

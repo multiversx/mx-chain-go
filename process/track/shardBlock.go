@@ -107,13 +107,13 @@ func (sbt *shardBlockTracker) RemoveNotarisedBlocks(headerHandler data.HeaderHan
 			continue
 		}
 
-		log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been notarised by metachain\n",
-			header.GetNonce(),
-			core.ToB64(shardData.HeaderHash)))
-
 		sbt.mutUnnotarisedHeaders.Lock()
 		delete(sbt.unnotarisedHeaders, header.Nonce)
 		sbt.mutUnnotarisedHeaders.Unlock()
+
+		log.Debug(fmt.Sprintf("shardBlock with nonce %d and hash %s has been notarised by metachain\n",
+			header.GetNonce(),
+			core.ToB64(shardData.HeaderHash)))
 	}
 
 	return nil

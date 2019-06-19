@@ -274,7 +274,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 
 	store := &mock.StorerStub{}
 	store.GetCalled = func(key []byte) (i []byte, e error) {
-		return nil, nil
+		return nil, errors.New("key not found")
 	}
 
 	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(

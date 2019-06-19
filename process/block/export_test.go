@@ -2,7 +2,6 @@ package block
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/preprocess"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -62,12 +61,8 @@ func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []
 	return sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
 }
 
-func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) int {
-	return mp.requestBlockHeaders(header)
-}
-
-func (mp *metaProcessor) WaitForBlockHeaders(waitTime time.Duration) {
-	mp.waitForBlockHeaders(waitTime)
+func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32) {
+	return mp.requestShardHeaders(header)
 }
 
 func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error {
@@ -83,29 +78,30 @@ func (mp *metaProcessor) ReceivedHeader(hdrHash []byte) {
 }
 
 func (mp *metaProcessor) AddHdrHashToRequestedList(hdrHash []byte) {
-	mp.mutRequestedShardHeaderHashes.Lock()
-	defer mp.mutRequestedShardHeaderHashes.Unlock()
+	mp.mutRequestedShardHdrsHashes.Lock()
+	defer mp.mutRequestedShardHdrsHashes.Unlock()
 
-	if mp.requestedShardHeaderHashes == nil {
-		mp.requestedShardHeaderHashes = make(map[string]bool)
-		mp.allNeededShardHdrsFound = false
+	if mp.requestedShardHdrsHashes == nil {
+		mp.requestedShardHdrsHashes = make(map[string]bool)
+		mp.allNeededShardHdrsFound = true
 	}
 
-	if mp.currHighestShardHdrNonces == nil {
-		mp.currHighestShardHdrNonces = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
+	if mp.currHighestShardHdrsNonces == nil {
+		mp.currHighestShardHdrsNonces = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
 		for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-			mp.currHighestShardHdrNonces[i] = uint64(0)
+			mp.currHighestShardHdrsNonces[i] = uint64(0)
 		}
 	}
 
-	mp.requestedShardHeaderHashes[string(hdrHash)] = true
+	mp.requestedShardHdrsHashes[string(hdrHash)] = true
+	mp.allNeededShardHdrsFound = false
 }
 
 func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
-	mp.mutRequestedShardHeaderHashes.Lock()
-	defer mp.mutRequestedShardHeaderHashes.Unlock()
+	mp.mutRequestedShardHdrsHashes.Lock()
+	defer mp.mutRequestedShardHdrsHashes.Unlock()
 
-	_, found := mp.requestedShardHeaderHashes[string(hdrHash)]
+	_, found := mp.requestedShardHdrsHashes[string(hdrHash)]
 
 	return found
 }
@@ -127,9 +123,9 @@ func (bp *baseProcessor) SetHasher(hasher hashing.Hasher) {
 }
 
 func (mp *metaProcessor) SetNextKValidity(val uint32) {
-	mp.mutRequestedShardHeaderHashes.Lock()
+	mp.mutRequestedShardHdrsHashes.Lock()
 	mp.nextKValidity = val
-	mp.mutRequestedShardHeaderHashes.Unlock()
+	mp.mutRequestedShardHdrsHashes.Unlock()
 }
 
 func (mp *metaProcessor) CreateLastNotarizedHdrs(header *block.MetaBlock) error {
@@ -170,9 +166,4 @@ func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body blo
 
 func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
 	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
-}
-
-func (sp *shardProcessor) CreateTxInfo(tx *transaction.Transaction, senderShardID uint32, receiverShardID uint32) *txInfo {
-	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	return &txInfo{tx: tx, txShardInfo: txShardInfo}
 }

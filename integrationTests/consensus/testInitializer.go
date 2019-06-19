@@ -273,6 +273,8 @@ func createConsensusOnlyNode(
 		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
 			return make([]data.HeaderHandler, 0)
 		},
+		SetBlockBroadcastRoundCalled: func(nonce uint64, round int32) {
+		},
 	}
 	blockChain := createTestBlockChain()
 

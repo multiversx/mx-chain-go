@@ -273,7 +273,7 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 
 	sr.SetSelfPubKey("A")
 
-	assert.True(t, sr.ConsensusState.IsSelfLeaderInCurrentRound())
+	assert.True(t, sr.IsSelfLeaderInCurrentRound())
 	r := sr.DoEndRoundJob()
 	assert.False(t, r)
 }
