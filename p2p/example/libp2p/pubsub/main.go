@@ -10,10 +10,9 @@ import (
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/libp2p/go-libp2p"
-	crypto "github.com/libp2p/go-libp2p-crypto"
-	host "github.com/libp2p/go-libp2p-host"
-	peer "github.com/libp2p/go-libp2p-peer"
-	peerstore "github.com/libp2p/go-libp2p-peerstore"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -149,7 +148,7 @@ func connectingNodes() {
 
 func createHost(port int) (host.Host, error) {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port)),
@@ -192,7 +191,7 @@ func connectHostToPeer(h host.Host, connectToAddress string) {
 		return
 	}
 
-	pInfo, err := peerstore.InfoFromP2pAddr(multiAddr)
+	pInfo, err := peer.AddrInfoFromP2pAddr(multiAddr)
 	if err != nil {
 		fmt.Printf("Error encountered: %v\n", err)
 		return
