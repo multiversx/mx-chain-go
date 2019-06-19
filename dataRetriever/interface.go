@@ -28,8 +28,13 @@ const (
 	MetaPeerDataUnit UnitType = 6
 	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
 	MetaHdrNonceHashDataUnit UnitType = 7
+
+	//TODO: Add only unit types lower than 100
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	ShardHdrNonceHashDataUnit UnitType = 100
+	//TODO: Do not add unit type greater than 100 as the metachain creates this kind of unit type for each shard.
+	//100 -> shard 0, 101 -> shard 1 and so on. This should be replaced with a factory which will manage the unit types
+	//creation
 )
 
 // Resolver defines what a data resolver should do

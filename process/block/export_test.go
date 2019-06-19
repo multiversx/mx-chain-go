@@ -83,7 +83,7 @@ func (mp *metaProcessor) AddHdrHashToRequestedList(hdrHash []byte) {
 
 	if mp.requestedShardHdrsHashes == nil {
 		mp.requestedShardHdrsHashes = make(map[string]bool)
-		mp.allNeededShardHdrsFound = false
+		mp.allNeededShardHdrsFound = true
 	}
 
 	if mp.currHighestShardHdrsNonces == nil {
@@ -94,6 +94,7 @@ func (mp *metaProcessor) AddHdrHashToRequestedList(hdrHash []byte) {
 	}
 
 	mp.requestedShardHdrsHashes[string(hdrHash)] = true
+	mp.allNeededShardHdrsFound = false
 }
 
 func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
@@ -165,10 +166,4 @@ func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body blo
 
 func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
 	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
-}
-
-func (mp *metaProcessor) SetAllNeededShardHdrsFound(allNeededShardHdrsFound bool) {
-	mp.mutRequestedShardHdrsHashes.Lock()
-	mp.allNeededShardHdrsFound = allNeededShardHdrsFound
-	mp.mutRequestedShardHdrsHashes.Unlock()
 }

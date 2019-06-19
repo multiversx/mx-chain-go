@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"math/rand"
 	"reflect"
 	"sync/atomic"
@@ -14,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -1364,6 +1364,8 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 		true,
 		&mock.RequestHandlerMock{},
 	)
+
+	assert.Nil(t, err)
 
 	blkc, _ := blockchain.NewBlockChain(
 		generateTestCache(),

@@ -171,6 +171,7 @@ func (boot *MetaBootstrap) getHeaderFromStorage(nonce uint64) (data.HeaderHandle
 	}
 
 	header, err := process.GetMetaHeaderFromStorage(headerHash, boot.marshalizer, boot.store)
+
 	return header, headerHash, err
 }
 
@@ -190,7 +191,7 @@ func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
 
 // StartSync method will start SyncBlocks as a go routine
 func (boot *MetaBootstrap) StartSync() {
-	// when a node starts it tries firstly to boostrap from storage, if there already exist a database saved
+	// when a node starts it first tries to boostrap from storage, if there already exist a database saved
 	err := boot.syncFromStorer(process.MetaBlockFinality,
 		dataRetriever.MetaBlockUnit,
 		dataRetriever.MetaHdrNonceHashDataUnit,
@@ -305,17 +306,17 @@ func (boot *MetaBootstrap) getHeaderFromPoolWithNonce(nonce uint64) (*block.Meta
 		return nil, process.ErrMissingHashForHeaderNonce
 	}
 
-	hdr, ok := boot.headers.Peek(hash)
+	obj, ok := boot.headers.Peek(hash)
 	if !ok {
 		return nil, process.ErrMissingHeader
 	}
 
-	header, ok := hdr.(*block.MetaBlock)
+	hdr, ok := obj.(*block.MetaBlock)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	return header, nil
+	return hdr, nil
 }
 
 // getHeaderHashFromStorage method returns the block header hash from a given nonce
@@ -349,7 +350,7 @@ func (boot *MetaBootstrap) requestHeader(nonce uint64) {
 // getHeaderWithNonce method gets the header with given nonce from pool, if it exist there,
 // and if not it will be requested from network
 func (boot *MetaBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.MetaBlock, error) {
-	hdr, err := boot.getHeaderFromPoolWithNonce(nonce)
+	hdr, err := boot.getHeaderWithNonce(nonce)
 	if err != nil {
 		process.EmptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
@@ -358,7 +359,7 @@ func (boot *MetaBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Me
 			return nil, err
 		}
 
-		hdr, err = boot.getHeaderFromPoolWithNonce(nonce)
+		hdr, err = boot.getHeaderWithNonce(nonce)
 		if err != nil {
 			return nil, err
 		}
@@ -411,10 +412,12 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 	if header.GetNonce() == 0 {
 		return process.ErrRollbackFromGenesis
 	}
+
 	headerStore := boot.store.GetStorer(dataRetriever.MetaBlockUnit)
 	if headerStore == nil {
 		return process.ErrNilHeadersStorage
 	}
+
 	headerNonceHashStore := boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	if headerNonceHashStore == nil {
 		return process.ErrNilHeadersNonceHashStorage

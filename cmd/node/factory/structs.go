@@ -711,7 +711,8 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaBlockUnit, metachainHeaderUnit)
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
-	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()), shardHdrHashNonceUnit)
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardCoordinator.SelfId())
+	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
 
 	return store, err
 }
@@ -808,7 +809,8 @@ func createMetaChainDataStoreFromConfig(config *config.Config, shardCoordinator 
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), shardHdrHashNonceUnits[i])
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
+		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
 	}
 
 	return store, err

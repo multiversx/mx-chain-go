@@ -15,7 +15,8 @@ func EmptyChannel(ch chan bool) {
 }
 
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
-func GetShardHeader(hash []byte,
+func GetShardHeader(
+	hash []byte,
 	cacher storage.Cacher,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
@@ -42,7 +43,8 @@ func GetShardHeader(hash []byte,
 }
 
 // GetMetaHeader gets the header, which is associated with the given hash, from pool or storage
-func GetMetaHeader(hash []byte,
+func GetMetaHeader(
+	hash []byte,
 	cacher storage.Cacher,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
@@ -69,45 +71,47 @@ func GetMetaHeader(hash []byte,
 }
 
 // GetShardHeaderFromPool gets the header, which is associated with the given hash, from pool
-func GetShardHeaderFromPool(hash []byte,
+func GetShardHeaderFromPool(
+	hash []byte,
 	cacher storage.Cacher,
 ) (*block.Header, error) {
 	if cacher == nil {
 		return nil, ErrNilCacher
 	}
 
-	hdr, ok := cacher.Peek(hash)
+	obj, ok := cacher.Peek(hash)
 	if !ok {
 		return nil, ErrMissingHeader
 	}
 
-	header, ok := hdr.(*block.Header)
+	hdr, ok := obj.(*block.Header)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	return header, nil
+	return hdr, nil
 }
 
 // GetMetaHeaderFromPool gets the header, which is associated with the given hash, from pool
-func GetMetaHeaderFromPool(hash []byte,
+func GetMetaHeaderFromPool(
+	hash []byte,
 	cacher storage.Cacher,
 ) (*block.MetaBlock, error) {
 	if cacher == nil {
 		return nil, ErrNilCacher
 	}
 
-	hdr, ok := cacher.Peek(hash)
+	obj, ok := cacher.Peek(hash)
 	if !ok {
 		return nil, ErrMissingHeader
 	}
 
-	header, ok := hdr.(*block.MetaBlock)
+	hdr, ok := obj.(*block.MetaBlock)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	return header, nil
+	return hdr, nil
 }
 
 // GetShardHeaderFromStorage gets the header, which is associated with the given hash, from storage
@@ -117,18 +121,18 @@ func GetShardHeaderFromStorage(
 	storageService dataRetriever.StorageService,
 ) (*block.Header, error) {
 
-	buffHeader, err := GetMarshalizedHeaderFromStorage(dataRetriever.BlockHeaderUnit, hash, marshalizer, storageService)
+	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.BlockHeaderUnit, hash, marshalizer, storageService)
 	if err != nil {
 		return nil, err
 	}
 
-	header := &block.Header{}
-	err = marshalizer.Unmarshal(header, buffHeader)
+	hdr := &block.Header{}
+	err = marshalizer.Unmarshal(hdr, buffHdr)
 	if err != nil {
 		return nil, ErrUnmarshalWithoutSuccess
 	}
 
-	return header, nil
+	return hdr, nil
 }
 
 // GetMetaHeaderFromStorage gets the header, which is associated with the given hash, from storage
@@ -138,18 +142,18 @@ func GetMetaHeaderFromStorage(
 	storageService dataRetriever.StorageService,
 ) (*block.MetaBlock, error) {
 
-	buffHeader, err := GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, storageService)
+	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, storageService)
 	if err != nil {
 		return nil, err
 	}
 
-	header := &block.MetaBlock{}
-	err = marshalizer.Unmarshal(header, buffHeader)
+	hdr := &block.MetaBlock{}
+	err = marshalizer.Unmarshal(hdr, buffHdr)
 	if err != nil {
 		return nil, ErrUnmarshalWithoutSuccess
 	}
 
-	return header, nil
+	return hdr, nil
 }
 
 // GetMarshalizedHeaderFromStorage gets the marshalized header, which is associated with the given hash, from storage
@@ -167,15 +171,15 @@ func GetMarshalizedHeaderFromStorage(
 		return nil, ErrNilStorage
 	}
 
-	headerStore := storageService.GetStorer(blockUnit)
-	if headerStore == nil {
+	hdrStore := storageService.GetStorer(blockUnit)
+	if hdrStore == nil {
 		return nil, ErrNilHeadersStorage
 	}
 
-	buffHeader, err := headerStore.Get(hash)
+	buffHdr, err := hdrStore.Get(hash)
 	if err != nil {
 		return nil, ErrMissingHeader
 	}
 
-	return buffHeader, nil
+	return buffHdr, nil
 }

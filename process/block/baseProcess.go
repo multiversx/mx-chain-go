@@ -74,8 +74,10 @@ func (bp *baseProcessor) RevertAccountState() {
 
 // SetLastNotarizedHdr sets the last notarized header
 func (bp *baseProcessor) SetLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
+	bp.mutNotarizedHdrs.Lock()
 	bp.finalNotarizedHdrs[shardId] = bp.lastNotarizedHdrs[shardId]
 	bp.lastNotarizedHdrs[shardId] = processedHdr
+	bp.mutNotarizedHdrs.Unlock()
 }
 
 // checkBlockValidity method checks if the given block is valid

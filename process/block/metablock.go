@@ -109,10 +109,8 @@ func NewMetaProcessor(
 	mp.chRcvAllHdrs = make(chan bool)
 
 	mp.nextKValidity = process.ShardBlockFinality
-
 	//TODO: This should be injected when BlockProcessor will be refactored
 	mp.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
-
 	mp.allNeededShardHdrsFound = true
 
 	return &mp, nil
@@ -200,10 +198,11 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
-func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint32) error {
+func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint32) {
 	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(round)
 	if err != nil {
-		return err
+		log.Debug(err.Error())
+		return
 	}
 
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
@@ -220,7 +219,7 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint32) erro
 		}
 	}
 
-	return nil
+	return
 }
 
 func (mp *metaProcessor) indexBlock(metaBlock *block.MetaBlock, headerPool map[string]*block.Header) {
@@ -377,9 +376,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	headerHash := mp.hasher.Compute(string(buff))
 	errNotCritical := mp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
-	if errNotCritical != nil {
-		log.Error(errNotCritical.Error())
-	}
+	log.LogIfError(errNotCritical)
 
 	nonceToByteSlice := mp.uint64Converter.ToByteSlice(header.Nonce)
 	err = mp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
@@ -421,7 +418,8 @@ func (mp *metaProcessor) CommitBlock(
 		}
 
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(header.Nonce)
-		errNotCritical = mp.store.Put(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(header.ShardId), nonceToByteSlice, shardData.HeaderHash)
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.ShardId)
+		errNotCritical = mp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, shardData.HeaderHash)
 		if errNotCritical != nil {
 			log.Error(errNotCritical.Error())
 		}
@@ -739,11 +737,12 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 	}
 }
 
+// requestFinalMissingHeaders requests the headers needed to accept the current selected headers for processing the
+// current block. It requests the nextKValidity headers greater than the highest shard header, for each shard, related
+// to the block which should be processed
 func (mp *metaProcessor) requestFinalMissingHeaders() uint32 {
 	requestedBlockHeaders := uint32(0)
-	// I have all the needed, but I do not know if I have the ones which would finalize them
 	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
-		// ask for finality attesting hdrs if it is not yet in cache
 		for i := mp.currHighestShardHdrsNonces[shardId] + 1; i <= mp.currHighestShardHdrsNonces[shardId]+uint64(mp.nextKValidity); i++ {
 			if mp.currHighestShardHdrsNonces[shardId] == uint64(0) {
 				continue

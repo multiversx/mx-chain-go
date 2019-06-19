@@ -287,10 +287,11 @@ func (sp *shardProcessor) checkHeaderBodyCorrelation(hdr *block.Header, body blo
 	return nil
 }
 
-func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32) error {
+func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32) {
 	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
 	if err != nil {
-		return err
+		log.Debug(err.Error())
+		return
 	}
 
 	sortedHdrs := make([]data.HeaderHandler, 0)
@@ -307,7 +308,7 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32) erro
 		log.Info(err.Error())
 	}
 
-	return nil
+	return
 }
 
 func (sp *shardProcessor) indexBlockIfNeeded(
@@ -437,7 +438,8 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	nonceToByteSlice := sp.uint64Converter.ToByteSlice(header.Nonce)
-	err = sp.store.Put(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(header.ShardId), nonceToByteSlice, headerHash)
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.ShardId)
+	err = sp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if err != nil {
 		return err
 	}
@@ -741,9 +743,11 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	}
 }
 
+// requestFinalMissingHeaders requests the headers needed to accept the current selected headers for processing the
+// current block. It requests the metaBlockFinality headers greater than the highest meta header related to the block
+// which should be processed
 func (sp *shardProcessor) requestFinalMissingHeaders() uint32 {
 	requestedBlockHeaders := uint32(0)
-	// ask for finality attesting metahdr if it is not yet in cache
 	for i := sp.currHighestMetaHdrNonce + 1; i <= sp.currHighestMetaHdrNonce+uint64(sp.metaBlockFinality); i++ {
 		if !sp.dataPool.MetaHeadersNonces().Has(i) {
 			requestedBlockHeaders++

@@ -202,7 +202,7 @@ var ErrNilBlocksTracker = errors.New("nil blocks tracker")
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
 
-// ErrInvalidTxInPool signals that a transaction is not found
+// ErrTxNotFound signals that a transaction has not found
 var ErrTxNotFound = errors.New("transaction not found")
 
 // ErrNilHeadersStorage signals that a nil header storage has been provided
@@ -366,6 +366,3 @@ var ErrNilSmartContractResult = errors.New("smart contract result is nil")
 
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
-
-// ErrUnknownMiniBlockType signals that miniblock type is wrong
-var ErrUnknownMiniBlockType = errors.New("miniblock type is unknown")

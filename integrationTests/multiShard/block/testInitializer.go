@@ -120,7 +120,8 @@ func createTestShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
-		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), createMemUnit())
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
+		store.AddStorer(hdrNonceHashDataUnit, createMemUnit())
 	}
 
 	return store
