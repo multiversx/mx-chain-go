@@ -13,48 +13,48 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
-	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
-	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go-sandbox/display"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	metaProcess "github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/data"
+	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
+	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
+	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
+	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
+	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
+	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
-	crypto2 "github.com/libp2p/go-libp2p-crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
 var r *rand.Rand
@@ -111,7 +111,7 @@ func createMemUnit() storage.Storer {
 	return unit
 }
 
-func createTestShardStore() dataRetriever.StorageService {
+func createTestShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
@@ -119,6 +119,11 @@ func createTestShardStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.SmartContractResultUnit, createMemUnit())
+
+	for i := uint32(0); i < numOfShards; i++ {
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
+		store.AddStorer(hdrNonceHashDataUnit, createMemUnit())
+	}
 
 	return store
 }
@@ -204,7 +209,7 @@ func createNetNode(
 	fmt.Printf("Found pk: %s\n", hex.EncodeToString(pkBuff))
 
 	blkc := createTestShardChain()
-	store := createTestShardStore()
+	store := createTestShardStore(shardCoordinator.NumberOfShards())
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	dataPacker, _ := partitioning.NewSizeDataPacker(testMarshalizer)
 
@@ -264,6 +269,9 @@ func createNetNode(
 			GetHighestFinalBlockNonceCalled: func() uint64 {
 				return 0
 			},
+			ProbableHighestNonceCalled: func() uint64 {
+				return 0
+			},
 		},
 		&mock.BlocksTrackerMock{
 			AddBlockCalled: func(headerHandler data.HeaderHandler) {
@@ -271,13 +279,16 @@ func createNetNode(
 			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
 				return nil
 			},
+			UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+				return make([]data.HeaderHandler, 0)
+			},
 		},
 		genesisBlocks,
 		true,
 		requestHandler,
 	)
 
-	blkc.SetGenesisHeader(genesisBlocks[shardCoordinator.SelfId()])
+	_ = blkc.SetGenesisHeader(genesisBlocks[shardCoordinator.SelfId()])
 
 	n, err := node.NewNode(
 		node.WithMessenger(messenger),
@@ -310,7 +321,7 @@ func createNetNode(
 
 func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
 	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,
@@ -557,6 +568,7 @@ func createTestMetaChain() data.ChainHandler {
 func createTestMetaStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 
 	return store
@@ -652,6 +664,9 @@ func createMetaNetNode(
 			GetHighestFinalBlockNonceCalled: func() uint64 {
 				return 0
 			},
+			ProbableHighestNonceCalled: func() uint64 {
+				return 0
+			},
 		},
 		shardCoordinator,
 		testHasher,
@@ -661,7 +676,7 @@ func createMetaNetNode(
 		requestHandler,
 	)
 
-	tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])
+	_ = tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])
 
 	tn.blkProcessor = blkProc
 

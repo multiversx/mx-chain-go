@@ -3,8 +3,8 @@ package commonSubround_test
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 )
 
 const processingThresholdPercent = 65

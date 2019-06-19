@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/badgerdb"
+	"github.com/ElrondNetwork/elrond-go/storage/badgerdb"
 	"github.com/stretchr/testify/assert"
 )
 

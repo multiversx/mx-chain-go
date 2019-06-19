@@ -28,12 +28,12 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go/data/trie/rlp"
+	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 )

@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
-	"github.com/ElrondNetwork/elrond-go-sandbox/benchmark-broadcast/broadcast"
+	"github.com/ElrondNetwork/elrond-go/benchmark-broadcast/broadcast"
 )
 
 func main() {

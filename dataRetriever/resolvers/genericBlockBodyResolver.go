@@ -3,11 +3,11 @@ package resolvers
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // GenericBlockBodyResolver is a wrapper over Resolver that is specialized in resolving block body requests
@@ -155,9 +155,13 @@ func (gbbRes *GenericBlockBodyResolver) GetMiniBlocks(hashes [][]byte) block.Min
 		err := gbbRes.marshalizer.Unmarshal(mb, miniBlocks[i])
 
 		if err != nil {
+			log.Debug(err.Error())
 			gbbRes.miniBlockPool.Remove(hashes[i])
 			err = gbbRes.miniBlockStorage.Remove(hashes[i])
-			log.LogIfError(err)
+			if err != nil {
+				log.Debug(err.Error())
+			}
+
 			return nil
 		}
 
@@ -192,9 +196,8 @@ func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromCache(hashes [][]byte) 
 		}
 
 		buff, err := gbbRes.marshalizer.Marshal(cachedMB)
-
 		if err != nil {
-			log.LogIfError(err)
+			log.Debug(err.Error())
 			return nil
 		}
 
@@ -212,9 +215,8 @@ func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte)
 
 	for i := 0; i < miniBlocksLen; i++ {
 		buff, err := gbbRes.miniBlockStorage.Get(hashes[i])
-
-		if buff == nil {
-			log.LogIfError(err)
+		if err != nil {
+			log.Debug(err.Error())
 			return nil
 		}
 

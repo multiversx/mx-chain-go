@@ -19,7 +19,7 @@
 package trie
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // LeafCallback is a callback type invoked when a trie operation reaches a leaf

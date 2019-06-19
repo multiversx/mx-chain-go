@@ -1,7 +1,7 @@
 package track
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // metaBlockTracker implements NotarisedBlocksTracker interface which tracks notarised blocks

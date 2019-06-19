@@ -10,16 +10,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/consensus/round"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,6 +48,9 @@ func createMockMetaPools() *mock.MetaPoolsHolderStub {
 			RegisterHandlerCalled: func(handler func(nonce uint64)) {},
 			RemoveCalled: func(u uint64) {
 				return
+			},
+			PutCalled: func(u uint64, i interface{}) bool {
+				return true
 			},
 		}
 		return hnc
@@ -94,6 +97,7 @@ func createMetaBlockProcessor() *mock.BlockProcessorMock {
 func createMetaStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	return store
 }
 
@@ -716,7 +720,7 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, r)
 }
 
-func TestMetaBootstrap_ShouldReturnMissingHeader(t *testing.T) {
+func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	t.Parallel()
 
 	hdr := block.MetaBlock{Nonce: 1}
@@ -764,7 +768,7 @@ func TestMetaBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 
 	r := bs.SyncBlock()
 
-	assert.Equal(t, process.ErrMissingHeader, r)
+	assert.Equal(t, process.ErrTimeIsOut, r)
 }
 
 func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
@@ -1293,7 +1297,8 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		account,
 	)
 
-	assert.Nil(t, bs.GetHeaderFromPoolWithNonce(0))
+	hdr, _ := bs.GetHeaderFromPoolWithNonce(0)
+	assert.Nil(t, hdr)
 }
 
 func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
@@ -1355,7 +1360,8 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		account,
 	)
 
-	assert.True(t, hdr == bs.GetHeaderFromPoolWithNonce(0))
+	hdr2, _ := bs.GetHeaderFromPoolWithNonce(0)
+	assert.True(t, hdr == hdr2)
 }
 
 //------- testing received headers

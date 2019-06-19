@@ -4,81 +4,166 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/urfave/cli"
 )
 
-// PkSkPairsToGenerate holds the number of pairs sk/pk that will be generated
-const PkSkPairsToGenerate = 21
+var (
+	fileGenHelpTemplate = `NAME:
+   {{.Name}} - {{.Usage}}
+USAGE:
+   {{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}
+   {{if len .Authors}}
+AUTHOR:
+   {{range .Authors}}{{ . }}{{end}}
+   {{end}}{{if .Commands}}
+GLOBAL OPTIONS:
+   {{range .VisibleFlags}}{{.}}
+   {{end}}
+VERSION:
+   {{.Version}}
+   {{end}}
+`
+	consensusType = cli.StringFlag{
+		Name:  "consensus-type",
+		Usage: "Consensus type to be used and for which, private/public keys, to generate",
+		Value: "bls",
+	}
+
+	initialBalancesSkFileName = "./initialBalancesSk.pem"
+	initialNodesSkFileName    = "./initialNodesSk.pem"
+)
 
 func main() {
-
-	path, err := filepath.Abs("")
-	if err != nil {
-		fmt.Println("Invalid file path")
-		return
+	app := cli.NewApp()
+	cli.AppHelpTemplate = fileGenHelpTemplate
+	app.Name = "Key generation Tool"
+	app.Version = "v0.0.1"
+	app.Usage = "This binary will generate a initialBalancesSk.pem and initialNodesSk.pem, each containing one private key"
+	app.Flags = []cli.Flag{consensusType}
+	app.Authors = []cli.Author{
+		{
+			Name:  "The Elrond Team",
+			Email: "contact@elrond.com",
+		},
 	}
 
-	fskPlain, err := os.OpenFile(path+"/skPlainText", os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		fmt.Println(err)
-		return
+	app.Action = func(c *cli.Context) error {
+		return generateFiles(c)
 	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+}
+
+func generateFiles(ctx *cli.Context) error {
+	var initialBalancesSkFile, initialNodesSkFile *os.File
+
 	defer func() {
-		_ = fskPlain.Close()
+		if initialBalancesSkFile != nil {
+			err := initialBalancesSkFile.Close()
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+		}
+
+		if initialNodesSkFile != nil {
+			err := initialNodesSkFile.Close()
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+		}
 	}()
 
-	fskPem, err := os.OpenFile(path+"/skPem", os.O_CREATE|os.O_WRONLY, 0644)
+	err := os.Remove(initialBalancesSkFileName)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	initialBalancesSkFile, err = os.OpenFile(initialBalancesSkFileName, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
-	defer func() {
-		_ = fskPem.Close()
-	}()
 
-	fpk, err := os.OpenFile(path+"/pkPlainText", os.O_CREATE|os.O_WRONLY, 0644)
+	err = os.Remove(initialNodesSkFileName)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	initialNodesSkFile, err = os.OpenFile(initialNodesSkFileName, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
-	defer func() {
-		_ = fpk.Close()
-	}()
 
-	suite := kyber.NewBlakeSHA256Ed25519()
+	genForBalanceSk := signing.NewKeyGenerator(getSuiteForBalanceSk())
+	consensusType := ctx.GlobalString(consensusType.Name)
+	genForBlockSigningSk := signing.NewKeyGenerator(getSuiteForBlockSigningSk(consensusType))
 
-	for i := 0; i < PkSkPairsToGenerate; i++ {
-		generator := signing.NewKeyGenerator(suite)
-		sk, pk := generator.GeneratePair()
-		skBytes, err2 := sk.ToByteArray()
-		if err2 != nil {
-			fmt.Println("Could not convert sk to byte array")
-		}
-		pkBytes, err2 := pk.ToByteArray()
-		if err2 != nil {
-			fmt.Println("Could not convert pk to byte array")
-		}
-
-		skHex := []byte(hex.EncodeToString(skBytes))
-		pkHex := []byte(hex.EncodeToString(pkBytes))
-
-		_, err := fskPlain.Write(append(skHex, '\n'))
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		_, err = fpk.Write(append(pkHex, '\n'))
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		err = core.SaveSkToPemFile(fskPem, string(pkHex), skHex)
-		if err != nil {
-			fmt.Println(err)
-		}
+	pkHexBalance, skHex, err := getIdentifierAndPrivateKey(genForBalanceSk)
+	if err != nil {
+		return err
 	}
+
+	err = core.SaveSkToPemFile(initialBalancesSkFile, pkHexBalance, skHex)
+	if err != nil {
+		return err
+	}
+
+	pkHexBlockSigning, skHex, err := getIdentifierAndPrivateKey(genForBlockSigningSk)
+	if err != nil {
+		return err
+	}
+
+	err = core.SaveSkToPemFile(initialNodesSkFile, pkHexBlockSigning, skHex)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Files generated successfully.")
+	fmt.Printf("   pk for balance: %s\n", pkHexBalance)
+	fmt.Printf("   pk for block signing: %s\n", pkHexBlockSigning)
+
+	return nil
+}
+
+func getSuiteForBalanceSk() crypto.Suite {
+	return kyber.NewBlakeSHA256Ed25519()
+}
+
+func getSuiteForBlockSigningSk(consensusType string) crypto.Suite {
+	// TODO: A factory which returns the suite according to consensus type should be created in elrond-go-sandbox project
+	// Ex: crypto.NewSuite(consensusType) crypto.Suite
+	switch consensusType {
+	case "bls":
+		return kyber.NewSuitePairingBn256()
+	case "bn":
+		return kyber.NewBlakeSHA256Ed25519()
+	default:
+		return nil
+	}
+}
+
+func getIdentifierAndPrivateKey(keyGen crypto.KeyGenerator) (string, []byte, error) {
+	sk, pk := keyGen.GeneratePair()
+	skBytes, err := sk.ToByteArray()
+	if err != nil {
+		return "", nil, err
+	}
+
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		return "", nil, err
+	}
+
+	skHex := []byte(hex.EncodeToString(skBytes))
+	pkHex := hex.EncodeToString(pkBytes)
+
+	return pkHex, skHex, nil
 }

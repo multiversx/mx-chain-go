@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/benchmark-broadcast/bits"
+	"github.com/ElrondNetwork/elrond-go/benchmark-broadcast/bits"
 )
 
 func TestXORBytes(t *testing.T) {

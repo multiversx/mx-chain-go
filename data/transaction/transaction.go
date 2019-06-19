@@ -4,7 +4,7 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction/capnp"
+	"github.com/ElrondNetwork/elrond-go/data/transaction/capnp"
 	"github.com/glycerine/go-capnproto"
 )
 

@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
+	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/btcsuite/btcd/btcec"
-	crypto "github.com/libp2p/go-libp2p-crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +36,7 @@ func createMessenger(ctx context.Context, seed int, initialPeerList []string) p2
 
 	r := rand.New(rand.NewSource(int64(seed)))
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
 	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
 		ctx,

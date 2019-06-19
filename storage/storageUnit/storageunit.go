@@ -7,17 +7,17 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/badgerdb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/boltdb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/fifocache"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/badgerdb"
+	"github.com/ElrondNetwork/elrond-go/storage/bloom"
+	"github.com/ElrondNetwork/elrond-go/storage/boltdb"
+	"github.com/ElrondNetwork/elrond-go/storage/fifocache"
+	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
 // CacheType represents the type of the supported caches
@@ -308,6 +308,42 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 	}
 
 	db, err = NewDB(dbConf.Type, dbConf.FilePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize)
+	if err != nil {
+		return nil, err
+	}
+
+	if reflect.DeepEqual(bloomFilterConf, BloomConfig{}) {
+		return NewStorageUnit(cache, db)
+	}
+
+	bf, err = NewBloomFilter(bloomFilterConf)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewStorageUnitWithBloomFilter(cache, db, bf)
+}
+
+// NewShardedStorageUnitFromConf creates a new sharded storage unit from a storage unit config
+func NewShardedStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterConf BloomConfig, shardId uint32) (*Unit, error) {
+	var cache storage.Cacher
+	var db storage.Persister
+	var bf storage.BloomFilter
+	var err error
+
+	defer func() {
+		if err != nil && db != nil {
+			_ = db.Destroy()
+		}
+	}()
+
+	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards)
+	if err != nil {
+		return nil, err
+	}
+
+	filePath := fmt.Sprintf("%s%d", dbConf.FilePath, shardId)
+	db, err = NewDB(dbConf.Type, filePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize)
 	if err != nil {
 		return nil, err
 	}

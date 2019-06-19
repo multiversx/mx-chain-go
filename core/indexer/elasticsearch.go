@@ -11,15 +11,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/gin-gonic/gin/json"
@@ -35,6 +35,7 @@ const shardTpsDocIDPrefix = "shard"
 
 const badRequest = 400
 
+//TODO refactor this and split in 3: glue code, interface and logic code
 type elasticIndexer struct {
 	db               *elasticsearch.Client
 	shardCoordinator sharding.Coordinator
@@ -254,16 +255,15 @@ func (ei *elasticIndexer) saveHeader(header data.HeaderHandler) {
 
 	res, err := req.Do(context.Background(), ei.db)
 	if err != nil {
-		ei.logger.Warn("Could not index block header: %s", err)
+		ei.logger.Warn(fmt.Sprintf("Could not index block header: %s", err))
+		return
 	}
-
-	defer func() {
-		_ = res.Body.Close()
-	}()
 
 	if res.IsError() {
 		ei.logger.Warn(res.String())
 	}
+
+	_ = res.Body.Close()
 }
 
 func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {

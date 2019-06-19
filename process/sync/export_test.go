@@ -1,20 +1,20 @@
 package sync
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 func (boot *ShardBootstrap) RequestHeader(nonce uint64) {
 	boot.requestHeader(nonce)
 }
 
-func (boot *ShardBootstrap) GetHeaderFromPoolWithNonce(nonce uint64) *block.Header {
+func (boot *ShardBootstrap) GetHeaderFromPoolWithNonce(nonce uint64) (*block.Header, error) {
 	return boot.getHeaderFromPoolWithNonce(nonce)
 }
 
-func (boot *MetaBootstrap) GetHeaderFromPoolWithNonce(nonce uint64) *block.MetaBlock {
+func (boot *MetaBootstrap) GetHeaderFromPoolWithNonce(nonce uint64) (*block.MetaBlock, error) {
 	return boot.getHeaderFromPoolWithNonce(nonce)
 }
 

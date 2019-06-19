@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/gin-gonic/gin"
 )
 

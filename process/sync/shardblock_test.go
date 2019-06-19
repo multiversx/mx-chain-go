@@ -10,18 +10,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/consensus/round"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -140,7 +140,14 @@ func createMockPools() *mock.PoolsHolderStub {
 func createStore() *mock.ChainStorerMock {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return nil, process.ErrMissingHeader
+				},
+				RemoveCalled: func(key []byte) error {
+					return nil
+				},
+			}
 		},
 	}
 }
@@ -166,6 +173,8 @@ func createFullStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
+
 	return store
 }
 
@@ -935,7 +944,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, r)
 }
 
-func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
+func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	t.Parallel()
 
 	hdr := block.Header{Nonce: 1}
@@ -983,10 +992,10 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 
 	r := bs.SyncBlock()
 
-	assert.Equal(t, process.ErrMissingHeader, r)
+	assert.Equal(t, process.ErrTimeIsOut, r)
 }
 
-func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
+func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 	t.Parallel()
 
 	hdr := block.Header{Nonce: 1}
@@ -1061,7 +1070,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 
 	bs.RequestHeader(2)
 	r := bs.SyncBlock()
-	assert.Equal(t, process.ErrMissingBody, r)
+	assert.Equal(t, process.ErrTimeIsOut, r)
 }
 
 func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
@@ -1634,7 +1643,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		account,
 	)
 
-	assert.Nil(t, bs.GetHeaderFromPoolWithNonce(0))
+	hdr, _ := bs.GetHeaderFromPoolWithNonce(0)
+	assert.Nil(t, hdr)
 }
 
 func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
@@ -1696,7 +1706,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		account,
 	)
 
-	assert.True(t, hdr == bs.GetHeaderFromPoolWithNonce(0))
+	hdr2, _ := bs.GetHeaderFromPoolWithNonce(0)
+	assert.True(t, hdr == hdr2)
 }
 
 func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 )
 
 // according to http://cacr.uwaterloo.ca/hac/about/chap4.pdf, table 4.4, 12 will suffice for 256 bit primes

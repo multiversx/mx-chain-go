@@ -1,6 +1,6 @@
 package factory
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+import "github.com/ElrondNetwork/elrond-go/data/state"
 
 // MetaAccountCreator has a method to create a new meta accound
 type MetaAccountCreator struct {

@@ -12,61 +12,61 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/serviceContainer"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	blsMultiSig "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
-	factoryState "github.com/ElrondNetwork/elrond-go-sandbox/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
-	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
-	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
-	factoryP2P "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract/hooks"
-	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/track"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/round"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/genesis"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
+	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	blsMultiSig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
+	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
+	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	factoryP2P "github.com/ElrondNetwork/elrond-go/p2p/libp2p/factory"
+	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
+	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/track"
+	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
 )
 
@@ -606,16 +606,16 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 
 func createDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return createShardDataStoreFromConfig(config, uniqueID)
+		return createShardDataStoreFromConfig(config, shardCoordinator, uniqueID)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return createMetaChainDataStoreFromConfig(config, uniqueID)
+		return createMetaChainDataStoreFromConfig(config, shardCoordinator, uniqueID)
 	}
 	return nil, errors.New("can not create data store")
 }
 
-func createShardDataStoreFromConfig(config *config.Config, uniqueID string) (dataRetriever.StorageService, error) {
-	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit, scrUnit *storageUnit.Unit
+func createShardDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
+	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit, scrUnit, metaHdrHashNonceUnit, shardHdrHashNonceUnit *storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -639,6 +639,12 @@ func createShardDataStoreFromConfig(config *config.Config, uniqueID string) (dat
 			if metachainHeaderUnit != nil {
 				_ = metachainHeaderUnit.DestroyUnit()
 			}
+			if metaHdrHashNonceUnit != nil {
+				_ = metaHdrHashNonceUnit.DestroyUnit()
+			}
+			if shardHdrHashNonceUnit != nil {
+				_ = shardHdrHashNonceUnit.DestroyUnit()
+			}
 		}
 	}()
 
@@ -651,9 +657,9 @@ func createShardDataStoreFromConfig(config *config.Config, uniqueID string) (dat
 	}
 
 	scrUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.ScrStorage.Cache),
-		getDBFromConfig(config.ScrStorage.DB, uniqueID),
-		getBloomFromConfig(config.ScrStorage.Bloom))
+		getCacherFromConfig(config.SmartContractResultStorage.Cache),
+		getDBFromConfig(config.SmartContractResultStorage.DB, uniqueID),
+		getBloomFromConfig(config.SmartContractResultStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -690,6 +696,25 @@ func createShardDataStoreFromConfig(config *config.Config, uniqueID string) (dat
 		return nil, err
 	}
 
+	metaHdrHashNonceUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.MetaHdrNonceHashStorage.Cache),
+		getDBFromConfig(config.MetaHdrNonceHashStorage.DB, uniqueID),
+		getBloomFromConfig(config.MetaHdrNonceHashStorage.Bloom),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	shardHdrHashNonceUnit, err = storageUnit.NewShardedStorageUnitFromConf(
+		getCacherFromConfig(config.ShardHdrNonceHashStorage.Cache),
+		getDBFromConfig(config.ShardHdrNonceHashStorage.DB, uniqueID),
+		getBloomFromConfig(config.ShardHdrNonceHashStorage.Bloom),
+		shardCoordinator.SelfId(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
@@ -697,12 +722,16 @@ func createShardDataStoreFromConfig(config *config.Config, uniqueID string) (dat
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaBlockUnit, metachainHeaderUnit)
 	store.AddStorer(dataRetriever.SmartContractResultUnit, scrUnit)
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardCoordinator.SelfId())
+	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
 
 	return store, err
 }
 
-func createMetaChainDataStoreFromConfig(config *config.Config, uniqueID string) (dataRetriever.StorageService, error) {
-	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit *storageUnit.Unit
+func createMetaChainDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
+	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, metaHdrHashNonceUnit *storageUnit.Unit
+	var shardHdrHashNonceUnits []*storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -719,6 +748,14 @@ func createMetaChainDataStoreFromConfig(config *config.Config, uniqueID string) 
 			}
 			if headerUnit != nil {
 				_ = headerUnit.DestroyUnit()
+			}
+			if metaHdrHashNonceUnit != nil {
+				_ = metaHdrHashNonceUnit.DestroyUnit()
+			}
+			if shardHdrHashNonceUnits != nil {
+				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+					_ = shardHdrHashNonceUnits[i].DestroyUnit()
+				}
 			}
 		}
 	}()
@@ -755,11 +792,38 @@ func createMetaChainDataStoreFromConfig(config *config.Config, uniqueID string) 
 		return nil, err
 	}
 
+	metaHdrHashNonceUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.MetaHdrNonceHashStorage.Cache),
+		getDBFromConfig(config.MetaHdrNonceHashStorage.DB, uniqueID),
+		getBloomFromConfig(config.MetaHdrNonceHashStorage.Bloom),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	shardHdrHashNonceUnits = make([]*storageUnit.Unit, shardCoordinator.NumberOfShards())
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+		shardHdrHashNonceUnits[i], err = storageUnit.NewShardedStorageUnitFromConf(
+			getCacherFromConfig(config.ShardHdrNonceHashStorage.Cache),
+			getDBFromConfig(config.ShardHdrNonceHashStorage.DB, uniqueID),
+			getBloomFromConfig(config.ShardHdrNonceHashStorage.Bloom),
+			i,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
 	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
+		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
+	}
 
 	return store, err
 }
@@ -777,7 +841,7 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	scrPool, err := shardedData.NewShardedData(getCacherFromConfig(config.ScrResultDataPool))
+	scrPool, err := shardedData.NewShardedData(getCacherFromConfig(config.SmartContractDataPool))
 	if err != nil {
 		fmt.Println("error creating smart contract result")
 		return nil, err

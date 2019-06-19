@@ -3,8 +3,8 @@ package mock
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
 // ConcurrentTrie is a trie implementation that sould be concurrent safe

@@ -1,8 +1,8 @@
 package containers
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // resolversFinder is an implementation of process.ResolverContainer meant to be used

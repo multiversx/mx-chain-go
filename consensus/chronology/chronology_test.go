@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/stretchr/testify/assert"
 )
 

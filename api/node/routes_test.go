@@ -10,15 +10,15 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/node"
+	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/node"
 )
 
 type GeneralResponse struct {
