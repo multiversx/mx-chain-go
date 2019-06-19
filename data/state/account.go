@@ -3,7 +3,7 @@ package state
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 )
 
 // Account is the struct used in serialization/deserialization

@@ -19,9 +19,9 @@ package trie
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go/data/trie/rlp"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
 type hasher struct {

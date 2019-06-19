@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnp"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
 	"github.com/glycerine/go-capnproto"
 )
 

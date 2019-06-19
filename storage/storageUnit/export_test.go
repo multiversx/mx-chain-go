@@ -1,7 +1,7 @@
 package storageUnit
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 func (s *Unit) GetBlomFilter() storage.BloomFilter {

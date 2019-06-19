@@ -7,17 +7,17 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/badgerdb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/boltdb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/fifocache"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/badgerdb"
+	"github.com/ElrondNetwork/elrond-go/storage/bloom"
+	"github.com/ElrondNetwork/elrond-go/storage/boltdb"
+	"github.com/ElrondNetwork/elrond-go/storage/fifocache"
+	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
 // CacheType represents the type of the supported caches

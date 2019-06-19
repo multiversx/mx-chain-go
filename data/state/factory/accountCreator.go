@@ -1,7 +1,7 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // AccountCreator has method to create a new account

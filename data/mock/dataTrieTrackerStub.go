@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+import "github.com/ElrondNetwork/elrond-go/data/trie"
 
 type DataTrieTrackerStub struct {
 	ClearDataCachesCalled func()

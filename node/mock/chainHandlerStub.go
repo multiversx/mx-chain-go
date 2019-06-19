@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/data"
+import "github.com/ElrondNetwork/elrond-go/data"
 
 type ChainHandlerStub struct {
 	GetGenesisHeaderCalled     func() data.HeaderHandler

@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/btcsuite/btcd/btcec"
 	ggio "github.com/gogo/protobuf/io"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"

@@ -3,7 +3,7 @@ package spos
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 )
 
 // Subround struct contains the needed data for one Subround and the Subround properties. It defines a Subround

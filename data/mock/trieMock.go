@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/davecgh/go-spew/spew"
 )
 

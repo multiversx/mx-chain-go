@@ -21,4 +21,4 @@ struct LeafNodeCapn {
 
 ##
 ##
-##   capnpc  -I$GOPATH/src/github.com/glycerine/go-capnproto -ogo $GOPATH/src/github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/capnp/schema.capnp
+##   capnpc  -I$GOPATH/src/github.com/glycerine/go-capnproto -ogo $GOPATH/src/github.com/ElrondNetwork/elrond-go/data/trie2/capnp/schema.capnp

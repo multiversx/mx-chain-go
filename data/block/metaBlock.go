@@ -5,8 +5,8 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/glycerine/go-capnproto"
 )
 
