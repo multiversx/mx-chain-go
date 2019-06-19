@@ -66,12 +66,14 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+	store.AddStorer(dataRetriever.SmartContractResultUnit, createMemUnit())
 
 	return store
 }
 
 func createTestDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	scrPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
@@ -94,6 +96,7 @@ func createTestDataPool() dataRetriever.PoolsHolder {
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
+		scrPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
