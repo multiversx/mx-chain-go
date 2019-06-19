@@ -18,10 +18,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/btcsuite/btcd/btcec"
-	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p/p2p/net/mock"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 )
@@ -90,9 +90,9 @@ func createMockMessenger() p2p.Messenger {
 	return mes
 }
 
-func createLibP2PCredentialsMessenger() (peer.ID, crypto.PrivKey) {
+func createLibP2PCredentialsMessenger() (peer.ID, libp2pCrypto.PrivKey) {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 	id, _ := peer.IDFromPublicKey(sk.GetPublic())
 
 	return id, sk
@@ -272,8 +272,9 @@ func TestNewNetworkMessenger_WithConnMgrShouldWork(t *testing.T) {
 	_, sk := createLibP2PCredentialsMessenger()
 
 	cns := &mock.ConnManagerNotifieeStub{
-		ListenCalled:      func(netw net.Network, ma multiaddr.Multiaddr) {},
-		ListenCloseCalled: func(netw net.Network, ma multiaddr.Multiaddr) {},
+		ListenCalled:      func(netw network.Network, ma multiaddr.Multiaddr) {},
+		ListenCloseCalled: func(netw network.Network, ma multiaddr.Multiaddr) {},
+		CloseCalled:       func() error { return nil },
 	}
 
 	mes, err := libp2p.NewNetworkMessenger(
@@ -990,11 +991,11 @@ func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
 	pid4 := p2p.PeerID("pid4")
 
 	hs := &mock.ConnectableHostStub{
-		NetworkCalled: func() net.Network {
+		NetworkCalled: func() network.Network {
 			return &mock.NetworkStub{
-				ConnsCalled: func() []net.Conn {
+				ConnsCalled: func() []network.Conn {
 					//generate a mock list that contain duplicates
-					return []net.Conn{
+					return []network.Conn{
 						generateConnWithRemotePeer(pid1),
 						generateConnWithRemotePeer(pid1),
 						generateConnWithRemotePeer(pid2),
@@ -1009,8 +1010,8 @@ func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
 						generateConnWithRemotePeer(pid1),
 					}
 				},
-				ConnectednessCalled: func(id peer.ID) net.Connectedness {
-					return net.Connected
+				ConnectednessCalled: func(id peer.ID) network.Connectedness {
+					return network.Connected
 				},
 			}
 		},
@@ -1043,7 +1044,7 @@ func existInList(list []p2p.PeerID, pid p2p.PeerID) bool {
 	return false
 }
 
-func generateConnWithRemotePeer(pid p2p.PeerID) net.Conn {
+func generateConnWithRemotePeer(pid p2p.PeerID) network.Conn {
 	return &mock.ConnStub{
 		RemotePeerCalled: func() peer.ID {
 			return peer.ID(pid)
@@ -1059,10 +1060,13 @@ func TestLibp2pMessenger_TrimConnectionsCallsConnManagerTrimConnections(t *testi
 	wasCalled := false
 
 	cns := &mock.ConnManagerNotifieeStub{
-		ListenCalled:      func(netw net.Network, ma multiaddr.Multiaddr) {},
-		ListenCloseCalled: func(netw net.Network, ma multiaddr.Multiaddr) {},
+		ListenCalled:      func(netw network.Network, ma multiaddr.Multiaddr) {},
+		ListenCloseCalled: func(netw network.Network, ma multiaddr.Multiaddr) {},
 		TrimOpenConnsCalled: func(ctx context.Context) {
 			wasCalled = true
+		},
+		CloseCalled: func() error {
+			return nil
 		},
 	}
 
