@@ -112,7 +112,7 @@ func createMemUnit() storage.Storer {
 	return unit
 }
 
-func createTestShardStore() dataRetriever.StorageService {
+func createTestShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
@@ -120,6 +120,11 @@ func createTestShardStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.SmartContractResultUnit, createMemUnit())
+
+	for i := uint32(0); i < numOfShards; i++ {
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
+		store.AddStorer(hdrNonceHashDataUnit, createMemUnit())
+	}
 
 	return store
 }
@@ -208,7 +213,7 @@ func createNetNode(
 	fmt.Printf("Found pk: %s\n", hex.EncodeToString(pkBuff))
 
 	blkc := createTestShardChain()
-	store := createTestShardStore()
+	store := createTestShardStore(shardCoordinator.NumberOfShards())
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	dataPacker, _ := partitioning.NewSizeDataPacker(testMarshalizer)
 
@@ -268,12 +273,18 @@ func createNetNode(
 			GetHighestFinalBlockNonceCalled: func() uint64 {
 				return 0
 			},
+			ProbableHighestNonceCalled: func() uint64 {
+				return 0
+			},
 		},
 		&mock.BlocksTrackerMock{
 			AddBlockCalled: func(headerHandler data.HeaderHandler) {
 			},
 			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
 				return nil
+			},
+			UnnotarisedBlocksCalled: func() []data.HeaderHandler {
+				return make([]data.HeaderHandler, 0)
 			},
 		},
 		genesisBlocks,
@@ -561,6 +572,7 @@ func createTestMetaChain() data.ChainHandler {
 func createTestMetaStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 
 	return store
@@ -654,6 +666,9 @@ func createMetaNetNode(
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
+			ProbableHighestNonceCalled: func() uint64 {
 				return 0
 			},
 		},

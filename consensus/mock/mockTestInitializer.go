@@ -98,6 +98,10 @@ func InitConsensusCore() *ConsensusCoreMock {
 		},
 	}
 	blockProcessorMock := InitBlockProcessorMock()
+	blockTrackerMock := &BlocksTrackerMock{
+		SetBlockBroadcastRoundCalled: func(nonce uint64, round int32) {
+		},
+	}
 	bootstraperMock := &BootstraperMock{}
 	broadcastMessengerMock := &BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
@@ -123,6 +127,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	container := &ConsensusCoreMock{
 		blockChain,
 		blockProcessorMock,
+		blockTrackerMock,
 		bootstraperMock,
 		broadcastMessengerMock,
 		chronologyHandlerMock,

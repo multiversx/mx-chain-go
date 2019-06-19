@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -35,6 +36,7 @@ type baseProcessor struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	store            dataRetriever.StorageService
+	uint64Converter  typeConverters.Uint64ByteSliceConverter
 
 	mutNotarizedHdrs   sync.RWMutex
 	lastNotarizedHdrs  mapShardLastHeaders
@@ -68,6 +70,14 @@ func (bp *baseProcessor) RevertAccountState() {
 	if err != nil {
 		log.Error(err.Error())
 	}
+}
+
+// SetLastNotarizedHdr sets the last notarized header
+func (bp *baseProcessor) SetLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
+	bp.mutNotarizedHdrs.Lock()
+	bp.finalNotarizedHdrs[shardId] = bp.lastNotarizedHdrs[shardId]
+	bp.lastNotarizedHdrs[shardId] = processedHdr
+	bp.mutNotarizedHdrs.Unlock()
 }
 
 // checkBlockValidity method checks if the given block is valid
@@ -330,7 +340,6 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 	missingNonces := make([]uint64, 0)
 	for i := 0; i < len(sortedHdrs); i++ {
 		currHdr := sortedHdrs[i]
-
 		if currHdr == nil {
 			continue
 		}
@@ -351,12 +360,18 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 		}
 	}
 
+	requested := 0
 	for _, nonce := range missingNonces {
 		// do the request here
 		if bp.onRequestHeaderHandlerByNonce == nil {
 			return process.ErrNilRequestHeaderHandlerByNonce
 		}
 
+		if requested >= process.MaxHeaderRequestsAllowed {
+			break
+		}
+
+		requested++
 		go bp.onRequestHeaderHandlerByNonce(shardId, nonce)
 	}
 

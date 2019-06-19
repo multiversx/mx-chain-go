@@ -8,6 +8,37 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
+// UnitType is the type for Storage unit identifiers
+type UnitType uint8
+
+const (
+	// TransactionUnit is the transactions storage unit identifier
+	TransactionUnit UnitType = 0
+	// MiniBlockUnit is the transaction block body storage unit identifier
+	MiniBlockUnit UnitType = 1
+	// PeerChangesUnit is the peer change block body storage unit identifier
+	PeerChangesUnit UnitType = 2
+	// BlockHeaderUnit is the Block Headers Storage unit identifier
+	BlockHeaderUnit UnitType = 3
+	// MetaBlockUnit is the metachain blocks storage unit identifier
+	MetaBlockUnit UnitType = 4
+	// MetaShardDataUnit is the metachain shard data unit identifier
+	MetaShardDataUnit UnitType = 5
+	// MetaPeerDataUnit is the metachain peer data unit identifier
+	MetaPeerDataUnit UnitType = 6
+	// SmartContractResultUnit is the smart contract results unit identifier
+	SmartContractResultUnit UnitType = 7
+	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
+	MetaHdrNonceHashDataUnit UnitType = 8
+
+	//TODO: Add only unit types lower than 100
+	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
+	ShardHdrNonceHashDataUnit UnitType = 100
+	//TODO: Do not add unit type greater than 100 as the metachain creates this kind of unit type for each shard.
+	//100 -> shard 0, 101 -> shard 1 and so on. This should be replaced with a factory which will manage the unit types
+	//creation
+)
+
 // Resolver defines what a data resolver should do
 type Resolver interface {
 	RequestDataFromHash(hash []byte) error
@@ -109,28 +140,6 @@ type DataRetriever interface {
 	// Request searches for data in specified storage level, if not present launches threads to search in network
 	Request(keys [][]byte, identifier string, level StorageType, haveTime func() time.Duration, callbackHandler func(key []byte)) (map[string]interface{}, [][]byte, error)
 }
-
-const (
-	// TransactionUnit is the transactions storage unit identifier
-	TransactionUnit UnitType = 0
-	// MiniBlockUnit is the transaction block body storage unit identifier
-	MiniBlockUnit UnitType = 1
-	// PeerChangesUnit is the peer change block body storage unit identifier
-	PeerChangesUnit UnitType = 2
-	// BlockHeaderUnit is the Block Headers Storage unit identifier
-	BlockHeaderUnit UnitType = 3
-	// MetaBlockUnit is the metachain blocks storage unit identifier
-	MetaBlockUnit UnitType = 4
-	// MetaShardDataUnit is the metachain shard data unit identifier
-	MetaShardDataUnit UnitType = 5
-	// MetaPeerDataUnit is the metachain peer data unit identifier
-	MetaPeerDataUnit UnitType = 6
-	// SmartContractResultUnit is the smart contract results unit identifier
-	SmartContractResultUnit UnitType = 7
-)
-
-// UnitType is the type for Storage unit identifiers
-type UnitType uint8
 
 // Notifier defines a way to register funcs that get called when something useful happens
 type Notifier interface {

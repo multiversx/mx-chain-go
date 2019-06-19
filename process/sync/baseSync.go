@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -62,6 +63,183 @@ type baseBootstrap struct {
 	mutRcvHdrInfo         sync.RWMutex
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
+	uint64Converter       typeConverters.Uint64ByteSliceConverter
+}
+
+func (boot *baseBootstrap) loadBlocks(
+	blockFinality uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+	getHeader func(uint64) (data.HeaderHandler, []byte, error),
+	getBlockBody func(data.HeaderHandler) (data.BodyHandler, error),
+) error {
+	highestNonceInStorer := uint64(0)
+
+	for {
+		highestNonceInStorer++
+		nonceToByteSlice := boot.uint64Converter.ToByteSlice(highestNonceInStorer)
+		err := boot.store.Has(hdrNonceHashDataUnit, nonceToByteSlice)
+		if err != nil {
+			highestNonceInStorer--
+			break
+		}
+	}
+
+	log.Info(fmt.Sprintf("the highest header nonce committed in storer is %d\n", highestNonceInStorer))
+
+	var err error
+	lastBlocksToSkip := uint64(0)
+
+	for {
+		if highestNonceInStorer <= blockFinality+lastBlocksToSkip {
+			return process.ErrBoostrapFromStorage
+		}
+
+		for i := highestNonceInStorer - blockFinality - lastBlocksToSkip; i <= highestNonceInStorer; i++ {
+			if i > highestNonceInStorer-lastBlocksToSkip {
+				errNotCritical := boot.removeBlock(i, blockUnit, hdrNonceHashDataUnit)
+				if errNotCritical != nil {
+					log.Info(errNotCritical.Error())
+				}
+			} else {
+				err = boot.applyBlock(i, getHeader, getBlockBody)
+				if err != nil {
+					lastBlocksToSkip++
+					break
+				}
+			}
+		}
+
+		if err == nil {
+			break
+		}
+	}
+
+	err = boot.accounts.RecreateTrie(boot.blkc.GetCurrentBlockHeader().GetRootHash())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (boot *baseBootstrap) applyBlock(
+	nonce uint64,
+	getHeader func(uint64) (data.HeaderHandler, []byte, error),
+	getBlockBody func(data.HeaderHandler) (data.BodyHandler, error),
+) error {
+
+	header, headerHash, err := getHeader(nonce)
+	if err != nil {
+		return err
+	}
+
+	headerNoncePool := boot.headersNonces
+	if headerNoncePool == nil {
+		return process.ErrNilDataPoolHolder
+	}
+
+	_ = headerNoncePool.Put(header.GetNonce(), headerHash)
+
+	errNotCritical := boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
+	blockBody, err := getBlockBody(header)
+	if err != nil {
+		return err
+	}
+
+	err = boot.blkc.SetCurrentBlockBody(blockBody)
+	if err != nil {
+		return err
+	}
+
+	err = boot.blkc.SetCurrentBlockHeader(header)
+	if err != nil {
+		return err
+	}
+
+	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
+
+	return nil
+}
+
+func (boot *baseBootstrap) removeBlock(
+	nonce uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
+	headerStore := boot.store.GetStorer(blockUnit)
+	if headerStore == nil {
+		return process.ErrNilHeadersStorage
+	}
+
+	headerNonceHashStore := boot.store.GetStorer(hdrNonceHashDataUnit)
+	if headerNonceHashStore == nil {
+		return process.ErrNilHeadersNonceHashStorage
+	}
+
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
+	if err != nil {
+		return err
+	}
+
+	err = headerStore.Remove(headerHash)
+	if err != nil {
+		return err
+	}
+
+	err = headerNonceHashStore.Remove(nonceToByteSlice)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (boot *baseBootstrap) loadNotarizedBlocks(blockFinality uint64,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+	applyNotarisedBlock func(uint64, dataRetriever.UnitType) error,
+) error {
+	highestNonceInStorer := uint64(0)
+
+	for {
+		highestNonceInStorer++
+		nonceToByteSlice := boot.uint64Converter.ToByteSlice(highestNonceInStorer)
+		err := boot.store.Has(hdrNonceHashDataUnit, nonceToByteSlice)
+		if err != nil {
+			highestNonceInStorer--
+			break
+		}
+	}
+
+	log.Info(fmt.Sprintf("the highest notarized header nonce committed in unit storer %d is %d\n", hdrNonceHashDataUnit, highestNonceInStorer))
+
+	var err error
+	lastBlocksToSkip := uint64(0)
+
+	for {
+		if highestNonceInStorer <= blockFinality+lastBlocksToSkip {
+			return process.ErrBoostrapFromStorage
+		}
+
+		for i := highestNonceInStorer - blockFinality - lastBlocksToSkip; i <= highestNonceInStorer-lastBlocksToSkip; i++ {
+			err = applyNotarisedBlock(i, hdrNonceHashDataUnit)
+			if err != nil {
+				lastBlocksToSkip++
+				break
+			}
+		}
+
+		if err == nil {
+			break
+		}
+	}
+
+	return nil
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -140,12 +318,12 @@ func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
 }
 
 // waitForHeaderNonce method wait for header with the requested nonce to be received
-func (boot *baseBootstrap) waitForHeaderNonce() {
+func (boot *baseBootstrap) waitForHeaderNonce() error {
 	select {
 	case <-boot.chRcvHdr:
-		return
+		return nil
 	case <-time.After(boot.waitTime):
-		return
+		return process.ErrTimeIsOut
 	}
 }
 
@@ -190,10 +368,16 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 	return hash
 }
 
-func (boot *baseBootstrap) cleanCachesOnRollback(header data.HeaderHandler, headerStore storage.Storer) {
+func (boot *baseBootstrap) cleanCachesOnRollback(
+	header data.HeaderHandler,
+	headerStore storage.Storer,
+	headerNonceHashStore storage.Storer) {
+
 	hash := boot.removeHeaderFromPools(header)
 	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
 	_ = headerStore.Remove(hash)
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
+	_ = headerNonceHashStore.Remove(nonceToByteSlice)
 }
 
 // checkBootstrapNilParameters will check the imput parameters for nil values
@@ -241,12 +425,6 @@ func checkBootstrapNilParameters(
 	}
 
 	return nil
-}
-
-func emptyChannel(ch chan bool) {
-	for len(ch) > 0 {
-		<-ch
-	}
 }
 
 // isSigned verifies if a block is signed
