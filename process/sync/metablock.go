@@ -196,8 +196,9 @@ func (boot *MetaBootstrap) StartSync() {
 		dataRetriever.MetaHdrNonceHashDataUnit,
 		process.ShardBlockFinality,
 		dataRetriever.ShardHdrNonceHashDataUnit)
-
-	log.Info(err.Error())
+	if err != nil {
+		log.Info(err.Error())
+	}
 
 	go boot.syncBlocks()
 }
@@ -348,7 +349,7 @@ func (boot *MetaBootstrap) requestHeader(nonce uint64) {
 // getHeaderWithNonce method gets the header with given nonce from pool, if it exist there,
 // and if not it will be requested from network
 func (boot *MetaBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.MetaBlock, error) {
-	hdr, err := boot.getHeaderWithNonce(nonce)
+	hdr, err := boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
 		process.EmptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
@@ -357,7 +358,7 @@ func (boot *MetaBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Me
 			return nil, err
 		}
 
-		hdr, err = boot.getHeaderWithNonce(nonce)
+		hdr, err = boot.getHeaderFromPoolWithNonce(nonce)
 		if err != nil {
 			return nil, err
 		}
