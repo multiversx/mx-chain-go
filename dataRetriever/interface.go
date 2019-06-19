@@ -26,8 +26,10 @@ const (
 	MetaShardDataUnit UnitType = 5
 	// MetaPeerDataUnit is the metachain peer data unit identifier
 	MetaPeerDataUnit UnitType = 6
+	// SmartContractResultUnit is the smart contract results unit identifier
+	SmartContractResultUnit UnitType = 7
 	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
-	MetaHdrNonceHashDataUnit UnitType = 7
+	MetaHdrNonceHashDataUnit UnitType = 8
 
 	//TODO: Add only unit types lower than 100
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier

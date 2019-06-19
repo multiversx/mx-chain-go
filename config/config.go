@@ -57,13 +57,13 @@ type NTPConfig struct {
 
 // Config will hold the entire application configuration parameters
 type Config struct {
-	MiniBlocksStorage        StorageConfig
-	PeerBlockBodyStorage     StorageConfig
-	BlockHeaderStorage       StorageConfig
-	TxStorage                StorageConfig
-	ScrStorage               StorageConfig
-	ShardHdrNonceHashStorage StorageConfig
-	MetaHdrNonceHashStorage  StorageConfig
+	MiniBlocksStorage          StorageConfig
+	PeerBlockBodyStorage       StorageConfig
+	BlockHeaderStorage         StorageConfig
+	TxStorage                  StorageConfig
+	SmartContractResultStorage StorageConfig
+	ShardHdrNonceHashStorage   StorageConfig
+	MetaHdrNonceHashStorage    StorageConfig
 
 	ShardDataStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -78,7 +78,7 @@ type Config struct {
 	BlockHeaderDataPool       CacheConfig
 	BlockHeaderNoncesDataPool CacheConfig
 	TxDataPool                CacheConfig
-	ScrResultDataPool         CacheConfig
+	SmartContractDataPool     CacheConfig
 	MetaBlockBodyDataPool     CacheConfig
 
 	MiniBlockHeaderHashesDataPool CacheConfig

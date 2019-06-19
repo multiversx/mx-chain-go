@@ -657,9 +657,9 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 	}
 
 	scrUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.ScrStorage.Cache),
-		getDBFromConfig(config.ScrStorage.DB, uniqueID),
-		getBloomFromConfig(config.ScrStorage.Bloom))
+		getCacherFromConfig(config.SmartContractResultStorage.Cache),
+		getDBFromConfig(config.SmartContractResultStorage.DB, uniqueID),
+		getBloomFromConfig(config.SmartContractResultStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -841,7 +841,7 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	scrPool, err := shardedData.NewShardedData(getCacherFromConfig(config.ScrResultDataPool))
+	scrPool, err := shardedData.NewShardedData(getCacherFromConfig(config.SmartContractDataPool))
 	if err != nil {
 		fmt.Println("error creating smart contract result")
 		return nil, err
