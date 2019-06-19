@@ -413,16 +413,12 @@ func (mp *metaProcessor) CommitBlock(
 		}
 
 		errNotCritical = mp.store.Put(dataRetriever.BlockHeaderUnit, shardData.HeaderHash, buff)
-		if errNotCritical != nil {
-			log.Error(errNotCritical.Error())
-		}
+		log.LogIfError(errNotCritical)
 
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(header.Nonce)
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.ShardId)
 		errNotCritical = mp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, shardData.HeaderHash)
-		if errNotCritical != nil {
-			log.Error(errNotCritical.Error())
-		}
+		log.LogIfError(errNotCritical)
 	}
 
 	_, err = mp.accounts.Commit()

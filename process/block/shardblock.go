@@ -433,9 +433,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	headerHash := sp.hasher.Compute(string(buff))
 	errNotCritical := sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
-	if errNotCritical != nil {
-		log.Error(errNotCritical.Error())
-	}
+	log.LogIfError(errNotCritical)
 
 	nonceToByteSlice := sp.uint64Converter.ToByteSlice(header.Nonce)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.ShardId)
@@ -458,9 +456,7 @@ func (sp *shardProcessor) CommitBlock(
 
 		miniBlockHash := sp.hasher.Compute(string(buff))
 		errNotCritical = sp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, buff)
-		if errNotCritical != nil {
-			log.Error(errNotCritical.Error())
-		}
+		log.LogIfError(errNotCritical)
 	}
 
 	headerNoncePool := sp.dataPool.HeadersNonces()
@@ -613,9 +609,7 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 		}
 
 		errNotCritical := sp.blocksTracker.RemoveNotarisedBlocks(hdr)
-		if errNotCritical != nil {
-			log.Error(errNotCritical.Error())
-		}
+		log.LogIfError(errNotCritical)
 
 		// metablock was processed and finalized
 		buff, err := sp.marshalizer.Marshal(hdr)
@@ -1247,7 +1241,7 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	if !haveTime() {
 		log.Info(fmt.Sprintf("time is up added %d transactions\n", txs))
-		return nil, process.ErrTimeIsOut
+		return miniBlocks, nil
 	}
 
 	addedTxs := 0
