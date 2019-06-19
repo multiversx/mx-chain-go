@@ -42,11 +42,10 @@ type shardProcessor struct {
 	blocksTracker     process.BlocksTracker
 	metaBlockFinality int
 
-	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
-	chRcvAllMetaHdrs      chan bool
-	mutUsedMetaHdrsHashes sync.Mutex
-	usedMetaHdrsHashes    map[uint32][][]byte
-
+	onRequestMiniBlock        func(shardId uint32, mbHash []byte)
+	chRcvAllMetaHdrs          chan bool
+	mutUsedMetaHdrsHashes     sync.Mutex
+	usedMetaHdrsHashes        map[uint32][][]byte
 	mutRequestedMetaHdrHashes sync.RWMutex
 	requestedMetaHdrHashes    map[string]bool
 	currHighestMetaHdrNonce   uint64

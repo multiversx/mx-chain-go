@@ -12,6 +12,7 @@ import (
 type ResolverRequestHandler struct {
 	resolversFinder dataRetriever.ResolversFinder
 	txRequestTopic  string
+	scrRequestTopic string
 	mbRequestTopic  string
 	hdrRequestTopic string
 	isMetaChain     bool
@@ -24,6 +25,7 @@ var log = logger.DefaultLogger()
 func NewShardResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	txRequestTopic string,
+	scrRequestTopic string,
 	mbRequestTopic string,
 	hdrRequestTopic string,
 	maxTxsToRequest int,
@@ -33,6 +35,9 @@ func NewShardResolverRequestHandler(
 	}
 	if len(txRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyTxRequestTopic
+	}
+	if len(scrRequestTopic) == 0 {
+		return nil, dataRetriever.ErrEmptyScrRequestTopic
 	}
 	if len(mbRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyMiniBlockRequestTopic
@@ -49,6 +54,7 @@ func NewShardResolverRequestHandler(
 		txRequestTopic:  txRequestTopic,
 		mbRequestTopic:  mbRequestTopic,
 		hdrRequestTopic: hdrRequestTopic,
+		scrRequestTopic: scrRequestTopic,
 		isMetaChain:     false,
 		maxTxsToRequest: maxTxsToRequest,
 	}
@@ -79,10 +85,14 @@ func NewMetaResolverRequestHandler(
 
 // RequestTransaction method asks for transactions from the connected peers
 func (rrh *ResolverRequestHandler) RequestTransaction(destShardID uint32, txHashes [][]byte) {
-	log.Debug(fmt.Sprintf("Requesting %d transactions from shard %d from network...\n", len(txHashes), destShardID))
-	resolver, err := rrh.resolversFinder.CrossShardResolver(rrh.txRequestTopic, destShardID)
+	rrh.requestByHashes(destShardID, txHashes, rrh.txRequestTopic)
+}
+
+func (rrh *ResolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string) {
+	log.Debug(fmt.Sprintf("Requesting %d transactions from shard %d from network...\n", len(hashes), destShardID))
+	resolver, err := rrh.resolversFinder.CrossShardResolver(topic, destShardID)
 	if err != nil {
-		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", rrh.txRequestTopic, destShardID))
+		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", topic, destShardID))
 		return
 	}
 
@@ -94,7 +104,7 @@ func (rrh *ResolverRequestHandler) RequestTransaction(destShardID uint32, txHash
 
 	go func() {
 		dataSplit := &partitioning.DataSplit{}
-		sliceBatches, err := dataSplit.SplitDataInChunks(txHashes, rrh.maxTxsToRequest)
+		sliceBatches, err := dataSplit.SplitDataInChunks(hashes, rrh.maxTxsToRequest)
 		if err != nil {
 			log.Error("error requesting transactions: " + err.Error())
 			return
@@ -107,6 +117,11 @@ func (rrh *ResolverRequestHandler) RequestTransaction(destShardID uint32, txHash
 			}
 		}
 	}()
+}
+
+// RequestSmartContractResults method asks for smart contract results from the connected peers
+func (rrh *ResolverRequestHandler) RequestSmartContractResults(destShardID uint32, scrHashes [][]byte) {
+	rrh.requestByHashes(destShardID, scrHashes, rrh.scrRequestTopic)
 }
 
 // RequestMiniBlock method asks for miniblocks from the connected peers
