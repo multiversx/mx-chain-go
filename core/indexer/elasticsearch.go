@@ -256,6 +256,7 @@ func (ei *elasticIndexer) saveHeader(header data.HeaderHandler) {
 	res, err := req.Do(context.Background(), ei.db)
 	if err != nil {
 		ei.logger.Warn("Could not index block header: %s", err)
+		return
 	}
 
 	defer func() {
