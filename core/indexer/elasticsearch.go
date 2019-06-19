@@ -35,6 +35,7 @@ const shardTpsDocIDPrefix = "shard"
 
 const badRequest = 400
 
+//TODO refactor this and split in 3: glue code, interface and logic code
 type elasticIndexer struct {
 	db               *elasticsearch.Client
 	shardCoordinator sharding.Coordinator
@@ -254,16 +255,15 @@ func (ei *elasticIndexer) saveHeader(header data.HeaderHandler) {
 
 	res, err := req.Do(context.Background(), ei.db)
 	if err != nil {
-		ei.logger.Warn("Could not index block header: %s", err)
+		ei.logger.Warn(fmt.Sprintf("Could not index block header: %s", err))
+		return
 	}
-
-	defer func() {
-		_ = res.Body.Close()
-	}()
 
 	if res.IsError() {
 		ei.logger.Warn(res.String())
 	}
+
+	_ = res.Body.Close()
 }
 
 func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
