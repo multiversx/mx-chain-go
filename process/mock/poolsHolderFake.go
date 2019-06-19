@@ -10,18 +10,20 @@ import (
 )
 
 type PoolsHolderFake struct {
-	transactions      dataRetriever.ShardedDataCacherNotifier
-	headers           storage.Cacher
-	metaBlocks        storage.Cacher
-	hdrNonces         dataRetriever.Uint64Cacher
-	miniBlocks        storage.Cacher
-	peerChangesBlocks storage.Cacher
-	metaHdrNonces     dataRetriever.Uint64Cacher
+	transactions         dataRetriever.ShardedDataCacherNotifier
+	smartcontractresults dataRetriever.ShardedDataCacherNotifier
+	headers              storage.Cacher
+	metaBlocks           storage.Cacher
+	hdrNonces            dataRetriever.Uint64Cacher
+	miniBlocks           storage.Cacher
+	peerChangesBlocks    storage.Cacher
+	metaHdrNonces        dataRetriever.Uint64Cacher
 }
 
 func NewPoolsHolderFake() *PoolsHolderFake {
 	phf := &PoolsHolderFake{}
 	phf.transactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
+	phf.smartcontractresults, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
 	phf.headers, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	phf.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	cacheHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
@@ -41,6 +43,10 @@ func NewPoolsHolderFake() *PoolsHolderFake {
 
 func (phf *PoolsHolderFake) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	return phf.transactions
+}
+
+func (phf *PoolsHolderFake) SmartContractResults() dataRetriever.ShardedDataCacherNotifier {
+	return phf.smartcontractresults
 }
 
 func (phf *PoolsHolderFake) Headers() storage.Cacher {

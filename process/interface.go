@@ -183,6 +183,7 @@ type BlocksTracker interface {
 type RequestHandler interface {
 	RequestHeaderByNonce(shardId uint32, nonce uint64)
 	RequestTransaction(shardId uint32, txHashes [][]byte)
+	RequestSmartContractResults(destShardID uint32, scrHashes [][]byte)
 	RequestMiniBlock(shardId uint32, miniblockHash []byte)
 	RequestHeader(shardId uint32, hash []byte)
 }

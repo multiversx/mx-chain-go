@@ -125,7 +125,8 @@ const (
 	MetaShardDataUnit UnitType = 5
 	// MetaPeerDataUnit is the metachain peer data unit identifier
 	MetaPeerDataUnit UnitType = 6
-	//
+	// SmartContractResultUnit is the smart contract results unit identifier
+	SmartContractResultUnit UnitType = 7
 )
 
 // UnitType is the type for Storage unit identifiers
