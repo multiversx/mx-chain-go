@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+import "github.com/ElrondNetwork/elrond-go/p2p"
 
 type HashSliceResolverStub struct {
 	RequestDataFromHashCalled      func(hash []byte) error

@@ -1,4 +1,4 @@
-module github.com/ElrondNetwork/elrond-go-sandbox
+module github.com/ElrondNetwork/elrond-go
 
 go 1.12
 

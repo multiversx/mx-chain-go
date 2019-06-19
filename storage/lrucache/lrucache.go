@@ -3,7 +3,7 @@ package lrucache
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/hashicorp/golang-lru"
 )
 

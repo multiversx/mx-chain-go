@@ -1,7 +1,7 @@
 package leveldb
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 

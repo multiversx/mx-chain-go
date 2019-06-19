@@ -1,8 +1,8 @@
 package core
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
 )
 
 var log = logger.DefaultLogger()

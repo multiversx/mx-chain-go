@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 var errNilFileToWriteStats = errors.New("nil file to write statistics")

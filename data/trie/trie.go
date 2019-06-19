@@ -21,9 +21,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go/data/trie/rlp"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
 var (

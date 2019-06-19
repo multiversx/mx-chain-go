@@ -1,4 +1,4 @@
-# Elrond go sandbox
+# Elrond go
 
 The go implementation for the Elrond Network testnet
 

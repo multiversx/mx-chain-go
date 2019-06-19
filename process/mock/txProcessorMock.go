@@ -1,10 +1,10 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
 type TxProcessorMock struct {

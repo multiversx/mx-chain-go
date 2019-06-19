@@ -19,8 +19,8 @@ package trie
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
+	"github.com/ElrondNetwork/elrond-go/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go/data/trie/rlp"
 )
 
 // cachedNode is all the information we know about a single cached node in the

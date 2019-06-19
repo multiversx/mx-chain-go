@@ -1,11 +1,11 @@
 package external
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // ExternalResolver is a struct used to gather relevant info about the blockchain status
@@ -145,17 +145,17 @@ func (er *ExternalResolver) retrieveShardBlockHeader(headerHash []byte) (*BlockH
 	}
 
 	shb := &BlockHeader{
-			Nonce:          shardHeader.Nonce,
-			Hash:           headerHash,
-			PrevHash:       shardHeader.PrevHash,
-			StateRootHash:  shardHeader.RootHash,
-			TxCount:        shardHeader.TxCount,
-			BlockSize:      int64(len(shardHeaderBytes)),
-			ProposerPubKey: proposer,
-			PubKeysBitmap:  shardHeader.PubKeysBitmap,
-			ShardId:        shardHeader.ShardId,
-			TimeStamp:      shardHeader.TimeStamp,
-		}
+		Nonce:          shardHeader.Nonce,
+		Hash:           headerHash,
+		PrevHash:       shardHeader.PrevHash,
+		StateRootHash:  shardHeader.RootHash,
+		TxCount:        shardHeader.TxCount,
+		BlockSize:      int64(len(shardHeaderBytes)),
+		ProposerPubKey: proposer,
+		PubKeysBitmap:  shardHeader.PubKeysBitmap,
+		ShardId:        shardHeader.ShardId,
+		TimeStamp:      shardHeader.TimeStamp,
+	}
 
 	return shb, nil
 }

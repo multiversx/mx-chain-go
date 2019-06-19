@@ -1,6 +1,6 @@
 package node
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
+import "github.com/ElrondNetwork/elrond-go/node/heartbeat"
 
 func (n *Node) HeartbeatMonitor() *heartbeat.Monitor {
 	return n.heartbeatMonitor

@@ -1,8 +1,8 @@
 package topicResolverSender
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 func SelectRandomPeers(
