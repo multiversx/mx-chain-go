@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/libp2p/go-libp2p-core/connmgr"
-	"github.com/libp2p/go-libp2p-core/crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 )
@@ -58,7 +58,7 @@ func NewMemoryMessenger(
 // NewNetworkMessengerOnFreePort tries to create a new NetworkMessenger on a free port found in the system
 // Should be used only in testing!
 func NewNetworkMessengerOnFreePort(ctx context.Context,
-	p2pPrivKey crypto.PrivKey,
+	p2pPrivKey libp2pCrypto.PrivKey,
 	conMgr connmgr.ConnManager,
 	outgoingPLB p2p.ChannelLoadBalancer,
 	peerDiscoverer p2p.PeerDiscoverer,

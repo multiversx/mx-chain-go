@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/btcsuite/btcd/btcec"
 	ggio "github.com/gogo/protobuf/io"
-	"github.com/libp2p/go-libp2p-core/crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -34,7 +34,7 @@ func generateHostStub() *mock.ConnectableHostStub {
 	}
 }
 
-func createConnStub(stream network.Stream, id peer.ID, sk crypto.PrivKey, remotePeer peer.ID) *mock.ConnStub {
+func createConnStub(stream network.Stream, id peer.ID, sk libp2pCrypto.PrivKey, remotePeer peer.ID) *mock.ConnStub {
 	return &mock.ConnStub{
 		GetStreamsCalled: func() []network.Stream {
 			if stream == nil {
@@ -46,7 +46,7 @@ func createConnStub(stream network.Stream, id peer.ID, sk crypto.PrivKey, remote
 		LocalPeerCalled: func() peer.ID {
 			return id
 		},
-		LocalPrivateKeyCalled: func() crypto.PrivKey {
+		LocalPrivateKeyCalled: func() libp2pCrypto.PrivKey {
 			return sk
 		},
 		RemotePeerCalled: func() peer.ID {
@@ -55,9 +55,9 @@ func createConnStub(stream network.Stream, id peer.ID, sk crypto.PrivKey, remote
 	}
 }
 
-func createLibP2PCredentialsDirectSender() (peer.ID, crypto.PrivKey) {
+func createLibP2PCredentialsDirectSender() (peer.ID, libp2pCrypto.PrivKey) {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 	id, _ := peer.IDFromPublicKey(sk.GetPublic())
 
 	return id, sk
