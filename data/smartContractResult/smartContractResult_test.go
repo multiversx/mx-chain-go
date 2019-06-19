@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/stretchr/testify/assert"
 )
 
