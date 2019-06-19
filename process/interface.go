@@ -1,10 +1,10 @@
 package process
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"math/big"
 	"time"
 
@@ -18,6 +18,11 @@ import (
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error)
+	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
+}
+
+// SmartContractResultProcessor is the main interface for smart contract result execution engine
+type SmartContractResultProcessor interface {
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
 }
 

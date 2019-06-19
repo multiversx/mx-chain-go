@@ -360,3 +360,9 @@ var ErrInvalidDataInput = errors.New("data input is invalid to create key, value
 
 // ErrUnknownMiniBlockType signals that miniblock type is wrong
 var ErrUnknownMiniBlockType = errors.New("miniblock type is unknown")
+
+// ErrNilSmartContractResultPool signals that smart contract result pool is nil
+var ErrNilSmartContractResultPool = errors.New("smart contract result pool is nil")
+
+// ErrNilScrStorage signals that smart contract results storage is nil
+var ErrNilScrStorage = errors.New("smart contract results storage is nil")

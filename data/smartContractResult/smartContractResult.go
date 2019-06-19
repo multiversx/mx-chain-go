@@ -80,3 +80,48 @@ func SmartContractResultGoToCapn(seg *capn.Segment, src *SmartContractResult) ca
 
 	return dest
 }
+
+// IsInterfaceNil verifies if underlying object is nil
+func (scr *SmartContractResult) IsInterfaceNil() bool {
+	return scr == nil
+}
+
+// GetValue returns the value of the smart contract result
+func (scr *SmartContractResult) GetValue() *big.Int {
+	return scr.Value
+}
+
+// GetData returns the data of the smart contract result
+func (scr *SmartContractResult) GetData() []byte {
+	return scr.Data
+}
+
+// GetRecvAddress returns the receiver address from the smart contract result
+func (scr *SmartContractResult) GetRecvAddress() []byte {
+	return scr.RcvAddr
+}
+
+// GetSndAddress returns the sender address from the smart contract result
+func (scr *SmartContractResult) GetSndAddress() []byte {
+	return scr.SndAddr
+}
+
+// SetValue sets the value of the smart contract result
+func (scr *SmartContractResult) SetValue(value *big.Int) {
+	scr.Value = value
+}
+
+// SetData sets the data of the smart contract result
+func (scr *SmartContractResult) SetData(data []byte) {
+	scr.Data = data
+}
+
+// SetRecvAddress sets the receiver address of the smart contract result
+func (scr *SmartContractResult) SetRecvAddress(addr []byte) {
+	scr.RcvAddr = addr
+}
+
+// SetSndAddress sets the sender address of the smart contract result
+func (scr *SmartContractResult) SetSndAddress(addr []byte) {
+	scr.SndAddr = addr
+}
