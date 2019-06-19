@@ -15,6 +15,7 @@ import (
 func TestNewShardedDataPool_NilTransactionsShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
 		nil,
+		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
 		&mock.CacherStub{},
@@ -27,8 +28,25 @@ func TestNewShardedDataPool_NilTransactionsShouldErr(t *testing.T) {
 	assert.Nil(t, tdp)
 }
 
+func TestNewShardedDataPool_NilSmartContractResultsShouldErr(t *testing.T) {
+	tdp, err := dataPool.NewShardedDataPool(
+		&mock.ShardedDataStub{},
+		nil,
+		&mock.CacherStub{},
+		&mock.Uint64CacherStub{},
+		&mock.CacherStub{},
+		&mock.CacherStub{},
+		&mock.CacherStub{},
+		&mock.Uint64CacherStub{},
+	)
+
+	assert.Equal(t, dataRetriever.ErrNilSmartContractResultsPool, err)
+	assert.Nil(t, tdp)
+}
+
 func TestNewShardedDataPool_NilHeadersShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
+		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		nil,
 		&mock.Uint64CacherStub{},
@@ -45,6 +63,7 @@ func TestNewShardedDataPool_NilHeadersShouldErr(t *testing.T) {
 func TestNewShardedDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
+		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		nil,
 		&mock.CacherStub{},
@@ -59,6 +78,7 @@ func TestNewShardedDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 
 func TestNewShardedDataPool_NilTxBlocksShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
+		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
@@ -75,6 +95,7 @@ func TestNewShardedDataPool_NilTxBlocksShouldErr(t *testing.T) {
 func TestNewShardedDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
+		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
 		&mock.CacherStub{},
@@ -89,6 +110,7 @@ func TestNewShardedDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 
 func TestNewShardedDataPool_NilMetaBlocksShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
+		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
@@ -105,6 +127,7 @@ func TestNewShardedDataPool_NilMetaBlocksShouldErr(t *testing.T) {
 func TestNewShardedDataPool_NilMetaHeaderNoncesShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
+		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
 		&mock.CacherStub{},
@@ -119,6 +142,7 @@ func TestNewShardedDataPool_NilMetaHeaderNoncesShouldErr(t *testing.T) {
 
 func TestNewShardedDataPool_OkValsShouldWork(t *testing.T) {
 	transactions := &mock.ShardedDataStub{}
+	scResults := &mock.ShardedDataStub{}
 	headers := &mock.CacherStub{}
 	headerNonces := &mock.Uint64CacherStub{}
 	txBlocks := &mock.CacherStub{}
@@ -127,6 +151,7 @@ func TestNewShardedDataPool_OkValsShouldWork(t *testing.T) {
 	metaHeaderNonces := &mock.Uint64CacherStub{}
 	tdp, err := dataPool.NewShardedDataPool(
 		transactions,
+		scResults,
 		headers,
 		headerNonces,
 		txBlocks,
@@ -143,4 +168,5 @@ func TestNewShardedDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, txBlocks == tdp.MiniBlocks())
 	assert.True(t, peersBlock == tdp.PeerChangesBlocks())
 	assert.True(t, metaChainBlocks == tdp.MetaBlocks())
+	assert.True(t, scResults == tdp.SmartContractResults())
 }
