@@ -1,14 +1,14 @@
 package libp2p
 
 import (
-	"github.com/libp2p/go-libp2p-interface-connmgr"
+	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/whyrusleeping/timecache"
 )
 
 var MaxSendBuffSize = maxSendBuffSize
 
-func (netMes *networkMessenger) ConnManager() ifconnmgr.ConnManager {
+func (netMes *networkMessenger) ConnManager() connmgr.ConnManager {
 	return netMes.ctxProvider.connHost.ConnManager()
 }
 

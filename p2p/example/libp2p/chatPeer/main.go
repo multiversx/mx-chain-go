@@ -10,13 +10,13 @@ import (
 
 	"github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-discovery"
 	libp2pdht "github.com/libp2p/go-libp2p-kad-dht"
-	inet "github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peerstore"
-	"github.com/libp2p/go-libp2p-protocol"
-	multiaddr "github.com/multiformats/go-multiaddr"
-	logging "github.com/whyrusleeping/go-logging"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/whyrusleeping/go-logging"
 )
 
 var logger = log.Logger("rendezvous")
@@ -26,7 +26,7 @@ var randevouzString = "ElrondNetwork - randevous"
 
 var chans []chan string
 
-func handleStream(stream inet.Stream) {
+func handleStream(stream network.Stream) {
 	logger.Info("Got a new stream!")
 
 	// Create a buffer stream for non blocking read and write.
@@ -82,7 +82,7 @@ func main() {
 	chans = make([]chan string, 0)
 
 	log.SetAllLoggers(logging.WARNING)
-	log.SetLogLevel("rendezvous", "info")
+	_ = log.SetLogLevel("rendezvous", "info")
 	help := flag.Bool("h", false, "Display Help")
 	config, err := ParseFlags()
 	if err != nil {
@@ -134,7 +134,7 @@ func main() {
 	// other nodes in the network.
 	var wg sync.WaitGroup
 	for _, peerAddr := range config.BootstrapPeers {
-		peerinfo, _ := peerstore.InfoFromP2pAddr(peerAddr)
+		peerinfo, _ := peer.AddrInfoFromP2pAddr(peerAddr)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -162,14 +162,14 @@ func main() {
 		panic(err)
 	}
 
-	for peer := range peerChan {
-		if peer.ID == host.ID() {
+	for p := range peerChan {
+		if p.ID == host.ID() {
 			continue
 		}
-		logger.Debug("Found peer:", peer)
+		logger.Debug("Found peer:", p)
 
-		logger.Debug("Connecting to:", peer)
-		stream, err := host.NewStream(ctx, peer.ID, protocol.ID(protocolID))
+		logger.Debug("Connecting to:", p)
+		stream, err := host.NewStream(ctx, p.ID, protocol.ID(protocolID))
 
 		if err != nil {
 			logger.Warning("Connection failed:", err)
@@ -184,7 +184,7 @@ func main() {
 			go readData(rw)
 		}
 
-		logger.Info("Connected to:", peer)
+		logger.Info("Connected to:", p)
 	}
 
 	stdReader := bufio.NewReader(os.Stdin)

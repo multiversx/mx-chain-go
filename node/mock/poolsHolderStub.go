@@ -6,13 +6,14 @@ import (
 )
 
 type PoolsHolderStub struct {
-	HeadersCalled           func() storage.Cacher
-	HeadersNoncesCalled     func() dataRetriever.Uint64Cacher
-	PeerChangesBlocksCalled func() storage.Cacher
-	TransactionsCalled      func() dataRetriever.ShardedDataCacherNotifier
-	MiniBlocksCalled        func() storage.Cacher
-	MetaBlocksCalled        func() storage.Cacher
-	MetaHeadersNoncesCalled func() dataRetriever.Uint64Cacher
+	HeadersCalled              func() storage.Cacher
+	HeadersNoncesCalled        func() dataRetriever.Uint64Cacher
+	PeerChangesBlocksCalled    func() storage.Cacher
+	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
+	SmartContractResultsCalled func() dataRetriever.ShardedDataCacherNotifier
+	MiniBlocksCalled           func() storage.Cacher
+	MetaBlocksCalled           func() storage.Cacher
+	MetaHeadersNoncesCalled    func() dataRetriever.Uint64Cacher
 }
 
 func (phs *PoolsHolderStub) Headers() storage.Cacher {
@@ -41,4 +42,8 @@ func (phs *PoolsHolderStub) MetaBlocks() storage.Cacher {
 
 func (phs *PoolsHolderStub) MetaHeadersNonces() dataRetriever.Uint64Cacher {
 	return phs.MetaHeadersNoncesCalled()
+}
+
+func (phs *PoolsHolderStub) SmartContractResults() dataRetriever.ShardedDataCacherNotifier {
+	return phs.SmartContractResultsCalled()
 }

@@ -18,8 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
-var log = logger.DefaultLogger()
-
 type scExecutionState struct {
 	allLogs       map[string][]*vmcommon.LogEntry
 	allReturnData map[string][]*big.Int
@@ -40,6 +38,8 @@ type scProcessor struct {
 	mutSCState   sync.Mutex
 	mapExecState map[uint32]scExecutionState
 }
+
+var log = logger.DefaultLogger()
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
 func NewSmartContractProcessor(

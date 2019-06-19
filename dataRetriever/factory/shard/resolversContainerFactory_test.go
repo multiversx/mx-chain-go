@@ -69,6 +69,9 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.MetaHeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		return &mock.Uint64CacherStub{}
 	}
+	pools.SmartContractResultsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
+	}
 
 	return pools
 }
@@ -413,6 +416,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	container, _ := rcf.Create()
 
+	numResolverSCRs := noOfShards
 	numResolverTxs := noOfShards
 	numResolverHeaders := 1
 	numResolverMiniBlocks := noOfShards
@@ -420,7 +424,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverMetachainShardHeaders := 1
 	numResolverMetaBlockHeaders := 1
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverPeerChanges +
-		numResolverMetachainShardHeaders + numResolverMetaBlockHeaders
+		numResolverMetachainShardHeaders + numResolverMetaBlockHeaders + numResolverSCRs
 
 	assert.Equal(t, totalResolvers, container.Len())
 }
