@@ -3,6 +3,7 @@ package sync
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
@@ -124,4 +125,65 @@ func (boot *MetaBootstrap) SetForkNonce(nonce uint64) {
 
 func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	boot.processReceivedHeader(headerHandler, headerHash)
+}
+
+func (boot *baseBootstrap) LoadBlocks(
+	blockFinality uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+	getHeader func(uint64) (data.HeaderHandler, []byte, error),
+	getBlockBody func(data.HeaderHandler) (data.BodyHandler, error),
+) error {
+	return boot.loadBlocks(blockFinality, blockUnit, hdrNonceHashDataUnit, getHeader, getBlockBody)
+}
+
+func (boot *baseBootstrap) ApplyBlock(
+	nonce uint64,
+	getHeader func(uint64) (data.HeaderHandler, []byte, error),
+	getBlockBody func(data.HeaderHandler) (data.BodyHandler, error),
+) error {
+	return boot.applyBlock(nonce, getHeader, getBlockBody)
+}
+
+func (boot *baseBootstrap) RemoveBlock(
+	nonce uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
+	return boot.removeBlock(nonce, blockUnit, hdrNonceHashDataUnit)
+}
+
+func (boot *baseBootstrap) LoadNotarizedBlocks(blockFinality uint64,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+	applyNotarisedBlock func(uint64, dataRetriever.UnitType) error,
+) error {
+	return boot.loadNotarizedBlocks(blockFinality, hdrNonceHashDataUnit, applyNotarisedBlock)
+}
+
+func (boot *ShardBootstrap) ApplyNotarizedBlock(nonce uint64, notarizedHdrNonceHashDataUnit dataRetriever.UnitType) error {
+	return boot.applyNotarizedBlock(nonce, notarizedHdrNonceHashDataUnit)
+}
+
+func (boot *MetaBootstrap) ApplyNotarizedBlock(nonce uint64, notarizedHdrNonceHashDataUnit dataRetriever.UnitType) error {
+	return boot.applyNotarizedBlock(nonce, notarizedHdrNonceHashDataUnit)
+}
+
+func (boot *ShardBootstrap) SyncFromStorer(
+	blockFinality uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+	notarizedBlockFinality uint64,
+	notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
+	return boot.syncFromStorer(blockFinality, blockUnit, hdrNonceHashDataUnit, notarizedBlockFinality, notarizedHdrNonceHashDataUnit)
+}
+
+func (boot *MetaBootstrap) SyncFromStorer(
+	blockFinality uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+	notarizedBlockFinality uint64,
+	notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
+	return boot.syncFromStorer(blockFinality, blockUnit, hdrNonceHashDataUnit, notarizedBlockFinality, notarizedHdrNonceHashDataUnit)
 }
