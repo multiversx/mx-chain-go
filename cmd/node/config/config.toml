@@ -78,6 +78,16 @@
         BatchDelaySeconds = 15
         MaxBatchSize = 30000
 
+[SmartContractResultStorage]
+    [SmartContractResultStorage.Cache]
+        Size = 100000
+        Type = "LRU"
+    [SmartContractResultStorage.DB]
+        FilePath = "SmartContractResult"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 15
+        MaxBatchSize = 30000
+
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
         Size = 10000
@@ -140,6 +150,10 @@
     Size = 100000
     Type = "FIFOSharded"
     Shards = 32
+
+[SmartContractDataPool]
+    Size = 100000
+    Type = "LRU"
 
 [ShardHeadersDataPool]
     Size = 10000

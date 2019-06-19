@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
 

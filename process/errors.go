@@ -366,3 +366,15 @@ var ErrNilSmartContractResult = errors.New("smart contract result is nil")
 
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
+
+// ErrUnknownMiniBlockType signals that miniblock type is wrong
+var ErrUnknownMiniBlockType = errors.New("miniblock type is unknown")
+
+// ErrNoSmartContractResultInMessage signals that message does not contain required data
+var ErrNoSmartContractResultInMessage = errors.New("no smart contract result in message")
+
+// ErrNilScrDataPool signals that smart contract pool is nil
+var ErrNilScrDataPool = errors.New("smart contract result pool is nil")
+
+// ErrNilScrStorage signals that smart contract storage is nil
+var ErrNilScrStorage = errors.New("smart contract result storage is nil")

@@ -7,7 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
-	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 )
 
@@ -85,7 +86,7 @@ func (mpd *MdnsPeerDiscoverer) Name() string {
 }
 
 // HandlePeerFound updates the routing table with this new peer
-func (mpd *MdnsPeerDiscoverer) HandlePeerFound(pi peerstore.PeerInfo) {
+func (mpd *MdnsPeerDiscoverer) HandlePeerFound(pi peer.AddrInfo) {
 	if mpd.contextProvider == nil {
 		return
 	}

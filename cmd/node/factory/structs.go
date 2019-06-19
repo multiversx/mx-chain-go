@@ -66,7 +66,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
 )
 
@@ -615,7 +615,7 @@ func createDataStoreFromConfig(config *config.Config, shardCoordinator sharding.
 }
 
 func createShardDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
-	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit, metaHdrHashNonceUnit, shardHdrHashNonceUnit *storageUnit.Unit
+	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit, scrUnit, metaHdrHashNonceUnit, shardHdrHashNonceUnit *storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -633,6 +633,9 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 			if txUnit != nil {
 				_ = txUnit.DestroyUnit()
 			}
+			if scrUnit != nil {
+				_ = scrUnit.DestroyUnit()
+			}
 			if metachainHeaderUnit != nil {
 				_ = metachainHeaderUnit.DestroyUnit()
 			}
@@ -649,6 +652,14 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 		getCacherFromConfig(config.TxStorage.Cache),
 		getDBFromConfig(config.TxStorage.DB, uniqueID),
 		getBloomFromConfig(config.TxStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
+	scrUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.ScrStorage.Cache),
+		getDBFromConfig(config.ScrStorage.DB, uniqueID),
+		getBloomFromConfig(config.ScrStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -710,6 +721,7 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 	store.AddStorer(dataRetriever.PeerChangesUnit, peerBlockUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaBlockUnit, metachainHeaderUnit)
+	store.AddStorer(dataRetriever.SmartContractResultUnit, scrUnit)
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardCoordinator.SelfId())
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
@@ -829,6 +841,12 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
+	scrPool, err := shardedData.NewShardedData(getCacherFromConfig(config.ScrResultDataPool))
+	if err != nil {
+		fmt.Println("error creating smart contract result")
+		return nil, err
+	}
+
 	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
 	hdrPool, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
@@ -883,6 +901,7 @@ func createShardDataPoolFromConfig(
 
 	return dataPool.NewShardedDataPool(
 		txPool,
+		scrPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -1244,7 +1263,7 @@ func newShardBlockProcessorAndTracker(
 	}
 
 	requestHandler, err := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic,
-		factory.MiniBlocksTopic, factory.MetachainBlocksTopic, MaxTxsToRequest)
+		factory.SmartContractResultTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, MaxTxsToRequest)
 	if err != nil {
 		return nil, nil, err
 	}

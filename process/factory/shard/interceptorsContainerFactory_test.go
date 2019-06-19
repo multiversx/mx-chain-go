@@ -65,7 +65,9 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.MetaHeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		return &mock.Uint64CacherStub{}
 	}
-
+	pools.SmartContractResultsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
+	}
 	return pools
 }
 
@@ -610,7 +612,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorPeerChanges := 1
 	numInterceptorMetachainHeaders := 1
 	totalInterceptors := numInterceptorTxs + numInterceptorHeaders + numInterceptorMiniBlocks +
-		numInterceptorPeerChanges + numInterceptorMetachainHeaders
+		numInterceptorPeerChanges + numInterceptorMetachainHeaders + numInterceptorTxs
 
 	assert.Equal(t, totalInterceptors, container.Len())
 }

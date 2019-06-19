@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
@@ -97,6 +98,16 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	container := containers.NewInterceptorsContainer()
 
 	keys, interceptorSlice, err := icf.generateTxInterceptors()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.AddMultiple(keys, interceptorSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, interceptorSlice, err = icf.generateScrInterceptors()
 	if err != nil {
 		return nil, err
 	}
@@ -209,6 +220,58 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		icf.hasher,
 		icf.singleSigner,
 		icf.keyGen,
+		icf.shardCoordinator)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+}
+
+//------- Smart Contract Results interceptors
+
+func (icf *interceptorsContainerFactory) generateScrInterceptors() ([]string, []process.Interceptor, error) {
+	shardC := icf.shardCoordinator
+
+	noOfShards := shardC.NumberOfShards()
+
+	keys := make([]string, noOfShards)
+	interceptorSlice := make([]process.Interceptor, noOfShards)
+
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifierScr := factory.SmartContractResultTopic + shardC.CommunicationIdentifier(idx)
+
+		interceptor, err := icf.createOneScrInterceptor(identifierScr)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		keys[int(idx)] = identifierScr
+		interceptorSlice[int(idx)] = interceptor
+	}
+
+	identifierTx := factory.SmartContractResultTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+
+	interceptor, err := icf.createOneScrInterceptor(identifierTx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keys = append(keys, identifierTx)
+	interceptorSlice = append(interceptorSlice, interceptor)
+	return keys, interceptorSlice, nil
+}
+
+func (icf *interceptorsContainerFactory) createOneScrInterceptor(identifier string) (process.Interceptor, error) {
+	scrStorer := icf.store.GetStorer(dataRetriever.SmartContractResultUnit)
+
+	interceptor, err := smartContract.NewScrInterceptor(
+		icf.marshalizer,
+		icf.dataPool.SmartContractResults(),
+		scrStorer,
+		icf.addrConverter,
+		icf.hasher,
 		icf.shardCoordinator)
 
 	if err != nil {
