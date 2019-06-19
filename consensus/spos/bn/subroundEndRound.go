@@ -68,7 +68,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 
 	timeBefore := time.Now()
 	// Commit the block (commits also the account state)
-	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.ConsensusState.Header, sr.ConsensusState.BlockBody)
+	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -90,6 +90,8 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	if err != nil {
 		log.Error(err.Error())
 	}
+
+	sr.BlocksTracker().SetBlockBroadcastRound(sr.Header.GetNonce(), sr.RoundIndex)
 
 	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been committed and broadcast\n", sr.SyncTimer().FormattedCurrentTime()))
 
@@ -160,7 +162,7 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 		}
 
 		pubKey := consensusGroup[i]
-		isSigJobDone, err := sr.ConsensusState.JobDone(pubKey, SrSignature)
+		isSigJobDone, err := sr.JobDone(pubKey, SrSignature)
 		if err != nil {
 			return err
 		}

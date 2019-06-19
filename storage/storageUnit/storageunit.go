@@ -324,6 +324,42 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 	return NewStorageUnitWithBloomFilter(cache, db, bf)
 }
 
+// NewShardedStorageUnitFromConf creates a new sharded storage unit from a storage unit config
+func NewShardedStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterConf BloomConfig, shardId uint32) (*Unit, error) {
+	var cache storage.Cacher
+	var db storage.Persister
+	var bf storage.BloomFilter
+	var err error
+
+	defer func() {
+		if err != nil && db != nil {
+			_ = db.Destroy()
+		}
+	}()
+
+	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards)
+	if err != nil {
+		return nil, err
+	}
+
+	filePath := fmt.Sprintf("%s%d", dbConf.FilePath, shardId)
+	db, err = NewDB(dbConf.Type, filePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize)
+	if err != nil {
+		return nil, err
+	}
+
+	if reflect.DeepEqual(bloomFilterConf, BloomConfig{}) {
+		return NewStorageUnit(cache, db)
+	}
+
+	bf, err = NewBloomFilter(bloomFilterConf)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewStorageUnitWithBloomFilter(cache, db, bf)
+}
+
 //NewCache creates a new cache from a cache config
 //TODO: add a cacher factory or a cacheConfig param instead
 func NewCache(cacheType CacheType, size uint32, shards uint32) (storage.Cacher, error) {

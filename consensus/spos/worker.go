@@ -127,7 +127,7 @@ func checkNewWorkerParams(
 		return ErrNilBlockProcessor
 	}
 	if blockTracker == nil {
-		return ErrNilBlockTracker
+		return ErrNilBlocksTracker
 	}
 	if bootstraper == nil {
 		return ErrNilBlootstraper
@@ -396,10 +396,6 @@ func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 func (wrk *Worker) BroadcastUnnotarisedBlocks() {
 	headers := wrk.blockTracker.UnnotarisedBlocks()
 	for _, header := range headers {
-		if header.GetNonce() > wrk.forkDetector.GetHighestFinalBlockNonce() {
-			continue
-		}
-
 		brodcastRound := wrk.blockTracker.BlockBroadcastRound(header.GetNonce())
 		if brodcastRound >= wrk.consensusState.RoundIndex-MaxRoundsGap {
 			continue

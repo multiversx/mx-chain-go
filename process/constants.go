@@ -23,3 +23,7 @@ const (
 	// SCInvoking defines ID of a transaction of type smart contract call
 	SCInvoking
 )
+
+const ShardBlockFinality = 1
+const MetaBlockFinality = 1
+const MaxHeaderRequestsAllowed = 10
