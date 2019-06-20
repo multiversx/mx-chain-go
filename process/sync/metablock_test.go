@@ -889,8 +889,8 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	account.RootHashCalled = func() []byte {
-		return nil
+	account.RootHashCalled = func() ([]byte, error) {
+		return nil, nil
 	}
 
 	rnd, _ := round.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})

@@ -1,4 +1,4 @@
-package trie2
+package trie
 
 import (
 	"errors"
