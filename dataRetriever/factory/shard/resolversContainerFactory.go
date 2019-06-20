@@ -230,11 +230,15 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 	if err != nil {
 		return nil, nil, err
 	}
+
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardC.SelfId())
+	hdrNonceStore := rcf.store.GetStorer(hdrNonceHashDataUnit)
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.Headers(),
 		rcf.dataPools.HeadersNonces(),
 		hdrStorer,
+		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
 	)
@@ -381,11 +385,14 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 		return nil, nil, err
 	}
 
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardC.SelfId())
+	hdrNonceStore := rcf.store.GetStorer(hdrNonceHashDataUnit)
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.Headers(),
 		rcf.dataPools.HeadersNonces(),
 		hdrStorer,
+		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
 	)
@@ -424,11 +431,13 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 		return nil, nil, err
 	}
 
+	hdrNonceStore := rcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.MetaBlocks(),
 		rcf.dataPools.MetaHeadersNonces(),
 		hdrStorer,
+		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
 	)
