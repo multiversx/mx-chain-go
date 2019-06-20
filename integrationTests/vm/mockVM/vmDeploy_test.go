@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/stretchr/testify/assert"
 )
 

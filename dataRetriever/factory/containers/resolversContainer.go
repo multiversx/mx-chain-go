@@ -1,7 +1,7 @@
 package containers
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/cornelk/hashmap"
 )
 

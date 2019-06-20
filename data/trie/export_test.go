@@ -1,6 +1,6 @@
 package trie
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
+import "github.com/ElrondNetwork/elrond-go/data/trie/encoding"
 
 type NodeFlag struct {
 	nodeFlag

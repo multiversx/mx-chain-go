@@ -1,9 +1,9 @@
 package state
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie2"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type AdapterTrie struct {

@@ -3,8 +3,8 @@ package marshal_test
 import (
 	"testing"
 
-	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	protobuf "github.com/ElrondNetwork/elrond-go/data/trie2/proto"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/assert"
 )
 

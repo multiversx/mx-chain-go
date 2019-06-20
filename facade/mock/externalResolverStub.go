@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/node/external"
+import "github.com/ElrondNetwork/elrond-go/node/external"
 
 type ExternalResolverStub struct {
 	RecentNotarizedBlocksCalled func(maxShardHeadersNum int) ([]*external.BlockHeader, error)

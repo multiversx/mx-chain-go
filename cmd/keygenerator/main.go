@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/urfave/cli"
 )
 
@@ -138,7 +138,7 @@ func getSuiteForBalanceSk() crypto.Suite {
 }
 
 func getSuiteForBlockSigningSk(consensusType string) crypto.Suite {
-	// TODO: A factory which returns the suite according to consensus type should be created in elrond-go-sandbox project
+	// TODO: A factory which returns the suite according to consensus type should be created in elrond-go project
 	// Ex: crypto.NewSuite(consensusType) crypto.Suite
 	switch consensusType {
 	case "bls":

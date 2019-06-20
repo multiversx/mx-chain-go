@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/fifocache"
+	"github.com/ElrondNetwork/elrond-go/storage/fifocache"
 	"github.com/stretchr/testify/assert"
 )
 

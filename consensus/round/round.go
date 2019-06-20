@@ -4,7 +4,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
+	"github.com/ElrondNetwork/elrond-go/ntp"
 )
 
 // round defines the data needed by the rounder

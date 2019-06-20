@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/data/trie2"
+	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/stretchr/testify/assert"
 )
 

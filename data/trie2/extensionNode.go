@@ -5,10 +5,10 @@ import (
 	"io"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/capnp"
-	protobuf "github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/proto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go/data/trie2/capnp"
+	protobuf "github.com/ElrondNetwork/elrond-go/data/trie2/proto"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	capn "github.com/glycerine/go-capnproto"
 )
 
