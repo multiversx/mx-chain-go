@@ -3,7 +3,7 @@ package marshal_test
 import (
 	"testing"
 
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie2/proto"
+	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/assert"
 )

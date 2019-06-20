@@ -3,7 +3,7 @@ package state
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // Account is the struct used in serialization/deserialization
@@ -146,12 +146,12 @@ func (a *Account) SetRootHashWithJournal(rootHash []byte) error {
 }
 
 // DataTrie returns the trie that holds the current account's data
-func (a *Account) DataTrie() trie.PatriciaMerkelTree {
+func (a *Account) DataTrie() data.Trie {
 	return a.dataTrieTracker.DataTrie()
 }
 
 // SetDataTrie sets the trie that holds the current account's data
-func (a *Account) SetDataTrie(trie trie.PatriciaMerkelTree) {
+func (a *Account) SetDataTrie(trie data.Trie) {
 	a.dataTrieTracker.SetDataTrie(trie)
 }
 
