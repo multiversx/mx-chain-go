@@ -26,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	trie "github.com/ElrondNetwork/elrond-go/integrationTests/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -226,8 +225,7 @@ func createAccountsDB() *state.AccountsDB {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
 
-	pmt, _ := trie.NewTrie(store, marsh, hasher)
-	tr := trie.AdapterTrie{Trie: pmt}
+	tr, _ := trie.NewTrie(store, marsh, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
 			return state.NewAccount(address, tracker)
