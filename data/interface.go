@@ -76,7 +76,7 @@ type TransactionHandler interface {
 	SetSndAddress([]byte)
 }
 
-//Trie is an interface for different Merkle Trees implementations
+//Trie is an interface for Merkle Trees implementations
 type Trie interface {
 	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error

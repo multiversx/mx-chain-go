@@ -13,7 +13,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -139,13 +138,13 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	//verify data
-	data, err := recoveredAccount.DataTrieTracker().RetrieveValue([]byte{65, 66, 67})
+	dataRecovered, err := recoveredAccount.DataTrieTracker().RetrieveValue([]byte{65, 66, 67})
 	assert.Nil(t, err)
-	assert.Equal(t, []byte{32, 33, 34}, data)
+	assert.Equal(t, []byte{32, 33, 34}, dataRecovered)
 
-	data, err = recoveredAccount.DataTrieTracker().RetrieveValue([]byte{68, 69, 70})
+	dataRecovered, err = recoveredAccount.DataTrieTracker().RetrieveValue([]byte{68, 69, 70})
 	assert.Nil(t, err)
-	assert.Equal(t, []byte{35, 36, 37}, data)
+	assert.Equal(t, []byte{35, 36, 37}, dataRecovered)
 }
 
 func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
@@ -263,7 +262,6 @@ func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 		addr := mock.NewAddressMock()
 
 		found := false
-
 		for i := 0; i < len(addresses); i++ {
 			if bytes.Equal(addresses[i].Bytes(), addr.Bytes()) {
 				found = true

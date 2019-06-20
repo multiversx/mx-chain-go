@@ -135,7 +135,6 @@ func TestMetaAccount_DataTrie(t *testing.T) {
 	assert.Nil(t, err)
 
 	trie := &mock.TrieStub{}
-
 	acc.SetDataTrie(trie)
 
 	assert.NotNil(t, acc)

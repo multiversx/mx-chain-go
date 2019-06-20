@@ -184,7 +184,6 @@ func testExecTransactionsMoreTxWithRevert(
 
 	//Step 3. Revert and test again nonces, balances and root hash
 	err = accnts.RevertToSnapshot(0)
-
 	assert.Nil(t, err)
 
 	revertedHash, err := accnts.RootHash()

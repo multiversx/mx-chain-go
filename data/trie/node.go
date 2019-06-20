@@ -61,10 +61,12 @@ func hashChildrenAndNode(n node, marshalizer marshal.Marshalizer, hasher hashing
 	if err != nil {
 		return nil, err
 	}
+
 	hashed, err := n.hashNode(marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}
+
 	return hashed, nil
 }
 
@@ -73,7 +75,9 @@ func encodeNodeAndGetHash(n node, marshalizer marshal.Marshalizer, hasher hashin
 	if err != nil {
 		return nil, err
 	}
+
 	hash := hasher.Compute(string(encNode))
+
 	return hash, nil
 }
 
@@ -86,15 +90,19 @@ func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher, marshalizer marshal.
 		}
 		key = n.getHash()
 	}
+
 	n, err := n.getCollapsed(marshalizer, hasher)
 	if err != nil {
 		return err
 	}
+
 	val, err := n.getEncodedNode(marshalizer)
 	if err != nil {
 		return err
 	}
+
 	err = db.Put(key, val)
+
 	return err
 }
 
@@ -103,10 +111,12 @@ func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal
 	if err != nil {
 		return nil, err
 	}
+
 	node, err := decodeNode(encChild, marshalizer)
 	if err != nil {
 		return nil, err
 	}
+
 	return node, nil
 }
 
@@ -115,12 +125,14 @@ func resolveIfCollapsed(n node, pos byte, db data.DBWriteCacher, marshalizer mar
 	if err != nil {
 		return err
 	}
+
 	if n.isPosCollapsed(int(pos)) {
 		err := n.resolveCollapsed(pos, db, marshalizer)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -128,6 +140,7 @@ func concat(s1 []byte, s2 ...byte) []byte {
 	r := make([]byte, len(s1)+len(s2))
 	copy(r, s1)
 	copy(r[len(s1):], s2)
+
 	return r
 }
 
@@ -136,11 +149,13 @@ func hasValidHash(n node) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	childHash := n.getHash()
 	childIsDirty := n.isDirty()
 	if childHash == nil || childIsDirty {
 		return false, nil
 	}
+
 	return true, nil
 }
 
@@ -148,6 +163,7 @@ func decodeNode(encNode []byte, marshalizer marshal.Marshalizer) (node, error) {
 	if encNode == nil || len(encNode) < 1 {
 		return nil, ErrInvalidEncoding
 	}
+
 	nodeType := encNode[len(encNode)-1]
 	encNode = encNode[:len(encNode)-1]
 
@@ -155,10 +171,12 @@ func decodeNode(encNode []byte, marshalizer marshal.Marshalizer) (node, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	err = marshalizer.Unmarshal(node, encNode)
 	if err != nil {
 		return nil, err
 	}
+
 	return node, nil
 }
 
@@ -181,6 +199,7 @@ func childPosOutOfRange(pos byte) bool {
 	if pos >= nrOfChildren {
 		return true
 	}
+
 	return false
 }
 

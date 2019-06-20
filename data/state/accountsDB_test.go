@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"testing"
@@ -127,7 +128,6 @@ func TestAccountsDB_PutCodeEmptyCodeShouldWork(t *testing.T) {
 			return nil
 		},
 		GetCalled: func(key []byte) (i []byte, e error) {
-			//suppose is not found
 			return nil, nil
 		},
 	}
@@ -392,7 +392,6 @@ func TestAccountsDB_GetJournalizedAccountMalfunctionTrieShouldErr(t *testing.T) 
 	t.Parallel()
 
 	trieMock := &mock.TrieStub{}
-
 	adr := mock.NewAddressMock()
 	adb := generateAccountDBFromTrie(trieMock)
 
@@ -428,7 +427,6 @@ func TestAccountsDB_GetExistingAccountMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
 	trieMock := &mock.TrieStub{}
-
 	adr := mock.NewAddressMock()
 	adb := generateAccountDBFromTrie(trieMock)
 
@@ -627,41 +625,42 @@ func TestAccountsDB_LoadDataNotFoundRootShouldReturnErr(t *testing.T) {
 func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
-	account := generateAccount()
-	//mockTrie := &mock.TrieStub{}
-	//adb := generateAccountDBFromTrie(mockTrie)
-
 	rootHash := make([]byte, mock.HasherMock{}.Size())
 	rootHash[0] = 1
+	keyRequired := []byte{65, 66, 67}
+	val := []byte{32, 33, 34}
+	dataTrie := &mock.TrieStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			if bytes.Equal(key, keyRequired) {
+				return val, nil
+			}
+
+			return nil, nil
+		},
+	}
+
+	account := generateAccount()
+	mockTrie := &mock.TrieStub{
+		RecreateCalled: func(root []byte) (trie data.Trie, e error) {
+			if !bytes.Equal(root, rootHash) {
+				return nil, errors.New("bad root hash")
+			}
+
+			return dataTrie, nil
+		},
+	}
+	adb := generateAccountDBFromTrie(mockTrie)
+
 	account.SetRootHash(rootHash)
 
-	//create a data trie with some values
-	//TODO fix this
-	//dataTrie, err := mockTrie.Recreate(make([]byte, encoding.HashLength), mockTrie.DBW())
-	//assert.Nil(t, err)
-	//err = dataTrie.Update([]byte{65, 66, 67}, []byte{32, 33, 34})
-	//assert.Nil(t, err)
-	//err = dataTrie.Update([]byte{68, 69, 70}, []byte{35, 36, 37})
-	//assert.Nil(t, err)
-	//_, err = dataTrie.Commit(nil)
-	//assert.Nil(t, err)
-	//
-	////link the new created trie to account's data root
-	//account.SetRootHash(dataTrie.Root())
-	//
-	////should not return error
-	//err = adb.LoadDataTrie(account)
-	//assert.Nil(t, err)
-	//assert.NotNil(t, account.DataTrie())
-	//
-	////verify data
-	//data, err := account.DataTrieTracker().RetrieveValue([]byte{65, 66, 67})
-	//assert.Nil(t, err)
-	//assert.Equal(t, []byte{32, 33, 34}, data)
-	//
-	//data, err = account.DataTrieTracker().RetrieveValue([]byte{68, 69, 70})
-	//assert.Nil(t, err)
-	//assert.Equal(t, []byte{35, 36, 37}, data)
+	//should not return error
+	err := adb.LoadDataTrie(account)
+	assert.Nil(t, err)
+
+	//verify data
+	dataRecov, err := account.DataTrieTracker().RetrieveValue(keyRequired)
+	assert.Nil(t, err)
+	assert.Equal(t, val, dataRecov)
 }
 
 //------- Commit
