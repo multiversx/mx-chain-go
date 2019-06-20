@@ -570,6 +570,15 @@ func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.Transact
 	return scrPool
 }
 
+func (scr *smartContractResults) createAllScrMiniBlocks() []*block.MiniBlock {
+	miniBlocks := make([]*block.MiniBlock, 0)
+
+	scr.mutScrsForBlock.Lock()
+	defer scr.mutScrsForBlock.Unlock()
+
+	return miniBlocks
+}
+
 // AddIntermediateTransactions adds smart contract results from smart contract processing for cross-shard calls
 func (scr *smartContractResults) AddIntermediateTransactions(txs []data.TransactionHandler) error {
 	scr.mutScrsForBlock.Lock()
