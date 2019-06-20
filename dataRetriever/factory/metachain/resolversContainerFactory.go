@@ -140,6 +140,7 @@ func (rcf *resolversContainerFactory) createOneShardHeaderResolver(topic string,
 		return nil, err
 	}
 
+	//TODO change this data unit creation method through a factory or func
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID)
 	hdrNonceStore := rcf.store.GetStorer(hdrNonceHashDataUnit)
 	resolver, err := resolvers.NewHeaderResolver(

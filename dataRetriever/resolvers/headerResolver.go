@@ -48,7 +48,7 @@ func NewHeaderResolver(
 		return nil, dataRetriever.ErrNilHeadersStorage
 	}
 	if headersNoncesStorage == nil {
-		return nil, dataRetriever.ErrNilStore
+		return nil, dataRetriever.ErrNilHeadersNoncesStorage
 	}
 	if marshalizer == nil {
 		return nil, dataRetriever.ErrNilMarshalizer
