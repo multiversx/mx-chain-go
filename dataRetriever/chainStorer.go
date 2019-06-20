@@ -3,7 +3,7 @@ package dataRetriever
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // ChainStorer is a StorageService implementation that can hold multiple storages

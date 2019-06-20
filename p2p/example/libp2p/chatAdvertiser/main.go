@@ -7,12 +7,12 @@ import (
 
 	"github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-discovery"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/protocol"
+	discovery "github.com/libp2p/go-libp2p-discovery"
 	libp2pdht "github.com/libp2p/go-libp2p-kad-dht"
-	inet "github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-protocol"
-	multiaddr "github.com/multiformats/go-multiaddr"
-	logging "github.com/whyrusleeping/go-logging"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/whyrusleeping/go-logging"
 )
 
 var logger = log.Logger("rendezvous")
@@ -20,7 +20,7 @@ var logger = log.Logger("rendezvous")
 var protocolID = "/elrondnetwork/1.0.0"
 var randevouzString = "ElrondNetwork - randevous"
 
-func handleStream(stream inet.Stream) {
+func handleStream(stream network.Stream) {
 	logger.Info("Got a new stream!")
 
 	// Create a buffer stream for non blocking read and write.
@@ -53,7 +53,7 @@ func readData(rw *bufio.ReadWriter) {
 
 func main() {
 	log.SetAllLoggers(logging.WARNING)
-	log.SetLogLevel("rendezvous", "info")
+	_ = log.SetLogLevel("rendezvous", "info")
 
 	ctx := context.Background()
 

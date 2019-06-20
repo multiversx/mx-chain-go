@@ -1,14 +1,14 @@
 package spos
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // ConsensusCore implements ConsensusCoreHandler and provides access to common functionalities
@@ -16,6 +16,7 @@ import (
 type ConsensusCore struct {
 	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
+	blocksTracker          process.BlocksTracker
 	bootstraper            process.Bootstrapper
 	broadcastMessenger     consensus.BroadcastMessenger
 	chronologyHandler      consensus.ChronologyHandler
@@ -34,6 +35,7 @@ type ConsensusCore struct {
 func NewConsensusCore(
 	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
+	blocksTracker process.BlocksTracker,
 	bootstraper process.Bootstrapper,
 	broadcastMessenger consensus.BroadcastMessenger,
 	chronologyHandler consensus.ChronologyHandler,
@@ -50,6 +52,7 @@ func NewConsensusCore(
 	consensusCore := &ConsensusCore{
 		blockChain,
 		blockProcessor,
+		blocksTracker,
 		bootstraper,
 		broadcastMessenger,
 		chronologyHandler,
@@ -80,6 +83,11 @@ func (cc *ConsensusCore) Blockchain() data.ChainHandler {
 // BlockProcessor gets the BlockProcessor stored in the ConsensusCore
 func (cc *ConsensusCore) BlockProcessor() process.BlockProcessor {
 	return cc.blockProcessor
+}
+
+// BlocksTracker gets the BlocksTracker stored in the ConsensusCore
+func (cc *ConsensusCore) BlocksTracker() process.BlocksTracker {
+	return cc.blocksTracker
 }
 
 // BootStrapper gets the Bootstrapper stored in the ConsensusCore

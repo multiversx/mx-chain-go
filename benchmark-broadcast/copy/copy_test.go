@@ -3,7 +3,7 @@ package copy_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/benchmark-broadcast/copy"
+	"github.com/ElrondNetwork/elrond-go/benchmark-broadcast/copy"
 	"github.com/satori/go.uuid"
 )
 

@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	smock "github.com/ElrondNetwork/elrond-go-sandbox/crypto/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
+	"github.com/ElrondNetwork/elrond-go/crypto"
+	smock "github.com/ElrondNetwork/elrond-go/crypto/mock"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
+	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/pairing"
 )

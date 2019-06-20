@@ -4,9 +4,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -215,7 +215,7 @@ func TestVMAccountsDB_GetStorageDataShouldWork(t *testing.T) {
 
 //------- IsCodeEmpty
 
-func TestVMAccountsDB_IsCodeEmptyAccountErrorsShouldErr(t *testing.T) {
+func TestVMAccountsDB_IsCodeEmptyAccountErrorsShouldErrAndRetFalse(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
@@ -291,10 +291,10 @@ func TestVMAccountsDB_CleanFakeAccounts(t *testing.T) {
 	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, &mock.AddressConverterMock{})
 
 	address := []byte("test")
-	vadb.CreateFakeAccounts(address, big.NewInt(10), 10)
-	vadb.CleanFakeAccounts()
+	vadb.AddTempAccount(address, big.NewInt(10), 10)
+	vadb.CleanTempAccounts()
 
-	acc := vadb.GetFakeAccount(address)
+	acc := vadb.TempAccount(address)
 	assert.Nil(t, acc)
 }
 
@@ -305,9 +305,9 @@ func TestVMAccountsDB_CreateAndGetFakeAccounts(t *testing.T) {
 
 	address := []byte("test")
 	nonce := uint64(10)
-	vadb.CreateFakeAccounts(address, big.NewInt(10), nonce)
+	vadb.AddTempAccount(address, big.NewInt(10), nonce)
 
-	acc := vadb.GetFakeAccount(address)
+	acc := vadb.TempAccount(address)
 	assert.NotNil(t, acc)
 	assert.Equal(t, nonce, acc.GetNonce())
 }
@@ -319,7 +319,7 @@ func TestVMAccountsDB_GetNonceFromFakeAccount(t *testing.T) {
 
 	address := []byte("test")
 	nonce := uint64(10)
-	vadb.CreateFakeAccounts(address, big.NewInt(10), nonce)
+	vadb.AddTempAccount(address, big.NewInt(10), nonce)
 
 	getNonce, err := vadb.GetNonce(address)
 	assert.Nil(t, err)

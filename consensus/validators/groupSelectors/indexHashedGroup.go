@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
 type indexHashedGroupSelector struct {

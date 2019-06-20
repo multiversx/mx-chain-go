@@ -3,7 +3,7 @@ package loadBalancer
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 const defaultSendChannel = "default send channel"

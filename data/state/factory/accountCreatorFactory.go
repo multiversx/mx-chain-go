@@ -1,8 +1,8 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // NewAccountFactoryCreator returns an account factory depending on shard coordinator self id

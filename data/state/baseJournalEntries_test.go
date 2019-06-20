@@ -3,8 +3,8 @@ package state_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -154,7 +154,7 @@ func TestBaseJournalEntryData_RevertOkValsShouldWork(t *testing.T) {
 
 	accnt := mock.NewAccountWrapMock(nil, nil)
 	accnt.SetDataTrieTracker(tracker)
-	tr := mock.NewMockTrie()
+	tr := &mock.TrieStub{}
 
 	entry, _ := state.NewBaseJournalEntryData(accnt, tr)
 	_, err := entry.Revert()

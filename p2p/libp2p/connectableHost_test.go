@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
-	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +23,7 @@ func TestConnectableHost_ConnectToPeerShouldWork(t *testing.T) {
 	wasCalled := false
 
 	uhs := &mock.ConnectableHostStub{
-		ConnectCalled: func(ctx context.Context, pi peerstore.PeerInfo) error {
+		ConnectCalled: func(ctx context.Context, pi peer.AddrInfo) error {
 			wasCalled = true
 			return nil
 		},

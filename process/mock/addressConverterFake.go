@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 type AddressConverterFake struct {
@@ -59,4 +59,8 @@ func (acf *AddressConverterFake) CreateAddressFromHex(hexAddress string) (state.
 
 func (acf *AddressConverterFake) PrepareAddressBytes(addressBytes []byte) ([]byte, error) {
 	return addressBytes, nil
+}
+
+func (acf *AddressConverterFake) AddressLen() int {
+	return acf.addressLen
 }

@@ -5,13 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
-
-const maxOpenFilesPerTable = 50
 
 // read + write + execute for owner only
 const rwxOwner = 0700
@@ -39,7 +37,8 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err err
 	}
 
 	options := &opt.Options{
-		OpenFilesCacheCapacity: maxOpenFilesPerTable,
+		// disable internal cache
+		BlockCacheCapacity: -1,
 	}
 
 	db, err := leveldb.OpenFile(path, options)

@@ -3,7 +3,7 @@ package kyber_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/stretchr/testify/assert"
 )
 

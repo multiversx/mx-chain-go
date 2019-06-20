@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
+	"github.com/ElrondNetwork/elrond-go/consensus/validators"
 	"github.com/stretchr/testify/assert"
 )
 

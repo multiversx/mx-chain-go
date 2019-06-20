@@ -9,19 +9,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	blproc "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
+	blproc "github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,7 +56,7 @@ func generateTestUnit() storage.Storer {
 	return storer
 }
 
-func initDataPool() *mock.PoolsHolderStub {
+func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	sdp := &mock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
@@ -64,7 +64,7 @@ func initDataPool() *mock.PoolsHolderStub {
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &mock.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, []byte("tx1_hash")) {
+							if reflect.DeepEqual(key, testHash) {
 								return &transaction.Transaction{Nonce: 10}, true
 							}
 							return nil, false
@@ -83,6 +83,8 @@ func initDataPool() *mock.PoolsHolderStub {
 						return &transaction.Transaction{Nonce: 10}, true
 					}
 					return nil, false
+				},
+				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
 				},
 			}
 		},
@@ -141,6 +143,13 @@ func initDataPool() *mock.PoolsHolderStub {
 		HeadersCalled: func() storage.Cacher {
 			cs := &mock.CacherStub{}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			}
+			return cs
+		},
+		MetaHeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
+			cs := &mock.Uint64CacherStub{}
+			cs.HasCalled = func(u uint64) bool {
+				return true
 			}
 			return cs
 		},
@@ -228,6 +237,8 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	return store
 }
 
@@ -291,7 +302,7 @@ func (wr wrongBody) IntegrityAndValidity() error {
 
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	tdp := initDataPool([]byte(""))
 	bp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
 		tdp,
@@ -356,11 +367,11 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 
 func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	tdp := initDataPool([]byte(""))
 	rootHash := []byte("root hash to be tested")
 	accounts := &mock.AccountsStub{
-		RootHashCalled: func() []byte {
-			return rootHash
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
 		},
 	}
 	store := initStore()
@@ -387,7 +398,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 
 func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	tdp := initDataPool([]byte(""))
 	marshalizer := &mock.MarshalizerStub{}
 	bp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
@@ -422,7 +433,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 
 func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	tdp := initDataPool([]byte(""))
 	marshalizer := &mock.MarshalizerStub{}
 	hasher := &mock.HasherStub{}
 	bp, _ := blproc.NewShardProcessor(

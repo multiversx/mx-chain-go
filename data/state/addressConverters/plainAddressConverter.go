@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // PlainAddressConverter is used to convert the address from/to different structures
@@ -100,4 +100,9 @@ func (pac *PlainAddressConverter) PrepareAddressBytes(addressBytes []byte) ([]by
 	}
 
 	return addressBytes, nil
+}
+
+// AddressLen returns the address length
+func (pac *PlainAddressConverter) AddressLen() int {
+	return pac.addressLen
 }
