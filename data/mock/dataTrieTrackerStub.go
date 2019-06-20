@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data/trie"
+import "github.com/ElrondNetwork/elrond-go/data"
 
 type DataTrieTrackerStub struct {
 	ClearDataCachesCalled func()
@@ -8,8 +8,8 @@ type DataTrieTrackerStub struct {
 	OriginalValueCalled   func(key []byte) []byte
 	RetrieveValueCalled   func(key []byte) ([]byte, error)
 	SaveKeyValueCalled    func(key []byte, value []byte)
-	SetDataTrieCalled     func(tr trie.Trie)
-	DataTrieCalled        func() trie.Trie
+	SetDataTrieCalled     func(tr data.Trie)
+	DataTrieCalled        func() data.Trie
 }
 
 func (dtts *DataTrieTrackerStub) ClearDataCaches() {
@@ -32,10 +32,10 @@ func (dtts *DataTrieTrackerStub) SaveKeyValue(key []byte, value []byte) {
 	dtts.SaveKeyValueCalled(key, value)
 }
 
-func (dtts *DataTrieTrackerStub) SetDataTrie(tr trie.Trie) {
+func (dtts *DataTrieTrackerStub) SetDataTrie(tr data.Trie) {
 	dtts.SetDataTrieCalled(tr)
 }
 
-func (dtts *DataTrieTrackerStub) DataTrie() trie.Trie {
+func (dtts *DataTrieTrackerStub) DataTrie() data.Trie {
 	return dtts.DataTrieCalled()
 }

@@ -3,7 +3,7 @@ package mock
 import (
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 var errNotImplemented = errors.New("not implemented")
@@ -16,7 +16,7 @@ type TrieStub struct {
 	ProveCalled       func(key []byte) ([][]byte, error)
 	VerifyProofCalled func(proofs [][]byte, key []byte) (bool, error)
 	CommitCalled      func() error
-	RecreateCalled    func(root []byte) (trie.Trie, error)
+	RecreateCalled    func(root []byte) (data.Trie, error)
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
@@ -75,7 +75,7 @@ func (ts *TrieStub) Commit() error {
 	return errNotImplemented
 }
 
-func (ts *TrieStub) Recreate(root []byte) (trie.Trie, error) {
+func (ts *TrieStub) Recreate(root []byte) (data.Trie, error) {
 	if ts.RecreateCalled != nil {
 		return ts.RecreateCalled(root)
 	}

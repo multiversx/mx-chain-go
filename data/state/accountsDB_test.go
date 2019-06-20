@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/stretchr/testify/assert"
 )
 
-func generateAccountDBFromTrie(trie trie.Trie) *state.AccountsDB {
+func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
 	accnt, _ := state.NewAccountsDB(trie, mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address, tracker), nil
@@ -25,7 +25,7 @@ func generateAccount() *mock.AccountWrapMock {
 	return mock.NewAccountWrapMock(adr, nil)
 }
 
-func generateAddressAccountAccountsDB(trie trie.Trie) (state.AddressContainer, *mock.AccountWrapMock, *state.AccountsDB) {
+func generateAddressAccountAccountsDB(trie data.Trie) (state.AddressContainer, *mock.AccountWrapMock, *state.AccountsDB) {
 	adr := mock.NewAddressMock()
 	account := mock.NewAccountWrapMock(adr, nil)
 
@@ -197,7 +197,7 @@ func TestAccountsDB_SaveDataNoDirtyShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ts := &mock.TrieStub{
-		RecreateCalled: func(root []byte) (i trie.Trie, e error) {
+		RecreateCalled: func(root []byte) (i data.Trie, e error) {
 			return nil, nil
 		},
 	}
@@ -223,7 +223,7 @@ func TestAccountsDB_SaveDataTrieShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ts := &mock.TrieStub{
-		RecreateCalled: func(root []byte) (i trie.Trie, e error) {
+		RecreateCalled: func(root []byte) (i data.Trie, e error) {
 			dataTrie := mock.TrieStub{
 				UpdateCalled: func(key, value []byte) error {
 					return nil
@@ -703,7 +703,7 @@ func TestAccountsDB_RecreateTrieMalfunctionTrieShouldErr(t *testing.T) {
 
 	errExpected := errors.New("failure")
 	trieStub := mock.TrieStub{}
-	trieStub.RecreateCalled = func(root []byte) (tree trie.Trie, e error) {
+	trieStub.RecreateCalled = func(root []byte) (tree data.Trie, e error) {
 		wasCalled = true
 		return nil, errExpected
 	}
@@ -721,7 +721,7 @@ func TestAccountsDB_RecreateTrieOutputsNilTrieShouldErr(t *testing.T) {
 	wasCalled := false
 
 	trieStub := mock.TrieStub{}
-	trieStub.RecreateCalled = func(root []byte) (tree trie.Trie, e error) {
+	trieStub.RecreateCalled = func(root []byte) (tree data.Trie, e error) {
 		wasCalled = true
 		return nil, nil
 	}
@@ -740,7 +740,7 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 	wasCalled := false
 
 	trieStub := mock.TrieStub{}
-	trieStub.RecreateCalled = func(root []byte) (tree trie.Trie, e error) {
+	trieStub.RecreateCalled = func(root []byte) (tree data.Trie, e error) {
 		wasCalled = true
 		return &mock.TrieStub{}, nil
 	}

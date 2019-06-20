@@ -3,6 +3,7 @@ package trie
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -23,14 +24,14 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode(marshal.Marshalizer) ([]byte, error)
-	commit(level byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
-	resolveCollapsed(pos byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) error
+	commit(level byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
+	resolveCollapsed(pos byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) error
 	hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error)
 	hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
-	tryGet(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) ([]byte, error)
-	getNext(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error)
-	insert(n *leafNode, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
-	delete(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
+	tryGet(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) ([]byte, error)
+	getNext(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error)
+	insert(n *leafNode, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
+	delete(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
 	reduceNode(pos int) node
 	isEmptyOrNil() error
 }
@@ -76,7 +77,7 @@ func encodeNodeAndGetHash(n node, marshalizer marshal.Marshalizer, hasher hashin
 	return hash, nil
 }
 
-func encodeNodeAndCommitToDB(n node, db DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
 	key := n.getHash()
 	if key == nil {
 		err := n.setHash(marshalizer, hasher)
@@ -97,7 +98,7 @@ func encodeNodeAndCommitToDB(n node, db DBWriteCacher, marshalizer marshal.Marsh
 	return err
 }
 
-func getNodeFromDBAndDecode(n []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (node, error) {
+func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
 		return nil, err
@@ -109,7 +110,7 @@ func getNodeFromDBAndDecode(n []byte, db DBWriteCacher, marshalizer marshal.Mars
 	return node, nil
 }
 
-func resolveIfCollapsed(n node, pos byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func resolveIfCollapsed(n node, pos byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
 		return err

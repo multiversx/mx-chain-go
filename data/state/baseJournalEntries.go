@@ -1,6 +1,8 @@
 package state
 
-import "github.com/ElrondNetwork/elrond-go/data/trie"
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+)
 
 //------- BaseJournalEntryCreation
 
@@ -116,13 +118,13 @@ func (bjer *BaseJournalEntryRootHash) Revert() (AccountHandler, error) {
 
 // BaseJournalEntryData is used to mark an account's data change
 type BaseJournalEntryData struct {
-	trie    trie.Trie
+	trie    data.Trie
 	account AccountHandler
 }
 
 // NewBaseJournalEntryData outputs a new BaseJournalEntry implementation used to keep track of data change.
 // The revert will practically empty the dirty data map
-func NewBaseJournalEntryData(account AccountHandler, trie trie.Trie) (*BaseJournalEntryData, error) {
+func NewBaseJournalEntryData(account AccountHandler, trie data.Trie) (*BaseJournalEntryData, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
@@ -144,7 +146,7 @@ func (bjed *BaseJournalEntryData) Revert() (AccountHandler, error) {
 }
 
 // Trie returns the referenced PatriciaMerkelTree for committing the changes
-func (bjed *BaseJournalEntryData) Trie() trie.Trie {
+func (bjed *BaseJournalEntryData) Trie() data.Trie {
 	return bjed.trie
 }
 

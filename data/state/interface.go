@@ -1,7 +1,7 @@
 package state
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // HashLength defines how many bytes are used in a hash
@@ -54,8 +54,8 @@ type AccountHandler interface {
 	GetRootHash() []byte
 	SetRootHash([]byte)
 	SetRootHashWithJournal([]byte) error
-	DataTrie() trie.Trie
-	SetDataTrie(trie trie.Trie)
+	DataTrie() data.Trie
+	SetDataTrie(trie data.Trie)
 	DataTrieTracker() DataTrieTracker
 
 	IsInterfaceNil() bool
@@ -68,8 +68,8 @@ type DataTrieTracker interface {
 	OriginalValue(key []byte) []byte
 	RetrieveValue(key []byte) ([]byte, error)
 	SaveKeyValue(key []byte, value []byte)
-	SetDataTrie(tr trie.Trie)
-	DataTrie() trie.Trie
+	SetDataTrie(tr data.Trie)
+	DataTrie() data.Trie
 }
 
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie

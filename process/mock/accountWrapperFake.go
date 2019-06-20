@@ -1,13 +1,13 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 )
 
 type AccountWrapMock struct {
 	MockValue         int
-	dataTrie          trie.Trie
+	dataTrie          data.Trie
 	nonce             uint64
 	code              []byte
 	codeHash          []byte
@@ -74,11 +74,11 @@ func (awm *AccountWrapMock) SetCodeWithJournal(code []byte) error {
 	return awm.SetCodeWithJournalCalled(code)
 }
 
-func (awm *AccountWrapMock) DataTrie() trie.Trie {
+func (awm *AccountWrapMock) DataTrie() data.Trie {
 	return awm.dataTrie
 }
 
-func (awm *AccountWrapMock) SetDataTrie(trie trie.Trie) {
+func (awm *AccountWrapMock) SetDataTrie(trie data.Trie) {
 	awm.dataTrie = trie
 	awm.trackableDataTrie.SetDataTrie(trie)
 }

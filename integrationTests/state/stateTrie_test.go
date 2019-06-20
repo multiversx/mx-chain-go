@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -106,7 +107,7 @@ func adbPrintAccount(account *state.Account, tag string) {
 	fmt.Printf("     Root hash: %v\n\n", base64.StdEncoding.EncodeToString(account.RootHash))
 }
 
-func generateAccountDBFromTrie(trie trie.Trie) *state.AccountsDB {
+func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
 	accnt, _ := state.NewAccountsDB(trie, mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address, tracker), nil

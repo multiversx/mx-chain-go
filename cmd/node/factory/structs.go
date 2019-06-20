@@ -93,7 +93,7 @@ type Network struct {
 type Core struct {
 	Hasher                   hashing.Hasher
 	Marshalizer              marshal.Marshalizer
-	Tr                       trie.PatriciaMerkelTree
+	Tr                       data.Trie
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -158,7 +158,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	tr, err := getTrie(args.config.AccountsTrieStorage, hasher, args.uniqueID)
+	tr, err := getTrie(args.config.AccountsTrieStorage, marshalizer, hasher, args.uniqueID)
 	if err != nil {
 		return nil, errors.New("error creating trie: " + err.Error())
 	}
@@ -556,7 +556,7 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 	return nil, errors.New("no marshalizer provided in config file")
 }
 
-func getTrie(cfg config.StorageConfig, hasher hashing.Hasher, uniqueID string) (*trie.Trie, error) {
+func getTrie(cfg config.StorageConfig, marshalizer marshal.Marshalizer, hasher hashing.Hasher, uniqueID string) (data.Trie, error) {
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(cfg.Cache),
 		getDBFromConfig(cfg.DB, uniqueID),
@@ -566,12 +566,7 @@ func getTrie(cfg config.StorageConfig, hasher hashing.Hasher, uniqueID string) (
 		return nil, errors.New("error creating accountsTrieStorage: " + err.Error())
 	}
 
-	dbWriteCache, err := trie.NewDBWriteCache(accountsTrieStorage)
-	if err != nil {
-		return nil, errors.New("error creating dbWriteCache: " + err.Error())
-	}
-
-	return trie.NewTrie(make([]byte, 32), dbWriteCache, hasher)
+	return trie.NewTrie(accountsTrieStorage, marshalizer, hasher)
 }
 
 func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator) (data.ChainHandler, error) {
@@ -1377,8 +1372,7 @@ func generateInMemoryAccountsAdapter(
 	marshalizer marshal.Marshalizer,
 ) state.AccountsAdapter {
 
-	dbw, _ := trie.NewDBWriteCache(createMemUnit())
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, hasher)
+	tr, _ := trie.NewTrie(createMemUnit(), marshalizer, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, accountFactory)
 
 	return adb

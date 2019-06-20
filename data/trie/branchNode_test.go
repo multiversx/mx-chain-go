@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -707,7 +708,7 @@ func TestBranchNode_isEmptyOrNil(t *testing.T) {
 	assert.Equal(t, ErrNilNode, bn.isEmptyOrNil())
 }
 
-func newEmptyTrie() Trie {
+func newEmptyTrie() data.Trie {
 	db, _ := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
 	tr, _ := NewTrie(db, marsh, hsh)

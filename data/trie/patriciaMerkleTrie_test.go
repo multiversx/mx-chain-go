@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
@@ -14,7 +15,7 @@ var marshalizer = &mock.ProtobufMarshalizerMock{}
 var hasher = mock.KeccakMock{}
 var emptyTrieHash = make([]byte, 32)
 
-func initTrieMultipleValues(nr int) (trie.Trie, [][]byte) {
+func initTrieMultipleValues(nr int) (data.Trie, [][]byte) {
 	db, _ := mock.NewMemDbMock()
 	tr, _ := trie.NewTrie(db, marshalizer, hasher)
 
@@ -29,7 +30,7 @@ func initTrieMultipleValues(nr int) (trie.Trie, [][]byte) {
 	return tr, values
 }
 
-func initTrie() trie.Trie {
+func initTrie() data.Trie {
 	db, _ := mock.NewMemDbMock()
 	tr, _ := trie.NewTrie(db, marshalizer, hasher)
 
@@ -320,7 +321,7 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 	assert.Equal(t, emptyTrieHash, root)
 }
 
-func emptyTrie() trie.Trie {
+func emptyTrie() data.Trie {
 	db, _ := mock.NewMemDbMock()
 	tr, _ := trie.NewTrie(db, marshalizer, hasher)
 	return tr

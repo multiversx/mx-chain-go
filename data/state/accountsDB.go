@@ -6,14 +6,14 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // AccountsDB is the struct used for accessing accounts
 type AccountsDB struct {
-	mainTrie       trie.Trie
+	mainTrie       data.Trie
 	hasher         hashing.Hasher
 	marshalizer    marshal.Marshalizer
 	accountFactory AccountFactory
@@ -24,7 +24,7 @@ type AccountsDB struct {
 
 // NewAccountsDB creates a new account manager
 func NewAccountsDB(
-	trie trie.Trie,
+	trie data.Trie,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,

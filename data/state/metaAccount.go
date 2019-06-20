@@ -3,7 +3,7 @@ package state
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // MiniBlockData is the data to be saved in shard account for any shard
@@ -198,12 +198,12 @@ func (a *MetaAccount) GetNonce() uint64 {
 }
 
 // DataTrie returns the trie that holds the current account's data
-func (a *MetaAccount) DataTrie() trie.Trie {
+func (a *MetaAccount) DataTrie() data.Trie {
 	return a.dataTrieTracker.DataTrie()
 }
 
 // SetDataTrie sets the trie that holds the current account's data
-func (a *MetaAccount) SetDataTrie(trie trie.Trie) {
+func (a *MetaAccount) SetDataTrie(trie data.Trie) {
 	a.dataTrieTracker.SetDataTrie(trie)
 }
 
