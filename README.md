@@ -88,7 +88,7 @@ $ go test ./...
   - [x] VM integration
   - [x] SC Deployment
 - [x] Governance
-  - [x] Concept reviewed- 
+  - [x] Concept reviewed
 - [x] Economics
   - [x] Concept reviewed  
 - [x] Optimizations
@@ -105,7 +105,7 @@ $ go test ./...
 - [ ] Epochs
   - [ ] Nodes dispatcher (shuffling)
 - [ ] Network sharding
-  - [ ] Optimized Wiring protocol
+  - [ ] Optimized wiring protocol
 - [ ] VM - K-Framework
   - [ ] EVM Core
   - [ ] EVM Core tests
