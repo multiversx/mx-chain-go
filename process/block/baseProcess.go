@@ -141,12 +141,22 @@ func (bp *baseProcessor) checkBlockValidity(
 // verifyStateRoot verifies the state root hash given as parameter against the
 // Merkle trie root hash stored for accounts and returns if equal or not
 func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
-	return bytes.Equal(bp.accounts.RootHash(), rootHash)
+	trieRootHash, err := bp.accounts.RootHash()
+	if err != nil {
+		log.Debug(err.Error())
+	}
+
+	return bytes.Equal(trieRootHash, rootHash)
 }
 
 // getRootHash returns the accounts merkle tree root hash
 func (bp *baseProcessor) getRootHash() []byte {
-	return bp.accounts.RootHash()
+	rootHash, err := bp.accounts.RootHash()
+	if err != nil {
+		log.Debug(err.Error())
+	}
+
+	return rootHash
 }
 
 func (bp *baseProcessor) computeHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {

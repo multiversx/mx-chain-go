@@ -1,53 +1,84 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"errors"
+
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-type TrieStub struct {
-	SetCacheLimitCalled func(l uint16)
-	GetCalled           func(key []byte) ([]byte, error)
-	UpdateCalled        func(key, value []byte) error
-	DeleteCalled        func(key []byte) error
-	RootCalled          func() []byte
-	CommitCalled        func(onleaf trie.LeafCallback) (root []byte, err error)
-	DBWCalled           func() trie.DBWriteCacher
-	RecreateCalled      func(root []byte, dbw trie.DBWriteCacher) (trie.PatriciaMerkelTree, error)
-	CopyCalled          func() trie.PatriciaMerkelTree
-}
+var errNotImplemented = errors.New("not implemented")
 
-func (ts *TrieStub) SetCacheLimit(l uint16) {
-	ts.SetCacheLimitCalled(l)
+type TrieStub struct {
+	GetCalled         func(key []byte) ([]byte, error)
+	UpdateCalled      func(key, value []byte) error
+	DeleteCalled      func(key []byte) error
+	RootCalled        func() ([]byte, error)
+	ProveCalled       func(key []byte) ([][]byte, error)
+	VerifyProofCalled func(proofs [][]byte, key []byte) (bool, error)
+	CommitCalled      func() error
+	RecreateCalled    func(root []byte) (data.Trie, error)
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
-	return ts.GetCalled(key)
+	if ts.GetCalled != nil {
+		return ts.GetCalled(key)
+	}
+
+	return nil, errNotImplemented
 }
 
 func (ts *TrieStub) Update(key, value []byte) error {
-	return ts.UpdateCalled(key, value)
+	if ts.UpdateCalled != nil {
+		return ts.UpdateCalled(key, value)
+	}
+
+	return errNotImplemented
 }
 
 func (ts *TrieStub) Delete(key []byte) error {
-	return ts.DeleteCalled(key)
+	if ts.DeleteCalled != nil {
+		return ts.DeleteCalled(key)
+	}
+
+	return errNotImplemented
 }
 
-func (ts *TrieStub) Root() []byte {
-	return ts.RootCalled()
+func (ts *TrieStub) Root() ([]byte, error) {
+	if ts.RootCalled != nil {
+		return ts.RootCalled()
+	}
+
+	return nil, errNotImplemented
 }
 
-func (ts *TrieStub) Commit(onleaf trie.LeafCallback) (root []byte, err error) {
-	return ts.CommitCalled(onleaf)
+func (ts *TrieStub) Prove(key []byte) ([][]byte, error) {
+	if ts.ProveCalled != nil {
+		return ts.ProveCalled(key)
+	}
+
+	return nil, errNotImplemented
 }
 
-func (ts *TrieStub) DBW() trie.DBWriteCacher {
-	return ts.DBWCalled()
+func (ts *TrieStub) VerifyProof(proofs [][]byte, key []byte) (bool, error) {
+	if ts.VerifyProofCalled != nil {
+		return ts.VerifyProofCalled(proofs, key)
+	}
+
+	return false, errNotImplemented
 }
 
-func (ts *TrieStub) Recreate(root []byte, dbw trie.DBWriteCacher) (trie.PatriciaMerkelTree, error) {
-	return ts.RecreateCalled(root, dbw)
+func (ts *TrieStub) Commit() error {
+	if ts != nil {
+		return ts.CommitCalled()
+	}
+
+	return errNotImplemented
 }
 
-func (ts *TrieStub) Copy() trie.PatriciaMerkelTree {
-	return ts.CopyCalled()
+func (ts *TrieStub) Recreate(root []byte) (data.Trie, error) {
+	if ts.RecreateCalled != nil {
+		return ts.RecreateCalled(root)
+	}
+
+	return nil, errNotImplemented
 }

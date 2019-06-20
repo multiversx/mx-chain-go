@@ -154,7 +154,7 @@ func TestBaseJournalEntryData_RevertOkValsShouldWork(t *testing.T) {
 
 	accnt := mock.NewAccountWrapMock(nil, nil)
 	accnt.SetDataTrieTracker(tracker)
-	tr := mock.NewMockTrie()
+	tr := &mock.TrieStub{}
 
 	entry, _ := state.NewBaseJournalEntryData(accnt, tr)
 	_, err := entry.Revert()

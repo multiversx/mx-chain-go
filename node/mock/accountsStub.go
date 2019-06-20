@@ -18,7 +18,7 @@ type AccountsStub struct {
 	RevertToSnapshotCalled      func(snapshot int) error
 	SaveAccountStateCalled      func(acountWrapper state.AccountHandler) error
 	SaveDataTrieCalled          func(acountWrapper state.AccountHandler) error
-	RootHashCalled              func() []byte
+	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
 }
 
@@ -78,7 +78,7 @@ func (aam *AccountsStub) SaveDataTrie(journalizedAccountHandler state.AccountHan
 	return aam.SaveDataTrieCalled(journalizedAccountHandler)
 }
 
-func (aam *AccountsStub) RootHash() []byte {
+func (aam *AccountsStub) RootHash() ([]byte, error) {
 	return aam.RootHashCalled()
 }
 

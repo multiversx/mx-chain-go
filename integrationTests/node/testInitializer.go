@@ -5,9 +5,8 @@ import (
 	"encoding/hex"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/trie2"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	trie "github.com/ElrondNetwork/elrond-go/integrationTests/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -46,8 +45,7 @@ func createInMemoryShardAccountsDB() *state.AccountsDB {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
 
-	pmt, _ := trie2.NewTrie(store, testMarshalizer, hasher)
-	tr := trie.AdapterTrie{pmt}
+	tr, _ := trie.NewTrie(store, testMarshalizer, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer, &accountFactory{})
 
 	return adb
