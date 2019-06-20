@@ -2,10 +2,10 @@ package preprocess
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -34,6 +34,7 @@ type scrHashesInfo struct {
 }
 
 type smartContractResults struct {
+	*basePreProcess
 	chRcvAllScrs                 chan bool
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte)
 	missingScrs                  int
@@ -46,6 +47,7 @@ type smartContractResults struct {
 	scrProcessor                 process.SmartContractResultProcessor
 	shardCoordinator             sharding.Coordinator
 	accounts                     state.AccountsAdapter
+	adrConv                      state.AddressConverter
 }
 
 // NewSmartContractResultPreprocessor creates a new smartContractResult preprocessor object
@@ -103,8 +105,8 @@ func NewSmartContractResultPreprocessor(
 	return scr, nil
 }
 
-// waitForTxHashes waits for a call whether all the requested smartContractResults appeared
-func (scr *smartContractResults) waitForTxHashes(waitTime time.Duration) error {
+// waitForScrHashes waits for a call whether all the requested smartContractResults appeared
+func (scr *smartContractResults) waitForScrHashes(waitTime time.Duration) error {
 	select {
 	case <-scr.chRcvAllScrs:
 		return nil
@@ -117,7 +119,7 @@ func (scr *smartContractResults) waitForTxHashes(waitTime time.Duration) error {
 func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func() time.Duration) error {
 	if requestedScrs > 0 {
 		log.Info(fmt.Sprintf("requested %d missing scr\n", requestedScrs))
-		err := scr.waitForTxHashes(haveTime())
+		err := scr.waitForScrHashes(haveTime())
 		scr.mutScrsForBlock.RLock()
 		missingScrs := scr.missingScrs
 		scr.mutScrsForBlock.RUnlock()
@@ -134,29 +136,10 @@ func (scr *smartContractResults) RemoveTxBlockFromPools(body block.Body, miniBlo
 	if body == nil {
 		return process.ErrNilTxBlockBody
 	}
-	if miniBlockPool == nil {
-		return process.ErrNilMiniBlockPool
-	}
 
-	for i := 0; i < len(body); i++ {
-		currentMiniBlock := body[i]
-		if currentMiniBlock.Type != block.SmartContractResultBlock {
-			continue
-		}
+	err := scr.removeDataFromPools(body, miniBlockPool, scr.scrPool, block.SmartContractResultBlock)
 
-		strCache := process.ShardCacherIdentifier(currentMiniBlock.SenderShardID, currentMiniBlock.ReceiverShardID)
-		scr.scrPool.RemoveSetOfDataFromPool(currentMiniBlock.TxHashes, strCache)
-
-		buff, err := scr.marshalizer.Marshal(currentMiniBlock)
-		if err != nil {
-			return err
-		}
-
-		miniBlockHash := scr.hasher.Compute(string(buff))
-		miniBlockPool.Remove(miniBlockHash)
-	}
-
-	return nil
+	return err
 }
 
 // RestoreTxBlockIntoPools restores the smartContractResults and miniblocks to associated pools
@@ -585,4 +568,50 @@ func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.Transact
 	scr.mutScrsForBlock.RUnlock()
 
 	return scrPool
+}
+
+// AddIntermediateTransactions adds smart contract results from smart contract processing for cross-shard calls
+func (scr *smartContractResults) AddIntermediateTransactions(txs []data.TransactionHandler) error {
+	scr.mutScrsForBlock.Lock()
+	defer scr.mutScrsForBlock.Unlock()
+
+	for i := 0; i < len(txs); i++ {
+		addScr, ok := txs[i].(*smartContractResult.SmartContractResult)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		scrMrs, err := scr.marshalizer.Marshal(addScr)
+		if err != nil {
+			return process.ErrMarshalWithoutSuccess
+		}
+		scrHash := scr.hasher.Compute(string(scrMrs))
+
+		sndShId, dstShId, err := scr.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
+		if err != nil {
+			return err
+		}
+
+		addScrShardInfo := &scrShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
+		scrInfo := &scrInfo{scr: addScr, scrShardInfo: addScrShardInfo}
+		scr.scrForBlock[string(scrHash)] = scrInfo
+	}
+
+	return nil
+}
+
+func (scr *smartContractResults) getShardIdsFromAddresses(sndAddr []byte, rcvAddr []byte) (uint32, uint32, error) {
+	adrSrc, err := scr.adrConv.CreateAddressFromPublicKeyBytes(sndAddr)
+	if err != nil {
+		return scr.shardCoordinator.NumberOfShards(), scr.shardCoordinator.NumberOfShards(), err
+	}
+	adrDst, err := scr.adrConv.CreateAddressFromPublicKeyBytes(rcvAddr)
+	if err != nil {
+		return scr.shardCoordinator.NumberOfShards(), scr.shardCoordinator.NumberOfShards(), err
+	}
+
+	shardForSrc := scr.shardCoordinator.ComputeId(adrSrc)
+	shardForDst := scr.shardCoordinator.ComputeId(adrDst)
+
+	return shardForSrc, shardForDst, nil
 }

@@ -34,6 +34,11 @@ type SmartContractProcessor interface {
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
 }
 
+// SmartContractResult
+type IntermediateTransactionHandler interface {
+	AddIntermediateTransactions(txs []data.TransactionHandler) error
+}
+
 type PreProcessor interface {
 	CreateBlockStarted()
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
