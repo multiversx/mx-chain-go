@@ -50,6 +50,7 @@ type transactions struct {
 	txProcessor          process.TransactionProcessor
 	shardCoordinator     sharding.Coordinator
 	accounts             state.AccountsAdapter
+	interTxHandler       process.IntermediateTransactionHandler
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -408,7 +409,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	dstShardId uint32,
 ) error {
 
-	_, err := txs.txProcessor.ProcessTransaction(transaction, round)
+	crossShardScrs, err := txs.txProcessor.ProcessTransaction(transaction, round)
 	if err == process.ErrLowerNonceInTransaction ||
 		err == process.ErrInsufficientFunds {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
@@ -417,6 +418,13 @@ func (txs *transactions) processAndRemoveBadTransaction(
 
 	if err != nil {
 		return err
+	}
+
+	if len(crossShardScrs) > 0 {
+		err := txs.interTxHandler.AddIntermediateTransactions(crossShardScrs)
+		if err != nil {
+			return err
+		}
 	}
 
 	txShardInfo := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}

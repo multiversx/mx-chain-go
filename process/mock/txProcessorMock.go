@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"math/big"
 
@@ -8,12 +9,12 @@ import (
 )
 
 type TxProcessorMock struct {
-	ProcessTransactionCalled         func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error)
+	ProcessTransactionCalled         func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error)
 	SetBalancesToTrieCalled          func(accBalance map[string]*big.Int) (rootHash []byte, err error)
 	ProcessSmartContractResultCalled func(scr *smartContractResult.SmartContractResult) error
 }
 
-func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 	return etm.ProcessTransactionCalled(transaction, round)
 }
 

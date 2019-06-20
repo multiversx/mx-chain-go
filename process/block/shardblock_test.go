@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -444,7 +443,7 @@ func TestShardProcessor_ProcessBlockHeaderBodyMismatchShouldErr(t *testing.T) {
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
 	// invalid transaction
-	txProcess := func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+	txProcess := func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 		return nil, nil
 	}
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
@@ -509,7 +508,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
 	// invalid transaction
-	txProcess := func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+	txProcess := func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 		return nil, process.ErrHigherNonceInTransaction
 	}
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
@@ -690,7 +689,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
 	err := errors.New("process block transaction error")
-	txProcess := func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+	txProcess := func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 		return nil, err
 	}
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
@@ -779,7 +778,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
-	txProcess := func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+	txProcess := func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 		return nil, nil
 	}
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
@@ -868,7 +867,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
-	txProcess := func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+	txProcess := func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 		return nil, nil
 	}
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
@@ -950,7 +949,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
-	txProcess := func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+	txProcess := func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 		return nil, nil
 	}
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
@@ -1038,7 +1037,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	tdp := mock.NewPoolsHolderFake()
 	txHash := []byte("tx_hash1")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
-	txProcess := func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+	txProcess := func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 		return nil, nil
 	}
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
@@ -1578,7 +1577,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		store,
 		hasher,
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 			return nil, nil
 		}},
 		accounts,
@@ -1685,7 +1684,7 @@ func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 	//process transaction. return nil for no error
-	procTx := func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+	procTx := func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 		return nil, nil
 	}
 	tpm := mock.TxProcessorMock{
@@ -2503,7 +2502,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		hasher,
 		marshalizer,
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 				if bytes.Equal(transaction.Data, txHash1) {
 					tx1ExecutionResult = transaction.Nonce
@@ -2600,7 +2599,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		hasher,
 		marshalizer,
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 				if bytes.Equal(transaction.Data, txHash2) {
 					return nil, errTxProcessor
 				}
@@ -2682,7 +2681,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		hasher,
 		marshalizer,
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error) {
 				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 				if bytes.Equal(transaction.Data, txHash1) {
 					tx1ExecutionResult = transaction.Nonce

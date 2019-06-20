@@ -593,7 +593,7 @@ func (scr *smartContractResults) AddIntermediateTransactions(txs []data.Transact
 		}
 
 		addScrShardInfo := &scrShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
-		scrInfo := &scrInfo{scr: addScr, scrShardInfo: addScrShardInfo}
+		scrInfo := &scrInfo{scr: addScr, scrShardInfo: addScrShardInfo, has: true}
 		scr.scrForBlock[string(scrHash)] = scrInfo
 	}
 

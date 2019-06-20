@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
 	"sync"
 
@@ -143,7 +144,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	tx *transaction.Transaction,
 	acntSnd, acntDst state.AccountHandler,
 	round uint32,
-) ([]*smartContractResult.SmartContractResult, error) {
+) ([]data.TransactionHandler, error) {
 	defer sc.tempAccounts.CleanTempAccounts()
 
 	if tx == nil {
@@ -206,7 +207,7 @@ func (sc *scProcessor) DeploySmartContract(
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
 	round uint32,
-) ([]*smartContractResult.SmartContractResult, error) {
+) ([]data.TransactionHandler, error) {
 	defer sc.tempAccounts.CleanTempAccounts()
 
 	err := sc.checkTxValidity(tx)
@@ -343,7 +344,7 @@ func (sc *scProcessor) processVMOutput(
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
 	round uint32,
-) ([]*smartContractResult.SmartContractResult, error) {
+) ([]data.TransactionHandler, error) {
 	if vmOutput == nil {
 		return nil, process.ErrNilVMOutput
 	}
@@ -418,8 +419,8 @@ func (sc *scProcessor) createCrossShardTransactions(
 	crossOutAccs []*vmcommon.OutputAccount,
 	tx *transaction.Transaction,
 	txHash []byte,
-) ([]*smartContractResult.SmartContractResult, error) {
-	crossSCTxs := make([]*smartContractResult.SmartContractResult, 0)
+) ([]data.TransactionHandler, error) {
+	crossSCTxs := make([]data.TransactionHandler, 0)
 
 	for i := 0; i < len(crossOutAccs); i++ {
 		scTx := sc.createSmartContractResult(crossOutAccs[i], tx.RcvAddr, txHash)
