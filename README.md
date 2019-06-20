@@ -1,13 +1,13 @@
+# Elrond go
+
 <div style="text-align:center">
-  <img src="https://github.com/ElrondNetwork/wiki/blob/master/logoElrondNetwork.png"></img>
+  <img src="https://github.com/ElrondNetwork/elrond-go/blob/feat/update-readme-with-tags-and-logo/elrond_logo_01.png"></img>
 </div>  
 
 <br>
 
 [![](https://img.shields.io/badge/made%20by-Elrond%20Network-blue.svg?style=flat-square)](http://elrond.com/)
 [![](https://img.shields.io/badge/project-Elrond%20Network%20Testnet-blue.svg?style=flat-square)](http://elrond.com/)
-
-# Elrond go
 
 The go implementation for the Elrond Network testnet
 
