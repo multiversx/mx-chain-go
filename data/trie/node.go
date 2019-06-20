@@ -196,11 +196,7 @@ func getEmptyNodeOfType(t byte) (node, error) {
 }
 
 func childPosOutOfRange(pos byte) bool {
-	if pos >= nrOfChildren {
-		return true
-	}
-
-	return false
+	return pos >= nrOfChildren
 }
 
 // keyBytesToHex transforms key bytes into hex nibbles

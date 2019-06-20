@@ -93,7 +93,7 @@ type Network struct {
 type Core struct {
 	Hasher                   hashing.Hasher
 	Marshalizer              marshal.Marshalizer
-	Tr                       data.Trie
+	Trie                     data.Trie
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -158,7 +158,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	tr, err := getTrie(args.config.AccountsTrieStorage, marshalizer, hasher, args.uniqueID)
+	merkleTrie, err := getTrie(args.config.AccountsTrieStorage, marshalizer, hasher, args.uniqueID)
 	if err != nil {
 		return nil, errors.New("error creating trie: " + err.Error())
 	}
@@ -167,7 +167,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 	return &Core{
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
-		Tr:                       tr,
+		Trie:                     merkleTrie,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 	}, nil
 }
@@ -206,7 +206,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("could not create account factory: " + err.Error())
 	}
 
-	accountsAdapter, err := state.NewAccountsDB(args.core.Tr, args.core.Hasher, args.core.Marshalizer, accountFactory)
+	accountsAdapter, err := state.NewAccountsDB(args.core.Trie, args.core.Hasher, args.core.Marshalizer, accountFactory)
 	if err != nil {
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
