@@ -28,7 +28,7 @@ func (ts *TrieStub) Get(key []byte) ([]byte, error) {
 }
 
 func (ts *TrieStub) Update(key, value []byte) error {
-	if ts != nil {
+	if ts.UpdateCalled != nil {
 		return ts.UpdateCalled(key, value)
 	}
 

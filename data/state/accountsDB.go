@@ -130,7 +130,6 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 
 	if accountHandler.DataTrie() == nil {
 		dataTrie, err := adb.mainTrie.Recreate(make([]byte, 0))
-
 		if err != nil {
 			return err
 		}
@@ -149,7 +148,6 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 			flagHasDirtyData = true
 
 			err := accountHandler.DataTrie().Update([]byte(k), v)
-
 			if err != nil {
 				return err
 			}
