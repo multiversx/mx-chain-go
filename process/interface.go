@@ -51,7 +51,7 @@ type PreProcessor interface {
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error
 	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error)
 
-	GetAllCurrentUsedTxs() map[string]*transaction.Transaction
+	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 }
 
 // BlockProcessor is the main interface for block execution engine

@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"sort"
 	"sync"
 	"time"
@@ -507,6 +508,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	miniBlock.SenderShardID = sndShardId
 	miniBlock.ReceiverShardID = dstShardId
 	miniBlock.TxHashes = make([][]byte, 0)
+	miniBlock.Type = block.TxBlock
 	log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ReceiverShardID))
 
 	addedTxs := 0
@@ -679,8 +681,8 @@ func (txs *transactions) getTxs(txShardStore storage.Cacher) ([]*transaction.Tra
 }
 
 // GetAllCurrentUsedTxs returns all the transactions used at current creation / processing
-func (txs *transactions) GetAllCurrentUsedTxs() map[string]*transaction.Transaction {
-	txPool := make(map[string]*transaction.Transaction)
+func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
+	txPool := make(map[string]data.TransactionHandler)
 
 	txs.mutTxsForBlock.RLock()
 	for txHash, txInfo := range txs.txsForBlock {
