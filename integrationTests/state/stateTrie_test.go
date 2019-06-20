@@ -1,13 +1,17 @@
 package state
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/data/mock"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
@@ -100,6 +104,15 @@ func adbPrintAccount(account *state.Account, tag string) {
 	fmt.Printf("     Balance: %d\n", bal.Uint64())
 	fmt.Printf("     Code hash: %v\n", base64.StdEncoding.EncodeToString(account.CodeHash))
 	fmt.Printf("     Root hash: %v\n\n", base64.StdEncoding.EncodeToString(account.RootHash))
+}
+
+func generateAccountDBFromTrie(trie trie.Trie) *state.AccountsDB {
+	accnt, _ := state.NewAccountsDB(trie, mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
+			return mock.NewAccountWrapMock(address, tracker), nil
+		},
+	})
+	return accnt
 }
 
 //------- Functionality tests
@@ -227,6 +240,62 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 	accountRecovered := accountHandlerRecovered.(*state.Account)
 	assert.NotNil(t, accountRecovered)
 	assert.Equal(t, accountRecovered.Balance, big.NewInt(0))
+}
+
+func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
+	t.Parallel()
+
+	marsh := &marshal.JsonMarshalizer{}
+	hasher := sha256.Sha256{}
+	store := createMemUnit()
+	tr, _ := trie.NewTrie(store, marsh, hasher)
+
+	adb := generateAccountDBFromTrie(tr)
+
+	wg := sync.WaitGroup{}
+	wg.Add(2000)
+
+	addresses := make([]state.AddressContainer, 0)
+
+	//generating 2000 different addresses
+	for len(addresses) < 2000 {
+		addr := mock.NewAddressMock()
+
+		found := false
+
+		for i := 0; i < len(addresses); i++ {
+			if bytes.Equal(addresses[i].Bytes(), addr.Bytes()) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			addresses = append(addresses, addr)
+		}
+	}
+
+	for i := 0; i < 1000; i++ {
+		go func(idx int) {
+			accnt, err := adb.GetExistingAccount(addresses[idx*2])
+
+			assert.Equal(t, state.ErrAccNotFound, err)
+			assert.Nil(t, accnt)
+
+			wg.Done()
+		}(i)
+
+		go func(idx int) {
+			accnt, err := adb.GetAccountWithJournal(addresses[idx*2+1])
+
+			assert.Nil(t, err)
+			assert.NotNil(t, accnt)
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }
 
 func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
