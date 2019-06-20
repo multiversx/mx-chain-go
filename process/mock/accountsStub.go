@@ -20,7 +20,7 @@ type AccountsStub struct {
 	RevertToSnapshotCalled      func(snapshot int) error
 	SaveAccountStateCalled      func(acountWrapper state.AccountHandler) error
 	SaveDataTrieCalled          func(acountWrapper state.AccountHandler) error
-	RootHashCalled              func() []byte
+	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
 }
 
@@ -132,12 +132,12 @@ func (aam *AccountsStub) SaveDataTrie(journalizedAccountHandler state.AccountHan
 	return errNotImplemented
 }
 
-func (aam *AccountsStub) RootHash() []byte {
-	if aam.RootHashCalled() != nil {
+func (aam *AccountsStub) RootHash() ([]byte, error) {
+	if aam.RootHashCalled != nil {
 		return aam.RootHashCalled()
 	}
 
-	return nil
+	return nil, errNotImplemented
 }
 
 func (aam *AccountsStub) RecreateTrie(rootHash []byte) error {

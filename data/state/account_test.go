@@ -139,7 +139,7 @@ func TestAccount_DataTrie(t *testing.T) {
 	acc, err := state.NewAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
 
-	trie := &mock.TrieMock{}
+	trie := &mock.TrieStub{}
 	acc.SetDataTrie(trie)
 
 	assert.NotNil(t, acc)
