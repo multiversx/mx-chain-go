@@ -400,7 +400,7 @@ func TestBranchNode_tryGetEmptyKey(t *testing.T) {
 
 	var key []byte
 	val, err := bn.tryGet(key, db, marsh)
-	assert.Equal(t, ErrValueTooShort, err)
+	assert.Nil(t, err)
 	assert.Nil(t, val)
 }
 
@@ -424,7 +424,7 @@ func TestBranchNode_tryGetNilChild(t *testing.T) {
 
 	key := []byte{3}
 	val, err := bn.tryGet(key, db, marsh)
-	assert.Equal(t, ErrNodeNotFound, err)
+	assert.Nil(t, err)
 	assert.Nil(t, val)
 }
 
@@ -647,8 +647,10 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	dirty, newBn, err := collapsedBn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	_, err = newBn.tryGet([]byte{2, 100, 111, 103}, db, marsh)
-	assert.Equal(t, ErrNodeNotFound, err)
+
+	val, err := newBn.tryGet([]byte{2, 100, 111, 103}, db, marsh)
+	assert.Nil(t, val)
+	assert.Nil(t, err)
 }
 
 func TestBranchNode_deleteAndReduceBn(t *testing.T) {
@@ -705,7 +707,7 @@ func TestBranchNode_isEmptyOrNil(t *testing.T) {
 	assert.Equal(t, ErrNilNode, bn.isEmptyOrNil())
 }
 
-func emptyTrie() Trie {
+func newEmptyTrie() Trie {
 	db, _ := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
 	tr, _ := NewTrie(db, marsh, hsh)
@@ -713,7 +715,7 @@ func emptyTrie() Trie {
 }
 
 func BenchmarkDecodeBranchNode(b *testing.B) {
-	tr := emptyTrie()
+	tr := newEmptyTrie()
 	marsh, hsh := getTestMarshAndHasher()
 
 	nrValuesInTrie := 100000

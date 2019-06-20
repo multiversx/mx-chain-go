@@ -159,7 +159,8 @@ func (ln *leafNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Mar
 	if bytes.Equal(key, ln.Key) {
 		return ln.Value, nil
 	}
-	return nil, ErrNodeNotFound
+
+	return nil, nil
 }
 
 func (ln *leafNode) getNext(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {

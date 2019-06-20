@@ -321,7 +321,7 @@ func (bn *branchNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.M
 		return nil, err
 	}
 	if len(key) == 0 {
-		return nil, ErrValueTooShort
+		return nil, nil
 	}
 	childPos := key[firstByte]
 	if childPosOutOfRange(childPos) {
@@ -333,10 +333,10 @@ func (bn *branchNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.M
 		return nil, err
 	}
 	if bn.children[childPos] == nil {
-		return nil, ErrNodeNotFound
+		return nil, nil
 	}
-	value, err = bn.children[childPos].tryGet(key, db, marshalizer)
-	return value, err
+
+	return bn.children[childPos].tryGet(key, db, marshalizer)
 }
 
 func (bn *branchNode) getNext(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
@@ -431,7 +431,7 @@ func (bn *branchNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.M
 	nrOfChildren, pos := getChildPosition(bn)
 
 	if nrOfChildren == 1 {
-		err = bn.resolveCollapsed(byte(pos), db, marshalizer)
+		err = resolveIfCollapsed(bn, byte(pos), db, marshalizer)
 		if err != nil {
 			return false, nil, err
 		}

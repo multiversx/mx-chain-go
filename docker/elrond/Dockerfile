@@ -22,9 +22,9 @@ WORKDIR /go
 WORKDIR src/github.com/ElrondNetwork
 RUN ls
 
-COPY ./ ./elrond-go-sandbox/
-#RUN git clone -b bug/EN-721-Bugfix-testnet-v.0.5 https://elrondtester:a73e39f0fe868e584d3c27b3b4d8aacb2e925532@github.com/ElrondNetwork/elrond-go-sandbox
-WORKDIR elrond-go-sandbox
+COPY ./ ./elrond-go/
+#RUN git clone -b bug/EN-721-Bugfix-testnet-v.0.5 https://elrondtester:a73e39f0fe868e584d3c27b3b4d8aacb2e925532@github.com/ElrondNetwork/elrond-go
+WORKDIR elrond-go
 RUN >> skipP2PMessengerTests
 RUN ls
 RUN GO111MODULE=on go mod vendor

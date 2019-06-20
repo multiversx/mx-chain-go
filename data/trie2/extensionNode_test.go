@@ -373,7 +373,7 @@ func TestExtensionNode_tryGetEmptyKey(t *testing.T) {
 
 	var key []byte
 	val, err := en.tryGet(key, db, marsh)
-	assert.Equal(t, ErrNodeNotFound, err)
+	assert.Nil(t, err)
 	assert.Nil(t, val)
 }
 
@@ -385,7 +385,7 @@ func TestExtensionNode_tryGetWrongKey(t *testing.T) {
 
 	key := []byte{103, 100, 111}
 	val, err := en.tryGet(key, db, marsh)
-	assert.Equal(t, ErrNodeNotFound, err)
+	assert.Nil(t, err)
 	assert.Nil(t, val)
 }
 

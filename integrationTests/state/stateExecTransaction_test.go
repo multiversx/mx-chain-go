@@ -23,7 +23,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	accnts := adbCreateAccountsDB()
+	accnts, _ := adbCreateAccountsDBWithStorage()
 
 	pubKeyBuff := createDummyHexAddress(64)
 
@@ -67,7 +67,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts := adbCreateAccountsDB()
+	accnts, _ := adbCreateAccountsDBWithStorage()
 
 	pubKeyBuff := createDummyHexAddress(64)
 
@@ -110,7 +110,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts := adbCreateAccountsDB()
+	accnts, _ := adbCreateAccountsDBWithStorage()
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
@@ -203,7 +203,7 @@ func testExecTransactionsMoreTxWithRevert(
 func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts := adbCreateAccountsDB()
+	accnts, _ := adbCreateAccountsDBWithStorage()
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)

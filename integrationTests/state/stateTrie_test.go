@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie2"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -28,28 +28,19 @@ func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker 
 
 func adbCreateAccountsDBWithStorage() (*state.AccountsDB, storage.Storer) {
 	marsh := &marshal.JsonMarshalizer{}
-
+	hasher := sha256.Sha256{}
 	store := createMemUnit()
-	dbw, _ := trie.NewDBWriteCache(store)
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+
+	pmt, _ := trie2.NewTrie(store, marsh, hasher)
+	tr := AdapterTrie{pmt}
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &accountFactory{})
 
 	return adb, store
 }
 
-func adbCreateAccountsDB() *state.AccountsDB {
-	marsh := &marshal.JsonMarshalizer{}
-
-	dbw, _ := trie.NewDBWriteCache(createMemUnit())
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &accountFactory{})
-
-	return adb
-}
-
 func generateAddressJurnalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
 	adr := createDummyAddress()
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 
 	account, _ := state.NewAccount(adr, adb)
 
@@ -299,11 +290,11 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 }
 
 func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
+	marsh := &marshal.JsonMarshalizer{}
 	hasher := sha256.Sha256{}
-
 	store := createMemUnit()
-	dbw, _ := trie.NewDBWriteCache(store)
-	tr1, _ := trie.NewTrie(make([]byte, 32), dbw, hasher)
+	pmt1, _ := trie2.NewTrie(store, marsh, hasher)
+	tr1 := AdapterTrie{pmt1}
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
@@ -312,8 +303,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	h1, err := tr1.Commit(nil)
 	assert.Nil(t, err)
 
-	dbw, _ = trie.NewDBWriteCache(store)
-	tr2, err := trie.NewTrie(h1, dbw, hasher)
+	tr2, err := tr1.Trie.Recreate(h1, store)
 	assert.Nil(t, err)
 
 	valRecov, err := tr2.Get(key)
@@ -359,8 +349,9 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 
 	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(adb.RootHash()))
 
-	dbw, _ := trie.NewDBWriteCache(mu)
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+	pmt, _ := trie2.NewTrie(mu, &marshal.JsonMarshalizer{}, sha256.Sha256{})
+	tr := AdapterTrie{pmt}
+
 	adb, _ = state.NewAccountsDB(tr, sha256.Sha256{}, &marshal.JsonMarshalizer{}, &accountFactory{})
 
 	//reloading a new trie to test if data is inside
@@ -453,7 +444,7 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
@@ -510,7 +501,7 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
@@ -570,7 +561,7 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
@@ -626,7 +617,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
@@ -687,7 +678,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
@@ -764,7 +755,7 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 
 	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
 	assert.Nil(t, err)
@@ -811,7 +802,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 
 	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
 	assert.Nil(t, err)
@@ -842,7 +833,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 
 	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
 	assert.Nil(t, err)
@@ -878,7 +869,7 @@ func BenchmarkTxExecution(b *testing.B) {
 	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 
 	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
 	assert.Nil(b, err)
