@@ -1,7 +1,7 @@
 # Elrond go
 
 <div style="text-align:center">
-  <img src="https://github.com/ElrondNetwork/elrond-go/blob/feat/update-readme-with-tags-and-logo/elrond_logo_01.png"></img>
+  <img src="https://github.com/ElrondNetwork/elrond-go/blob/feat/update-readme-with-tags-and-logo/elrond_logo_01.svg"></img>
 </div>  
 
 <br>
