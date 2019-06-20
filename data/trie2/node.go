@@ -183,15 +183,16 @@ func childPosOutOfRange(pos byte) bool {
 	return false
 }
 
-// keyBytesToHex transforms key bytes in hex nibbles
+// keyBytesToHex transforms key bytes into hex nibbles
 func keyBytesToHex(str []byte) []byte {
 	length := len(str)*2 + 1
-	var nibbles = make([]byte, length)
+	nibbles := make([]byte, length)
 	for i, b := range str {
 		nibbles[i*2] = b / hexTerminator
 		nibbles[i*2+1] = b % hexTerminator
 	}
 	nibbles[length-1] = hexTerminator
+
 	return nibbles
 }
 
@@ -202,10 +203,12 @@ func prefixLen(a, b []byte) int {
 	if len(b) < length {
 		length = len(b)
 	}
+
 	for ; i < length; i++ {
 		if a[i] != b[i] {
 			break
 		}
 	}
+
 	return i
 }

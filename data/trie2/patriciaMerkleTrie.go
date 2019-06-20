@@ -43,6 +43,7 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
 		return nil, nil
 	}
 	hexKey := keyBytesToHex(key)
+
 	return tr.root.tryGet(hexKey, tr.db, tr.marshalizer)
 }
 
@@ -94,6 +95,7 @@ func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 	if tr.root == nil {
 		return emptyTrieHash, nil
 	}
+
 	hash := tr.root.getHash()
 	if hash != nil {
 		return hash, nil

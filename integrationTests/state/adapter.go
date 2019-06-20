@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+//TODO remove Adapter Trie
 type AdapterTrie struct {
 	trie2.Trie
 }
@@ -30,7 +31,7 @@ func (at AdapterTrie) Commit(onleaf trie.LeafCallback) (root []byte, err error) 
 
 func (at AdapterTrie) DBW() trie.DBWriteCacher {
 	db := at.Trie.DBW()
-	return adapterDB{db}
+	return &adapterDB{db}
 }
 
 func (at AdapterTrie) Recreate(root []byte, dbw trie.DBWriteCacher) (trie.PatriciaMerkelTree, error) {
@@ -47,42 +48,42 @@ type adapterDB struct {
 	trie2.DBWriteCacher
 }
 
-func (adapterDB) Storer() storage.Storer {
+func (adb *adapterDB) Storer() storage.Storer {
 	panic("implement me")
 }
 
-func (adapterDB) InsertBlob(hash []byte, blob []byte) {
+func (adb *adapterDB) InsertBlob(hash []byte, blob []byte) {
 	panic("implement me")
 }
 
-func (adapterDB) Node(hash []byte) ([]byte, error) {
+func (adb *adapterDB) Node(hash []byte) ([]byte, error) {
 	panic("implement me")
 }
 
-func (adapterDB) Reference(child []byte, parent []byte) {
+func (adb *adapterDB) Reference(child []byte, parent []byte) {
 	panic("implement me")
 }
 
-func (adapterDB) Dereference(root []byte) {
+func (adb *adapterDB) Dereference(root []byte) {
 	panic("implement me")
 }
 
-func (adapterDB) Cap(limit float64) error {
+func (adb *adapterDB) Cap(limit float64) error {
 	panic("implement me")
 }
 
-func (adapterDB) Commit(node []byte, report bool) error {
+func (adb *adapterDB) Commit(node []byte, report bool) error {
 	panic("implement me")
 }
 
-func (adapterDB) Size() (float64, float64) {
+func (adb *adapterDB) Size() (float64, float64) {
 	panic("implement me")
 }
 
-func (adapterDB) InsertWithLock(hash []byte, blob []byte, node trie.Node) {
+func (adb *adapterDB) InsertWithLock(hash []byte, blob []byte, node trie.Node) {
 	panic("implement me")
 }
 
-func (adapterDB) CachedNode(hash []byte, cachegen uint16) trie.Node {
+func (adb *adapterDB) CachedNode(hash []byte, cachegen uint16) trie.Node {
 	panic("implement me")
 }

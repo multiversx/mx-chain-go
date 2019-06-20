@@ -647,6 +647,7 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	dirty, newBn, err := collapsedBn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
+
 	val, err := newBn.tryGet([]byte{2, 100, 111, 103}, db, marsh)
 	assert.Nil(t, val)
 	assert.Nil(t, err)

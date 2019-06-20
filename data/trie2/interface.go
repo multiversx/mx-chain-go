@@ -9,7 +9,7 @@ type Trie interface {
 	Prove(key []byte) ([][]byte, error)
 	VerifyProof(proofs [][]byte, key []byte) (bool, error)
 	Commit() error
-	DBW() DBWriteCacher
+	DBW() DBWriteCacher //TODO remove DBW() getter
 	Recreate(root []byte, dbw DBWriteCacher) (Trie, error)
 }
 
