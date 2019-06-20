@@ -1,10 +1,10 @@
-package trie2
+package trie
 
 import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie2/proto"
+	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/stretchr/testify/assert"
 )
 

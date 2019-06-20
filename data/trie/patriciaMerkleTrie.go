@@ -1,4 +1,4 @@
-package trie2
+package trie
 
 import (
 	"bytes"
@@ -190,14 +190,9 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	return nil
 }
 
-// DBW returns the database used by the trie
-func (tr *patriciaMerkleTrie) DBW() DBWriteCacher {
-	return tr.db
-}
-
 // Recreate returns a new trie that has the given root hash and database
-func (tr *patriciaMerkleTrie) Recreate(root []byte, dbw DBWriteCacher) (Trie, error) {
-	newTr, err := NewTrie(dbw, tr.marshalizer, tr.hasher)
+func (tr *patriciaMerkleTrie) Recreate(root []byte) (Trie, error) {
+	newTr, err := NewTrie(tr.db, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +201,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte, dbw DBWriteCacher) (Trie, er
 		return newTr, nil
 	}
 
-	encRoot, err := dbw.Get(root)
+	encRoot, err := tr.db.Get(root)
 	if err != nil {
 		return nil, err
 	}

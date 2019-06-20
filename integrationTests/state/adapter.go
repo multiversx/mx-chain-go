@@ -2,13 +2,12 @@ package state
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie2"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 //TODO remove Adapter Trie
 type AdapterTrie struct {
-	trie2.Trie
+	trie.Trie
 }
 
 func (AdapterTrie) SetCacheLimit(l uint16) {
@@ -45,7 +44,7 @@ func (AdapterTrie) Copy() trie.PatriciaMerkelTree {
 }
 
 type adapterDB struct {
-	trie2.DBWriteCacher
+	trie.DBWriteCacher
 }
 
 func (adb *adapterDB) Storer() storage.Storer {

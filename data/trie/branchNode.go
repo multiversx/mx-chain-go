@@ -1,12 +1,12 @@
-package trie2
+package trie
 
 import (
 	"bytes"
 	"io"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/data/trie2/capnp"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie2/proto"
+	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
+	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	capn "github.com/glycerine/go-capnproto"

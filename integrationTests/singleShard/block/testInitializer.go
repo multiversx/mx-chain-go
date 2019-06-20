@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
-	"github.com/ElrondNetwork/elrond-go/data/trie2"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -139,7 +139,7 @@ func createAccountsDB() *state.AccountsDB {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
 
-	pmt, _ := trie2.NewTrie(store, marsh, hasher)
+	pmt, _ := trie.NewTrie(store, marsh, hasher)
 	tr := trie.AdapterTrie{pmt}
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {

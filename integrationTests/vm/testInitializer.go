@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/trie2"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	trie "github.com/ElrondNetwork/elrond-go/integrationTests/state"
@@ -55,7 +55,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 	store := CreateMemUnit()
 
-	pmt, _ := trie2.NewTrie(store, marsh, testHasher)
+	pmt, _ := trie.NewTrie(store, marsh, testHasher)
 	tr := trie.AdapterTrie{pmt}
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 

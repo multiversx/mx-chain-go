@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/trie2"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -31,7 +31,7 @@ func adbCreateAccountsDBWithStorage() (*state.AccountsDB, storage.Storer) {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
 
-	pmt, _ := trie2.NewTrie(store, marsh, hasher)
+	pmt, _ := trie.NewTrie(store, marsh, hasher)
 	tr := AdapterTrie{pmt}
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &accountFactory{})
 
@@ -293,7 +293,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	marsh := &marshal.JsonMarshalizer{}
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
-	pmt1, _ := trie2.NewTrie(store, marsh, hasher)
+	pmt1, _ := trie.NewTrie(store, marsh, hasher)
 	tr1 := AdapterTrie{pmt1}
 
 	key := hasher.Compute("key")
@@ -349,7 +349,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 
 	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(adb.RootHash()))
 
-	pmt, _ := trie2.NewTrie(mu, &marshal.JsonMarshalizer{}, sha256.Sha256{})
+	pmt, _ := trie.NewTrie(mu, &marshal.JsonMarshalizer{}, sha256.Sha256{})
 	tr := AdapterTrie{pmt}
 
 	adb, _ = state.NewAccountsDB(tr, sha256.Sha256{}, &marshal.JsonMarshalizer{}, &accountFactory{})
