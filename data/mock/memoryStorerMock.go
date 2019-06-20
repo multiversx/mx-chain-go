@@ -3,8 +3,6 @@ package mock
 import (
 	"errors"
 	"sync"
-
-	"github.com/ElrondNetwork/elrond-go/data/trie/encoding"
 )
 
 var errMemoryStorerMock = errors.New("MemoryStorerMock generic error")
@@ -30,7 +28,9 @@ func (msm *MemoryStorerMock) Put(key, data []byte) error {
 	msm.lock.Lock()
 	defer msm.lock.Unlock()
 
-	msm.db[string(key)] = encoding.CopyBytes(data)
+	newData := make([]byte, len(data))
+	copy(newData, data)
+	msm.db[string(key)] = newData
 	return nil
 }
 
@@ -43,7 +43,10 @@ func (msm *MemoryStorerMock) Get(key []byte) ([]byte, error) {
 	defer msm.lock.RUnlock()
 
 	if entry, ok := msm.db[string(key)]; ok {
-		return encoding.CopyBytes(entry), nil
+		newData := make([]byte, len(entry))
+		copy(newData, entry)
+
+		return newData, nil
 	}
 	return nil, errors.New("not found")
 }
@@ -76,7 +79,10 @@ func (msm *MemoryStorerMock) HasOrAdd(key []byte, value []byte) error {
 		return nil
 	}
 
-	msm.db[string(key)] = encoding.CopyBytes(value)
+	newData := make([]byte, len(value))
+	copy(newData, value)
+
+	msm.db[string(key)] = newData
 	return nil
 }
 

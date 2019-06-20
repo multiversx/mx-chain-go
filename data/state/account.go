@@ -146,12 +146,12 @@ func (a *Account) SetRootHashWithJournal(rootHash []byte) error {
 }
 
 // DataTrie returns the trie that holds the current account's data
-func (a *Account) DataTrie() trie.PatriciaMerkelTree {
+func (a *Account) DataTrie() trie.Trie {
 	return a.dataTrieTracker.DataTrie()
 }
 
 // SetDataTrie sets the trie that holds the current account's data
-func (a *Account) SetDataTrie(trie trie.PatriciaMerkelTree) {
+func (a *Account) SetDataTrie(trie trie.Trie) {
 	a.dataTrieTracker.SetDataTrie(trie)
 }
 

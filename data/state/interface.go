@@ -54,8 +54,8 @@ type AccountHandler interface {
 	GetRootHash() []byte
 	SetRootHash([]byte)
 	SetRootHashWithJournal([]byte) error
-	DataTrie() trie.PatriciaMerkelTree
-	SetDataTrie(trie trie.PatriciaMerkelTree)
+	DataTrie() trie.Trie
+	SetDataTrie(trie trie.Trie)
 	DataTrieTracker() DataTrieTracker
 
 	IsInterfaceNil() bool
@@ -68,8 +68,8 @@ type DataTrieTracker interface {
 	OriginalValue(key []byte) []byte
 	RetrieveValue(key []byte) ([]byte, error)
 	SaveKeyValue(key []byte, value []byte)
-	SetDataTrie(tr trie.PatriciaMerkelTree)
-	DataTrie() trie.PatriciaMerkelTree
+	SetDataTrie(tr trie.Trie)
+	DataTrie() trie.Trie
 }
 
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
@@ -82,7 +82,7 @@ type AccountsAdapter interface {
 	Commit() ([]byte, error)
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
-	RootHash() []byte
+	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error

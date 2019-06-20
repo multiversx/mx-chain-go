@@ -6,11 +6,11 @@ import "github.com/ElrondNetwork/elrond-go/data/trie"
 type TrackableDataTrie struct {
 	originalData map[string][]byte
 	dirtyData    map[string][]byte
-	tr           trie.PatriciaMerkelTree
+	tr           trie.Trie
 }
 
 // NewTrackableDataTrie returns an instance of DataTrieTracker
-func NewTrackableDataTrie(tr trie.PatriciaMerkelTree) *TrackableDataTrie {
+func NewTrackableDataTrie(tr trie.Trie) *TrackableDataTrie {
 	return &TrackableDataTrie{
 		tr:           tr,
 		originalData: make(map[string][]byte),
@@ -73,11 +73,11 @@ func (tdaw *TrackableDataTrie) SaveKeyValue(key []byte, value []byte) {
 }
 
 // SetDataTrie sets the internal data trie
-func (tdaw *TrackableDataTrie) SetDataTrie(tr trie.PatriciaMerkelTree) {
+func (tdaw *TrackableDataTrie) SetDataTrie(tr trie.Trie) {
 	tdaw.tr = tr
 }
 
 // DataTrie sets the internal data trie
-func (tdaw *TrackableDataTrie) DataTrie() trie.PatriciaMerkelTree {
+func (tdaw *TrackableDataTrie) DataTrie() trie.Trie {
 	return tdaw.tr
 }

@@ -198,12 +198,12 @@ func (a *MetaAccount) GetNonce() uint64 {
 }
 
 // DataTrie returns the trie that holds the current account's data
-func (a *MetaAccount) DataTrie() trie.PatriciaMerkelTree {
+func (a *MetaAccount) DataTrie() trie.Trie {
 	return a.dataTrieTracker.DataTrie()
 }
 
 // SetDataTrie sets the trie that holds the current account's data
-func (a *MetaAccount) SetDataTrie(trie trie.PatriciaMerkelTree) {
+func (a *MetaAccount) SetDataTrie(trie trie.Trie) {
 	a.dataTrieTracker.SetDataTrie(trie)
 }
 

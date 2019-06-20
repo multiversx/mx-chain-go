@@ -67,12 +67,12 @@ func TestMetaAccount_GetCode(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	assert.Nil(t, err)
 
 	code := []byte("code")
 	acc.SetCode(code)
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, code, acc.GetCode())
 }
 
@@ -80,12 +80,12 @@ func TestMetaAccount_GetCodeHash(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	assert.Nil(t, err)
 
 	code := []byte("code")
 	acc.CodeHash = code
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, code, acc.GetCodeHash())
 }
 
@@ -93,12 +93,12 @@ func TestMetaAccount_SetCodeHash(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	assert.Nil(t, err)
 
 	code := []byte("code")
 	acc.SetCodeHash(code)
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, code, acc.GetCodeHash())
 }
 
@@ -106,12 +106,12 @@ func TestMetaAccount_GetRootHash(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	assert.Nil(t, err)
 
 	root := []byte("root")
 	acc.RootHash = root
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, root, acc.GetRootHash())
 }
 
@@ -119,12 +119,12 @@ func TestMetaAccount_SetRootHash(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	assert.Nil(t, err)
 
 	root := []byte("root")
 	acc.SetRootHash(root)
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, root, acc.GetRootHash())
 }
 
@@ -132,12 +132,13 @@ func TestMetaAccount_DataTrie(t *testing.T) {
 	t.Parallel()
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
-	trie := &mock.TrieMock{}
+	assert.Nil(t, err)
+
+	trie := &mock.TrieStub{}
 
 	acc.SetDataTrie(trie)
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, trie, acc.DataTrie())
 }
 
@@ -157,12 +158,12 @@ func TestMetaAccount_SetRoundWithJournal(t *testing.T) {
 	}
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, tracker)
+	assert.Nil(t, err)
 
 	round := uint64(0)
 	err = acc.SetRoundWithJournal(round)
 
 	assert.NotNil(t, acc)
-	assert.Nil(t, err)
 	assert.Equal(t, round, acc.Round)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
@@ -184,6 +185,7 @@ func TestMetaAccount_SetTxCountWithJournal(t *testing.T) {
 	}
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, tracker)
+	assert.Nil(t, err)
 
 	txCount := big.NewInt(15)
 	err = acc.SetTxCountWithJournal(txCount)
@@ -211,6 +213,7 @@ func TestMetaAccount_SetCodeHashWithJournal(t *testing.T) {
 	}
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, tracker)
+	assert.Nil(t, err)
 
 	codeHash := []byte("codehash")
 	err = acc.SetCodeHashWithJournal(codeHash)
@@ -238,6 +241,7 @@ func TestMetaAccount_SetRootHashWithJournal(t *testing.T) {
 	}
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, tracker)
+	assert.Nil(t, err)
 
 	rootHash := []byte("roothash")
 	err = acc.SetRootHashWithJournal(rootHash)
@@ -265,6 +269,7 @@ func TestMetaAccount_SetMiniBlocksDataWithJournal(t *testing.T) {
 	}
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, tracker)
+	assert.Nil(t, err)
 
 	mbs := make([]*state.MiniBlockData, 2)
 	err = acc.SetMiniBlocksDataWithJournal(mbs)
@@ -292,6 +297,7 @@ func TestMetaAccount_SetShardRootHashWithJournal(t *testing.T) {
 	}
 
 	acc, err := state.NewMetaAccount(&mock.AddressMock{}, tracker)
+	assert.Nil(t, err)
 
 	shardRootHash := []byte("shardroothash")
 	err = acc.SetShardRootHashWithJournal(shardRootHash)

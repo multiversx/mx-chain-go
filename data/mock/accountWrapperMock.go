@@ -7,7 +7,7 @@ import (
 
 type AccountWrapMock struct {
 	MockValue         int
-	dataTrie          trie.PatriciaMerkelTree
+	dataTrie          trie.Trie
 	nonce             uint64
 	code              []byte
 	codeHash          []byte
@@ -77,11 +77,11 @@ func (awm *AccountWrapMock) SetCodeWithJournal(code []byte) error {
 	return awm.SetCodeWithJournalCalled(code)
 }
 
-func (awm *AccountWrapMock) DataTrie() trie.PatriciaMerkelTree {
+func (awm *AccountWrapMock) DataTrie() trie.Trie {
 	return awm.dataTrie
 }
 
-func (awm *AccountWrapMock) SetDataTrie(trie trie.PatriciaMerkelTree) {
+func (awm *AccountWrapMock) SetDataTrie(trie trie.Trie) {
 	awm.dataTrie = trie
 	awm.trackableDataTrie.SetDataTrie(trie)
 }

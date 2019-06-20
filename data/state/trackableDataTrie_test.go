@@ -21,11 +21,11 @@ func TestTrackableDataAccountRetrieveValueNilDataTrieShouldErr(t *testing.T) {
 func TestTrackableDataAccountRetrieveValueFoundInDirtyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trie := &mock.TrieMock{}
+	trie := &mock.TrieStub{}
 	tdaw := state.NewTrackableDataTrie(trie)
 	assert.NotNil(t, tdaw)
 
-	tdaw.SetDataTrie(mock.NewMockTrie())
+	tdaw.SetDataTrie(&mock.TrieStub{})
 	tdaw.DirtyData()["ABC"] = []byte{32, 33, 34}
 
 	val, err := tdaw.RetrieveValue([]byte{65, 66, 67})
@@ -36,11 +36,11 @@ func TestTrackableDataAccountRetrieveValueFoundInDirtyShouldWork(t *testing.T) {
 func TestTrackableDataAccountRetrieveValueFoundInOriginalShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trie := &mock.TrieMock{}
+	trie := &mock.TrieStub{}
 	mdaw := state.NewTrackableDataTrie(trie)
 	assert.NotNil(t, mdaw)
 
-	mdaw.SetDataTrie(mock.NewMockTrie())
+	mdaw.SetDataTrie(&mock.TrieStub{})
 	mdaw.DirtyData()["ABC"] = []byte{32, 33, 34}
 	mdaw.OriginalData()["ABD"] = []byte{35, 36, 37}
 
@@ -52,11 +52,11 @@ func TestTrackableDataAccountRetrieveValueFoundInOriginalShouldWork(t *testing.T
 func TestTrackableDataAccountRetrieveValueFoundInTrieShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trie := &mock.TrieMock{}
+	trie := &mock.TrieStub{}
 	mdaw := state.NewTrackableDataTrie(trie)
 	assert.NotNil(t, mdaw)
 
-	mdaw.SetDataTrie(mock.NewMockTrie())
+	mdaw.SetDataTrie(&mock.TrieStub{})
 	err := mdaw.DataTrie().Update([]byte{65, 66, 69}, []byte{38, 39, 40})
 	assert.Nil(t, err)
 	mdaw.DirtyData()["ABC"] = []byte{32, 33, 34}
@@ -70,8 +70,7 @@ func TestTrackableDataAccountRetrieveValueFoundInTrieShouldWork(t *testing.T) {
 func TestTrackableDataAccountRetrieveValueMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trie := mock.NewMockTrie()
-	trie.FailGet = true
+	trie := &mock.TrieStub{}
 
 	mdaw := state.NewTrackableDataTrie(trie)
 	assert.NotNil(t, mdaw)
@@ -91,11 +90,11 @@ func TestTrackableDataAccountRetrieveValueMalfunctionTrieShouldErr(t *testing.T)
 func TestTrackableDataAccountSaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 	t.Parallel()
 
-	trie := &mock.TrieMock{}
+	trie := &mock.TrieStub{}
 	mdaw := state.NewTrackableDataTrie(trie)
 	assert.NotNil(t, mdaw)
 
-	mdaw.SetDataTrie(mock.NewMockTrie())
+	mdaw.SetDataTrie(&mock.TrieStub{})
 	mdaw.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
 
 	//test in dirty
@@ -111,11 +110,11 @@ func TestTrackableDataAccountSaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 func TestTrackableDataAccountClearDataCachesValidDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trie := &mock.TrieMock{}
+	trie := &mock.TrieStub{}
 	mdaw := state.NewTrackableDataTrie(trie)
 	assert.NotNil(t, mdaw)
 
-	mdaw.SetDataTrie(mock.NewMockTrie())
+	mdaw.SetDataTrie(&mock.TrieStub{})
 
 	assert.Equal(t, 0, len(mdaw.DirtyData()))
 
