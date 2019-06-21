@@ -2734,6 +2734,7 @@ func TestBootstrap_LoadBlocksShouldErrBoostrapFromStorageWhenBlocksAreNotValid(t
 func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 	t.Parallel()
 
+	wasCalled := false
 	errExpected := errors.New("error to recreate trie")
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	pools := &mock.PoolsHolderStub{}
@@ -2778,6 +2779,7 @@ func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
+			wasCalled = true
 			return errExpected
 		},
 	}
@@ -2814,7 +2816,8 @@ func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 		getBlockBody,
 	)
 
-	assert.Equal(t, errExpected, err)
+	assert.True(t, wasCalled)
+	assert.Equal(t, process.ErrBoostrapFromStorage, err)
 }
 
 func TestBootstrap_LoadBlocksShouldWorkAfterRemoveInvalidBlocks(t *testing.T) {
