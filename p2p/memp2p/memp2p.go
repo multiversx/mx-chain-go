@@ -209,12 +209,12 @@ func (messenger *MemP2PMessenger) BroadcastOnChannelBlocking(channel string, top
 	messenger.ParametricBroadcast(topic, buff, false)
 }
 
-// BroadcastOnChannelBlocking sends the message to all peers in the network. It
-// calls ParametricBroadcast() with async=false, which means that peers will
-// have their ReceiveMessage() function called synchronously. The call
-// to ParametricBroadcast() is done as a go-routine, which means this function
-// is, in fact, non-blocking, but it is identical with
-// BroadcastOnChannelBlocking() in all other regards.
+// BroadcastOnChannel sends the message to all peers in the network. It calls
+// ParametricBroadcast() with async=false, which means that peers will have
+// their ReceiveMessage() function called synchronously. The call to
+// ParametricBroadcast() is done as a go-routine, which means this function is,
+// in fact, non-blocking, but it is identical with BroadcastOnChannelBlocking()
+// in all other regards.
 func (messenger *MemP2PMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
 	fmt.Printf("debug:BroadcastOnChannel\n")
 	messenger.ParametricBroadcast(topic, buff, false)

@@ -40,7 +40,7 @@ func (network *MemP2PNetwork) ListAddresses() []string {
 	return addresses
 }
 
-// ListAddresses provides the addresses of the known peers, except a specified one.
+// ListAddressesExceptOne provides the addresses of the known peers, except a specified one.
 func (network *MemP2PNetwork) ListAddressesExceptOne(peerIDToExclude p2p.PeerID) []string {
 	network.mutex.Lock()
 	resultingLength := len(network.peerIDs) - 1
@@ -72,7 +72,7 @@ func (network *MemP2PNetwork) Peers() map[p2p.PeerID]*MemP2PMessenger {
 	return peersCopy
 }
 
-// PeersExcludingMessenger provides a copy of its internal map of peers, excluding a specific peer.
+// PeersExceptOne provides a copy of its internal map of peers, excluding a specific peer.
 func (network *MemP2PNetwork) PeersExceptOne(peerIDToExclude p2p.PeerID) map[p2p.PeerID]*MemP2PMessenger {
 	network.mutex.RLock()
 	peersCopy := make(map[p2p.PeerID]*MemP2PMessenger)
