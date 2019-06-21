@@ -530,33 +530,6 @@ func (scr *smartContractResults) CreateMarshalizedData(txHashes [][]byte) ([][]b
 	return mrsScrs, nil
 }
 
-// getScrs gets all the available smartContractResults from the pool
-func (scr *smartContractResults) getScrs(txShardStore storage.Cacher) ([]*smartContractResult.SmartContractResult, [][]byte, error) {
-	if txShardStore == nil {
-		return nil, nil, process.ErrNilCacher
-	}
-
-	smartContractResults := make([]*smartContractResult.SmartContractResult, 0)
-	txHashes := make([][]byte, 0)
-
-	for _, key := range txShardStore.Keys() {
-		val, _ := txShardStore.Peek(key)
-		if val == nil {
-			continue
-		}
-
-		tx, ok := val.(*smartContractResult.SmartContractResult)
-		if !ok {
-			continue
-		}
-
-		txHashes = append(txHashes, key)
-		smartContractResults = append(smartContractResults, tx)
-	}
-
-	return smartContractResults, txHashes, nil
-}
-
 // GetAllCurrentUsedScrs returns all the smartContractResults used at current creation / processing
 func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
 	scrPool := make(map[string]data.TransactionHandler)
@@ -570,11 +543,26 @@ func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.Transact
 	return scrPool
 }
 
-func (scr *smartContractResults) createAllScrMiniBlocks() []*block.MiniBlock {
-	miniBlocks := make([]*block.MiniBlock, 0)
+// CreateAllScrMiniBlocks returns the cross shard miniblocks for the current round created from the smart contract results
+func (scr *smartContractResults) CreateAllScrMiniBlocks() []*block.MiniBlock {
+	miniBlocks := make([]*block.MiniBlock, scr.shardCoordinator.NumberOfShards())
 
 	scr.mutScrsForBlock.Lock()
 	defer scr.mutScrsForBlock.Unlock()
+
+	for key, value := range scr.scrForBlock {
+		if value.receiverShardID != scr.shardCoordinator.SelfId() {
+			miniBlocks[value.receiverShardID].TxHashes = append(miniBlocks[value.receiverShardID].TxHashes, []byte(key))
+		}
+	}
+
+	for i := 0; i < len(miniBlocks); i++ {
+		if len(miniBlocks[i].TxHashes) > 0 {
+			miniBlocks[i].SenderShardID = scr.shardCoordinator.SelfId()
+			miniBlocks[i].ReceiverShardID = uint32(i)
+			miniBlocks[i].Type = block.SmartContractResultBlock
+		}
+	}
 
 	return miniBlocks
 }

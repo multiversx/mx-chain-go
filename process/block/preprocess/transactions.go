@@ -38,6 +38,7 @@ type txsHashesInfo struct {
 }
 
 type transactions struct {
+	*basePreProcess
 	chRcvAllTxs          chan bool
 	onRequestTransaction func(shardID uint32, txHashes [][]byte)
 	missingTxs           int
@@ -145,21 +146,9 @@ func (txs *transactions) RemoveTxBlockFromPools(body block.Body, miniBlockPool s
 		return process.ErrNilMiniBlockPool
 	}
 
-	for i := 0; i < len(body); i++ {
-		currentMiniBlock := body[i]
-		strCache := process.ShardCacherIdentifier(currentMiniBlock.SenderShardID, currentMiniBlock.ReceiverShardID)
-		txs.txPool.RemoveSetOfDataFromPool(currentMiniBlock.TxHashes, strCache)
+	err := txs.removeDataFromPools(body, miniBlockPool, txs.txPool, block.TxBlock)
 
-		buff, err := txs.marshalizer.Marshal(currentMiniBlock)
-		if err != nil {
-			return err
-		}
-
-		miniBlockHash := txs.hasher.Compute(string(buff))
-		miniBlockPool.Remove(miniBlockHash)
-	}
-
-	return nil
+	return err
 }
 
 // RestoreTxBlockIntoPools restores the transactions and miniblocks to associated pools

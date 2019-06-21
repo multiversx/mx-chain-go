@@ -30,12 +30,12 @@ type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
 	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) ([]data.TransactionHandler, error)
 	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) ([]data.TransactionHandler, error)
-	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
 }
 
-// SmartContractResult
+// IntermediateTransactionHandler handles transactions which are not resolved in only one step
 type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
+	CreateAllScrMiniBlocks() []*block.MiniBlock
 }
 
 type PreProcessor interface {
