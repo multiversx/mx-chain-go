@@ -1,6 +1,6 @@
 package memp2p
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+import "github.com/ElrondNetwork/elrond-go/p2p"
 
 type MemP2PMessage struct {
 	// sending PeerID, converted to []byte
