@@ -168,7 +168,7 @@ func (rcf *resolversContainerFactory) generateTxResolvers(topic string, unit dat
 		identifierTx := topic + shardC.CommunicationIdentifier(idx)
 		excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-		resolver, err := rcf.createOneTxResolver(identifierTx, excludePeersFromTopic, unit)
+		resolver, err := rcf.createTxResolver(identifierTx, excludePeersFromTopic, unit)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -180,7 +180,7 @@ func (rcf *resolversContainerFactory) generateTxResolvers(topic string, unit dat
 	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createOneTxResolver(topic string, excludedTopic string, unit dataRetriever.UnitType) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createTxResolver(topic string, excludedTopic string, unit dataRetriever.UnitType) (dataRetriever.Resolver, error) {
 	txStorer := rcf.store.GetStorer(unit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
@@ -281,7 +281,7 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
 		excludePeersFromTopic := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-		resolver, err := rcf.createOneMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic)
+		resolver, err := rcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -293,7 +293,7 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createOneMiniBlocksResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createMiniBlocksResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
 	miniBlocksStorer := rcf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(

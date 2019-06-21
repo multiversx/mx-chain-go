@@ -32,6 +32,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	fmt.Println("Requestor:	")
 	nRequestor, mesRequestor, _, resolversFinder := createNetNode(
 		dPoolRequestor,
+		createTestStore(),
 		createAccountsDB(),
 		shardCoordinator,
 	)
@@ -39,6 +40,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	fmt.Println("Resolver:")
 	nResolver, mesResolver, _, _ := createNetNode(
 		dPoolResolver,
+		createTestStore(),
 		createAccountsDB(),
 		shardCoordinator,
 	)
@@ -99,7 +101,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	select {
 	case <-chanDone:
-	case <-time.After(time.Second * 1000):
+	case <-time.After(time.Second * 10):
 		assert.Fail(t, "timeout")
 	}
 }

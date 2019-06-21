@@ -294,7 +294,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 			return make([]byte, 0), nil
 		}
 
-		return nil, nil
+		return nil, errors.New("should have not reach this point")
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -363,7 +363,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 		&mock.StorerStub{},
 		&mock.StorerStub{
 			GetCalled: func(key []byte) (i []byte, e error) {
-				return nil, nil
+				return make([]byte, 0), nil
 			},
 		},
 		&mock.MarshalizerMock{},
@@ -463,7 +463,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 			return make([]byte, 0), nil
 		}
 
-		return nil, nil
+		return nil, errors.New("should have not reach this point")
 	}
 
 	hdrRes, _ := resolvers.NewHeaderResolver(
@@ -520,7 +520,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 			return nil, errExpected
 		}
 
-		return nil, nil
+		return nil, errors.New("should have not reach this point")
 	}
 
 	hdrRes, _ := resolvers.NewHeaderResolver(
