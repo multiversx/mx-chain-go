@@ -41,6 +41,7 @@ func NewMetaBootstrap(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
+	boostrapRoundIndex uint32,
 ) (*MetaBootstrap, error) {
 
 	if poolsHolder == nil {
@@ -70,18 +71,19 @@ func NewMetaBootstrap(
 	}
 
 	base := &baseBootstrap{
-		blkc:             blkc,
-		blkExecutor:      blkExecutor,
-		store:            store,
-		headers:          poolsHolder.MetaChainBlocks(),
-		headersNonces:    poolsHolder.MetaBlockNonces(),
-		rounder:          rounder,
-		waitTime:         waitTime,
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		forkDetector:     forkDetector,
-		shardCoordinator: shardCoordinator,
-		accounts:         accounts,
+		blkc:               blkc,
+		blkExecutor:        blkExecutor,
+		store:              store,
+		headers:            poolsHolder.MetaChainBlocks(),
+		headersNonces:      poolsHolder.MetaBlockNonces(),
+		rounder:            rounder,
+		waitTime:           waitTime,
+		hasher:             hasher,
+		marshalizer:        marshalizer,
+		forkDetector:       forkDetector,
+		shardCoordinator:   shardCoordinator,
+		accounts:           accounts,
+		boostrapRoundIndex: boostrapRoundIndex,
 	}
 
 	boot := MetaBootstrap{
@@ -156,6 +158,10 @@ func (boot *MetaBootstrap) applyNotarizedBlock(nonce uint64, notarizedHdrNonceHa
 	header, err := process.GetShardHeaderFromStorage(headerHash, boot.marshalizer, boot.store)
 	if err != nil {
 		return err
+	}
+
+	if header.GetRound() > boot.boostrapRoundIndex {
+		return ErrHigherBootstrapRound
 	}
 
 	boot.blkExecutor.SetLastNotarizedHdr(header.ShardId, header)

@@ -64,6 +64,7 @@ type baseBootstrap struct {
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
+	boostrapRoundIndex    uint32
 }
 
 func (boot *baseBootstrap) loadBlocks(
@@ -97,22 +98,25 @@ func (boot *baseBootstrap) loadBlocks(
 
 		for i := highestNonceInStorer - blockFinality - lastBlocksToSkip; i <= highestNonceInStorer; i++ {
 			if i > highestNonceInStorer-lastBlocksToSkip {
-				errNotCritical := boot.removeBlock(i, blockUnit, hdrNonceHashDataUnit)
-				if errNotCritical != nil {
-					log.Info(errNotCritical.Error())
-				}
+				err = boot.removeBlock(i, blockUnit, hdrNonceHashDataUnit)
 			} else {
 				err = boot.applyBlock(i, getHeader, getBlockBody)
-				if err != nil {
-					lastBlocksToSkip++
-					break
-				}
+			}
+
+			if err != nil {
+				log.Info(fmt.Sprintf("block with nonce %d: %s", i, err.Error()))
+				lastBlocksToSkip++
+				break
 			}
 		}
 
 		if err == nil {
 			err = boot.accounts.RecreateTrie(boot.blkc.GetCurrentBlockHeader().GetRootHash())
 			if err != nil {
+				log.Info(fmt.Sprintf("block with nonce %d in shard %d: %s",
+					boot.blkc.GetCurrentBlockHeader().GetNonce(),
+					boot.blkc.GetCurrentBlockHeader().GetShardID(),
+					err.Error()))
 				lastBlocksToSkip++
 				continue
 			}
@@ -130,17 +134,19 @@ func (boot *baseBootstrap) applyBlock(
 	getBlockBody func(data.HeaderHandler) (data.BodyHandler, error),
 ) error {
 
-	header, headerHash, err := getHeader(nonce)
-	if err != nil {
-		return err
-	}
-
 	headerNoncePool := boot.headersNonces
 	if headerNoncePool == nil {
 		return process.ErrNilDataPoolHolder
 	}
 
-	_ = headerNoncePool.Put(header.GetNonce(), headerHash)
+	header, headerHash, err := getHeader(nonce)
+	if err != nil {
+		return err
+	}
+
+	if header.GetRound() > boot.boostrapRoundIndex {
+		return ErrHigherBootstrapRound
+	}
 
 	errNotCritical := boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
 	if errNotCritical != nil {
@@ -164,6 +170,8 @@ func (boot *baseBootstrap) applyBlock(
 
 	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
 
+	_ = headerNoncePool.Put(header.GetNonce(), headerHash)
+
 	return nil
 }
 
@@ -182,6 +190,11 @@ func (boot *baseBootstrap) removeBlock(
 		return process.ErrNilHeadersNonceHashStorage
 	}
 
+	headerNoncePool := boot.headersNonces
+	if headerNoncePool == nil {
+		return process.ErrNilDataPoolHolder
+	}
+
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
 	headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
 	if err != nil {
@@ -197,6 +210,8 @@ func (boot *baseBootstrap) removeBlock(
 	if err != nil {
 		return err
 	}
+
+	headerNoncePool.Remove(nonce)
 
 	return nil
 }
@@ -227,9 +242,15 @@ func (boot *baseBootstrap) loadNotarizedBlocks(blockFinality uint64,
 			return process.ErrBoostrapFromStorage
 		}
 
-		for i := highestNonceInStorer - blockFinality - lastBlocksToSkip; i <= highestNonceInStorer-lastBlocksToSkip; i++ {
-			err = applyNotarisedBlock(i, hdrNonceHashDataUnit)
+		for i := highestNonceInStorer - blockFinality - lastBlocksToSkip; i <= highestNonceInStorer; i++ {
+			if i > highestNonceInStorer-lastBlocksToSkip {
+				err = boot.removeNotarizedBlock(i, hdrNonceHashDataUnit)
+			} else {
+				err = applyNotarisedBlock(i, hdrNonceHashDataUnit)
+			}
+
 			if err != nil {
+				log.Info(fmt.Sprintf("block with nonce %d: %s", i, err.Error()))
 				lastBlocksToSkip++
 				break
 			}
@@ -238,6 +259,21 @@ func (boot *baseBootstrap) loadNotarizedBlocks(blockFinality uint64,
 		if err == nil {
 			break
 		}
+	}
+
+	return nil
+}
+
+func (boot *baseBootstrap) removeNotarizedBlock(nonce uint64, notarizedHdrNonceHashDataUnit dataRetriever.UnitType) error {
+	headerNonceHashStore := boot.store.GetStorer(notarizedHdrNonceHashDataUnit)
+	if headerNonceHashStore == nil {
+		return process.ErrNilHeadersNonceHashStorage
+	}
+
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	err := headerNonceHashStore.Remove(nonceToByteSlice)
+	if err != nil {
+		return err
 	}
 
 	return nil
