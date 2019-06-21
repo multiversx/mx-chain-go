@@ -2,7 +2,7 @@ package mock
 
 import (
 	"crypto/cipher"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
 type PointMock struct {

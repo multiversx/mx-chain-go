@@ -1,5 +1,7 @@
 package data
 
+import "math/big"
+
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
 	GetShardID() uint32
@@ -58,4 +60,36 @@ type ChainHandler interface {
 	SetNetworkHeight(height int64)
 	HasBadBlock(blockHash []byte) bool
 	PutBadBlock(blockHash []byte)
+}
+
+type TransactionHandler interface {
+	IsInterfaceNil() bool
+
+	GetValue() *big.Int
+	GetData() []byte
+	GetRecvAddress() []byte
+	GetSndAddress() []byte
+
+	SetValue(*big.Int)
+	SetData([]byte)
+	SetRecvAddress([]byte)
+	SetSndAddress([]byte)
+}
+
+//Trie is an interface for Merkle Trees implementations
+type Trie interface {
+	Get(key []byte) ([]byte, error)
+	Update(key, value []byte) error
+	Delete(key []byte) error
+	Root() ([]byte, error)
+	Prove(key []byte) ([][]byte, error)
+	VerifyProof(proofs [][]byte, key []byte) (bool, error)
+	Commit() error
+	Recreate(root []byte) (Trie, error)
+}
+
+// DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
+type DBWriteCacher interface {
+	Put(key, val []byte) error
+	Get(key []byte) ([]byte, error)
 }

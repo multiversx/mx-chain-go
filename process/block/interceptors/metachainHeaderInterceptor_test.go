@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/interceptors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/interceptors"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
 )
 

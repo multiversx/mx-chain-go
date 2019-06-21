@@ -6,17 +6,18 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/display"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.DefaultLogger()
@@ -35,6 +36,7 @@ type baseProcessor struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	store            dataRetriever.StorageService
+	uint64Converter  typeConverters.Uint64ByteSliceConverter
 
 	mutNotarizedHdrs   sync.RWMutex
 	lastNotarizedHdrs  mapShardLastHeaders
@@ -68,6 +70,14 @@ func (bp *baseProcessor) RevertAccountState() {
 	if err != nil {
 		log.Error(err.Error())
 	}
+}
+
+// SetLastNotarizedHdr sets the last notarized header
+func (bp *baseProcessor) SetLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
+	bp.mutNotarizedHdrs.Lock()
+	bp.finalNotarizedHdrs[shardId] = bp.lastNotarizedHdrs[shardId]
+	bp.lastNotarizedHdrs[shardId] = processedHdr
+	bp.mutNotarizedHdrs.Unlock()
 }
 
 // checkBlockValidity method checks if the given block is valid
@@ -131,12 +141,22 @@ func (bp *baseProcessor) checkBlockValidity(
 // verifyStateRoot verifies the state root hash given as parameter against the
 // Merkle trie root hash stored for accounts and returns if equal or not
 func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
-	return bytes.Equal(bp.accounts.RootHash(), rootHash)
+	trieRootHash, err := bp.accounts.RootHash()
+	if err != nil {
+		log.Debug(err.Error())
+	}
+
+	return bytes.Equal(trieRootHash, rootHash)
 }
 
 // getRootHash returns the accounts merkle tree root hash
 func (bp *baseProcessor) getRootHash() []byte {
-	return bp.accounts.RootHash()
+	rootHash, err := bp.accounts.RootHash()
+	if err != nil {
+		log.Debug(err.Error())
+	}
+
+	return rootHash
 }
 
 func (bp *baseProcessor) computeHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
@@ -330,7 +350,6 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 	missingNonces := make([]uint64, 0)
 	for i := 0; i < len(sortedHdrs); i++ {
 		currHdr := sortedHdrs[i]
-
 		if currHdr == nil {
 			continue
 		}
@@ -351,12 +370,18 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 		}
 	}
 
+	requested := 0
 	for _, nonce := range missingNonces {
 		// do the request here
 		if bp.onRequestHeaderHandlerByNonce == nil {
 			return process.ErrNilRequestHeaderHandlerByNonce
 		}
 
+		if requested >= process.MaxHeaderRequestsAllowed {
+			break
+		}
+
+		requested++
 		go bp.onRequestHeaderHandlerByNonce(shardId, nonce)
 	}
 

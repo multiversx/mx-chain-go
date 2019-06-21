@@ -3,7 +3,7 @@ package state
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // MiniBlockData is the data to be saved in shard account for any shard
@@ -149,19 +149,6 @@ func (a *MetaAccount) SetCode(code []byte) {
 	a.code = code
 }
 
-// SetCodeWithJournal sets the account's code, saving the old code before changing
-func (a *MetaAccount) SetCodeWithJournal(code []byte) error {
-	entry, err := NewBaseJournalEntryCode(a, a.code)
-	if err != nil {
-		return err
-	}
-
-	a.accountTracker.Journalize(entry)
-	a.code = code
-
-	return a.accountTracker.SaveAccount(a)
-}
-
 //------- data trie / root hash
 
 // GetRootHash returns the root hash associated with this account
@@ -211,12 +198,12 @@ func (a *MetaAccount) GetNonce() uint64 {
 }
 
 // DataTrie returns the trie that holds the current account's data
-func (a *MetaAccount) DataTrie() trie.PatriciaMerkelTree {
+func (a *MetaAccount) DataTrie() data.Trie {
 	return a.dataTrieTracker.DataTrie()
 }
 
 // SetDataTrie sets the trie that holds the current account's data
-func (a *MetaAccount) SetDataTrie(trie trie.PatriciaMerkelTree) {
+func (a *MetaAccount) SetDataTrie(trie data.Trie) {
 	a.dataTrieTracker.SetDataTrie(trie)
 }
 

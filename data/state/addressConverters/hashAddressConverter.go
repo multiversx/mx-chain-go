@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
 // HashAddressConverter is used to convert the address from/to different structures
@@ -108,4 +108,9 @@ func (hac *HashAddressConverter) PrepareAddressBytes(addressBytes []byte) ([]byt
 	}
 
 	return addressBytes, nil
+}
+
+// AddressLen returns the address length
+func (hac *HashAddressConverter) AddressLen() int {
+	return hac.addressLen
 }

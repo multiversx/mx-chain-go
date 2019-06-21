@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,6 +68,9 @@ func createDataPools() dataRetriever.PoolsHolder {
 	}
 	pools.MetaHeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		return &mock.Uint64CacherStub{}
+	}
+	pools.SmartContractResultsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
 	}
 
 	return pools
@@ -413,6 +416,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	container, _ := rcf.Create()
 
+	numResolverSCRs := noOfShards
 	numResolverTxs := noOfShards
 	numResolverHeaders := 1
 	numResolverMiniBlocks := noOfShards
@@ -420,7 +424,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverMetachainShardHeaders := 1
 	numResolverMetaBlockHeaders := 1
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverPeerChanges +
-		numResolverMetachainShardHeaders + numResolverMetaBlockHeaders
+		numResolverMetachainShardHeaders + numResolverMetaBlockHeaders + numResolverSCRs
 
 	assert.Equal(t, totalResolvers, container.Len())
 }

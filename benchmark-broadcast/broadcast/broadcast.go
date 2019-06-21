@@ -5,9 +5,9 @@ import (
 
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/benchmark-broadcast/bits"
-	"github.com/ElrondNetwork/elrond-go-sandbox/benchmark-broadcast/copy"
-	"github.com/ElrondNetwork/elrond-go-sandbox/benchmark-broadcast/types"
+	"github.com/ElrondNetwork/elrond-go/benchmark-broadcast/bits"
+	"github.com/ElrondNetwork/elrond-go/benchmark-broadcast/copy"
+	"github.com/ElrondNetwork/elrond-go/benchmark-broadcast/types"
 	"github.com/satori/go.uuid"
 )
 

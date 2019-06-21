@@ -1,16 +1,16 @@
 package block
 
 import (
-	"time"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/display"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -33,36 +33,8 @@ func DisplayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	return displayHeader(headerHandler)
 }
 
-func (sp *shardProcessor) GetTransactionFromPool(senderShardID, destShardID uint32, txHash []byte) *transaction.Transaction {
-	return sp.getTransactionFromPool(senderShardID, destShardID, txHash)
-}
-
-func (sp *shardProcessor) RequestBlockTransactions(body block.Body) int {
-	return sp.requestBlockTransactions(body)
-}
-
-func (sp *shardProcessor) RequestBlockTransactionsForMiniBlock(mb *block.MiniBlock) int {
-	return sp.requestBlockTransactionsForMiniBlock(mb)
-}
-
-func (sp *shardProcessor) WaitForTxHashes(waitTime time.Duration) {
-	sp.waitForTxHashes(waitTime)
-}
-
-func (sp *shardProcessor) ReceivedTransaction(txHash []byte) {
-	sp.receivedTransaction(txHash)
-}
-
-func (sp *shardProcessor) DisplayShardBlock(header *block.Header, txBlock block.Body) {
-	sp.displayShardBlock(header, txBlock)
-}
-
 func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
-	return sortTxByNonce(txShardStore)
-}
-
-func (sp *shardProcessor) GetAllTxsFromMiniBlock(mb *block.MiniBlock, haveTime func() bool) ([]*transaction.Transaction, [][]byte, error) {
-	return sp.getAllTxsFromMiniBlock(mb, haveTime)
+	return preprocess.SortTxByNonce(txShardStore)
 }
 
 func (sp *shardProcessor) ReceivedMiniBlock(miniBlockHash []byte) {
@@ -73,31 +45,8 @@ func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
 	sp.receivedMetaBlock(metaBlockHash)
 }
 
-func (sp *shardProcessor) AddTxHashToRequestedList(txHash []byte) {
-	sp.mutTxsForBlock.Lock()
-	defer sp.mutTxsForBlock.Unlock()
-
-	if sp.txsForBlock == nil {
-		sp.txsForBlock = make(map[string]*txInfo)
-	}
-	sp.txsForBlock[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
-}
-
-func (sp *shardProcessor) IsTxHashRequested(txHash []byte) bool {
-	sp.mutTxsForBlock.Lock()
-	defer sp.mutTxsForBlock.Unlock()
-
-	return !sp.txsForBlock[string(txHash)].has
-}
-
-func (sp *shardProcessor) SetMissingTxs(missingTxs int) {
-	sp.mutTxsForBlock.Lock()
-	sp.missingTxs = missingTxs
-	sp.mutTxsForBlock.Unlock()
-}
-
 func (sp *shardProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, round uint32, haveTime func() bool) error {
-	return sp.processMiniBlockComplete(miniBlock, round, haveTime)
+	return sp.createAndProcessMiniBlockComplete(miniBlock, round, haveTime)
 }
 
 func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, round uint32, haveTime func() bool) (block.Body, error) {
@@ -112,20 +61,8 @@ func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []
 	return sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
 }
 
-func (sp *shardProcessor) RemoveTxBlockFromPools(blockBody block.Body) error {
-	return sp.removeTxBlockFromPools(blockBody)
-}
-
-func (sp *shardProcessor) ChRcvAllTxs() chan bool {
-	return sp.chRcvAllTxs
-}
-
-func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) int {
-	return mp.requestBlockHeaders(header)
-}
-
-func (mp *metaProcessor) WaitForBlockHeaders(waitTime time.Duration) {
-	mp.waitForBlockHeaders(waitTime)
+func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32) {
+	return mp.requestShardHeaders(header)
 }
 
 func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error {
@@ -141,29 +78,30 @@ func (mp *metaProcessor) ReceivedHeader(hdrHash []byte) {
 }
 
 func (mp *metaProcessor) AddHdrHashToRequestedList(hdrHash []byte) {
-	mp.mutRequestedShardHeaderHashes.Lock()
-	defer mp.mutRequestedShardHeaderHashes.Unlock()
+	mp.mutRequestedShardHdrsHashes.Lock()
+	defer mp.mutRequestedShardHdrsHashes.Unlock()
 
-	if mp.requestedShardHeaderHashes == nil {
-		mp.requestedShardHeaderHashes = make(map[string]bool)
-		mp.allNeededShardHdrsFound = false
+	if mp.requestedShardHdrsHashes == nil {
+		mp.requestedShardHdrsHashes = make(map[string]bool)
+		mp.allNeededShardHdrsFound = true
 	}
 
-	if mp.currHighestShardHdrNonces == nil {
-		mp.currHighestShardHdrNonces = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
+	if mp.currHighestShardHdrsNonces == nil {
+		mp.currHighestShardHdrsNonces = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
 		for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-			mp.currHighestShardHdrNonces[i] = uint64(0)
+			mp.currHighestShardHdrsNonces[i] = uint64(0)
 		}
 	}
 
-	mp.requestedShardHeaderHashes[string(hdrHash)] = true
+	mp.requestedShardHdrsHashes[string(hdrHash)] = true
+	mp.allNeededShardHdrsFound = false
 }
 
 func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
-	mp.mutRequestedShardHeaderHashes.Lock()
-	defer mp.mutRequestedShardHeaderHashes.Unlock()
+	mp.mutRequestedShardHdrsHashes.Lock()
+	defer mp.mutRequestedShardHdrsHashes.Unlock()
 
-	_, found := mp.requestedShardHeaderHashes[string(hdrHash)]
+	_, found := mp.requestedShardHdrsHashes[string(hdrHash)]
 
 	return found
 }
@@ -185,9 +123,9 @@ func (bp *baseProcessor) SetHasher(hasher hashing.Hasher) {
 }
 
 func (mp *metaProcessor) SetNextKValidity(val uint32) {
-	mp.mutRequestedShardHeaderHashes.Lock()
+	mp.mutRequestedShardHdrsHashes.Lock()
 	mp.nextKValidity = val
-	mp.mutRequestedShardHeaderHashes.Unlock()
+	mp.mutRequestedShardHdrsHashes.Unlock()
 }
 
 func (mp *metaProcessor) CreateLastNotarizedHdrs(header *block.MetaBlock) error {
@@ -228,15 +166,4 @@ func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body blo
 
 func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
 	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
-}
-
-func (sp *shardProcessor) CreateTxInfo(tx *transaction.Transaction, senderShardID uint32, receiverShardID uint32) *txInfo {
-	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	return &txInfo{tx: tx, txShardInfo: txShardInfo}
-}
-
-func (sp *shardProcessor) SetTxsForBlock(hash string, txInfo *txInfo) {
-	sp.mutTxsForBlock.Lock()
-	sp.txsForBlock[hash] = txInfo
-	sp.mutTxsForBlock.Unlock()
 }

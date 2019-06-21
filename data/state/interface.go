@@ -1,7 +1,7 @@
 package state
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // HashLength defines how many bytes are used in a hash
@@ -9,6 +9,7 @@ const HashLength = 32
 
 // AddressConverter is used to convert to/from AddressContainer
 type AddressConverter interface {
+	AddressLen() int
 	CreateAddressFromPublicKeyBytes(pubKey []byte) (AddressContainer, error)
 	ConvertToHex(addressContainer AddressContainer) (string, error)
 	CreateAddressFromHex(hexAddress string) (AddressContainer, error)
@@ -46,7 +47,6 @@ type AccountHandler interface {
 	SetCodeHashWithJournal([]byte) error
 	GetCode() []byte
 	SetCode(code []byte)
-	SetCodeWithJournal([]byte) error
 	SetNonce(nonce uint64)
 	GetNonce() uint64
 	SetNonceWithJournal(nonce uint64) error
@@ -54,8 +54,8 @@ type AccountHandler interface {
 	GetRootHash() []byte
 	SetRootHash([]byte)
 	SetRootHashWithJournal([]byte) error
-	DataTrie() trie.PatriciaMerkelTree
-	SetDataTrie(trie trie.PatriciaMerkelTree)
+	DataTrie() data.Trie
+	SetDataTrie(trie data.Trie)
 	DataTrieTracker() DataTrieTracker
 
 	IsInterfaceNil() bool
@@ -68,8 +68,8 @@ type DataTrieTracker interface {
 	OriginalValue(key []byte) []byte
 	RetrieveValue(key []byte) ([]byte, error)
 	SaveKeyValue(key []byte, value []byte)
-	SetDataTrie(tr trie.PatriciaMerkelTree)
-	DataTrie() trie.PatriciaMerkelTree
+	SetDataTrie(tr data.Trie)
+	DataTrie() data.Trie
 }
 
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
@@ -82,7 +82,7 @@ type AccountsAdapter interface {
 	Commit() ([]byte, error)
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
-	RootHash() []byte
+	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error

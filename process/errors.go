@@ -115,6 +115,9 @@ var ErrInvalidShardId = errors.New("invalid shard id")
 // ErrMissingHeader signals that header of the block is missing
 var ErrMissingHeader = errors.New("missing header")
 
+// ErrMissingHashForHeaderNonce signals that hash of the block is missing
+var ErrMissingHashForHeaderNonce = errors.New("missing hash for header nonce")
+
 // ErrMissingBody signals that body of the block is missing
 var ErrMissingBody = errors.New("missing body")
 
@@ -199,11 +202,14 @@ var ErrNilBlocksTracker = errors.New("nil blocks tracker")
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
 
-// ErrInvalidTxInPool signals that a transaction is not found
+// ErrTxNotFound signals that a transaction has not found
 var ErrTxNotFound = errors.New("transaction not found")
 
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
+
+// ErrNilHeadersNonceHashStorage signals that a nil header nonce hash storage has been provided
+var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 
 // ErrNilMetachainHeadersStorage signals that a nil metachain header storage has been provided
 var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")
@@ -319,9 +325,6 @@ var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header dat
 // ErrMetaBlockNotFinal signals that metablock is not final
 var ErrMetaBlockNotFinal = errors.New("cannot attest meta blocks finality")
 
-// ErrNilCore signals that the injected core is nil
-var ErrNilCore = errors.New("nil core handler")
-
 // ErrNilSmartContractProcessor signals that smart contract call executor is nil
 var ErrNilSmartContractProcessor = errors.New("smart contract processor is nil")
 
@@ -352,5 +355,23 @@ var ErrNilVMOutput = errors.New("nil vm output")
 // ErrNilBalanceFromSC signals that balance is nil
 var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
 
-// ErrNilFakeAccountsHandler signals that fake accounts handler is nil
-var ErrNilFakeAccountsHandler = errors.New("fake accounts handler is nil")
+// ErrNilTemporaryAccountsHandler signals that temporary accounts handler is nil
+var ErrNilTemporaryAccountsHandler = errors.New("temporary accounts handler is nil")
+
+// ErrBoostrapFromStorage signals that boostrap from storage has been failed
+var ErrBoostrapFromStorage = errors.New("boostrap from storage has been failed")
+
+// ErrNilSmartContractResult signals that the smart contract result is nil
+var ErrNilSmartContractResult = errors.New("smart contract result is nil")
+
+// ErrInvalidDataInput signals that the data input is invalid for parsing
+var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
+
+// ErrNoSmartContractResultInMessage signals that message does not contain required data
+var ErrNoSmartContractResultInMessage = errors.New("no smart contract result in message")
+
+// ErrNilScrDataPool signals that smart contract pool is nil
+var ErrNilScrDataPool = errors.New("smart contract result pool is nil")
+
+// ErrNilScrStorage signals that smart contract storage is nil
+var ErrNilScrStorage = errors.New("smart contract result storage is nil")

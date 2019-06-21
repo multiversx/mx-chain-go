@@ -3,10 +3,10 @@ package mock
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 func InitChronologyHandlerMock() consensus.ChronologyHandler {
@@ -98,6 +98,10 @@ func InitConsensusCore() *ConsensusCoreMock {
 		},
 	}
 	blockProcessorMock := InitBlockProcessorMock()
+	blockTrackerMock := &BlocksTrackerMock{
+		SetBlockBroadcastRoundCalled: func(nonce uint64, round int32) {
+		},
+	}
 	bootstraperMock := &BootstraperMock{}
 	broadcastMessengerMock := &BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
@@ -123,6 +127,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	container := &ConsensusCoreMock{
 		blockChain,
 		blockProcessorMock,
+		blockTrackerMock,
 		bootstraperMock,
 		broadcastMessengerMock,
 		chronologyHandlerMock,

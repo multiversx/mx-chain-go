@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/epoch"
+	"github.com/ElrondNetwork/elrond-go/consensus/epoch"
 	"github.com/stretchr/testify/assert"
 )
 

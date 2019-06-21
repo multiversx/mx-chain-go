@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/mock"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/stretchr/testify/assert"
 )
 

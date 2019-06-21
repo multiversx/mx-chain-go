@@ -61,6 +61,9 @@ var ErrNilMessenger = errors.New("nil Messenger")
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
+// ErrNilSmartContractResultsPool signals that a nil smart contract results pool has been provided
+var ErrNilSmartContractResultsPool = errors.New("nil smart contract results data pool")
+
 // ErrNilHeadersDataPool signals that a nil header pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
@@ -172,6 +175,9 @@ var ErrNilResolverFinder = errors.New("nil resolvers finder")
 
 // ErrEmptyTxRequestTopic signals that an empty transaction topic has been provided
 var ErrEmptyTxRequestTopic = errors.New("empty transaction request topic")
+
+// ErrEmptyScrRequestTopic signals that an empty smart contract result topic has been provided
+var ErrEmptyScrRequestTopic = errors.New("empty smart contract result request topic")
 
 // ErrEmptyMiniBlockRequestTopic signals that an empty miniblock topic has been provided
 var ErrEmptyMiniBlockRequestTopic = errors.New("empty miniblock request topic")

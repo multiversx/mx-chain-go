@@ -4,11 +4,11 @@ import (
 	"crypto/ecdsa"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/btcsuite/btcd/btcec"
-	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-peer"
+	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/stretchr/testify/assert"
@@ -88,7 +88,7 @@ func TestMessage_TopicIDs(t *testing.T) {
 
 func TestMessage_Peer(t *testing.T) {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 	id, _ := peer.IDFromPublicKey(sk.GetPublic())
 
 	mes := &pubsub_pb.Message{

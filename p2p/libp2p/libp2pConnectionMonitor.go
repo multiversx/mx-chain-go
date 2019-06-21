@@ -3,8 +3,8 @@ package libp2p
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/libp2p/go-libp2p-net"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -35,16 +35,16 @@ func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter) *libp2pConnectionMo
 }
 
 // Listen is called when network starts listening on an addr
-func (lcm *libp2pConnectionMonitor) Listen(net.Network, multiaddr.Multiaddr) {}
+func (lcm *libp2pConnectionMonitor) Listen(network.Network, multiaddr.Multiaddr) {}
 
 // ListenClose is called when network stops listening on an addr
-func (lcm *libp2pConnectionMonitor) ListenClose(net.Network, multiaddr.Multiaddr) {}
+func (lcm *libp2pConnectionMonitor) ListenClose(network.Network, multiaddr.Multiaddr) {}
 
 // Connected is called when a connection opened
-func (lcm *libp2pConnectionMonitor) Connected(net.Network, net.Conn) {}
+func (lcm *libp2pConnectionMonitor) Connected(network.Network, network.Conn) {}
 
 // Disconnected is called when a connection closed
-func (lcm *libp2pConnectionMonitor) Disconnected(netw net.Network, conn net.Conn) {
+func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, conn network.Conn) {
 	if len(netw.Conns()) < ThresholdMinimumConnectedPeers {
 		select {
 		case lcm.chDoReconnect <- struct{}{}:
@@ -54,10 +54,10 @@ func (lcm *libp2pConnectionMonitor) Disconnected(netw net.Network, conn net.Conn
 }
 
 // OpenedStream is called when a stream opened
-func (lcm *libp2pConnectionMonitor) OpenedStream(net.Network, net.Stream) {}
+func (lcm *libp2pConnectionMonitor) OpenedStream(network.Network, network.Stream) {}
 
 // ClosedStream is called when a stream closed
-func (lcm *libp2pConnectionMonitor) ClosedStream(net.Network, net.Stream) {}
+func (lcm *libp2pConnectionMonitor) ClosedStream(network.Network, network.Stream) {}
 
 func (lcm *libp2pConnectionMonitor) doReconnection() {
 	for {

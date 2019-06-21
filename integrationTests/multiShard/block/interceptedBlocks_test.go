@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 	"github.com/whyrusleeping/go-logging"
 )
@@ -56,10 +56,8 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	body, hdr := generateHeaderAndBody(senderShard, recvShards...)
 	err := nodes[0].broadcastMessenger.BroadcastBlock(body, hdr)
 	assert.Nil(t, err)
-	miniBlocks, transactions, _ := nodes[0].blkProcessor.MarshalizedDataToBroadcast(hdr, body)
+	miniBlocks, _, _ := nodes[0].blkProcessor.MarshalizedDataToBroadcast(hdr, body)
 	err = nodes[0].broadcastMessenger.BroadcastMiniBlocks(miniBlocks)
-	assert.Nil(t, err)
-	err = nodes[0].broadcastMessenger.BroadcastTransactions(transactions)
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second * 10)

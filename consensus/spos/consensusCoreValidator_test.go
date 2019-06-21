@@ -3,13 +3,14 @@ package spos
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/stretchr/testify/assert"
 )
 
 func initConsensusDataContainer() *ConsensusCore {
 	blockChain := &mock.BlockChainMock{}
 	blockProcessorMock := mock.InitBlockProcessorMock()
+	blocksTrackerMock := &mock.BlocksTrackerMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	chronologyHandlerMock := mock.InitChronologyHandlerMock()
@@ -26,6 +27,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	return &ConsensusCore{
 		blockChain:             blockChain,
 		blockProcessor:         blockProcessorMock,
+		blocksTracker:          blocksTrackerMock,
 		bootstraper:            bootstraperMock,
 		broadcastMessenger:     broadcastMessengerMock,
 		chronologyHandler:      chronologyHandlerMock,

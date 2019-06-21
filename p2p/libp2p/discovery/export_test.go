@@ -3,7 +3,7 @@ package discovery
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 )
 
 func (mpd *MdnsPeerDiscoverer) RefreshInterval() time.Duration {

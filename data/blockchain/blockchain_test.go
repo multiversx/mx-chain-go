@@ -3,8 +3,8 @@ package blockchain_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
+	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/stretchr/testify/assert"
 )
 

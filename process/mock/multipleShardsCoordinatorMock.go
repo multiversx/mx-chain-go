@@ -3,7 +3,7 @@ package mock
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 type multipleShardsCoordinatorMock struct {
@@ -25,6 +25,9 @@ func (scm *multipleShardsCoordinatorMock) NumberOfShards() uint32 {
 }
 
 func (scm *multipleShardsCoordinatorMock) ComputeId(address state.AddressContainer) uint32 {
+	if scm.ComputeIdCalled == nil {
+		return scm.SelfId()
+	}
 	return scm.ComputeIdCalled(address)
 }
 

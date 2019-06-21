@@ -4,10 +4,10 @@ import (
 	"math"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/indexer"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
 )
@@ -67,8 +67,8 @@ func newTestMetaBlock() *block.MetaBlock {
 
 func newTestBlockBody() block.Body {
 	return block.Body{
-		{[][]byte{[]byte("tx1"), []byte("tx2")}, 2, 2},
-		{[][]byte{[]byte("tx3")}, 4, 1},
+		{[][]byte{[]byte("tx1"), []byte("tx2")}, 2, 2, 0},
+		{[][]byte{[]byte("tx3")}, 4, 1, 0},
 	}
 }
 

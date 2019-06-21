@@ -1,7 +1,7 @@
 package sharding
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // MetachainShardId will be used to identify a shard ID as metachain

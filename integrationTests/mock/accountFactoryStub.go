@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+import "github.com/ElrondNetwork/elrond-go/data/state"
 
 type AccountsFactoryStub struct {
 	CreateAccountCalled func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error)
