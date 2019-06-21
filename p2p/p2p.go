@@ -174,6 +174,7 @@ type ChannelLoadBalancer interface {
 type DirectSender interface {
 	NextSeqno(counter *uint64) []byte
 	Send(topic string, buff []byte, peer PeerID) error
+	SendAsync(topic string, buff []byte, peer PeerID)
 }
 
 // PeerDiscoveryFactory defines the factory for peer discoverer implementation
