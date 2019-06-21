@@ -111,13 +111,14 @@ func (boot *baseBootstrap) loadBlocks(
 		}
 
 		if err == nil {
+			err = boot.accounts.RecreateTrie(boot.blkc.GetCurrentBlockHeader().GetRootHash())
+			if err != nil {
+				lastBlocksToSkip++
+				continue
+			}
+
 			break
 		}
-	}
-
-	err = boot.accounts.RecreateTrie(boot.blkc.GetCurrentBlockHeader().GetRootHash())
-	if err != nil {
-		return err
 	}
 
 	return nil
