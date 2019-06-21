@@ -46,8 +46,6 @@ type transactions struct {
 	txsForBlock          map[string]*txInfo
 	txPool               dataRetriever.ShardedDataCacherNotifier
 	storage              dataRetriever.StorageService
-	hasher               hashing.Hasher
-	marshalizer          marshal.Marshalizer
 	txProcessor          process.TransactionProcessor
 	shardCoordinator     sharding.Coordinator
 	accounts             state.AccountsAdapter
@@ -91,9 +89,10 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilRequestHandler
 	}
 
+	bpp := &basePreProcess{hasher: hasher, marshalizer: marshalizer}
+
 	txs := &transactions{
-		hasher:               hasher,
-		marshalizer:          marshalizer,
+		basePreProcess:       bpp,
 		shardCoordinator:     shardCoordinator,
 		storage:              store,
 		txPool:               txDataPool,

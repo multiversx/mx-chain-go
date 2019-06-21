@@ -42,8 +42,6 @@ type smartContractResults struct {
 	scrForBlock                  map[string]*scrInfo
 	scrPool                      dataRetriever.ShardedDataCacherNotifier
 	storage                      dataRetriever.StorageService
-	hasher                       hashing.Hasher
-	marshalizer                  marshal.Marshalizer
 	scrProcessor                 process.SmartContractResultProcessor
 	shardCoordinator             sharding.Coordinator
 	accounts                     state.AccountsAdapter
@@ -87,9 +85,10 @@ func NewSmartContractResultPreprocessor(
 		return nil, process.ErrNilRequestHandler
 	}
 
+	bpp := &basePreProcess{hasher: hasher, marshalizer: marshalizer}
+
 	scr := &smartContractResults{
-		hasher:                       hasher,
-		marshalizer:                  marshalizer,
+		basePreProcess:               bpp,
 		shardCoordinator:             shardCoordinator,
 		storage:                      store,
 		scrPool:                      scrDataPool,
@@ -200,6 +199,9 @@ func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
+		if miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
+			continue
+		}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if haveTime() < 0 {
@@ -214,7 +216,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round
 				return process.ErrMissingTransaction
 			}
 
-			err := scr.processAndRemoveBadSmartContractResult(
+			err := scr.processSmartContractResult(
 				txHash,
 				txInfo.scr,
 				round,
@@ -387,7 +389,7 @@ func (scr *smartContractResults) computeMissingAndExistingScrsForShards(body blo
 }
 
 // processAndRemoveBadSmartContractResults processed smartContractResults, if scr are with error it removes them from pool
-func (scr *smartContractResults) processAndRemoveBadSmartContractResult(
+func (scr *smartContractResults) processSmartContractResult(
 	smartContractResultHash []byte,
 	smartContractResult *smartContractResult.SmartContractResult,
 	round uint32,

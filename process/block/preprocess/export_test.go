@@ -26,3 +26,26 @@ func (txs *transactions) SetMissingTxs(missingTxs int) {
 	txs.missingTxs = missingTxs
 	txs.mutTxsForBlock.Unlock()
 }
+
+func (scr *smartContractResults) AddScrHashToRequestedList(txHash []byte) {
+	scr.mutScrsForBlock.Lock()
+	defer scr.mutScrsForBlock.Unlock()
+
+	if scr.scrForBlock == nil {
+		scr.scrForBlock = make(map[string]*scrInfo)
+	}
+	scr.scrForBlock[string(txHash)] = &scrInfo{scrShardInfo: &scrShardInfo{}}
+}
+
+func (scr *smartContractResults) IsScrHashRequested(txHash []byte) bool {
+	scr.mutScrsForBlock.Lock()
+	defer scr.mutScrsForBlock.Unlock()
+
+	return !scr.scrForBlock[string(txHash)].has
+}
+
+func (scr *smartContractResults) SetMissingScr(missingTxs int) {
+	scr.mutScrsForBlock.Lock()
+	scr.missingScrs = missingTxs
+	scr.mutScrsForBlock.Unlock()
+}

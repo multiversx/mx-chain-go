@@ -285,7 +285,7 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 	assert.Equal(t, uint64(10), tx.Nonce)
 }
 
-func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
+func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -312,7 +312,7 @@ func TestShardProcessor_RequestTransactionFromNetwork(t *testing.T) {
 	assert.Equal(t, 2, txsRequested)
 }
 
-func TestShardProcessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testing.T) {
+func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -338,7 +338,7 @@ func TestShardProcessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testi
 	assert.Equal(t, 2, txsRequested)
 }
 
-func TestShardProcessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
+func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
 	t.Parallel()
 
 	dataPool := mock.NewPoolsHolderFake()
@@ -395,7 +395,7 @@ func computeHash(data interface{}, marshalizer marshal.Marshalizer, hasher hashi
 	return hasher.Compute(string(buff))
 }
 
-func TestShardProcessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
+func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hasher := mock.HasherMock{}
@@ -461,7 +461,7 @@ func TestShardProcessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 	}
 }
 
-func TestShardProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
+func TestTransactionPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
@@ -480,7 +480,7 @@ func TestShardProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 	assert.Equal(t, err, process.ErrNilTxBlockBody)
 }
 
-func TestShardProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
+func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
