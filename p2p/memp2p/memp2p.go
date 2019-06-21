@@ -101,12 +101,15 @@ func (messenger *MemP2PMessenger) ConnectedPeersOnTopic(topic string) []p2p.Peer
 	}
 
 	messenger.TopicsMutex.Lock()
-	for peerID, peer := range messenger.Network.PeersExceptOne(messenger.ID()) {
+	defer messenger.TopicsMutex.Unlock()
+
+	allPeersExceptMe := messenger.Network.PeersExceptOne(messenger.ID())
+	for peerID, peer := range allPeersExceptMe {
 		if peer.HasTopic(topic) {
 			filteredPeers = append(filteredPeers, p2p.PeerID(peerID))
 		}
 	}
-	messenger.TopicsMutex.Unlock()
+
 	return filteredPeers
 }
 
@@ -237,7 +240,6 @@ func (messenger *MemP2PMessenger) ParametricBroadcast(topic string, data []byte,
 				peer.ReceiveMessage(topic, message)
 			}
 		}
-	} else {
 	}
 }
 
@@ -249,10 +251,11 @@ func (messenger *MemP2PMessenger) SendToConnectedPeer(topic string, buff []byte,
 		}
 		message := NewMemP2PMessage(topic, buff, messenger.ID())
 		destinationPeer := messenger.Network.PeersExceptOne(messenger.ID())[peerID]
+
 		return destinationPeer.ReceiveMessage(topic, message)
-	} else {
-		return errors.New("Peer not connected to network, cannot send anything")
 	}
+
+	return errors.New("Peer not connected to network, cannot send anything")
 }
 
 func (messenger *MemP2PMessenger) ReceiveMessage(topic string, message p2p.MessageP2P) error {
