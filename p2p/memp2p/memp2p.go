@@ -103,7 +103,7 @@ func (messenger *MemP2PMessenger) ConnectedPeersOnTopic(topic string) []p2p.Peer
 	messenger.TopicsMutex.Lock()
 	defer messenger.TopicsMutex.Unlock()
 
-	allPeersExceptMe := messenger.Network.PeersExceptOne(messenger.ID())
+	allPeersExceptThis := messenger.Network.PeersExceptOne(messenger.ID())
 	for peerID, peer := range allPeersExceptMe {
 		if peer.HasTopic(topic) {
 			filteredPeers = append(filteredPeers, p2p.PeerID(peerID))
