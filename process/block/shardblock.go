@@ -1272,7 +1272,9 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 		RandSeed:         make([]byte, 0),
 	}
 
-	go sp.checkAndRequestIfMetaHeadersMissing(header.GetRound())
+	defer func() {
+		go sp.checkAndRequestIfMetaHeadersMissing(round)
+	}()
 
 	if bodyHandler == nil {
 		return header, nil
