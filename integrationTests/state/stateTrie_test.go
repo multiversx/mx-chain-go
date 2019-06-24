@@ -1,14 +1,18 @@
 package state
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -28,28 +32,18 @@ func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker 
 
 func adbCreateAccountsDBWithStorage() (*state.AccountsDB, storage.Storer) {
 	marsh := &marshal.JsonMarshalizer{}
-
+	hasher := sha256.Sha256{}
 	store := createMemUnit()
-	dbw, _ := trie.NewDBWriteCache(store)
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+
+	tr, _ := trie.NewTrie(store, marsh, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &accountFactory{})
 
 	return adb, store
 }
 
-func adbCreateAccountsDB() *state.AccountsDB {
-	marsh := &marshal.JsonMarshalizer{}
-
-	dbw, _ := trie.NewDBWriteCache(createMemUnit())
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &accountFactory{})
-
-	return adb
-}
-
 func generateAddressJurnalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
 	adr := createDummyAddress()
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 
 	account, _ := state.NewAccount(adr, adb)
 
@@ -112,6 +106,15 @@ func adbPrintAccount(account *state.Account, tag string) {
 	fmt.Printf("     Root hash: %v\n\n", base64.StdEncoding.EncodeToString(account.RootHash))
 }
 
+func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
+	accnt, _ := state.NewAccountsDB(trie, mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
+		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
+			return mock.NewAccountWrapMock(address, tracker), nil
+		},
+	})
+	return accnt
+}
+
 //------- Functionality tests
 
 func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
@@ -135,13 +138,13 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	//verify data
-	data, err := recoveredAccount.DataTrieTracker().RetrieveValue([]byte{65, 66, 67})
+	dataRecovered, err := recoveredAccount.DataTrieTracker().RetrieveValue([]byte{65, 66, 67})
 	assert.Nil(t, err)
-	assert.Equal(t, []byte{32, 33, 34}, data)
+	assert.Equal(t, []byte{32, 33, 34}, dataRecovered)
 
-	data, err = recoveredAccount.DataTrieTracker().RetrieveValue([]byte{68, 69, 70})
+	dataRecovered, err = recoveredAccount.DataTrieTracker().RetrieveValue([]byte{68, 69, 70})
 	assert.Nil(t, err)
-	assert.Equal(t, []byte{35, 36, 37}, data)
+	assert.Equal(t, []byte{35, 36, 37}, dataRecovered)
 }
 
 func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
@@ -239,6 +242,61 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 	assert.Equal(t, accountRecovered.Balance, big.NewInt(0))
 }
 
+func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
+	t.Parallel()
+
+	marsh := &marshal.JsonMarshalizer{}
+	hasher := sha256.Sha256{}
+	store := createMemUnit()
+	tr, _ := trie.NewTrie(store, marsh, hasher)
+
+	adb := generateAccountDBFromTrie(tr)
+
+	wg := sync.WaitGroup{}
+	wg.Add(2000)
+
+	addresses := make([]state.AddressContainer, 0)
+
+	//generating 2000 different addresses
+	for len(addresses) < 2000 {
+		addr := mock.NewAddressMock()
+
+		found := false
+		for i := 0; i < len(addresses); i++ {
+			if bytes.Equal(addresses[i].Bytes(), addr.Bytes()) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			addresses = append(addresses, addr)
+		}
+	}
+
+	for i := 0; i < 1000; i++ {
+		go func(idx int) {
+			accnt, err := adb.GetExistingAccount(addresses[idx*2])
+
+			assert.Equal(t, state.ErrAccNotFound, err)
+			assert.Nil(t, accnt)
+
+			wg.Done()
+		}(i)
+
+		go func(idx int) {
+			accnt, err := adb.GetAccountWithJournal(addresses[idx*2+1])
+
+			assert.Nil(t, err)
+			assert.NotNil(t, accnt)
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+}
+
 func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	//test creates 2 accounts (one with a data root)
 	//verifies that commit saves the new tries and that can be loaded back
@@ -274,10 +332,14 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	fmt.Printf("Result hash: %v\n", base64.StdEncoding.EncodeToString(h))
 
-	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(adb.RootHash()))
+	rootHash, err := adb.RootHash()
+	assert.Nil(t, err)
+	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	//reloading a new trie to test if data is inside
-	err = adb.RecreateTrie(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	err = adb.RecreateTrie(rootHash)
 	assert.Nil(t, err)
 
 	//checking state1
@@ -299,21 +361,20 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 }
 
 func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
+	marsh := &marshal.JsonMarshalizer{}
 	hasher := sha256.Sha256{}
-
 	store := createMemUnit()
-	dbw, _ := trie.NewDBWriteCache(store)
-	tr1, _ := trie.NewTrie(make([]byte, 32), dbw, hasher)
+	tr1, _ := trie.NewTrie(store, marsh, hasher)
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
 
 	tr1.Update(key, value)
-	h1, err := tr1.Commit(nil)
+	h1, _ := tr1.Root()
+	err := tr1.Commit()
 	assert.Nil(t, err)
 
-	dbw, _ = trie.NewDBWriteCache(store)
-	tr2, err := trie.NewTrie(h1, dbw, hasher)
+	tr2, err := tr1.Recreate(h1)
 	assert.Nil(t, err)
 
 	valRecov, err := tr2.Get(key)
@@ -357,10 +418,11 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	assert.Nil(t, err)
 	fmt.Printf("Result hash: %v\n", base64.StdEncoding.EncodeToString(h))
 
-	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(adb.RootHash()))
+	rootHash, err := adb.RootHash()
+	assert.Nil(t, err)
+	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
-	dbw, _ := trie.NewDBWriteCache(mu)
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+	tr, _ := trie.NewTrie(mu, &marshal.JsonMarshalizer{}, sha256.Sha256{})
 	adb, _ = state.NewAccountsDB(tr, sha256.Sha256{}, &marshal.JsonMarshalizer{}, &accountFactory{})
 
 	//reloading a new trie to test if data is inside
@@ -408,22 +470,30 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 
 	adr1, _, adb := generateAddressJurnalAccountAccountsDB()
 
-	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err := adb.RootHash()
+	assert.Nil(t, err)
+	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
 	state1, err := adb.GetAccountWithJournal(adr1)
 	assert.Nil(t, err)
-	hrCreated := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - created account: %v\n", hrCreated)
 
 	err = state1.(*state.Account).SetBalanceWithJournal(big.NewInt(40))
 	assert.Nil(t, err)
-	hrWithBalance := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrWithBalance := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance)
 
 	_, err = adb.Commit()
 	assert.Nil(t, err)
-	hrCommit := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCommit := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - committed: %v\n", hrCommit)
 
 	//commit hash == account with balance
@@ -433,15 +503,19 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	//root hash == hrCreated
-	assert.Equal(t, hrCreated, base64.StdEncoding.EncodeToString(adb.RootHash()))
-	fmt.Printf("State root - account with balance 0: %v\n", base64.StdEncoding.EncodeToString(adb.RootHash()))
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	assert.Equal(t, hrCreated, base64.StdEncoding.EncodeToString(rootHash))
+	fmt.Printf("State root - account with balance 0: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	err = adb.RemoveAccount(adr1)
 	assert.Nil(t, err)
 
 	//root hash == hrEmpty
-	assert.Equal(t, hrEmpty, base64.StdEncoding.EncodeToString(adb.RootHash()))
-	fmt.Printf("State root - empty: %v\n", base64.StdEncoding.EncodeToString(adb.RootHash()))
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	assert.Equal(t, hrEmpty, base64.StdEncoding.EncodeToString(rootHash))
+	fmt.Printf("State root - empty: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 }
 
 //------- Revert
@@ -453,22 +527,28 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
-	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
+	adb, _ := adbCreateAccountsDBWithStorage()
+	rootHash, err := adb.RootHash()
+	assert.Nil(t, err)
+	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
 	//Step 2. create 2 new accounts
 	state1, err := adb.GetAccountWithJournal(adr1)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
-	hrCreated1 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
 	state2, err := adb.GetAccountWithJournal(adr2)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
-	hrCreated2 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
 
@@ -482,23 +562,31 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	//Step 3. Set Nonces and save data
 	err = state1.(*state.Account).SetNonceWithJournal(40)
 	assert.Nil(t, err)
-	hrWithNonce1 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrWithNonce1 := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - account with nonce 40: %v\n", hrWithNonce1)
 
 	err = state2.(*state.Account).SetNonceWithJournal(50)
 	assert.Nil(t, err)
-	hrWithNonce2 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrWithNonce2 := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - account with nonce 50: %v\n", hrWithNonce2)
 
 	//Test 3.1. current root hash shall not match created root hash hrCreated2
-	assert.NotEqual(t, hrCreated2, adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	assert.NotEqual(t, hrCreated2, rootHash)
 
 	//Step 4. Revert account nonce and test
 	err = adb.RevertToSnapshot(snapshotPreSet)
 	assert.Nil(t, err)
 
 	//Test 4.1. current root hash shall match created root hash hrCreated
-	hrFinal := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrFinal := base64.StdEncoding.EncodeToString(rootHash)
 	assert.Equal(t, hrCreated2, hrFinal)
 	fmt.Printf("State root - reverted last 2 nonces set: %v\n", hrFinal)
 }
@@ -510,22 +598,28 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
-	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
+	adb, _ := adbCreateAccountsDBWithStorage()
+	rootHash, err := adb.RootHash()
+	assert.Nil(t, err)
+	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
 	//Step 2. create 2 new accounts
 	state1, err := adb.GetAccountWithJournal(adr1)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
-	hrCreated1 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
 	state2, err := adb.GetAccountWithJournal(adr2)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
-	hrCreated2 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
 
@@ -539,23 +633,29 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	//Step 3. Set balances and save data
 	err = state1.(*state.Account).SetBalanceWithJournal(big.NewInt(40))
 	assert.Nil(t, err)
-	hrWithBalance1 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrWithBalance1 := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance1)
 
 	err = state2.(*state.Account).SetBalanceWithJournal(big.NewInt(50))
 	assert.Nil(t, err)
-	hrWithBalance2 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrWithBalance2 := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - account with balance 50: %v\n", hrWithBalance2)
 
 	//Test 3.1. current root hash shall not match created root hash hrCreated2
-	assert.NotEqual(t, hrCreated2, adb.RootHash())
+	assert.NotEqual(t, hrCreated2, rootHash)
 
 	//Step 4. Revert account balances and test
 	err = adb.RevertToSnapshot(snapshotPreSet)
 	assert.Nil(t, err)
 
 	//Test 4.1. current root hash shall match created root hash hrCreated
-	hrFinal := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrFinal := base64.StdEncoding.EncodeToString(rootHash)
 	assert.Equal(t, hrCreated2, hrFinal)
 	fmt.Printf("State root - reverted last 2 balance set: %v\n", hrFinal)
 }
@@ -570,8 +670,10 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
-	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
+	adb, _ := adbCreateAccountsDBWithStorage()
+	rootHash, err := adb.RootHash()
+	assert.Nil(t, err)
+	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
 	//Step 2. create 2 new accounts
@@ -580,7 +682,9 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	err = adb.PutCode(state1, []byte{65, 66, 67})
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
-	hrCreated1 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
@@ -589,7 +693,9 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	err = adb.PutCode(state2, []byte{65, 66, 67})
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
-	hrCreated2 := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
 
@@ -602,7 +708,9 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Test 3.1. current root hash shall match created root hash hrCreated1
-	hrCrt := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCrt := base64.StdEncoding.EncodeToString(rootHash)
 	assert.Equal(t, hrCreated1, hrCrt)
 	fmt.Printf("State root - reverted last account: %v\n", hrCrt)
 
@@ -611,7 +719,9 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Test 4.1. current root hash shall match empty root hash
-	hrCrt = base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCrt = base64.StdEncoding.EncodeToString(rootHash)
 	assert.Equal(t, hrEmpty, hrCrt)
 	fmt.Printf("State root - reverted first account: %v\n", hrCrt)
 }
@@ -626,8 +736,10 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
-	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
+	adb, _ := adbCreateAccountsDBWithStorage()
+	rootHash, err := adb.RootHash()
+	assert.Nil(t, err)
+	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
 	//Step 2. create 2 new accounts
@@ -637,8 +749,12 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	err = adb.SaveDataTrie(state1)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
-	hrCreated1 := base64.StdEncoding.EncodeToString(adb.RootHash())
-	hrRoot1 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
+	rootHash, err = state1.DataTrie().Root()
+	assert.Nil(t, err)
+	hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
@@ -649,8 +765,12 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	err = adb.SaveDataTrie(state2)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
-	hrCreated2 := base64.StdEncoding.EncodeToString(adb.RootHash())
-	hrRoot2 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
+	rootHash, err = state1.DataTrie().Root()
+	assert.Nil(t, err)
+	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
 	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
@@ -665,14 +785,18 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	//Step 3. Revert 2-nd account ant test roots
 	err = adb.RevertToSnapshot(snapshotCreated1)
 	assert.Nil(t, err)
-	hrCreated2Rev := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated2Rev := base64.StdEncoding.EncodeToString(rootHash)
 
 	assert.Equal(t, hrCreated1, hrCreated2Rev)
 
 	//Step 4. Revert 1-st account ant test roots
 	err = adb.RevertToSnapshot(0)
 	assert.Nil(t, err)
-	hrCreated1Rev := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated1Rev := base64.StdEncoding.EncodeToString(rootHash)
 
 	assert.Equal(t, hrEmpty, hrCreated1Rev)
 }
@@ -687,8 +811,10 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
-	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
+	adb, _ := adbCreateAccountsDBWithStorage()
+	rootHash, err := adb.RootHash()
+	assert.Nil(t, err)
+	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
 	//Step 2. create 2 new accounts
@@ -698,8 +824,12 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	err = adb.SaveDataTrie(state1)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
-	hrCreated1 := base64.StdEncoding.EncodeToString(adb.RootHash())
-	hrRoot1 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
+	rootHash, err = state1.DataTrie().Root()
+	assert.Nil(t, err)
+	hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
@@ -710,8 +840,12 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	err = adb.SaveDataTrie(state2)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
-	hrCreated2 := base64.StdEncoding.EncodeToString(adb.RootHash())
-	hrRoot2 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
+	rootHash, err = state1.DataTrie().Root()
+	assert.Nil(t, err)
+	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
 	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
@@ -733,8 +867,12 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	state2.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 35})
 	err = adb.SaveDataTrie(state2)
 	assert.Nil(t, err)
-	hrCreated2p1 := base64.StdEncoding.EncodeToString(adb.RootHash())
-	hrRoot2p1 := base64.StdEncoding.EncodeToString(state2.DataTrie().Root())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated2p1 := base64.StdEncoding.EncodeToString(rootHash)
+	rootHash, err = state2.DataTrie().Root()
+	assert.Nil(t, err)
+	hrRoot2p1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - modified 2-nd account: %v\n", hrCreated2p1)
 	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2p1)
@@ -749,8 +887,12 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	//Step 5. Revert 2-nd account modification
 	err = adb.RevertToSnapshot(snapshotMod)
 	assert.Nil(t, err)
-	hrCreated2Rev := base64.StdEncoding.EncodeToString(adb.RootHash())
-	hrRoot2Rev := base64.StdEncoding.EncodeToString(state2.DataTrie().Root())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrCreated2Rev := base64.StdEncoding.EncodeToString(rootHash)
+	rootHash, err = state2.DataTrie().Root()
+	assert.Nil(t, err)
+	hrRoot2Rev := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
 	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2Rev)
 	assert.Equal(t, hrCommit, hrCreated2Rev)
@@ -764,7 +906,7 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 
 	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
 	assert.Nil(t, err)
@@ -775,7 +917,9 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	err = acntSrc.(*state.Account).SetBalanceWithJournal(big.NewInt(1000))
 	assert.Nil(t, err)
 
-	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err := adb.RootHash()
+	assert.Nil(t, err)
+	hrOriginal := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("Original root hash: %s\n", hrOriginal)
 
 	adbPrintAccount(acntSrc.(*state.Account), "Source")
@@ -784,7 +928,9 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	fmt.Println("Executing OK transaction...")
 	adbEmulateBalanceTxSafeExecution(acntSrc.(*state.Account), acntDest.(*state.Account), adb, big.NewInt(64))
 
-	hrOK := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrOK := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("After executing an OK tx root hash: %s\n", hrOK)
 
 	adbPrintAccount(acntSrc.(*state.Account), "Source")
@@ -793,7 +939,9 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	fmt.Println("Executing NOK transaction...")
 	adbEmulateBalanceTxSafeExecution(acntSrc.(*state.Account), acntDest.(*state.Account), adb, big.NewInt(10000))
 
-	hrNok := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err = adb.RootHash()
+	assert.Nil(t, err)
+	hrNok := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("After executing a NOK tx root hash: %s\n", hrNok)
 
 	adbPrintAccount(acntSrc.(*state.Account), "Source")
@@ -811,7 +959,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 
 	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
 	assert.Nil(t, err)
@@ -822,7 +970,9 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	err = acntSrc.(*state.Account).SetBalanceWithJournal(big.NewInt(10000000))
 	assert.Nil(t, err)
 
-	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err := adb.RootHash()
+	assert.Nil(t, err)
+	hrOriginal := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("Original root hash: %s\n", hrOriginal)
 
 	for i := 1; i <= 1000; i++ {
@@ -842,7 +992,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 
 	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
 	assert.Nil(t, err)
@@ -853,7 +1003,9 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	err = acntSrc.(*state.Account).SetBalanceWithJournal(big.NewInt(10000000))
 	assert.Nil(t, err)
 
-	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
+	rootHash, err := adb.RootHash()
+	assert.Nil(t, err)
+	hrOriginal := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("Original root hash: %s\n", hrOriginal)
 
 	st := time.Now()
@@ -878,7 +1030,7 @@ func BenchmarkTxExecution(b *testing.B) {
 	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb, _ := adbCreateAccountsDBWithStorage()
 
 	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
 	assert.Nil(b, err)

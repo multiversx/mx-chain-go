@@ -505,8 +505,8 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 		wasCalled = true
 		return nil
 	}
-	rootHashCalled := func() []byte {
-		return []byte("rootHashX")
+	rootHashCalled := func() ([]byte, error) {
+		return []byte("rootHashX"), nil
 	}
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
@@ -737,8 +737,8 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		CommitCalled: func() (i []byte, e error) {
 			return rootHash, nil
 		},
-		RootHashCalled: func() []byte {
-			return rootHash
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
 		},
 	}
 	forkDetectorAddCalled := false
@@ -939,8 +939,8 @@ func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
 			JournalLenCalled: func() int {
 				return 0
 			},
-			RootHashCalled: func() []byte {
-				return []byte("root")
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("root"), nil
 			},
 		},
 		initMetaDataPool(),

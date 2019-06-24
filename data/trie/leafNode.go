@@ -1,12 +1,13 @@
-package trie2
+package trie
 
 import (
 	"bytes"
 	"io"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/data/trie2/capnp"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie2/proto"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/trie/capnp"
+	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	capn "github.com/glycerine/go-capnproto"
@@ -114,7 +115,7 @@ func (ln *leafNode) hashNode(marshalizer marshal.Marshalizer, hasher hashing.Has
 	return encodeNodeAndGetHash(ln, marshalizer, hasher)
 }
 
-func (ln *leafNode) commit(level byte, db DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (ln *leafNode) commit(level byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -139,7 +140,7 @@ func (ln *leafNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte, err
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) resolveCollapsed(pos byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func (ln *leafNode) resolveCollapsed(pos byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
 	return nil
 }
 
@@ -151,7 +152,7 @@ func (ln *leafNode) isPosCollapsed(pos int) bool {
 	return false
 }
 
-func (ln *leafNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
+func (ln *leafNode) tryGet(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
 		return nil, err
@@ -159,10 +160,11 @@ func (ln *leafNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Mar
 	if bytes.Equal(key, ln.Key) {
 		return ln.Value, nil
 	}
-	return nil, ErrNodeNotFound
+
+	return nil, nil
 }
 
-func (ln *leafNode) getNext(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
+func (ln *leafNode) getNext(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, err
@@ -173,7 +175,7 @@ func (ln *leafNode) getNext(key []byte, dbw DBWriteCacher, marshalizer marshal.M
 	return nil, nil, ErrNodeNotFound
 }
 
-func (ln *leafNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
+func (ln *leafNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return false, nil, err
@@ -202,7 +204,7 @@ func (ln *leafNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Ma
 	return true, newExtensionNode(ln.Key[:keyMatchLen], branch), nil
 }
 
-func (ln *leafNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
+func (ln *leafNode) delete(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
 	keyMatchLen := prefixLen(key, ln.Key)
 	if keyMatchLen == len(key) {
 		return true, nil, nil

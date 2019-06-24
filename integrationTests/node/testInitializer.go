@@ -42,8 +42,10 @@ func createDummyHexAddress(chars int) string {
 }
 
 func createInMemoryShardAccountsDB() *state.AccountsDB {
-	dbw, _ := trie.NewDBWriteCache(createMemUnit())
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+	hasher := sha256.Sha256{}
+	store := createMemUnit()
+
+	tr, _ := trie.NewTrie(store, testMarshalizer, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer, &accountFactory{})
 
 	return adb

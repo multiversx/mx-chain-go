@@ -19,8 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	ielecommon "github.com/ElrondNetwork/elrond-vm/iele/common"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,9 +50,9 @@ func CreateMemUnit() storage.Storer {
 
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
+	store := CreateMemUnit()
 
-	dbw, _ := trie.NewDBWriteCache(CreateMemUnit())
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, testHasher)
+	tr, _ := trie.NewTrie(store, marsh, testHasher)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
 	return adb
@@ -93,13 +91,14 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 
 func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) process.TransactionProcessor {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
-	cryptoHook := &hooks.VMCryptoHook{}
-	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, ielecommon.Default)
+	//TODO uncomment the following 2 lines
+	//cryptoHook := &hooks.VMCryptoHook{}
+	//vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, ielecommon.Default)
 	//Uncomment this to enable trace printing of the vm
 	//vm.SetTracePretty()
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
-		vm,
+		nil,
 		argsParser,
 		testHasher,
 		testMarshalizer,

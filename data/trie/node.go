@@ -1,257 +1,230 @@
-// Copyright 2014 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
 package trie
 
 import (
-	"fmt"
-	"io"
+	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/data/trie/encoding"
-
-	"github.com/ElrondNetwork/elrond-go/data/trie/rlp"
+	"github.com/ElrondNetwork/elrond-go/data"
+	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
-var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "[17]"}
+const nrOfChildren = 17
+const firstByte = 0
+const maxTrieLevelAfterCommit = 6
+const hexTerminator = 16
 
-// Nodes used interface
-type Node interface {
-	fstring(string) string
-	cache() (hashNode, bool)
-	canUnload(cachegen, cachelimit uint16) bool
+type node interface {
+	getHash() []byte
+	setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
+	setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error)
+	setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
+	getCollapsed(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) // a collapsed node is a node that instead of the children holds the children hashes
+	isCollapsed() bool
+	isPosCollapsed(pos int) bool
+	isDirty() bool
+	getEncodedNode(marshal.Marshalizer) ([]byte, error)
+	commit(level byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
+	resolveCollapsed(pos byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) error
+	hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error)
+	hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
+	tryGet(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) ([]byte, error)
+	getNext(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error)
+	insert(n *leafNode, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
+	delete(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
+	reduceNode(pos int) node
+	isEmptyOrNil() error
 }
 
-type (
-	fullNode struct {
-		Children [17]Node // Actual trie node data to encode/decode (needs custom encoder)
-		flags    nodeFlag
-	}
-	shortNode struct {
-		Key   []byte
-		Val   Node
-		flags nodeFlag
-	}
-	hashNode  []byte
-	valueNode []byte
-)
-
-// nilValueNode is used when collapsing internal trie nodes for hashing, since
-// unset children need to serialize correctly.
-var nilValueNode = valueNode(nil)
-
-// EncodeRLP encodes a full node into the consensus RLP format.
-func (n *fullNode) EncodeRLP(w io.Writer) error {
-	var nodes [17]Node
-
-	for i, child := range &n.Children {
-		if child != nil {
-			nodes[i] = child
-		} else {
-			nodes[i] = nilValueNode
-		}
-	}
-	return rlp.Encode(w, nodes)
+type branchNode struct {
+	protobuf.CollapsedBn
+	children [nrOfChildren]node
+	hash     []byte
+	dirty    bool
 }
 
-func (n *fullNode) copy() *fullNode   { cpy := *n; return &cpy }
-func (n *shortNode) copy() *shortNode { cpy := *n; return &cpy }
-
-// nodeFlag contains caching-related metadata about a node.
-type nodeFlag struct {
-	hash  hashNode // cached hash of the node (may be nil)
-	gen   uint16   // cache generation counter
-	dirty bool     // whether the node has changes that must be written to the database
+type extensionNode struct {
+	protobuf.CollapsedEn
+	child node
+	hash  []byte
+	dirty bool
 }
 
-// canUnload tells whether a node can be unloaded.
-func (n *nodeFlag) canUnload(cachegen, cachelimit uint16) bool {
-	return !n.dirty && cachegen-n.gen >= cachelimit
+type leafNode struct {
+	protobuf.CollapsedLn
+	hash  []byte
+	dirty bool
 }
 
-func (n *fullNode) canUnload(gen, limit uint16) bool  { return n.flags.canUnload(gen, limit) }
-func (n *shortNode) canUnload(gen, limit uint16) bool { return n.flags.canUnload(gen, limit) }
-func (n hashNode) canUnload(uint16, uint16) bool      { return false }
-func (n valueNode) canUnload(uint16, uint16) bool     { return false }
-
-func (n *fullNode) cache() (hashNode, bool)  { return n.flags.hash, n.flags.dirty }
-func (n *shortNode) cache() (hashNode, bool) { return n.flags.hash, n.flags.dirty }
-func (n hashNode) cache() (hashNode, bool)   { return nil, true }
-func (n valueNode) cache() (hashNode, bool)  { return nil, true }
-
-// Pretty printing.
-func (n *fullNode) String() string  { return n.fstring("") }
-func (n *shortNode) String() string { return n.fstring("") }
-func (n hashNode) String() string   { return n.fstring("") }
-func (n valueNode) String() string  { return n.fstring("") }
-
-func (n *fullNode) fstring(ind string) string {
-	resp := fmt.Sprintf("[\n%s  ", ind)
-	for i, node := range &n.Children {
-		if node == nil {
-			resp += fmt.Sprintf("%s: <nil> ", indices[i])
-		} else {
-			resp += fmt.Sprintf("%s: %v", indices[i], node.fstring(ind+"  "))
-		}
-	}
-	return resp + fmt.Sprintf("\n%s] ", ind)
-}
-func (n *shortNode) fstring(ind string) string {
-	return fmt.Sprintf("{%x: %v} ", n.Key, n.Val.fstring(ind+"  "))
-}
-func (n hashNode) fstring(ind string) string {
-	return fmt.Sprintf("<%x> ", []byte(n))
-}
-func (n valueNode) fstring(ind string) string {
-	return fmt.Sprintf("%x ", []byte(n))
-}
-
-func mustDecodeNode(hash, buf []byte, cachegen uint16) Node {
-	n, err := decodeNode(hash, buf, cachegen)
-	if err != nil {
-		panic(fmt.Sprintf("node %x: %v", hash, err))
-	}
-	return n
-}
-
-// decodeNode parses the RLP encoding of a trie node.
-func decodeNode(hash, buf []byte, cachegen uint16) (Node, error) {
-	if len(buf) == 0 {
-		return nil, io.ErrUnexpectedEOF
-	}
-	elems, _, err := rlp.SplitList(buf)
-	if err != nil {
-		return nil, fmt.Errorf("decode error: %v", err)
-	}
-	switch c, _ := rlp.CountValues(elems); c {
-	case 2:
-		n, err := decodeShort(hash, elems, cachegen)
-		return n, encoding.WrapError(err, "short")
-	case 17:
-		n, err := decodeFull(hash, elems, cachegen)
-		return n, encoding.WrapError(err, "full")
-	default:
-		return nil, fmt.Errorf("invalid number of list elements: %v", c)
-	}
-}
-
-func decodeShort(hash, elems []byte, cachegen uint16) (Node, error) {
-	kbuf, rest, err := rlp.SplitString(elems)
+func hashChildrenAndNode(n node, marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
+	err := n.hashChildren(marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}
-	flag := nodeFlag{hash: hash, gen: cachegen}
-	key := encoding.CompactToHex(kbuf)
-	if encoding.HasTerm(key) {
-		// value node
-		val, _, err := rlp.SplitString(rest)
-		if err != nil {
-			return nil, fmt.Errorf("invalid value node: %v", err)
-		}
-		return &shortNode{key, append(valueNode{}, val...), flag}, nil
-	}
-	r, _, err := decodeRef(rest, cachegen)
+
+	hashed, err := n.hashNode(marshalizer, hasher)
 	if err != nil {
-		return nil, encoding.WrapError(err, "val")
+		return nil, err
 	}
-	return &shortNode{key, r, flag}, nil
+
+	return hashed, nil
 }
 
-func decodeFull(hash, elems []byte, cachegen uint16) (*fullNode, error) {
-	n := &fullNode{flags: nodeFlag{hash: hash, gen: cachegen}}
-	for i := 0; i < 16; i++ {
-		cld, rest, err := decodeRef(elems, cachegen)
-		if err != nil {
-			return n, encoding.WrapError(err, fmt.Sprintf("[%d]", i))
-		}
-		n.Children[i], elems = cld, rest
-	}
-	val, _, err := rlp.SplitString(elems)
+func encodeNodeAndGetHash(n node, marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
+	encNode, err := n.getEncodedNode(marshalizer)
 	if err != nil {
-		return n, err
+		return nil, err
 	}
-	if len(val) > 0 {
-		n.Children[16] = append(valueNode{}, val...)
-	}
-	return n, nil
+
+	hash := hasher.Compute(string(encNode))
+
+	return hash, nil
 }
 
-const hashLen = len(encoding.Hash{})
-
-func decodeRef(buf []byte, cachegen uint16) (Node, []byte, error) {
-	kind, val, rest, err := rlp.Split(buf)
-	if err != nil {
-		return nil, buf, err
-	}
-	switch {
-	case kind == rlp.List:
-		// 'embedded' node reference. The encoding must be smaller
-		// than a hash in order to be valid.
-		if size := len(buf) - len(rest); size > hashLen {
-			err := fmt.Errorf("oversized embedded node (size is %d bytes, want size < %d)", size, hashLen)
-			return nil, buf, err
+func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+	key := n.getHash()
+	if key == nil {
+		err := n.setHash(marshalizer, hasher)
+		if err != nil {
+			return err
 		}
-		n, err := decodeNode(nil, buf, cachegen)
-		return n, rest, err
-	case kind == rlp.String && len(val) == 0:
-		// empty node
-		return nil, rest, nil
-	case kind == rlp.String && len(val) == 32:
-		return append(hashNode{}, val...), rest, nil
+		key = n.getHash()
+	}
+
+	n, err := n.getCollapsed(marshalizer, hasher)
+	if err != nil {
+		return err
+	}
+
+	val, err := n.getEncodedNode(marshalizer)
+	if err != nil {
+		return err
+	}
+
+	err = db.Put(key, val)
+
+	return err
+}
+
+func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, error) {
+	encChild, err := db.Get(n)
+	if err != nil {
+		return nil, err
+	}
+
+	node, err := decodeNode(encChild, marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	return node, nil
+}
+
+func resolveIfCollapsed(n node, pos byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+	err := n.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
+
+	if n.isPosCollapsed(int(pos)) {
+		err := n.resolveCollapsed(pos, db, marshalizer)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func concat(s1 []byte, s2 ...byte) []byte {
+	r := make([]byte, len(s1)+len(s2))
+	copy(r, s1)
+	copy(r[len(s1):], s2)
+
+	return r
+}
+
+func hasValidHash(n node) (bool, error) {
+	err := n.isEmptyOrNil()
+	if err != nil {
+		return false, err
+	}
+
+	childHash := n.getHash()
+	childIsDirty := n.isDirty()
+	if childHash == nil || childIsDirty {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func decodeNode(encNode []byte, marshalizer marshal.Marshalizer) (node, error) {
+	if encNode == nil || len(encNode) < 1 {
+		return nil, ErrInvalidEncoding
+	}
+
+	nodeType := encNode[len(encNode)-1]
+	encNode = encNode[:len(encNode)-1]
+
+	node, err := getEmptyNodeOfType(nodeType)
+	if err != nil {
+		return nil, err
+	}
+
+	err = marshalizer.Unmarshal(node, encNode)
+	if err != nil {
+		return nil, err
+	}
+
+	return node, nil
+}
+
+func getEmptyNodeOfType(t byte) (node, error) {
+	var decNode node
+	switch t {
+	case extension:
+		decNode = &extensionNode{}
+	case leaf:
+		decNode = &leafNode{}
+	case branch:
+		decNode = newBranchNode()
 	default:
-		return nil, nil, fmt.Errorf("invalid RLP string size %d (want 0 or 32)", len(val))
+		return nil, ErrInvalidNode
 	}
+	return decNode, nil
 }
 
-type rawNode []byte
+func childPosOutOfRange(pos byte) bool {
+	return pos >= nrOfChildren
+}
 
-func (n rawNode) canUnload(uint16, uint16) bool { panic("this should never end up in a live trie") }
-func (n rawNode) cache() (hashNode, bool)       { panic("this should never end up in a live trie") }
-func (n rawNode) fstring(ind string) string     { panic("this should never end up in a live trie") }
+// keyBytesToHex transforms key bytes into hex nibbles
+func keyBytesToHex(str []byte) []byte {
+	length := len(str)*2 + 1
+	nibbles := make([]byte, length)
+	for i, b := range str {
+		nibbles[i*2] = b / hexTerminator
+		nibbles[i*2+1] = b % hexTerminator
+	}
+	nibbles[length-1] = hexTerminator
 
-// rawFullNode represents only the useful data content of a full node, with the
-// caches and flags stripped out to minimize its data storage. This type honors
-// the same RLP encoding as the original parent.
-type rawFullNode [17]Node
+	return nibbles
+}
 
-func (n rawFullNode) canUnload(uint16, uint16) bool { panic("this should never end up in a live trie") }
-func (n rawFullNode) cache() (hashNode, bool)       { panic("this should never end up in a live trie") }
-func (n rawFullNode) fstring(ind string) string     { panic("this should never end up in a live trie") }
+// prefixLen returns the length of the common prefix of a and b.
+func prefixLen(a, b []byte) int {
+	i := 0
+	length := len(a)
+	if len(b) < length {
+		length = len(b)
+	}
 
-// EncodeRLP does encoding of the node
-func (n rawFullNode) EncodeRLP(w io.Writer) error {
-	var nodes [17]Node
-
-	for i, child := range n {
-		if child != nil {
-			nodes[i] = child
-		} else {
-			nodes[i] = nilValueNode
+	for ; i < length; i++ {
+		if a[i] != b[i] {
+			break
 		}
 	}
-	return rlp.Encode(w, nodes)
-}
 
-// rawShortNode represents only the useful data content of a short node, with the
-// caches and flags stripped out to minimize its data storage. This type honors
-// the same RLP encoding as the original parent.
-type rawShortNode struct {
-	Key []byte
-	Val Node
+	return i
 }
-
-func (n rawShortNode) canUnload(uint16, uint16) bool { panic("this should never end up in a live trie") }
-func (n rawShortNode) cache() (hashNode, bool)       { panic("this should never end up in a live trie") }
-func (n rawShortNode) fstring(ind string) string     { panic("this should never end up in a live trie") }
