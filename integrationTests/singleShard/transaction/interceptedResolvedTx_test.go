@@ -25,14 +25,14 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	dPoolRequestor := createTestDataPool()
+	dPoolRequester := createTestDataPool()
 	dPoolResolver := createTestDataPool()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
-	fmt.Println("Requestor:")
-	nRequestor, mesRequestor, sk1, resolversFinder := createNetNode(
-		dPoolRequestor,
+	fmt.Println("Requester:")
+	nRequester, mesRequester, sk1, resolversFinder := createNetNode(
+		dPoolRequester,
 		createAccountsDB(),
 		shardCoordinator)
 
@@ -42,16 +42,16 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 		createAccountsDB(),
 		shardCoordinator)
 
-	nRequestor.Start()
-	nResolver.Start()
+	_ = nRequester.Start()
+	_ = nResolver.Start()
 	defer func() {
-		_ = nRequestor.Stop()
+		_ = nRequester.Stop()
 		_ = nResolver.Stop()
 	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := mesRequestor.ConnectToPeer(getConnectableAddress(mesResolver))
+	err := mesRequester.ConnectToPeer(getConnectableAddress(mesResolver))
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -80,9 +80,9 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	txHash := hasher.Compute(string(signedTxBuff))
 
-	//step 2. wire up a received handler for requestor
-	dPoolRequestor.Transactions().RegisterHandler(func(key []byte) {
-		txStored, _ := dPoolRequestor.Transactions().ShardDataStore(
+	//step 2. wire up a received handler for requester
+	dPoolRequester.Transactions().RegisterHandler(func(key []byte) {
+		txStored, _ := dPoolRequester.Transactions().ShardDataStore(
 			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
 		).Get(key)
 
