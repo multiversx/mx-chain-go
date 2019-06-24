@@ -127,7 +127,7 @@ func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 
 	switch ef.RestApiPort() {
 	case DefaultRestPortOff:
-		fmt.Println("why this is not off: ", ef.RestApiPort())
+		ef.log.Info(fmt.Sprintf("Web server is off") )
 		break
 	default:
 		ef.log.Info("Starting web server...")
