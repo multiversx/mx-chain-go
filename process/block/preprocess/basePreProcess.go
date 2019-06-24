@@ -29,6 +29,12 @@ type txsHashesInfo struct {
 	receiverShardID uint32
 }
 
+type txsForBlock struct {
+	missingTxs     int
+	mutTxsForBlock sync.RWMutex
+	txHashAndInfo  map[string]*txInfo
+}
+
 type basePreProcess struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
@@ -78,12 +84,12 @@ func (bpp *basePreProcess) restoreMiniBlock(miniBlock *block.MiniBlock, miniBloc
 	return err
 }
 
-func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, mutForBlock *sync.RWMutex, currBlock map[string]*txInfo) ([][]byte, error) {
+func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
 	mrsScrs := make([][]byte, 0)
 	for _, txHash := range txHashes {
-		mutForBlock.RLock()
-		txInfo := currBlock[string(txHash)]
-		mutForBlock.RUnlock()
+		forBlock.mutTxsForBlock.RLock()
+		txInfo := forBlock.txHashAndInfo[string(txHash)]
+		forBlock.mutTxsForBlock.RUnlock()
 
 		if txInfo == nil || txInfo.tx == nil {
 			continue
@@ -101,8 +107,7 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, mutForBlock 
 
 func (bpp *basePreProcess) saveTxsToStorage(
 	txHashes [][]byte,
-	mutForBlock *sync.RWMutex,
-	currBlock map[string]*txInfo,
+	forBlock *txsForBlock,
 	store dataRetriever.StorageService,
 	dataUnit dataRetriever.UnitType,
 ) error {
@@ -110,9 +115,9 @@ func (bpp *basePreProcess) saveTxsToStorage(
 	for j := 0; j < len(txHashes); j++ {
 		txHash := txHashes[j]
 
-		mutForBlock.RLock()
-		txInfo := currBlock[string(txHash)]
-		mutForBlock.RUnlock()
+		forBlock.mutTxsForBlock.RLock()
+		txInfo := forBlock.txHashAndInfo[string(txHash)]
+		forBlock.mutTxsForBlock.RUnlock()
 
 		if txInfo == nil || txInfo.tx == nil {
 			return process.ErrMissingTransaction
@@ -134,30 +139,28 @@ func (bpp *basePreProcess) saveTxsToStorage(
 
 func (bpp *basePreProcess) baseReceivedTransaction(
 	txHash []byte,
-	mutTxsForBlock *sync.RWMutex,
-	missingTxs *int,
-	txsForBlock map[string]*txInfo,
+	forBlock *txsForBlock,
 	txPool dataRetriever.ShardedDataCacherNotifier,
 ) bool {
 	currMissingTxs := 0
 
-	mutTxsForBlock.Lock()
-	if *missingTxs > 0 {
-		txInfoForHash := txsForBlock[string(txHash)]
+	forBlock.mutTxsForBlock.Lock()
+	if forBlock.missingTxs > 0 {
+		txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
 		if txInfoForHash != nil &&
 			txInfoForHash.txShardInfo != nil &&
 			!txInfoForHash.has {
 			tx := bpp.getTransactionFromPool(txInfoForHash.senderShardID, txInfoForHash.receiverShardID, txHash, txPool)
 			if tx != nil {
-				txsForBlock[string(txHash)].tx = tx
-				txsForBlock[string(txHash)].has = true
-				*missingTxs--
+				forBlock.txHashAndInfo[string(txHash)].tx = tx
+				forBlock.txHashAndInfo[string(txHash)].has = true
+				forBlock.missingTxs--
 			}
 		}
 
-		currMissingTxs = *missingTxs
+		currMissingTxs = forBlock.missingTxs
 	}
-	mutTxsForBlock.Unlock()
+	forBlock.mutTxsForBlock.Unlock()
 
 	return currMissingTxs == 0
 }
@@ -193,17 +196,15 @@ func (bpp *basePreProcess) getTransactionFromPool(
 
 func (bpp *basePreProcess) computeExistingAndMissing(
 	body block.Body,
-	mutTxsForBlock *sync.RWMutex,
-	missingTxs *int,
-	txsForBlock map[string]*txInfo,
+	forBlock *txsForBlock,
 	chRcvAllTxs chan bool,
 	currType block.Type,
 	txPool dataRetriever.ShardedDataCacherNotifier,
 ) map[uint32]*txsHashesInfo {
 	missingTxsForShard := make(map[uint32]*txsHashesInfo, 0)
-	mutTxsForBlock.Lock()
+	forBlock.mutTxsForBlock.Lock()
 
-	*missingTxs = 0
+	forBlock.missingTxs = 0
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		if miniBlock.Type != currType {
@@ -219,9 +220,9 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 
 			if tx == nil {
 				txHashes = append(txHashes, txHash)
-				*missingTxs++
+				forBlock.missingTxs++
 			} else {
-				txsForBlock[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo, has: true}
+				forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo, has: true}
 			}
 		}
 
@@ -233,11 +234,11 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 		}
 	}
 
-	if *missingTxs > 0 {
+	if forBlock.missingTxs > 0 {
 		process.EmptyChannel(chRcvAllTxs)
 	}
 
-	mutTxsForBlock.Unlock()
+	forBlock.mutTxsForBlock.Unlock()
 
 	return missingTxsForShard
 }

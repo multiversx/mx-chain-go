@@ -5,47 +5,47 @@ func (txs *transactions) ReceivedTransaction(txHash []byte) {
 }
 
 func (txs *transactions) AddTxHashToRequestedList(txHash []byte) {
-	txs.mutTxsForBlock.Lock()
-	defer txs.mutTxsForBlock.Unlock()
+	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	defer txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
-	if txs.txsForBlock == nil {
-		txs.txsForBlock = make(map[string]*txInfo)
+	if txs.txsForCurrBlock.txHashAndInfo == nil {
+		txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 	}
-	txs.txsForBlock[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
+	txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
 }
 
 func (txs *transactions) IsTxHashRequested(txHash []byte) bool {
-	txs.mutTxsForBlock.Lock()
-	defer txs.mutTxsForBlock.Unlock()
+	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	defer txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
-	return !txs.txsForBlock[string(txHash)].has
+	return !txs.txsForCurrBlock.txHashAndInfo[string(txHash)].has
 }
 
 func (txs *transactions) SetMissingTxs(missingTxs int) {
-	txs.mutTxsForBlock.Lock()
-	txs.missingTxs = missingTxs
-	txs.mutTxsForBlock.Unlock()
+	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	txs.txsForCurrBlock.missingTxs = missingTxs
+	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 }
 
 func (scr *smartContractResults) AddScrHashToRequestedList(txHash []byte) {
-	scr.mutScrsForBlock.Lock()
-	defer scr.mutScrsForBlock.Unlock()
+	scr.scrForBlock.mutTxsForBlock.Lock()
+	defer scr.scrForBlock.mutTxsForBlock.Unlock()
 
-	if scr.scrForBlock == nil {
-		scr.scrForBlock = make(map[string]*txInfo)
+	if scr.scrForBlock.txHashAndInfo == nil {
+		scr.scrForBlock.txHashAndInfo = make(map[string]*txInfo)
 	}
-	scr.scrForBlock[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
+	scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
 }
 
 func (scr *smartContractResults) IsScrHashRequested(txHash []byte) bool {
-	scr.mutScrsForBlock.Lock()
-	defer scr.mutScrsForBlock.Unlock()
+	scr.scrForBlock.mutTxsForBlock.Lock()
+	defer scr.scrForBlock.mutTxsForBlock.Unlock()
 
-	return !scr.scrForBlock[string(txHash)].has
+	return !scr.scrForBlock.txHashAndInfo[string(txHash)].has
 }
 
 func (scr *smartContractResults) SetMissingScr(missingTxs int) {
-	scr.mutScrsForBlock.Lock()
-	scr.missingScrs = missingTxs
-	scr.mutScrsForBlock.Unlock()
+	scr.scrForBlock.mutTxsForBlock.Lock()
+	scr.scrForBlock.missingTxs = missingTxs
+	scr.scrForBlock.mutTxsForBlock.Unlock()
 }
