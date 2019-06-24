@@ -84,7 +84,7 @@ func createMemUnit() storage.Storer {
 	return unit
 }
 
-func createTestStore() dataRetriever.StorageService {
+func createTestStore(coordinator sharding.Coordinator) dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
@@ -92,6 +92,8 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.SmartContractResultUnit, createMemUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(coordinator.SelfId()), createMemUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 
 	return store
 }
@@ -231,7 +233,7 @@ func createNetNode(
 
 	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
 	blkc := createTestBlockChain()
-	store := createTestStore()
+	store := createTestStore(shardCoordinator)
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	dataPacker, _ := partitioning.NewSizeDataPacker(marshalizer)
 
