@@ -114,7 +114,7 @@ func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, 
 		// TODO: Should fix this to ask only other shard peers
 		excludePeersFromTopic := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-		resolver, err := rcf.createOneShardHeaderResolver(identifierHeader, excludePeersFromTopic)
+		resolver, err := rcf.createShardHeaderResolver(identifierHeader, excludePeersFromTopic, idx)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -126,7 +126,7 @@ func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, 
 	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createOneShardHeaderResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createShardHeaderResolver(topic string, excludedTopic string, shardID uint32) (dataRetriever.Resolver, error) {
 	hdrStorer := rcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
@@ -140,10 +140,15 @@ func (rcf *resolversContainerFactory) createOneShardHeaderResolver(topic string,
 		return nil, err
 	}
 
-	resolver, err := resolvers.NewShardHeaderResolver(
+	//TODO change this data unit creation method through a factory or func
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID)
+	hdrNonceStore := rcf.store.GetStorer(hdrNonceHashDataUnit)
+	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.ShardHeaders(),
+		rcf.dataPools.ShardHeadersNonces(),
 		hdrStorer,
+		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
 	)
@@ -183,11 +188,14 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 	if err != nil {
 		return nil, err
 	}
+
+	hdrNonceStore := rcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.MetaChainBlocks(),
 		rcf.dataPools.MetaBlockNonces(),
 		hdrStorer,
+		hdrNonceStore,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter,
 	)
