@@ -71,20 +71,17 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 		}
 	}
 
-	var finalMbs []*block.MiniBlock
 	for i := 0; i < len(miniBlocks); i++ {
 		if miniBlocks[i] != nil && len(miniBlocks[i].TxHashes) > 0 {
 			miniBlocks[i].SenderShardID = irp.shardCoordinator.SelfId()
 			miniBlocks[i].ReceiverShardID = uint32(i)
 			miniBlocks[i].Type = block.SmartContractResultBlock
-
-			finalMbs = append(finalMbs, miniBlocks[i])
 		}
 	}
 
 	irp.interResultsForBlock = make(map[string]*txInfo, 0)
 
-	return finalMbs
+	return miniBlocks
 }
 
 // VerifyScrMiniBlocks validity verifies if the smart contract results added to the block are valid
@@ -101,6 +98,7 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body block.Body) 
 		}
 
 		createdScrMb := scrMbs[mb.ReceiverShardID]
+
 		createdHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, createdScrMb)
 		if err != nil {
 			return err

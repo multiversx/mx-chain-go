@@ -384,3 +384,6 @@ var ErrNilIntermediateTransactionHandler = errors.New("intermediate transaction 
 
 // ErrWrongTypeInMiniBlock signals that type is not correct for processing
 var ErrWrongTypeInMiniBlock = errors.New("type in miniblock is not correct for processing")
+
+// ErrMissingMiniblock signals that miniblock does not exists
+var ErrMissingMiniblock = errors.New("miniblock does not exists")
