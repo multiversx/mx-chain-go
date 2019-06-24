@@ -52,12 +52,15 @@ func NewIntermediateResultsProcessor(
 
 	irp.interResultsForBlock = make(map[string]*txInfo, 0)
 
-	return nil, nil
+	return irp, nil
 }
 
 // CreateAllScrMiniBlocks returns the cross shard miniblocks for the current round created from the smart contract results
 func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.MiniBlock {
 	miniBlocks := make([]*block.MiniBlock, irp.shardCoordinator.NumberOfShards())
+	for i := uint32(0); i < irp.shardCoordinator.NumberOfShards(); i++ {
+		miniBlocks[i] = &block.MiniBlock{}
+	}
 
 	irp.mutInterResultsForBlock.Lock()
 	defer irp.mutInterResultsForBlock.Unlock()
@@ -68,17 +71,20 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 		}
 	}
 
+	var finalMbs []*block.MiniBlock
 	for i := 0; i < len(miniBlocks); i++ {
-		if len(miniBlocks[i].TxHashes) > 0 {
+		if miniBlocks[i] != nil && len(miniBlocks[i].TxHashes) > 0 {
 			miniBlocks[i].SenderShardID = irp.shardCoordinator.SelfId()
 			miniBlocks[i].ReceiverShardID = uint32(i)
 			miniBlocks[i].Type = block.SmartContractResultBlock
+
+			finalMbs = append(finalMbs, miniBlocks[i])
 		}
 	}
 
 	irp.interResultsForBlock = make(map[string]*txInfo, 0)
 
-	return miniBlocks
+	return finalMbs
 }
 
 // VerifyScrMiniBlocks validity verifies if the smart contract results added to the block are valid
