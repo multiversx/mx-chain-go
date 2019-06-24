@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 )
 
@@ -56,12 +55,6 @@ type NodeWrapper interface {
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 	GetHeartbeats() []heartbeat.PubKeyHeartbeat
-}
-
-// Deprecated: ExternalResolver defines what functionality can be exposed to an external component (REST API, RPC, etc.)
-type ExternalResolver interface {
-	RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error)
-	RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error)
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests

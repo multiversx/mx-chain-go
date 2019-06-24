@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 )
@@ -17,7 +16,6 @@ import (
 // ElrondNodeFacade represents a facade for grouping the functionality for node, transaction and address
 type ElrondNodeFacade struct {
 	node         NodeWrapper
-	resolver     ExternalResolver
 	apiResolver  ApiResolver
 	syncer       ntp.SyncTimer
 	log          *logger.Logger
@@ -25,11 +23,8 @@ type ElrondNodeFacade struct {
 }
 
 // NewElrondNodeFacade creates a new Facade with a NodeWrapper
-func NewElrondNodeFacade(node NodeWrapper, resolver ExternalResolver, apiResolver ApiResolver) *ElrondNodeFacade {
+func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver) *ElrondNodeFacade {
 	if node == nil {
-		return nil
-	}
-	if resolver == nil {
 		return nil
 	}
 	if apiResolver == nil {
@@ -38,7 +33,6 @@ func NewElrondNodeFacade(node NodeWrapper, resolver ExternalResolver, apiResolve
 
 	return &ElrondNodeFacade{
 		node:        node,
-		resolver:    resolver,
 		apiResolver: apiResolver,
 	}
 }
@@ -171,16 +165,6 @@ func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	}
 
 	return hbStatus, nil
-}
-
-// RecentNotarizedBlocks computes last notarized [maxShardHeadersNum] shard headers (by metachain node)
-func (ef *ElrondNodeFacade) RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error) {
-	return ef.resolver.RecentNotarizedBlocks(maxShardHeadersNum)
-}
-
-// RetrieveShardBlock retrieves a shard block info containing header and transactions
-func (ef *ElrondNodeFacade) RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error) {
-	return ef.resolver.RetrieveShardBlock(blockHash)
 }
 
 // GetDataValue retrieves data from existing SC trie

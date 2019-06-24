@@ -167,15 +167,6 @@ VERSION:
 	rm *statistics.ResourceMonitor
 )
 
-// TODO - remove this mock and replace with a valid implementation
-type mockProposerResolver struct {
-}
-
-// ResolveProposer computes a block proposer. For now, this is mocked.
-func (mockProposerResolver) ResolveProposer(shardId uint32, roundIndex uint32, prevRandomSeed []byte) ([]byte, error) {
-	return []byte("mocked proposer"), nil
-}
-
 // dbIndexer will hold the database indexer. Defined globally so it can be initialised only in
 //  certain conditions. If those conditions will not be met, it will stay as nil
 var dbIndexer indexer.Indexer
@@ -439,24 +430,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	externalResolver, err := external.NewExternalResolver(
-		shardCoordinator,
-		dataComponents.Blkc,
-		dataComponents.Store,
-		coreComponents.Marshalizer,
-		&mockProposerResolver{},
-	)
-	if err != nil {
-		return err
-	}
-
 	apiResolver, err := createApiResolver()
 	if err != nil {
 		return err
 	}
 
-	ef := facade.NewElrondNodeFacade(currentNode, externalResolver, apiResolver)
-
+	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
 	ef.SetLogger(log)
 	ef.SetSyncer(syncer)
 	ef.SetTpsBenchmark(tpsBenchmark)

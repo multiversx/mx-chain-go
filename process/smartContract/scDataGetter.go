@@ -52,7 +52,7 @@ func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte)
 	}
 
 	// VM is formally verified and the output is correct
-	return scdg.processVMOutput(vmOutput)
+	return scdg.checkVMOutput(vmOutput)
 }
 
 func (scdg *scDataGetter) createVMCallInput(
@@ -81,6 +81,7 @@ func (scdg *scDataGetter) createVMCallInput(
 		Arguments:   argsInt,
 		Header:      header,
 	}
+
 	vmContractCallInput := &vmcommon.ContractCallInput{
 		RecipientAddr: scAddress,
 		Function:      funcName,
@@ -90,7 +91,7 @@ func (scdg *scDataGetter) createVMCallInput(
 	return vmContractCallInput
 }
 
-func (scdg *scDataGetter) processVMOutput(vmOutput *vmcommon.VMOutput) ([]byte, error) {
+func (scdg *scDataGetter) checkVMOutput(vmOutput *vmcommon.VMOutput) ([]byte, error) {
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		return nil, errors.New(fmt.Sprintf("error running vm func: code: %d, %s", vmOutput.ReturnCode, vmOutput.ReturnCode))
 	}

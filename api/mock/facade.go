@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 )
 
@@ -26,17 +25,7 @@ type Facade struct {
 	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, value *big.Int, code string, signature []byte) (string, error)
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
-	RecentNotarizedBlocksHandler                   func(maxShardHeadersNum int) ([]*external.BlockHeader, error)
-	RetrieveShardBlockHandler                      func(blockHash []byte) (*external.ShardBlockInfo, error)
 	GetDataValueHandler                            func(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
-}
-
-func (f *Facade) RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error) {
-	return f.RecentNotarizedBlocksHandler(maxShardHeadersNum)
-}
-
-func (f *Facade) RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error) {
-	return f.RetrieveShardBlockHandler(blockHash)
 }
 
 // IsNodeRunning is the mock implementation of a handler's IsNodeRunning method
