@@ -21,22 +21,6 @@ import (
 
 var log = logger.DefaultLogger()
 
-type txShardInfo struct {
-	senderShardID   uint32
-	receiverShardID uint32
-}
-
-type txInfo struct {
-	tx *transaction.Transaction
-	*txShardInfo
-	has bool
-}
-
-type txsHashesInfo struct {
-	txHashes        [][]byte
-	receiverShardID uint32
-}
-
 type transactions struct {
 	*basePreProcess
 	chRcvAllTxs          chan bool
@@ -47,7 +31,6 @@ type transactions struct {
 	txPool               dataRetriever.ShardedDataCacherNotifier
 	storage              dataRetriever.StorageService
 	txProcessor          process.TransactionProcessor
-	shardCoordinator     sharding.Coordinator
 	accounts             state.AccountsAdapter
 	interTxHandler       process.IntermediateTransactionHandler
 }
@@ -89,11 +72,14 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilRequestHandler
 	}
 
-	bpp := &basePreProcess{hasher: hasher, marshalizer: marshalizer}
+	bpp := &basePreProcess{
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		shardCoordinator: shardCoordinator,
+	}
 
 	txs := &transactions{
 		basePreProcess:       bpp,
-		shardCoordinator:     shardCoordinator,
 		storage:              store,
 		txPool:               txDataPool,
 		onRequestTransaction: onRequestTransaction,
@@ -179,15 +165,9 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 			txs.txPool.AddData([]byte(txHash), &tx, strCache)
 		}
 
-		buff, err := txs.marshalizer.Marshal(miniBlock)
+		err = txs.restoreMiniBlock(miniBlock, miniBlockPool, miniBlockHashes[i])
 		if err != nil {
 			return txsRestored, err
-		}
-
-		miniBlockHash := txs.hasher.Compute(string(buff))
-		miniBlockPool.Put(miniBlockHash, miniBlock)
-		if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
-			miniBlockHashes[i] = miniBlockHash
 		}
 
 		txsRestored += len(miniBlock.TxHashes)
@@ -201,6 +181,10 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32,
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
+		if miniBlock.Type != block.TxBlock {
+			continue
+		}
+
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if haveTime() < 0 {
 				return process.ErrTimeIsOut
@@ -214,9 +198,14 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32,
 				return process.ErrMissingTransaction
 			}
 
+			currTx, ok := txInfo.tx.(*transaction.Transaction)
+			if !ok {
+				return process.ErrWrongTypeAssertion
+			}
+
 			err := txs.processAndRemoveBadTransaction(
 				txHash,
-				txInfo.tx,
+				currTx,
 				round,
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
@@ -356,6 +345,10 @@ func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) 
 	txs.missingTxs = 0
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
+		if miniBlock.Type != block.TxBlock {
+			continue
+		}
+
 		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
 		txHashes := make([][]byte, 0)
 
@@ -426,6 +419,10 @@ func (txs *transactions) RequestTransactionsForMiniBlock(mb block.MiniBlock) int
 
 // computeMissingTxsForMiniBlock computes missing transactions for a certain miniblock
 func (txs *transactions) computeMissingTxsForMiniBlock(mb block.MiniBlock) [][]byte {
+	if mb.Type != block.TxBlock {
+		return nil
+	}
+
 	missingTransactions := make([][]byte, 0)
 	for _, txHash := range mb.TxHashes {
 		tx := txs.getTransactionFromPool(mb.SenderShardID, mb.ReceiverShardID, txHash)
@@ -540,6 +537,10 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
 func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error {
+	if miniBlock.Type != block.TxBlock {
+		return process.ErrWrongTypeInMiniBlock
+	}
+
 	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return err

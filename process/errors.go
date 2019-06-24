@@ -381,3 +381,6 @@ var ErrMiniBlockHashMismatch = errors.New("miniblocks does not match")
 
 // ErrNilIntermediateTransactionHandler signals that nil intermediate transaction handler was provided
 var ErrNilIntermediateTransactionHandler = errors.New("intermediate transaction handler is nil")
+
+// ErrWrongTypeInMiniBlock signals that type is not correct for processing
+var ErrWrongTypeInMiniBlock = errors.New("type in miniblock is not correct for processing")
