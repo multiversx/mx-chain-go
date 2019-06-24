@@ -134,11 +134,6 @@ func (boot *baseBootstrap) applyBlock(
 	getBlockBody func(data.HeaderHandler) (data.BodyHandler, error),
 ) error {
 
-	headerNoncePool := boot.headersNonces
-	if headerNoncePool == nil {
-		return process.ErrNilDataPoolHolder
-	}
-
 	header, headerHash, err := getHeader(nonce)
 	if err != nil {
 		return err
@@ -170,8 +165,6 @@ func (boot *baseBootstrap) applyBlock(
 
 	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
 
-	_ = headerNoncePool.Put(header.GetNonce(), headerHash)
-
 	return nil
 }
 
@@ -190,11 +183,6 @@ func (boot *baseBootstrap) removeBlock(
 		return process.ErrNilHeadersNonceHashStorage
 	}
 
-	headerNoncePool := boot.headersNonces
-	if headerNoncePool == nil {
-		return process.ErrNilDataPoolHolder
-	}
-
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
 	headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
 	if err != nil {
@@ -210,8 +198,6 @@ func (boot *baseBootstrap) removeBlock(
 	if err != nil {
 		return err
 	}
-
-	headerNoncePool.Remove(nonce)
 
 	return nil
 }

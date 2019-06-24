@@ -168,6 +168,13 @@ func (boot *MetaBootstrap) ApplyNotarizedBlock(nonce uint64, notarizedHdrNonceHa
 	return boot.applyNotarizedBlock(nonce, notarizedHdrNonceHashDataUnit)
 }
 
+func (boot *baseBootstrap) RemoveNotarizedBlock(
+	nonce uint64,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
+	return boot.removeNotarizedBlock(nonce, hdrNonceHashDataUnit)
+}
+
 func (boot *ShardBootstrap) SyncFromStorer(
 	blockFinality uint64,
 	blockUnit dataRetriever.UnitType,

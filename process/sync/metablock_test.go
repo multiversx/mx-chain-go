@@ -2364,6 +2364,58 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenGetMetaHeaderFromStorageF
 	assert.Equal(t, process.ErrMissingHeader, err)
 }
 
+func TestMetaBootstrap_ApplyNotarizedBlockShouldErrHigherBootstrapRound(t *testing.T) {
+	t.Parallel()
+
+	pools := createMockMetaPools()
+	blkc := initBlockchain()
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{
+		SetLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
+		},
+	}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	store := createStore()
+	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+		if unitType == dataRetriever.BlockHeaderUnit {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					buff, _ := marshalizer.Marshal(&block.Header{Round: 2})
+					return buff, nil
+				},
+			}
+		}
+
+		return nil
+	}
+
+	bs, _ := sync.NewMetaBootstrap(
+		pools,
+		store,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinderMeta(),
+		shardCoordinator,
+		account,
+		1,
+	)
+
+	err := bs.ApplyNotarizedBlock(1,
+		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
+
+	assert.Equal(t, sync.ErrHigherBootstrapRound, err)
+}
+
 func TestMetaBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 	t.Parallel()
 

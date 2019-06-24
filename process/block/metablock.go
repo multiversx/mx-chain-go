@@ -396,6 +396,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	//TODO: Should be analyzed if this action is really necessary or not (right now there is no action of removing them)
 	_ = headerNoncePool.Put(headerHandler.GetNonce(), headerHash)
 
 	for i := 0; i < len(header.ShardInfo); i++ {
