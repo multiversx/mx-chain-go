@@ -24,8 +24,8 @@ The main branch that will be used is the master branch. Alternatively, an older 
 ```
 $ mkdir -p $GOPATH/src/github.com/ElrondNetwork
 $ cd $GOPATH/src/github.com/ElrondNetwork
-$ git clone https://github.com/ElrondNetwork/elrond-go-sandbox
-$ cd elrond-go-sandbox && git checkout master
+$ git clone https://github.com/ElrondNetwork/elrond-go
+$ cd elrond-go && git checkout master
 $ GO111MODULE=on go mod vendor
 $ cd cmd/node && go build
 ```

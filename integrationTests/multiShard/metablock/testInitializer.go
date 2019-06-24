@@ -217,6 +217,9 @@ func createTestShardStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.SmartContractResultUnit, createMemUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
+
 	return store
 }
 
@@ -403,10 +406,14 @@ func createTestMetaChain() data.ChainHandler {
 	return metaChain
 }
 
-func createTestMetaStore() dataRetriever.StorageService {
+func createTestMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
+		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), createMemUnit())
+	}
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 
 	return store
 }
@@ -457,7 +464,7 @@ func createMetaNetNode(
 	fmt.Printf("Found pk: %s\n", hex.EncodeToString(pkBuff))
 
 	blkc := createTestMetaChain()
-	store := createTestMetaStore()
+	store := createTestMetaStore(shardCoordinator)
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
