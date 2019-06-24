@@ -182,7 +182,7 @@ func (ds *directSender) SendAsync(topic string, buff []byte, peer p2p.PeerID) {
 	go func() {
 		err := ds.Send(topic, buff, peer)
 		if err != nil {
-			log.Debug(err.Error())
+			log.Info(err.Error())
 		}
 	}()
 }
