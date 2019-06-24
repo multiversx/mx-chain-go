@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node/external"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )

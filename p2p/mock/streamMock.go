@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-protocol"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
 type streamMock struct {
@@ -97,12 +97,12 @@ func (sm *streamMock) SetProtocol(pid protocol.ID) {
 	sm.pid = pid
 }
 
-func (sm *streamMock) Stat() net.Stat {
-	return net.Stat{
-		Direction: net.DirOutbound,
+func (sm *streamMock) Stat() network.Stat {
+	return network.Stat{
+		Direction: network.DirOutbound,
 	}
 }
 
-func (sm *streamMock) Conn() net.Conn {
+func (sm *streamMock) Conn() network.Conn {
 	panic("implement me")
 }

@@ -3,7 +3,7 @@ package consensus_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/stretchr/testify/assert"
 )
 

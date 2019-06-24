@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -274,7 +274,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 
 	store := &mock.StorerStub{}
 	store.GetCalled = func(key []byte) (i []byte, e error) {
-		return nil, nil
+		return nil, errors.New("key not found")
 	}
 
 	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(

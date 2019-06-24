@@ -3,7 +3,7 @@ package kyber
 import (
 	"crypto/cipher"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	kgroup "go.dedis.ch/kyber/v3/group/edwards25519"
 )
 

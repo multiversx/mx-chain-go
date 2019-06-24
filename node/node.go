@@ -9,31 +9,31 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/genesis"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node/heartbeat"
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/consensus/validators"
+	"github.com/ElrondNetwork/elrond-go/consensus/validators/groupSelectors"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/genesis"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
@@ -276,6 +276,7 @@ func (n *Node) StartConsensus() error {
 	consensusDataContainer, err := spos.NewConsensusCore(
 		n.blkc,
 		n.blockProcessor,
+		n.blockTracker,
 		bootstrapper,
 		broadcastMessenger,
 		chronologyHandler,

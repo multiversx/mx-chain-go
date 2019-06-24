@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.DefaultLogger()
@@ -107,13 +107,13 @@ func (sbt *shardBlockTracker) RemoveNotarisedBlocks(headerHandler data.HeaderHan
 			continue
 		}
 
-		log.Info(fmt.Sprintf("shardBlock with nonce %d and hash %s has been notarised by metachain\n",
-			header.GetNonce(),
-			core.ToB64(shardData.HeaderHash)))
-
 		sbt.mutUnnotarisedHeaders.Lock()
 		delete(sbt.unnotarisedHeaders, header.Nonce)
 		sbt.mutUnnotarisedHeaders.Unlock()
+
+		log.Debug(fmt.Sprintf("shardBlock with nonce %d and hash %s has been notarised by metachain\n",
+			header.GetNonce(),
+			core.ToB64(shardData.HeaderHash)))
 	}
 
 	return nil

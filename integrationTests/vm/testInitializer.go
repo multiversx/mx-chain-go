@@ -5,22 +5,20 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/addressConverters"
-	dataTransaction "github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/storageUnit"
-	ielecommon "github.com/ElrondNetwork/elrond-vm/iele/common"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,9 +50,9 @@ func CreateMemUnit() storage.Storer {
 
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
+	store := CreateMemUnit()
 
-	dbw, _ := trie.NewDBWriteCache(CreateMemUnit())
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, testHasher)
+	tr, _ := trie.NewTrie(store, marsh, testHasher)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
 	return adb
@@ -92,13 +90,14 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 
 func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) process.TransactionProcessor {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
-	cryptoHook := &hooks.VMCryptoHook{}
-	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, ielecommon.Default)
+	//TODO uncomment the following 2 lines
+	//cryptoHook := &hooks.VMCryptoHook{}
+	//vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, ielecommon.Default)
 	//Uncomment this to enable trace printing of the vm
 	//vm.SetTracePretty()
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
-		vm,
+		nil,
 		argsParser,
 		testHasher,
 		testMarshalizer,

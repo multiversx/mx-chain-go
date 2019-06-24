@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 type multipleShardsCoordinatorFake struct {

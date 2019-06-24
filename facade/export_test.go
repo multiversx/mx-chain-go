@@ -1,8 +1,8 @@
 package facade
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/ntp"
 )
 
 // GetLogger returns the current logger

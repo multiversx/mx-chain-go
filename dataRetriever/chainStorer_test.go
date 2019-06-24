@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/stretchr/testify/assert"
 )
 

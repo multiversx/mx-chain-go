@@ -3,7 +3,7 @@ package libp2p
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // Libp2pContext holds the context for the wrappers over libp2p implementation

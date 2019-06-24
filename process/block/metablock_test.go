@@ -7,15 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	blproc "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process"
+	blproc "github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -505,8 +505,8 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 		wasCalled = true
 		return nil
 	}
-	rootHashCalled := func() []byte {
-		return []byte("rootHashX")
+	rootHashCalled := func() ([]byte, error) {
+		return []byte("rootHashX"), nil
 	}
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
@@ -737,8 +737,8 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		CommitCalled: func() (i []byte, e error) {
 			return rootHash, nil
 		},
-		RootHashCalled: func() []byte {
-			return rootHash
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
 		},
 	}
 	forkDetectorAddCalled := false
@@ -835,8 +835,8 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	}
 
 	header := createMetaBlockHeader()
-	hdrsRequested := mp.RequestBlockHeaders(header)
-	assert.Equal(t, 1, hdrsRequested)
+	hdrsRequested, _ := mp.RequestBlockHeaders(header)
+	assert.Equal(t, uint32(1), hdrsRequested)
 }
 
 func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *testing.T) {
@@ -939,8 +939,8 @@ func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
 			JournalLenCalled: func() int {
 				return 0
 			},
-			RootHashCalled: func() []byte {
-				return []byte("root")
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("root"), nil
 			},
 		},
 		initMetaDataPool(),

@@ -1,8 +1,8 @@
 package commonSubround
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // subroundStartRound

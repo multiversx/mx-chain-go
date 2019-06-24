@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+import "github.com/ElrondNetwork/elrond-go/consensus"
 
 type ConsensusStateMock struct {
 	ResetConsensusStateCalled        func()

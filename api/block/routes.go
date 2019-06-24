@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node/external"
+	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/gin-gonic/gin"
 )
 

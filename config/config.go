@@ -57,10 +57,13 @@ type NTPConfig struct {
 
 // Config will hold the entire application configuration parameters
 type Config struct {
-	MiniBlocksStorage    StorageConfig
-	PeerBlockBodyStorage StorageConfig
-	BlockHeaderStorage   StorageConfig
-	TxStorage            StorageConfig
+	MiniBlocksStorage          StorageConfig
+	PeerBlockBodyStorage       StorageConfig
+	BlockHeaderStorage         StorageConfig
+	TxStorage                  StorageConfig
+	SmartContractResultStorage StorageConfig
+	ShardHdrNonceHashStorage   StorageConfig
+	MetaHdrNonceHashStorage    StorageConfig
 
 	ShardDataStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -75,6 +78,7 @@ type Config struct {
 	BlockHeaderDataPool       CacheConfig
 	BlockHeaderNoncesDataPool CacheConfig
 	TxDataPool                CacheConfig
+	SmartContractDataPool     CacheConfig
 	MetaBlockBodyDataPool     CacheConfig
 
 	MiniBlockHeaderHashesDataPool CacheConfig
@@ -154,7 +158,7 @@ type ServersConfig struct {
 	ElasticSearch ElasticSearchConfig
 }
 
-// ElasticSearchConfig will hold the configuration for the explorer indexer
+// ElasticSearchConfig will hold the configuration for the elastic search
 type ElasticSearchConfig struct {
 	Username string
 	Password string

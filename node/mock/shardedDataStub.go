@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type ShardedDataStub struct {

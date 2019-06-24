@@ -1,8 +1,8 @@
 package bn
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
 type bnMultiSigner interface {

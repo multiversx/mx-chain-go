@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	libp2p2 "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
-	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	libp2p2 "github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
+	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/multiformats/go-multiaddr"
@@ -125,7 +125,7 @@ func TestMdnsPeerDiscoverer_ApplyContextShouldWork(t *testing.T) {
 //------- HandlePeerFoundPeer
 
 func TestNetworkMessenger_HandlePeerFoundNotFoundShouldTryToConnect(t *testing.T) {
-	newPeerInfo := peerstore.PeerInfo{
+	newPeerInfo := peer.AddrInfo{
 		ID: peer.ID("new found peerID"),
 	}
 	testAddress := "/ip4/127.0.0.1/tcp/23000/p2p/16Uiu2HAkyqtHSEJDkYhVWTtm9j58Mq5xQJgrApBYXMwS6sdamXuE"
@@ -136,12 +136,9 @@ func TestNetworkMessenger_HandlePeerFoundNotFoundShouldTryToConnect(t *testing.T
 
 	mockHost := &mock.ConnectableHostStub{
 		PeerstoreCalled: func() peerstore.Peerstore {
-			return peerstore.NewPeerstore(
-				pstoremem.NewKeyBook(),
-				pstoremem.NewAddrBook(),
-				pstoremem.NewPeerMetadata())
+			return pstoremem.NewPeerstore()
 		},
-		ConnectCalled: func(ctx context.Context, pi peerstore.PeerInfo) error {
+		ConnectCalled: func(ctx context.Context, pi peer.AddrInfo) error {
 			if newPeerInfo.ID == pi.ID {
 				chanConnected <- struct{}{}
 			}
@@ -165,7 +162,7 @@ func TestNetworkMessenger_HandlePeerFoundNotFoundShouldTryToConnect(t *testing.T
 }
 
 func TestNetworkMessenger_HandlePeerFoundPeerFoundShouldNotTryToConnect(t *testing.T) {
-	newPeerInfo := peerstore.PeerInfo{
+	newPeerInfo := peer.AddrInfo{
 		ID: peer.ID("new found peerID"),
 	}
 	testAddress := "/ip4/127.0.0.1/tcp/23000/p2p/16Uiu2HAkyqtHSEJDkYhVWTtm9j58Mq5xQJgrApBYXMwS6sdamXuE"
@@ -176,15 +173,12 @@ func TestNetworkMessenger_HandlePeerFoundPeerFoundShouldNotTryToConnect(t *testi
 
 	mockHost := &mock.ConnectableHostStub{
 		PeerstoreCalled: func() peerstore.Peerstore {
-			ps := peerstore.NewPeerstore(
-				pstoremem.NewKeyBook(),
-				pstoremem.NewAddrBook(),
-				pstoremem.NewPeerMetadata())
+			ps := pstoremem.NewPeerstore()
 			ps.AddAddrs(newPeerInfo.ID, newPeerInfo.Addrs, peerstore.PermanentAddrTTL)
 
 			return ps
 		},
-		ConnectCalled: func(ctx context.Context, pi peerstore.PeerInfo) error {
+		ConnectCalled: func(ctx context.Context, pi peer.AddrInfo) error {
 			if newPeerInfo.ID == pi.ID {
 				chanConnected <- struct{}{}
 			}

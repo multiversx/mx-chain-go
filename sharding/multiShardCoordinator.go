@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // multiShardCoordinator struct defines the functionality for handling transaction dispatching to
