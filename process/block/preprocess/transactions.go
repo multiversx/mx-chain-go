@@ -87,9 +87,7 @@ func NewTransactionPreprocessor(
 	txs.chRcvAllTxs = make(chan bool)
 	txs.txPool.RegisterHandler(txs.receivedTransaction)
 
-	txs.txsForCurrBlock.mutTxsForBlock.Lock()
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
-	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return txs, nil
 }

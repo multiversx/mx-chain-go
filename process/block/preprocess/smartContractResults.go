@@ -204,7 +204,6 @@ func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
 			)
-
 			if err != nil {
 				return err
 			}

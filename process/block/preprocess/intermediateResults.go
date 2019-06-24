@@ -50,9 +50,7 @@ func NewIntermediateResultsProcessor(
 		adrConv:          adrConv,
 	}
 
-	irp.mutInterResultsForBlock.Lock()
 	irp.interResultsForBlock = make(map[string]*txInfo, 0)
-	irp.mutInterResultsForBlock.Unlock()
 
 	return nil, nil
 }
@@ -126,11 +124,10 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 			return process.ErrWrongTypeAssertion
 		}
 
-		scrMrs, err := irp.marshalizer.Marshal(addScr)
+		scrHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, addScr)
 		if err != nil {
-			return process.ErrMarshalWithoutSuccess
+			return err
 		}
-		scrHash := irp.hasher.Compute(string(scrMrs))
 
 		sndShId, dstShId, err := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
 		if err != nil {

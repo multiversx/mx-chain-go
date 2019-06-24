@@ -6,7 +6,7 @@ import (
 )
 
 var ErrMockMarshalizer = errors.New("MarshalizerMock generic error")
-var ErrNilObjectToMarshal = errors.New("nil object to serilize from")
+var ErrNilObjectToMarshal = errors.New("nil object to serialize from")
 
 // MarshalizerMock that will be used for testing
 type MarshalizerMock struct {

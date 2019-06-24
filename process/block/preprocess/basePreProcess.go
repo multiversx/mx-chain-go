@@ -1,6 +1,8 @@
 package preprocess
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -10,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"sync"
 )
 
 type txShardInfo struct {
@@ -58,12 +59,11 @@ func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool st
 		strCache := process.ShardCacherIdentifier(currentMiniBlock.SenderShardID, currentMiniBlock.ReceiverShardID)
 		txPool.RemoveSetOfDataFromPool(currentMiniBlock.TxHashes, strCache)
 
-		buff, err := bpp.marshalizer.Marshal(currentMiniBlock)
+		miniBlockHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, currentMiniBlock)
 		if err != nil {
 			return err
 		}
 
-		miniBlockHash := bpp.hasher.Compute(string(buff))
 		miniBlockPool.Remove(miniBlockHash)
 	}
 
@@ -85,7 +85,7 @@ func (bpp *basePreProcess) restoreMiniBlock(miniBlock *block.MiniBlock, miniBloc
 }
 
 func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
-	mrsScrs := make([][]byte, 0)
+	mrsTxs := make([][]byte, 0)
 	for _, txHash := range txHashes {
 		forBlock.mutTxsForBlock.RLock()
 		txInfo := forBlock.txHashAndInfo[string(txHash)]
@@ -99,10 +99,10 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *tx
 		if err != nil {
 			return nil, process.ErrMarshalWithoutSuccess
 		}
-		mrsScrs = append(mrsScrs, txMrs)
+		mrsTxs = append(mrsTxs, txMrs)
 	}
 
-	return mrsScrs, nil
+	return mrsTxs, nil
 }
 
 func (bpp *basePreProcess) saveTxsToStorage(
@@ -112,8 +112,8 @@ func (bpp *basePreProcess) saveTxsToStorage(
 	dataUnit dataRetriever.UnitType,
 ) error {
 
-	for j := 0; j < len(txHashes); j++ {
-		txHash := txHashes[j]
+	for i := 0; i < len(txHashes); i++ {
+		txHash := txHashes[i]
 
 		forBlock.mutTxsForBlock.RLock()
 		txInfo := forBlock.txHashAndInfo[string(txHash)]
