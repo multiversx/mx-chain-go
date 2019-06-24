@@ -98,22 +98,24 @@ func (boot *baseBootstrap) loadBlocks(
 
 		for i := highestNonceInStorer - blockFinality - lastBlocksToSkip; i <= highestNonceInStorer; i++ {
 			if i > highestNonceInStorer-lastBlocksToSkip {
-				err = boot.removeBlock(i, blockUnit, hdrNonceHashDataUnit)
+				errNotCritical := boot.removeBlock(i, blockUnit, hdrNonceHashDataUnit)
+				if errNotCritical != nil {
+					log.Info(fmt.Sprintf("remove block with nonce %d: %s", i, err.Error()))
+				}
 			} else {
 				err = boot.applyBlock(i, getHeader, getBlockBody)
-			}
-
-			if err != nil {
-				log.Info(fmt.Sprintf("block with nonce %d: %s", i, err.Error()))
-				lastBlocksToSkip++
-				break
+				if err != nil {
+					log.Info(fmt.Sprintf("apply block with nonce %d: %s", i, err.Error()))
+					lastBlocksToSkip++
+					break
+				}
 			}
 		}
 
 		if err == nil {
 			err = boot.accounts.RecreateTrie(boot.blkc.GetCurrentBlockHeader().GetRootHash())
 			if err != nil {
-				log.Info(fmt.Sprintf("block with nonce %d in shard %d: %s",
+				log.Info(fmt.Sprintf("recreate trie for block with nonce %d in shard %d: %s",
 					boot.blkc.GetCurrentBlockHeader().GetNonce(),
 					boot.blkc.GetCurrentBlockHeader().GetShardID(),
 					err.Error()))
@@ -230,15 +232,17 @@ func (boot *baseBootstrap) loadNotarizedBlocks(blockFinality uint64,
 
 		for i := highestNonceInStorer - blockFinality - lastBlocksToSkip; i <= highestNonceInStorer; i++ {
 			if i > highestNonceInStorer-lastBlocksToSkip {
-				err = boot.removeNotarizedBlock(i, hdrNonceHashDataUnit)
+				errNotCritical := boot.removeNotarizedBlock(i, hdrNonceHashDataUnit)
+				if errNotCritical != nil {
+					log.Info(fmt.Sprintf("remove notarized block with nonce %d: %s", i, err.Error()))
+				}
 			} else {
 				err = applyNotarisedBlock(i, hdrNonceHashDataUnit)
-			}
-
-			if err != nil {
-				log.Info(fmt.Sprintf("block with nonce %d: %s", i, err.Error()))
-				lastBlocksToSkip++
-				break
+				if err != nil {
+					log.Info(fmt.Sprintf("apply notarized block with nonce %d: %s", i, err.Error()))
+					lastBlocksToSkip++
+					break
+				}
 			}
 		}
 
