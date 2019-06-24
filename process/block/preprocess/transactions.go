@@ -397,7 +397,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	dstShardId uint32,
 ) error {
 
-	crossShardScrs, err := txs.txProcessor.ProcessTransaction(transaction, round)
+	err := txs.txProcessor.ProcessTransaction(transaction, round)
 	if err == process.ErrLowerNonceInTransaction ||
 		err == process.ErrInsufficientFunds {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
@@ -406,13 +406,6 @@ func (txs *transactions) processAndRemoveBadTransaction(
 
 	if err != nil {
 		return err
-	}
-
-	if len(crossShardScrs) > 0 {
-		err := txs.interTxHandler.AddIntermediateTransactions(crossShardScrs)
-		if err != nil {
-			return err
-		}
 	}
 
 	txShardInfo := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
@@ -558,7 +551,7 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 			return err
 		}
 
-		_, err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
+		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
 		if err != nil {
 			return err
 		}

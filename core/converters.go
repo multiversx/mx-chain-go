@@ -4,6 +4,9 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // ConvertBytes converts the input bytes in a readable string using multipliers (k, M, G)
@@ -34,4 +37,26 @@ func ToHex(buff []byte) string {
 		return "<NIL>"
 	}
 	return "0x" + hex.EncodeToString(buff)
+}
+
+// CalculateHash marshalizes the interface and calculates its hash
+func CalculateHash(
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	object interface{},
+) ([]byte, error) {
+	if marshalizer == nil {
+		return nil, ErrNilMarshalizer
+	}
+	if hasher == nil {
+		return nil, ErrNilHasher
+	}
+
+	mrsData, err := marshalizer.Marshal(object)
+	if err != nil {
+		return nil, err
+	}
+
+	hash := hasher.Compute(string(mrsData))
+	return hash, nil
 }

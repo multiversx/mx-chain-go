@@ -375,3 +375,9 @@ var ErrNilScrDataPool = errors.New("smart contract result pool is nil")
 
 // ErrNilScrStorage signals that smart contract storage is nil
 var ErrNilScrStorage = errors.New("smart contract result storage is nil")
+
+// ErrMiniBlockHashMismatch signals that miniblock hashes does not match
+var ErrMiniBlockHashMismatch = errors.New("miniblocks does not match")
+
+// ErrNilIntermediateTransactionHandler signals that nil intermediate transaction handler was provided
+var ErrNilIntermediateTransactionHandler = errors.New("intermediate transaction handler is nil")

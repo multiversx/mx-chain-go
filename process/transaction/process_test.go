@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"math/big"
 	"testing"
@@ -595,7 +594,7 @@ func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 func TestTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 	execTx := *createTxProcessor()
 
-	_, err := execTx.ProcessTransaction(nil, 4)
+	err := execTx.ProcessTransaction(nil, 4)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -613,9 +612,8 @@ func TestTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
 
 	addressConv.Fail = true
 
-	crossShardTxs, err := execTx.ProcessTransaction(&transaction.Transaction{}, 4)
+	err := execTx.ProcessTransaction(&transaction.Transaction{}, 4)
 	assert.NotNil(t, err)
-	assert.Equal(t, 0, len(crossShardTxs))
 }
 
 func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T) {
@@ -636,9 +634,8 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	crossShardTxs, err := execTx.ProcessTransaction(&tx, 4)
+	err := execTx.ProcessTransaction(&tx, 4)
 	assert.NotNil(t, err)
-	assert.Equal(t, 0, len(crossShardTxs))
 }
 
 func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
@@ -666,8 +663,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 	)
 
-	crossShardTxs, err := execTx.ProcessTransaction(&tx, 4)
-	assert.Equal(t, 0, len(crossShardTxs))
+	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -716,9 +712,8 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 		&mock.SCProcessorMock{},
 	)
 
-	crossShardTxs, err := execTx.ProcessTransaction(&tx, 4)
+	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(crossShardTxs))
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }
@@ -758,8 +753,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 	)
 
-	crossShardTxs, err := execTx.ProcessTransaction(&tx, 4)
-	assert.Equal(t, 0, len(crossShardTxs))
+	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, journalizeCalled)
 	assert.Equal(t, 3, saveAccountCalled)
@@ -810,9 +804,8 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 		&mock.SCProcessorMock{},
 	)
 
-	crossShardTxs, err := execTx.ProcessTransaction(&tx, 4)
+	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(crossShardTxs))
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }
@@ -862,9 +855,8 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 		&mock.SCProcessorMock{},
 	)
 
-	crossShardTxs, err := execTx.ProcessTransaction(&tx, 4)
+	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(crossShardTxs))
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }
@@ -908,9 +900,8 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 	)
 
-	crossShardTxs, err := execTx.ProcessTransaction(&tx, 4)
+	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(crossShardTxs))
 	assert.Equal(t, uint64(5), acntSrc.Nonce)
 	assert.Equal(t, big.NewInt(29), acntSrc.Balance)
 	assert.Equal(t, big.NewInt(71), acntDst.Balance)
@@ -958,14 +949,15 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		accounts,
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConverter,
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.IntermediateTransactionHandlerMock{})
 	scProcessorMock := &mock.SCProcessorMock{}
 
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) ([]data.TransactionHandler, error) {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
 		wasCalled = true
-		return nil, nil
+		return nil
 	}
 
 	execTx, _ := txproc.NewTxProcessor(
@@ -977,9 +969,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		scProcessorMock,
 	)
 
-	crossShardTxs, err := execTx.ProcessTransaction(&tx, 4)
+	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(crossShardTxs))
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, journalizeCalled)
 	assert.Equal(t, 0, saveAccountCalled)
@@ -1023,14 +1014,15 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		accounts,
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConverter,
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.IntermediateTransactionHandlerMock{})
 	scProcessorMock := &mock.SCProcessorMock{}
 
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) ([]data.TransactionHandler, error) {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
 		wasCalled = true
-		return nil, process.ErrNoVM
+		return process.ErrNoVM
 	}
 
 	execTx, _ := txproc.NewTxProcessor(
@@ -1042,9 +1034,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		scProcessorMock,
 	)
 
-	crossShardTxs, err := execTx.ProcessTransaction(&tx, 4)
+	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Equal(t, process.ErrNoVM, err)
-	assert.Equal(t, 0, len(crossShardTxs))
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, journalizeCalled)
 	assert.Equal(t, 0, saveAccountCalled)
@@ -1098,13 +1089,14 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		accounts,
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConverter,
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	scProcessorMock := &mock.SCProcessorMock{}
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) ([]data.TransactionHandler, error) {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
 		wasCalled = true
-		return nil, process.ErrNoVM
+		return process.ErrNoVM
 	}
 
 	execTx, _ := txproc.NewTxProcessor(
@@ -1116,9 +1108,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		scProcessorMock,
 	)
 
-	crossShardTxs, err := execTx.ProcessTransaction(&tx, 4)
+	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(crossShardTxs))
 	assert.False(t, wasCalled)
 	assert.Equal(t, 2, journalizeCalled)
 	assert.Equal(t, 2, saveAccountCalled)

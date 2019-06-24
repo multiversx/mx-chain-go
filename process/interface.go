@@ -17,7 +17,7 @@ import (
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
-	ProcessTransaction(transaction *transaction.Transaction, round uint32) ([]data.TransactionHandler, error)
+	ProcessTransaction(transaction *transaction.Transaction, round uint32) error
 }
 
 // SmartContractResultProcessor is the main interface for smart contract result execution engine
@@ -28,14 +28,15 @@ type SmartContractResultProcessor interface {
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
-	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) ([]data.TransactionHandler, error)
-	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) ([]data.TransactionHandler, error)
+	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
+	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) error
 }
 
 // IntermediateTransactionHandler handles transactions which are not resolved in only one step
 type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
-	CreateAllScrMiniBlocks() []*block.MiniBlock
+	CreateAllInterMiniBlocks() []*block.MiniBlock
+	VerifyInterMiniBlocks(body block.Body) error
 }
 
 type PreProcessor interface {

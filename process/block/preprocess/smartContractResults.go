@@ -45,7 +45,6 @@ type smartContractResults struct {
 	scrProcessor                 process.SmartContractResultProcessor
 	shardCoordinator             sharding.Coordinator
 	accounts                     state.AccountsAdapter
-	adrConv                      state.AddressConverter
 }
 
 // NewSmartContractResultPreprocessor creates a new smartContractResult preprocessor object
@@ -543,74 +542,4 @@ func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.Transact
 	scr.mutScrsForBlock.RUnlock()
 
 	return scrPool
-}
-
-// CreateAllScrMiniBlocks returns the cross shard miniblocks for the current round created from the smart contract results
-func (scr *smartContractResults) CreateAllScrMiniBlocks() []*block.MiniBlock {
-	miniBlocks := make([]*block.MiniBlock, scr.shardCoordinator.NumberOfShards())
-
-	scr.mutScrsForBlock.Lock()
-	defer scr.mutScrsForBlock.Unlock()
-
-	for key, value := range scr.scrForBlock {
-		if value.receiverShardID != scr.shardCoordinator.SelfId() {
-			miniBlocks[value.receiverShardID].TxHashes = append(miniBlocks[value.receiverShardID].TxHashes, []byte(key))
-		}
-	}
-
-	for i := 0; i < len(miniBlocks); i++ {
-		if len(miniBlocks[i].TxHashes) > 0 {
-			miniBlocks[i].SenderShardID = scr.shardCoordinator.SelfId()
-			miniBlocks[i].ReceiverShardID = uint32(i)
-			miniBlocks[i].Type = block.SmartContractResultBlock
-		}
-	}
-
-	return miniBlocks
-}
-
-// AddIntermediateTransactions adds smart contract results from smart contract processing for cross-shard calls
-func (scr *smartContractResults) AddIntermediateTransactions(txs []data.TransactionHandler) error {
-	scr.mutScrsForBlock.Lock()
-	defer scr.mutScrsForBlock.Unlock()
-
-	for i := 0; i < len(txs); i++ {
-		addScr, ok := txs[i].(*smartContractResult.SmartContractResult)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-
-		scrMrs, err := scr.marshalizer.Marshal(addScr)
-		if err != nil {
-			return process.ErrMarshalWithoutSuccess
-		}
-		scrHash := scr.hasher.Compute(string(scrMrs))
-
-		sndShId, dstShId, err := scr.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
-		if err != nil {
-			return err
-		}
-
-		addScrShardInfo := &scrShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
-		scrInfo := &scrInfo{scr: addScr, scrShardInfo: addScrShardInfo, has: true}
-		scr.scrForBlock[string(scrHash)] = scrInfo
-	}
-
-	return nil
-}
-
-func (scr *smartContractResults) getShardIdsFromAddresses(sndAddr []byte, rcvAddr []byte) (uint32, uint32, error) {
-	adrSrc, err := scr.adrConv.CreateAddressFromPublicKeyBytes(sndAddr)
-	if err != nil {
-		return scr.shardCoordinator.NumberOfShards(), scr.shardCoordinator.NumberOfShards(), err
-	}
-	adrDst, err := scr.adrConv.CreateAddressFromPublicKeyBytes(rcvAddr)
-	if err != nil {
-		return scr.shardCoordinator.NumberOfShards(), scr.shardCoordinator.NumberOfShards(), err
-	}
-
-	shardForSrc := scr.shardCoordinator.ComputeId(adrSrc)
-	shardForDst := scr.shardCoordinator.ComputeId(adrDst)
-
-	return shardForSrc, shardForDst, nil
 }
