@@ -148,7 +148,7 @@
 
 [TxDataPool]
     Size = 100000
-    Type = "FIFOSharded"
+    Type = "LRU"
     Shards = 32
 
 [SmartContractDataPool]
