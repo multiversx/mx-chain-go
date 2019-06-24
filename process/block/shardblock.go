@@ -465,7 +465,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	//TODO: Should be analyzed if this action is really necessary or not (right now there is no action of removing them)
+	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
 	_ = headerNoncePool.Put(headerHandler.GetNonce(), headerHash)
 
 	err = sp.txPreProcess.SaveTxBlockToStorage(body)

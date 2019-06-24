@@ -158,7 +158,7 @@ VERSION:
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialNodesSk.pem",
 	}
-	// boostrapRoundIndex defines a flag that specifies the maximum number of nodes which will be used from the initialNodes
+	// boostrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
 	boostrapRoundIndex = cli.UintFlag{
 		Name:  "boostrap-round-index",
 		Usage: "Boostrap round index specifies the round index from which node should bootstrap from storage",
