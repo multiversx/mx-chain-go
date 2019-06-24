@@ -22,6 +22,7 @@ func TestNewHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
 		&mock.StorerStub{},
+		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
 	)
@@ -37,6 +38,7 @@ func TestNewHeaderResolver_NilHeadersPoolShouldErr(t *testing.T) {
 		&mock.TopicResolverSenderStub{},
 		nil,
 		&mock.Uint64CacherStub{},
+		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
@@ -54,6 +56,7 @@ func TestNewHeaderResolver_NilHeadersNoncesPoolShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		nil,
 		&mock.StorerStub{},
+		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
 	)
@@ -70,11 +73,46 @@ func TestNewHeaderResolver_NilHeadersStorageShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
 		nil,
+		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilHeadersStorage, err)
+	assert.Nil(t, hdrRes)
+}
+
+func TestNewHeaderResolver_NilHeadersNoncesStorageShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdrRes, err := resolvers.NewHeaderResolver(
+		&mock.TopicResolverSenderStub{},
+		&mock.CacherStub{},
+		&mock.Uint64CacherStub{},
+		&mock.StorerStub{},
+		nil,
+		&mock.MarshalizerMock{},
+		mock.NewNonceHashConverterMock(),
+	)
+
+	assert.Equal(t, dataRetriever.ErrNilHeadersNoncesStorage, err)
+	assert.Nil(t, hdrRes)
+}
+
+func TestNewHeaderResolver_NilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdrRes, err := resolvers.NewHeaderResolver(
+		&mock.TopicResolverSenderStub{},
+		&mock.CacherStub{},
+		&mock.Uint64CacherStub{},
+		&mock.StorerStub{},
+		&mock.StorerStub{},
+		nil,
+		mock.NewNonceHashConverterMock(),
+	)
+
+	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 	assert.Nil(t, hdrRes)
 }
 
@@ -85,6 +123,7 @@ func TestNewHeaderResolver_NilNonceConverterShouldErr(t *testing.T) {
 		&mock.TopicResolverSenderStub{},
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
+		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		nil,
@@ -101,6 +140,7 @@ func TestNewHeaderResolver_OkValsShouldWork(t *testing.T) {
 		&mock.TopicResolverSenderStub{},
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
+		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
@@ -120,6 +160,7 @@ func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
 		&mock.StorerStub{},
+		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
 	)
@@ -135,6 +176,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *tes
 		&mock.TopicResolverSenderStub{},
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
+		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
@@ -174,6 +216,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 		},
 		headers,
 		&mock.Uint64CacherStub{},
+		&mock.StorerStub{},
 		&mock.StorerStub{},
 		marshalizer,
 		mock.NewNonceHashConverterMock(),
@@ -221,6 +264,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 		headers,
 		&mock.Uint64CacherStub{},
 		&mock.StorerStub{},
+		&mock.StorerStub{},
 		marshalizerStub,
 		mock.NewNonceHashConverterMock(),
 	)
@@ -250,7 +294,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 			return make([]byte, 0), nil
 		}
 
-		return nil, nil
+		return nil, errors.New("should have not reach this point")
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -265,6 +309,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 		headers,
 		&mock.Uint64CacherStub{},
 		store,
+		&mock.StorerStub{},
 		marshalizer,
 		mock.NewNonceHashConverterMock(),
 	)
@@ -283,6 +328,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
 		&mock.StorerStub{},
+		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
 	)
@@ -291,7 +337,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 	assert.Equal(t, dataRetriever.ErrInvalidNonceByteSlice, err)
 }
 
-func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNoncePoolShouldRetNilAndNotSend(t *testing.T) {
+func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNoncePoolAndStorageShouldRetNilAndNotSend(t *testing.T) {
 	t.Parallel()
 
 	requestedNonce := uint64(67)
@@ -315,6 +361,11 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 		&mock.CacherStub{},
 		headersNonces,
 		&mock.StorerStub{},
+		&mock.StorerStub{
+			GetCalled: func(key []byte) (i []byte, e error) {
+				return make([]byte, 0), nil
+			},
+		},
 		&mock.MarshalizerMock{},
 		nonceConverter,
 	)
@@ -366,6 +417,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		headers,
 		headersNonces,
 		&mock.StorerStub{},
+		&mock.StorerStub{},
 		marshalizer,
 		nonceConverter,
 	)
@@ -411,7 +463,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 			return make([]byte, 0), nil
 		}
 
-		return nil, nil
+		return nil, errors.New("should have not reach this point")
 	}
 
 	hdrRes, _ := resolvers.NewHeaderResolver(
@@ -424,6 +476,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		headers,
 		headersNonces,
 		store,
+		&mock.StorerStub{},
 		marshalizer,
 		nonceConverter,
 	)
@@ -467,7 +520,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 			return nil, errExpected
 		}
 
-		return nil, nil
+		return nil, errors.New("should have not reach this point")
 	}
 
 	hdrRes, _ := resolvers.NewHeaderResolver(
@@ -479,6 +532,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		headers,
 		headersNonces,
 		store,
+		&mock.StorerStub{},
 		marshalizer,
 		nonceConverter,
 	)
@@ -514,10 +568,39 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.Uint64CacherStub{},
 		&mock.StorerStub{},
+		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		nonceConverter,
 	)
 
 	assert.Nil(t, hdrRes.RequestDataFromNonce(nonceRequested))
+	assert.True(t, wasRequested)
+}
+
+func TestHeaderResolverBase_RequestDataFromHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	buffRequested := []byte("aaaa")
+	wasRequested := false
+	nonceConverter := mock.NewNonceHashConverterMock()
+	hdrResBase, _ := resolvers.NewHeaderResolver(
+		&mock.TopicResolverSenderStub{
+			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+				if bytes.Equal(rd.Value, buffRequested) {
+					wasRequested = true
+				}
+
+				return nil
+			},
+		},
+		&mock.CacherStub{},
+		&mock.Uint64CacherStub{},
+		&mock.StorerStub{},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
+		nonceConverter,
+	)
+
+	assert.Nil(t, hdrResBase.RequestDataFromHash(buffRequested))
 	assert.True(t, wasRequested)
 }

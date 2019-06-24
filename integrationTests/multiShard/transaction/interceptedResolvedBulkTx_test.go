@@ -43,7 +43,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	nodesPerShard := 3
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	nodes := createNodesWithNodeSkInShardExceptFirst(
 		numOfShards,
@@ -54,9 +54,9 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	displayAndStartNodes(nodes)
 
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -71,7 +71,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 
 	fmt.Println("Generating and broadcasting transactions...")
 	addrInShardFive := createDummyHexAddressInShard(generateCoordinator, generateAddrConverter)
-	nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+	_ = nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 	time.Sleep(time.Second * 10)
 
 	//since there is a slight chance that some transactions get lost (peer to slow, queue full, validators throttling...)
@@ -113,7 +113,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	firstSkInShard := uint32(4)
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	nodes := createNodesWithNodeSkInShardExceptFirst(
 		numOfShards,
@@ -124,9 +124,9 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	displayAndStartNodes(nodes)
 
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -141,7 +141,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 
 	addrInShardFive := createDummyHexAddressInShard(generateCoordinator, generateAddrConverter)
 
-	nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+	_ = nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 
 	//display, can be removed
 	for i := 0; i < 10; i++ {
@@ -193,7 +193,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	firstSkInShard := uint32(4)
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	nodes := createNodesWithNodeSkInShardExceptFirst(
 		numOfShards,
@@ -204,9 +204,9 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	displayAndStartNodes(nodes)
 
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -216,10 +216,10 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 
 	txToSend := 100
 
-	shardRequestor := uint32(5)
+	shardRequester := uint32(5)
 	randomShard := uint32(2)
 
-	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), shardRequestor)
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), shardRequester)
 	generateAddrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	addrInShardFive := createDummyHexAddressInShard(generateCoordinator, generateAddrConverter)
@@ -237,13 +237,13 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 		}
 	}
 
-	nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+	_ = nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 
 	fmt.Println("Waiting for senders to fetch generated transactions...")
 	time.Sleep(time.Second * 10)
 
 	//right now all 3 nodes from sender shard have the transactions
-	//nodes from shardRequestor should ask and receive all generated transactions
+	//nodes from shardRequester should ask and receive all generated transactions
 	mutGeneratedTxHashes.Lock()
 	copyNeededTransactions(nodes, generatedTxHashes)
 	mutGeneratedTxHashes.Unlock()
@@ -251,7 +251,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	fmt.Println("Request transactions by destination shard nodes...")
 	//periodically compute and request missing transactions
 	for i := 0; i < 10; i++ {
-		computeAndRequestMissingTransactions(nodes, firstSkInShard, shardRequestor, randomShard)
+		computeAndRequestMissingTransactions(nodes, firstSkInShard, shardRequester, randomShard)
 		time.Sleep(time.Second)
 
 		fmt.Println(makeDisplayTable(nodes))
@@ -272,7 +272,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 
 	//only sender and destination shards have the transactions
 	for _, n := range nodes {
-		isSenderOrDestinationShard := n.shardId == firstSkInShard || n.shardId == shardRequestor
+		isSenderOrDestinationShard := n.shardId == firstSkInShard || n.shardId == shardRequester
 
 		if isSenderOrDestinationShard {
 			assert.Equal(t, atomic.LoadInt32(&n.txRecv), maxTxReceived)
@@ -289,7 +289,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	}
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	nodes := make([]*testNode, 0)
 	maxShards := 2
@@ -297,9 +297,9 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	txGenerated := 10
 
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -352,7 +352,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 		txResolver, ok := resolver.(*resolvers.TxResolver)
 		assert.True(t, ok)
 
-		txResolver.RequestDataFromHashArray(txHashesGenerated)
+		_ = txResolver.RequestDataFromHashArray(txHashesGenerated)
 	}
 
 	time.Sleep(time.Second * 5)
@@ -386,7 +386,7 @@ func createRequesterDataPool(
 				return nil, false
 			},
 			ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-				assert.Fail(t, "same-shard requestors should not be queried")
+				assert.Fail(t, "same-shard requesters should not be queried")
 				return nil
 			},
 			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
@@ -443,8 +443,8 @@ func generateValidTx(
 
 	accnts := createAccountsDB()
 	addrSender, _ := addrConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
-	accnts.GetAccountWithJournal(addrSender)
-	accnts.Commit()
+	_, _ = accnts.GetAccountWithJournal(addrSender)
+	_, _ = accnts.Commit()
 
 	mockNode, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
@@ -491,10 +491,10 @@ func copyNeededTransactions(
 func computeAndRequestMissingTransactions(
 	nodes []*testNode,
 	shardResolver uint32,
-	shardRequestors ...uint32,
+	shardRequesters ...uint32,
 ) {
 	for _, n := range nodes {
-		if !isInList(n.shardId, shardRequestors) {
+		if !isInList(n.shardId, shardRequesters) {
 			continue
 		}
 
@@ -537,7 +537,7 @@ func requestMissingTransactions(n *testNode, shardResolver uint32) {
 	txResolver, _ := n.resFinder.CrossShardResolver(factory.TransactionTopic, shardResolver)
 
 	for i := 0; i < len(n.neededTxs); i++ {
-		txResolver.RequestDataFromHash(n.neededTxs[i])
+		_ = txResolver.RequestDataFromHash(n.neededTxs[i])
 	}
 
 	n.mutNeededTxs.Unlock()
