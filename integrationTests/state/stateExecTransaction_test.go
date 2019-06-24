@@ -23,7 +23,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	accnts := adbCreateAccountsDB()
+	accnts, _ := adbCreateAccountsDBWithStorage()
 
 	pubKeyBuff := createDummyHexAddress(64)
 
@@ -67,7 +67,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts := adbCreateAccountsDB()
+	accnts, _ := adbCreateAccountsDBWithStorage()
 
 	pubKeyBuff := createDummyHexAddress(64)
 
@@ -110,7 +110,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts := adbCreateAccountsDB()
+	accnts, _ := adbCreateAccountsDBWithStorage()
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
@@ -164,7 +164,8 @@ func testExecTransactionsMoreTxWithRevert(
 		assert.Nil(t, err)
 	}
 
-	modifiedHash := accnts.RootHash()
+	modifiedHash, err := accnts.RootHash()
+	assert.Nil(t, err)
 	fmt.Printf("Modified hash: %s\n", base64.StdEncoding.EncodeToString(modifiedHash))
 
 	//Step 2. test that accounts have correct nonces and balances
@@ -182,11 +183,11 @@ func testExecTransactionsMoreTxWithRevert(
 	fmt.Printf("Journalized: %d modifications to the state\n", accnts.JournalLen())
 
 	//Step 3. Revert and test again nonces, balances and root hash
-	err := accnts.RevertToSnapshot(0)
-
+	err = accnts.RevertToSnapshot(0)
 	assert.Nil(t, err)
 
-	revertedHash := accnts.RootHash()
+	revertedHash, err := accnts.RootHash()
+	assert.Nil(t, err)
 	fmt.Printf("Reverted hash: %s\n", base64.StdEncoding.EncodeToString(revertedHash))
 
 	receiver2, _ := accnts.GetExistingAccount(receiver)
@@ -203,7 +204,7 @@ func testExecTransactionsMoreTxWithRevert(
 func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts := adbCreateAccountsDB()
+	accnts, _ := adbCreateAccountsDBWithStorage()
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)

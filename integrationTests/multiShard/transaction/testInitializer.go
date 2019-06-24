@@ -160,8 +160,10 @@ func createDummyHexAddressInShard(
 
 func createAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
-	dbw, _ := trie.NewDBWriteCache(createMemUnit())
-	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+	hasher := sha256.Sha256{}
+	store := createMemUnit()
+
+	tr, _ := trie.NewTrie(store, marsh, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
 			return state.NewAccount(address, tracker)

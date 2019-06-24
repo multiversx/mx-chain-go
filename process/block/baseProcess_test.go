@@ -370,8 +370,8 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	tdp := initDataPool([]byte(""))
 	rootHash := []byte("root hash to be tested")
 	accounts := &mock.AccountsStub{
-		RootHashCalled: func() []byte {
-			return rootHash
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
 		},
 	}
 	store := initStore()

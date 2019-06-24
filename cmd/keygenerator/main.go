@@ -138,7 +138,7 @@ func getSuiteForBalanceSk() crypto.Suite {
 }
 
 func getSuiteForBlockSigningSk(consensusType string) crypto.Suite {
-	// TODO: A factory which returns the suite according to consensus type should be created in elrond-go-sandbox project
+	// TODO: A factory which returns the suite according to consensus type should be created in elrond-go project
 	// Ex: crypto.NewSuite(consensusType) crypto.Suite
 	switch consensusType {
 	case "bls":

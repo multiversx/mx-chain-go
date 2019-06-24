@@ -997,6 +997,10 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		RandSeed:     make([]byte, 0),
 	}
 
+	defer func() {
+		go mp.checkAndRequestIfShardHeadersMissing(round)
+	}()
+
 	shardInfo, err := mp.createShardInfo(maxHeadersInBlock, round, haveTime)
 	if err != nil {
 		return nil, err
@@ -1011,8 +1015,6 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	header.PeerInfo = peerInfo
 	header.RootHash = mp.getRootHash()
 	header.TxCount = getTxCount(shardInfo)
-
-	go mp.checkAndRequestIfShardHeadersMissing(header.Round)
 
 	return header, nil
 }

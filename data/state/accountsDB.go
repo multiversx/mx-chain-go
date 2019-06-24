@@ -6,14 +6,14 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // AccountsDB is the struct used for accessing accounts
 type AccountsDB struct {
-	mainTrie       trie.PatriciaMerkelTree
+	mainTrie       data.Trie
 	hasher         hashing.Hasher
 	marshalizer    marshal.Marshalizer
 	accountFactory AccountFactory
@@ -24,7 +24,7 @@ type AccountsDB struct {
 
 // NewAccountsDB creates a new account manager
 func NewAccountsDB(
-	trie trie.PatriciaMerkelTree,
+	trie data.Trie,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
@@ -112,7 +112,7 @@ func (adb *AccountsDB) LoadDataTrie(accountHandler AccountHandler) error {
 		return NewErrorTrieNotNormalized(HashLength, len(accountHandler.GetRootHash()))
 	}
 
-	dataTrie, err := adb.mainTrie.Recreate(accountHandler.GetRootHash(), adb.mainTrie.DBW())
+	dataTrie, err := adb.mainTrie.Recreate(accountHandler.GetRootHash())
 	if err != nil {
 		//error as there is an inconsistent state:
 		//account has data root hash but does not contain the actual trie
@@ -129,8 +129,7 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 	flagHasDirtyData := false
 
 	if accountHandler.DataTrie() == nil {
-		dataTrie, err := adb.mainTrie.Recreate(make([]byte, 0), adb.mainTrie.DBW())
-
+		dataTrie, err := adb.mainTrie.Recreate(make([]byte, 0))
 		if err != nil {
 			return err
 		}
@@ -149,7 +148,6 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 			flagHasDirtyData = true
 
 			err := accountHandler.DataTrie().Update([]byte(k), v)
-
 			if err != nil {
 				return err
 			}
@@ -168,7 +166,12 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 	}
 
 	adb.Journalize(entry)
-	err = accountHandler.SetRootHashWithJournal(accountHandler.DataTrie().Root())
+	root, err := accountHandler.DataTrie().Root()
+	if err != nil {
+		return err
+	}
+
+	err = accountHandler.SetRootHashWithJournal(root)
 	if err != nil {
 		return err
 	}
@@ -366,7 +369,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 		jed, found := jEntries[i].(*BaseJournalEntryData)
 
 		if found {
-			_, err := jed.Trie().Commit(nil)
+			err := jed.Trie().Commit()
 			if err != nil {
 				return nil, err
 			}
@@ -377,12 +380,17 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.clearJournal()
 
 	//Step 3. commit main trie
-	hash, err := adb.mainTrie.Commit(nil)
+	err := adb.mainTrie.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	return hash, nil
+	root, err := adb.mainTrie.Root()
+	if err != nil {
+		return nil, err
+	}
+
+	return root, nil
 }
 
 // loadCode retrieves and saves the SC code inside AccountState object. Errors if something went wrong
@@ -405,13 +413,13 @@ func (adb *AccountsDB) loadCode(accountHandler AccountHandler) error {
 }
 
 // RootHash returns the main trie's root hash
-func (adb *AccountsDB) RootHash() []byte {
+func (adb *AccountsDB) RootHash() ([]byte, error) {
 	return adb.mainTrie.Root()
 }
 
 // RecreateTrie is used to reload the trie based on an existing rootHash
 func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
-	newTrie, err := adb.mainTrie.Recreate(rootHash, adb.mainTrie.DBW())
+	newTrie, err := adb.mainTrie.Recreate(rootHash)
 	if err != nil {
 		return err
 	}

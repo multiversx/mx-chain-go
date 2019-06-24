@@ -29,8 +29,8 @@ import (
 //------- NewShardProcessor
 
 func initAccountsMock() *mock.AccountsStub {
-	rootHashCalled := func() []byte {
-		return []byte("rootHash")
+	rootHashCalled := func() ([]byte, error) {
+		return []byte("rootHash"), nil
 	}
 	return &mock.AccountsStub{
 		RootHashCalled: rootHashCalled,
@@ -468,8 +468,8 @@ func TestShardProcessor_ProcessBlockHeaderBodyMismatchShouldErr(t *testing.T) {
 	// set accounts not dirty
 	journalLen := func() int { return 0 }
 	revertToSnapshot := func(snapshot int) error { return nil }
-	rootHashCalled := func() []byte {
-		return []byte("rootHash")
+	rootHashCalled := func() ([]byte, error) {
+		return []byte("rootHash"), nil
 	}
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
@@ -549,8 +549,8 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	// set accounts not dirty
 	journalLen := func() int { return 0 }
 	revertToSnapshot := func(snapshot int) error { return nil }
-	rootHashCalled := func() []byte {
-		return []byte("rootHash")
+	rootHashCalled := func() ([]byte, error) {
+		return []byte("rootHash"), nil
 	}
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
@@ -738,8 +738,8 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		wasCalled = true
 		return nil
 	}
-	rootHashCalled := func() []byte {
-		return []byte("rootHash")
+	rootHashCalled := func() ([]byte, error) {
+		return []byte("rootHash"), nil
 	}
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
@@ -827,8 +827,8 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		wasCalled = true
 		return nil
 	}
-	rootHashCalled := func() []byte {
-		return []byte("rootHashX")
+	rootHashCalled := func() ([]byte, error) {
+		return []byte("rootHashX"), nil
 	}
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
@@ -916,8 +916,8 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 		wasCalled = true
 		return nil
 	}
-	rootHashCalled := func() []byte {
-		return rootHash
+	rootHashCalled := func() ([]byte, error) {
+		return rootHash, nil
 	}
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
@@ -1002,8 +1002,8 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 		wasCalled = true
 		return nil
 	}
-	rootHashCalled := func() []byte {
-		return rootHash
+	rootHashCalled := func() ([]byte, error) {
+		return rootHash, nil
 	}
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
@@ -1119,8 +1119,8 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 		wasCalled = true
 		return nil
 	}
-	rootHashCalled := func() []byte {
-		return rootHash
+	rootHashCalled := func() ([]byte, error) {
+		return rootHash, nil
 	}
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
@@ -1182,8 +1182,8 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 	tdp := initDataPool([]byte("tx_hash1"))
 	rootHash := []byte("root hash to be tested")
 	accounts := &mock.AccountsStub{
-		RootHashCalled: func() []byte {
-			return rootHash
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
 		},
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
@@ -1238,8 +1238,8 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		CommitCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-		RootHashCalled: func() []byte {
-			return rootHash
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
 		},
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
@@ -1307,8 +1307,8 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	errPersister := errors.New("failure")
 	rootHash := []byte("root hash to be tested")
 	accounts := &mock.AccountsStub{
-		RootHashCalled: func() []byte {
-			return rootHash
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
 		},
 		CommitCalled: func() (i []byte, e error) {
 			return nil, nil
@@ -1380,8 +1380,8 @@ func TestShardProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	tdp := initDataPool([]byte("tx_hash1"))
 	rootHash := []byte("root hash to be tested")
 	accounts := &mock.AccountsStub{
-		RootHashCalled: func() []byte {
-			return rootHash
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
 		},
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
@@ -1444,8 +1444,8 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		CommitCalled: func() (i []byte, e error) {
 			return rootHash, nil
 		},
-		RootHashCalled: func() []byte {
-			return rootHash
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
 		},
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
@@ -1550,8 +1550,8 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		CommitCalled: func() (i []byte, e error) {
 			return rootHash, nil
 		},
-		RootHashCalled: func() []byte {
-			return rootHash
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
 		},
 	}
 	forkDetectorAddCalled := false
@@ -1649,7 +1649,9 @@ func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 	tdp := initDataPool([]byte("tx_hash1"))
 	tpm := mock.TxProcessorMock{}
 	journalLen := func() int { return 0 }
-	rootHashfunc := func() []byte { return []byte("roothash") }
+	rootHashfunc := func() ([]byte, error) {
+		return []byte("roothash"), nil
+	}
 	revToSnapshot := func(snapshot int) error { return nil }
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
@@ -1691,7 +1693,9 @@ func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
 		ProcessTransactionCalled: procTx,
 	}
 	journalLen := func() int { return 0 }
-	rootHashfunc := func() []byte { return []byte("roothash") }
+	rootHashfunc := func() ([]byte, error) {
+		return []byte("roothash"), nil
+	}
 	haveTime := func() bool {
 		return true
 	}
