@@ -214,9 +214,6 @@ var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 // ErrNilMetachainHeadersStorage signals that a nil metachain header storage has been provided
 var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")
 
-// ErrNilResolverSender signals that a nil resolver sender object has been provided
-var ErrNilResolverSender = errors.New("nil resolver sender")
-
 // ErrNilBlockBodyStorage signals that a nil block body storage has been provided
 var ErrNilBlockBodyStorage = errors.New("nil block body storage")
 
@@ -384,6 +381,3 @@ var ErrNilIntermediateTransactionHandler = errors.New("intermediate transaction 
 
 // ErrWrongTypeInMiniBlock signals that type is not correct for processing
 var ErrWrongTypeInMiniBlock = errors.New("type in miniblock is not correct for processing")
-
-// ErrMissingMiniblock signals that miniblock does not exists
-var ErrMissingMiniblock = errors.New("miniblock does not exists")
