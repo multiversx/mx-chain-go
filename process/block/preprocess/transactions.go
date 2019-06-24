@@ -194,6 +194,7 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32,
 			txs.mutTxsForBlock.RLock()
 			txInfo := txs.txsForBlock[string(txHash)]
 			txs.mutTxsForBlock.RUnlock()
+
 			if txInfo == nil || txInfo.tx == nil {
 				return process.ErrMissingTransaction
 			}
@@ -223,26 +224,13 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32,
 func (txs *transactions) SaveTxBlockToStorage(body block.Body) error {
 	for i := 0; i < len(body); i++ {
 		miniBlock := (body)[i]
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			txHash := miniBlock.TxHashes[j]
+		if miniBlock.Type != block.TxBlock {
+			continue
+		}
 
-			txs.mutTxsForBlock.RLock()
-			txInfo := txs.txsForBlock[string(txHash)]
-			txs.mutTxsForBlock.RUnlock()
-
-			if txInfo == nil || txInfo.tx == nil {
-				return process.ErrMissingTransaction
-			}
-
-			buff, err := txs.marshalizer.Marshal(txInfo.tx)
-			if err != nil {
-				return err
-			}
-
-			errNotCritical := txs.storage.Put(dataRetriever.TransactionUnit, txHash, buff)
-			if errNotCritical != nil {
-				log.Error(errNotCritical.Error())
-			}
+		err := txs.saveTxsToStorage(miniBlock.TxHashes, &txs.mutTxsForBlock, txs.txsForBlock, txs.storage, dataRetriever.TransactionUnit)
+		if err != nil {
+			return err
 		}
 	}
 

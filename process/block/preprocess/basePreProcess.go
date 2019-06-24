@@ -98,3 +98,36 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, mutForBlock 
 
 	return mrsScrs, nil
 }
+
+func (bpp *basePreProcess) saveTxsToStorage(
+	txHashes [][]byte,
+	mutForBlock *sync.RWMutex,
+	currBlock map[string]*txInfo,
+	store dataRetriever.StorageService,
+	dataUnit dataRetriever.UnitType,
+) error {
+
+	for j := 0; j < len(txHashes); j++ {
+		txHash := txHashes[j]
+
+		mutForBlock.RLock()
+		txInfo := currBlock[string(txHash)]
+		mutForBlock.RUnlock()
+
+		if txInfo == nil || txInfo.tx == nil {
+			return process.ErrMissingTransaction
+		}
+
+		buff, err := bpp.marshalizer.Marshal(txInfo.tx)
+		if err != nil {
+			return err
+		}
+
+		errNotCritical := store.Put(dataUnit, txHash, buff)
+		if errNotCritical != nil {
+			log.Error(errNotCritical.Error())
+		}
+	}
+
+	return nil
+}

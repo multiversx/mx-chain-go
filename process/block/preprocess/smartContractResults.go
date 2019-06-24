@@ -224,26 +224,9 @@ func (scr *smartContractResults) SaveTxBlockToStorage(body block.Body) error {
 			continue
 		}
 
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			txHash := miniBlock.TxHashes[j]
-
-			scr.mutScrsForBlock.RLock()
-			txInfo := scr.scrForBlock[string(txHash)]
-			scr.mutScrsForBlock.RUnlock()
-
-			if txInfo == nil || txInfo.tx == nil {
-				return process.ErrMissingTransaction
-			}
-
-			buff, err := scr.marshalizer.Marshal(txInfo.tx)
-			if err != nil {
-				return err
-			}
-
-			errNotCritical := scr.storage.Put(dataRetriever.SmartContractResultUnit, txHash, buff)
-			if errNotCritical != nil {
-				log.Error(errNotCritical.Error())
-			}
+		err := scr.saveTxsToStorage(miniBlock.TxHashes, &scr.mutScrsForBlock, scr.scrForBlock, scr.storage, dataRetriever.SmartContractResultUnit)
+		if err != nil {
+			return err
 		}
 	}
 
