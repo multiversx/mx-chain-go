@@ -31,3 +31,6 @@ var ErrNilProposerResolver = errors.New("proposer validator is nil")
 
 // ErrNilHash signals that a nil hash has been provided
 var ErrNilHash = errors.New("nil hash")
+
+// ErrNilScDataGetter signals that a nil data getter has been provided
+var ErrNilScDataGetter = errors.New("nil SC data getter")

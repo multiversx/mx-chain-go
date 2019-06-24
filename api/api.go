@@ -3,6 +3,7 @@ package api
 import (
 	"reflect"
 
+	"github.com/ElrondNetwork/elrond-go/api/getValues"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -46,6 +47,9 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	transaction.Routes(txRoutes)
 
+	getValuesRoutes := ws.Group("/get-values")
+	getValuesRoutes.Use(middleware.WithElrondFacade(elrondFacade))
+	getValues.Routes(getValuesRoutes)
 }
 
 func registerValidators() error {

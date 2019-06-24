@@ -18,23 +18,28 @@ import (
 type ElrondNodeFacade struct {
 	node         NodeWrapper
 	resolver     ExternalResolver
+	apiResolver  ApiResolver
 	syncer       ntp.SyncTimer
 	log          *logger.Logger
 	tpsBenchmark *statistics.TpsBenchmark
 }
 
 // NewElrondNodeFacade creates a new Facade with a NodeWrapper
-func NewElrondNodeFacade(node NodeWrapper, resolver ExternalResolver) *ElrondNodeFacade {
+func NewElrondNodeFacade(node NodeWrapper, resolver ExternalResolver, apiResolver ApiResolver) *ElrondNodeFacade {
 	if node == nil {
 		return nil
 	}
 	if resolver == nil {
 		return nil
 	}
+	if apiResolver == nil {
+		return nil
+	}
 
 	return &ElrondNodeFacade{
-		node:     node,
-		resolver: resolver,
+		node:        node,
+		resolver:    resolver,
+		apiResolver: apiResolver,
 	}
 }
 
@@ -176,4 +181,9 @@ func (ef *ElrondNodeFacade) RecentNotarizedBlocks(maxShardHeadersNum int) ([]*ex
 // RetrieveShardBlock retrieves a shard block info containing header and transactions
 func (ef *ElrondNodeFacade) RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error) {
 	return ef.resolver.RetrieveShardBlock(blockHash)
+}
+
+// GetDataValue retrieves data from existing SC trie
+func (ef *ElrondNodeFacade) GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
+	return ef.apiResolver.GetDataValue(address, funcName, argsBuff...)
 }

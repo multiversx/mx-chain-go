@@ -28,6 +28,7 @@ type Facade struct {
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	RecentNotarizedBlocksHandler                   func(maxShardHeadersNum int) ([]*external.BlockHeader, error)
 	RetrieveShardBlockHandler                      func(blockHash []byte) (*external.ShardBlockInfo, error)
+	GetDataValueHandler                            func(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
 }
 
 func (f *Facade) RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error) {
@@ -111,6 +112,10 @@ func (f *Facade) GenerateAndSendBulkTransactions(destination string, value *big.
 // GenerateAndSendBulkTransactionsOneByOne is the mock implementation of a handler's GenerateAndSendBulkTransactionsOneByOne method
 func (f *Facade) GenerateAndSendBulkTransactionsOneByOne(destination string, value *big.Int, nrTransactions uint64) error {
 	return f.GenerateAndSendBulkTransactionsOneByOneHandler(destination, value, nrTransactions)
+}
+
+func (f *Facade) GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
+	return f.GetDataValueHandler(address, funcName, argsBuff...)
 }
 
 // WrongFacade is a struct that can be used as a wrong implementation of the node router handler

@@ -29,6 +29,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/google/gops/agent"
 	"github.com/pkg/profile"
@@ -448,7 +450,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	ef := facade.NewElrondNodeFacade(currentNode, externalResolver)
+	apiResolver, err := createApiResolver()
+	if err != nil {
+		return err
+	}
+
+	ef := facade.NewElrondNodeFacade(currentNode, externalResolver, apiResolver)
 
 	ef.SetLogger(log)
 	ef.SetSyncer(syncer)
@@ -749,4 +756,16 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	}()
 
 	return nil
+}
+
+func createApiResolver() (facade.ApiResolver, error) {
+	//TODO replace this with a vm factory
+	vm := &mock.VMExecutionHandlerStub{}
+
+	scDataGetter, err := smartContract.NewSCDataGetter(vm)
+	if err != nil {
+		return nil, err
+	}
+
+	return external.NewNodeApiResolver(scDataGetter)
 }

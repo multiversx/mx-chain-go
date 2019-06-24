@@ -375,3 +375,9 @@ var ErrNilScrDataPool = errors.New("smart contract result pool is nil")
 
 // ErrNilScrStorage signals that smart contract storage is nil
 var ErrNilScrStorage = errors.New("smart contract result storage is nil")
+
+// ErrNilScAddress signals that a nil smart contract address has been provided
+var ErrNilScAddress = errors.New("nil SC address")
+
+// ErrEmptyFunctionName signals that an empty function name has been provided
+var ErrEmptyFunctionName = errors.New("empty function name")

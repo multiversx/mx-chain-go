@@ -58,8 +58,13 @@ type NodeWrapper interface {
 	GetHeartbeats() []heartbeat.PubKeyHeartbeat
 }
 
-// ExternalResolver defines what functionality can be exposed to an external component (REST API, RPC, etc.)
+// Deprecated: ExternalResolver defines what functionality can be exposed to an external component (REST API, RPC, etc.)
 type ExternalResolver interface {
 	RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error)
 	RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error)
+}
+
+// ApiResolver defines a structure capable of resolving REST API requests
+type ApiResolver interface {
+	GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
 }
