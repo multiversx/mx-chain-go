@@ -21,7 +21,7 @@ type intermediateResultsProcessor struct {
 	adrConv          state.AddressConverter
 
 	mutInterResultsForBlock sync.Mutex
-	interResultsForBlock    map[string]*scrInfo
+	interResultsForBlock    map[string]*txInfo
 }
 
 func NewIntermediateResultsProcessor(
@@ -51,7 +51,7 @@ func NewIntermediateResultsProcessor(
 	}
 
 	irp.mutInterResultsForBlock.Lock()
-	irp.interResultsForBlock = make(map[string]*scrInfo, 0)
+	irp.interResultsForBlock = make(map[string]*txInfo, 0)
 	irp.mutInterResultsForBlock.Unlock()
 
 	return nil, nil
@@ -78,7 +78,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 		}
 	}
 
-	irp.interResultsForBlock = make(map[string]*scrInfo, 0)
+	irp.interResultsForBlock = make(map[string]*txInfo, 0)
 
 	return miniBlocks
 }
@@ -137,8 +137,8 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 			return err
 		}
 
-		addScrShardInfo := &scrShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
-		scrInfo := &scrInfo{scr: addScr, scrShardInfo: addScrShardInfo, has: true}
+		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
+		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo, has: true}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
 	}
 

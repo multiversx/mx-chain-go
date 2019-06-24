@@ -183,9 +183,9 @@ func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		requestTransaction,
 	)
 	txHash := []byte("tx1_hash")
-	tx := txs.getSmartContractResultFromPool(1, 1, txHash)
+	tx := txs.getTransactionFromPool(1, 1, txHash, tdp.SmartContractResults())
 	assert.NotNil(t, tx)
-	assert.Equal(t, uint64(10), tx.Nonce)
+	assert.Equal(t, uint64(10), tx.(*smartContractResult.SmartContractResult).Nonce)
 }
 
 func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {

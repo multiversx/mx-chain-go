@@ -309,9 +309,9 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		requestTransaction,
 	)
 	txHash := []byte("tx1_hash")
-	tx := txs.getTransactionFromPool(1, 1, txHash)
+	tx := txs.getTransactionFromPool(1, 1, txHash, tdp.Transactions())
 	assert.NotNil(t, tx)
-	assert.Equal(t, uint64(10), tx.Nonce)
+	assert.Equal(t, uint64(10), tx.(*transaction.Transaction).Nonce)
 }
 
 func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {

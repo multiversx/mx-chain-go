@@ -32,9 +32,9 @@ func (scr *smartContractResults) AddScrHashToRequestedList(txHash []byte) {
 	defer scr.mutScrsForBlock.Unlock()
 
 	if scr.scrForBlock == nil {
-		scr.scrForBlock = make(map[string]*scrInfo)
+		scr.scrForBlock = make(map[string]*txInfo)
 	}
-	scr.scrForBlock[string(txHash)] = &scrInfo{scrShardInfo: &scrShardInfo{}}
+	scr.scrForBlock[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
 }
 
 func (scr *smartContractResults) IsScrHashRequested(txHash []byte) bool {

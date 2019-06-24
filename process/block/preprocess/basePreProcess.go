@@ -131,3 +131,62 @@ func (bpp *basePreProcess) saveTxsToStorage(
 
 	return nil
 }
+
+func (bpp *basePreProcess) baseReceivedTransaction(
+	txHash []byte,
+	mutTxsForBlock *sync.RWMutex,
+	missingTxs *int,
+	txsForBlock map[string]*txInfo,
+	txPool dataRetriever.ShardedDataCacherNotifier,
+) bool {
+	currMissingTxs := 0
+
+	mutTxsForBlock.Lock()
+	if *missingTxs > 0 {
+		txInfoForHash := txsForBlock[string(txHash)]
+		if txInfoForHash != nil &&
+			txInfoForHash.txShardInfo != nil &&
+			!txInfoForHash.has {
+			tx := bpp.getTransactionFromPool(txInfoForHash.senderShardID, txInfoForHash.receiverShardID, txHash, txPool)
+			if tx != nil {
+				txsForBlock[string(txHash)].tx = tx
+				txsForBlock[string(txHash)].has = true
+				*missingTxs--
+			}
+		}
+
+		currMissingTxs = *missingTxs
+	}
+	mutTxsForBlock.Unlock()
+
+	return currMissingTxs == 0
+}
+
+// getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
+func (bpp *basePreProcess) getTransactionFromPool(
+	senderShardID uint32,
+	destShardID uint32,
+	txHash []byte,
+	txPool dataRetriever.ShardedDataCacherNotifier,
+) data.TransactionHandler {
+	strCache := process.ShardCacherIdentifier(senderShardID, destShardID)
+	txStore := txPool.ShardDataStore(strCache)
+	if txStore == nil {
+		log.Error(process.ErrNilStorage.Error())
+		return nil
+	}
+
+	val, ok := txStore.Peek(txHash)
+	if !ok {
+		log.Debug(process.ErrTxNotFound.Error())
+		return nil
+	}
+
+	tx, ok := val.(data.TransactionHandler)
+	if !ok {
+		log.Error(process.ErrInvalidTxInPool.Error())
+		return nil
+	}
+
+	return tx
+}

@@ -237,59 +237,13 @@ func (txs *transactions) SaveTxBlockToStorage(body block.Body) error {
 	return nil
 }
 
-// getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
-func (txs *transactions) getTransactionFromPool(
-	senderShardID uint32,
-	destShardID uint32,
-	txHash []byte,
-) *transaction.Transaction {
-	strCache := process.ShardCacherIdentifier(senderShardID, destShardID)
-	txStore := txs.txPool.ShardDataStore(strCache)
-	if txStore == nil {
-		log.Error(process.ErrNilStorage.Error())
-		return nil
-	}
-
-	val, ok := txStore.Peek(txHash)
-	if !ok {
-		log.Debug(process.ErrTxNotFound.Error())
-		return nil
-	}
-
-	tx, ok := val.(*transaction.Transaction)
-	if !ok {
-		log.Error(process.ErrInvalidTxInPool.Error())
-		return nil
-	}
-
-	return tx
-}
-
 // receivedTransaction is a call back function which is called when a new transaction
 // is added in the transaction pool
 func (txs *transactions) receivedTransaction(txHash []byte) {
-	txs.mutTxsForBlock.Lock()
-	if txs.missingTxs > 0 {
-		txInfoForHash := txs.txsForBlock[string(txHash)]
-		if txInfoForHash != nil &&
-			txInfoForHash.txShardInfo != nil &&
-			!txInfoForHash.has {
-			tx := txs.getTransactionFromPool(txInfoForHash.senderShardID, txInfoForHash.receiverShardID, txHash)
-			if tx != nil {
-				txs.txsForBlock[string(txHash)].tx = tx
-				txs.txsForBlock[string(txHash)].has = true
-				txs.missingTxs--
-			}
-		}
+	receivedAllMissing := txs.baseReceivedTransaction(txHash, &txs.mutTxsForBlock, &txs.missingTxs, txs.txsForBlock, txs.txPool)
 
-		missingTxs := txs.missingTxs
-		txs.mutTxsForBlock.Unlock()
-
-		if missingTxs == 0 {
-			txs.chRcvAllTxs <- true
-		}
-	} else {
-		txs.mutTxsForBlock.Unlock()
+	if receivedAllMissing {
+		txs.chRcvAllTxs <- true
 	}
 }
 
@@ -342,7 +296,7 @@ func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) 
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
-			tx := txs.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
+			tx := txs.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash, txs.txPool)
 
 			if tx == nil {
 				txHashes = append(txHashes, txHash)
@@ -413,7 +367,7 @@ func (txs *transactions) computeMissingTxsForMiniBlock(mb block.MiniBlock) [][]b
 
 	missingTransactions := make([][]byte, 0)
 	for _, txHash := range mb.TxHashes {
-		tx := txs.getTransactionFromPool(mb.SenderShardID, mb.ReceiverShardID, txHash)
+		tx := txs.getTransactionFromPool(mb.SenderShardID, mb.ReceiverShardID, txHash, txs.txPool)
 		if tx == nil {
 			missingTransactions = append(missingTransactions, txHash)
 		}
