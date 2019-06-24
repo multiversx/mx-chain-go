@@ -190,3 +190,54 @@ func (bpp *basePreProcess) getTransactionFromPool(
 
 	return tx
 }
+
+func (bpp *basePreProcess) computeExistingAndMissing(
+	body block.Body,
+	mutTxsForBlock *sync.RWMutex,
+	missingTxs *int,
+	txsForBlock map[string]*txInfo,
+	chRcvAllTxs chan bool,
+	currType block.Type,
+	txPool dataRetriever.ShardedDataCacherNotifier,
+) map[uint32]*txsHashesInfo {
+	missingTxsForShard := make(map[uint32]*txsHashesInfo, 0)
+	mutTxsForBlock.Lock()
+
+	*missingTxs = 0
+	for i := 0; i < len(body); i++ {
+		miniBlock := body[i]
+		if miniBlock.Type != currType {
+			continue
+		}
+
+		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
+		txHashes := make([][]byte, 0)
+
+		for j := 0; j < len(miniBlock.TxHashes); j++ {
+			txHash := miniBlock.TxHashes[j]
+			tx := bpp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash, txPool)
+
+			if tx == nil {
+				txHashes = append(txHashes, txHash)
+				*missingTxs++
+			} else {
+				txsForBlock[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo, has: true}
+			}
+		}
+
+		if len(txHashes) > 0 {
+			missingTxsForShard[miniBlock.SenderShardID] = &txsHashesInfo{
+				txHashes:        txHashes,
+				receiverShardID: miniBlock.ReceiverShardID,
+			}
+		}
+	}
+
+	if *missingTxs > 0 {
+		process.EmptyChannel(chRcvAllTxs)
+	}
+
+	mutTxsForBlock.Unlock()
+
+	return missingTxsForShard
+}

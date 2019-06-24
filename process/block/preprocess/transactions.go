@@ -280,45 +280,7 @@ func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 
 // computeMissingAndExistingTxsForShards calculates what transactions are available and what are missing from block.Body
 func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) map[uint32]*txsHashesInfo {
-	missingTxsForShard := make(map[uint32]*txsHashesInfo)
-
-	txs.mutTxsForBlock.Lock()
-
-	txs.missingTxs = 0
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
-		if miniBlock.Type != block.TxBlock {
-			continue
-		}
-
-		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
-		txHashes := make([][]byte, 0)
-
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			txHash := miniBlock.TxHashes[j]
-			tx := txs.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash, txs.txPool)
-
-			if tx == nil {
-				txHashes = append(txHashes, txHash)
-				txs.missingTxs++
-			} else {
-				txs.txsForBlock[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo, has: true}
-			}
-		}
-
-		if len(txHashes) > 0 {
-			missingTxsForShard[miniBlock.SenderShardID] = &txsHashesInfo{
-				txHashes:        txHashes,
-				receiverShardID: miniBlock.ReceiverShardID,
-			}
-		}
-	}
-
-	if txs.missingTxs > 0 {
-		process.EmptyChannel(txs.chRcvAllTxs)
-	}
-
-	txs.mutTxsForBlock.Unlock()
+	missingTxsForShard := txs.computeExistingAndMissing(body, &txs.mutTxsForBlock, &txs.missingTxs, txs.txsForBlock, txs.chRcvAllTxs, block.TxBlock, txs.txPool)
 
 	return missingTxsForShard
 }

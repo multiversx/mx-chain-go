@@ -276,37 +276,9 @@ func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
 
 // computeMissingAndExistingScrsForShards calculates what smartContractResults are available and what are missing from block.Body
 func (scr *smartContractResults) computeMissingAndExistingScrsForShards(body block.Body) map[uint32]*txsHashesInfo {
-	missingScrsForShard := make(map[uint32]*txsHashesInfo)
-	scr.missingScrs = 0
+	missingTxsForShard := scr.computeExistingAndMissing(body, &scr.mutScrsForBlock, &scr.missingScrs, scr.scrForBlock, scr.chRcvAllScrs, block.SmartContractResultBlock, scr.scrPool)
 
-	scr.mutScrsForBlock.Lock()
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
-		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
-		txHashes := make([][]byte, 0)
-
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			txHash := miniBlock.TxHashes[j]
-			tx := scr.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash, scr.scrPool)
-
-			if tx == nil {
-				txHashes = append(txHashes, txHash)
-				scr.missingScrs++
-			} else {
-				scr.scrForBlock[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo, has: true}
-			}
-		}
-
-		if len(txHashes) > 0 {
-			missingScrsForShard[miniBlock.SenderShardID] = &txsHashesInfo{
-				txHashes:        txHashes,
-				receiverShardID: miniBlock.ReceiverShardID,
-			}
-		}
-	}
-	scr.mutScrsForBlock.Unlock()
-
-	return missingScrsForShard
+	return missingTxsForShard
 }
 
 // processAndRemoveBadSmartContractResults processed smartContractResults, if scr are with error it removes them from pool
