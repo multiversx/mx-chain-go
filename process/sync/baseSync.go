@@ -96,19 +96,15 @@ func (boot *baseBootstrap) loadBlocks(
 			return process.ErrBoostrapFromStorage
 		}
 
-		for i := highestNonceInStorer - blockFinality - lastBlocksToSkip; i <= highestNonceInStorer; i++ {
-			if i > highestNonceInStorer-lastBlocksToSkip {
-				errNotCritical := boot.removeBlock(i, blockUnit, hdrNonceHashDataUnit)
-				if errNotCritical != nil {
-					log.Info(fmt.Sprintf("remove block with nonce %d: %s", i, err.Error()))
-				}
-			} else {
-				err = boot.applyBlock(i, getHeader, getBlockBody)
-				if err != nil {
-					log.Info(fmt.Sprintf("apply block with nonce %d: %s", i, err.Error()))
-					lastBlocksToSkip++
-					break
-				}
+		firstNonceToApplyFromStorer := highestNonceInStorer - blockFinality - lastBlocksToSkip
+		lastNonceToApplyFromStorer := highestNonceInStorer - lastBlocksToSkip
+
+		for i := firstNonceToApplyFromStorer; i <= lastNonceToApplyFromStorer; i++ {
+			err = boot.applyBlock(i, getHeader, getBlockBody)
+			if err != nil {
+				log.Info(fmt.Sprintf("apply block with nonce %d: %s", i, err.Error()))
+				lastBlocksToSkip++
+				break
 			}
 		}
 
@@ -124,6 +120,15 @@ func (boot *baseBootstrap) loadBlocks(
 			}
 
 			break
+		}
+	}
+
+	firstNonceToDeleteFromStorer := highestNonceInStorer - lastBlocksToSkip + 1
+
+	for i := firstNonceToDeleteFromStorer; i <= highestNonceInStorer; i++ {
+		errNotCritical := boot.removeBlock(i, blockUnit, hdrNonceHashDataUnit)
+		if errNotCritical != nil {
+			log.Info(fmt.Sprintf("remove block with nonce %d: %s", i, err.Error()))
 		}
 	}
 
@@ -230,24 +235,29 @@ func (boot *baseBootstrap) loadNotarizedBlocks(blockFinality uint64,
 			return process.ErrBoostrapFromStorage
 		}
 
-		for i := highestNonceInStorer - blockFinality - lastBlocksToSkip; i <= highestNonceInStorer; i++ {
-			if i > highestNonceInStorer-lastBlocksToSkip {
-				errNotCritical := boot.removeNotarizedBlock(i, hdrNonceHashDataUnit)
-				if errNotCritical != nil {
-					log.Info(fmt.Sprintf("remove notarized block with nonce %d: %s", i, err.Error()))
-				}
-			} else {
-				err = applyNotarisedBlock(i, hdrNonceHashDataUnit)
-				if err != nil {
-					log.Info(fmt.Sprintf("apply notarized block with nonce %d: %s", i, err.Error()))
-					lastBlocksToSkip++
-					break
-				}
+		firstNonceToApplyFromStorer := highestNonceInStorer - blockFinality - lastBlocksToSkip
+		lastNonceToApplyFromStorer := highestNonceInStorer - lastBlocksToSkip
+
+		for i := firstNonceToApplyFromStorer; i <= lastNonceToApplyFromStorer; i++ {
+			err = applyNotarisedBlock(i, hdrNonceHashDataUnit)
+			if err != nil {
+				log.Info(fmt.Sprintf("apply notarized block with nonce %d: %s", i, err.Error()))
+				lastBlocksToSkip++
+				break
 			}
 		}
 
 		if err == nil {
 			break
+		}
+	}
+
+	firstNonceToDeleteFromStorer := highestNonceInStorer - lastBlocksToSkip + 1
+
+	for i := firstNonceToDeleteFromStorer; i <= highestNonceInStorer; i++ {
+		errNotCritical := boot.removeNotarizedBlock(i, hdrNonceHashDataUnit)
+		if errNotCritical != nil {
+			log.Info(fmt.Sprintf("remove notarized block with nonce %d: %s", i, err.Error()))
 		}
 	}
 
