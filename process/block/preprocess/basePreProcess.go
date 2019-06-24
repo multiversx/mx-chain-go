@@ -78,18 +78,18 @@ func (bpp *basePreProcess) restoreMiniBlock(miniBlock *block.MiniBlock, miniBloc
 	return err
 }
 
-func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, mutForBlock *sync.RWMutex, currBlock map[string]*scrInfo) ([][]byte, error) {
+func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, mutForBlock *sync.RWMutex, currBlock map[string]*txInfo) ([][]byte, error) {
 	mrsScrs := make([][]byte, 0)
 	for _, txHash := range txHashes {
 		mutForBlock.RLock()
 		txInfo := currBlock[string(txHash)]
 		mutForBlock.RUnlock()
 
-		if txInfo == nil || txInfo.scr == nil {
+		if txInfo == nil || txInfo.tx == nil {
 			continue
 		}
 
-		txMrs, err := bpp.marshalizer.Marshal(txInfo.scr)
+		txMrs, err := bpp.marshalizer.Marshal(txInfo.tx)
 		if err != nil {
 			return nil, process.ErrMarshalWithoutSuccess
 		}

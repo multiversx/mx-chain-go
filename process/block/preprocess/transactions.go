@@ -622,25 +622,12 @@ func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 
 // CreateMarshalizedData marshalizes transactions and creates and saves them into a new structure
 func (txs *transactions) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
-	mrsTxs := make([][]byte, 0)
-	for _, txHash := range txHashes {
-		txs.mutTxsForBlock.RLock()
-		txInfo := txs.txsForBlock[string(txHash)]
-		txs.mutTxsForBlock.RUnlock()
-
-		if txInfo == nil || txInfo.tx == nil {
-			continue
-		}
-
-		txMrs, err := txs.marshalizer.Marshal(txInfo.tx)
-		if err != nil {
-			log.Debug(process.ErrMarshalWithoutSuccess.Error())
-			continue
-		}
-		mrsTxs = append(mrsTxs, txMrs)
+	mrsScrs, err := txs.createMarshalizedData(txHashes, &txs.mutTxsForBlock, txs.txsForBlock)
+	if err != nil {
+		return nil, err
 	}
 
-	return mrsTxs, nil
+	return mrsScrs, nil
 }
 
 // getTxs gets all the available transactions from the pool
