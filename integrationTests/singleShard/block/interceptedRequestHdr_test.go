@@ -27,17 +27,17 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	dPoolRequestor := createTestDataPool()
-	storeRequestor := createTestStore()
+	dPoolRequester := createTestDataPool()
+	storeRequester := createTestStore()
 	dPoolResolver := createTestDataPool()
 	storeResolver := createTestStore()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
-	fmt.Println("Requestor:")
-	nRequestor, mesRequestor, _, resolversFinder := createNetNode(
-		dPoolRequestor,
-		storeRequestor,
+	fmt.Println("Requester:")
+	nRequester, mesRequester, _, resolversFinder := createNetNode(
+		dPoolRequester,
+		storeRequester,
 		createAccountsDB(),
 		shardCoordinator,
 	)
@@ -50,16 +50,16 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 		shardCoordinator,
 	)
 
-	nRequestor.Start()
-	nResolver.Start()
+	_ = nRequester.Start()
+	_ = nResolver.Start()
 	defer func() {
-		_ = nRequestor.Stop()
+		_ = nRequester.Stop()
 		_ = nResolver.Stop()
 	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := mesRequestor.ConnectToPeer(getConnectableAddress(mesResolver))
+	err := mesRequester.ConnectToPeer(getConnectableAddress(mesResolver))
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -103,10 +103,10 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
 	//Step 2. resolver has the headers
-	dPoolResolver.Headers().HasOrAdd(hdrHash1, &hdr1)
-	dPoolResolver.HeadersNonces().HasOrAdd(0, hdrHash1)
-	storeResolver.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
-	storeResolver.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
+	_, _ = dPoolResolver.Headers().HasOrAdd(hdrHash1, &hdr1)
+	_, _ = dPoolResolver.HeadersNonces().HasOrAdd(0, hdrHash1)
+	_ = storeResolver.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
+	_ = storeResolver.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
 	//Step 3. wire up a received handler
 	chanDone := make(chan struct{})
@@ -118,18 +118,16 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 		chanDone <- struct{}{}
 	}()
 
-	dPoolRequestor.Headers().RegisterHandler(func(key []byte) {
-		hdrStored, _ := dPoolRequestor.Headers().Peek(key)
+	dPoolRequester.Headers().RegisterHandler(func(key []byte) {
+		hdrStored, _ := dPoolRequester.Headers().Peek(key)
 		fmt.Printf("Recieved hash %v\n", base64.StdEncoding.EncodeToString(key))
 
 		if reflect.DeepEqual(hdrStored, &hdr1) && hdr1.Signature != nil {
-			assert.Equal(t, hdrStored, &hdr1)
 			fmt.Printf("Recieved header with hash %v\n", base64.StdEncoding.EncodeToString(key))
 			wg.Done()
 		}
 
 		if reflect.DeepEqual(hdrStored, &hdr2) && hdr2.Signature != nil {
-			assert.Equal(t, hdrStored, &hdr2)
 			fmt.Printf("Recieved header with hash %v\n", base64.StdEncoding.EncodeToString(key))
 			wg.Done()
 		}
@@ -139,10 +137,10 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	res, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
-	hdrResolver.RequestDataFromNonce(0)
+	_ = hdrResolver.RequestDataFromNonce(0)
 
 	//Step 5. request header that is stored
-	hdrResolver.RequestDataFromNonce(1)
+	_ = hdrResolver.RequestDataFromNonce(1)
 
 	select {
 	case <-chanDone:

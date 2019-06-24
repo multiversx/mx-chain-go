@@ -24,14 +24,14 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	dPoolRequestor := createTestDataPool()
+	dPoolRequester := createTestDataPool()
 	dPoolResolver := createTestDataPool()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
-	fmt.Println("Requestor:	")
-	nRequestor, mesRequestor, _, resolversFinder := createNetNode(
-		dPoolRequestor,
+	fmt.Println("Requester:	")
+	nRequester, mesRequester, _, resolversFinder := createNetNode(
+		dPoolRequester,
 		createTestStore(),
 		createAccountsDB(),
 		shardCoordinator,
@@ -45,15 +45,17 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 		shardCoordinator,
 	)
 
-	nRequestor.Start()
-	nResolver.Start()
+	_ = nRequester.Start()
+	_ = nResolver.Start()
 
-	defer nRequestor.Stop()
-	defer nResolver.Stop()
+	defer func() {
+		_ = nRequester.Stop()
+		_ = nResolver.Stop()
+	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := mesRequestor.ConnectToPeer(getConnectableAddress(mesResolver))
+	err := mesRequester.ConnectToPeer(getConnectableAddress(mesResolver))
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -82,8 +84,8 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	//Step 3. wire up a received handler
 	chanDone := make(chan bool)
 
-	dPoolRequestor.MiniBlocks().RegisterHandler(func(key []byte) {
-		txBlockBodyStored, _ := dPoolRequestor.MiniBlocks().Get(key)
+	dPoolRequester.MiniBlocks().RegisterHandler(func(key []byte) {
+		txBlockBodyStored, _ := dPoolRequester.MiniBlocks().Get(key)
 
 		if reflect.DeepEqual(txBlockBodyStored, miniBlock) {
 			chanDone <- true
@@ -94,10 +96,10 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	})
 
 	//Step 4. request tx block body
-	txBlockBodyRequestor, _ := resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
-	miniBlockRequestor := txBlockBodyRequestor.(dataRetriever.MiniBlocksResolver)
+	txBlockBodyRequester, _ := resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
+	miniBlockRequester := txBlockBodyRequester.(dataRetriever.MiniBlocksResolver)
 	miniBlockHashes[0] = txBlockBodyHash
-	miniBlockRequestor.RequestDataFromHashArray(miniBlockHashes)
+	_ = miniBlockRequester.RequestDataFromHashArray(miniBlockHashes)
 
 	select {
 	case <-chanDone:
