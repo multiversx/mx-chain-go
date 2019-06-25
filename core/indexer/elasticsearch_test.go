@@ -407,3 +407,7 @@ func TestElasticIndexer_SerializeShardInfo(t *testing.T) {
 		assert.NotNil(t, meta)
 	}
 }
+
+func TestElasticIndexer_BodyCloses(t *testing.T) {
+
+}
