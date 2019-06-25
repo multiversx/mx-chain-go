@@ -391,6 +391,8 @@ func generateAndDisseminateTxs(
 				hex.EncodeToString(tx.SndAddr),
 				hex.EncodeToString(tx.RcvAddr),
 				tx.Value,
+				0,
+				0,
 				string(tx.Data),
 				tx.Signature,
 			)
