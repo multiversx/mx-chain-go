@@ -33,7 +33,7 @@ type NodeWrapper interface {
 	GenerateTransaction(senderHex string, receiverHex string, amount *big.Int, code string) (*transaction.Transaction, error)
 
 	//SendTransaction will send a new transaction on the topic channel
-	SendTransaction(nonce uint64, senderHex string, receiverHex string, value *big.Int, transactionData string, signature []byte) (string, error)
+	SendTransaction(nonce uint64, senderHex string, receiverHex string, value *big.Int, gasPrice uint64, gasLimit uint64, transactionData string, signature []byte) (string, error)
 
 	//GetTransaction gets the transaction
 	GetTransaction(hash string) (*transaction.Transaction, error)

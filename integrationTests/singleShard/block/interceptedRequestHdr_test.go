@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -108,8 +109,14 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	_ = storeResolver.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
 	//Step 3. wire up a received handler
-	chanDone1 := make(chan struct{})
-	chanDone2 := make(chan struct{})
+	chanDone := make(chan struct{})
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		wg.Wait()
+		chanDone <- struct{}{}
+	}()
 
 	dPoolRequester.Headers().RegisterHandler(func(key []byte) {
 		hdrStored, _ := dPoolRequester.Headers().Peek(key)
@@ -117,12 +124,12 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 		if reflect.DeepEqual(hdrStored, &hdr1) && hdr1.Signature != nil {
 			fmt.Printf("Recieved header with hash %v\n", base64.StdEncoding.EncodeToString(key))
-			chanDone1 <- struct{}{}
+			wg.Done()
 		}
 
 		if reflect.DeepEqual(hdrStored, &hdr2) && hdr2.Signature != nil {
 			fmt.Printf("Recieved header with hash %v\n", base64.StdEncoding.EncodeToString(key))
-			chanDone2 <- struct{}{}
+			wg.Done()
 		}
 	})
 
@@ -132,18 +139,11 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	_ = hdrResolver.RequestDataFromNonce(0)
 
-	select {
-	case <-chanDone1:
-	case <-time.After(time.Second * 10):
-		assert.Fail(t, "timeout")
-	}
-
-	// TODO fix bug in directSender.go so requests can be made one after another (also concurrent)
 	//Step 5. request header that is stored
 	_ = hdrResolver.RequestDataFromNonce(1)
 
 	select {
-	case <-chanDone2:
+	case <-chanDone:
 	case <-time.After(time.Second * 10):
 		assert.Fail(t, "timeout")
 	}

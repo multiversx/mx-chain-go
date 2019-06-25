@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -398,7 +399,7 @@ func TestElrondNodeFacade_SendTransaction(t *testing.T) {
 		return "", nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
-	_, _ = ef.SendTransaction(1, "test", "test", big.NewInt(0), "code", []byte{})
+	ef.SendTransaction(1, "test", "test", big.NewInt(0), 0, 0, "code", []byte{})
 	assert.Equal(t, called, 1)
 }
 
@@ -519,4 +520,39 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 
 	_, _ = ef.GetDataValue("", "")
 	assert.True(t, wasCalled)
+}
+
+func TestElrondNodeFacade_RestApiPortNilConfig(t *testing.T) {
+	ef := createElrondNodeFacadeWithMockNodeAndResolver()
+	ef.SetConfig(nil)
+
+	assert.Equal(t, DefaultRestPort, ef.RestApiPort())
+}
+
+func TestElrondNodeFacade_RestApiPortEmptyPortSpecified(t *testing.T) {
+	ef := createElrondNodeFacadeWithMockNodeAndResolver()
+	ef.SetConfig(&config.FacadeConfig{
+		RestApiPort: "",
+	})
+
+	assert.Equal(t, DefaultRestPort, ef.RestApiPort())
+}
+
+func TestElrondNodeFacade_RestApiPortInvalidPortSpecified(t *testing.T) {
+	ef := createElrondNodeFacadeWithMockNodeAndResolver()
+	ef.SetConfig(&config.FacadeConfig{
+		RestApiPort: "abc123",
+	})
+
+	assert.Equal(t, DefaultRestPort, ef.RestApiPort())
+}
+
+func TestElrondNodeFacade_RestApiPortCorrectPortSpecified(t *testing.T) {
+	ef := createElrondNodeFacadeWithMockNodeAndResolver()
+	port := "1111"
+	ef.SetConfig(&config.FacadeConfig{
+		RestApiPort: port,
+	})
+
+	assert.Equal(t, port, ef.RestApiPort())
 }
