@@ -49,7 +49,6 @@ func NewShardProcessor(
 	store dataRetriever.StorageService,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
-	txProcessor process.TransactionProcessor,
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	forkDetector process.ForkDetector,
@@ -74,9 +73,6 @@ func NewShardProcessor(
 
 	if dataPool == nil {
 		return nil, process.ErrNilDataPoolHolder
-	}
-	if txProcessor == nil {
-		return nil, process.ErrNilTxProcessor
 	}
 	if blocksTracker == nil {
 		return nil, process.ErrNilBlocksTracker
@@ -110,7 +106,6 @@ func NewShardProcessor(
 		core:          core,
 		baseProcessor: base,
 		dataPool:      dataPool,
-		txProcessor:   txProcessor,
 		blocksTracker: blocksTracker,
 		txCoordinator: txCoordinator,
 	}

@@ -44,7 +44,6 @@ func NewTransactionCoordinator(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	txProcessor process.TransactionProcessor,
-	txDataPool dataRetriever.ShardedDataCacherNotifier,
 	store dataRetriever.StorageService,
 ) (*transactionCoordinator, error) {
 	if adrConv == nil {
@@ -81,7 +80,7 @@ func NewTransactionCoordinator(
 
 	// TODO: make a factory and send this on constructor
 	var err error
-	tc.txPreprocessors[block.TxBlock], err = preprocess.NewTransactionPreprocessor(txDataPool, store, hasher, marshalizer, txProcessor, shardCoordinator, accounts, requestHandler.RequestTransaction)
+	tc.txPreprocessors[block.TxBlock], err = preprocess.NewTransactionPreprocessor(dataPool.Transactions(), store, hasher, marshalizer, txProcessor, shardCoordinator, accounts, requestHandler.RequestTransaction)
 	if err != nil {
 		return nil, err
 	}

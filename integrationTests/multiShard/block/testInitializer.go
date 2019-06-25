@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"math/rand"
 	"strings"
 	"sync"
@@ -255,6 +256,9 @@ func createNetNode(
 		shardCoordinator,
 		&mock.SCProcessorMock{},
 	)
+
+	txCoordinator, _ := coordinator.NewTransactionCoordinator(testAddressConverter, shardCoordinator, accntAdapter, dPool, requestHandler, testHasher, testMarshalizer, txProcessor, store)
+
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 	blockProcessor, _ := block.NewShardProcessor(
 		&mock.ServiceContainerMock{},
@@ -262,7 +266,6 @@ func createNetNode(
 		store,
 		testHasher,
 		testMarshalizer,
-		txProcessor,
 		accntAdapter,
 		shardCoordinator,
 		&mock.ForkDetectorMock{
@@ -289,6 +292,8 @@ func createNetNode(
 		genesisBlocks,
 		true,
 		requestHandler,
+		txCoordinator,
+		uint64Converter,
 	)
 
 	_ = blkc.SetGenesisHeader(genesisBlocks[shardCoordinator.SelfId()])

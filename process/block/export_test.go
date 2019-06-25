@@ -1,16 +1,12 @@
 package block
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
-
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -33,20 +29,8 @@ func DisplayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	return displayHeader(headerHandler)
 }
 
-func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
-	return preprocess.SortTxByNonce(txShardStore)
-}
-
-func (sp *shardProcessor) ReceivedMiniBlock(miniBlockHash []byte) {
-	sp.receivedMiniBlock(miniBlockHash)
-}
-
 func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
 	sp.receivedMetaBlock(metaBlockHash)
-}
-
-func (sp *shardProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, round uint32, haveTime func() bool) error {
-	return sp.createAndProcessMiniBlockComplete(miniBlock, round, haveTime)
 }
 
 func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, round uint32, haveTime func() bool) (block.Body, error) {
