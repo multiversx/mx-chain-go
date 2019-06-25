@@ -76,3 +76,7 @@ func (phf *PoolsHolderFake) MetaHeadersNonces() dataRetriever.Uint64Cacher {
 func (phf *PoolsHolderFake) SetTransactions(transactions dataRetriever.ShardedDataCacherNotifier) {
 	phf.transactions = transactions
 }
+
+func (phf *PoolsHolderFake) SetSmartContractResults(scrs dataRetriever.ShardedDataCacherNotifier) {
+	phf.smartcontractresults = scrs
+}

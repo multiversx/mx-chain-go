@@ -52,6 +52,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
@@ -1250,9 +1251,13 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
+	intermediateProcessor, err := preprocess.NewIntermediateResultsProcessor(core.Hasher, core.Marshalizer, shardCoordinator, state.AddressConverter)
+	if err != nil {
+		return nil, nil, err
+	}
 	//TODO: change the mock
 	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser,
-		core.Hasher, core.Marshalizer, state.AccountsAdapter, vmAccountsDB, state.AddressConverter, shardCoordinator)
+		core.Hasher, core.Marshalizer, state.AccountsAdapter, vmAccountsDB, state.AddressConverter, shardCoordinator, intermediateProcessor)
 	if err != nil {
 		return nil, nil, err
 	}
