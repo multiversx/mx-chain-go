@@ -160,6 +160,8 @@ func (boot *MetaBootstrap) applyNotarizedBlock(nonce uint64, notarizedHdrNonceHa
 		return err
 	}
 
+	log.Info(fmt.Sprintf("apply notarized block with nonce %d and round %d\n", header.Nonce, header.Round))
+
 	if header.GetRound() > boot.boostrapRoundIndex {
 		return ErrHigherBootstrapRound
 	}

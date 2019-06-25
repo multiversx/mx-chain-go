@@ -102,7 +102,7 @@ func (boot *baseBootstrap) loadBlocks(
 		for i := firstNonceToApplyFromStorer; i <= lastNonceToApplyFromStorer; i++ {
 			err = boot.applyBlock(i, getHeader, getBlockBody)
 			if err != nil {
-				log.Info(fmt.Sprintf("apply block with nonce %d: %s", i, err.Error()))
+				log.Info(fmt.Sprintf("apply block with nonce %d: %s\n", i, err.Error()))
 				lastBlocksToSkip++
 				break
 			}
@@ -111,7 +111,7 @@ func (boot *baseBootstrap) loadBlocks(
 		if err == nil {
 			err = boot.accounts.RecreateTrie(boot.blkc.GetCurrentBlockHeader().GetRootHash())
 			if err != nil {
-				log.Info(fmt.Sprintf("recreate trie for block with nonce %d in shard %d: %s",
+				log.Info(fmt.Sprintf("recreate trie for block with nonce %d in shard %d: %s\n",
 					boot.blkc.GetCurrentBlockHeader().GetNonce(),
 					boot.blkc.GetCurrentBlockHeader().GetShardID(),
 					err.Error()))
@@ -128,7 +128,7 @@ func (boot *baseBootstrap) loadBlocks(
 	for i := firstNonceToDeleteFromStorer; i <= highestNonceInStorer; i++ {
 		errNotCritical := boot.removeBlock(i, blockUnit, hdrNonceHashDataUnit)
 		if errNotCritical != nil {
-			log.Info(fmt.Sprintf("remove block with nonce %d: %s", i, err.Error()))
+			log.Info(fmt.Sprintf("remove block with nonce %d: %s\n", i, err.Error()))
 		}
 	}
 
@@ -145,6 +145,8 @@ func (boot *baseBootstrap) applyBlock(
 	if err != nil {
 		return err
 	}
+
+	log.Info(fmt.Sprintf("apply block with nonce %d and round %d\n", header.GetNonce(), header.GetRound()))
 
 	if header.GetRound() > boot.boostrapRoundIndex {
 		return ErrHigherBootstrapRound
@@ -241,7 +243,7 @@ func (boot *baseBootstrap) loadNotarizedBlocks(blockFinality uint64,
 		for i := firstNonceToApplyFromStorer; i <= lastNonceToApplyFromStorer; i++ {
 			err = applyNotarisedBlock(i, hdrNonceHashDataUnit)
 			if err != nil {
-				log.Info(fmt.Sprintf("apply notarized block with nonce %d: %s", i, err.Error()))
+				log.Info(fmt.Sprintf("apply notarized block with nonce %d: %s\n", i, err.Error()))
 				lastBlocksToSkip++
 				break
 			}
@@ -257,7 +259,7 @@ func (boot *baseBootstrap) loadNotarizedBlocks(blockFinality uint64,
 	for i := firstNonceToDeleteFromStorer; i <= highestNonceInStorer; i++ {
 		errNotCritical := boot.removeNotarizedBlock(i, hdrNonceHashDataUnit)
 		if errNotCritical != nil {
-			log.Info(fmt.Sprintf("remove notarized block with nonce %d: %s", i, err.Error()))
+			log.Info(fmt.Sprintf("remove notarized block with nonce %d: %s\n", i, err.Error()))
 		}
 	}
 

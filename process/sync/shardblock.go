@@ -174,6 +174,8 @@ func (boot *ShardBootstrap) applyNotarizedBlock(nonce uint64, notarizedHdrNonceH
 		return err
 	}
 
+	log.Info(fmt.Sprintf("apply notarized block with nonce %d and round %d\n", header.Nonce, header.Round))
+
 	if header.GetRound() > boot.boostrapRoundIndex {
 		return ErrHigherBootstrapRound
 	}
