@@ -229,7 +229,10 @@ func (boot *ShardBootstrap) removeBlockBody(
 	return nil
 }
 
-func (boot *ShardBootstrap) applyNotarizedBlock(nonce uint64, notarizedHdrNonceHashDataUnit dataRetriever.UnitType) error {
+func (boot *ShardBootstrap) applyNotarizedBlock(
+	nonce uint64,
+	notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
 	headerHash, err := boot.store.Get(notarizedHdrNonceHashDataUnit, nonceToByteSlice)
 	if err != nil {
