@@ -381,3 +381,9 @@ var ErrNilIntermediateTransactionHandler = errors.New("intermediate transaction 
 
 // ErrWrongTypeInMiniBlock signals that type is not correct for processing
 var ErrWrongTypeInMiniBlock = errors.New("type in miniblock is not correct for processing")
+
+// ErrNilTransactionCoordinator signals that transaction coordinator is nil
+var ErrNilTransactionCoordinator = errors.New("transaction coordinator is nil")
+
+// ErrNilUint64Converter signals that uint64converter is nil
+var ErrNilUint64Converter = errors.New("unit64converter is nil")

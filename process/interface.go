@@ -28,17 +28,23 @@ type SmartContractResultProcessor interface {
 type TransactionCoordinator interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
 
-	IsDataPreparedForProcessing(haveTime func() time.Duration)
+	RequestMiniBlocks(header data.HeaderHandler)
+	RequestBlockTransactions(body block.Body)
+	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 
 	SaveBlockDataToStorage(body block.Body) error
-	RestoreBlockDataFromStorage(body block.Body) (int, map[int][]byte, error)
-	RemoveBlockDataFromStorage(body block.Body) error
+	RestoreBlockDataFromStorage(body block.Body) (int, map[int][][]byte, error)
+	RemoveBlockDataFromPool(body block.Body) error
 
 	ProcessBlockTransaction(body block.Body, round uint32, haveTime func() time.Duration) error
 
-	CreateAndProcessCrossShardTransactions(header data.HeaderHandler, round uint32, haveTime func()) (bool, error)
+	CreateBlockStarted()
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, maxTxRemaining uint32, round uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
+	CreateMbsAndProcessTransactionsFromMe(maxTxRemaining uint32, round uint32, haveTime func() bool) block.MiniBlockSlice
 
-	GetAllCurrentUsedTxs(transactionType TransactionType) map[string]data.TransactionHandler
+	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte)
+
+	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
