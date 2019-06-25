@@ -471,7 +471,7 @@ func timestampMapping() io.Reader {
 	return strings.NewReader(
 		`{
 				"settings": {"index": {"sort.field": "timestamp", "sort.order": "desc"}},
-				"mappings": {"properties": {"timestamp": {"type": "date"}}}
+				"mappings": {"_doc": {"properties": {"timestamp": {"type": "date"}}}}
 			}`,
 	)
 }
