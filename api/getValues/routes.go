@@ -25,9 +25,9 @@ type GetValueRequest struct {
 
 // Routes defines address related routes
 func Routes(router *gin.RouterGroup) {
-	router.POST("/as-hex", GetDataValueAsHexBytes)
-	router.POST("/as-string", GetDataValueAsString)
-	router.POST("/as-int", GetDataValueAsBigInt)
+	router.POST("/hex", GetDataValueAsHexBytes)
+	router.POST("/string", GetDataValueAsString)
+	router.POST("/int", GetDataValueAsBigInt)
 }
 
 func getDataValueFromAccount(c *gin.Context) ([]byte, int, error) {

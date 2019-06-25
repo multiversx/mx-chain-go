@@ -77,7 +77,7 @@ func TestGetDataValueAsHexBytes_WithWrongFacadeShouldErr(t *testing.T) {
 	ws := startNodeServerWrongFacade()
 
 	jsonStr := `{"scAddress":"DEADBEEF","funcName":"DEADBEEF","args":[]}`
-	req, _ := http.NewRequest("POST", "/get-values/as-hex", bytes.NewBuffer([]byte(jsonStr)))
+	req, _ := http.NewRequest("POST", "/get-values/hex", bytes.NewBuffer([]byte(jsonStr)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -100,7 +100,7 @@ func TestGetDataValueAsHexBytes_BadRequestShouldErr(t *testing.T) {
 	ws := startNodeServer(&facade)
 
 	jsonStr := `{"this should error"}`
-	req, _ := http.NewRequest("POST", "/get-values/as-hex", bytes.NewBuffer([]byte(jsonStr)))
+	req, _ := http.NewRequest("POST", "/get-values/hex", bytes.NewBuffer([]byte(jsonStr)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -143,13 +143,10 @@ func TestGetDataValueAsHexBytes_ArgumentIsNotHexShouldErr(t *testing.T) {
 
 	argsJson, _ := json.Marshal(args)
 
-	jsonStr := fmt.Sprintf(
-		`{"scAddress":"%s",`+
-			`"funcName":"%s",`+
-			`"args":%s}`, scAddress, fName, argsJson)
+	jsonStr := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
 	fmt.Printf("Request: %s\n", jsonStr)
 
-	req, _ := http.NewRequest("POST", "/get-values/as-hex", bytes.NewBuffer([]byte(jsonStr)))
+	req, _ := http.NewRequest("POST", "/get-values/hex", bytes.NewBuffer([]byte(jsonStr)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -189,7 +186,7 @@ func testGetValueFacadeErrors(t *testing.T, route string) {
 }
 
 func TestGetDataValueAsHexBytes_FacadeErrorsShouldErr(t *testing.T) {
-	testGetValueFacadeErrors(t, "/get-values/as-hex")
+	testGetValueFacadeErrors(t, "/get-values/hex")
 }
 
 func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.T) {
@@ -228,13 +225,10 @@ func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.
 	}
 	argsJson, _ := json.Marshal(argsHex)
 
-	jsonStr := fmt.Sprintf(
-		`{"scAddress":"%s",`+
-			`"funcName":"%s",`+
-			`"args":%s}`, scAddress, fName, argsJson)
+	jsonStr := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
 	fmt.Printf("Request: %s\n", jsonStr)
 
-	req, _ := http.NewRequest("POST", "/get-values/as-hex", bytes.NewBuffer([]byte(jsonStr)))
+	req, _ := http.NewRequest("POST", "/get-values/hex", bytes.NewBuffer([]byte(jsonStr)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -250,7 +244,7 @@ func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.
 //------- GetDataValueAsString
 
 func TestGetDataValueAsString_FacadeErrorsShouldErr(t *testing.T) {
-	testGetValueFacadeErrors(t, "/get-values/as-string")
+	testGetValueFacadeErrors(t, "/get-values/string")
 }
 
 func TestGetDataValueAsString_WithParametersShouldReturnValueAsHex(t *testing.T) {
@@ -289,13 +283,10 @@ func TestGetDataValueAsString_WithParametersShouldReturnValueAsHex(t *testing.T)
 	}
 	argsJson, _ := json.Marshal(argsHex)
 
-	jsonStr := fmt.Sprintf(
-		`{"scAddress":"%s",`+
-			`"funcName":"%s",`+
-			`"args":%s}`, scAddress, fName, argsJson)
+	jsonStr := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
 	fmt.Printf("Request: %s\n", jsonStr)
 
-	req, _ := http.NewRequest("POST", "/get-values/as-string", bytes.NewBuffer([]byte(jsonStr)))
+	req, _ := http.NewRequest("POST", "/get-values/string", bytes.NewBuffer([]byte(jsonStr)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -311,7 +302,7 @@ func TestGetDataValueAsString_WithParametersShouldReturnValueAsHex(t *testing.T)
 //------- GetDataValueAsInt
 
 func TestGetDataValueAsInt_FacadeErrorsShouldErr(t *testing.T) {
-	testGetValueFacadeErrors(t, "/get-values/as-int")
+	testGetValueFacadeErrors(t, "/get-values/int")
 }
 
 func TestGetDataValueAsInt_WithParametersShouldReturnValueAsHex(t *testing.T) {
@@ -352,13 +343,10 @@ func TestGetDataValueAsInt_WithParametersShouldReturnValueAsHex(t *testing.T) {
 	}
 	argsJson, _ := json.Marshal(argsHex)
 
-	jsonStr := fmt.Sprintf(
-		`{"scAddress":"%s",`+
-			`"funcName":"%s",`+
-			`"args":%s}`, scAddress, fName, argsJson)
+	jsonStr := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
 	fmt.Printf("Request: %s\n", jsonStr)
 
-	req, _ := http.NewRequest("POST", "/get-values/as-int", bytes.NewBuffer([]byte(jsonStr)))
+	req, _ := http.NewRequest("POST", "/get-values/int", bytes.NewBuffer([]byte(jsonStr)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
