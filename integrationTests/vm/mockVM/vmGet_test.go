@@ -51,7 +51,7 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 
-	_, err := txProc.ProcessTransaction(tx, round)
+	err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
