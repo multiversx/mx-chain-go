@@ -214,9 +214,6 @@ var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 // ErrNilMetachainHeadersStorage signals that a nil metachain header storage has been provided
 var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")
 
-// ErrNilResolverSender signals that a nil resolver sender object has been provided
-var ErrNilResolverSender = errors.New("nil resolver sender")
-
 // ErrNilBlockBodyStorage signals that a nil block body storage has been provided
 var ErrNilBlockBodyStorage = errors.New("nil block body storage")
 
@@ -375,3 +372,12 @@ var ErrNilScrDataPool = errors.New("smart contract result pool is nil")
 
 // ErrNilScrStorage signals that smart contract storage is nil
 var ErrNilScrStorage = errors.New("smart contract result storage is nil")
+
+// ErrMiniBlockHashMismatch signals that miniblock hashes does not match
+var ErrMiniBlockHashMismatch = errors.New("miniblocks does not match")
+
+// ErrNilIntermediateTransactionHandler signals that nil intermediate transaction handler was provided
+var ErrNilIntermediateTransactionHandler = errors.New("intermediate transaction handler is nil")
+
+// ErrWrongTypeInMiniBlock signals that type is not correct for processing
+var ErrWrongTypeInMiniBlock = errors.New("type in miniblock is not correct for processing")

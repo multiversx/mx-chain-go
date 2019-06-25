@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -72,8 +73,8 @@ func newTestBlockBody() block.Body {
 	}
 }
 
-func newTestTxPool() map[string]*transaction.Transaction {
-	txPool := make(map[string]*transaction.Transaction)
+func newTestTxPool() map[string]data.TransactionHandler {
+	txPool := make(map[string]data.TransactionHandler)
 
 	txPool["tx1"] = &transaction.Transaction{
 		Nonce:     uint64(1),

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
 	"sync"
 
@@ -37,6 +38,8 @@ type scProcessor struct {
 
 	mutSCState   sync.Mutex
 	mapExecState map[uint32]scExecutionState
+
+	scrForwarder process.IntermediateTransactionHandler
 }
 
 var log = logger.DefaultLogger()
@@ -51,6 +54,7 @@ func NewSmartContractProcessor(
 	tempAccounts process.TemporaryAccountsHandler,
 	adrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
+	scrForwarder process.IntermediateTransactionHandler,
 ) (*scProcessor, error) {
 	if vm == nil {
 		return nil, process.ErrNoVM
@@ -76,6 +80,9 @@ func NewSmartContractProcessor(
 	if coordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if scrForwarder == nil {
+		return nil, process.ErrNilIntermediateTransactionHandler
+	}
 
 	return &scProcessor{
 		vm:               vm,
@@ -86,6 +93,7 @@ func NewSmartContractProcessor(
 		tempAccounts:     tempAccounts,
 		adrConv:          adrConv,
 		shardCoordinator: coordinator,
+		scrForwarder:     scrForwarder,
 		mapExecState:     make(map[uint32]scExecutionState)}, nil
 }
 
@@ -143,41 +151,46 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	tx *transaction.Transaction,
 	acntSnd, acntDst state.AccountHandler,
 	round uint32,
-) ([]*smartContractResult.SmartContractResult, error) {
+) error {
 	defer sc.tempAccounts.CleanTempAccounts()
 
 	if tx == nil {
-		return nil, process.ErrNilTransaction
+		return process.ErrNilTransaction
 	}
 	if acntDst == nil {
-		return nil, process.ErrNilSCDestAccount
+		return process.ErrNilSCDestAccount
 	}
 	if acntDst.IsInterfaceNil() || acntDst.GetCode() == nil {
-		return nil, process.ErrNilSCDestAccount
+		return process.ErrNilSCDestAccount
 	}
 
 	err := sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	vmInput, err := sc.createVMCallInput(tx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	vmOutput, err := sc.vm.RunSmartContractCall(vmInput)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// VM is formally verified and the output is correct
 	crossTxs, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return crossTxs, nil
+	err = sc.scrForwarder.AddIntermediateTransactions(crossTxs)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
@@ -206,42 +219,47 @@ func (sc *scProcessor) DeploySmartContract(
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
 	round uint32,
-) ([]*smartContractResult.SmartContractResult, error) {
+) error {
 	defer sc.tempAccounts.CleanTempAccounts()
 
 	err := sc.checkTxValidity(tx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if !isEmptyAddress {
-		return nil, process.ErrWrongTransaction
+		return process.ErrWrongTransaction
 	}
 
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	vmInput, err := sc.createVMDeployInput(tx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// TODO: Smart contract address calculation
 	vmOutput, err := sc.vm.RunSmartContractCreate(vmInput)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// VM is formally verified, the output is correct
 	crossTxs, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return crossTxs, nil
+	err = sc.scrForwarder.AddIntermediateTransactions(crossTxs)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction) (*vmcommon.ContractCallInput, error) {
@@ -343,7 +361,7 @@ func (sc *scProcessor) processVMOutput(
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
 	round uint32,
-) ([]*smartContractResult.SmartContractResult, error) {
+) ([]data.TransactionHandler, error) {
 	if vmOutput == nil {
 		return nil, process.ErrNilVMOutput
 	}
@@ -418,8 +436,8 @@ func (sc *scProcessor) createCrossShardTransactions(
 	crossOutAccs []*vmcommon.OutputAccount,
 	tx *transaction.Transaction,
 	txHash []byte,
-) ([]*smartContractResult.SmartContractResult, error) {
-	crossSCTxs := make([]*smartContractResult.SmartContractResult, 0)
+) ([]data.TransactionHandler, error) {
+	crossSCTxs := make([]data.TransactionHandler, 0)
 
 	for i := 0; i < len(crossOutAccs); i++ {
 		scTx := sc.createSmartContractResult(crossOutAccs[i], tx.RcvAddr, txHash)

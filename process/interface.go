@@ -17,7 +17,11 @@ import (
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
-	ProcessTransaction(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error)
+	ProcessTransaction(transaction *transaction.Transaction, round uint32) error
+}
+
+// SmartContractResultProcessor is the main interface for smart contract result execution engine
+type SmartContractResultProcessor interface {
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
 }
 
@@ -40,9 +44,15 @@ type TransactionCoordinator interface {
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
-	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
-	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
-	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
+	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
+	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) error
+}
+
+// IntermediateTransactionHandler handles transactions which are not resolved in only one step
+type IntermediateTransactionHandler interface {
+	AddIntermediateTransactions(txs []data.TransactionHandler) error
+	CreateAllInterMiniBlocks() []*block.MiniBlock
+	VerifyInterMiniBlocks(body block.Body) error
 }
 
 type PreProcessor interface {
@@ -62,7 +72,7 @@ type PreProcessor interface {
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error
 	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error)
 
-	GetAllCurrentUsedTxs() map[string]*transaction.Transaction
+	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 }
 
 // BlockProcessor is the main interface for block execution engine
