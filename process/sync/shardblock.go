@@ -147,7 +147,8 @@ func (boot *ShardBootstrap) syncFromStorer(
 		blockUnit,
 		hdrNonceHashDataUnit,
 		boot.getHeaderFromStorage,
-		boot.getBlockBody)
+		boot.getBlockBody,
+		boot.removeBlockBody)
 	if err != nil {
 		return err
 	}
@@ -157,6 +158,72 @@ func (boot *ShardBootstrap) syncFromStorer(
 		boot.applyNotarizedBlock)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (boot *ShardBootstrap) removeBlockBody(
+	nonce uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
+
+	blockBodyStore := boot.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if blockBodyStore == nil {
+		return process.ErrNilBlockBodyStorage
+	}
+
+	txStore := boot.store.GetStorer(dataRetriever.TransactionUnit)
+	if txStore == nil {
+		return process.ErrNilTxStorage
+	}
+
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
+	if err != nil {
+		return err
+	}
+
+	hdrBuff, err := boot.store.Get(blockUnit, headerHash)
+	if err != nil {
+		return err
+	}
+
+	hdr := block.Header{}
+	err = boot.marshalizer.Unmarshal(&hdr, hdrBuff)
+	if err != nil {
+		return err
+	}
+
+	miniBlockHashes := make([][]byte, 0)
+	for i := 0; i < len(hdr.MiniBlockHeaders); i++ {
+		miniBlockHashes = append(miniBlockHashes, hdr.MiniBlockHeaders[i].Hash)
+	}
+
+	miniBlocks, err := boot.store.GetAll(dataRetriever.MiniBlockUnit, miniBlockHashes)
+	if err != nil {
+		return err
+	}
+
+	for miniBlockHash, miniBlockBuff := range miniBlocks {
+		miniBlock := block.MiniBlock{}
+		err = boot.marshalizer.Unmarshal(&miniBlock, miniBlockBuff)
+		if err != nil {
+			return err
+		}
+
+		for _, txHash := range miniBlock.TxHashes {
+			err = txStore.Remove(txHash)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = blockBodyStore.Remove([]byte(miniBlockHash))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

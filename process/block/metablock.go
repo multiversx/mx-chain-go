@@ -814,14 +814,14 @@ func (mp *metaProcessor) computeMissingHeaders(metaBlock *block.MetaBlock) map[u
 
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		shardData := metaBlock.ShardInfo[i]
-		header, _ := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
-		if header == nil {
+		hdr, _ := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
+		if hdr == nil {
 			missingHeaders[shardData.ShardId] = append(missingHeaders[shardData.ShardId], shardData.HeaderHash)
 			continue
 		}
 
-		if header.Nonce > mp.currHighestShardHdrsNonces[shardData.ShardId] {
-			mp.currHighestShardHdrsNonces[shardData.ShardId] = header.Nonce
+		if hdr.Nonce > mp.currHighestShardHdrsNonces[shardData.ShardId] {
+			mp.currHighestShardHdrsNonces[shardData.ShardId] = hdr.Nonce
 		}
 	}
 

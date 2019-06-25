@@ -131,7 +131,8 @@ func (boot *MetaBootstrap) syncFromStorer(
 		blockUnit,
 		hdrNonceHashDataUnit,
 		boot.getHeaderFromStorage,
-		boot.getBlockBody)
+		boot.getBlockBody,
+		boot.removeBlockBody)
 	if err != nil {
 		return err
 	}
@@ -145,6 +146,14 @@ func (boot *MetaBootstrap) syncFromStorer(
 		}
 	}
 
+	return nil
+}
+
+func (boot *MetaBootstrap) removeBlockBody(
+	nonce uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
 	return nil
 }
 

@@ -822,25 +822,15 @@ func (sp *shardProcessor) computeMissingHeaders(header *block.Header) [][]byte {
 	missingHeaders := make([][]byte, 0)
 	sp.currHighestMetaHdrNonce = uint64(0)
 
-	metaBlockCache := sp.dataPool.MetaBlocks()
-	if metaBlockCache == nil {
-		return missingHeaders
-	}
-
 	for i := 0; i < len(header.MetaBlockHashes); i++ {
-		obj, ok := metaBlockCache.Peek(header.MetaBlockHashes[i])
-		if !ok {
+		hdr, _ := process.GetMetaHeaderFromPool(header.MetaBlockHashes[i], sp.dataPool.MetaBlocks())
+		if hdr == nil {
 			missingHeaders = append(missingHeaders, header.MetaBlockHashes[i])
 			continue
 		}
 
-		metaBlock, ok := obj.(data.HeaderHandler)
-		if !ok {
-			continue
-		}
-
-		if metaBlock.GetNonce() > sp.currHighestMetaHdrNonce {
-			sp.currHighestMetaHdrNonce = metaBlock.GetNonce()
+		if hdr.Nonce > sp.currHighestMetaHdrNonce {
+			sp.currHighestMetaHdrNonce = hdr.Nonce
 		}
 	}
 
@@ -1245,7 +1235,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		return miniBlocks, nil
 	}
 
-	addedTxs := 0
+	addedTxs := int(txs)
 	for i := 0; i < int(noShards); i++ {
 		miniBlock, err := sp.txPreProcess.CreateAndProcessMiniBlock(sp.shardCoordinator.SelfId(), uint32(i), maxTxInBlock-addedTxs, haveTime, round)
 		if err != nil {

@@ -2696,6 +2696,7 @@ func TestBootstrap_LoadBlocksShouldErrBoostrapFromStorage(t *testing.T) {
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()),
 		getHeaderFromStorage,
 		getBlockBody,
+		removeBlockBody,
 	)
 
 	assert.Equal(t, process.ErrBoostrapFromStorage, err)
@@ -2771,6 +2772,7 @@ func TestBootstrap_LoadBlocksShouldErrBoostrapFromStorageWhenBlocksAreNotValid(t
 			return nil, nil, errors.New("header not found")
 		},
 		getBlockBody,
+		removeBlockBody,
 	)
 
 	assert.Equal(t, process.ErrBoostrapFromStorage, err)
@@ -2857,6 +2859,7 @@ func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()),
 		getHeaderFromStorage,
 		getBlockBody,
+		removeBlockBody,
 	)
 
 	assert.True(t, wasCalled)
@@ -2951,6 +2954,7 @@ func TestBootstrap_LoadBlocksShouldWorkAfterRemoveInvalidBlocks(t *testing.T) {
 			return &block.Header{Nonce: 1}, []byte("hash"), nil
 		},
 		getBlockBody,
+		removeBlockBody,
 	)
 
 	assert.Nil(t, err)
@@ -3351,7 +3355,7 @@ func TestBootstrap_ApplyBlockShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestBootstrap_RemoveBlockShouldErrNilHeadersStorage(t *testing.T) {
+func TestBootstrap_RemoveBlockHeaderShouldErrNilHeadersStorage(t *testing.T) {
 	t.Parallel()
 
 	pools := &mock.PoolsHolderStub{}
@@ -3414,14 +3418,14 @@ func TestBootstrap_RemoveBlockShouldErrNilHeadersStorage(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	err := bs.RemoveBlock(1,
+	err := bs.RemoveBlockHeader(1,
 		dataRetriever.BlockHeaderUnit,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
 	assert.Equal(t, process.ErrNilHeadersStorage, err)
 }
 
-func TestBootstrap_RemoveBlockShouldErrNilHeadersNonceHashStorage(t *testing.T) {
+func TestBootstrap_RemoveBlockHeaderShouldErrNilHeadersNonceHashStorage(t *testing.T) {
 	t.Parallel()
 
 	pools := &mock.PoolsHolderStub{}
@@ -3484,14 +3488,14 @@ func TestBootstrap_RemoveBlockShouldErrNilHeadersNonceHashStorage(t *testing.T) 
 		math.MaxUint32,
 	)
 
-	err := bs.RemoveBlock(1,
+	err := bs.RemoveBlockHeader(1,
 		dataRetriever.BlockHeaderUnit,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
 	assert.Equal(t, process.ErrNilHeadersNonceHashStorage, err)
 }
 
-func TestBootstrap_RemoveBlockShouldErrWhenHeaderIsNotFound(t *testing.T) {
+func TestBootstrap_RemoveBlockHeaderShouldErrWhenHeaderIsNotFound(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("key not found")
@@ -3548,14 +3552,14 @@ func TestBootstrap_RemoveBlockShouldErrWhenHeaderIsNotFound(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	err := bs.RemoveBlock(1,
+	err := bs.RemoveBlockHeader(1,
 		dataRetriever.BlockHeaderUnit,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
 	assert.Equal(t, errExpected, err)
 }
 
-func TestBootstrap_RemoveBlockShouldErrWhenRemoveHeaderHashFails(t *testing.T) {
+func TestBootstrap_RemoveBlockHeaderShouldErrWhenRemoveHeaderHashFails(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("remove header hash failed")
@@ -3627,14 +3631,14 @@ func TestBootstrap_RemoveBlockShouldErrWhenRemoveHeaderHashFails(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	err := bs.RemoveBlock(1,
+	err := bs.RemoveBlockHeader(1,
 		dataRetriever.BlockHeaderUnit,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
 	assert.Equal(t, errExpected, err)
 }
 
-func TestBootstrap_RemoveBlockShouldErrWhenRemoveHeaderNonceFails(t *testing.T) {
+func TestBootstrap_RemoveBlockHeaderShouldErrWhenRemoveHeaderNonceFails(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("remove header nonce failed")
@@ -3706,14 +3710,14 @@ func TestBootstrap_RemoveBlockShouldErrWhenRemoveHeaderNonceFails(t *testing.T) 
 		math.MaxUint32,
 	)
 
-	err := bs.RemoveBlock(1,
+	err := bs.RemoveBlockHeader(1,
 		dataRetriever.BlockHeaderUnit,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
 	assert.Equal(t, errExpected, err)
 }
 
-func TestBootstrap_RemoveBlockShouldWork(t *testing.T) {
+func TestBootstrap_RemoveBlockHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pools := &mock.PoolsHolderStub{}
@@ -3768,7 +3772,7 @@ func TestBootstrap_RemoveBlockShouldWork(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	err := bs.RemoveBlock(1,
+	err := bs.RemoveBlockHeader(1,
 		dataRetriever.BlockHeaderUnit,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
@@ -4612,7 +4616,7 @@ func TestBootstrap_RemoveNotarizedBlockShouldErrNilHeadersNonceHashStorage(t *te
 		math.MaxUint32,
 	)
 
-	err := bs.RemoveNotarizedBlock(1,
+	err := bs.RemoveNotarizedBlockHeader(1,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
 	assert.Equal(t, process.ErrNilHeadersNonceHashStorage, err)
@@ -4683,7 +4687,7 @@ func TestBootstrap_RemoveNotarizedBlockShouldErrWhenRemoveHeaderNonceFails(t *te
 		math.MaxUint32,
 	)
 
-	err := bs.RemoveNotarizedBlock(1,
+	err := bs.RemoveNotarizedBlockHeader(1,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
 	assert.Equal(t, errExpected, err)
@@ -4744,7 +4748,7 @@ func TestBootstrap_RemoveNotarizedBlockShouldWork(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	err := bs.RemoveNotarizedBlock(1,
+	err := bs.RemoveNotarizedBlockHeader(1,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
 	assert.Nil(t, err)
@@ -4764,5 +4768,17 @@ func getBlockBody(header data.HeaderHandler) (data.BodyHandler, error) {
 
 func applyNotarisedBlock(nonce uint64, unitType dataRetriever.UnitType) error {
 	fmt.Printf("apply block with nonce %d in unit type %d", nonce, unitType)
+	return nil
+}
+
+func removeBlockBody(
+	nonce uint64,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+	blockUnit dataRetriever.UnitType,
+) error {
+	fmt.Printf("remove block body with nonce %d with hdr nonce hash data unit type %d and block unit type %d",
+		nonce,
+		hdrNonceHashDataUnit,
+		blockUnit)
 	return nil
 }
