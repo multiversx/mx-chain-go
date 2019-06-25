@@ -1,146 +1,20 @@
 package preprocess
 
 import (
-	"bytes"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
-	"reflect"
 	"testing"
 )
 
-func initDataPool() *mock.PoolsHolderStub {
-	sdp := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, []byte("tx1_hash")) {
-								return &transaction.Transaction{Nonce: 10}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					return nil, false
-				},
-			}
-		},
-		SmartContractResultsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, []byte("tx1_hash")) {
-								return &smartContractResult.SmartContractResult{Nonce: 10}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &smartContractResult.SmartContractResult{Nonce: 10}, true
-					}
-					return nil, false
-				},
-			}
-		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
-			return &mock.Uint64CacherStub{
-				PutCalled: func(u uint64, i interface{}) bool {
-					return true
-				},
-			}
-		},
-		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
-				GetCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					return nil, false
-				},
-				KeysCalled: func() [][]byte {
-					return nil
-				},
-				LenCalled: func() int {
-					return 0
-				},
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					return nil, false
-				},
-				RegisterHandlerCalled: func(i func(key []byte)) {},
-			}
-		},
-		MiniBlocksCalled: func() storage.Cacher {
-			cs := &mock.CacherStub{}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {
-			}
-			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal([]byte("bbb"), key) {
-					return make(block.MiniBlockSlice, 0), true
-				}
-
-				return nil, false
-			}
-			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal([]byte("bbb"), key) {
-					return make(block.MiniBlockSlice, 0), true
-				}
-
-				return nil, false
-			}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
-			cs.RemoveCalled = func(key []byte) {}
-			return cs
-		},
-		HeadersCalled: func() storage.Cacher {
-			cs := &mock.CacherStub{}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {
-			}
-			return cs
-		},
-	}
-	return sdp
-}
-
-func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T) {
 	t.Parallel()
 
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewTransactionPreprocessor(
+	txs, err := NewSmartContractResultPreprocessor(
 		nil,
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -152,15 +26,15 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 	)
 
 	assert.Nil(t, txs)
-	assert.Equal(t, process.ErrNilTransactionPool, err)
+	assert.Equal(t, process.ErrNilScrDataPool, err)
 }
 
-func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilStore(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewTransactionPreprocessor(
+	txs, err := NewSmartContractResultPreprocessor(
 		tdp.Transactions(),
 		nil,
 		&mock.HasherMock{},
@@ -172,15 +46,15 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 	)
 
 	assert.Nil(t, txs)
-	assert.Equal(t, process.ErrNilTxStorage, err)
+	assert.Equal(t, process.ErrNilScrStorage, err)
 }
 
-func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilHasher(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewTransactionPreprocessor(
+	txs, err := NewSmartContractResultPreprocessor(
 		tdp.Transactions(),
 		&mock.ChainStorerMock{},
 		nil,
@@ -195,12 +69,12 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
-func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilMarsalizer(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewTransactionPreprocessor(
+	txs, err := NewSmartContractResultPreprocessor(
 		tdp.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -215,12 +89,12 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilTxProce(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewTransactionPreprocessor(
+	txs, err := NewSmartContractResultPreprocessor(
 		tdp.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -235,12 +109,12 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 	assert.Equal(t, process.ErrNilTxProcessor, err)
 }
 
-func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilShardCoord(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewTransactionPreprocessor(
+	txs, err := NewSmartContractResultPreprocessor(
 		tdp.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -255,12 +129,12 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilAccounts(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewTransactionPreprocessor(
+	txs, err := NewSmartContractResultPreprocessor(
 		tdp.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -275,11 +149,11 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) {
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilRequestFunc(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	txs, err := NewTransactionPreprocessor(
+	txs, err := NewSmartContractResultPreprocessor(
 		tdp.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -294,12 +168,12 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 }
 
-func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
+func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		tdp.Transactions(),
+	txs, _ := NewSmartContractResultPreprocessor(
+		tdp.SmartContractResults(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -309,16 +183,16 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		requestTransaction,
 	)
 	txHash := []byte("tx1_hash")
-	tx := txs.getTransactionFromPool(1, 1, txHash, tdp.Transactions())
+	tx := txs.getTransactionFromPool(1, 1, txHash, tdp.SmartContractResults())
 	assert.NotNil(t, tx)
-	assert.Equal(t, uint64(10), tx.(*transaction.Transaction).Nonce)
+	assert.Equal(t, uint64(10), tx.(*smartContractResult.SmartContractResult).Nonce)
 }
 
-func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
+func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
+	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -335,17 +209,17 @@ func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
-	mBlk := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
+	mBlk := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
 	body = append(body, &mBlk)
 	txsRequested := txs.RequestBlockTransactions(body)
 	assert.Equal(t, 2, txsRequested)
 }
 
-func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testing.T) {
+func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
+	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -362,12 +236,12 @@ func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
-	mb := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
+	mb := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
 	txsRequested := txs.RequestTransactionsForMiniBlock(mb)
 	assert.Equal(t, 2, txsRequested)
 }
 
-func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
+func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
 	t.Parallel()
 
 	dataPool := mock.NewPoolsHolderFake()
@@ -376,7 +250,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return &mock.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					return &transaction.Transaction{}, true
+					return &smartContractResult.SmartContractResult{}, true
 				},
 			}
 		},
@@ -384,11 +258,11 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 		},
 	}
 
-	dataPool.SetTransactions(shardedDataStub)
+	dataPool.SetSmartContractResults(shardedDataStub)
 
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		dataPool.Transactions(),
+	txs, _ := NewSmartContractResultPreprocessor(
+		dataPool.SmartContractResults(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -403,28 +277,21 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 	txHash2 := []byte("tx hash 2")
 	txHash3 := []byte("tx hash 3")
 
-	txs.AddTxHashToRequestedList(txHash1)
-	txs.AddTxHashToRequestedList(txHash2)
-	txs.AddTxHashToRequestedList(txHash3)
+	txs.AddScrHashToRequestedList(txHash1)
+	txs.AddScrHashToRequestedList(txHash2)
+	txs.AddScrHashToRequestedList(txHash3)
 
-	txs.SetMissingTxs(3)
+	txs.SetMissingScr(3)
 
 	//received txHash2
-	txs.ReceivedTransaction(txHash2)
+	txs.receivedSmartContractResult(txHash2)
 
-	assert.True(t, txs.IsTxHashRequested(txHash1))
-	assert.False(t, txs.IsTxHashRequested(txHash2))
-	assert.True(t, txs.IsTxHashRequested(txHash3))
+	assert.True(t, txs.IsScrHashRequested(txHash1))
+	assert.False(t, txs.IsScrHashRequested(txHash2))
+	assert.True(t, txs.IsScrHashRequested(txHash3))
 }
 
-//------- GetAllTxsFromMiniBlock
-
-func computeHash(data interface{}, marshalizer marshal.Marshalizer, hasher hashing.Hasher) []byte {
-	buff, _ := marshalizer.Marshal(data)
-	return hasher.Compute(string(buff))
-}
-
-func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
+func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hasher := mock.HasherMock{}
@@ -433,7 +300,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 	senderShardId := uint32(0)
 	destinationShardId := uint32(1)
 
-	transactions := []*transaction.Transaction{
+	transactions := []*smartContractResult.SmartContractResult{
 		{Nonce: 1},
 		{Nonce: 2},
 		{Nonce: 3},
@@ -444,7 +311,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 	for idx, tx := range transactions {
 		transactionsHashes[idx] = computeHash(tx, marshalizer, hasher)
 
-		dataPool.Transactions().AddData(
+		dataPool.SmartContractResults().AddData(
 			transactionsHashes[idx],
 			tx,
 			process.ShardCacherIdentifier(senderShardId, destinationShardId),
@@ -452,16 +319,16 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 	}
 
 	//add some random data
-	txRandom := &transaction.Transaction{Nonce: 4}
-	dataPool.Transactions().AddData(
+	txRandom := &smartContractResult.SmartContractResult{Nonce: 4}
+	dataPool.SmartContractResults().AddData(
 		computeHash(txRandom, marshalizer, hasher),
 		txRandom,
 		process.ShardCacherIdentifier(3, 4),
 	)
 
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		dataPool.Transactions(),
+	txs, _ := NewSmartContractResultPreprocessor(
+		dataPool.SmartContractResults(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -475,9 +342,10 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 		SenderShardID:   senderShardId,
 		ReceiverShardID: destinationShardId,
 		TxHashes:        transactionsHashes,
+		Type:            block.SmartContractResultBlock,
 	}
 
-	txsRetrieved, txHashesRetrieved, err := txs.getAllTxsFromMiniBlock(mb, func() bool { return true })
+	txsRetrieved, txHashesRetrieved, err := txs.getAllScrsFromMiniBlock(mb, func() bool { return true })
 
 	assert.Nil(t, err)
 	assert.Equal(t, len(transactions), len(txsRetrieved))
@@ -490,11 +358,11 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 	}
 }
 
-func TestTransactionPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
+func TestScrsPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
+	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
@@ -509,11 +377,11 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *test
 	assert.Equal(t, err, process.ErrNilTxBlockBody)
 }
 
-func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
+func TestScrsPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
+	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},

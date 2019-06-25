@@ -133,6 +133,8 @@ func (ei *elasticIndexer) checkAndCreateIndex(index string, body io.Reader) erro
 	if err != nil {
 		return err
 	}
+
+	defer closeESResponseBody(res)
 	// Indices.Exists actually does a HEAD request to the elastic index.
 	// A status code of 200 actually means the index exists so we
 	//  don't need to do anything.
@@ -162,6 +164,8 @@ func (ei *elasticIndexer) createIndex(index string, body io.Reader) error {
 		res, err = ei.db.Indices.Create(index)
 	}
 
+	defer closeESResponseBody(res)
+
 	if err != nil {
 		return err
 	}
@@ -183,7 +187,7 @@ func (ei *elasticIndexer) createIndex(index string, body io.Reader) error {
 func (ei *elasticIndexer) SaveBlock(
 	bodyHandler data.BodyHandler,
 	headerhandler data.HeaderHandler,
-	txPool map[string]*transaction.Transaction) {
+	txPool map[string]data.TransactionHandler) {
 
 	if headerhandler == nil || headerhandler.IsInterfaceNil() {
 		ei.logger.Warn(ErrNoHeader.Error())
@@ -259,11 +263,11 @@ func (ei *elasticIndexer) saveHeader(header data.HeaderHandler) {
 		return
 	}
 
+	defer closeESResponseBody(res)
+
 	if res.IsError() {
 		ei.logger.Warn(res.String())
 	}
-
-	_ = res.Body.Close()
 }
 
 func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
@@ -289,7 +293,7 @@ func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
 func (ei *elasticIndexer) saveTransactions(
 	body block.Body,
 	header data.HeaderHandler,
-	txPool map[string]*transaction.Transaction) {
+	txPool map[string]data.TransactionHandler) {
 	bulks := ei.buildTransactionBulks(body, header, txPool)
 
 	for _, bulk := range bulks {
@@ -302,6 +306,8 @@ func (ei *elasticIndexer) saveTransactions(
 		if res.IsError() {
 			ei.logger.Warn(res.String())
 		}
+
+		closeESResponseBody(res)
 	}
 }
 
@@ -310,7 +316,7 @@ func (ei *elasticIndexer) saveTransactions(
 func (ei *elasticIndexer) buildTransactionBulks(
 	body block.Body,
 	header data.HeaderHandler,
-	txPool map[string]*transaction.Transaction,
+	txPool map[string]data.TransactionHandler,
 ) [][]*Transaction {
 	processedTxCount := 0
 	bulks := make([][]*Transaction, (header.GetTxCount()/txBulkSize)+1)
@@ -334,9 +340,15 @@ func (ei *elasticIndexer) buildTransactionBulks(
 			processedTxCount++
 
 			currentBulk := processedTxCount / txBulkSize
-			currentTx, ok := txPool[string(txHash)]
+			currentTxHandler, ok := txPool[string(txHash)]
 			if !ok {
 				ei.logger.Warn("elasticsearch could not find tx hash in pool")
+				continue
+			}
+
+			currentTx, ok := currentTxHandler.(*transaction.Transaction)
+			if !ok {
+				ei.logger.Warn("elasticsearch found tx in pool but of wrong type")
 				continue
 			}
 
@@ -445,14 +457,27 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 			fmt.Println(res.String())
 			ei.logger.Warn("error from elasticsearch indexing tps information")
 		}
+
+		closeESResponseBody(res)
 	}
+}
+
+func closeESResponseBody(res *esapi.Response) {
+	if res == nil {
+		return
+	}
+	if res.Body == nil {
+		return
+	}
+
+	_ = res.Body.Close()
 }
 
 func timestampMapping() io.Reader {
 	return strings.NewReader(
 		`{
 				"settings": {"index": {"sort.field": "timestamp", "sort.order": "desc"}},
-				"mappings": {"properties": {"timestamp": {"type": "date"}}}
+				"mappings": {"_doc": {"properties": {"timestamp": {"type": "date"}}}}
 			}`,
 	)
 }

@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"math/big"
 
@@ -21,7 +22,7 @@ func (sc *scProcessor) CreateVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	return sc.createVMInput(tx)
 }
 
-func (sc *scProcessor) ProcessVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+func (sc *scProcessor) ProcessVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd state.AccountHandler, round uint32) ([]data.TransactionHandler, error) {
 	return sc.processVMOutput(vmOutput, tx, acntSnd, round)
 }
 
@@ -65,6 +66,6 @@ func (sc *scProcessor) CreateCrossShardTransactions(
 	crossOutAccs []*vmcommon.OutputAccount,
 	tx *transaction.Transaction,
 	txHash []byte,
-) ([]*smartContractResult.SmartContractResult, error) {
+) ([]data.TransactionHandler, error) {
 	return sc.createCrossShardTransactions(crossOutAccs, tx, txHash)
 }

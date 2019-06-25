@@ -214,9 +214,6 @@ var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 // ErrNilMetachainHeadersStorage signals that a nil metachain header storage has been provided
 var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")
 
-// ErrNilResolverSender signals that a nil resolver sender object has been provided
-var ErrNilResolverSender = errors.New("nil resolver sender")
-
 // ErrNilBlockBodyStorage signals that a nil block body storage has been provided
 var ErrNilBlockBodyStorage = errors.New("nil block body storage")
 
@@ -381,3 +378,12 @@ var ErrNilScAddress = errors.New("nil SC address")
 
 // ErrEmptyFunctionName signals that an empty function name has been provided
 var ErrEmptyFunctionName = errors.New("empty function name")
+
+// ErrMiniBlockHashMismatch signals that miniblock hashes does not match
+var ErrMiniBlockHashMismatch = errors.New("miniblocks does not match")
+
+// ErrNilIntermediateTransactionHandler signals that nil intermediate transaction handler was provided
+var ErrNilIntermediateTransactionHandler = errors.New("intermediate transaction handler is nil")
+
+// ErrWrongTypeInMiniBlock signals that type is not correct for processing
+var ErrWrongTypeInMiniBlock = errors.New("type in miniblock is not correct for processing")
