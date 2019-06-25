@@ -24,6 +24,7 @@ type intermediateResultsProcessor struct {
 	interResultsForBlock    map[string]*txInfo
 }
 
+// NewIntermediateResultsProcessor creates a new intermediate results processor
 func NewIntermediateResultsProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
@@ -84,7 +85,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 	return miniBlocks
 }
 
-// VerifyInterMiniBlocks validity verifies if the smart contract results added to the block are valid
+// VerifyInterMiniBlocks verifies if the smart contract results added to the block are valid
 func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body block.Body) error {
 	scrMbs := irp.CreateAllInterMiniBlocks()
 
@@ -139,7 +140,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		}
 
 		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
-		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo, has: true}
+		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
 	}
 

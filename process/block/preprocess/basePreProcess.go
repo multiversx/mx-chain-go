@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// TODO: increase code coverage with unit tests
+
 type txShardInfo struct {
 	senderShardID   uint32
 	receiverShardID uint32
@@ -22,7 +24,6 @@ type txShardInfo struct {
 type txInfo struct {
 	tx data.TransactionHandler
 	*txShardInfo
-	has bool
 }
 
 type txsHashesInfo struct {
@@ -147,13 +148,11 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 	forBlock.mutTxsForBlock.Lock()
 	if forBlock.missingTxs > 0 {
 		txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
-		if txInfoForHash != nil &&
-			txInfoForHash.txShardInfo != nil &&
-			!txInfoForHash.has {
+		if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
+			(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
 			tx := bpp.getTransactionFromPool(txInfoForHash.senderShardID, txInfoForHash.receiverShardID, txHash, txPool)
 			if tx != nil {
 				forBlock.txHashAndInfo[string(txHash)].tx = tx
-				forBlock.txHashAndInfo[string(txHash)].has = true
 				forBlock.missingTxs--
 			}
 		}
@@ -222,7 +221,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 				txHashes = append(txHashes, txHash)
 				forBlock.missingTxs++
 			} else {
-				forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo, has: true}
+				forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo}
 			}
 		}
 

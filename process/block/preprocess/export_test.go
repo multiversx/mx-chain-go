@@ -18,7 +18,8 @@ func (txs *transactions) IsTxHashRequested(txHash []byte) bool {
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
 	defer txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
-	return !txs.txsForCurrBlock.txHashAndInfo[string(txHash)].has
+	return txs.txsForCurrBlock.txHashAndInfo[string(txHash)].tx == nil ||
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)].tx.IsInterfaceNil()
 }
 
 func (txs *transactions) SetMissingTxs(missingTxs int) {
@@ -41,7 +42,8 @@ func (scr *smartContractResults) IsScrHashRequested(txHash []byte) bool {
 	scr.scrForBlock.mutTxsForBlock.Lock()
 	defer scr.scrForBlock.mutTxsForBlock.Unlock()
 
-	return !scr.scrForBlock.txHashAndInfo[string(txHash)].has
+	return scr.scrForBlock.txHashAndInfo[string(txHash)].tx == nil ||
+		scr.scrForBlock.txHashAndInfo[string(txHash)].tx.IsInterfaceNil()
 }
 
 func (scr *smartContractResults) SetMissingScr(missingTxs int) {

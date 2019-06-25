@@ -2,11 +2,11 @@ package preprocess
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"sort"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -19,6 +19,8 @@ import (
 )
 
 var log = logger.DefaultLogger()
+
+// TODO: increase code coverage with unit tests
 
 type transactions struct {
 	*basePreProcess
@@ -263,7 +265,7 @@ func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 	for senderShardID, txsHashesInfo := range missingTxsForShards {
 		txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: txsHashesInfo.receiverShardID}
 		for _, txHash := range txsHashesInfo.txHashes {
-			txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo, has: false}
+			txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
 		}
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
@@ -305,7 +307,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 
 	txShardInfo := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
-	txs.txsForCurrBlock.txHashAndInfo[string(transactionHash)] = &txInfo{tx: transaction, txShardInfo: txShardInfo, has: true}
+	txs.txsForCurrBlock.txHashAndInfo[string(transactionHash)] = &txInfo{tx: transaction, txShardInfo: txShardInfo}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return nil
@@ -464,7 +466,7 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
 	for index, txHash := range miniBlockTxHashes {
-		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockTxs[index], txShardInfo: txShardInfo, has: true}
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockTxs[index], txShardInfo: txShardInfo}
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 

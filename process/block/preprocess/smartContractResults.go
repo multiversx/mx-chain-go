@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// TODO: increase code coverage with unit tests
+
 type smartContractResults struct {
 	*basePreProcess
 	chRcvAllScrs                 chan bool
@@ -167,7 +169,7 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 	return scrRestored, nil
 }
 
-// ProcessBlockSmartContractResults processes all the smartContractResult from the block.Body, updates the state
+// ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state
 func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error {
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
@@ -257,7 +259,7 @@ func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
 	for senderShardID, scrHashesInfo := range missingScrsForShards {
 		txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: scrHashesInfo.receiverShardID}
 		for _, txHash := range scrHashesInfo.txHashes {
-			scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo, has: false}
+			scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
 		}
 	}
 	scr.scrForBlock.mutTxsForBlock.Unlock()
@@ -293,7 +295,7 @@ func (scr *smartContractResults) processSmartContractResult(
 
 	txShardInfo := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	scr.scrForBlock.mutTxsForBlock.Lock()
-	scr.scrForBlock.txHashAndInfo[string(smartContractResultHash)] = &txInfo{tx: smartContractResult, txShardInfo: txShardInfo, has: true}
+	scr.scrForBlock.txHashAndInfo[string(smartContractResultHash)] = &txInfo{tx: smartContractResult, txShardInfo: txShardInfo}
 	scr.scrForBlock.mutTxsForBlock.Unlock()
 
 	return nil
@@ -393,7 +395,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 
 	scr.scrForBlock.mutTxsForBlock.Lock()
 	for index, txHash := range miniBlockTxHashes {
-		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockScrs[index], txShardInfo: txShardInfo, has: true}
+		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockScrs[index], txShardInfo: txShardInfo}
 	}
 	scr.scrForBlock.mutTxsForBlock.Unlock()
 
