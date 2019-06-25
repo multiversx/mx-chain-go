@@ -12,7 +12,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	ggio "github.com/gogo/protobuf/io"
-	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -161,25 +160,31 @@ func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
 	bufw := bufio.NewWriter(stream)
 	w := ggio.NewDelimitedWriter(bufw)
 
-	go func(msg proto.Message) {
-		err := w.WriteMsg(msg)
-		if err != nil {
-			log.LogIfError(err)
-			_ = stream.Reset()
-			_ = helpers.FullClose(stream)
-			return
-		}
+	err = w.WriteMsg(msg)
+	if err != nil {
+		_ = stream.Reset()
+		_ = helpers.FullClose(stream)
+		return err
+	}
 
-		err = bufw.Flush()
-		if err != nil {
-			log.LogIfError(err)
-			_ = stream.Reset()
-			_ = helpers.FullClose(stream)
-			return
-		}
-	}(msg)
+	err = bufw.Flush()
+	if err != nil {
+		_ = stream.Reset()
+		_ = helpers.FullClose(stream)
+		return err
+	}
 
 	return nil
+}
+
+// SendAsync will asynchronously send a direct message to the connected peer
+func (ds *directSender) SendAsync(topic string, buff []byte, peer p2p.PeerID) {
+	go func() {
+		err := ds.Send(topic, buff, peer)
+		if err != nil {
+			log.Info(err.Error())
+		}
+	}()
 }
 
 func (ds *directSender) getConnection(p p2p.PeerID) (network.Conn, error) {
