@@ -27,7 +27,7 @@ type TransactionCoordinator interface {
 	IsDataPreparedForProcessing(haveTime func() time.Duration)
 
 	SaveBlockDataToStorage(body block.Body) error
-	RestoreBlockDataFromStorage(body block.Body, miniBlockHashes map[int][]byte) (int, error)
+	RestoreBlockDataFromStorage(body block.Body) (int, map[int][]byte, error)
 	RemoveBlockDataFromStorage(body block.Body) error
 
 	ProcessBlockTransaction(body block.Body, round uint32, haveTime func() time.Duration) error
