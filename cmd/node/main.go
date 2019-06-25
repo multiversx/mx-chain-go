@@ -62,13 +62,13 @@ VERSION:
 	genesisFile = cli.StringFlag{
 		Name:  "genesis-file",
 		Usage: "The node will extract bootstrapping info from the genesis.json",
-		Value: "genesis.json",
+		Value: "./config/genesis.json",
 	}
 	// nodesFile defines a flag for the path of the initial nodes file.
 	nodesFile = cli.StringFlag{
 		Name:  "nodesSetup-file",
 		Usage: "The node will extract initial nodes info from the nodesSetup.json",
-		Value: "nodesSetup.json",
+		Value: "./config/nodesSetup.json",
 	}
 	// txSignSk defines a flag for the path of the single sign private key used when starting the node
 	txSignSk = cli.StringFlag{
@@ -196,7 +196,7 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = "v0.0.1"
+	app.Version = "v1.0.4"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
