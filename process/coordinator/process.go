@@ -1,7 +1,6 @@
 package coordinator
 
 import (
-	"bytes"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
@@ -19,7 +18,6 @@ import (
 )
 
 type transactionCoordinator struct {
-	adrConv          state.AddressConverter
 	shardCoordinator sharding.Coordinator
 	accounts         state.AccountsAdapter
 	miniBlockPool    storage.Cacher
@@ -36,7 +34,6 @@ type transactionCoordinator struct {
 var log = logger.DefaultLogger()
 
 func NewTransactionCoordinator(
-	adrConv state.AddressConverter,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	dataPool dataRetriever.PoolsHolder,
@@ -46,9 +43,6 @@ func NewTransactionCoordinator(
 	txProcessor process.TransactionProcessor,
 	store dataRetriever.StorageService,
 ) (*transactionCoordinator, error) {
-	if adrConv == nil {
-		return nil, process.ErrNilAddressConverter
-	}
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
@@ -63,7 +57,6 @@ func NewTransactionCoordinator(
 	}
 
 	tc := &transactionCoordinator{
-		adrConv:          adrConv,
 		shardCoordinator: shardCoordinator,
 		accounts:         accounts,
 	}
@@ -86,36 +79,6 @@ func NewTransactionCoordinator(
 	}
 
 	return tc, nil
-}
-
-func (tc *transactionCoordinator) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, error) {
-	err := tc.checkTxValidity(tx)
-	if err != nil {
-		return 0, err
-	}
-
-	isEmptyAddress := tc.isDestAddressEmpty(tx)
-	if isEmptyAddress {
-		if len(tx.GetData()) > 0 {
-			return process.SCDeployment, nil
-		}
-		return 0, process.ErrWrongTransaction
-	}
-
-	acntDst, err := tc.getAccountFromAddress(tx.GetRecvAddress())
-	if err != nil {
-		return 0, err
-	}
-
-	if acntDst == nil {
-		return process.MoveBalance, nil
-	}
-
-	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 {
-		return process.SCInvoking, nil
-	}
-
-	return process.MoveBalance, nil
 }
 
 func (tc *transactionCoordinator) separateBodyByType(body block.Body) map[block.Type]block.Body {
@@ -165,6 +128,8 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 	errMutex := sync.Mutex{}
 
 	wg := sync.WaitGroup{}
+
+	tc.mutRequestedTxs.RLock()
 	wg.Add(len(tc.requestedTxs))
 
 	for key, value := range tc.requestedTxs {
@@ -186,6 +151,7 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 		}()
 	}
 
+	tc.mutRequestedTxs.RUnlock()
 	wg.Wait()
 
 	return errFound
@@ -306,6 +272,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 
 func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round uint32, haveTime func() time.Duration) error {
 	separatedBodies := tc.separateBodyByType(body)
+	tc.CreateBlockStarted()
 
 	var errFound error
 	errMutex := sync.Mutex{}
@@ -495,44 +462,6 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 			go tc.onRequestMiniBlock(senderShardId, []byte(key))
 		}
 	}
-}
-
-func (tc *transactionCoordinator) checkTxValidity(tx data.TransactionHandler) error {
-	if tx == nil || tx.IsInterfaceNil() {
-		return process.ErrNilTransaction
-	}
-
-	recvAddressIsInvalid := tc.adrConv.AddressLen() != len(tx.GetRecvAddress())
-	if recvAddressIsInvalid {
-		return process.ErrWrongTransaction
-	}
-
-	return nil
-}
-
-func (tc *transactionCoordinator) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRecvAddress(), make([]byte, tc.adrConv.AddressLen()))
-	return isEmptyAddress
-}
-
-func (tc *transactionCoordinator) getAccountFromAddress(address []byte) (state.AccountHandler, error) {
-	adrSrc, err := tc.adrConv.CreateAddressFromPublicKeyBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
-	shardForCurrentNode := tc.shardCoordinator.SelfId()
-	shardForSrc := tc.shardCoordinator.ComputeId(adrSrc)
-	if shardForCurrentNode != shardForSrc {
-		return nil, nil
-	}
-
-	acnt, err := tc.accounts.GetAccountWithJournal(adrSrc)
-	if err != nil {
-		return nil, err
-	}
-
-	return acnt, nil
 }
 
 // receivedMiniBlock is a callback function when a new miniblock was received

@@ -25,9 +25,11 @@ type SmartContractResultProcessor interface {
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
 }
 
-type TransactionCoordinator interface {
+type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
+}
 
+type TransactionCoordinator interface {
 	RequestMiniBlocks(header data.HeaderHandler)
 	RequestBlockTransactions(body block.Body)
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error

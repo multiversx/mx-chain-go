@@ -256,8 +256,6 @@ func (txs *transactions) CreateBlockStarted() {
 
 // RequestBlockTransactions request for transactions if missing from a block.Body
 func (txs *transactions) RequestBlockTransactions(body block.Body) int {
-	txs.CreateBlockStarted()
-
 	requestedTxs := 0
 	missingTxsForShards := txs.computeMissingAndExistingTxsForShards(body)
 

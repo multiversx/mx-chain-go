@@ -167,6 +167,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", GetNumTxsWithDst(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())))
 
+	sp.txCoordinator.CreateBlockStarted()
 	sp.txCoordinator.RequestBlockTransactions(body)
 	requestedMetaHdrs, requestedFinalMetaHdrs := sp.requestMetaHeaders(header)
 
@@ -377,6 +378,8 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][][]b
 // CreateBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error) {
+	sp.txCoordinator.CreateBlockStarted()
+
 	miniBlocks, err := sp.createMiniBlocks(sp.shardCoordinator.NumberOfShards(), maxTransactionsInBlock, round, haveTime)
 	if err != nil {
 		return nil, err
@@ -1077,8 +1080,6 @@ func (sp *shardProcessor) createMiniBlocks(
 ) (block.Body, error) {
 
 	miniBlocks := make(block.Body, 0)
-
-	sp.txCoordinator.CreateBlockStarted()
 
 	if sp.accounts.JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
