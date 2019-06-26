@@ -7,7 +7,8 @@ import (
 )
 
 type ValidatorGroupSelectorMock struct {
-	ComputeValidatorsGroupCalled func([]byte) ([]consensus.Validator, error)
+	ComputeValidatorsGroupCalled          func([]byte) ([]consensus.Validator, error)
+	GetSelectedValidatorsPublicKeysCalled func(randomness []byte, bitmap []byte) ([]string, error)
 }
 
 func (vgsm ValidatorGroupSelectorMock) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []consensus.Validator, err error) {
@@ -30,11 +31,36 @@ func (vgsm ValidatorGroupSelectorMock) ComputeValidatorsGroup(randomness []byte)
 	return list, nil
 }
 
+func (vgsm ValidatorGroupSelectorMock) GetSelectedValidatorsPublicKeys(randomness []byte, bitmap []byte) ([]string, error) {
+	if vgsm.GetSelectedValidatorsPublicKeysCalled != nil {
+		return vgsm.GetSelectedValidatorsPublicKeysCalled(randomness, bitmap)
+	}
+
+	validators, err := vgsm.ComputeValidatorsGroup(randomness)
+
+	if err != nil {
+		return nil, err
+	}
+
+	pubKeys := make([]string, 0)
+
+	for i, v := range validators {
+		isSelected := (bitmap[i/8] & (1 << (uint16(i) % 8))) != 0
+		if !isSelected {
+			continue
+		}
+
+		pubKeys = append(pubKeys, string(v.PubKey()))
+	}
+
+	return pubKeys, nil
+}
+
 func (vgsm ValidatorGroupSelectorMock) ConsensusGroupSize() int {
 	panic("implement me")
 }
 
-func (vgsm ValidatorGroupSelectorMock) LoadEligibleList(eligibleList []consensus.Validator) error {
+func (vgsm ValidatorGroupSelectorMock) LoadNodesPerShards(map[uint32][]consensus.Validator) error {
 	return nil
 }
 

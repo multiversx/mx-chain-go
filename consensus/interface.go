@@ -55,10 +55,10 @@ type Validator interface {
 	PubKey() []byte
 }
 
-// ValidatorGroupSelector defines the behaviour of a struct able to do validator group selection
-type ValidatorGroupSelector interface {
+// NodesCoordinator defines the behaviour of a struct able to do validator group selection
+type NodesCoordinator interface {
 	PublicKeysSelector
-	LoadEligibleList(eligibleList []Validator) error
+	LoadNodesPerShards(nodes map[uint32][]Validator) error
 	ComputeValidatorsGroup(randomness []byte) (validatorsGroup []Validator, err error)
 	ConsensusGroupSize() int
 	SetConsensusGroupSize(int) error
@@ -67,6 +67,7 @@ type ValidatorGroupSelector interface {
 // PublicKeysSelector allows retrieval of eligible validators public keys selected by a bitmap
 type PublicKeysSelector interface {
 	GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error)
+	GetSelectedValidatorsPublicKeys(randomness []byte, bitmap []byte) ([]string, error)
 }
 
 // BroadcastMessenger defines the behaviour of the broadcast messages by the consensus group

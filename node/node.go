@@ -14,8 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/consensus/validators"
-	"github.com/ElrondNetwork/elrond-go/consensus/validators/groupSelectors"
+	"github.com/ElrondNetwork/elrond-go/consensus/validators/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/genesis"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -34,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/consensus/validators"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
@@ -268,7 +268,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	validatorGroupSelector, err := n.createValidatorGroupSelector()
+	nCoordinator, err := n.createNodesCoordinator()
 	if err != nil {
 		return err
 	}
@@ -288,7 +288,7 @@ func (n *Node) StartConsensus() error {
 		n.rounder,
 		n.shardCoordinator,
 		n.syncTimer,
-		validatorGroupSelector)
+		nCoordinator)
 	if err != nil {
 		return err
 	}
@@ -484,35 +484,41 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 	return consensusState, nil
 }
 
-// createValidatorGroupSelector creates a index hashed group selector object
-func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector, error) {
-	validatorGroupSelector, err := groupSelectors.NewIndexHashedGroupSelector(n.consensusGroupSize, n.hasher)
+// createNodesCoordinator creates a index hashed group selector object
+func (n *Node) createNodesCoordinator() (consensus.NodesCoordinator, error) {
+	nCoordinator, err := nodesCoordinator.NewIndexHashedGroupSelector(
+		n.consensusGroupSize,
+		n.hasher,
+		n.shardCoordinator.SelfId(),
+		n.shardCoordinator.NumberOfShards(),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	validatorsList := make([]consensus.Validator, 0)
-	shID := n.shardCoordinator.SelfId()
+	nodesMap := make(map[uint32][]consensus.Validator)
+	nbShards := n.shardCoordinator.NumberOfShards()
 
-	if len(n.initialNodesPubkeys[shID]) == 0 {
-		return nil, errors.New("could not create validator group as shardID is out of range")
-	}
+	for sh := uint32(0); sh < nbShards; sh++ {
+		nodesInShard := len(n.initialNodesPubkeys[sh])
+		nodesMap[sh] = make([]consensus.Validator, nodesInShard)
 
-	for i := 0; i < len(n.initialNodesPubkeys[shID]); i++ {
-		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shID][i]))
-		if err != nil {
-			return nil, err
+		for i := 0; i < nodesInShard; i++ {
+			validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[sh][i]))
+			if err != nil {
+				return nil, err
+			}
+
+			nodesMap[sh][i] = validator
 		}
-
-		validatorsList = append(validatorsList, validator)
 	}
 
-	err = validatorGroupSelector.LoadEligibleList(validatorsList)
+	err = nCoordinator.LoadNodesPerShards(nodesMap)
 	if err != nil {
 		return nil, err
 	}
 
-	return validatorGroupSelector, nil
+	return nCoordinator, nil
 }
 
 // createConsensusTopic creates a consensus topic for node

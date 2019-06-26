@@ -1,4 +1,4 @@
-package groupSelectors
+package nodesCoordinator
 
 import (
 	"bytes"
@@ -9,22 +9,34 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
-type indexHashedGroupSelector struct {
+const defaultRating = 0
+const defaultStake = 0
+
+type indexHashedNodesCoordinator struct {
+	nbShards             uint32
+	shardId              uint32
 	hasher               hashing.Hasher
-	eligibleList         []consensus.Validator
+	nodesMap             map[uint32][]consensus.Validator
 	expandedEligibleList []consensus.Validator
 	consensusGroupSize   int
 }
 
 // NewIndexHashedGroupSelector creates a new index hashed group selector
-func NewIndexHashedGroupSelector(consensusGroupSize int, hasher hashing.Hasher) (*indexHashedGroupSelector, error) {
+func NewIndexHashedGroupSelector(
+	consensusGroupSize int,
+	hasher hashing.Hasher,
+	shardId uint32,
+	nbShards uint32,
+) (*indexHashedNodesCoordinator, error) {
 	if hasher == nil {
 		return nil, ErrNilHasher
 	}
 
-	ihgs := &indexHashedGroupSelector{
+	ihgs := &indexHashedNodesCoordinator{
+		nbShards:             nbShards,
+		shardId:              shardId,
 		hasher:               hasher,
-		eligibleList:         make([]consensus.Validator, 0),
+		nodesMap:             make(map[uint32][]consensus.Validator),
 		expandedEligibleList: make([]consensus.Validator, 0),
 	}
 
@@ -36,14 +48,14 @@ func NewIndexHashedGroupSelector(consensusGroupSize int, hasher hashing.Hasher) 
 	return ihgs, nil
 }
 
-// LoadEligibleList loads the eligible list
-func (ihgs *indexHashedGroupSelector) LoadEligibleList(eligibleList []consensus.Validator) error {
-	if eligibleList == nil {
-		return ErrNilInputSlice
+// LoadNodesPerShards loads the distribution of nodes per shard into the nodes management component
+func (ihgs *indexHashedNodesCoordinator) LoadNodesPerShards(nodes map[uint32][]consensus.Validator) error {
+	if nodes == nil {
+		return ErrNilInputNodesMap
 	}
 
-	ihgs.eligibleList = make([]consensus.Validator, len(eligibleList))
-	copy(ihgs.eligibleList, eligibleList)
+	ihgs.nodesMap = nodes
+
 	return nil
 }
 
@@ -56,8 +68,8 @@ func (ihgs *indexHashedGroupSelector) LoadEligibleList(eligibleList []consensus.
 //    exceed the maximum index value permitted by the validator list), and then recheck against temp validator list until
 //    the item at the new proposed index is not found in the list. This new proposed index will be called checked index
 // 4. the item at the checked index is appended in the temp validator list
-func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []consensus.Validator, err error) {
-	if len(ihgs.eligibleList) < ihgs.consensusGroupSize {
+func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []consensus.Validator, err error) {
+	if len(ihgs.nodesMap[ihgs.shardId]) < ihgs.consensusGroupSize {
 		return nil, ErrSmallEligibleListSize
 	}
 
@@ -79,11 +91,39 @@ func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) 
 	return tempList, nil
 }
 
+// GetSelectedValidatorsPublicKeys calculates the validators group for a speciffic randomness and selection bitmap,
+// returning their public keys
+func (ihgs *indexHashedNodesCoordinator) GetSelectedValidatorsPublicKeys(randomness []byte, bitmap []byte) ([]string, error) {
+	isLeaderSelected := bitmap[0]&1 != 0 // first bit in bitmap selects leader
+	// leader always needs to be selected
+	if !isLeaderSelected {
+		return nil, ErrLeaderNotSelectedInBitmap
+	}
+
+	consensusNodes, err := ihgs.ComputeValidatorsGroup(randomness)
+	if err != nil {
+		return nil, err
+	}
+
+	pubKeys := make([]string, 0)
+
+	for i, v := range consensusNodes {
+		isSelected := (bitmap[i/8] & (1 << (uint16(i) % 8))) != 0
+		if !isSelected {
+			continue
+		}
+
+		pubKeys = append(pubKeys, string(v.PubKey()))
+	}
+
+	return pubKeys, nil
+}
+
 // GetSelectedPublicKeys returns the stringified public keys of the marked validators in the selection bitmap
 // TODO: This function needs to be revised when the requirements are clarified
-func (ihgs *indexHashedGroupSelector) GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error) {
+func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error) {
 	selectionLen := uint16(len(selection) * 8) // 8 selection bits in each byte
-	shardEligibleLen := uint16(len(ihgs.eligibleList))
+	shardEligibleLen := uint16(len(ihgs.nodesMap[ihgs.shardId]))
 	invalidSelection := selectionLen < shardEligibleLen
 
 	if invalidSelection {
@@ -100,7 +140,7 @@ func (ihgs *indexHashedGroupSelector) GetSelectedPublicKeys(selection []byte) (p
 			continue
 		}
 
-		publicKeys[cnt] = string(ihgs.eligibleList[i].PubKey())
+		publicKeys[cnt] = string(ihgs.nodesMap[ihgs.shardId][i].PubKey())
 		cnt++
 
 		if cnt > ihgs.consensusGroupSize {
@@ -115,13 +155,13 @@ func (ihgs *indexHashedGroupSelector) GetSelectedPublicKeys(selection []byte) (p
 	return publicKeys, nil
 }
 
-func (ihgs *indexHashedGroupSelector) expandEligibleList() []consensus.Validator {
+func (ihgs *indexHashedNodesCoordinator) expandEligibleList() []consensus.Validator {
 	//TODO implement an expand eligible list variant
-	return ihgs.eligibleList
+	return ihgs.nodesMap[ihgs.shardId]
 }
 
 // computeListIndex computes a proposed index from expanded eligible list
-func (ihgs *indexHashedGroupSelector) computeListIndex(currentIndex int, randomSource string) int {
+func (ihgs *indexHashedNodesCoordinator) computeListIndex(currentIndex int, randomSource string) int {
 	buffCurrentIndex := make([]byte, 8)
 	binary.BigEndian.PutUint64(buffCurrentIndex, uint64(currentIndex))
 
@@ -136,7 +176,7 @@ func (ihgs *indexHashedGroupSelector) computeListIndex(currentIndex int, randomS
 }
 
 // checkIndex returns a checked index starting from a proposed index
-func (ihgs *indexHashedGroupSelector) checkIndex(proposedIndex int, selectedList []consensus.Validator) int {
+func (ihgs *indexHashedNodesCoordinator) checkIndex(proposedIndex int, selectedList []consensus.Validator) int {
 
 	for {
 		v := ihgs.expandedEligibleList[proposedIndex]
@@ -152,7 +192,7 @@ func (ihgs *indexHashedGroupSelector) checkIndex(proposedIndex int, selectedList
 }
 
 // validatorIsInList returns true if a validator has been found in provided list
-func (ihgs *indexHashedGroupSelector) validatorIsInList(v consensus.Validator, list []consensus.Validator) bool {
+func (ihgs *indexHashedNodesCoordinator) validatorIsInList(v consensus.Validator, list []consensus.Validator) bool {
 	for i := 0; i < len(list); i++ {
 		if bytes.Equal(v.PubKey(), list[i].PubKey()) {
 			return true
@@ -163,12 +203,12 @@ func (ihgs *indexHashedGroupSelector) validatorIsInList(v consensus.Validator, l
 }
 
 // ConsensusGroupSize returns the consensus group size
-func (ihgs *indexHashedGroupSelector) ConsensusGroupSize() int {
+func (ihgs *indexHashedNodesCoordinator) ConsensusGroupSize() int {
 	return ihgs.consensusGroupSize
 }
 
 // SetConsensusGroupSize sets the consensus group size
-func (ihgs *indexHashedGroupSelector) SetConsensusGroupSize(consensusGroupSize int) error {
+func (ihgs *indexHashedNodesCoordinator) SetConsensusGroupSize(consensusGroupSize int) error {
 	if consensusGroupSize < 1 {
 		return ErrInvalidConsensusGroupSize
 	}

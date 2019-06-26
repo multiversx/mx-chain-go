@@ -7,7 +7,7 @@ type ConsensusStateMock struct {
 	IsNodeLeaderInCurrentRoundCalled func(node string) bool
 	IsSelfLeaderInCurrentRoundCalled func() bool
 	GetLeaderCalled                  func() (string, error)
-	GetNextConsensusGroupCalled      func(randomSource string, vgs consensus.ValidatorGroupSelector) ([]string, error)
+	GetNextConsensusGroupCalled      func(randomSource string, vgs consensus.NodesCoordinator) ([]string, error)
 	IsConsensusDataSetCalled         func() bool
 	IsConsensusDataEqualCalled       func(data []byte) bool
 	IsJobDoneCalled                  func(node string, currentSubroundId int) bool
@@ -43,7 +43,7 @@ func (cnsm *ConsensusStateMock) GetLeader() (string, error) {
 }
 
 func (cnsm *ConsensusStateMock) GetNextConsensusGroup(randomSource string,
-	vgs consensus.ValidatorGroupSelector) ([]string,
+	vgs consensus.NodesCoordinator) ([]string,
 	error) {
 	return cnsm.GetNextConsensusGroupCalled(randomSource, vgs)
 }

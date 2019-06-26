@@ -94,7 +94,7 @@ func (cns *ConsensusState) GetLeader() (string, error) {
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random
 // source for the new selection
-func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs consensus.ValidatorGroupSelector) ([]string,
+func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs consensus.NodesCoordinator) ([]string,
 	error) {
 	validatorsGroup, err := vgs.ComputeValidatorsGroup([]byte(randomSource))
 
