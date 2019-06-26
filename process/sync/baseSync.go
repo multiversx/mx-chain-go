@@ -109,6 +109,13 @@ func (boot *baseBootstrap) loadBlocks(
 		return process.ErrBoostrapFromStorage
 	}
 
+	boostrapRoundIndex, errNotCritical := boot.getBlockRoundFromNonce(currentNonce, getHeader)
+	if errNotCritical != nil {
+		log.Info(fmt.Sprintf(errNotCritical.Error()))
+	} else {
+		boot.boostrapRoundIndex = boostrapRoundIndex
+	}
+
 	for i := currentNonce + 1; i <= highestNonceInStorer; i++ {
 		boot.cleanupStorage(removeBlockBody, i, blockUnit, hdrNonceHashDataUnit)
 	}
@@ -286,6 +293,19 @@ func (boot *baseBootstrap) removeNotarizedBlockHeader(
 	}
 
 	return nil
+}
+
+func (boot *baseBootstrap) getBlockRoundFromNonce(
+	nonce uint64,
+	getHeader func(uint64) (data.HeaderHandler, []byte, error),
+) (uint32, error) {
+
+	header, _, err := getHeader(nonce)
+	if err != nil {
+		return 0, err
+	}
+
+	return header.GetRound(), nil
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
