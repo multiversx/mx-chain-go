@@ -5,13 +5,12 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/stretchr/testify/assert"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/stretchr/testify/assert"
 )
 
 func internalInitConsensusState() *spos.ConsensusState {

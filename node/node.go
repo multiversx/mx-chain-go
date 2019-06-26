@@ -502,7 +502,7 @@ func (n *Node) createNodesCoordinator() (sharding.NodesCoordinator, error) {
 		nodesMap[sh] = make([]sharding.Validator, nodesInShard)
 
 		for i := 0; i < nodesInShard; i++ {
-			validator, err := sharding.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[sh][i]))
+			validator, err := consensus.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[sh][i]))
 			if err != nil {
 				return nil, err
 			}

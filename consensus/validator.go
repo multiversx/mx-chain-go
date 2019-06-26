@@ -1,4 +1,4 @@
-package sharding
+package consensus
 
 import (
 	"math/big"

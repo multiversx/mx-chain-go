@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/mock"
+	"github.com/stretchr/testify/assert"
 )
 
 func convertBigIntToBytes(value *big.Int) []byte {
@@ -374,7 +374,6 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 
 	for i := 0; i < b.N; i++ {
 		randomness := strconv.Itoa(i)
-
 		list2, _ := ihgs.ComputeValidatorsGroup([]byte(randomness))
 
 		assert.Equal(b, consensusGroupSize, len(list2))

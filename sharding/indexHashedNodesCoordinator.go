@@ -8,9 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
-const defaultRating = 0
-const defaultStake = 0
-
 type indexHashedNodesCoordinator struct {
 	nbShards             uint32
 	shardId              uint32
@@ -157,9 +154,11 @@ func (ihgs *indexHashedNodesCoordinator) computeListIndex(currentIndex int, rand
 
 	computedLargeIndex := big.NewInt(0)
 	computedLargeIndex.SetBytes(indexHash)
+	lenExpandedEligibleList := big.NewInt(int64(len(ihgs.expandedEligibleList)))
 
 	// computedListIndex = computedLargeIndex % len(expandedEligibleList)
-	computedListIndex := big.NewInt(0).Mod(computedLargeIndex, big.NewInt(int64(len(ihgs.expandedEligibleList)))).Int64()
+	computedListIndex := big.NewInt(0).Mod(computedLargeIndex, lenExpandedEligibleList).Int64()
+
 	return int(computedListIndex)
 }
 

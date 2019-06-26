@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"math/big"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"math/big"
 )
 
 type ValidatorGroupSelectorMock struct {
@@ -10,7 +10,10 @@ type ValidatorGroupSelectorMock struct {
 	GetValidatorsPublicKeysCalled func(randomness []byte) ([]string, error)
 }
 
-func (vgsm ValidatorGroupSelectorMock) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []sharding.Validator, err error) {
+func (vgsm ValidatorGroupSelectorMock) ComputeValidatorsGroup(
+	randomness []byte,
+) (validatorsGroup []sharding.Validator, err error) {
+
 	if vgsm.ComputeValidatorsGroupCalled != nil {
 		return vgsm.ComputeValidatorsGroupCalled(randomness)
 	}

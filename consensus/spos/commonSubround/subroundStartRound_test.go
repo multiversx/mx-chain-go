@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
-	"github.com/stretchr/testify/assert"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/stretchr/testify/assert"
 )
 
 func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (*commonSubround.SubroundStartRound, error) {
@@ -25,8 +25,11 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (*commonSubround.S
 	return startRound, err
 }
 
-func defaultSubround(consensusState *spos.ConsensusState, ch chan bool, container spos.ConsensusCoreHandler) (*spos.Subround,
-	error) {
+func defaultSubround(
+	consensusState *spos.ConsensusState,
+	ch chan bool, container spos.ConsensusCoreHandler,
+) (*spos.Subround, error) {
+
 	return spos.NewSubround(
 		-1,
 		int(SrStartRound),

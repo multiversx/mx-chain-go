@@ -37,15 +37,6 @@ var ErrMinNodesPerShardSmallerThanConsensusSize = errors.New("minimum nodes per 
 // ErrNodesSizeSmallerThanMinNoOfNodes signals that there are not enough nodes defined in genesis file
 var ErrNodesSizeSmallerThanMinNoOfNodes = errors.New("length of nodes defined is smaller than min nodes per shard required")
 
-// ErrNilStake signals that a nil stake structure has been provided
-var ErrNilStake = errors.New("nil stake")
-
-// ErrNegativeStake signals that the stake is negative
-var ErrNegativeStake = errors.New("negative stake")
-
-// ErrNilPubKey signals that the public key is nil
-var ErrNilPubKey = errors.New("nil public key")
-
 // ErrNilInputNodesMap signals that a nil nodes map was provided
 var ErrNilInputNodesMap = errors.New("nil input nodes map")
 

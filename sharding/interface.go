@@ -1,8 +1,9 @@
 package sharding
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // MetachainShardId will be used to identify a shard ID as metachain
@@ -17,7 +18,8 @@ type Coordinator interface {
 	CommunicationIdentifier(destShardID uint32) string
 }
 
-// Validator defines what a consensus validator implementation should do.
+// Validator defines a node that can be allocated to a shard for participation in a consensus group as validator
+// or block proposer
 type Validator interface {
 	Stake() *big.Int
 	Rating() int32

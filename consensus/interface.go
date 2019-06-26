@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"math/big"
 )
 
 // Rounder defines the actions which should be handled by a round implementation
@@ -45,6 +46,13 @@ type ChronologyHandler interface {
 // SposFactory defines an interface for a consensus implementation
 type SposFactory interface {
 	GenerateSubrounds()
+}
+
+// Validator defines what a consensus validator implementation should do.
+type Validator interface {
+	Stake() *big.Int
+	Rating() int32
+	PubKey() []byte
 }
 
 // BroadcastMessenger defines the behaviour of the broadcast messages by the consensus group
