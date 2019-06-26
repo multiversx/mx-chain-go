@@ -1,5 +1,315 @@
 package coordinator
 
+import (
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		nil,
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestNewTransactionCoordinator_NilAccountsStub(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		nil,
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilAccountsAdapter, err)
+}
+
+func TestNewTransactionCoordinator_NilDataPool(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		nil,
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilDataPoolHolder, err)
+}
+
+func TestNewTransactionCoordinator_NilRequestHandler(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		nil,
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilRequestHandler, err)
+}
+
+func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		nil,
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilHasher, err)
+}
+
+func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		nil,
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewTransactionCoordinator_NilTxProc(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		nil,
+		&mock.ChainStorerMock{},
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilTxProcessor, err)
+}
+
+func TestNewTransactionCoordinator_NilStorer(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		nil,
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilTxStorage, err)
+}
+
+func TestNewTransactionCoordinator_OK(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+}
+
+func TestTransactionCoordinator_SeparateBodyNil(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	separated := tc.separateBodyByType(nil)
+	assert.Equal(t, 0, len(separated))
+}
+
+func TestTransactionCoordinator_SeparateBody(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	body := block.Body{}
+	body = append(body, &block.MiniBlock{Type: block.TxBlock})
+	body = append(body, &block.MiniBlock{Type: block.TxBlock})
+	body = append(body, &block.MiniBlock{Type: block.TxBlock})
+	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock})
+
+	separated := tc.separateBodyByType(body)
+	assert.Equal(t, 2, len(separated))
+	assert.Equal(t, 3, len(separated[block.TxBlock]))
+	assert.Equal(t, 4, len(separated[block.SmartContractResultBlock]))
+}
+
+func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	tc.CreateBlockStarted()
+
+	tc.mutPreprocessor.Lock()
+	for _, value := range tc.txPreprocessors {
+		txs := value.GetAllCurrentUsedTxs()
+		assert.Equal(t, 0, len(txs))
+	}
+	tc.mutPreprocessor.Unlock()
+}
+
+func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	mrBody, mrTxs := tc.CreateMarshalizedData(nil)
+	assert.Equal(t, 0, len(mrTxs))
+	assert.Equal(t, 0, len(mrBody))
+}
+
+func createMiniBlockWithOneTx(sndId, dstId uint32, blockType block.Type, txHash []byte) *block.MiniBlock {
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+
+	return &block.MiniBlock{Type: blockType, SenderShardID: sndId, ReceiverShardID: dstId, TxHashes: txHashes}
+}
+
+func createTestBody() block.Body {
+	body := block.Body{}
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, []byte("tx_hash1"))
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash1")))
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash2")))
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash3")))
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash1")))
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash2")))
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash3")))
+
+	return body
+}
+
+func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	mrBody, mrTxs := tc.CreateMarshalizedData(createTestBody())
+	assert.Equal(t, 0, len(mrTxs))
+	assert.Equal(t, 1, len(mrBody))
+}
+
 /*
 //------- processMiniBlockComplete
 
