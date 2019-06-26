@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
 	"github.com/stretchr/testify/assert"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (*commonSubround.SubroundStartRound, error) {
@@ -321,7 +321,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
 	err := errors.New("error")
-	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]consensus.Validator, error) {
+	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]sharding.Validator, error) {
 		return nil, err
 	}
 	container := mock.InitConsensusCore()
@@ -337,8 +337,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 	t.Parallel()
 
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
-	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]consensus.Validator, error) {
-		return make([]consensus.Validator, 0), nil
+	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]sharding.Validator, error) {
+		return make([]sharding.Validator, 0), nil
 	}
 
 	container := mock.InitConsensusCore()
@@ -426,7 +426,7 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
 
 	err := errors.New("error")
-	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]consensus.Validator, error) {
+	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]sharding.Validator, error) {
 		return nil, err
 	}
 	container := mock.InitConsensusCore()

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 func internalInitConsensusState() *spos.ConsensusState {
@@ -140,7 +141,7 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 
 	vgs := mock.ValidatorGroupSelectorMock{}
 	err := errors.New("error")
-	vgs.ComputeValidatorsGroupCalled = func(randomness []byte) ([]consensus.Validator, error) {
+	vgs.ComputeValidatorsGroupCalled = func(randomness []byte) ([]sharding.Validator, error) {
 		return nil, err
 	}
 

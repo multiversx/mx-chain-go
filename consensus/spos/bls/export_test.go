@@ -60,7 +60,7 @@ func (fct *factory) SyncTimer() ntp.SyncTimer {
 	return fct.consensusCore.SyncTimer()
 }
 
-func (fct *factory) ValidatorGroupSelector() consensus.NodesCoordinator {
+func (fct *factory) ValidatorGroupSelector() sharding.NodesCoordinator {
 	return fct.consensusCore.ValidatorGroupSelector()
 }
 

@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/consensus/validators/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/genesis"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -33,7 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/consensus/validators"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
@@ -485,8 +483,8 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 }
 
 // createNodesCoordinator creates a index hashed group selector object
-func (n *Node) createNodesCoordinator() (consensus.NodesCoordinator, error) {
-	nCoordinator, err := nodesCoordinator.NewIndexHashedGroupSelector(
+func (n *Node) createNodesCoordinator() (sharding.NodesCoordinator, error) {
+	nCoordinator, err := sharding.NewIndexHashedGroupSelector(
 		n.consensusGroupSize,
 		n.hasher,
 		n.shardCoordinator.SelfId(),
@@ -496,15 +494,15 @@ func (n *Node) createNodesCoordinator() (consensus.NodesCoordinator, error) {
 		return nil, err
 	}
 
-	nodesMap := make(map[uint32][]consensus.Validator)
+	nodesMap := make(map[uint32][]sharding.Validator)
 	nbShards := n.shardCoordinator.NumberOfShards()
 
 	for sh := uint32(0); sh < nbShards; sh++ {
 		nodesInShard := len(n.initialNodesPubkeys[sh])
-		nodesMap[sh] = make([]consensus.Validator, nodesInShard)
+		nodesMap[sh] = make([]sharding.Validator, nodesInShard)
 
 		for i := 0; i < nodesInShard; i++ {
-			validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[sh][i]))
+			validator, err := sharding.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[sh][i]))
 			if err != nil {
 				return nil, err
 			}

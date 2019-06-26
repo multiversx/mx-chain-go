@@ -39,7 +39,7 @@ type ConsensusCoreHandler interface {
 	// SyncTimer gets the SyncTimer stored in the ConsensusCore
 	SyncTimer() ntp.SyncTimer
 	// NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
-	ValidatorGroupSelector() consensus.NodesCoordinator
+	ValidatorGroupSelector() sharding.NodesCoordinator
 	// RandomnessPrivateKey returns the private key stored in the ConsensusStore used for randomness generation
 	RandomnessPrivateKey() crypto.PrivateKey
 	// RandomnessSingleSigner returns the single signer stored in the ConsensusStore used for randomness generation

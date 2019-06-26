@@ -28,7 +28,7 @@ type ConsensusCore struct {
 	rounder                consensus.Rounder
 	shardCoordinator       sharding.Coordinator
 	syncTimer              ntp.SyncTimer
-	validatorGroupSelector consensus.NodesCoordinator
+	validatorGroupSelector sharding.NodesCoordinator
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -47,7 +47,7 @@ func NewConsensusCore(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	syncTimer ntp.SyncTimer,
-	validatorGroupSelector consensus.NodesCoordinator) (*ConsensusCore, error) {
+	validatorGroupSelector sharding.NodesCoordinator) (*ConsensusCore, error) {
 
 	consensusCore := &ConsensusCore{
 		blockChain,
@@ -136,7 +136,7 @@ func (cc *ConsensusCore) SyncTimer() ntp.SyncTimer {
 }
 
 // NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
-func (cc *ConsensusCore) ValidatorGroupSelector() consensus.NodesCoordinator {
+func (cc *ConsensusCore) ValidatorGroupSelector() sharding.NodesCoordinator {
 	return cc.validatorGroupSelector
 }
 

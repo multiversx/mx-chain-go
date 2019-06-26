@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.DefaultLogger()
@@ -94,7 +95,7 @@ func (cns *ConsensusState) GetLeader() (string, error) {
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random
 // source for the new selection
-func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs consensus.NodesCoordinator) ([]string,
+func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs sharding.NodesCoordinator) ([]string,
 	error) {
 	validatorsGroup, err := vgs.ComputeValidatorsGroup([]byte(randomSource))
 

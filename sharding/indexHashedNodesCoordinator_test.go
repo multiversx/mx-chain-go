@@ -1,4 +1,4 @@
-package nodesCoordinator_test
+package sharding_test
 
 import (
 	"encoding/binary"
@@ -6,10 +6,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/consensus/validators/nodesCoordinator"
 	"github.com/stretchr/testify/assert"
+	"github.com/ElrondNetwork/elrond-go/sharding/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 func convertBigIntToBytes(value *big.Int) []byte {
@@ -28,25 +27,25 @@ func uint64ToBytes(value uint64) []byte {
 func TestNewIndexHashedGroupSelector_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ihgs, err := nodesCoordinator.NewIndexHashedGroupSelector(1, nil, 0, 1)
+	ihgs, err := sharding.NewIndexHashedGroupSelector(1, nil, 0, 1)
 
 	assert.Nil(t, ihgs)
-	assert.Equal(t, nodesCoordinator.ErrNilHasher, err)
+	assert.Equal(t, sharding.ErrNilHasher, err)
 }
 
 func TestNewIndexHashedGroupSelector_InvalidConsensusGroupSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ihgs, err := nodesCoordinator.NewIndexHashedGroupSelector(0, mock.HasherMock{}, 0, 1)
+	ihgs, err := sharding.NewIndexHashedGroupSelector(0, mock.HasherMock{}, 0, 1)
 
 	assert.Nil(t, ihgs)
-	assert.Equal(t, nodesCoordinator.ErrInvalidConsensusGroupSize, err)
+	assert.Equal(t, sharding.ErrInvalidConsensusGroupSize, err)
 }
 
 func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ihgs, err := nodesCoordinator.NewIndexHashedGroupSelector(1, mock.HasherMock{}, 0, 1)
+	ihgs, err := sharding.NewIndexHashedGroupSelector(1, mock.HasherMock{}, 0, 1)
 
 	assert.NotNil(t, ihgs)
 	assert.Nil(t, err)
@@ -57,22 +56,22 @@ func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 func TestIndexHashedGroupSelector_LoadEligibleListNilListShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ihgs, _ := nodesCoordinator.NewIndexHashedGroupSelector(10, mock.HasherMock{}, 0, 1)
+	ihgs, _ := sharding.NewIndexHashedGroupSelector(10, mock.HasherMock{}, 0, 1)
 
-	assert.Equal(t, nodesCoordinator.ErrNilInputNodesMap, ihgs.LoadNodesPerShards(nil))
+	assert.Equal(t, sharding.ErrNilInputNodesMap, ihgs.LoadNodesPerShards(nil))
 }
 
 func TestIndexHashedGroupSelector_OkValShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ihgs, _ := nodesCoordinator.NewIndexHashedGroupSelector(10, mock.HasherMock{}, 0, 1)
+	ihgs, _ := sharding.NewIndexHashedGroupSelector(10, mock.HasherMock{}, 0, 1)
 
-	list := []consensus.Validator{
+	list := []sharding.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
 		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1")),
 	}
 
-	nodesMap := make(map[uint32][]consensus.Validator)
+	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
 
 	err := ihgs.LoadNodesPerShards(nodesMap)
@@ -85,54 +84,54 @@ func TestIndexHashedGroupSelector_OkValShouldWork(t *testing.T) {
 func TestIndexHashedGroupSelector_ComputeValidatorsGroup0SizeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ihgs, _ := nodesCoordinator.NewIndexHashedGroupSelector(1, mock.HasherMock{}, 0, 1)
+	ihgs, _ := sharding.NewIndexHashedGroupSelector(1, mock.HasherMock{}, 0, 1)
 
-	list := make([]consensus.Validator, 0)
+	list := make([]sharding.Validator, 0)
 
 	list, err := ihgs.ComputeValidatorsGroup([]byte("randomness"))
 
 	assert.Nil(t, list)
-	assert.Equal(t, nodesCoordinator.ErrSmallEligibleListSize, err)
+	assert.Equal(t, sharding.ErrSmallEligibleListSize, err)
 }
 
 func TestIndexHashedGroupSelector_ComputeValidatorsGroupWrongSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ihgs, _ := nodesCoordinator.NewIndexHashedGroupSelector(10, mock.HasherMock{}, 0, 1)
+	ihgs, _ := sharding.NewIndexHashedGroupSelector(10, mock.HasherMock{}, 0, 1)
 
-	list := []consensus.Validator{
+	list := []sharding.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
 		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1")),
 	}
 
-	nodesMap := make(map[uint32][]consensus.Validator)
+	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
 	_ = ihgs.LoadNodesPerShards(nodesMap)
 
 	list, err := ihgs.ComputeValidatorsGroup([]byte("randomness"))
 
 	assert.Nil(t, list)
-	assert.Equal(t, nodesCoordinator.ErrSmallEligibleListSize, err)
+	assert.Equal(t, sharding.ErrSmallEligibleListSize, err)
 }
 
 func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ihgs, _ := nodesCoordinator.NewIndexHashedGroupSelector(2, mock.HasherMock{}, 0, 1)
+	ihgs, _ := sharding.NewIndexHashedGroupSelector(2, mock.HasherMock{}, 0, 1)
 
-	list := []consensus.Validator{
+	list := []sharding.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
 		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1")),
 	}
 
-	nodesMap := make(map[uint32][]consensus.Validator)
+	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
 	_ = ihgs.LoadNodesPerShards(nodesMap)
 
 	list2, err := ihgs.ComputeValidatorsGroup(nil)
 
 	assert.Nil(t, list2)
-	assert.Equal(t, nodesCoordinator.ErrNilRandomness, err)
+	assert.Equal(t, sharding.ErrNilRandomness, err)
 }
 
 //------- functionality tests
@@ -140,13 +139,13 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t
 func TestIndexHashedGroupSelector_ComputeValidatorsGroup1ValidatorShouldReturnSame(t *testing.T) {
 	t.Parallel()
 
-	ihgs, _ := nodesCoordinator.NewIndexHashedGroupSelector(1, mock.HasherMock{}, 0, 1)
+	ihgs, _ := sharding.NewIndexHashedGroupSelector(1, mock.HasherMock{}, 0, 1)
 
-	list := []consensus.Validator{
+	list := []sharding.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
 	}
 
-	nodesMap := make(map[uint32][]consensus.Validator)
+	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
 	_ = ihgs.LoadNodesPerShards(nodesMap)
 
@@ -178,14 +177,14 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2Validators(t *testi
 		return nil
 	}
 
-	ihgs, _ := nodesCoordinator.NewIndexHashedGroupSelector(2, hasher, 0, 1)
+	ihgs, _ := sharding.NewIndexHashedGroupSelector(2, hasher, 0, 1)
 
-	list := []consensus.Validator{
+	list := []sharding.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
 		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1")),
 	}
 
-	nodesMap := make(map[uint32][]consensus.Validator)
+	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
 	_ = ihgs.LoadNodesPerShards(nodesMap)
 
@@ -217,17 +216,17 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrd
 		return nil
 	}
 
-	ihgs, _ := nodesCoordinator.NewIndexHashedGroupSelector(2, hasher, 0, 1)
+	ihgs, _ := sharding.NewIndexHashedGroupSelector(2, hasher, 0, 1)
 
 	validator0 := mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0"))
 	validator1 := mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1"))
 
-	list := []consensus.Validator{
+	list := []sharding.Validator{
 		validator0,
 		validator1,
 	}
 
-	nodesMap := make(map[uint32][]consensus.Validator)
+	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
 	_ = ihgs.LoadNodesPerShards(nodesMap)
 
@@ -260,14 +259,14 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsSameIndex
 		return nil
 	}
 
-	ihgs, _ := nodesCoordinator.NewIndexHashedGroupSelector(2, hasher, 0, 1)
+	ihgs, _ := sharding.NewIndexHashedGroupSelector(2, hasher, 0, 1)
 
-	list := []consensus.Validator{
+	list := []sharding.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
 		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1")),
 	}
 
-	nodesMap := make(map[uint32][]consensus.Validator)
+	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
 	_ = ihgs.LoadNodesPerShards(nodesMap)
 
@@ -311,7 +310,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 		return convertBigIntToBytes(val)
 	}
 
-	ihgs, _ := nodesCoordinator.NewIndexHashedGroupSelector(6, hasher, 0, 1)
+	ihgs, _ := sharding.NewIndexHashedGroupSelector(6, hasher, 0, 1)
 
 	validator0 := mock.NewValidatorMock(big.NewInt(1), 1, []byte("pk0"))
 	validator1 := mock.NewValidatorMock(big.NewInt(2), 2, []byte("pk1"))
@@ -324,7 +323,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 	validator8 := mock.NewValidatorMock(big.NewInt(9), 9, []byte("pk8"))
 	validator9 := mock.NewValidatorMock(big.NewInt(10), 10, []byte("pk9"))
 
-	list := []consensus.Validator{
+	list := []sharding.Validator{
 		validator0,
 		validator1,
 		validator2,
@@ -337,7 +336,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 		validator9,
 	}
 
-	nodesMap := make(map[uint32][]consensus.Validator)
+	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
 	_ = ihgs.LoadNodesPerShards(nodesMap)
 
@@ -358,16 +357,16 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.B) {
 	consensusGroupSize := 21
 
-	ihgs, _ := nodesCoordinator.NewIndexHashedGroupSelector(consensusGroupSize, mock.HasherMock{}, 0, 1)
+	ihgs, _ := sharding.NewIndexHashedGroupSelector(consensusGroupSize, mock.HasherMock{}, 0, 1)
 
-	list := make([]consensus.Validator, 0)
+	list := make([]sharding.Validator, 0)
 
 	//generate 400 validators
 	for i := 0; i < 400; i++ {
 		list = append(list, mock.NewValidatorMock(big.NewInt(0), 0, []byte("pk"+strconv.Itoa(i))))
 	}
 
-	nodesMap := make(map[uint32][]consensus.Validator)
+	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
 	_ = ihgs.LoadNodesPerShards(nodesMap)
 
