@@ -91,15 +91,9 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(randomness []byt
 	return tempList, nil
 }
 
-// GetSelectedValidatorsPublicKeys calculates the validators group for a speciffic randomness and selection bitmap,
+// GetSelectedValidatorsPublicKeys calculates the validators group for a specific randomness,
 // returning their public keys
-func (ihgs *indexHashedNodesCoordinator) GetSelectedValidatorsPublicKeys(randomness []byte, bitmap []byte) ([]string, error) {
-	isLeaderSelected := bitmap[0]&1 != 0 // first bit in bitmap selects leader
-	// leader always needs to be selected
-	if !isLeaderSelected {
-		return nil, ErrLeaderNotSelectedInBitmap
-	}
-
+func (ihgs *indexHashedNodesCoordinator) GetValidatorsPublicKeys(randomness []byte) ([]string, error) {
 	consensusNodes, err := ihgs.ComputeValidatorsGroup(randomness)
 	if err != nil {
 		return nil, err
@@ -107,12 +101,7 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedValidatorsPublicKeys(randomn
 
 	pubKeys := make([]string, 0)
 
-	for i, v := range consensusNodes {
-		isSelected := (bitmap[i/8] & (1 << (uint16(i) % 8))) != 0
-		if !isSelected {
-			continue
-		}
-
+	for _, v := range consensusNodes {
 		pubKeys = append(pubKeys, string(v.PubKey()))
 	}
 

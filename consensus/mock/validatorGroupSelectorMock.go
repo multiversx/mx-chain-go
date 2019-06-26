@@ -7,8 +7,8 @@ import (
 )
 
 type ValidatorGroupSelectorMock struct {
-	ComputeValidatorsGroupCalled          func([]byte) ([]consensus.Validator, error)
-	GetSelectedValidatorsPublicKeysCalled func(randomness []byte, bitmap []byte) ([]string, error)
+	ComputeValidatorsGroupCalled  func([]byte) ([]consensus.Validator, error)
+	GetValidatorsPublicKeysCalled func(randomness []byte) ([]string, error)
 }
 
 func (vgsm ValidatorGroupSelectorMock) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []consensus.Validator, err error) {
@@ -31,25 +31,19 @@ func (vgsm ValidatorGroupSelectorMock) ComputeValidatorsGroup(randomness []byte)
 	return list, nil
 }
 
-func (vgsm ValidatorGroupSelectorMock) GetSelectedValidatorsPublicKeys(randomness []byte, bitmap []byte) ([]string, error) {
-	if vgsm.GetSelectedValidatorsPublicKeysCalled != nil {
-		return vgsm.GetSelectedValidatorsPublicKeysCalled(randomness, bitmap)
+func (vgsm ValidatorGroupSelectorMock) GetValidatorsPublicKeys(randomness []byte) ([]string, error) {
+	if vgsm.GetValidatorsPublicKeysCalled != nil {
+		return vgsm.GetValidatorsPublicKeysCalled(randomness)
 	}
 
 	validators, err := vgsm.ComputeValidatorsGroup(randomness)
-
 	if err != nil {
 		return nil, err
 	}
 
 	pubKeys := make([]string, 0)
 
-	for i, v := range validators {
-		isSelected := (bitmap[i/8] & (1 << (uint16(i) % 8))) != 0
-		if !isSelected {
-			continue
-		}
-
+	for _, v := range validators {
 		pubKeys = append(pubKeys, string(v.PubKey()))
 	}
 

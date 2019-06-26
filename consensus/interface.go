@@ -64,10 +64,10 @@ type NodesCoordinator interface {
 	SetConsensusGroupSize(int) error
 }
 
-// PublicKeysSelector allows retrieval of eligible validators public keys selected by a bitmap
+// PublicKeysSelector allows retrieval of eligible validators public keys
 type PublicKeysSelector interface {
 	GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error)
-	GetSelectedValidatorsPublicKeys(randomness []byte, bitmap []byte) ([]string, error)
+	GetValidatorsPublicKeys(randomness []byte) ([]string, error)
 }
 
 // BroadcastMessenger defines the behaviour of the broadcast messages by the consensus group
