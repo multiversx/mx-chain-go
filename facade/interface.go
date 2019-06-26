@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 )
 
@@ -34,7 +33,7 @@ type NodeWrapper interface {
 	GenerateTransaction(senderHex string, receiverHex string, amount *big.Int, code string) (*transaction.Transaction, error)
 
 	//SendTransaction will send a new transaction on the topic channel
-	SendTransaction(nonce uint64, senderHex string, receiverHex string, value *big.Int, transactionData string, signature []byte) (string, error)
+	SendTransaction(nonce uint64, senderHex string, receiverHex string, value *big.Int, gasPrice uint64, gasLimit uint64, transactionData string, signature []byte) (string, error)
 
 	//GetTransaction gets the transaction
 	GetTransaction(hash string) (*transaction.Transaction, error)
@@ -58,8 +57,7 @@ type NodeWrapper interface {
 	GetHeartbeats() []heartbeat.PubKeyHeartbeat
 }
 
-// ExternalResolver defines what functionality can be exposed to an external component (REST API, RPC, etc.)
-type ExternalResolver interface {
-	RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error)
-	RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error)
+// ApiResolver defines a structure capable of resolving REST API requests
+type ApiResolver interface {
+	GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
 }

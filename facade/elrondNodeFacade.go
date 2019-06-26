@@ -1,40 +1,49 @@
 package facade
 
 import (
+	"fmt"
 	"math/big"
+	"strconv"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/api"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 )
 
+// DefaultRestPort is the default port the REST API will start on if not specified
+const DefaultRestPort = "8080"
+// DefaultRestPortOff is the default value that should be passed if it is desired
+//  to start the node without a REST endpoint available
+const DefaultRestPortOff = "off"
+
 // ElrondNodeFacade represents a facade for grouping the functionality for node, transaction and address
 type ElrondNodeFacade struct {
 	node         NodeWrapper
-	resolver     ExternalResolver
+	apiResolver  ApiResolver
 	syncer       ntp.SyncTimer
 	log          *logger.Logger
 	tpsBenchmark *statistics.TpsBenchmark
+	config       *config.FacadeConfig
 }
 
 // NewElrondNodeFacade creates a new Facade with a NodeWrapper
-func NewElrondNodeFacade(node NodeWrapper, resolver ExternalResolver) *ElrondNodeFacade {
+func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver) *ElrondNodeFacade {
 	if node == nil {
 		return nil
 	}
-	if resolver == nil {
+	if apiResolver == nil {
 		return nil
 	}
 
 	return &ElrondNodeFacade{
-		node:     node,
-		resolver: resolver,
+		node:        node,
+		apiResolver: apiResolver,
 	}
 }
 
@@ -56,6 +65,11 @@ func (ef *ElrondNodeFacade) SetTpsBenchmark(tpsBenchmark *statistics.TpsBenchmar
 // TpsBenchmark returns the tps benchmark handler
 func (ef *ElrondNodeFacade) TpsBenchmark() *statistics.TpsBenchmark {
 	return ef.tpsBenchmark
+}
+
+// SetConfig sets the configuration options for the facade
+func (ef *ElrondNodeFacade) SetConfig(facadeConfig *config.FacadeConfig) {
+	ef.config = facadeConfig
 }
 
 // StartNode starts the underlying node
@@ -85,13 +99,41 @@ func (ef *ElrondNodeFacade) IsNodeRunning() bool {
 	return ef.node.IsRunning()
 }
 
+// RestApiPort returns the port on which the api should start on, based on the config file provided.
+// The API will start on the DefaultRestPort value unless a correct value is passed or
+//  the value is explicitly set to off, in which case it will not start at all
+func (ef *ElrondNodeFacade) RestApiPort() string {
+	if ef.config == nil {
+		return DefaultRestPort
+	}
+	if ef.config.RestApiPort == "" {
+		return DefaultRestPort
+	}
+	if ef.config.RestApiPort == DefaultRestPortOff {
+		return DefaultRestPortOff
+	}
+
+	_, err := strconv.ParseInt(ef.config.RestApiPort, 10, 32)
+	if err != nil {
+		return DefaultRestPort
+	}
+
+	return ef.config.RestApiPort
+}
+
 func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	ef.log.Info("Starting web server...")
-	err := api.Start(ef)
-	if err != nil {
-		ef.log.Error("Could not start webserver", err.Error())
+	switch ef.RestApiPort() {
+	case DefaultRestPortOff:
+		ef.log.Info(fmt.Sprintf("Web server is off") )
+		break
+	default:
+		ef.log.Info("Starting web server...")
+		err := api.Start(ef)
+		if err != nil {
+			ef.log.Error("Could not start webserver", err.Error())
+		}
 	}
 }
 
@@ -113,11 +155,13 @@ func (ef *ElrondNodeFacade) SendTransaction(
 	senderHex string,
 	receiverHex string,
 	value *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
 	transactionData string,
 	signature []byte,
 ) (string, error) {
 
-	return ef.node.SendTransaction(nonce, senderHex, receiverHex, value, transactionData, signature)
+	return ef.node.SendTransaction(nonce, senderHex, receiverHex, value, gasPrice, gasLimit, transactionData, signature)
 }
 
 // GetTransaction gets the transaction with a specified hash
@@ -168,12 +212,7 @@ func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	return hbStatus, nil
 }
 
-// RecentNotarizedBlocks computes last notarized [maxShardHeadersNum] shard headers (by metachain node)
-func (ef *ElrondNodeFacade) RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error) {
-	return ef.resolver.RecentNotarizedBlocks(maxShardHeadersNum)
-}
-
-// RetrieveShardBlock retrieves a shard block info containing header and transactions
-func (ef *ElrondNodeFacade) RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error) {
-	return ef.resolver.RetrieveShardBlock(blockHash)
+// GetDataValue retrieves data from existing SC trie
+func (ef *ElrondNodeFacade) GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
+	return ef.apiResolver.GetDataValue(address, funcName, argsBuff...)
 }

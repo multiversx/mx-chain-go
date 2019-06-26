@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -15,11 +16,11 @@ import (
 )
 
 func createElrondNodeFacadeWithMockNodeAndResolver() *ElrondNodeFacade {
-	return NewElrondNodeFacade(&mock.NodeMock{}, &mock.ExternalResolverStub{})
+	return NewElrondNodeFacade(&mock.NodeMock{}, &mock.ApiResolverStub{})
 }
 
 func createElrondNodeFacadeWithMockResolver(node *mock.NodeMock) *ElrondNodeFacade {
-	return NewElrondNodeFacade(node, &mock.ExternalResolverStub{})
+	return NewElrondNodeFacade(node, &mock.ApiResolverStub{})
 }
 
 func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
@@ -28,11 +29,11 @@ func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
 }
 
 func TestNewElrondFacade_FromNilNodeShouldReturnNil(t *testing.T) {
-	ef := NewElrondNodeFacade(nil, &mock.ExternalResolverStub{})
+	ef := NewElrondNodeFacade(nil, &mock.ApiResolverStub{})
 	assert.Nil(t, ef)
 }
 
-func TestNewElrondFacade_FromNilExternalResolverShouldReturnNil(t *testing.T) {
+func TestNewElrondFacade_FromNilApiResolverShouldReturnNil(t *testing.T) {
 	ef := NewElrondNodeFacade(&mock.NodeMock{}, nil)
 	assert.Nil(t, ef)
 }
@@ -398,7 +399,7 @@ func TestElrondNodeFacade_SendTransaction(t *testing.T) {
 		return "", nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
-	ef.SendTransaction(1, "test", "test", big.NewInt(0), "code", []byte{})
+	ef.SendTransaction(1, "test", "test", big.NewInt(0), 0, 0, "code", []byte{})
 	assert.Equal(t, called, 1)
 }
 
@@ -410,7 +411,7 @@ func TestElrondNodeFacade_GetAccount(t *testing.T) {
 		return nil, nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
-	ef.GetAccount("test")
+	_, _ = ef.GetAccount("test")
 	assert.Equal(t, called, 1)
 }
 
@@ -434,7 +435,7 @@ func TestElrondNodeFacade_GenerateAndSendBulkTransactions(t *testing.T) {
 		return nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
-	ef.GenerateAndSendBulkTransactions("", big.NewInt(0), 0)
+	_ = ef.GenerateAndSendBulkTransactions("", big.NewInt(0), 0)
 	assert.Equal(t, called, 1)
 }
 
@@ -446,7 +447,7 @@ func TestElrondNodeFacade_GenerateAndSendBulkTransactionsOneByOne(t *testing.T) 
 		return nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
-	ef.GenerateAndSendBulkTransactionsOneByOne("", big.NewInt(0), 0)
+	_ = ef.GenerateAndSendBulkTransactionsOneByOne("", big.NewInt(0), 0)
 	assert.Equal(t, called, 1)
 }
 
@@ -501,4 +502,57 @@ func TestElrondNodeFacade_GetHeartbeats(t *testing.T) {
 
 	assert.Nil(t, err)
 	fmt.Println(result)
+}
+
+func TestElrondNodeFacade_GetDataValue(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	ef := NewElrondNodeFacade(
+		&mock.NodeMock{},
+		&mock.ApiResolverStub{
+			GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
+				wasCalled = true
+				return make([]byte, 0), nil
+			},
+		},
+	)
+
+	_, _ = ef.GetDataValue("", "")
+	assert.True(t, wasCalled)
+}
+
+func TestElrondNodeFacade_RestApiPortNilConfig(t *testing.T) {
+	ef := createElrondNodeFacadeWithMockNodeAndResolver()
+	ef.SetConfig(nil)
+
+	assert.Equal(t, DefaultRestPort, ef.RestApiPort())
+}
+
+func TestElrondNodeFacade_RestApiPortEmptyPortSpecified(t *testing.T) {
+	ef := createElrondNodeFacadeWithMockNodeAndResolver()
+	ef.SetConfig(&config.FacadeConfig{
+		RestApiPort: "",
+	})
+
+	assert.Equal(t, DefaultRestPort, ef.RestApiPort())
+}
+
+func TestElrondNodeFacade_RestApiPortInvalidPortSpecified(t *testing.T) {
+	ef := createElrondNodeFacadeWithMockNodeAndResolver()
+	ef.SetConfig(&config.FacadeConfig{
+		RestApiPort: "abc123",
+	})
+
+	assert.Equal(t, DefaultRestPort, ef.RestApiPort())
+}
+
+func TestElrondNodeFacade_RestApiPortCorrectPortSpecified(t *testing.T) {
+	ef := createElrondNodeFacadeWithMockNodeAndResolver()
+	port := "1111"
+	ef.SetConfig(&config.FacadeConfig{
+		RestApiPort: port,
+	})
+
+	assert.Equal(t, port, ef.RestApiPort())
 }

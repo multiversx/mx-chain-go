@@ -452,7 +452,9 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 
 // SendToConnectedPeer sends a direct message to a connected peer
 func (netMes *networkMessenger) SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {
-	return netMes.ds.Send(topic, buff, peerID)
+	netMes.ds.SendAsync(topic, buff, peerID)
+
+	return nil
 }
 
 func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) error {

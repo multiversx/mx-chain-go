@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 )
 
@@ -23,19 +22,10 @@ type Facade struct {
 	GetAccountHandler                              func(address string) (*state.Account, error)
 	GenerateTransactionHandler                     func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
-	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, value *big.Int, code string, signature []byte) (string, error)
+	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, value *big.Int, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
-	RecentNotarizedBlocksHandler                   func(maxShardHeadersNum int) ([]*external.BlockHeader, error)
-	RetrieveShardBlockHandler                      func(blockHash []byte) (*external.ShardBlockInfo, error)
-}
-
-func (f *Facade) RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error) {
-	return f.RecentNotarizedBlocksHandler(maxShardHeadersNum)
-}
-
-func (f *Facade) RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error) {
-	return f.RetrieveShardBlockHandler(blockHash)
+	GetDataValueHandler                            func(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
 }
 
 // IsNodeRunning is the mock implementation of a handler's IsNodeRunning method
@@ -99,8 +89,8 @@ func (f *Facade) GetTransaction(hash string) (*transaction.Transaction, error) {
 }
 
 // SendTransaction is the mock implementation of a handler's SendTransaction method
-func (f *Facade) SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, code string, signature []byte) (string, error) {
-	return f.SendTransactionHandler(nonce, sender, receiver, value, code, signature)
+func (f *Facade) SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error) {
+	return f.SendTransactionHandler(nonce, sender, receiver, value, gasPrice, gasLimit, code, signature)
 }
 
 // GenerateAndSendBulkTransactions is the mock implementation of a handler's GenerateAndSendBulkTransactions method
@@ -111,6 +101,10 @@ func (f *Facade) GenerateAndSendBulkTransactions(destination string, value *big.
 // GenerateAndSendBulkTransactionsOneByOne is the mock implementation of a handler's GenerateAndSendBulkTransactionsOneByOne method
 func (f *Facade) GenerateAndSendBulkTransactionsOneByOne(destination string, value *big.Int, nrTransactions uint64) error {
 	return f.GenerateAndSendBulkTransactionsOneByOneHandler(destination, value, nrTransactions)
+}
+
+func (f *Facade) GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
+	return f.GetDataValueHandler(address, funcName, argsBuff...)
 }
 
 // WrongFacade is a struct that can be used as a wrong implementation of the node router handler
