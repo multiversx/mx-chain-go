@@ -14,6 +14,7 @@ type txTypeHandler struct {
 	accounts         state.AccountsAdapter
 }
 
+// NewTxTypeHandler creates a transaction type handler
 func NewTxTypeHandler(
 	adrConv state.AddressConverter,
 	shardCoordinator sharding.Coordinator,
@@ -38,6 +39,7 @@ func NewTxTypeHandler(
 	return tc, nil
 }
 
+// ComputeTransactionType calculates the transaction type
 func (tc *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, error) {
 	err := tc.checkTxValidity(tx)
 	if err != nil {

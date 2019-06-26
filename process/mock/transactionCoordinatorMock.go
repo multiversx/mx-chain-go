@@ -22,6 +22,7 @@ type TransactionCoordinatorMock struct {
 	CreateMbsAndProcessTransactionsFromMeCalled          func(maxTxRemaining uint32, round uint32, haveTime func() bool) block.MiniBlockSlice
 	CreateMarshalizedDataCalled                          func(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte)
 	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
+	GetPreprocessorCalled                                func(blockType block.Type) process.PreProcessor
 }
 
 func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, error) {
@@ -126,4 +127,12 @@ func (tcm *TransactionCoordinatorMock) GetAllCurrentUsedTxs(blockType block.Type
 	}
 
 	return tcm.GetAllCurrentUsedTxsCalled(blockType)
+}
+
+func (tcm *TransactionCoordinatorMock) GetPreprocessor(blockType block.Type) process.PreProcessor {
+	if tcm.GetPreprocessorCalled == nil {
+		return nil
+	}
+
+	return tcm.GetPreprocessorCalled(blockType)
 }

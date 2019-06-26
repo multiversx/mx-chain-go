@@ -25,7 +25,6 @@ const maxTransactionsInBlock = 15000
 type shardProcessor struct {
 	*baseProcessor
 	dataPool          dataRetriever.PoolsHolder
-	txProcessor       process.TransactionProcessor
 	blocksTracker     process.BlocksTracker
 	metaBlockFinality int
 

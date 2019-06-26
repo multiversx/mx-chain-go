@@ -192,7 +192,8 @@ func createNetNode(
 	crypto.PrivateKey,
 	dataRetriever.ResolversFinder,
 	process.BlockProcessor,
-	data.ChainHandler) {
+	data.ChainHandler,
+	process.PreProcessor) {
 
 	messenger := createMessengerWithKadDht(context.Background(), initialAddr)
 	suite := kyber.NewBlakeSHA256Ed25519()
@@ -324,7 +325,7 @@ func createNetNode(
 		fmt.Println(err.Error())
 	}
 
-	return n, messenger, sk, resolversFinder, blockProcessor, blkc
+	return n, messenger, sk, resolversFinder, blockProcessor, blkc, txCoordinator.GetPreprocessor(dataBlock.TxBlock)
 }
 
 func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
@@ -404,6 +405,8 @@ func createNodes(
 	numMetaChainNodes := 1
 	nodes := make([]*testNode, int(numOfShards)*nodesPerShard+numMetaChainNodes)
 
+	txPres := make([]process.PreProcessor, 0)
+
 	idx := 0
 	for shardId := 0; shardId < numOfShards; shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
@@ -414,7 +417,7 @@ func createNodes(
 
 			shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
 			accntAdapter := createAccountsDB()
-			n, mes, sk, resFinder, blkProcessor, blkc := createNetNode(
+			n, mes, sk, resFinder, blkProcessor, blkc, txPre := createNetNode(
 				testNode.dPool,
 				accntAdapter,
 				shardCoordinator,
@@ -422,6 +425,8 @@ func createNodes(
 				serviceID,
 			)
 			_ = n.CreateShardedStores()
+
+			txPres = append(txPres, txPre)
 
 			testNode.node = n
 			testNode.sk = sk
@@ -464,6 +469,12 @@ func createNodes(
 
 			nodes[idx] = testNode
 			idx++
+		}
+	}
+
+	for i := 0; i < len(txPres)-1; i++ {
+		if txPres[i] == txPres[i+1] {
+			fmt.Println("this is bad")
 		}
 	}
 

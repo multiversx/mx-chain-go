@@ -33,6 +33,7 @@ type transactionCoordinator struct {
 
 var log = logger.DefaultLogger()
 
+// NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
 func NewTransactionCoordinator(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
@@ -90,6 +91,7 @@ func NewTransactionCoordinator(
 	return tc, nil
 }
 
+// separateBodyByType creates a map of bodies according to type
 func (tc *transactionCoordinator) separateBodyByType(body block.Body) map[block.Type]block.Body {
 	separatedBodies := make(map[block.Type]block.Body)
 
@@ -106,21 +108,27 @@ func (tc *transactionCoordinator) separateBodyByType(body block.Body) map[block.
 	return separatedBodies
 }
 
+// initRequestedTxs init the requested txs number
 func (tc *transactionCoordinator) initRequestedTxs() {
 	tc.mutRequestedTxs.Lock()
 	tc.requestedTxs = make(map[block.Type]int)
 	tc.mutRequestedTxs.Unlock()
 }
 
+// RequestBlockTransactions verifies missing transaction and requests them
 func (tc *transactionCoordinator) RequestBlockTransactions(body block.Body) {
 	separatedBodies := tc.separateBodyByType(body)
 
 	tc.initRequestedTxs()
 
+	wg := sync.WaitGroup{}
+	wg.Add(len(separatedBodies))
+
 	for key, value := range separatedBodies {
 		go func() {
 			preproc := tc.getPreprocessor(key)
 			if preproc == nil {
+				wg.Done()
 				return
 			}
 			requestedTxs := preproc.RequestBlockTransactions(value)
@@ -128,10 +136,15 @@ func (tc *transactionCoordinator) RequestBlockTransactions(body block.Body) {
 			tc.mutRequestedTxs.Lock()
 			tc.requestedTxs[key] = requestedTxs
 			tc.mutRequestedTxs.Unlock()
+
+			wg.Done()
 		}()
 	}
+
+	wg.Wait()
 }
 
+// IsDataPreparedForProcessing verifies if all the needed data is prepared
 func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() time.Duration) error {
 	var errFound error
 	errMutex := sync.Mutex{}
@@ -145,6 +158,8 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 		go func() {
 			preproc := tc.getPreprocessor(key)
 			if preproc == nil {
+				wg.Done()
+
 				return
 			}
 
@@ -166,6 +181,7 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 	return errFound
 }
 
+// SaveBlockDataToStorage saves the data from block body into storage units
 func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error {
 	separatedBodies := tc.separateBodyByType(body)
 
@@ -179,6 +195,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 		go func() {
 			preproc := tc.getPreprocessor(key)
 			if preproc == nil {
+				wg.Done()
 				return
 			}
 
@@ -199,6 +216,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 	return errFound
 }
 
+// RestoreBlockDataFromStorage restores block data from storage to pool
 func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (int, map[int][][]byte, error) {
 	separatedBodies := tc.separateBodyByType(body)
 
@@ -216,6 +234,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 
 			preproc := tc.getPreprocessor(key)
 			if preproc == nil {
+				wg.Done()
 				return
 			}
 
@@ -246,6 +265,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 	return totalRestoredTx, restoredMbHashes, errFound
 }
 
+// RemoveBlockDataFromPool deletes block data from pools
 func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error {
 	separatedBodies := tc.separateBodyByType(body)
 
@@ -259,6 +279,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 		go func() {
 			preproc := tc.getPreprocessor(key)
 			if preproc == nil {
+				wg.Done()
 				return
 			}
 
@@ -279,6 +300,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 	return errFound
 }
 
+// ProcessBlockTransaction processes transactions and updates state tries
 func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round uint32, haveTime func() time.Duration) error {
 	separatedBodies := tc.separateBodyByType(body)
 
@@ -293,6 +315,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round
 		go func() {
 			preproc := tc.getPreprocessor(key)
 			if preproc == nil {
+				wg.Done()
 				return
 			}
 
@@ -313,6 +336,8 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round
 	return errFound
 }
 
+// CreateMbsAndProcessCrossShardTransactionsDstMe creates miniblocks and processes cross shard transaction
+// with destination of current shard
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	hdr data.HeaderHandler,
 	maxTxRemaining uint32,
@@ -376,6 +401,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	return miniBlocks, nrTxAdded, allMBsProcessed
 }
 
+// CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
 func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRemaining uint32, round uint32, haveTime func() bool) block.MiniBlockSlice {
 	txPreProc := tc.getPreprocessor(block.TxBlock)
 	if txPreProc == nil {
@@ -400,12 +426,25 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRem
 	return miniBlocks
 }
 
+// CreateBlockStarted initializes necessary data for preprocessors at block create or block process
 func (tc *transactionCoordinator) CreateBlockStarted() {
 	tc.mutPreprocessor.RLock()
 	for _, value := range tc.txPreprocessors {
 		value.CreateBlockStarted()
 	}
 	tc.mutPreprocessor.RUnlock()
+}
+
+func (tc *transactionCoordinator) GetPreprocessor(blockType block.Type) process.PreProcessor {
+	tc.mutPreprocessor.RLock()
+	preprocessor, exists := tc.txPreprocessors[blockType]
+	tc.mutPreprocessor.RUnlock()
+
+	if !exists {
+		return nil
+	}
+
+	return preprocessor
 }
 
 func (tc *transactionCoordinator) getPreprocessor(blockType block.Type) process.PreProcessor {
@@ -420,6 +459,7 @@ func (tc *transactionCoordinator) getPreprocessor(blockType block.Type) process.
 	return preprocessor
 }
 
+// CreateMarshalizedData creates marshalized data for broadcasting
 func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte) {
 	mrsTxs := make(map[uint32][][]byte)
 	bodies := make(map[uint32]block.MiniBlockSlice)
@@ -451,6 +491,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 	return bodies, mrsTxs
 }
 
+// GetAllCurrentUsedTxs returns the cached transaction data for current round
 func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler {
 	tc.mutPreprocessor.RLock()
 	defer tc.mutPreprocessor.RUnlock()
@@ -462,6 +503,7 @@ func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map
 	return tc.txPreprocessors[blockType].GetAllCurrentUsedTxs()
 }
 
+// RequestMiniBlocks request miniblocks if missing
 func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
 	for key, senderShardId := range crossMiniBlockHashes {

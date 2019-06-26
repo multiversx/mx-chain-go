@@ -71,14 +71,14 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilRequestHandler
 	}
 
-	bpp := &basePreProcess{
+	bpp := basePreProcess{
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
 	}
 
-	txs := &transactions{
-		basePreProcess:       bpp,
+	txs := transactions{
+		basePreProcess:       &bpp,
 		storage:              store,
 		txPool:               txDataPool,
 		onRequestTransaction: onRequestTransaction,
@@ -91,7 +91,7 @@ func NewTransactionPreprocessor(
 
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 
-	return txs, nil
+	return &txs, nil
 }
 
 // waitForTxHashes waits for a call whether all the requested transactions appeared
