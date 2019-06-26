@@ -281,7 +281,6 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 
 func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round uint32, haveTime func() time.Duration) error {
 	separatedBodies := tc.separateBodyByType(body)
-	tc.CreateBlockStarted()
 
 	var errFound error
 	errMutex := sync.Mutex{}

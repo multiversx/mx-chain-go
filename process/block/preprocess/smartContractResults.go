@@ -250,8 +250,6 @@ func (scr *smartContractResults) CreateBlockStarted() {
 
 // RequestBlockSmartContractResults request for smartContractResults if missing from a block.Body
 func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
-	scr.CreateBlockStarted()
-
 	requestedScrs := 0
 	missingScrsForShards := scr.computeMissingAndExistingScrsForShards(body)
 
