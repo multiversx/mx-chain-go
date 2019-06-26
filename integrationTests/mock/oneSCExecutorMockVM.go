@@ -142,8 +142,10 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCall(input *vmcommon.ContractCall
 	}
 
 	value := big.NewInt(0)
-	if input.Arguments[0] != nil {
-		value = input.Arguments[0]
+	if len(input.Arguments) > 0 {
+		if input.Arguments[0] != nil {
+			value = input.Arguments[0]
+		}
 	}
 
 	method := strings.ToLower(input.Function)

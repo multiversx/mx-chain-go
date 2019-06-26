@@ -16,11 +16,11 @@ import (
 )
 
 func createElrondNodeFacadeWithMockNodeAndResolver() *ElrondNodeFacade {
-	return NewElrondNodeFacade(&mock.NodeMock{}, &mock.ExternalResolverStub{})
+	return NewElrondNodeFacade(&mock.NodeMock{}, &mock.ApiResolverStub{})
 }
 
 func createElrondNodeFacadeWithMockResolver(node *mock.NodeMock) *ElrondNodeFacade {
-	return NewElrondNodeFacade(node, &mock.ExternalResolverStub{})
+	return NewElrondNodeFacade(node, &mock.ApiResolverStub{})
 }
 
 func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
@@ -29,11 +29,11 @@ func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
 }
 
 func TestNewElrondFacade_FromNilNodeShouldReturnNil(t *testing.T) {
-	ef := NewElrondNodeFacade(nil, &mock.ExternalResolverStub{})
+	ef := NewElrondNodeFacade(nil, &mock.ApiResolverStub{})
 	assert.Nil(t, ef)
 }
 
-func TestNewElrondFacade_FromNilExternalResolverShouldReturnNil(t *testing.T) {
+func TestNewElrondFacade_FromNilApiResolverShouldReturnNil(t *testing.T) {
 	ef := NewElrondNodeFacade(&mock.NodeMock{}, nil)
 	assert.Nil(t, ef)
 }
@@ -411,7 +411,7 @@ func TestElrondNodeFacade_GetAccount(t *testing.T) {
 		return nil, nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
-	ef.GetAccount("test")
+	_, _ = ef.GetAccount("test")
 	assert.Equal(t, called, 1)
 }
 
@@ -435,7 +435,7 @@ func TestElrondNodeFacade_GenerateAndSendBulkTransactions(t *testing.T) {
 		return nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
-	ef.GenerateAndSendBulkTransactions("", big.NewInt(0), 0)
+	_ = ef.GenerateAndSendBulkTransactions("", big.NewInt(0), 0)
 	assert.Equal(t, called, 1)
 }
 
@@ -447,7 +447,7 @@ func TestElrondNodeFacade_GenerateAndSendBulkTransactionsOneByOne(t *testing.T) 
 		return nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
-	ef.GenerateAndSendBulkTransactionsOneByOne("", big.NewInt(0), 0)
+	_ = ef.GenerateAndSendBulkTransactionsOneByOne("", big.NewInt(0), 0)
 	assert.Equal(t, called, 1)
 }
 
@@ -502,6 +502,24 @@ func TestElrondNodeFacade_GetHeartbeats(t *testing.T) {
 
 	assert.Nil(t, err)
 	fmt.Println(result)
+}
+
+func TestElrondNodeFacade_GetDataValue(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	ef := NewElrondNodeFacade(
+		&mock.NodeMock{},
+		&mock.ApiResolverStub{
+			GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
+				wasCalled = true
+				return make([]byte, 0), nil
+			},
+		},
+	)
+
+	_, _ = ef.GetDataValue("", "")
+	assert.True(t, wasCalled)
 }
 
 func TestElrondNodeFacade_RestApiPortNilConfig(t *testing.T) {

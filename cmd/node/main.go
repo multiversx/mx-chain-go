@@ -29,6 +29,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/google/gops/agent"
 	"github.com/pkg/profile"
@@ -171,15 +173,6 @@ VERSION:
 
 	rm *statistics.ResourceMonitor
 )
-
-// TODO - remove this mock and replace with a valid implementation
-type mockProposerResolver struct {
-}
-
-// ResolveProposer computes a block proposer. For now, this is mocked.
-func (mockProposerResolver) ResolveProposer(shardId uint32, roundIndex uint32, prevRandomSeed []byte) ([]byte, error) {
-	return []byte("mocked proposer"), nil
-}
 
 // dbIndexer will hold the database indexer. Defined globally so it can be initialised only in
 //  certain conditions. If those conditions will not be met, it will stay as nil
@@ -445,19 +438,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	externalResolver, err := external.NewExternalResolver(
-		shardCoordinator,
-		dataComponents.Blkc,
-		dataComponents.Store,
-		coreComponents.Marshalizer,
-		&mockProposerResolver{},
-	)
+	apiResolver, err := createApiResolver()
 	if err != nil {
 		return err
 	}
 
-	ef := facade.NewElrondNodeFacade(currentNode, externalResolver)
-
+	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
 	efConfig := &config.FacadeConfig{
 		RestApiPort: ctx.GlobalString(restApiPort.Name),
 	}
@@ -761,4 +747,16 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	}()
 
 	return nil
+}
+
+func createApiResolver() (facade.ApiResolver, error) {
+	//TODO replace this with a vm factory
+	vm := &mock.VMExecutionHandlerStub{}
+
+	scDataGetter, err := smartContract.NewSCDataGetter(vm)
+	if err != nil {
+		return nil, err
+	}
+
+	return external.NewNodeApiResolver(scDataGetter)
 }
