@@ -1,12 +1,119 @@
 package coordinator
 
 import (
+	"bytes"
+	"reflect"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
+
+func initDataPool(testHash []byte) *mock.PoolsHolderStub {
+	sdp := &mock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &mock.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if reflect.DeepEqual(key, testHash) {
+								return &transaction.Transaction{Nonce: 10}, true
+							}
+							return nil, false
+						},
+						KeysCalled: func() [][]byte {
+							return [][]byte{[]byte("key1"), []byte("key2"), testHash}
+						},
+						LenCalled: func() int {
+							return 0
+						},
+					}
+				},
+				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+				},
+			}
+		},
+		HeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
+			return &mock.Uint64CacherStub{
+				PutCalled: func(u uint64, i interface{}) bool {
+					return true
+				},
+			}
+		},
+		MetaBlocksCalled: func() storage.Cacher {
+			return &mock.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+				KeysCalled: func() [][]byte {
+					return nil
+				},
+				LenCalled: func() int {
+					return 0
+				},
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+			}
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			cs := &mock.CacherStub{}
+			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			}
+			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal([]byte("bbb"), key) {
+					return make(block.MiniBlockSlice, 0), true
+				}
+
+				return nil, false
+			}
+			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal([]byte("bbb"), key) {
+					return make(block.MiniBlockSlice, 0), true
+				}
+
+				return nil, false
+			}
+			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
+			cs.RemoveCalled = func(key []byte) {}
+			return cs
+		},
+		HeadersCalled: func() storage.Cacher {
+			cs := &mock.CacherStub{}
+			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			}
+			return cs
+		},
+		MetaHeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
+			cs := &mock.Uint64CacherStub{}
+			cs.HasCalled = func(u uint64) bool {
+				return true
+			}
+			return cs
+		},
+	}
+	return sdp
+}
 
 func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
 	t.Parallel()
@@ -308,6 +415,214 @@ func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
 	mrBody, mrTxs := tc.CreateMarshalizedData(createTestBody())
 	assert.Equal(t, 0, len(mrTxs))
 	assert.Equal(t, 1, len(mrBody))
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNilHeader(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	maxTxRemaining := uint32(15000)
+	haveTime := func() bool {
+		return true
+	}
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, maxTxRemaining, 10, haveTime)
+
+	assert.Equal(t, 0, len(mbs))
+	assert.Equal(t, uint32(0), txs)
+	assert.True(t, finalized)
+}
+
+func createTestMetablock() *block.MetaBlock {
+	meta := &block.MetaBlock{}
+
+	meta.ShardInfo = make([]block.ShardData, 0)
+
+	shardMbs := make([]block.ShardMiniBlockHeader, 0)
+	shardMbs = append(shardMbs, block.ShardMiniBlockHeader{Hash: []byte("mb0"), SenderShardId: 0, ReceiverShardId: 0, TxCount: 1})
+	shardMbs = append(shardMbs, block.ShardMiniBlockHeader{Hash: []byte("mb1"), SenderShardId: 0, ReceiverShardId: 1, TxCount: 1})
+	shardData := block.ShardData{ShardId: 0, HeaderHash: []byte("header0"), TxCount: 2, ShardMiniBlockHeaders: shardMbs}
+
+	meta.ShardInfo = append(meta.ShardInfo, shardData)
+
+	shardMbs = make([]block.ShardMiniBlockHeader, 0)
+	shardMbs = append(shardMbs, block.ShardMiniBlockHeader{Hash: []byte("mb2"), SenderShardId: 1, ReceiverShardId: 0, TxCount: 1})
+	shardMbs = append(shardMbs, block.ShardMiniBlockHeader{Hash: []byte("mb3"), SenderShardId: 1, ReceiverShardId: 1, TxCount: 1})
+	shardData = block.ShardData{ShardId: 1, HeaderHash: []byte("header0"), TxCount: 2, ShardMiniBlockHeaders: shardMbs}
+
+	meta.ShardInfo = append(meta.ShardInfo, shardData)
+
+	return meta
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNoTime(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	maxTxRemaining := uint32(15000)
+	haveTime := func() bool {
+		return false
+	}
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), maxTxRemaining, 10, haveTime)
+
+	assert.Equal(t, 0, len(mbs))
+	assert.Equal(t, uint32(0), txs)
+	assert.False(t, finalized)
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothingInPool(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	maxTxRemaining := uint32(15000)
+	haveTime := func() bool {
+		return true
+	}
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), maxTxRemaining, 10, haveTime)
+
+	assert.Equal(t, 0, len(mbs))
+	assert.Equal(t, uint32(0), txs)
+	assert.False(t, finalized)
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToProcess(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	maxTxRemaining := uint32(15000)
+	haveTime := func() bool {
+		return true
+	}
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, 10, haveTime)
+
+	assert.Equal(t, 0, len(mbs))
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *testing.T) {
+	t.Parallel()
+	tdp := initDataPool([]byte("tx_hash1"))
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		tdp,
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	maxTxRemaining := uint32(15000)
+	haveTime := func() bool {
+		return false
+	}
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, 10, haveTime)
+
+	assert.Equal(t, 0, len(mbs))
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *testing.T) {
+	t.Parallel()
+	tdp := initDataPool([]byte("tx_hash1"))
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		tdp,
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	maxTxRemaining := uint32(0)
+	haveTime := func() bool {
+		return true
+	}
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, 10, haveTime)
+
+	assert.Equal(t, 0, len(mbs))
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing.T) {
+	t.Parallel()
+	tdp := initDataPool([]byte("tx_hash1"))
+	nrShards := uint32(5)
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(nrShards),
+		&mock.AccountsStub{},
+		tdp,
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+				return nil
+			},
+		},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	maxTxRemaining := uint32(15000)
+	haveTime := func() bool {
+		return true
+	}
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, 10, haveTime)
+
+	assert.Equal(t, int(nrShards), len(mbs))
 }
 
 /*

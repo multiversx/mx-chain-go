@@ -348,6 +348,10 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	nrTxAdded := uint32(0)
 	nrMBprocessed := 0
 
+	if hdr == nil || hdr.IsInterfaceNil() {
+		return miniBlocks, nrTxAdded, true
+	}
+
 	crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
 	for key, senderShardId := range crossMiniBlockHashes {
 		if !haveTime() {
@@ -412,6 +416,10 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRem
 	addedTxs := 0
 	for i := 0; i < int(tc.shardCoordinator.NumberOfShards()); i++ {
 		remainingSpace := int(maxTxRemaining) - addedTxs
+		if remainingSpace <= 0 {
+			return miniBlocks
+		}
+
 		miniBlock, err := txPreProc.CreateAndProcessMiniBlock(tc.shardCoordinator.SelfId(), uint32(i), remainingSpace, haveTime, round)
 		if err != nil {
 			return miniBlocks
