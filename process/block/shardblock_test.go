@@ -795,14 +795,17 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		return err
 	}
 
+	accounts := &mock.AccountsStub{
+		JournalLenCalled:       journalLen,
+		RevertToSnapshotCalled: revertToSnapshot,
+		RootHashCalled:         rootHashCalled,
+	}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	tpm := &mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
+	store := &mock.ChainStorerMock{}
 	tc, _ := coordinator.NewTransactionCoordinator(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{
-			JournalLenCalled:       journalLen,
-			RevertToSnapshotCalled: revertToSnapshot,
-			RootHashCalled:         rootHashCalled,
-		},
+		shardCoordinator,
+		accounts,
 		tdp,
 		&mock.RequestHandlerMock{},
 		hasher,
@@ -814,15 +817,11 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
 		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
+		store,
+		hasher,
 		&mock.MarshalizerMock{},
-		&mock.AccountsStub{
-			JournalLenCalled:       journalLen,
-			RevertToSnapshotCalled: revertToSnapshot,
-			RootHashCalled:         rootHashCalled,
-		},
-		mock.NewMultiShardsCoordinatorMock(3),
+		accounts,
+		shardCoordinator,
 		&mock.ForkDetectorMock{
 			ProbableHighestNonceCalled: func() uint64 {
 				return 0
