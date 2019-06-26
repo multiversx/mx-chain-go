@@ -435,18 +435,6 @@ func (tc *transactionCoordinator) CreateBlockStarted() {
 	tc.mutPreprocessor.RUnlock()
 }
 
-func (tc *transactionCoordinator) GetPreprocessor(blockType block.Type) process.PreProcessor {
-	tc.mutPreprocessor.RLock()
-	preprocessor, exists := tc.txPreprocessors[blockType]
-	tc.mutPreprocessor.RUnlock()
-
-	if !exists {
-		return nil
-	}
-
-	return preprocessor
-}
-
 func (tc *transactionCoordinator) getPreprocessor(blockType block.Type) process.PreProcessor {
 	tc.mutPreprocessor.RLock()
 	preprocessor, exists := tc.txPreprocessors[blockType]
