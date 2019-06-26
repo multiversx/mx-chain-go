@@ -73,7 +73,16 @@ func NewTransactionCoordinator(
 
 	// TODO: make a factory and send this on constructor
 	var err error
-	tc.txPreprocessors[block.TxBlock], err = preprocess.NewTransactionPreprocessor(dataPool.Transactions(), store, hasher, marshalizer, txProcessor, shardCoordinator, accounts, requestHandler.RequestTransaction)
+	tc.txPreprocessors[block.TxBlock], err = preprocess.NewTransactionPreprocessor(
+		dataPool.Transactions(),
+		store,
+		hasher,
+		marshalizer,
+		txProcessor,
+		shardCoordinator,
+		accounts,
+		requestHandler.RequestTransaction,
+	)
 	if err != nil {
 		return nil, err
 	}
