@@ -46,6 +46,7 @@ func NewShardBootstrap(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
+	boostrapRoundIndex uint32,
 ) (*ShardBootstrap, error) {
 
 	if poolsHolder == nil {
@@ -78,18 +79,19 @@ func NewShardBootstrap(
 	}
 
 	base := &baseBootstrap{
-		blkc:             blkc,
-		blkExecutor:      blkExecutor,
-		store:            store,
-		headers:          poolsHolder.Headers(),
-		headersNonces:    poolsHolder.HeadersNonces(),
-		rounder:          rounder,
-		waitTime:         waitTime,
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		forkDetector:     forkDetector,
-		shardCoordinator: shardCoordinator,
-		accounts:         accounts,
+		blkc:               blkc,
+		blkExecutor:        blkExecutor,
+		store:              store,
+		headers:            poolsHolder.Headers(),
+		headersNonces:      poolsHolder.HeadersNonces(),
+		rounder:            rounder,
+		waitTime:           waitTime,
+		hasher:             hasher,
+		marshalizer:        marshalizer,
+		forkDetector:       forkDetector,
+		shardCoordinator:   shardCoordinator,
+		accounts:           accounts,
+		boostrapRoundIndex: boostrapRoundIndex,
 	}
 
 	boot := ShardBootstrap{
@@ -145,7 +147,8 @@ func (boot *ShardBootstrap) syncFromStorer(
 		blockUnit,
 		hdrNonceHashDataUnit,
 		boot.getHeaderFromStorage,
-		boot.getBlockBody)
+		boot.getBlockBody,
+		boot.removeBlockBody)
 	if err != nil {
 		return err
 	}
@@ -160,7 +163,76 @@ func (boot *ShardBootstrap) syncFromStorer(
 	return nil
 }
 
-func (boot *ShardBootstrap) applyNotarizedBlock(nonce uint64, notarizedHdrNonceHashDataUnit dataRetriever.UnitType) error {
+func (boot *ShardBootstrap) removeBlockBody(
+	nonce uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
+
+	blockBodyStore := boot.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if blockBodyStore == nil {
+		return process.ErrNilBlockBodyStorage
+	}
+
+	txStore := boot.store.GetStorer(dataRetriever.TransactionUnit)
+	if txStore == nil {
+		return process.ErrNilTxStorage
+	}
+
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
+	if err != nil {
+		return err
+	}
+
+	hdrBuff, err := boot.store.Get(blockUnit, headerHash)
+	if err != nil {
+		return err
+	}
+
+	hdr := block.Header{}
+	err = boot.marshalizer.Unmarshal(&hdr, hdrBuff)
+	if err != nil {
+		return err
+	}
+
+	miniBlockHashes := make([][]byte, 0)
+	for i := 0; i < len(hdr.MiniBlockHeaders); i++ {
+		miniBlockHashes = append(miniBlockHashes, hdr.MiniBlockHeaders[i].Hash)
+	}
+
+	miniBlocks, err := boot.store.GetAll(dataRetriever.MiniBlockUnit, miniBlockHashes)
+	if err != nil {
+		return err
+	}
+
+	for miniBlockHash, miniBlockBuff := range miniBlocks {
+		miniBlock := block.MiniBlock{}
+		err = boot.marshalizer.Unmarshal(&miniBlock, miniBlockBuff)
+		if err != nil {
+			return err
+		}
+
+		for _, txHash := range miniBlock.TxHashes {
+			err = txStore.Remove(txHash)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = blockBodyStore.Remove([]byte(miniBlockHash))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (boot *ShardBootstrap) applyNotarizedBlock(
+	nonce uint64,
+	notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
 	headerHash, err := boot.store.Get(notarizedHdrNonceHashDataUnit, nonceToByteSlice)
 	if err != nil {
@@ -170,6 +242,12 @@ func (boot *ShardBootstrap) applyNotarizedBlock(nonce uint64, notarizedHdrNonceH
 	header, err := process.GetMetaHeaderFromStorage(headerHash, boot.marshalizer, boot.store)
 	if err != nil {
 		return err
+	}
+
+	log.Info(fmt.Sprintf("apply notarized block with nonce %d and round %d\n", header.Nonce, header.Round))
+
+	if header.GetRound() > boot.boostrapRoundIndex {
+		return ErrHigherBootstrapRound
 	}
 
 	boot.blkExecutor.SetLastNotarizedHdr(sharding.MetachainShardId, header)
@@ -419,7 +497,7 @@ func (boot *ShardBootstrap) requestHeader(nonce uint64) {
 // getHeaderWithNonce method gets the header with given nonce from pool, if it exist there,
 // and if not it will be requested from network
 func (boot *ShardBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Header, error) {
-	hdr, err := boot.getHeaderWithNonce(nonce)
+	hdr, err := boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
 		process.EmptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
@@ -428,7 +506,7 @@ func (boot *ShardBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.H
 			return nil, err
 		}
 
-		hdr, err = boot.getHeaderWithNonce(nonce)
+		hdr, err = boot.getHeaderFromPoolWithNonce(nonce)
 		if err != nil {
 			return nil, err
 		}
