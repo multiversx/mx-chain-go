@@ -25,10 +25,12 @@ type SmartContractResultProcessor interface {
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
 }
 
+// TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
 }
 
+// TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
 type TransactionCoordinator interface {
 	RequestMiniBlocks(header data.HeaderHandler)
 	RequestBlockTransactions(body block.Body)
@@ -63,6 +65,7 @@ type IntermediateTransactionHandler interface {
 	VerifyInterMiniBlocks(body block.Body) error
 }
 
+// Preprocessor is an interface used to prepare and process transaction data
 type PreProcessor interface {
 	CreateBlockStarted()
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error

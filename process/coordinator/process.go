@@ -390,7 +390,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		err := tc.createAndProcessMiniBlockComplete(preproc, miniBlock, round, haveTime)
+		err := tc.processMiniBlockComplete(preproc, miniBlock, round, haveTime)
 		if err != nil {
 			continue
 		}
@@ -536,7 +536,7 @@ func (tc *transactionCoordinator) receivedMiniBlock(miniBlockHash []byte) {
 }
 
 // processMiniBlockComplete - all transactions must be processed together, otherwise error
-func (tc *transactionCoordinator) createAndProcessMiniBlockComplete(
+func (tc *transactionCoordinator) processMiniBlockComplete(
 	preproc process.PreProcessor,
 	miniBlock *block.MiniBlock,
 	round uint32,

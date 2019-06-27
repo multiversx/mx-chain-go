@@ -43,7 +43,7 @@ func NewTxTypeHandler(
 func (tc *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, error) {
 	err := tc.checkTxValidity(tx)
 	if err != nil {
-		return 0, err
+		return process.InvalidTransaction, err
 	}
 
 	isEmptyAddress := tc.isDestAddressEmpty(tx)
@@ -51,12 +51,12 @@ func (tc *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pro
 		if len(tx.GetData()) > 0 {
 			return process.SCDeployment, nil
 		}
-		return 0, process.ErrWrongTransaction
+		return process.InvalidTransaction, process.ErrWrongTransaction
 	}
 
 	acntDst, err := tc.getAccountFromAddress(tx.GetRecvAddress())
 	if err != nil {
-		return 0, err
+		return process.InvalidTransaction, err
 	}
 
 	if acntDst == nil {

@@ -1134,9 +1134,6 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 	mutex.Unlock()
 }
 
-/*
-//------- processMiniBlockComplete
-
 func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNotRevertAccntState(t *testing.T) {
 	t.Parallel()
 
@@ -1184,12 +1181,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	tx2ExecutionResult := uint64(0)
 	tx3ExecutionResult := uint64(0)
 
-	bp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		dataPool,
-		initStore(),
-		hasher,
-		marshalizer,
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				assert.Fail(t, "revert should have not been called")
@@ -1199,19 +1192,36 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 				return 0
 			},
 		},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		true,
+		dataPool,
 		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
+				if bytes.Equal(transaction.Data, txHash1) {
+					tx1ExecutionResult = transaction.Nonce
+				}
+				if bytes.Equal(transaction.Data, txHash2) {
+					tx2ExecutionResult = transaction.Nonce
+				}
+				if bytes.Equal(transaction.Data, txHash3) {
+					tx3ExecutionResult = transaction.Nonce
+				}
 
-	err := bp.ProcessMiniBlockComplete(&miniBlock, 0, func() bool {
+				return nil
+			},
+		},
+		initStore(),
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	haveTime := func() bool {
 		return true
-	})
+	}
+	preproc := tc.getPreprocessor(block.TxBlock)
+	err = tc.processMiniBlockComplete(preproc, &miniBlock, 0, haveTime)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx1Nonce, tx1ExecutionResult)
@@ -1247,8 +1257,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	tx2Nonce := uint64(46)
 	tx3Nonce := uint64(47)
 
-	errTxProcessor := errors.New("tx processor failing")
-
 	//put the existing tx inside datapool
 	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
 	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
@@ -1267,21 +1275,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	currentJournalLen := 445
 	revertAccntStateCalled := false
 
-	bp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		dataPool,
-		initStore(),
-		hasher,
-		marshalizer,
-		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
-				if bytes.Equal(transaction.Data, txHash2) {
-					return errTxProcessor
-				}
-
-				return nil
-			},
-		},
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				if snapshot == currentJournalLen {
@@ -1294,17 +1289,29 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 				return currentJournalLen
 			},
 		},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		true,
+		dataPool,
 		&mock.RequestHandlerMock{},
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+				if bytes.Equal(transaction.Data, txHash2) {
+					return process.ErrHigherNonceInTransaction
+				}
+				return nil
+			},
+		},
+		initStore(),
 	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
 
-	err := bp.ProcessMiniBlockComplete(&miniBlock, 0, func() bool { return true })
+	haveTime := func() bool {
+		return true
+	}
+	preproc := tc.getPreprocessor(block.TxBlock)
+	err = tc.processMiniBlockComplete(preproc, &miniBlock, 0, haveTime)
 
-	assert.Equal(t, errTxProcessor, err)
+	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 	assert.True(t, revertAccntStateCalled)
 }
-*/
