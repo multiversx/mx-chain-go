@@ -262,6 +262,23 @@ func WithFileRotation(prefix string, subfolder string, fileExtension string) Opt
 	}
 }
 
+// WithStderrRedirect sets up the option to redirect stderr to file
+func WithStderrRedirect() Option {
+	return func(el *Logger) error {
+		file, err := newFile("fatalErrors", "logs", "log")
+		if err != nil {
+			return err
+		}
+
+		err = redirectStderr(file)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
 // WithStackTraceDepth sets up the stackTraceDepth option for the Logger
 func WithStackTraceDepth(depth int) Option {
 	return func(el *Logger) error {

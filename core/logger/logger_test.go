@@ -176,6 +176,12 @@ func TestWithFileRotation(t *testing.T) {
 	file := log.File()
 	assert.NotNil(t, file)
 }
+func TestWithStderrRedirect(t *testing.T) {
+	log := logger.DefaultLogger()
+
+	err := log.ApplyOptions(logger.WithStderrRedirect())
+	assert.Nil(t, err)
+}
 
 func swallowPanicLog(t *testing.T, logMsg string, panicMsg string, log *logger.Logger) {
 	defer func() {

@@ -682,7 +682,10 @@ func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, 
 	}
 
 	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
-	err = log.ApplyOptions(logger.WithFileRotation(hexPublicKey, defaultLogPath, "log"))
+	err = log.ApplyOptions(
+		logger.WithFileRotation(hexPublicKey, defaultLogPath, "log"),
+		logger.WithStderrRedirect(),
+	)
 	if err != nil {
 		return err
 	}
