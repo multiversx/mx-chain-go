@@ -270,28 +270,6 @@ func (txs *transactions) SaveTxBlockToStorage(body block.Body) error {
 	return nil
 }
 
-// getTransaction gets the transaction with a given sender and destination shard id and a hash, from pool or from storage
-func (txs *transactions) getTransaction(
-	senderShardID uint32,
-	destShardID uint32,
-	txHash []byte,
-) *transaction.Transaction {
-	tx := txs.getTransactionFromPool(senderShardID, destShardID, txHash)
-	if tx != nil {
-		txBuff, err := txs.storage.Get(dataRetriever.TransactionUnit, txHash)
-		if err != nil {
-			return nil
-		}
-
-		err = txs.marshalizer.Unmarshal(tx, txBuff)
-		if err != nil {
-			return nil
-		}
-	}
-
-	return tx
-}
-
 // getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
 func (txs *transactions) getTransactionFromPool(
 	senderShardID uint32,

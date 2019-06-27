@@ -106,7 +106,7 @@ func (boot *baseBootstrap) loadBlocks(
 	}
 
 	if currentNonce <= blockFinality {
-		return process.ErrBoostrapFromStorage
+		return process.ErrNotEnoughValidBlocksInStorage
 	}
 
 	boostrapRoundIndex, errNotCritical := boot.getBlockRoundFromNonce(currentNonce, getHeader)
@@ -260,7 +260,7 @@ func (boot *baseBootstrap) loadNotarizedBlocks(
 	}
 
 	if currentNonce <= blockFinality {
-		return process.ErrBoostrapFromStorage
+		return process.ErrNotEnoughValidBlocksInStorage
 	}
 
 	for i := currentNonce + 1; i <= highestNonceInStorer; i++ {
