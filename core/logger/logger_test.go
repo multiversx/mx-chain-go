@@ -167,6 +167,16 @@ func TestLazyFileWriter_WriteSomeLinesBeforeProvidingFile(t *testing.T) {
 	assert.Contains(t, str.String(), expectedString)
 }
 
+func TestWithFileRotation(t *testing.T) {
+	log := logger.DefaultLogger()
+
+	err := log.ApplyOptions(logger.WithFileRotation("", "logs", "log"))
+	assert.Nil(t, err)
+
+	file := log.File()
+	assert.NotNil(t, file)
+}
+
 func swallowPanicLog(t *testing.T, logMsg string, panicMsg string, log *logger.Logger) {
 	defer func() {
 		if r := recover(); r == nil {

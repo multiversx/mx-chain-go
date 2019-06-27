@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -24,12 +26,16 @@ const (
 const (
 	defaultStackTraceDepth = 2
 	maxHeadlineLength      = 100
+	fileLifetimeInSeconds  = 3600
+	nrOfFilesToRemember    = 24
 )
 
 // Logger represents the application logger.
 type Logger struct {
 	logger          *log.Logger
 	file            *LogFileWriter
+	logFiles        []*os.File
+	roll            bool
 	stackTraceDepth int
 }
 
@@ -44,7 +50,7 @@ func NewElrondLogger(opts ...Option) *Logger {
 	el := &Logger{
 		logger:          log.New(),
 		stackTraceDepth: defaultStackTraceDepth,
-		file:            &LogFileWriter{},
+		file:            &LogFileWriter{creationTime: time.Now()},
 	}
 
 	for _, opt := range opts {
@@ -134,6 +140,11 @@ func (el *Logger) SetOutput(out io.Writer) {
 // Debug is an alias for Logrus.Debug, adding some default useful fields.
 func (el *Logger) Debug(message string, extra ...interface{}) {
 	cl := el.defaultFields()
+
+	if el.roll {
+		el.rollFiles()
+	}
+
 	cl.WithFields(log.Fields{
 		"extra": extra,
 	}).Debug(message)
@@ -142,6 +153,11 @@ func (el *Logger) Debug(message string, extra ...interface{}) {
 // Info is an alias for Logrus.Info, adding some default useful fields.
 func (el *Logger) Info(message string, extra ...interface{}) {
 	cl := el.defaultFields()
+
+	if el.roll {
+		el.rollFiles()
+	}
+
 	cl.WithFields(log.Fields{
 		"extra": extra,
 	}).Info(message)
@@ -150,6 +166,11 @@ func (el *Logger) Info(message string, extra ...interface{}) {
 // Warn is an alias for Logrus.Warn, adding some default useful fields.
 func (el *Logger) Warn(message string, extra ...interface{}) {
 	cl := el.defaultFields()
+
+	if el.roll {
+		el.rollFiles()
+	}
+
 	cl.WithFields(log.Fields{
 		"extra": extra,
 	}).Warn(message)
@@ -158,6 +179,11 @@ func (el *Logger) Warn(message string, extra ...interface{}) {
 // Error is an alias for Logrus.Error, adding some default useful fields.
 func (el *Logger) Error(message string, extra ...interface{}) {
 	cl := el.defaultFields()
+
+	if el.roll {
+		el.rollFiles()
+	}
+
 	cl.WithFields(log.Fields{
 		"extra": extra,
 	}).Error(message)
@@ -166,6 +192,11 @@ func (el *Logger) Error(message string, extra ...interface{}) {
 // Panic is an alias for Logrus.Panic, adding some default useful fields.
 func (el *Logger) Panic(message string, extra ...interface{}) {
 	cl := el.defaultFields()
+
+	if el.roll {
+		el.rollFiles()
+	}
+
 	cl.WithFields(log.Fields{
 		"extra": extra,
 	}).Panic(message)
@@ -177,6 +208,11 @@ func (el *Logger) LogIfError(err error) {
 		return
 	}
 	cl := el.defaultFields()
+
+	if el.roll {
+		el.rollFiles()
+	}
+
 	cl.Error(err.Error())
 }
 
@@ -211,10 +247,63 @@ func WithFile(file io.Writer) Option {
 	}
 }
 
+// WithFileRotation sets up the option to roll log files
+func WithFileRotation(prefix string, subfolder string, fileExtension string) Option {
+	return func(el *Logger) error {
+		file, err := newFile(prefix, subfolder, fileExtension)
+		if err != nil {
+			return err
+		}
+
+		el.roll = true
+		el.logFiles = append(el.logFiles, file)
+		el.file.SetWriter(file)
+		return nil
+	}
+}
+
 // WithStackTraceDepth sets up the stackTraceDepth option for the Logger
 func WithStackTraceDepth(depth int) Option {
 	return func(el *Logger) error {
 		el.stackTraceDepth = depth
 		return nil
 	}
+}
+
+func (el *Logger) rollFiles() {
+	duration := time.Now().Sub(el.file.creationTime).Seconds()
+	if duration > fileLifetimeInSeconds {
+		if len(el.logFiles) == nrOfFilesToRemember {
+			_ = el.logFiles[0].Close()
+			_ = os.Remove(el.logFiles[0].Name())
+			el.logFiles = el.logFiles[1:]
+		}
+
+		file, _ := newFile("", "logs", "txt")
+		el.logFiles = append(el.logFiles, file)
+		el.file.SetWriter(file)
+		el.file.creationTime = time.Now()
+	}
+}
+
+func newFile(prefix string, subfolder string, fileExtension string) (*os.File, error) {
+	absPath, err := filepath.Abs(subfolder)
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.MkdirAll(absPath, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+
+	fileName := time.Now().Format("2006-02-01-15-04-05")
+	if prefix != "" {
+		fileName = prefix + "-" + fileName
+	}
+
+	return os.OpenFile(
+		filepath.Join(absPath, fileName+"."+fileExtension),
+		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
+		0666)
 }
