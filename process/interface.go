@@ -68,7 +68,7 @@ type PreProcessor interface {
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
 
 	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
-	RestoreTxBlockIntoPools(body block.Body, miniBlockHashes map[int][]byte, miniBlockPool storage.Cacher) (int, error)
+	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, map[int][]byte, error)
 	SaveTxBlockToStorage(body block.Body) error
 
 	ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error

@@ -3,6 +3,7 @@ package coordinator
 import (
 	"bytes"
 	"reflect"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -100,6 +101,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
 			cs.RemoveCalled = func(key []byte) {}
+			cs.PutCalled = func(key []byte, value interface{}) (evicted bool) {
+				return false
+			}
 			return cs
 		},
 		HeadersCalled: func() storage.Cacher {
@@ -801,7 +805,7 @@ func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestTransactionCoordinator_RequestMiniBlocks(t *testing.T) {
+func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 	t.Parallel()
 
 	hasher := mock.HasherMock{}
@@ -906,6 +910,228 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 
 	err = tc.SaveBlockDataToStorage(body)
 	assert.Equal(t, process.ErrMissingTransaction, err)
+}
+
+func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx_hash1")
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(3),
+		initAccountsMock(),
+		initDataPool(txHash),
+		&mock.RequestHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		initStore(),
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	nrTxs, mbs, err := tc.RestoreBlockDataFromStorage(nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, nrTxs)
+	assert.Equal(t, 0, len(mbs))
+
+	body := block.Body{}
+	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
+	body = append(body, miniBlock)
+
+	tc.RequestBlockTransactions(body)
+	err = tc.SaveBlockDataToStorage(body)
+	assert.Nil(t, err)
+	nrTxs, mbs, err = tc.RestoreBlockDataFromStorage(body)
+	assert.Equal(t, 1, nrTxs)
+	assert.Equal(t, 1, len(mbs))
+	assert.Nil(t, err)
+
+	txHashToAsk := []byte("tx_hashnotinPool")
+	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
+	body = append(body, miniBlock)
+
+	err = tc.SaveBlockDataToStorage(body)
+	assert.Equal(t, process.ErrMissingTransaction, err)
+
+	nrTxs, mbs, err = tc.RestoreBlockDataFromStorage(body)
+	assert.Equal(t, 1, nrTxs)
+	assert.Equal(t, 1, len(mbs))
+	assert.NotNil(t, err)
+}
+
+func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx_hash1")
+	dataPool := initDataPool(txHash)
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(3),
+		initAccountsMock(),
+		dataPool,
+		&mock.RequestHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		initStore(),
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	err = tc.RemoveBlockDataFromPool(nil)
+	assert.Nil(t, err)
+
+	body := block.Body{}
+	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
+	body = append(body, miniBlock)
+
+	tc.RequestBlockTransactions(body)
+	err = tc.RemoveBlockDataFromPool(body)
+	assert.Nil(t, err)
+}
+
+func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx_hash1")
+	dataPool := initDataPool(txHash)
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(3),
+		initAccountsMock(),
+		dataPool,
+		&mock.RequestHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+				return process.ErrHigherNonceInTransaction
+			},
+		},
+		initStore(),
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	haveTime := func() time.Duration {
+		return time.Second
+	}
+	err = tc.ProcessBlockTransaction(nil, 10, haveTime)
+	assert.Nil(t, err)
+
+	body := block.Body{}
+	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
+	body = append(body, miniBlock)
+
+	tc.RequestBlockTransactions(body)
+	err = tc.ProcessBlockTransaction(body, 10, haveTime)
+	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
+
+	noTime := func() time.Duration {
+		return 0
+	}
+	err = tc.ProcessBlockTransaction(body, 10, noTime)
+	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
+
+	txHashToAsk := []byte("tx_hashnotinPool")
+	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
+	body = append(body, miniBlock)
+	err = tc.ProcessBlockTransaction(body, 10, haveTime)
+	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
+}
+
+func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx_hash1")
+	dataPool := initDataPool(txHash)
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(3),
+		initAccountsMock(),
+		dataPool,
+		&mock.RequestHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+				return nil
+			},
+		},
+		initStore(),
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	haveTime := func() time.Duration {
+		return time.Second
+	}
+	err = tc.ProcessBlockTransaction(nil, 10, haveTime)
+	assert.Nil(t, err)
+
+	body := block.Body{}
+	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
+	body = append(body, miniBlock)
+
+	tc.RequestBlockTransactions(body)
+	err = tc.ProcessBlockTransaction(body, 10, haveTime)
+	assert.Nil(t, err)
+
+	noTime := func() time.Duration {
+		return -1
+	}
+	err = tc.ProcessBlockTransaction(body, 10, noTime)
+	assert.Equal(t, process.ErrTimeIsOut, err)
+
+	txHashToAsk := []byte("tx_hashnotinPool")
+	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
+	body = append(body, miniBlock)
+	err = tc.ProcessBlockTransaction(body, 10, haveTime)
+	assert.Equal(t, process.ErrMissingTransaction, err)
+}
+
+func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx_hash1")
+	dataPool := initDataPool(txHash)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	nrCalled := 0
+	mutex := sync.Mutex{}
+	tc, err := NewTransactionCoordinator(
+		shardCoordinator,
+		initAccountsMock(),
+		dataPool,
+		&mock.RequestHandlerMock{
+			RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
+				mutex.Lock()
+				nrCalled++
+				mutex.Unlock()
+			},
+		},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+				return nil
+			},
+		},
+		initStore(),
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	tc.RequestMiniBlocks(nil)
+	time.Sleep(time.Second)
+	mutex.Lock()
+	assert.Equal(t, 0, nrCalled)
+	mutex.Unlock()
+
+	header := createTestMetablock()
+	tc.RequestMiniBlocks(header)
+
+	crossMbs := header.GetMiniBlockHeadersWithDst(shardCoordinator.SelfId())
+	time.Sleep(time.Second)
+	mutex.Lock()
+	assert.Equal(t, len(crossMbs), nrCalled)
+	mutex.Unlock()
 }
 
 /*

@@ -1,9 +1,6 @@
 package coordinator
 
 import (
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"sync"
 	"time"
 
@@ -12,7 +9,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -238,7 +238,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 				return
 			}
 
-			restoredTxs, err := preproc.RestoreTxBlockIntoPools(value, restoredMbs, tc.miniBlockPool)
+			restoredTxs, restoredMbs, err := preproc.RestoreTxBlockIntoPools(value, tc.miniBlockPool)
 			if err != nil {
 				log.Debug(err.Error())
 
@@ -501,6 +501,10 @@ func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map
 
 // RequestMiniBlocks request miniblocks if missing
 func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
+	if header == nil || header.IsInterfaceNil() {
+		return
+	}
+
 	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
 	for key, senderShardId := range crossMiniBlockHashes {
 		obj, _ := tc.miniBlockPool.Peek([]byte(key))
