@@ -3,7 +3,9 @@ package coordinator
 import (
 	"bytes"
 	"reflect"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -11,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +27,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 					return &mock.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, testHash) {
-								return &transaction.Transaction{Nonce: 10}, true
+								return &transaction.Transaction{Nonce: 10, Data: []byte(id)}, true
 							}
 							return nil, false
 						},
@@ -113,6 +117,43 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 		},
 	}
 	return sdp
+}
+
+func initStore() *dataRetriever.ChainStorer {
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
+	return store
+}
+
+func generateTestCache() storage.Cacher {
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1)
+	return cache
+}
+
+func generateTestUnit() storage.Storer {
+	memDB, _ := memorydb.New()
+
+	storer, _ := storageUnit.NewStorageUnit(
+		generateTestCache(),
+		memDB,
+	)
+
+	return storer
+}
+
+func initAccountsMock() *mock.AccountsStub {
+	rootHashCalled := func() ([]byte, error) {
+		return []byte("rootHash"), nil
+	}
+	return &mock.AccountsStub{
+		RootHashCalled: rootHashCalled,
+	}
 }
 
 func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
@@ -620,9 +661,127 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	haveTime := func() bool {
 		return true
 	}
+
+	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, 10, haveTime)
 
 	assert.Equal(t, int(nrShards), len(mbs))
+}
+
+func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool([]byte("tx_hash1"))
+	nrShards := uint32(5)
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(nrShards),
+		&mock.AccountsStub{},
+		tdp,
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+				return nil
+			},
+		},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	usedTxs := tc.GetAllCurrentUsedTxs(block.TxBlock)
+	assert.Equal(t, 0, len(usedTxs))
+
+	// create block to have some txs
+	maxTxRemaining := uint32(15000)
+	haveTime := func() bool {
+		return true
+	}
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, 10, haveTime)
+	assert.Equal(t, int(nrShards), len(mbs))
+
+	usedTxs = tc.GetAllCurrentUsedTxs(block.TxBlock)
+	assert.Equal(t, 1, len(usedTxs))
+}
+
+func containsHash(txHashes [][]byte, hash []byte) bool {
+	for _, txHash := range txHashes {
+		if bytes.Equal(hash, txHash) {
+			return true
+		}
+	}
+	return false
+}
+
+func TestTransactionCoordinator_RequestMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+
+	//we will have a miniblock that will have 3 tx hashes
+	//1 tx hash will be in cache
+	//2 will be requested on network
+
+	txHash1 := []byte("tx hash 1 found in cache")
+	txHash2 := []byte("tx hash 2")
+	txHash3 := []byte("tx hash 3")
+
+	senderShardId := uint32(1)
+	receiverShardId := uint32(2)
+
+	miniBlock := block.MiniBlock{
+		SenderShardID:   senderShardId,
+		ReceiverShardID: receiverShardId,
+		TxHashes:        [][]byte{txHash1, txHash2, txHash3},
+	}
+
+	//put this miniblock inside datapool
+	miniBlockHash := []byte("miniblock hash")
+	dataPool.MiniBlocks().Put(miniBlockHash, miniBlock)
+
+	//put the existing tx inside datapool
+	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
+	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{}, cacheId)
+
+	txHash1Requested := int32(0)
+	txHash2Requested := int32(0)
+	txHash3Requested := int32(0)
+
+	requestHandler := &mock.RequestHandlerMock{}
+	requestHandler.RequestTransactionHandlerCalled = func(destShardID uint32, txHashes [][]byte) {
+		if containsHash(txHashes, txHash1) {
+			atomic.AddInt32(&txHash1Requested, 1)
+		}
+		if containsHash(txHashes, txHash2) {
+			atomic.AddInt32(&txHash2Requested, 1)
+		}
+		if containsHash(txHashes, txHash3) {
+			atomic.AddInt32(&txHash3Requested, 1)
+		}
+	}
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(3),
+		initAccountsMock(),
+		dataPool,
+		requestHandler,
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{},
+		initStore(),
+	)
+	assert.Nil(t, err)
+	tc.receivedMiniBlock(miniBlockHash)
+
+	//we have to wait to be sure txHash1Requested is not incremented by a late call
+	time.Sleep(time.Second)
+
+	assert.Equal(t, int32(0), atomic.LoadInt32(&txHash1Requested))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&txHash2Requested))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&txHash2Requested))
 }
 
 /*
@@ -797,82 +956,5 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 
 	assert.Equal(t, errTxProcessor, err)
 	assert.True(t, revertAccntStateCalled)
-}
-
-//------- receivedMiniBlock
-
-func TestShardProcessor_ReceivedMiniBlockShouldRequestMissingTransactions(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderFake()
-
-	//we will have a miniblock that will have 3 tx hashes
-	//1 tx hash will be in cache
-	//2 will be requested on network
-
-	txHash1 := []byte("tx hash 1 found in cache")
-	txHash2 := []byte("tx hash 2")
-	txHash3 := []byte("tx hash 3")
-
-	senderShardId := uint32(1)
-	receiverShardId := uint32(2)
-
-	miniBlock := block.MiniBlock{
-		SenderShardID:   senderShardId,
-		ReceiverShardID: receiverShardId,
-		TxHashes:        [][]byte{txHash1, txHash2, txHash3},
-	}
-
-	//put this miniblock inside datapool
-	miniBlockHash := []byte("miniblock hash")
-	dataPool.MiniBlocks().Put(miniBlockHash, miniBlock)
-
-	//put the existing tx inside datapool
-	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
-	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{}, cacheId)
-
-	txHash1Requested := int32(0)
-	txHash2Requested := int32(0)
-	txHash3Requested := int32(0)
-
-	requestHandler := &mock.RequestHandlerMock{}
-	requestHandler.RequestTransactionHandlerCalled = func(destShardID uint32, txHashes [][]byte) {
-		if containsHash(txHashes, txHash1) {
-			atomic.AddInt32(&txHash1Requested, 1)
-		}
-		if containsHash(txHashes, txHash2) {
-			atomic.AddInt32(&txHash2Requested, 1)
-		}
-		if containsHash(txHashes, txHash3) {
-			atomic.AddInt32(&txHash3Requested, 1)
-		}
-	}
-
-	bp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		dataPool,
-		initStore(),
-		hasher,
-		marshalizer,
-		&mock.TxProcessorMock{},
-		initAccountsMock(),
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		true,
-		requestHandler,
-	)
-
-	bp.ReceivedMiniBlock(miniBlockHash)
-
-	//we have to wait to be sure txHash1Requested is not incremented by a late call
-	time.Sleep(time.Second)
-
-	assert.Equal(t, int32(0), atomic.LoadInt32(&txHash1Requested))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&txHash2Requested))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&txHash2Requested))
 }
 */
