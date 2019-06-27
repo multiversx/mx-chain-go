@@ -2104,7 +2104,7 @@ func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadBlocksFails(t *testing.T) 
 		process.ShardBlockFinality,
 		dataRetriever.ShardHdrNonceHashDataUnit)
 
-	assert.Equal(t, process.ErrBoostrapFromStorage, err)
+	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
 func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadNotarizedBlocksFails(t *testing.T) {
@@ -2180,7 +2180,7 @@ func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadNotarizedBlocksFails(t *te
 		process.ShardBlockFinality,
 		dataRetriever.ShardHdrNonceHashDataUnit)
 
-	assert.Equal(t, process.ErrBoostrapFromStorage, err)
+	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
 func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {

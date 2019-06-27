@@ -2699,7 +2699,7 @@ func TestBootstrap_LoadBlocksShouldErrBoostrapFromStorage(t *testing.T) {
 		removeBlockBody,
 	)
 
-	assert.Equal(t, process.ErrBoostrapFromStorage, err)
+	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
 func TestBootstrap_LoadBlocksShouldErrBoostrapFromStorageWhenBlocksAreNotValid(t *testing.T) {
@@ -2775,7 +2775,7 @@ func TestBootstrap_LoadBlocksShouldErrBoostrapFromStorageWhenBlocksAreNotValid(t
 		removeBlockBody,
 	)
 
-	assert.Equal(t, process.ErrBoostrapFromStorage, err)
+	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
 func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
@@ -2863,7 +2863,7 @@ func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 	)
 
 	assert.True(t, wasCalled)
-	assert.Equal(t, process.ErrBoostrapFromStorage, err)
+	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
 func TestBootstrap_LoadBlocksShouldWorkAfterRemoveInvalidBlocks(t *testing.T) {
@@ -3840,7 +3840,7 @@ func TestBootstrap_LoadNotarizedBlocksShouldErrBoostrapFromStorage(t *testing.T)
 		applyNotarisedBlock,
 	)
 
-	assert.Equal(t, process.ErrBoostrapFromStorage, err)
+	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
 func TestBootstrap_LoadNotarizedBlocksShouldErrBoostrapFromStorageWhenBlocksAreNotValid(t *testing.T) {
@@ -3913,7 +3913,7 @@ func TestBootstrap_LoadNotarizedBlocksShouldErrBoostrapFromStorageWhenBlocksAreN
 		},
 	)
 
-	assert.Equal(t, process.ErrBoostrapFromStorage, err)
+	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
 func TestBootstrap_LoadNotarizedBlocksShouldWorkAfterRemoveInvalidBlocks(t *testing.T) {
@@ -4064,7 +4064,7 @@ func TestBootstrap_SyncFromStorerShouldErrWhenLoadBlocksFails(t *testing.T) {
 		process.MetaBlockFinality,
 		dataRetriever.MetaHdrNonceHashDataUnit)
 
-	assert.Equal(t, process.ErrBoostrapFromStorage, err)
+	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
 func TestBootstrap_SyncFromStorerShouldErrWhenLoadNotarizedBlocksFails(t *testing.T) {
@@ -4162,7 +4162,7 @@ func TestBootstrap_SyncFromStorerShouldErrWhenLoadNotarizedBlocksFails(t *testin
 		process.MetaBlockFinality,
 		dataRetriever.MetaHdrNonceHashDataUnit)
 
-	assert.Equal(t, process.ErrBoostrapFromStorage, err)
+	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
 func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
