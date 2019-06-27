@@ -256,6 +256,7 @@ func WithFileRotation(prefix string, subfolder string, fileExtension string) Opt
 		}
 
 		el.roll = true
+		el.file.prefix = prefix
 		el.logFiles = append(el.logFiles, file)
 		el.file.SetWriter(file)
 		return nil
@@ -265,7 +266,7 @@ func WithFileRotation(prefix string, subfolder string, fileExtension string) Opt
 // WithStderrRedirect sets up the option to redirect stderr to file
 func WithStderrRedirect() Option {
 	return func(el *Logger) error {
-		file, err := newFile("fatalErrors", "logs", "log")
+		file, err := newFile("fatalErrors"+el.file.prefix, "logs", "log")
 		if err != nil {
 			return err
 		}
@@ -296,7 +297,7 @@ func (el *Logger) rollFiles() {
 			el.logFiles = el.logFiles[1:]
 		}
 
-		file, _ := newFile("", "logs", "txt")
+		file, _ := newFile(el.file.prefix, "logs", "log")
 		el.logFiles = append(el.logFiles, file)
 		el.file.SetWriter(file)
 		el.file.creationTime = time.Now()

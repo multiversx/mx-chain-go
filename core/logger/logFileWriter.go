@@ -13,6 +13,7 @@ import (
 // called from this point on.
 type LogFileWriter struct {
 	creationTime time.Time
+	prefix       string
 	writer       io.Writer
 	buffer       [][]byte
 	writerLock   sync.RWMutex
