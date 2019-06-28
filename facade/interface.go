@@ -59,5 +59,5 @@ type NodeWrapper interface {
 
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
-	GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
+	GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
 }

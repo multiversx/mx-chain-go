@@ -37,7 +37,7 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 		},
 	})
 
-	_, _ = nar.GetDataValue("", "")
+	_, _ = nar.GetVmValue("", "")
 
 	assert.True(t, wasCalled)
 }

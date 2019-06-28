@@ -18,6 +18,7 @@ import (
 
 // DefaultRestPort is the default port the REST API will start on if not specified
 const DefaultRestPort = "8080"
+
 // DefaultRestPortOff is the default value that should be passed if it is desired
 //  to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
@@ -126,7 +127,7 @@ func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 
 	switch ef.RestApiPort() {
 	case DefaultRestPortOff:
-		ef.log.Info(fmt.Sprintf("Web server is off") )
+		ef.log.Info(fmt.Sprintf("Web server is off"))
 		break
 	default:
 		ef.log.Info("Starting web server...")
@@ -212,7 +213,7 @@ func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	return hbStatus, nil
 }
 
-// GetDataValue retrieves data from existing SC trie
-func (ef *ElrondNodeFacade) GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
-	return ef.apiResolver.GetDataValue(address, funcName, argsBuff...)
+// GetVmValue retrieves data from existing SC trie
+func (ef *ElrondNodeFacade) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
+	return ef.apiResolver.GetVmValue(address, funcName, argsBuff...)
 }
