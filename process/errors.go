@@ -387,3 +387,6 @@ var ErrNilIntermediateTransactionHandler = errors.New("intermediate transaction 
 
 // ErrWrongTypeInMiniBlock signals that type is not correct for processing
 var ErrWrongTypeInMiniBlock = errors.New("type in miniblock is not correct for processing")
+
+// ErrNilSmartContractResultProcessor signals that smart contract result processor is nil
+var ErrNilSmartContractResultProcessor = errors.New("nil smart contract result processor")

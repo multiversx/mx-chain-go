@@ -139,6 +139,21 @@ type InterceptorsContainerFactory interface {
 	Create() (InterceptorsContainer, error)
 }
 
+// PreProcessorsContainer defines an PreProcessors holder data type with basic functionality
+type PreProcessorsContainer interface {
+	Get(key block.Type) (PreProcessor, error)
+	Add(key block.Type, val PreProcessor) error
+	AddMultiple(keys []block.Type, preprocessors []PreProcessor) error
+	Replace(key block.Type, val PreProcessor) error
+	Remove(key block.Type)
+	Len() int
+}
+
+// PreProcessorsContainerFactory defines the functionality to create an PreProcessors container
+type PreProcessorsContainerFactory interface {
+	Create() (PreProcessorsContainer, error)
+}
+
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
