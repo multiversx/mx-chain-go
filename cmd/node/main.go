@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/http"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -98,7 +99,7 @@ VERSION:
 	serversConfigurationFile = cli.StringFlag{
 		Name:  "serversconfig",
 		Usage: "The configuration file for servers confidential data",
-		Value: "./config/servers.toml",
+		Value: "./config/server.toml",
 	}
 	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
 	withUI = cli.BoolTFlag{
@@ -153,6 +154,13 @@ VERSION:
 		Usage: "The port on which the rest API will start on",
 		Value: "8080",
 	}
+
+	// flag for monitoring using Prometheus
+	prometheus = cli.BoolFlag{
+		Name:  "prometheus",
+		Usage: "Will make the node available for prometheus&grafana monitoring",
+	}
+
 	// initialBalancesSkPemFile defines a flag for the path to the ...
 	initialBalancesSkPemFile = cli.StringFlag{
 		Name:  "initialBalancesSkPemFile",
@@ -222,6 +230,7 @@ func main() {
 		gopsEn,
 		serversConfigurationFile,
 		restApiPort,
+		prometheus,
 		boostrapRoundIndex,
 	}
 	app.Authors = []cli.Author{
@@ -466,9 +475,21 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	ef := facade.NewElrondNodeFacade(currentNode, externalResolver)
 
-	efConfig := &config.FacadeConfig{
-		RestApiPort: ctx.GlobalString(restApiPort.Name),
+	prometheusJoinURLAvailable := true
+	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
+	if err != nil {
+		prometheusJoinURLAvailable = false
 	}
+	if prometheusJoinUrl == "" {
+		prometheusJoinURLAvailable = false
+	}
+
+	efConfig := &config.FacadeConfig{
+		RestApiPort:       ctx.GlobalString(restApiPort.Name),
+		Prometheus:        ctx.GlobalBool(prometheus.Name) && prometheusJoinURLAvailable,
+		PrometheusJoinURL: prometheusJoinUrl,
+	}
+
 	ef.SetLogger(log)
 	ef.SetSyncer(syncer)
 	ef.SetTpsBenchmark(tpsBenchmark)
@@ -501,6 +522,20 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
+	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
+	if err != nil {
+		return "", err
+	}
+	joinURL := serversConfig.Prometheus.PrometheusJoinURL
+	statusURL := strings.Replace(joinURL, "/join", "/status", 1)
+	_, err = http.Get(statusURL)
+	if err != nil {
+		return "", err
+	}
+	return serversConfig.Prometheus.PrometheusJoinURL, nil
 }
 
 func enableGopsIfNeeded(ctx *cli.Context, log *logger.Logger) {

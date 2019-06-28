@@ -156,6 +156,11 @@ type ExplorerConfig struct {
 // ServersConfig will hold all the confidential settings for servers
 type ServersConfig struct {
 	ElasticSearch ElasticSearchConfig
+	Prometheus    PrometheusConfig
+}
+
+type PrometheusConfig struct {
+	PrometheusJoinURL string
 }
 
 // ElasticSearchConfig will hold the configuration for the elastic search
@@ -166,5 +171,7 @@ type ElasticSearchConfig struct {
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
 type FacadeConfig struct {
-	RestApiPort string
+	RestApiPort       string
+	Prometheus        bool
+	PrometheusJoinURL string
 }

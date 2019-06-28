@@ -1,3 +1,5 @@
 [ElasticSearch]
     Username = "basic_auth_username"
     Password = "basic_auth_password"
+[Prometheus]
+    PrometheusJoinURL = "http://localhost:2113/join"
