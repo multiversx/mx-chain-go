@@ -396,3 +396,9 @@ var ErrNilUint64Converter = errors.New("unit64converter is nil")
 
 // ErrNilSmartContractResultProcessor signals that smart contract result processor is nil
 var ErrNilSmartContractResultProcessor = errors.New("nil smart contract result processor")
+
+// ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
+var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")
+
+// ErrNilPreProcessorsContainer signals that preprocessors container is nil
+var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")

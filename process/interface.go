@@ -174,11 +174,28 @@ type PreProcessorsContainer interface {
 	Replace(key block.Type, val PreProcessor) error
 	Remove(key block.Type)
 	Len() int
+	Keys() []block.Type
 }
 
 // PreProcessorsContainerFactory defines the functionality to create an PreProcessors container
 type PreProcessorsContainerFactory interface {
 	Create() (PreProcessorsContainer, error)
+}
+
+// PreProcessorsContainer defines an PreProcessors holder data type with basic functionality
+type IntermediateProcessorContainer interface {
+	Get(key block.Type) (IntermediateTransactionHandler, error)
+	Add(key block.Type, val IntermediateTransactionHandler) error
+	AddMultiple(keys []block.Type, preprocessors []IntermediateTransactionHandler) error
+	Replace(key block.Type, val IntermediateTransactionHandler) error
+	Remove(key block.Type)
+	Len() int
+	Keys() []block.Type
+}
+
+// PreProcessorsContainerFactory defines the functionality to create an PreProcessors container
+type IntermediateProcessorsContainerFactory interface {
+	Create() (IntermediateProcessorContainer, error)
 }
 
 // Interceptor defines what a data interceptor should do

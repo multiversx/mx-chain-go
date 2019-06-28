@@ -26,14 +26,16 @@ type Body []*MiniBlock
 type MiniBlockSlice []*MiniBlock
 
 const (
-	// TxBlock identifies a block holding transactions
+	// TxBlock identifies a miniblock holding transactions
 	TxBlock Type = 0
-	// StateBlock identifies a block holding account state
+	// StateBlock identifies a miniblock holding account state
 	StateBlock Type = 1
-	// PeerBlock identifies a block holding peer assignation
+	// PeerBlock identifies a miniblock holding peer assignation
 	PeerBlock Type = 2
-	// SmartContractResult identifies a block holding miniblocks
+	// SmartContractResult identifies a miniblock holding smartcontractresults
 	SmartContractResultBlock Type = 3
+	// InvalidBlock identifies identifies an invalid miniblock
+	InvalidBlock Type = 4
 )
 
 // String returns the string representation of the Type
@@ -47,6 +49,8 @@ func (bType Type) String() string {
 		return "PeerBody"
 	case SmartContractResultBlock:
 		return "SmartContractResultBody"
+	case InvalidBlock:
+		return "InvalidBlock"
 	default:
 		return fmt.Sprintf("Unknown(%d)", bType)
 	}

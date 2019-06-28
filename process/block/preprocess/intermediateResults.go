@@ -19,6 +19,7 @@ type intermediateResultsProcessor struct {
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
 	adrConv          state.AddressConverter
+	blockType        block.Type
 
 	mutInterResultsForBlock sync.Mutex
 	interResultsForBlock    map[string]*txInfo
@@ -30,6 +31,7 @@ func NewIntermediateResultsProcessor(
 	marshalizer marshal.Marshalizer,
 	coordinator sharding.Coordinator,
 	adrConv state.AddressConverter,
+	blockType block.Type,
 ) (*intermediateResultsProcessor, error) {
 	if hasher == nil {
 		return nil, process.ErrNilHasher
@@ -49,6 +51,7 @@ func NewIntermediateResultsProcessor(
 		marshalizer:      marshalizer,
 		shardCoordinator: coordinator,
 		adrConv:          adrConv,
+		blockType:        blockType,
 	}
 
 	irp.interResultsForBlock = make(map[string]*txInfo, 0)
@@ -76,7 +79,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 		if len(miniBlocks[i].TxHashes) > 0 {
 			miniBlocks[i].SenderShardID = irp.shardCoordinator.SelfId()
 			miniBlocks[i].ReceiverShardID = uint32(i)
-			miniBlocks[i].Type = block.SmartContractResultBlock
+			miniBlocks[i].Type = irp.blockType
 		}
 	}
 
@@ -91,7 +94,7 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body block.Body) 
 
 	for i := 0; i < len(body); i++ {
 		mb := body[i]
-		if mb.Type != block.SmartContractResultBlock {
+		if mb.Type != irp.blockType {
 			continue
 		}
 		if mb.ReceiverShardID == irp.shardCoordinator.SelfId() {

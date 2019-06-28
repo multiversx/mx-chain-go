@@ -20,7 +20,10 @@ func TestNewIntermediateResultsProcessor_NilHashes(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		block.TxBlock,
+	)
+
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilHasher, err)
 }
@@ -32,7 +35,9 @@ func TestNewIntermediateResultsProcessor_NilMarshalizer(t *testing.T) {
 		&mock.HasherMock{},
 		nil,
 		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		block.TxBlock,
+	)
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -45,7 +50,9 @@ func TestNewIntermediateResultsProcessor_NilShardCoordinator(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		block.TxBlock,
+	)
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -58,7 +65,9 @@ func TestNewIntermediateResultsProcessor_NilAddressConverter(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
-		nil)
+		nil,
+		block.TxBlock,
+	)
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilAddressConverter, err)
@@ -71,7 +80,9 @@ func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.AddressConverterMock{})
+		&mock.AddressConverterMock{},
+		block.TxBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -86,7 +97,9 @@ func TestIntermediateResultsProcessor_getShardIdsFromAddressesErrAdrConv(t *test
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -110,7 +123,9 @@ func TestIntermediateResultsProcessor_getShardIdsFromAddressesGood(t *testing.T)
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -132,7 +147,9 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactions(t *testing.T) 
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -150,7 +167,9 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsWrongType(t *te
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -171,7 +190,9 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrConvError(t
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -194,7 +215,9 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -219,7 +242,9 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -239,7 +264,9 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -270,7 +297,9 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		shardCoordinator,
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -308,7 +337,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T)
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		shardCoordinator,
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -327,7 +358,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldpassAsNotCr
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		shardCoordinator,
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -349,7 +382,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMissingMiniblock(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		shardCoordinator,
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -372,7 +407,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		shardCoordinator,
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -414,7 +451,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		shardCoordinator,
-		adrConv)
+		adrConv,
+		block.SmartContractResultBlock,
+	)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
