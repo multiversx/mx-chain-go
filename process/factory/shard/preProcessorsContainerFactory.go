@@ -102,25 +102,26 @@ func NewPreProcessorsContainerFactory(
 	}, nil
 }
 
+// Create returns a preprocessor container that will hold all preprocessors in the system
 func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContainer, error) {
 	container := containers.NewPreProcessorsContainer()
 
-	key, preproc, err := ppcm.createTxPreProcessor()
+	preproc, err := ppcm.createTxPreProcessor()
 	if err != nil {
 		return nil, err
 	}
 
-	err = container.Add(key, preproc)
+	err = container.Add(block.TxBlock, preproc)
 	if err != nil {
 		return nil, err
 	}
 
-	key, preproc, err = ppcm.createSmartContractResultPreProcessor()
+	preproc, err = ppcm.createSmartContractResultPreProcessor()
 	if err != nil {
 		return nil, err
 	}
 
-	err = container.Add(key, preproc)
+	err = container.Add(block.SmartContractResultBlock, preproc)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +129,7 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 	return container, nil
 }
 
-func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (block.Type, process.PreProcessor, error) {
+func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PreProcessor, error) {
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(
 		ppcm.dataPool.Transactions(),
 		ppcm.store,
@@ -140,10 +141,10 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (block.Type, p
 		ppcm.requestHandler.RequestTransaction,
 	)
 
-	return block.TxBlock, txPreprocessor, err
+	return txPreprocessor, err
 }
 
-func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (block.Type, process.PreProcessor, error) {
+func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
 	scrPreprocessor, err := preprocess.NewSmartContractResultPreprocessor(
 		ppcm.dataPool.SmartContractResults(),
 		ppcm.store,
@@ -155,5 +156,5 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.requestHandler.RequestTransaction,
 	)
 
-	return block.SmartContractResultBlock, scrPreprocessor, err
+	return scrPreprocessor, err
 }
