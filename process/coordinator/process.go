@@ -424,12 +424,12 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRem
 	for i := 0; i < int(tc.shardCoordinator.NumberOfShards()); i++ {
 		remainingSpace := int(maxTxRemaining) - addedTxs
 		if remainingSpace <= 0 {
-			return miniBlocks
+			break
 		}
 
 		miniBlock, err := txPreProc.CreateAndProcessMiniBlock(tc.shardCoordinator.SelfId(), uint32(i), remainingSpace, haveTime, round)
 		if err != nil {
-			return miniBlocks
+			break
 		}
 
 		if len(miniBlock.TxHashes) > 0 {
@@ -437,6 +437,33 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRem
 			miniBlocks = append(miniBlocks, miniBlock)
 		}
 	}
+
+	miniBlocks = append(miniBlocks, tc.processAddedInterimTransactions()...)
+	return miniBlocks
+}
+
+func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
+	miniBlocks := block.MiniBlockSlice{}
+
+	tc.mutInterimProcessors.RLock()
+
+	resMutex := sync.Mutex{}
+	// TODO: think if it is good in parallel or it is needed in sequences
+	wg := sync.WaitGroup{}
+	wg.Add(len(tc.interimProcessors))
+
+	for _, interimProc := range tc.interimProcessors {
+		go func() {
+			currMbs := interimProc.CreateAllInterMiniBlocks()
+			resMutex.Lock()
+			miniBlocks = append(miniBlocks, currMbs...)
+			resMutex.Unlock()
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	tc.mutInterimProcessors.RUnlock()
 
 	return miniBlocks
 }
@@ -576,4 +603,31 @@ func (tc *transactionCoordinator) processMiniBlockComplete(
 	}
 
 	return nil
+}
+
+func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body) error {
+	tc.mutInterimProcessors.RLock()
+
+	errMutex := sync.Mutex{}
+	var errFound error
+	// TODO: think if it is good in parallel or it is needed in sequences
+	wg := sync.WaitGroup{}
+	wg.Add(len(tc.interimProcessors))
+
+	for _, interimProc := range tc.interimProcessors {
+		go func() {
+			err := interimProc.VerifyInterMiniBlocks(body)
+			if err != nil {
+				errMutex.Lock()
+				errFound = err
+				errMutex.Unlock()
+			}
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	tc.mutInterimProcessors.RUnlock()
+
+	return errFound
 }

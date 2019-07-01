@@ -221,6 +221,11 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	err = sp.txCoordinator.VerifyCreatedBlockTransactions(body)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

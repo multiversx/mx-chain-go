@@ -49,6 +49,8 @@ type TransactionCoordinator interface {
 	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte)
 
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
+
+	VerifyCreatedBlockTransactions(body block.Body) error
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine

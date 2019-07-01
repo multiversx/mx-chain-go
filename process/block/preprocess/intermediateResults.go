@@ -67,7 +67,6 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 	}
 
 	irp.mutInterResultsForBlock.Lock()
-	defer irp.mutInterResultsForBlock.Unlock()
 
 	for key, value := range irp.interResultsForBlock {
 		if value.receiverShardID != irp.shardCoordinator.SelfId() {
@@ -84,6 +83,8 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 	}
 
 	irp.interResultsForBlock = make(map[string]*txInfo, 0)
+
+	irp.mutInterResultsForBlock.Unlock()
 
 	return miniBlocks
 }

@@ -2,6 +2,10 @@ package coordinator
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -43,7 +47,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				},
 				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+					if reflect.DeepEqual(key, testHash) {
 						return &transaction.Transaction{Nonce: 10}, true
 					}
 					return nil, false
@@ -59,7 +63,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 					return &mock.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, testHash) {
-								return &transaction.Transaction{Nonce: 10}, true
+								return &smartContractResult.SmartContractResult{Nonce: 10, SndAddr: []byte("0"), RcvAddr: []byte("1")}, true
 							}
 							return nil, false
 						},
@@ -73,8 +77,8 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				},
 				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &transaction.Transaction{Nonce: 10}, true
+					if reflect.DeepEqual(key, testHash) {
+						return &smartContractResult.SmartContractResult{Nonce: 10, SndAddr: []byte("0"), RcvAddr: []byte("1")}, true
 					}
 					return nil, false
 				},
@@ -1414,4 +1418,130 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 	assert.True(t, revertAccntStateCalled)
+}
+
+func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("txHash")
+	tdp := initDataPool(txHash)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	adrConv := &mock.AddressConverterMock{}
+	factory, _ := shard.NewIntermediateProcessorsContainerFactory(
+		shardCoordinator,
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		adrConv,
+	)
+	container, _ := factory.Create()
+
+	tc, err := NewTransactionCoordinator(
+		shardCoordinator,
+		&mock.AccountsStub{},
+		tdp,
+		&mock.RequestHandlerMock{},
+		&mock.PreProcessorContainerMock{},
+		container,
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	err = tc.VerifyCreatedBlockTransactions(nil)
+	assert.Nil(t, err)
+
+	body := block.Body{&block.MiniBlock{Type: block.TxBlock}}
+	err = tc.VerifyCreatedBlockTransactions(body)
+	assert.Nil(t, err)
+
+	body = block.Body{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId()}}
+	err = tc.VerifyCreatedBlockTransactions(body)
+	assert.Nil(t, err)
+
+	body = block.Body{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1}}
+	err = tc.VerifyCreatedBlockTransactions(body)
+	assert.Equal(t, process.ErrMiniBlockHashMismatch, err)
+}
+
+func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("txHash")
+	tdp := initDataPool(txHash)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	adrConv := &mock.AddressConverterMock{}
+	factory, _ := shard.NewIntermediateProcessorsContainerFactory(
+		shardCoordinator,
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		adrConv,
+	)
+	container, _ := factory.Create()
+
+	tc, err := NewTransactionCoordinator(
+		shardCoordinator,
+		&mock.AccountsStub{},
+		tdp,
+		&mock.RequestHandlerMock{},
+		&mock.PreProcessorContainerMock{},
+		container,
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	sndAddr := []byte("0")
+	rcvAddr := []byte("1")
+	scr := &smartContractResult.SmartContractResult{Nonce: 10, SndAddr: sndAddr, RcvAddr: rcvAddr}
+	scrHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, scr)
+
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		if bytes.Equal(address.Bytes(), sndAddr) {
+			return shardCoordinator.SelfId()
+		}
+		if bytes.Equal(address.Bytes(), rcvAddr) {
+			return shardCoordinator.SelfId() + 1
+		}
+		return shardCoordinator.SelfId() + 2
+	}
+
+	tdp.SmartContractResultsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{
+			RegisterHandlerCalled: func(i func(key []byte)) {},
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+				return &mock.CacherStub{
+					PeekCalled: func(key []byte) (value interface{}, ok bool) {
+						if reflect.DeepEqual(key, scrHash) {
+							return scr, true
+						}
+						return nil, false
+					},
+					KeysCalled: func() [][]byte {
+						return [][]byte{[]byte("key1"), []byte("key2")}
+					},
+					LenCalled: func() int {
+						return 0
+					},
+				}
+			},
+			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				if reflect.DeepEqual(key, scrHash) {
+					return scr, true
+				}
+				return nil, false
+			},
+			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+			},
+		}
+	}
+
+	interProc, _ := container.Get(block.SmartContractResultBlock)
+	tx, _ := tdp.SmartContractResults().SearchFirstData(scrHash)
+	txs := make([]data.TransactionHandler, 0)
+	txs = append(txs, tx.(data.TransactionHandler))
+	err = interProc.AddIntermediateTransactions(txs)
+	assert.Nil(t, err)
+
+	body := block.Body{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1, TxHashes: [][]byte{scrHash}}}
+	err = tc.VerifyCreatedBlockTransactions(body)
+	assert.Nil(t, err)
 }
