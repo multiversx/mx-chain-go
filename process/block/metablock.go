@@ -291,6 +291,11 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 
 		headerPool.Put([]byte(hdrHash), &hdr)
 
+		err = mp.store.GetStorer(dataRetriever.BlockHeaderUnit).Remove([]byte(hdrHash))
+		if err != nil {
+			return err
+		}
+
 		shardMBHeaderCounterMutex.Lock()
 		shardMBHeadersTotalProcessed -= len(hdr.MiniBlockHeaders)
 		shardMBHeaderCounterMutex.Unlock()

@@ -1647,6 +1647,13 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 			m[string(hdrHash)] = buffHdr
 			return m, nil
 		},
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				RemoveCalled: func(key []byte) error {
+					return nil
+				},
+			}
+		},
 	}
 
 	mp, _ := blproc.NewMetaProcessor(

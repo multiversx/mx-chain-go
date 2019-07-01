@@ -2892,6 +2892,13 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 			m[string(txHash)] = buffTx
 			return m, nil
 		},
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				RemoveCalled: func(key []byte) error {
+					return nil
+				},
+			}
+		},
 	}
 
 	sp, _ := blproc.NewShardProcessor(
