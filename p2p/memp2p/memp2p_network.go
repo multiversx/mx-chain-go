@@ -38,23 +38,23 @@ func NewMemP2PNetwork() (*MemP2PNetwork, error) {
 
 // ListAddresses provides the addresses of the known peers.
 func (network *MemP2PNetwork) ListAddresses() []string {
-	network.mutex.Lock()
+	network.mutex.RLock()
 	addresses := make([]string, len(network.peerIDs))
 	i := 0
 	for _, peerID := range network.peerIDs {
 		addresses[i] = fmt.Sprintf("/memp2p/%s", peerID)
 		i++
 	}
-	network.mutex.Unlock()
+	network.mutex.RUnlock()
 	return addresses
 }
 
 // ListAddressesExceptOne provides the addresses of the known peers, except a specified one.
 func (network *MemP2PNetwork) ListAddressesExceptOne(peerIDToExclude p2p.PeerID) []string {
-	network.mutex.Lock()
+	network.mutex.RLock()
 	resultingLength := len(network.peerIDs) - 1
 	if resultingLength <= 0 {
-		network.mutex.Unlock()
+		network.mutex.RUnlock()
 		return []string{}
 	}
 	addresses := make([]string, resultingLength)
@@ -66,7 +66,7 @@ func (network *MemP2PNetwork) ListAddressesExceptOne(peerIDToExclude p2p.PeerID)
 		addresses[k] = fmt.Sprintf("/memp2p/%s", peerID)
 		k++
 	}
-	network.mutex.Unlock()
+	network.mutex.RUnlock()
 	return addresses
 }
 
@@ -165,8 +165,8 @@ func (network *MemP2PNetwork) LogMessage(message p2p.MessageP2P) {
 // found in the inner `peers` map of the MemP2PNetwork instance, which
 // determines whether it is connected to the network or not.
 func (network *MemP2PNetwork) IsPeerConnected(peerID p2p.PeerID) bool {
-	network.mutex.Lock()
+	network.mutex.RLock()
 	_, found := network.peers[peerID]
-	network.mutex.Unlock()
+	network.mutex.RUnlock()
 	return found
 }
