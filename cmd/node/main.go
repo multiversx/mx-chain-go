@@ -62,13 +62,13 @@ VERSION:
 	genesisFile = cli.StringFlag{
 		Name:  "genesis-file",
 		Usage: "The node will extract bootstrapping info from the genesis.json",
-		Value: "genesis.json",
+		Value: "./config/genesis.json",
 	}
 	// nodesFile defines a flag for the path of the initial nodes file.
 	nodesFile = cli.StringFlag{
 		Name:  "nodesSetup-file",
 		Usage: "The node will extract initial nodes info from the nodesSetup.json",
-		Value: "nodesSetup.json",
+		Value: "./config/nodesSetup.json",
 	}
 	// txSignSk defines a flag for the path of the single sign private key used when starting the node
 	txSignSk = cli.StringFlag{
@@ -146,6 +146,13 @@ VERSION:
 		Name:  "storage-cleanup",
 		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk",
 	}
+
+	// restApiPort defines a flag for port on which the rest API will start on
+	restApiPort = cli.StringFlag{
+		Name:  "rest-api-port",
+		Usage: "The port on which the rest API will start on",
+		Value: "8080",
+	}
 	// initialBalancesSkPemFile defines a flag for the path to the ...
 	initialBalancesSkPemFile = cli.StringFlag{
 		Name:  "initialBalancesSkPemFile",
@@ -157,6 +164,12 @@ VERSION:
 		Name:  "initialNodesSkPemFile",
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialNodesSk.pem",
+	}
+	// boostrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
+	boostrapRoundIndex = cli.UintFlag{
+		Name:  "boostrap-round-index",
+		Usage: "Boostrap round index specifies the round index from which node should bootstrap from storage",
+		Value: math.MaxUint32,
 	}
 
 	//TODO remove uniqueID
@@ -189,7 +202,7 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = "v0.0.1"
+	app.Version = "v1.0.4"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
@@ -208,6 +221,8 @@ func main() {
 		initialNodesSkPemFile,
 		gopsEn,
 		serversConfigurationFile,
+		restApiPort,
+		boostrapRoundIndex,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -432,6 +447,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		cryptoComponents,
 		processComponents,
 		networkComponents,
+		uint32(ctx.GlobalUint(boostrapRoundIndex.Name)),
 	)
 	if err != nil {
 		return err
@@ -450,9 +466,13 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	ef := facade.NewElrondNodeFacade(currentNode, externalResolver)
 
+	efConfig := &config.FacadeConfig{
+		RestApiPort: ctx.GlobalString(restApiPort.Name),
+	}
 	ef.SetLogger(log)
 	ef.SetSyncer(syncer)
 	ef.SetTpsBenchmark(tpsBenchmark)
+	ef.SetConfig(efConfig)
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
@@ -606,6 +626,7 @@ func createNode(
 	crypto *factory.Crypto,
 	process *factory.Process,
 	network *factory.Network,
+	boostrapRoundIndex uint32,
 ) (*node.Node, error) {
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
@@ -638,6 +659,7 @@ func createNode(
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
+		node.WithBoostrapRoundIndex(boostrapRoundIndex),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

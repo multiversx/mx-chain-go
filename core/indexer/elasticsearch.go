@@ -133,6 +133,8 @@ func (ei *elasticIndexer) checkAndCreateIndex(index string, body io.Reader) erro
 	if err != nil {
 		return err
 	}
+
+	defer closeESResponseBody(res)
 	// Indices.Exists actually does a HEAD request to the elastic index.
 	// A status code of 200 actually means the index exists so we
 	//  don't need to do anything.
@@ -161,6 +163,8 @@ func (ei *elasticIndexer) createIndex(index string, body io.Reader) error {
 	} else {
 		res, err = ei.db.Indices.Create(index)
 	}
+
+	defer closeESResponseBody(res)
 
 	if err != nil {
 		return err
@@ -259,11 +263,11 @@ func (ei *elasticIndexer) saveHeader(header data.HeaderHandler) {
 		return
 	}
 
+	defer closeESResponseBody(res)
+
 	if res.IsError() {
 		ei.logger.Warn(res.String())
 	}
-
-	_ = res.Body.Close()
 }
 
 func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
@@ -302,6 +306,8 @@ func (ei *elasticIndexer) saveTransactions(
 		if res.IsError() {
 			ei.logger.Warn(res.String())
 		}
+
+		closeESResponseBody(res)
 	}
 }
 
@@ -445,14 +451,27 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 			fmt.Println(res.String())
 			ei.logger.Warn("error from elasticsearch indexing tps information")
 		}
+
+		closeESResponseBody(res)
 	}
+}
+
+func closeESResponseBody(res *esapi.Response) {
+	if res == nil {
+		return
+	}
+	if res.Body == nil {
+		return
+	}
+
+	_ = res.Body.Close()
 }
 
 func timestampMapping() io.Reader {
 	return strings.NewReader(
 		`{
 				"settings": {"index": {"sort.field": "timestamp", "sort.order": "desc"}},
-				"mappings": {"properties": {"timestamp": {"type": "date"}}}
+				"mappings": {"_doc": {"properties": {"timestamp": {"type": "date"}}}}
 			}`,
 	)
 }

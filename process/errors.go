@@ -214,9 +214,6 @@ var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 // ErrNilMetachainHeadersStorage signals that a nil metachain header storage has been provided
 var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")
 
-// ErrNilResolverSender signals that a nil resolver sender object has been provided
-var ErrNilResolverSender = errors.New("nil resolver sender")
-
 // ErrNilBlockBodyStorage signals that a nil block body storage has been provided
 var ErrNilBlockBodyStorage = errors.New("nil block body storage")
 
@@ -358,8 +355,8 @@ var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
 // ErrNilTemporaryAccountsHandler signals that temporary accounts handler is nil
 var ErrNilTemporaryAccountsHandler = errors.New("temporary accounts handler is nil")
 
-// ErrBoostrapFromStorage signals that boostrap from storage has been failed
-var ErrBoostrapFromStorage = errors.New("boostrap from storage has been failed")
+// ErrNotEnoughValidBlocksInStorage signals that boostrap from storage failed due to not enough valid blocks stored
+var ErrNotEnoughValidBlocksInStorage = errors.New("not enough valid blocks in storage")
 
 // ErrNilSmartContractResult signals that the smart contract result is nil
 var ErrNilSmartContractResult = errors.New("smart contract result is nil")

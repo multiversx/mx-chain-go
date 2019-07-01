@@ -58,6 +58,9 @@ func createDataPools() dataRetriever.MetaPoolsHolder {
 		MetaChainBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{}
 		},
+		ShardHeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
+			return &mock.Uint64CacherStub{}
+		},
 	}
 
 	return pools
