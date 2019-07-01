@@ -341,7 +341,7 @@ func (messenger *MemP2PMessenger) ReceiveMessage(topic string, message p2p.Messa
 		return p2p.ErrNilValidator
 	}
 
-	validator.ProcessReceivedMessage(message)
+	_ = validator.ProcessReceivedMessage(message)
 
 	if messenger.Network.LogMessages {
 		messenger.Network.LogMessage(message)
