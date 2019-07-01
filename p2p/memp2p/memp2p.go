@@ -293,7 +293,7 @@ func (messenger *MemP2PMessenger) Broadcast(topic string, buff []byte) {
 // possibility to choose from asynchronous or synchronous sending.
 func (messenger *MemP2PMessenger) ParametricBroadcast(topic string, data []byte, async bool) {
 	if messenger.IsConnectedToNetwork() {
-		message := NewMemP2PMessage(topic, data, messenger.ID())
+		message, _ := NewMemP2PMessage(topic, data, messenger.ID())
 		for _, peer := range messenger.Network.Peers() {
 			if async == true {
 				go peer.ReceiveMessage(topic, message)
@@ -311,7 +311,7 @@ func (messenger *MemP2PMessenger) SendToConnectedPeer(topic string, buff []byte,
 		if peerID == messenger.ID() {
 			return errors.New("Peer cannot send a direct message to itself")
 		}
-		message := NewMemP2PMessage(topic, buff, messenger.ID())
+		message, _ := NewMemP2PMessage(topic, buff, messenger.ID())
 		destinationPeer := messenger.Network.PeersExceptOne(messenger.ID())[peerID]
 
 		return destinationPeer.ReceiveMessage(topic, message)

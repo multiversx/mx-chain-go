@@ -26,7 +26,7 @@ type MemP2PMessage struct {
 }
 
 // NewMemP2PMessage constructs a new MemP2PMessage instance from arguments
-func NewMemP2PMessage(topic string, data []byte, peerID p2p.PeerID) (*MemP2PMessage, nil) {
+func NewMemP2PMessage(topic string, data []byte, peerID p2p.PeerID) (*MemP2PMessage, error) {
 	var empty []byte
 	message := MemP2PMessage{
 		from:      []byte(string(peerID)),
