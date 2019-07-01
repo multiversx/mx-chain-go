@@ -77,7 +77,7 @@ func (bpp *basePreProcess) restoreMiniBlock(miniBlock *block.MiniBlock, miniBloc
 		return nil, err
 	}
 
-	restoredHash := []byte{}
+	var restoredHash []byte
 	miniBlockPool.Put(miniBlockHash, miniBlock)
 	if miniBlock.SenderShardID != bpp.shardCoordinator.SelfId() {
 		restoredHash = miniBlockHash
