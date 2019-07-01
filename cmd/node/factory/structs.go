@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
+	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
@@ -1252,7 +1253,8 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	intermediateProcessor, err := preprocess.NewIntermediateResultsProcessor(core.Hasher, core.Marshalizer, shardCoordinator, state.AddressConverter)
+	intermediateProcessor, err := preprocess.NewIntermediateResultsProcessor(core.Hasher, core.Marshalizer,
+		shardCoordinator, state.AddressConverter, dataBlock.SmartContractResultBlock)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1280,15 +1282,36 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
+	preProcFactory, err := shard.NewPreProcessorsContainerFactory(shardCoordinator, data.Store, core.Marshalizer,
+		core.Hasher, data.Datapool, state.AddressConverter, state.AccountsAdapter, requestHandler, transactionProcessor,
+		scProcessor, scProcessor)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	preProcContainer, err := preProcFactory.Create()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(shardCoordinator, core.Marshalizer,
+		core.Hasher, state.AddressConverter)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	interimProcContainer, err := interimProcFactory.Create()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	txCoordinator, err := coordinator.NewTransactionCoordinator(
 		shardCoordinator,
 		state.AccountsAdapter,
 		data.Datapool,
 		requestHandler,
-		core.Hasher,
-		core.Marshalizer,
-		transactionProcessor,
-		data.Store,
+		preProcContainer,
+		interimProcContainer,
 	)
 	if err != nil {
 		return nil, nil, err
