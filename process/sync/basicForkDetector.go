@@ -12,7 +12,7 @@ import (
 
 type headerInfo struct {
 	nonce uint64
-	round uint32
+	round uint64
 	hash  []byte
 	state process.BlockHeaderState
 }
@@ -20,10 +20,10 @@ type headerInfo struct {
 type forkInfo struct {
 	checkpointNonce      uint64
 	lastCheckpointNonce  uint64
-	checkpointRound      int32
-	lastCheckpointRound  int32
+	checkpointRound      int64
+	lastCheckpointRound  int64
 	probableHighestNonce uint64
-	lastBlockRound       int32
+	lastBlockRound       int64
 }
 
 // basicForkDetector defines a struct with necessary data needed for fork detection
@@ -75,7 +75,7 @@ func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, 
 		bfd.fork.lastCheckpointNonce = bfd.fork.checkpointNonce
 		bfd.fork.lastCheckpointRound = bfd.fork.checkpointRound
 		bfd.fork.checkpointNonce = header.GetNonce()
-		bfd.fork.checkpointRound = int32(header.GetRound())
+		bfd.fork.checkpointRound = int64(header.GetRound())
 		bfd.mutFork.Unlock()
 		bfd.removePastHeaders()
 		bfd.removeInvalidHeaders()
@@ -100,7 +100,7 @@ func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, 
 
 func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
 	bfd.mutFork.RLock()
-	roundDif := int32(header.GetRound()) - bfd.fork.lastCheckpointRound
+	roundDif := int64(header.GetRound()) - bfd.fork.lastCheckpointRound
 	nonceDif := int64(header.GetNonce() - bfd.fork.lastCheckpointNonce)
 	bfd.mutFork.RUnlock()
 
@@ -110,7 +110,7 @@ func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, stat
 	if nonceDif < 0 {
 		return ErrLowerNonceInBlock
 	}
-	if int32(header.GetRound()) > bfd.rounder.Index() {
+	if int64(header.GetRound()) > bfd.rounder.Index() {
 		return ErrHigherRoundInBlock
 	}
 	if int64(roundDif) < nonceDif {
@@ -156,7 +156,7 @@ func (bfd *basicForkDetector) removeInvalidHeaders() {
 	for nonce, hdrInfos := range bfd.headers {
 		validHdrInfos = nil
 		for i := 0; i < len(hdrInfos); i++ {
-			roundDif := int32(hdrInfos[i].round) - lastCheckpointRound
+			roundDif := int64(hdrInfos[i].round) - lastCheckpointRound
 			nonceDif := int64(hdrInfos[i].nonce - lastCheckpointNonce)
 			if int64(roundDif) >= nonceDif {
 				validHdrInfos = append(validHdrInfos, hdrInfos[i])
@@ -275,7 +275,7 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 // CheckFork method checks if the node could be on the fork
 func (bfd *basicForkDetector) CheckFork() (bool, uint64) {
 	var lowestForkNonce uint64
-	var lowestRoundInForkNonce uint32
+	var lowestRoundInForkNonce uint64
 	var selfHdrInfo *headerInfo
 	lowestForkNonce = math.MaxUint64
 	forkDetected := false
@@ -287,7 +287,7 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64) {
 		}
 
 		selfHdrInfo = nil
-		lowestRoundInForkNonce = math.MaxUint32
+		lowestRoundInForkNonce = math.MaxUint64
 
 		for i := 0; i < len(hdrInfos); i++ {
 			// Proposed blocks received do not count for fork choice, as they are not valid until the consensus

@@ -172,7 +172,7 @@ type BlocksTracker interface {
 	RemoveNotarisedBlocks(headerHandler data.HeaderHandler) error
 	AddBlock(headerHandler data.HeaderHandler)
 	SetBlockBroadcastRound(nonce uint64, round int32)
-	BlockBroadcastRound(nonce uint64) int32
+	BlockBroadcastRound(nonce uint64) int64
 }
 
 // RequestHandler defines the methods through which request to data can be made

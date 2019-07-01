@@ -55,7 +55,7 @@ type baseBootstrap struct {
 
 	isNodeSynchronized bool
 	hasLastBlock       bool
-	roundIndex         int32
+	roundIndex         int64
 
 	isForkDetected bool
 	forkNonce      uint64
