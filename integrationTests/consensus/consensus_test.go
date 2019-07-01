@@ -54,7 +54,7 @@ func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint
 			nodes[i].blkProcessor.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint32, haveTime func() bool) (handler data.HeaderHandler, e error) {
 				return nil, process.ErrAccountStateDirty
 			}
-			nodes[i].blkProcessor.CreateBlockCalled = func(round uint32, haveTime func() bool) (handler data.BodyHandler, e error) {
+			nodes[i].blkProcessor.CreateBlockCalled = func(round uint64, haveTime func() bool) (handler data.BodyHandler, e error) {
 				return nil, process.ErrWrongTypeAssertion
 			}
 		}
