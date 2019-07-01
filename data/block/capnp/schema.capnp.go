@@ -30,12 +30,12 @@ func (s HeaderCapn) ShardId() uint32             { return C.Struct(s).Get32(8) }
 func (s HeaderCapn) SetShardId(v uint32)         { C.Struct(s).Set32(8, v) }
 func (s HeaderCapn) TimeStamp() uint64           { return C.Struct(s).Get64(16) }
 func (s HeaderCapn) SetTimeStamp(v uint64)       { C.Struct(s).Set64(16, v) }
-func (s HeaderCapn) Round() uint32               { return C.Struct(s).Get32(12) }
-func (s HeaderCapn) SetRound(v uint32)           { C.Struct(s).Set32(12, v) }
-func (s HeaderCapn) Epoch() uint32               { return C.Struct(s).Get32(24) }
-func (s HeaderCapn) SetEpoch(v uint32)           { C.Struct(s).Set32(24, v) }
-func (s HeaderCapn) BlockBodyType() uint8        { return C.Struct(s).Get8(28) }
-func (s HeaderCapn) SetBlockBodyType(v uint8)    { C.Struct(s).Set8(28, v) }
+func (s HeaderCapn) Round() uint64               { return C.Struct(s).Get64(24) }
+func (s HeaderCapn) SetRound(v uint64)           { C.Struct(s).Set64(24, v) }
+func (s HeaderCapn) Epoch() uint32               { return C.Struct(s).Get32(12) }
+func (s HeaderCapn) SetEpoch(v uint32)           { C.Struct(s).Set32(12, v) }
+func (s HeaderCapn) BlockBodyType() uint8        { return C.Struct(s).Get8(32) }
+func (s HeaderCapn) SetBlockBodyType(v uint8)    { C.Struct(s).Set8(32, v) }
 func (s HeaderCapn) Signature() []byte           { return C.Struct(s).GetObject(4).ToData() }
 func (s HeaderCapn) SetSignature(v []byte)       { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
 func (s HeaderCapn) MiniBlockHeaders() MiniBlockHeaderCapn_List {
@@ -52,8 +52,8 @@ func (s HeaderCapn) RootHash() []byte                     { return C.Struct(s).G
 func (s HeaderCapn) SetRootHash(v []byte)                 { C.Struct(s).SetObject(7, s.Segment.NewData(v)) }
 func (s HeaderCapn) MetaHdrHashes() C.DataList            { return C.DataList(C.Struct(s).GetObject(8)) }
 func (s HeaderCapn) SetMetaHdrHashes(v C.DataList)        { C.Struct(s).SetObject(8, C.Object(v)) }
-func (s HeaderCapn) TxCount() uint32                      { return C.Struct(s).Get32(32) }
-func (s HeaderCapn) SetTxCount(v uint32)                  { C.Struct(s).Set32(32, v) }
+func (s HeaderCapn) TxCount() uint32                      { return C.Struct(s).Get32(36) }
+func (s HeaderCapn) SetTxCount(v uint32)                  { C.Struct(s).Set32(36, v) }
 func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
