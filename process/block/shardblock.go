@@ -531,8 +531,8 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-// getMaxNonce returns the maximum nonce of meta blocks included in the given shard header
-func (sp *shardProcessor) getMaxNonce(header *block.Header) uint64 {
+// getMaxNonceInMetaBlocksUsed returns the maximum nonce of meta blocks included in the given shard header
+func (sp *shardProcessor) getMaxNonceInMetaBlocksUsed(header *block.Header) uint64 {
 	maxNonce := uint64(0)
 	for _, hash := range header.MetaBlockHashes {
 		metaBlock, _ := sp.dataPool.MetaBlocks().Peek(hash)
@@ -564,7 +564,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header
 		return nil, process.ErrNilBlockHeader
 	}
 
-	maxNonce := sp.getMaxNonce(header)
+	maxNonce := sp.getMaxNonceInMetaBlocksUsed(header)
 
 	log.Info(fmt.Sprintf("the highest metachain block nonce used in shard header with nonce %d is %d\n",
 		header.Nonce,
