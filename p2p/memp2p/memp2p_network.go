@@ -133,16 +133,16 @@ func (network *MemP2PNetwork) PeerIDsExceptOne(peerIDToExclude p2p.PeerID) []p2p
 // RegisterPeer adds a messenger to the Peers map and its PeerID to the peerIDs
 // slice.
 func (network *MemP2PNetwork) RegisterPeer(messenger *MemP2PMessenger) {
-	network.mutex.RLock()
+	network.mutex.Lock()
 	network.peerIDs = append(network.peerIDs, messenger.ID())
 	network.peers[messenger.ID()] = messenger
-	network.mutex.RUnlock()
+	network.mutex.Unlock()
 }
 
 // UnregisterPeer removes a messenger from the Peers map and its PeerID from
 // the peerIDs slice.
 func (network *MemP2PNetwork) UnregisterPeer(peerID p2p.PeerID) {
-	network.mutex.RLock()
+	network.mutex.Lock()
 	// Delete from the Peers map.
 	delete(network.peers, peerID)
 	// Remove from the peerIDs slice, maintaining the order of the slice.
@@ -153,7 +153,7 @@ func (network *MemP2PNetwork) UnregisterPeer(peerID p2p.PeerID) {
 		}
 	}
 	network.peerIDs = append(network.peerIDs[0:index], network.peerIDs[index+1:]...)
-	network.mutex.RUnlock()
+	network.mutex.Unlock()
 }
 
 // LogMessage adds a message to its internal log of messages.
