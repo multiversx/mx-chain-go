@@ -52,6 +52,36 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				},
 			}
 		},
+		SmartContractResultsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &mock.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if reflect.DeepEqual(key, testHash) {
+								return &transaction.Transaction{Nonce: 10}, true
+							}
+							return nil, false
+						},
+						KeysCalled: func() [][]byte {
+							return [][]byte{[]byte("key1"), []byte("key2")}
+						},
+						LenCalled: func() int {
+							return 0
+						},
+					}
+				},
+				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+				},
+			}
+		},
 		HeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
 			return &mock.Uint64CacherStub{
 				PutCalled: func(u uint64, i interface{}) bool {
@@ -246,7 +276,7 @@ func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
 	)
 
 	assert.Nil(t, tc)
-	assert.Equal(t, process.ErrNilHasher, err)
+	assert.Equal(t, process.ErrNilPreProcessorsContainer, err)
 }
 
 func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
@@ -262,7 +292,7 @@ func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
 	)
 
 	assert.Nil(t, tc)
-	assert.Equal(t, process.ErrNilMarshalizer, err)
+	assert.Equal(t, process.ErrNilIntermediateProcessorContainer, err)
 }
 
 func TestNewTransactionCoordinator_OK(t *testing.T) {
@@ -338,7 +368,11 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.AddressConverterMock{},
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
-		&mock.TxProcessorMock{},
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+				return nil
+			},
+		},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 	)
@@ -553,12 +587,61 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToProcess(t *testing.T) {
 	t.Parallel()
 
+	shardedCacheMock := &mock.ShardedDataStub{
+		RegisterHandlerCalled: func(i func(key []byte)) {},
+		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+			return &mock.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					return nil, false
+				},
+				KeysCalled: func() [][]byte {
+					return nil
+				},
+				LenCalled: func() int {
+					return 0
+				},
+			}
+		},
+		RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			return nil, false
+		},
+		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+		},
+	}
+
+	factory, _ := shard.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(5),
+		initStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return shardedCacheMock
+			},
+			SmartContractResultsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return shardedCacheMock
+			},
+		},
+		&mock.AddressConverterMock{},
+		&mock.AccountsStub{},
+		&mock.RequestHandlerMock{},
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+				return nil
+			},
+		},
+		&mock.SCProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
+	)
+	container, _ := factory.Create()
+
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
 		mock.NewPoolsHolderFake(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainer(),
+		container,
 		&mock.InterimProcessorContainerMock{},
 	)
 	assert.Nil(t, err)
@@ -815,7 +898,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		dataPool,
 		&mock.AddressConverterMock{},
 		accounts,
-		&mock.RequestHandlerMock{},
+		requestHandler,
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},

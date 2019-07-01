@@ -46,7 +46,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	mock2 "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -315,7 +314,31 @@ func createShardNetNode(
 	resolversContainer, _ := resolversContainerFactory.Create()
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
 	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(tn.resolvers, factory.TransactionTopic, factory.SmartContractResultTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
-	txCoordinator, _ := coordinator.NewTransactionCoordinator(shardCoordinator, accntAdapter, dPool, requestHandler, testHasher, testMarshalizer, &mock2.TxProcessorMock{}, store)
+
+	factory, _ := shard.NewPreProcessorsContainerFactory(
+		shardCoordinator,
+		store,
+		testMarshalizer,
+		testHasher,
+		dPool,
+		testAddressConverter,
+		accntAdapter,
+		requestHandler,
+		&mock.TxProcessorMock{},
+		&mock.SCProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
+	)
+	container, _ := factory.Create()
+
+	tc, _ := coordinator.NewTransactionCoordinator(
+		shardCoordinator,
+		accntAdapter,
+		dPool,
+		requestHandler,
+		container,
+		&mock.InterimProcessorContainerMock{},
+	)
+
 	blockProcessor, _ := block.NewShardProcessor(
 		&mock.ServiceContainerMock{},
 		dPool,
@@ -342,7 +365,7 @@ func createShardNetNode(
 		createGenesisBlocks(shardCoordinator),
 		true,
 		requestHandler,
-		txCoordinator,
+		tc,
 		uint64Converter,
 	)
 
