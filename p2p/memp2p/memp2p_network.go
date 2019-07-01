@@ -21,16 +21,19 @@ type MemP2PNetwork struct {
 
 // NewMemP2PNetwork constructs a new MemP2PNetwork instance with an empty
 // internal map of peers.
-func NewMemP2PNetwork() *MemP2PNetwork {
+func NewMemP2PNetwork() (*MemP2PNetwork, error) {
 	var peerIDs []p2p.PeerID
 	var messages []p2p.MessageP2P
-	return &MemP2PNetwork{
+
+	network := MemP2PNetwork{
 		mutex:       sync.RWMutex{},
 		peerIDs:     peerIDs,
 		peers:       make(map[p2p.PeerID]*MemP2PMessenger),
 		LogMessages: false,
 		Messages:    messages,
 	}
+
+	return &network, nil
 }
 
 // ListAddresses provides the addresses of the known peers.

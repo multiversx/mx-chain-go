@@ -31,7 +31,11 @@ type MemP2PMessenger struct {
 
 // NewMemP2PMessenger constructs a new MemP2PMessenger that is connected to the
 // MemP2PNetwork instance provided as argument.
-func NewMemP2PMessenger(network *MemP2PNetwork) *MemP2PMessenger {
+func NewMemP2PMessenger(network *MemP2PNetwork) (*MemP2PMessenger, error) {
+	if network == nil {
+		return nil, errors.New("Cannot create a MemP2PMessenger for a nil network")
+	}
+
 	ID := fmt.Sprintf("Peer%d", len(network.PeerIDs())+1)
 	Address := fmt.Sprintf("/memp2p/%s", string(ID))
 
@@ -45,7 +49,7 @@ func NewMemP2PMessenger(network *MemP2PNetwork) *MemP2PMessenger {
 
 	network.RegisterPeer(messenger)
 
-	return messenger
+	return messenger, nil
 }
 
 // ID returns the P2P ID of the messenger

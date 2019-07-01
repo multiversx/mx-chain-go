@@ -26,9 +26,9 @@ type MemP2PMessage struct {
 }
 
 // NewMemP2PMessage constructs a new MemP2PMessage instance from arguments
-func NewMemP2PMessage(topic string, data []byte, peerID p2p.PeerID) *MemP2PMessage {
+func NewMemP2PMessage(topic string, data []byte, peerID p2p.PeerID) (*MemP2PMessage, nil) {
 	var empty []byte
-	return &MemP2PMessage{
+	message := MemP2PMessage{
 		from:      []byte(string(peerID)),
 		data:      data,
 		seqNo:     empty,
@@ -37,6 +37,7 @@ func NewMemP2PMessage(topic string, data []byte, peerID p2p.PeerID) *MemP2PMessa
 		key:       []byte(string(peerID)),
 		peer:      peerID,
 	}
+	return &message, nil
 }
 
 // From returns the message originator's peer ID
