@@ -12,11 +12,12 @@ import (
 // peers. The peers are connected to the network if they are in the internal
 // `peers` map; otherwise, they are disconnected.
 type MemP2PNetwork struct {
-	mutex       sync.RWMutex
-	peerIDs     []p2p.PeerID
-	peers       map[p2p.PeerID]*MemP2PMessenger
-	LogMessages bool
-	Messages    []p2p.MessageP2P
+	mutex           sync.RWMutex
+	messageLogMutex sync.RWMutex
+	peerIDs         []p2p.PeerID
+	peers           map[p2p.PeerID]*MemP2PMessenger
+	LogMessages     bool
+	Messages        []p2p.MessageP2P
 }
 
 // NewMemP2PNetwork constructs a new MemP2PNetwork instance with an empty
@@ -26,11 +27,12 @@ func NewMemP2PNetwork() (*MemP2PNetwork, error) {
 	var messages []p2p.MessageP2P
 
 	network := MemP2PNetwork{
-		mutex:       sync.RWMutex{},
-		peerIDs:     peerIDs,
-		peers:       make(map[p2p.PeerID]*MemP2PMessenger),
-		LogMessages: false,
-		Messages:    messages,
+		mutex:           sync.RWMutex{},
+		messageLogMutex: sync.RWMutex{},
+		peerIDs:         peerIDs,
+		peers:           make(map[p2p.PeerID]*MemP2PMessenger),
+		LogMessages:     false,
+		Messages:        messages,
 	}
 
 	return &network, nil
@@ -156,9 +158,9 @@ func (network *MemP2PNetwork) UnregisterPeer(peerID p2p.PeerID) {
 
 // LogMessage adds a message to its internal log of messages.
 func (network *MemP2PNetwork) LogMessage(message p2p.MessageP2P) {
-	network.mutex.RLock()
+	network.messsageLogMutex.RLock()
 	network.Messages = append(network.Messages, message)
-	network.mutex.RUnlock()
+	network.messsageLogMutex.RUnlock()
 }
 
 // IsPeerConnected returns true if the peer represented by the provided ID is
