@@ -25,12 +25,12 @@ func (processor MockMessageProcessor) ProcessReceivedMessage(message p2p.Message
 }
 
 func Test_Initializing_MemP2PNetwork_with_4_Peers(t *testing.T) {
-	network := NewMemP2PNetwork()
+	network, _ := NewMemP2PNetwork()
 
-	peer1 := NewMemP2PMessenger(network)
-	peer2 := NewMemP2PMessenger(network)
-	peer3 := NewMemP2PMessenger(network)
-	peer4 := NewMemP2PMessenger(network)
+	peer1, _ := NewMemP2PMessenger(network)
+	peer2, _ := NewMemP2PMessenger(network)
+	peer3, _ := NewMemP2PMessenger(network)
+	peer4, _ := NewMemP2PMessenger(network)
 
 	assert.Equal(t, 4, len(network.Peers()))
 	assert.Equal(t, "Peer1", string(peer1.ID()))
@@ -90,13 +90,13 @@ func Test_Initializing_MemP2PNetwork_with_4_Peers(t *testing.T) {
 }
 
 func Test_Broadcasting_Messages(t *testing.T) {
-	network := NewMemP2PNetwork()
+	network, _ := NewMemP2PNetwork()
 	network.LogMessages = true
 
-	peer1 := NewMemP2PMessenger(network)
-	peer2 := NewMemP2PMessenger(network)
-	peer3 := NewMemP2PMessenger(network)
-	peer4 := NewMemP2PMessenger(network)
+	peer1, _ := NewMemP2PMessenger(network)
+	peer2, _ := NewMemP2PMessenger(network)
+	peer3, _ := NewMemP2PMessenger(network)
+	peer4, _ := NewMemP2PMessenger(network)
 
 	// All peers listen to the topic "rocket"
 	peer1.CreateTopic("rocket", false)
@@ -128,12 +128,47 @@ func Test_Broadcasting_Messages(t *testing.T) {
 	assert.Equal(t, 7, len(network.Messages))
 }
 
-func Test_Sending_Direct_Messages(t *testing.T) {
-	network := NewMemP2PNetwork()
+func Test_Connectivity_And_Topics(t *testing.T) {
+	network, _ := NewMemP2PNetwork()
 	network.LogMessages = true
 
-	peer1 := NewMemP2PMessenger(network)
-	peer2 := NewMemP2PMessenger(network)
+	peer1, _ := NewMemP2PMessenger(network)
+	peer2, _ := NewMemP2PMessenger(network)
+	peer3, _ := NewMemP2PMessenger(network)
+	peer4, _ := NewMemP2PMessenger(network)
+
+	// All peers listen to the topic "rocket"
+	peer1.CreateTopic("rocket", false)
+	peer1.RegisterMessageProcessor("rocket", NewMockMessageProcessor(peer1.ID()))
+	peer2.CreateTopic("rocket", false)
+	peer2.RegisterMessageProcessor("rocket", NewMockMessageProcessor(peer2.ID()))
+	peer3.CreateTopic("rocket", false)
+	peer3.RegisterMessageProcessor("rocket", NewMockMessageProcessor(peer3.ID()))
+	peer4.CreateTopic("rocket", false)
+	peer4.RegisterMessageProcessor("rocket", NewMockMessageProcessor(peer4.ID()))
+
+	// Peers 2 and 3 also listen on the topic "carbohydrate"
+	peer2.CreateTopic("carbohydrate", false)
+	peer2.RegisterMessageProcessor("carbohydrate", NewMockMessageProcessor(peer2.ID()))
+	peer3.CreateTopic("carbohydrate", false)
+	peer3.RegisterMessageProcessor("carbohydrate", NewMockMessageProcessor(peer3.ID()))
+
+	peers1234 := []p2p.PeerID{peer1.ID(), peer2.ID(), peer3.ID(), peer4.ID()}
+	peers234 := []p2p.PeerID{peer2.ID(), peer3.ID(), peer4.ID()}
+	peers23 := []p2p.PeerID{peer2.ID(), peer3.ID()}
+
+	assert.Equal(t, peers1234, network.PeerIDs())
+	assert.Equal(t, peers234, peer1.ConnectedPeers())
+	assert.Equal(t, peers234, peer1.ConnectedPeersOnTopic("rocket"))
+	assert.Equal(t, peers23, peer1.ConnectedPeersOnTopic("carbohydrate"))
+}
+
+func Test_Sending_Direct_Messages(t *testing.T) {
+	network, _ := NewMemP2PNetwork()
+	network.LogMessages = true
+
+	peer1, _ := NewMemP2PMessenger(network)
+	peer2, _ := NewMemP2PMessenger(network)
 
 	assert.NotNil(t, peer1.SendToConnectedPeer("rocket", []byte("try to launch this rocket"), "Peer2"))
 	assert.NotNil(t, peer2.SendToConnectedPeer("rocket", []byte("try to launch this rocket"), "Peer1"))
