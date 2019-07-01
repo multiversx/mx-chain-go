@@ -25,6 +25,7 @@ type MemP2PMessage struct {
 	peer p2p.PeerID
 }
 
+// NewMemP2PMessage constructs a new MemP2PMessage instance from arguments
 func NewMemP2PMessage(topic string, data []byte, peerID p2p.PeerID) *MemP2PMessage {
 	var empty []byte
 	return &MemP2PMessage{
