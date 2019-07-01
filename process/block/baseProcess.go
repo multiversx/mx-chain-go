@@ -263,6 +263,13 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 		return processedHdrs[i].GetNonce() < processedHdrs[j].GetNonce()
 	})
 
+	if len(processedHdrs) > 0 {
+		log.Info(fmt.Sprintf("%d full processed metachain nonces for current header are between %d and %d\n",
+			len(processedHdrs),
+			processedHdrs[0].GetNonce(),
+			processedHdrs[len(processedHdrs)-1].GetNonce()))
+	}
+
 	for i := 0; i < len(processedHdrs); i++ {
 		errNotCritical := bp.checkHeaderTypeCorrect(shardId, processedHdrs[i])
 		if errNotCritical != nil {
@@ -272,6 +279,7 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 
 		errNotCritical = bp.isHdrConstructionValid(processedHdrs[i], bp.lastNotarizedHdrs[shardId])
 		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
 			continue
 		}
 
