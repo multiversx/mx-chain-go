@@ -169,7 +169,7 @@ VERSION:
 	boostrapRoundIndex = cli.UintFlag{
 		Name:  "boostrap-round-index",
 		Usage: "Boostrap round index specifies the round index from which node should bootstrap from storage",
-		Value: math.MaxUint32,
+		Value: math.MaxUint64,
 	}
 
 	//TODO remove uniqueID
@@ -183,7 +183,7 @@ type mockProposerResolver struct {
 }
 
 // ResolveProposer computes a block proposer. For now, this is mocked.
-func (mockProposerResolver) ResolveProposer(shardId uint32, roundIndex uint32, prevRandomSeed []byte) ([]byte, error) {
+func (mockProposerResolver) ResolveProposer(shardId uint32, roundIndex uint64, prevRandomSeed []byte) ([]byte, error) {
 	return []byte("mocked proposer"), nil
 }
 
@@ -447,7 +447,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		cryptoComponents,
 		processComponents,
 		networkComponents,
-		uint32(ctx.GlobalUint(boostrapRoundIndex.Name)),
+		uint64(ctx.GlobalUint(boostrapRoundIndex.Name)),
 	)
 	if err != nil {
 		return err
@@ -626,7 +626,7 @@ func createNode(
 	crypto *factory.Crypto,
 	process *factory.Process,
 	network *factory.Network,
-	boostrapRoundIndex uint32,
+	boostrapRoundIndex uint64,
 ) (*node.Node, error) {
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),

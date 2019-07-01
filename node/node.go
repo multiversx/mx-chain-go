@@ -98,7 +98,7 @@ type Node struct {
 	isMetachainActive        bool
 	txStorageSize            uint32
 	currentSendingGoRoutines int32
-	boostrapRoundIndex       uint32
+	boostrapRoundIndex       uint64
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
