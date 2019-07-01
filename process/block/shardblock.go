@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/pkg/errors"
 )
 
 const maxTransactionsInBlock = 15000
@@ -489,7 +490,13 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromPool(body, header)
+	maxNonce := sp.getMaxNonceFromUsedMetaBlocks(header)
+
+	log.Info(fmt.Sprintf("the highest metachain block nonce used in shard header with nonce %d is %d\n",
+		header.Nonce,
+		maxNonce))
+
+	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromPool(body, maxNonce)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
@@ -501,6 +508,10 @@ func (sp *shardProcessor) CommitBlock(
 
 	log.Info(fmt.Sprintf("last notarized block nonce from metachain is %d\n",
 		sp.lastNotarizedHdrs[sharding.MetachainShardId].GetNonce()))
+
+	if maxNonce > 0 && sp.lastNotarizedHdrs[sharding.MetachainShardId].GetNonce() != maxNonce {
+		return errors.New("error")
+	}
 
 	errNotCritical = sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
 	if errNotCritical != nil {
@@ -531,8 +542,8 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-// getMaxNonceInMetaBlocksUsed returns the maximum nonce of meta blocks included in the given shard header
-func (sp *shardProcessor) getMaxNonceInMetaBlocksUsed(header *block.Header) uint64 {
+// getMaxNonceFromUsedMetaBlocks returns the maximum nonce of meta blocks included in the given shard header
+func (sp *shardProcessor) getMaxNonceFromUsedMetaBlocks(header *block.Header) uint64 {
 	maxNonce := uint64(0)
 	for _, hash := range header.MetaBlockHashes {
 		metaBlock, _ := sp.dataPool.MetaBlocks().Peek(hash)
@@ -556,19 +567,10 @@ func (sp *shardProcessor) getMaxNonceInMetaBlocksUsed(header *block.Header) uint
 }
 
 // getProcessedMetaBlocksFromPool returns all the meta blocks fully processed
-func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, maxNonce uint64) ([]data.HeaderHandler, error) {
 	if body == nil {
 		return nil, process.ErrNilTxBlockBody
 	}
-	if header == nil {
-		return nil, process.ErrNilBlockHeader
-	}
-
-	maxNonce := sp.getMaxNonceInMetaBlocksUsed(header)
-
-	log.Info(fmt.Sprintf("the highest metachain block nonce used in shard header with nonce %d is %d\n",
-		header.Nonce,
-		maxNonce))
 
 	miniBlockHashes := make(map[int][]byte, 0)
 	for i := 0; i < len(body); i++ {
@@ -586,6 +588,8 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header
 		mbHash := sp.hasher.Compute(string(buff))
 		miniBlockHashes[i] = mbHash
 	}
+
+	log.Info(fmt.Sprintf("cross nini blocks in body: %d\n", len(miniBlockHashes)))
 
 	processedMetaHdrs := make([]data.HeaderHandler, 0)
 	for _, metaBlockKey := range sp.dataPool.MetaBlocks().Keys() {
@@ -605,6 +609,8 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header
 			continue
 		}
 
+		log.Info(fmt.Sprintf("meta header nonce: %d\n", hdr.Nonce))
+
 		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
 			_, ok := crossMiniBlockHashes[string(miniBlockHashes[key])]
@@ -615,6 +621,8 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header
 			hdr.SetMiniBlockProcessed(miniBlockHashes[key], true)
 			delete(miniBlockHashes, key)
 		}
+
+		log.Info(fmt.Sprintf("cross mini blocks in meta header: %d\n", len(crossMiniBlockHashes)))
 
 		processedAll := true
 		for key := range crossMiniBlockHashes {
@@ -1210,15 +1218,22 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		maxTxRemaining := uint32(maxTxInBlock) - nrTxAdded
+
+		if len(hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
+			usedMetaHdrsHashes = append(usedMetaHdrsHashes, orderedMetaBlocks[i].hash)
+			lastMetaHdr = hdr
+			continue
+		}
+
 		currMBProcessed, currTxsAdded, hdrProcessFinished := sp.createAndprocessMiniBlocksFromHeader(hdr, maxTxRemaining, round, haveTime)
 
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, currMBProcessed...)
 		nrTxAdded = nrTxAdded + currTxsAdded
 
-		// all the metaheaders which has been checked and are valid until this point will be add in the header of the
-		// proposed block
-		usedMetaHdrsHashes = append(usedMetaHdrsHashes, orderedMetaBlocks[i].hash)
+		if currTxsAdded > 0 {
+			usedMetaHdrsHashes = append(usedMetaHdrsHashes, orderedMetaBlocks[i].hash)
+		}
 
 		if !hdrProcessFinished {
 			break
