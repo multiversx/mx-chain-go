@@ -64,7 +64,7 @@ type baseBootstrap struct {
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	boostrapRoundIndex    uint32
+	boostrapRoundIndex    uint64
 }
 
 func (boot *baseBootstrap) loadBlocks(
@@ -298,7 +298,7 @@ func (boot *baseBootstrap) removeNotarizedBlockHeader(
 func (boot *baseBootstrap) getBlockRoundFromNonce(
 	nonce uint64,
 	getHeader func(uint64) (data.HeaderHandler, []byte, error),
-) (uint32, error) {
+) (uint64, error) {
 
 	header, _, err := getHeader(nonce)
 	if err != nil {

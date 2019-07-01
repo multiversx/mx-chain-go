@@ -12,20 +12,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
-	ProcessTransaction(transaction *transaction.Transaction, round uint32) ([]*smartContractResult.SmartContractResult, error)
+	ProcessTransaction(transaction *transaction.Transaction, round uint64) ([]*smartContractResult.SmartContractResult, error)
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
-	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
-	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
+	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) ([]*smartContractResult.SmartContractResult, error)
+	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint64) ([]*smartContractResult.SmartContractResult, error)
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
 }
 
@@ -37,14 +37,14 @@ type PreProcessor interface {
 	RestoreTxBlockIntoPools(body block.Body, miniBlockHashes map[int][]byte, miniBlockPool storage.Cacher) (int, error)
 	SaveTxBlockToStorage(body block.Body) error
 
-	ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error
+	ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error
 	RequestBlockTransactions(body block.Body) int
 
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 
 	RequestTransactionsForMiniBlock(mb block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error
-	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error
+	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
 
 	GetAllCurrentUsedTxs() map[string]*transaction.Transaction
 }
@@ -54,9 +54,9 @@ type BlockProcessor interface {
 	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
-	CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	CreateBlockHeader(body data.BodyHandler, round uint32, haveTime func() bool) (data.HeaderHandler, error)
+	CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
@@ -158,7 +158,7 @@ type TopicMessageHandler interface {
 // ChronologyValidator defines the functionality needed to validate a received header block (shard or metachain)
 // from chronology point of view
 type ChronologyValidator interface {
-	ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error
+	ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint64) error
 }
 
 // DataPacker can split a large slice of byte slices in smaller packets
@@ -171,7 +171,7 @@ type BlocksTracker interface {
 	UnnotarisedBlocks() []data.HeaderHandler
 	RemoveNotarisedBlocks(headerHandler data.HeaderHandler) error
 	AddBlock(headerHandler data.HeaderHandler)
-	SetBlockBroadcastRound(nonce uint64, round int32)
+	SetBlockBroadcastRound(nonce uint64, round int64)
 	BlockBroadcastRound(nonce uint64) int64
 }
 

@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type scExecutionState struct {
@@ -36,7 +36,7 @@ type scProcessor struct {
 	argsParser       process.ArgumentsParser
 
 	mutSCState   sync.Mutex
-	mapExecState map[uint32]scExecutionState
+	mapExecState map[uint64]scExecutionState
 }
 
 var log = logger.DefaultLogger()
@@ -86,7 +86,7 @@ func NewSmartContractProcessor(
 		tempAccounts:     tempAccounts,
 		adrConv:          adrConv,
 		shardCoordinator: coordinator,
-		mapExecState:     make(map[uint32]scExecutionState)}, nil
+		mapExecState:     make(map[uint64]scExecutionState)}, nil
 }
 
 // ComputeTransactionType calculates the type of the transaction
@@ -142,7 +142,7 @@ func (sc *scProcessor) isDestAddressEmpty(tx *transaction.Transaction) bool {
 func (sc *scProcessor) ExecuteSmartContractTransaction(
 	tx *transaction.Transaction,
 	acntSnd, acntDst state.AccountHandler,
-	round uint32,
+	round uint64,
 ) ([]*smartContractResult.SmartContractResult, error) {
 	defer sc.tempAccounts.CleanTempAccounts()
 
@@ -205,7 +205,7 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 func (sc *scProcessor) DeploySmartContract(
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
-	round uint32,
+	round uint64,
 ) ([]*smartContractResult.SmartContractResult, error) {
 	defer sc.tempAccounts.CleanTempAccounts()
 
@@ -342,7 +342,7 @@ func (sc *scProcessor) processVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
-	round uint32,
+	round uint64,
 ) ([]*smartContractResult.SmartContractResult, error) {
 	if vmOutput == nil {
 		return nil, process.ErrNilVMOutput
@@ -587,12 +587,12 @@ func (sc *scProcessor) getAccountFromAddress(address []byte) (state.AccountHandl
 }
 
 // GetAllSmartContractCallRootHash returns the roothash of the state of the SC executions for defined round
-func (sc *scProcessor) GetAllSmartContractCallRootHash(round uint32) []byte {
+func (sc *scProcessor) GetAllSmartContractCallRootHash(round uint64) []byte {
 	return []byte("roothash")
 }
 
 // saves VM output into state
-func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput, round uint32, txHash []byte) error {
+func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput, round uint64, txHash []byte) error {
 	var err error
 
 	sc.mutSCState.Lock()
@@ -631,19 +631,19 @@ func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput, rou
 }
 
 // saves return data into account state
-func (sc *scProcessor) saveReturnData(returnData []*big.Int, round uint32, txHash []byte) error {
+func (sc *scProcessor) saveReturnData(returnData []*big.Int, round uint64, txHash []byte) error {
 	sc.mapExecState[round].allReturnData[string(txHash)] = returnData
 	return nil
 }
 
 // saves smart contract return code into account state
-func (sc *scProcessor) saveReturnCode(returnCode vmcommon.ReturnCode, round uint32, txHash []byte) error {
+func (sc *scProcessor) saveReturnCode(returnCode vmcommon.ReturnCode, round uint64, txHash []byte) error {
 	sc.mapExecState[round].returnCodes[string(txHash)] = returnCode
 	return nil
 }
 
 // save vm output logs into accounts
-func (sc *scProcessor) saveLogsIntoState(logs []*vmcommon.LogEntry, round uint32, txHash []byte) error {
+func (sc *scProcessor) saveLogsIntoState(logs []*vmcommon.LogEntry, round uint64, txHash []byte) error {
 	sc.mapExecState[round].allLogs[string(txHash)] = logs
 	return nil
 }

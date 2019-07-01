@@ -2,8 +2,9 @@ package transaction
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -66,7 +67,7 @@ func NewTxProcessor(
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex uint32) ([]*smartContractResult.SmartContractResult, error) {
+func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex uint64) ([]*smartContractResult.SmartContractResult, error) {
 	if tx == nil {
 		return nil, process.ErrNilTransaction
 	}
@@ -133,7 +134,7 @@ func (txProc *txProcessor) processMoveBalance(
 func (txProc *txProcessor) processSCDeployment(
 	tx *transaction.Transaction,
 	adrSrc state.AddressContainer,
-	roundIndex uint32,
+	roundIndex uint64,
 ) ([]*smartContractResult.SmartContractResult, error) {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
@@ -149,7 +150,7 @@ func (txProc *txProcessor) processSCDeployment(
 func (txProc *txProcessor) processSCInvoking(
 	tx *transaction.Transaction,
 	adrSrc, adrDst state.AddressContainer,
-	roundIndex uint32,
+	roundIndex uint64,
 ) ([]*smartContractResult.SmartContractResult, error) {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.

@@ -33,7 +33,7 @@ type shardProcessor struct {
 	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
 	chRcvAllMetaHdrs      chan bool
 	mutUsedMetaHdrsHashes sync.Mutex
-	usedMetaHdrsHashes    map[uint32][][]byte
+	usedMetaHdrsHashes    map[uint64][][]byte
 
 	mutRequestedMetaHdrsHashes sync.RWMutex
 	requestedMetaHdrsHashes    map[string]bool
@@ -116,7 +116,7 @@ func NewShardProcessor(
 
 	sp.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	sp.requestedMetaHdrsHashes = make(map[string]bool)
-	sp.usedMetaHdrsHashes = make(map[uint32][][]byte)
+	sp.usedMetaHdrsHashes = make(map[uint64][][]byte)
 
 	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
@@ -287,7 +287,7 @@ func (sp *shardProcessor) checkHeaderBodyCorrelation(hdr *block.Header, body blo
 	return nil
 }
 
-func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint32) {
+func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
 	if err != nil {
 		log.Debug(err.Error())
@@ -392,7 +392,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][]byt
 
 // CreateBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
-func (sp *shardProcessor) CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error) {
+func (sp *shardProcessor) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
 	miniBlocks, err := sp.createMiniBlocks(sp.shardCoordinator.NumberOfShards(), maxTransactionsInBlock, round, haveTime)
 	if err != nil {
 		return nil, err
@@ -840,7 +840,7 @@ func (sp *shardProcessor) computeMissingHeaders(header *block.Header) [][]byte {
 // processMiniBlockComplete - all transactions must be processed together, otherwise error
 func (sp *shardProcessor) createAndProcessMiniBlockComplete(
 	miniBlock *block.MiniBlock,
-	round uint32,
+	round uint64,
 	haveTime func() bool,
 ) error {
 
@@ -899,7 +899,7 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header) erro
 	return err
 }
 
-func (sp *shardProcessor) verifyIncludedMetaBlocksFinality(currMetaBlocks []data.HeaderHandler, round uint32) error {
+func (sp *shardProcessor) verifyIncludedMetaBlocksFinality(currMetaBlocks []data.HeaderHandler, round uint64) error {
 	orderedMetablocks, err := sp.getOrderedMetaBlocks(round)
 	if err != nil {
 		return err
@@ -919,7 +919,7 @@ func (sp *shardProcessor) verifyIncludedMetaBlocksFinality(currMetaBlocks []data
 	return nil
 }
 
-func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(round uint32, metaHashes [][]byte) (map[string][]byte, error) {
+func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(round uint64, metaHashes [][]byte) (map[string][]byte, error) {
 	metaBlockCache := sp.dataPool.MetaBlocks()
 	if metaBlockCache == nil {
 		return nil, process.ErrNilMetaBlockPool
@@ -961,7 +961,7 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(round uint32, metaHashes 
 	return mMiniBlockMeta, nil
 }
 
-func (sp *shardProcessor) getOrderedMetaBlocks(round uint32) ([]*hashAndHdr, error) {
+func (sp *shardProcessor) getOrderedMetaBlocks(round uint64) ([]*hashAndHdr, error) {
 	metaBlockCache := sp.dataPool.MetaBlocks()
 	if metaBlockCache == nil {
 		return nil, process.ErrNilMetaBlockPool
@@ -1012,7 +1012,7 @@ func (sp *shardProcessor) getOrderedMetaBlocks(round uint32) ([]*hashAndHdr, err
 func (sp *shardProcessor) createAndprocessMiniBlocksFromHeader(
 	hdr data.HeaderHandler,
 	maxTxRemaining uint32,
-	round uint32,
+	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, bool) {
 	// verification of hdr and miniblock validity is done before the function is called
@@ -1112,7 +1112,7 @@ func (sp *shardProcessor) isMetaHeaderFinal(currHdr data.HeaderHandler, sortedHd
 func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	noShards uint32,
 	maxTxInBlock int,
-	round uint32,
+	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, error) {
 
@@ -1197,7 +1197,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 func (sp *shardProcessor) createMiniBlocks(
 	noShards uint32,
 	maxTxInBlock int,
-	round uint32,
+	round uint64,
 	haveTime func() bool,
 ) (block.Body, error) {
 
@@ -1253,7 +1253,7 @@ func (sp *shardProcessor) createMiniBlocks(
 }
 
 // CreateBlockHeader creates a miniblock header list given a block body
-func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint32, haveTime func() bool) (data.HeaderHandler, error) {
+func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
 	// TODO: add PrevRandSeed and RandSeed when BLS signing is completed
 	header := &block.Header{
 		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
