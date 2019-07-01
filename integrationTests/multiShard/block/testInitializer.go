@@ -257,7 +257,16 @@ func createNetNode(
 		&mock.SCProcessorMock{},
 	)
 
-	txCoordinator, _ := coordinator.NewTransactionCoordinator(shardCoordinator, accntAdapter, dPool, requestHandler, testHasher, testMarshalizer, txProcessor, store)
+	txCoordinator, _ := coordinator.NewTransactionCoordinator(
+		shardCoordinator,
+		accntAdapter,
+		dPool,
+		requestHandler,
+		testHasher,
+		testMarshalizer,
+		txProcessor,
+		store,
+	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 	blockProcessor, _ := block.NewShardProcessor(
