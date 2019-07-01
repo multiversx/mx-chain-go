@@ -2,6 +2,8 @@ package memp2p
 
 import "github.com/ElrondNetwork/elrond-go/p2p"
 
+// MemP2PMessage represents a message to be sent through the in-memory network
+// simulated by the struct MemP2PNetwork.
 type MemP2PMessage struct {
 	// sending PeerID, converted to []byte
 	from []byte
