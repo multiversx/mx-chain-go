@@ -599,19 +599,32 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		return hdrPool
 	}
 
-	tc, err := NewTransactionCoordinator(
+	factory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.AccountsStub{},
-		tdp,
-		&mock.RequestHandlerMock{},
-		&mock.HasherStub{},
+		initStore(),
 		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		tdp,
+		&mock.AddressConverterMock{},
+		&mock.AccountsStub{},
+		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
 				return nil
 			},
 		},
-		&mock.ChainStorerMock{},
+		&mock.SCProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
+	)
+	container, _ := factory.Create()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		tdp,
+		&mock.RequestHandlerMock{},
+		container,
+		&mock.InterimProcessorContainerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
