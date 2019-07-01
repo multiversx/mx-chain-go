@@ -147,9 +147,6 @@ func (messenger *MemP2PMessenger) ConnectedPeersOnTopic(topic string) []p2p.Peer
 		return filteredPeers
 	}
 
-	messenger.TopicsMutex.Lock()
-	defer messenger.TopicsMutex.Unlock()
-
 	allPeerIDsExceptThis := messenger.Network.PeerIDsExceptOne(messenger.ID())
 	allPeersExceptThis := messenger.Network.PeersExceptOne(messenger.ID())
 	for _, peerID := range allPeerIDsExceptThis {
