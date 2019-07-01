@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // PeerAction type represents the possible events that a node can trigger for the metachain to notarize
@@ -60,7 +60,7 @@ type ShardData struct {
 type MetaBlock struct {
 	Nonce         uint64      `capid:"0"`
 	Epoch         uint32      `capid:"1"`
-	Round         uint32      `capid:"2"`
+	Round         uint64      `capid:"2"`
 	TimeStamp     uint64      `capid:"3"`
 	ShardInfo     []ShardData `capid:"4"`
 	PeerInfo      []PeerData  `capid:"5"`
@@ -319,7 +319,7 @@ func (m *MetaBlock) GetEpoch() uint32 {
 }
 
 // GetRound return round from header
-func (m *MetaBlock) GetRound() uint32 {
+func (m *MetaBlock) GetRound() uint64 {
 	return m.Round
 }
 
@@ -374,7 +374,7 @@ func (m *MetaBlock) SetEpoch(e uint32) {
 }
 
 // SetRound sets header round
-func (m *MetaBlock) SetRound(r uint32) {
+func (m *MetaBlock) SetRound(r uint64) {
 	m.Round = r
 }
 
