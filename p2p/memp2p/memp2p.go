@@ -261,37 +261,37 @@ func (messenger *MemP2PMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadB
 }
 
 // BroadcastOnChannelBlocking sends the message to all peers in the network. It
-// calls ParametricBroadcast() with async=false, which means that peers will
+// calls parametricBroadcast() with async=false, which means that peers will
 // have their ReceiveMessage() function called synchronously. The call
-// to ParametricBroadcast() is done synchronously as well. This function should
+// to parametricBroadcast() is done synchronously as well. This function should
 // be called as a go-routine.
 func (messenger *MemP2PMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
 	fmt.Printf("memp2p:BroadcastOnChannelBlocking\n")
-	messenger.ParametricBroadcast(topic, buff, false)
+	messenger.parametricBroadcast(topic, buff, false)
 }
 
 // BroadcastOnChannel sends the message to all peers in the network. It calls
-// ParametricBroadcast() with async=false, which means that peers will have
+// parametricBroadcast() with async=false, which means that peers will have
 // their ReceiveMessage() function called synchronously. The call to
-// ParametricBroadcast() is done as a go-routine, which means this function is,
+// parametricBroadcast() is done as a go-routine, which means this function is,
 // in fact, non-blocking, but it is identical with BroadcastOnChannelBlocking()
 // in all other regards.
 func (messenger *MemP2PMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
 	fmt.Printf("memp2p:BroadcastOnChannel\n")
-	messenger.ParametricBroadcast(topic, buff, false)
+	messenger.parametricBroadcast(topic, buff, false)
 }
 
 // Broadcast asynchronously sends the message to all peers in the network. It
-// calls ParametricBroadcast() with async=true, which means that peers will
+// calls parametricBroadcast() with async=true, which means that peers will
 // have their ReceiveMessage() function independently called as go-routines.
 func (messenger *MemP2PMessenger) Broadcast(topic string, buff []byte) {
 	fmt.Printf("memp2p:Broadcast\n")
-	messenger.ParametricBroadcast(topic, buff, true)
+	messenger.parametricBroadcast(topic, buff, true)
 }
 
-// ParametricBroadcast sends a message to all peers in the network, with the
+// parametricBroadcast sends a message to all peers in the network, with the
 // possibility to choose from asynchronous or synchronous sending.
-func (messenger *MemP2PMessenger) ParametricBroadcast(topic string, data []byte, async bool) {
+func (messenger *MemP2PMessenger) parametricBroadcast(topic string, data []byte, async bool) {
 	if messenger.IsConnectedToNetwork() {
 		message, _ := NewMemP2PMessage(topic, data, messenger.ID())
 		for _, peer := range messenger.Network.Peers() {
