@@ -58,7 +58,7 @@ func (messenger *MemP2PMessenger) ID() p2p.PeerID {
 // connected graph, this function returns the list of the P2P IDs of all the
 // peers in the network (assuming this Messenger is connected).
 func (messenger *MemP2PMessenger) Peers() []p2p.PeerID {
-	fmt.Printf("debug:Peers\n")
+	fmt.Printf("memp2p:Peers\n")
 	// If the messenger is connected to the network, it has knowledge of all
 	// other peers.
 	if !messenger.IsConnectedToNetwork() {
@@ -81,7 +81,7 @@ func (messenger *MemP2PMessenger) Addresses() []string {
 // network are already all connected to each other. This function will return
 // an error if the Messenger is not connected to the network, though.
 func (messenger *MemP2PMessenger) ConnectToPeer(address string) error {
-	fmt.Printf("debug:ConnectToPeer\n")
+	fmt.Printf("memp2p:ConnectToPeer\n")
 	if !messenger.IsConnectedToNetwork() {
 		return errors.New("Peer not connected to network, can't connect to any other peer.")
 	}
@@ -92,7 +92,7 @@ func (messenger *MemP2PMessenger) ConnectToPeer(address string) error {
 // IsConnectedToNetwork returns true if this messenger is connected to the
 // in-memory network, false otherwise.
 func (messenger *MemP2PMessenger) IsConnectedToNetwork() bool {
-	fmt.Printf("debug:IsConnectedToNetwork\n")
+	fmt.Printf("memp2p:IsConnectedToNetwork\n")
 	return messenger.Network.IsPeerConnected(messenger.ID())
 }
 
@@ -100,7 +100,7 @@ func (messenger *MemP2PMessenger) IsConnectedToNetwork() bool {
 // specified ID. It always returns true if the Messenger is connected to the
 // network and false otherwise, regardless of the provided peer ID.
 func (messenger *MemP2PMessenger) IsConnected(peerID p2p.PeerID) bool {
-	fmt.Printf("debug:IsConnected\n")
+	fmt.Printf("memp2p:IsConnected\n")
 	return messenger.IsConnectedToNetwork()
 }
 
@@ -110,7 +110,7 @@ func (messenger *MemP2PMessenger) IsConnected(peerID p2p.PeerID) bool {
 // other peers connected to the network. Returns false if the Messenger is
 // not connected.
 func (messenger *MemP2PMessenger) ConnectedPeers() []p2p.PeerID {
-	fmt.Printf("debug:ConnectedPeers\n")
+	fmt.Printf("memp2p:ConnectedPeers\n")
 	if !messenger.IsConnectedToNetwork() {
 		return []p2p.PeerID{}
 	}
@@ -121,7 +121,7 @@ func (messenger *MemP2PMessenger) ConnectedPeers() []p2p.PeerID {
 // is connected. If this Messenger is connected to the network, then the
 // addresses of all the other peers in the network are returned.
 func (messenger *MemP2PMessenger) ConnectedAddresses() []string {
-	fmt.Printf("debug:ConnectedAddresses\n")
+	fmt.Printf("memp2p:ConnectedAddresses\n")
 	if !messenger.IsConnectedToNetwork() {
 		return []string{}
 	}
@@ -137,7 +137,7 @@ func (messenger *MemP2PMessenger) PeerAddress(pid p2p.PeerID) string {
 // network that have declared their interest in the given topic and are
 // listening to messages on that topic.
 func (messenger *MemP2PMessenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
-	fmt.Printf("debug:ConnectedPeersOnTopic\n")
+	fmt.Printf("memp2p:ConnectedPeersOnTopic\n")
 	var filteredPeers []p2p.PeerID
 	if !messenger.IsConnectedToNetwork() {
 		return filteredPeers
@@ -170,7 +170,7 @@ func (messenger *MemP2PMessenger) Bootstrap() error {
 // interest for this Messenger. It also registers a nil message validator to
 // handle the messages received on this topic.
 func (messenger *MemP2PMessenger) CreateTopic(name string, createChannelForTopic bool) error {
-	fmt.Printf("debug:CreateTopic\n")
+	fmt.Printf("memp2p:CreateTopic\n")
 	messenger.TopicsMutex.Lock()
 
 	_, found := messenger.Topics[name]
@@ -187,7 +187,7 @@ func (messenger *MemP2PMessenger) CreateTopic(name string, createChannelForTopic
 // HasTopic returns true if this Messenger has declared interest in the given
 // topic; returns false otherwise.
 func (messenger *MemP2PMessenger) HasTopic(name string) bool {
-	fmt.Printf("debug:HasTopic\n")
+	fmt.Printf("memp2p:HasTopic\n")
 	messenger.TopicsMutex.RLock()
 	_, found := messenger.Topics[name]
 	messenger.TopicsMutex.RUnlock()
@@ -199,7 +199,7 @@ func (messenger *MemP2PMessenger) HasTopic(name string) bool {
 // the given topic and has registered a non-nil validator on that topic.
 // Returns false otherwise.
 func (messenger *MemP2PMessenger) HasTopicValidator(name string) bool {
-	fmt.Printf("debug:HasTopicValidator\n")
+	fmt.Printf("memp2p:HasTopicValidator\n")
 	messenger.TopicsMutex.RLock()
 	validator, found := messenger.Topics[name]
 	messenger.TopicsMutex.RUnlock()
@@ -210,7 +210,7 @@ func (messenger *MemP2PMessenger) HasTopicValidator(name string) bool {
 // RegisterMessageProcessor sets the provided message processor to be the
 // processor of received messages for the given topic.
 func (messenger *MemP2PMessenger) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
-	fmt.Printf("debug:RegisterMessageProcessor\n")
+	fmt.Printf("memp2p:RegisterMessageProcessor\n")
 	if handler == nil {
 		return p2p.ErrNilValidator
 	}
@@ -234,7 +234,7 @@ func (messenger *MemP2PMessenger) RegisterMessageProcessor(topic string, handler
 // UnregisterMessageProcessor unsets the message processor for the given topic
 // (sets it to nil).
 func (messenger *MemP2PMessenger) UnregisterMessageProcessor(topic string) error {
-	fmt.Printf("debug:UnregisterMessageProcessor\n")
+	fmt.Printf("memp2p:UnregisterMessageProcessor\n")
 	messenger.TopicsMutex.Lock()
 	defer messenger.TopicsMutex.Unlock()
 	validator, found := messenger.Topics[topic]
@@ -262,7 +262,7 @@ func (messenger *MemP2PMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadB
 // to ParametricBroadcast() is done synchronously as well. This function should
 // be called as a go-routine.
 func (messenger *MemP2PMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
-	fmt.Printf("debug:BroadcastOnChannelBlocking\n")
+	fmt.Printf("memp2p:BroadcastOnChannelBlocking\n")
 	messenger.ParametricBroadcast(topic, buff, false)
 }
 
@@ -273,7 +273,7 @@ func (messenger *MemP2PMessenger) BroadcastOnChannelBlocking(channel string, top
 // in fact, non-blocking, but it is identical with BroadcastOnChannelBlocking()
 // in all other regards.
 func (messenger *MemP2PMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
-	fmt.Printf("debug:BroadcastOnChannel\n")
+	fmt.Printf("memp2p:BroadcastOnChannel\n")
 	messenger.ParametricBroadcast(topic, buff, false)
 }
 
@@ -281,7 +281,7 @@ func (messenger *MemP2PMessenger) BroadcastOnChannel(channel string, topic strin
 // calls ParametricBroadcast() with async=true, which means that peers will
 // have their ReceiveMessage() function independently called as go-routines.
 func (messenger *MemP2PMessenger) Broadcast(topic string, buff []byte) {
-	fmt.Printf("debug:Broadcast\n")
+	fmt.Printf("memp2p:Broadcast\n")
 	messenger.ParametricBroadcast(topic, buff, true)
 }
 
@@ -302,7 +302,7 @@ func (messenger *MemP2PMessenger) ParametricBroadcast(topic string, data []byte,
 
 // SendToConnectedPeer sends a message directly to the peer specified by the ID.
 func (messenger *MemP2PMessenger) SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {
-	fmt.Printf("debug:SendToConnectedPeer\n")
+	fmt.Printf("memp2p:SendToConnectedPeer\n")
 	if messenger.IsConnectedToNetwork() {
 		if peerID == messenger.ID() {
 			return errors.New("Peer cannot send a direct message to itself")
@@ -320,7 +320,7 @@ func (messenger *MemP2PMessenger) SendToConnectedPeer(topic string, buff []byte,
 // processor of the corresponding topic, given that this Messenger has
 // previously registered a message processor for that topic.
 func (messenger *MemP2PMessenger) ReceiveMessage(topic string, message p2p.MessageP2P) error {
-	fmt.Printf("debug:ReceiveMessage\n")
+	fmt.Printf("memp2p:ReceiveMessage\n")
 	messenger.TopicsMutex.Lock()
 	validator, found := messenger.Topics[topic]
 	messenger.TopicsMutex.Unlock()
@@ -343,7 +343,7 @@ func (messenger *MemP2PMessenger) ReceiveMessage(topic string, message p2p.Messa
 
 // Close disconnects this Messenger from the network it was connected to.
 func (messenger *MemP2PMessenger) Close() error {
-	fmt.Printf("debug:Close\n")
+	fmt.Printf("memp2p:Close\n")
 	messenger.Network.UnregisterPeer(messenger.ID())
 	return nil
 }
