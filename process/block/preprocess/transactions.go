@@ -71,14 +71,14 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilRequestHandler
 	}
 
-	bpp := &basePreProcess{
+	bpp := basePreProcess{
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
 	}
 
-	txs := &transactions{
-		basePreProcess:       bpp,
+	txs := transactions{
+		basePreProcess:       &bpp,
 		storage:              store,
 		txPool:               txDataPool,
 		onRequestTransaction: onRequestTransaction,
@@ -91,7 +91,7 @@ func NewTransactionPreprocessor(
 
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 
-	return txs, nil
+	return &txs, nil
 }
 
 // waitForTxHashes waits for a call whether all the requested transactions appeared
@@ -139,12 +139,13 @@ func (txs *transactions) RemoveTxBlockFromPools(body block.Body, miniBlockPool s
 // RestoreTxBlockIntoPools restores the transactions and miniblocks to associated pools
 func (txs *transactions) RestoreTxBlockIntoPools(
 	body block.Body,
-	miniBlockHashes map[int][]byte,
 	miniBlockPool storage.Cacher,
-) (int, error) {
+) (int, map[int][]byte, error) {
 	if miniBlockPool == nil {
-		return 0, process.ErrNilMiniBlockPool
+		return 0, nil, process.ErrNilMiniBlockPool
 	}
+
+	miniBlockHashes := make(map[int][]byte)
 
 	txsRestored := 0
 	for i := 0; i < len(body); i++ {
@@ -152,28 +153,29 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 		if err != nil {
-			return txsRestored, err
+			return txsRestored, miniBlockHashes, err
 		}
 
 		for txHash, txBuff := range txsBuff {
 			tx := transaction.Transaction{}
 			err = txs.marshalizer.Unmarshal(&tx, txBuff)
 			if err != nil {
-				return txsRestored, err
+				return txsRestored, miniBlockHashes, err
 			}
 
 			txs.txPool.AddData([]byte(txHash), &tx, strCache)
 		}
 
-		err = txs.restoreMiniBlock(miniBlock, miniBlockPool, miniBlockHashes[i])
+		restoredHash, err := txs.restoreMiniBlock(miniBlock, miniBlockPool)
 		if err != nil {
-			return txsRestored, err
+			return txsRestored, miniBlockHashes, err
 		}
 
+		miniBlockHashes[i] = restoredHash
 		txsRestored += len(miniBlock.TxHashes)
 	}
 
-	return txsRestored, nil
+	return txsRestored, miniBlockHashes, nil
 }
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
@@ -256,8 +258,6 @@ func (txs *transactions) CreateBlockStarted() {
 
 // RequestBlockTransactions request for transactions if missing from a block.Body
 func (txs *transactions) RequestBlockTransactions(body block.Body) int {
-	txs.CreateBlockStarted()
-
 	requestedTxs := 0
 	missingTxsForShards := txs.computeMissingAndExistingTxsForShards(body)
 

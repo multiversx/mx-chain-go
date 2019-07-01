@@ -25,6 +25,32 @@ type SmartContractResultProcessor interface {
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
 }
 
+// TxTypeHandler is an interface to calculate the transaction type
+type TxTypeHandler interface {
+	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
+}
+
+// TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
+type TransactionCoordinator interface {
+	RequestMiniBlocks(header data.HeaderHandler)
+	RequestBlockTransactions(body block.Body)
+	IsDataPreparedForProcessing(haveTime func() time.Duration) error
+
+	SaveBlockDataToStorage(body block.Body) error
+	RestoreBlockDataFromStorage(body block.Body) (int, map[int][][]byte, error)
+	RemoveBlockDataFromPool(body block.Body) error
+
+	ProcessBlockTransaction(body block.Body, round uint32, haveTime func() time.Duration) error
+
+	CreateBlockStarted()
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, maxTxRemaining uint32, round uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
+	CreateMbsAndProcessTransactionsFromMe(maxTxRemaining uint32, round uint32, haveTime func() bool) block.MiniBlockSlice
+
+	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte)
+
+	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
+}
+
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
@@ -39,12 +65,13 @@ type IntermediateTransactionHandler interface {
 	VerifyInterMiniBlocks(body block.Body) error
 }
 
+// Preprocessor is an interface used to prepare and process transaction data
 type PreProcessor interface {
 	CreateBlockStarted()
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
 
 	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
-	RestoreTxBlockIntoPools(body block.Body, miniBlockHashes map[int][]byte, miniBlockPool storage.Cacher) (int, error)
+	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, map[int][]byte, error)
 	SaveTxBlockToStorage(body block.Body) error
 
 	ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error

@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"math/rand"
 	"strings"
 	"sync/atomic"
@@ -314,6 +315,16 @@ func createShardNetNode(
 	resolversContainer, _ := resolversContainerFactory.Create()
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
 	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(tn.resolvers, factory.TransactionTopic, factory.SmartContractResultTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
+	txCoordinator, _ := coordinator.NewTransactionCoordinator(
+		shardCoordinator,
+		accntAdapter,
+		dPool,
+		requestHandler,
+		testHasher,
+		testMarshalizer,
+		&mock2.TxProcessorMock{},
+		store,
+	)
 
 	blockProcessor, _ := block.NewShardProcessor(
 		&mock.ServiceContainerMock{},
@@ -321,7 +332,6 @@ func createShardNetNode(
 		store,
 		testHasher,
 		testMarshalizer,
-		&mock2.TxProcessorMock{},
 		accntAdapter,
 		shardCoordinator,
 		&mock.ForkDetectorMock{
@@ -342,6 +352,8 @@ func createShardNetNode(
 		createGenesisBlocks(shardCoordinator),
 		true,
 		requestHandler,
+		txCoordinator,
+		uint64Converter,
 	)
 
 	tn.broadcastMessenger, _ = sposFactory.GetBroadcastMessenger(

@@ -53,6 +53,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
@@ -1279,13 +1280,26 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
+	txCoordinator, err := coordinator.NewTransactionCoordinator(
+		shardCoordinator,
+		state.AccountsAdapter,
+		data.Datapool,
+		requestHandler,
+		core.Hasher,
+		core.Marshalizer,
+		transactionProcessor,
+		data.Store,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	blockProcessor, err := block.NewShardProcessor(
 		coreServiceContainer,
 		data.Datapool,
 		data.Store,
 		core.Hasher,
 		core.Marshalizer,
-		transactionProcessor,
 		state.AccountsAdapter,
 		shardCoordinator,
 		forkDetector,
@@ -1293,6 +1307,8 @@ func newShardBlockProcessorAndTracker(
 		shardsGenesisBlocks,
 		nodesConfig.MetaChainActive,
 		requestHandler,
+		txCoordinator,
+		core.Uint64ByteSliceConverter,
 	)
 	if err != nil {
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
