@@ -1,4 +1,4 @@
-package getValues
+package vmValues
 
 import (
 	"encoding/hex"
@@ -13,11 +13,11 @@ import (
 
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
-	GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
+	GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
 }
 
-// GetValueRequest represents the structure on which user input for generating a new transaction will validate against
-type GetValueRequest struct {
+// VmValueRequest represents the structure on which user input for generating a new transaction will validate against
+type VmValueRequest struct {
 	ScAddress string   `form:"scAddress" json:"scAddress"`
 	FuncName  string   `form:"funcName" json:"funcName"`
 	Args      []string `form:"args"  json:"args"`
@@ -25,18 +25,18 @@ type GetValueRequest struct {
 
 // Routes defines address related routes
 func Routes(router *gin.RouterGroup) {
-	router.POST("/hex", GetDataValueAsHexBytes)
-	router.POST("/string", GetDataValueAsString)
-	router.POST("/int", GetDataValueAsBigInt)
+	router.POST("/hex", GetVmValueAsHexBytes)
+	router.POST("/string", GetVmValueAsString)
+	router.POST("/int", GetVmValueAsBigInt)
 }
 
-func getDataValueFromAccount(c *gin.Context) ([]byte, int, error) {
+func vmValueFromAccount(c *gin.Context) ([]byte, int, error) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		return nil, http.StatusInternalServerError, apiErrors.ErrInvalidAppContext
 	}
 
-	var gval = GetValueRequest{}
+	var gval = VmValueRequest{}
 	err := c.ShouldBindJSON(&gval)
 	if err != nil {
 		return nil, http.StatusBadRequest, err
@@ -54,7 +54,7 @@ func getDataValueFromAccount(c *gin.Context) ([]byte, int, error) {
 		argsBuff = append(argsBuff, buff)
 	}
 
-	returnedData, err := ef.GetDataValue(gval.ScAddress, gval.FuncName, argsBuff...)
+	returnedData, err := ef.GetVmValue(gval.ScAddress, gval.FuncName, argsBuff...)
 	if err != nil {
 		return nil, http.StatusBadRequest, err
 	}
@@ -62,9 +62,9 @@ func getDataValueFromAccount(c *gin.Context) ([]byte, int, error) {
 	return returnedData, http.StatusOK, nil
 }
 
-// GetDataValueAsHexBytes returns the data as byte slice
-func GetDataValueAsHexBytes(c *gin.Context) {
-	data, status, err := getDataValueFromAccount(c)
+// GetVmValueAsHexBytes returns the data as byte slice
+func GetVmValueAsHexBytes(c *gin.Context) {
+	data, status, err := vmValueFromAccount(c)
 	if err != nil {
 		c.JSON(status, gin.H{"error": fmt.Sprintf("get value as hex bytes: %s", err)})
 		return
@@ -73,9 +73,9 @@ func GetDataValueAsHexBytes(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": hex.EncodeToString(data)})
 }
 
-// GetDataValueAsString returns the data as string
-func GetDataValueAsString(c *gin.Context) {
-	data, status, err := getDataValueFromAccount(c)
+// GetVmValueAsString returns the data as string
+func GetVmValueAsString(c *gin.Context) {
+	data, status, err := vmValueFromAccount(c)
 	if err != nil {
 		c.JSON(status, gin.H{"error": fmt.Sprintf("get value as string: %s", err)})
 		return
@@ -84,9 +84,9 @@ func GetDataValueAsString(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": string(data)})
 }
 
-// GetDataValueAsBigInt returns the data as big int
-func GetDataValueAsBigInt(c *gin.Context) {
-	data, status, err := getDataValueFromAccount(c)
+// GetVmValueAsBigInt returns the data as big int
+func GetVmValueAsBigInt(c *gin.Context) {
+	data, status, err := vmValueFromAccount(c)
 	if err != nil {
 		c.JSON(status, gin.H{"error": fmt.Sprintf("get value as big int: %s", err)})
 		return

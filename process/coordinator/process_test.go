@@ -588,6 +588,55 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 	assert.False(t, finalized)
 }
 
+func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("txHash")
+	tdp := initDataPool(txHash)
+	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	tdp.MiniBlocksCalled = func() storage.Cacher {
+		return hdrPool
+	}
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		tdp,
+		&mock.RequestHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+				return nil
+			},
+		},
+		&mock.ChainStorerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	maxTxRemaining := uint32(15000)
+	haveTime := func() bool {
+		return true
+	}
+	metaHdr := createTestMetablock()
+
+	for i := 0; i < len(metaHdr.ShardInfo); i++ {
+		for j := 0; j < len(metaHdr.ShardInfo[i].ShardMiniBlockHeaders); j++ {
+			mbHdr := metaHdr.ShardInfo[i].ShardMiniBlockHeaders[j]
+			mb := block.MiniBlock{SenderShardID: mbHdr.SenderShardId, ReceiverShardID: mbHdr.ReceiverShardId, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
+			tdp.MiniBlocks().Put(mbHdr.Hash, &mb)
+		}
+	}
+
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, maxTxRemaining, 10, haveTime)
+
+	assert.Equal(t, 1, len(mbs))
+	assert.Equal(t, uint32(1), txs)
+	assert.True(t, finalized)
+}
+
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToProcess(t *testing.T) {
 	t.Parallel()
 
@@ -1310,7 +1359,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		return true
 	}
 	preproc := tc.getPreprocessor(block.TxBlock)
-	err = tc.processMiniBlockComplete(preproc, &miniBlock, 0, haveTime)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, 0, haveTime)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx1Nonce, tx1ExecutionResult)
@@ -1414,7 +1463,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		return true
 	}
 	preproc := tc.getPreprocessor(block.TxBlock)
-	err = tc.processMiniBlockComplete(preproc, &miniBlock, 0, haveTime)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, 0, haveTime)
 
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 	assert.True(t, revertAccntStateCalled)

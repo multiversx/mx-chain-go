@@ -16,7 +16,7 @@ func NewNodeApiResolver(scDataGetter ScDataGetter) (*NodeApiResolver, error) {
 	}, nil
 }
 
-// GetDataValue retrieves data stored in a SC account
-func (nar *NodeApiResolver) GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
+// GetVmValue retrieves data stored in a SC account through a VM
+func (nar *NodeApiResolver) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
 	return nar.scDataGetter.Get([]byte(address), funcName, argsBuff...)
 }
