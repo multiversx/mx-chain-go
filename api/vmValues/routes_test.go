@@ -1,4 +1,4 @@
-package getValues_test
+package vmValues_test
 
 import (
 	"bytes"
@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/getValues"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/json"
@@ -44,7 +44,7 @@ func logError(err error) {
 	}
 }
 
-func startNodeServer(handler getValues.FacadeHandler) *gin.Engine {
+func startNodeServer(handler vmValues.FacadeHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	getValuesRoute := ws.Group("/get-values")
@@ -52,7 +52,7 @@ func startNodeServer(handler getValues.FacadeHandler) *gin.Engine {
 	if handler != nil {
 		getValuesRoute.Use(middleware.WithElrondFacade(handler))
 	}
-	getValues.Routes(getValuesRoute)
+	vmValues.Routes(getValuesRoute)
 
 	return ws
 }
@@ -64,7 +64,7 @@ func startNodeServerWrongFacade() *gin.Engine {
 		c.Set("elrondFacade", mock.WrongFacade{})
 	})
 	getValuesRoute := ws.Group("/get-values")
-	getValues.Routes(getValuesRoute)
+	vmValues.Routes(getValuesRoute)
 
 	return ws
 }

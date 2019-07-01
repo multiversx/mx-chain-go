@@ -103,7 +103,7 @@ func (f *Facade) GenerateAndSendBulkTransactionsOneByOne(destination string, val
 	return f.GenerateAndSendBulkTransactionsOneByOneHandler(destination, value, nrTransactions)
 }
 
-func (f *Facade) GetDataValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
+func (f *Facade) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
 	return f.GetDataValueHandler(address, funcName, argsBuff...)
 }
 
