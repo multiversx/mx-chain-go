@@ -85,11 +85,11 @@ func (network *MemP2PNetwork) Peers() map[p2p.PeerID]*MemP2PMessenger {
 func (network *MemP2PNetwork) PeersExceptOne(peerIDToExclude p2p.PeerID) map[p2p.PeerID]*MemP2PMessenger {
 	network.mutex.RLock()
 	peersCopy := make(map[p2p.PeerID]*MemP2PMessenger)
-	for peerID, peer := range network.peers {
+	for _, peerID := range network.peerIDs {
 		if peerID == peerIDToExclude {
 			continue
 		}
-		peersCopy[peerID] = peer
+		peersCopy[peerID] = network.peers[peerID]
 	}
 	network.mutex.RUnlock()
 	return peersCopy
