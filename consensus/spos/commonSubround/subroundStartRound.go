@@ -172,7 +172,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	return true
 }
 
-func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error {
+func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error {
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
 	if currentHeader == nil {
 		currentHeader = sr.Blockchain().GetGenesisHeader()

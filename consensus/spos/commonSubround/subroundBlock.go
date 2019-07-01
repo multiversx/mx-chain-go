@@ -106,7 +106,7 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 	}
 
 	blockBody, err := sr.BlockProcessor().CreateBlockBody(
-		uint32(sr.Rounder().Index()),
+		uint64(sr.Rounder().Index()),
 		haveTimeInCurrentSubround,
 	)
 	if err != nil {
@@ -192,13 +192,13 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 
 	hdr, err := sr.BlockProcessor().CreateBlockHeader(
 		sr.BlockBody,
-		uint32(sr.Rounder().Index()),
+		uint64(sr.Rounder().Index()),
 		haveTimeInCurrentSubround)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr.SetRound(uint32(sr.Rounder().Index()))
+	hdr.SetRound(uint64(sr.Rounder().Index()))
 	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 
 	var prevRandSeed []byte

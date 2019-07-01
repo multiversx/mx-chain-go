@@ -99,7 +99,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	}
 	blockProcessorMock := InitBlockProcessorMock()
 	blockTrackerMock := &BlocksTrackerMock{
-		SetBlockBroadcastRoundCalled: func(nonce uint64, round int32) {
+		SetBlockBroadcastRoundCalled: func(nonce uint64, round int64) {
 		},
 	}
 	bootstraperMock := &BootstraperMock{}
