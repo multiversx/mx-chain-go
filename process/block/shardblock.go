@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/pkg/errors"
 )
 
 const maxTransactionsInBlock = 15000
@@ -509,9 +508,9 @@ func (sp *shardProcessor) CommitBlock(
 	log.Info(fmt.Sprintf("last notarized block nonce from metachain is %d\n",
 		sp.lastNotarizedHdrs[sharding.MetachainShardId].GetNonce()))
 
-	if maxNonce > 0 && sp.lastNotarizedHdrs[sharding.MetachainShardId].GetNonce() != maxNonce {
-		return errors.New("error")
-	}
+	//if maxNonce > 0 && sp.lastNotarizedHdrs[sharding.MetachainShardId].GetNonce() != maxNonce {
+	//	return errors.New("error")
+	//}
 
 	errNotCritical = sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
 	if errNotCritical != nil {
@@ -1219,11 +1218,11 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 		maxTxRemaining := uint32(maxTxInBlock) - nrTxAdded
 
-		if len(hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
-			usedMetaHdrsHashes = append(usedMetaHdrsHashes, orderedMetaBlocks[i].hash)
-			lastMetaHdr = hdr
-			continue
-		}
+		//if len(hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
+		//	usedMetaHdrsHashes = append(usedMetaHdrsHashes, orderedMetaBlocks[i].hash)
+		//	lastMetaHdr = hdr
+		//	continue
+		//}
 
 		currMBProcessed, currTxsAdded, hdrProcessFinished := sp.createAndprocessMiniBlocksFromHeader(hdr, maxTxRemaining, round, haveTime)
 
@@ -1231,9 +1230,9 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		miniBlocks = append(miniBlocks, currMBProcessed...)
 		nrTxAdded = nrTxAdded + currTxsAdded
 
-		if currTxsAdded > 0 {
-			usedMetaHdrsHashes = append(usedMetaHdrsHashes, orderedMetaBlocks[i].hash)
-		}
+		//if currTxsAdded > 0 {
+		usedMetaHdrsHashes = append(usedMetaHdrsHashes, orderedMetaBlocks[i].hash)
+		//}
 
 		if !hdrProcessFinished {
 			break
