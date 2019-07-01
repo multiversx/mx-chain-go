@@ -171,7 +171,7 @@ VERSION:
 	logLevel = cli.StringFlag{
 		Name:  "logLevel",
 		Usage: "This flag specifies the logger level",
-		Value: "INFO",
+		Value: logger.LogInfo,
 	}
 
 	//TODO remove uniqueID

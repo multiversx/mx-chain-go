@@ -128,6 +128,7 @@ func (el *Logger) SetLevel(level string) {
 	case LogPanic:
 		el.logger.SetLevel(log.PanicLevel)
 	default:
+		el.Error("invalid log level")
 		el.logger.SetLevel(log.ErrorLevel)
 	}
 }
@@ -140,7 +141,6 @@ func (el *Logger) SetOutput(out io.Writer) {
 // Debug is an alias for Logrus.Debug, adding some default useful fields.
 func (el *Logger) Debug(message string, extra ...interface{}) {
 	cl := el.defaultFields()
-
 	if el.roll {
 		el.rollFiles()
 	}
@@ -153,7 +153,6 @@ func (el *Logger) Debug(message string, extra ...interface{}) {
 // Info is an alias for Logrus.Info, adding some default useful fields.
 func (el *Logger) Info(message string, extra ...interface{}) {
 	cl := el.defaultFields()
-
 	if el.roll {
 		el.rollFiles()
 	}
@@ -166,7 +165,6 @@ func (el *Logger) Info(message string, extra ...interface{}) {
 // Warn is an alias for Logrus.Warn, adding some default useful fields.
 func (el *Logger) Warn(message string, extra ...interface{}) {
 	cl := el.defaultFields()
-
 	if el.roll {
 		el.rollFiles()
 	}
@@ -179,7 +177,6 @@ func (el *Logger) Warn(message string, extra ...interface{}) {
 // Error is an alias for Logrus.Error, adding some default useful fields.
 func (el *Logger) Error(message string, extra ...interface{}) {
 	cl := el.defaultFields()
-
 	if el.roll {
 		el.rollFiles()
 	}
@@ -189,10 +186,16 @@ func (el *Logger) Error(message string, extra ...interface{}) {
 	}).Error(message)
 }
 
+func (el *Logger) errorWithoutFileRoll(message string, extra ...interface{}) {
+	cl := el.defaultFields()
+	cl.WithFields(log.Fields{
+		"extra": extra,
+	}).Error(message)
+}
+
 // Panic is an alias for Logrus.Panic, adding some default useful fields.
 func (el *Logger) Panic(message string, extra ...interface{}) {
 	cl := el.defaultFields()
-
 	if el.roll {
 		el.rollFiles()
 	}
@@ -207,8 +210,8 @@ func (el *Logger) LogIfError(err error) {
 	if err == nil {
 		return
 	}
-	cl := el.defaultFields()
 
+	cl := el.defaultFields()
 	if el.roll {
 		el.rollFiles()
 	}
@@ -259,6 +262,7 @@ func WithFileRotation(prefix string, subfolder string, fileExtension string) Opt
 		el.file.prefix = prefix
 		el.logFiles = append(el.logFiles, file)
 		el.file.SetWriter(file)
+
 		return nil
 	}
 }
@@ -266,7 +270,7 @@ func WithFileRotation(prefix string, subfolder string, fileExtension string) Opt
 // WithStderrRedirect sets up the option to redirect stderr to file
 func WithStderrRedirect() Option {
 	return func(el *Logger) error {
-		file, err := newFile("fatalErrors"+el.file.prefix, "logs", "log")
+		file, err := newFile(el.file.prefix+"_fatalErrors", "logs", "log")
 		if err != nil {
 			return err
 		}
@@ -290,18 +294,32 @@ func WithStackTraceDepth(depth int) Option {
 
 func (el *Logger) rollFiles() {
 	duration := time.Now().Sub(el.file.creationTime).Seconds()
-	if duration > fileLifetimeInSeconds {
-		if len(el.logFiles) == nrOfFilesToRemember {
-			_ = el.logFiles[0].Close()
-			_ = os.Remove(el.logFiles[0].Name())
-			el.logFiles = el.logFiles[1:]
+	if duration <= fileLifetimeInSeconds {
+		return
+	}
+
+	file, err := newFile(el.file.prefix, "logs", "log")
+	if err != nil {
+		el.errorWithoutFileRoll(err.Error())
+	}
+	el.file.creationTime = time.Now()
+	el.file.SetWriter(file)
+
+	err = el.logFiles[len(el.logFiles)-1].Close()
+	if err != nil {
+		el.errorWithoutFileRoll(err.Error())
+	}
+
+	if len(el.logFiles) == nrOfFilesToRemember {
+		err = os.Remove(el.logFiles[0].Name())
+		if err != nil {
+			el.errorWithoutFileRoll(err.Error())
 		}
 
-		file, _ := newFile(el.file.prefix, "logs", "log")
-		el.logFiles = append(el.logFiles, file)
-		el.file.SetWriter(file)
-		el.file.creationTime = time.Now()
+		el.logFiles = el.logFiles[1:]
 	}
+
+	el.logFiles = append(el.logFiles, file)
 }
 
 func newFile(prefix string, subfolder string, fileExtension string) (*os.File, error) {

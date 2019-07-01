@@ -24,8 +24,8 @@ func setStdHandle(stdhandle int32, handle syscall.Handle) error {
 	return nil
 }
 
-// redirectStderr to the file passed in
-func RedirectStderr(f *os.File) error {
+// redirectStderr redirects the output of the stderr to the file passed in
+func redirectStderr(f *os.File) error {
 	err := setStdHandle(syscall.STD_ERROR_HANDLE, syscall.Handle(f.Fd()))
 	if err != nil {
 		return err

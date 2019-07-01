@@ -2,6 +2,7 @@ package logger_test
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 	"sync"
 	"testing"
@@ -54,6 +55,28 @@ func TestError(t *testing.T) {
 	logString := str.String()
 	assert.True(t, strings.Contains(logString, `"level":"error"`))
 	assert.True(t, strings.Contains(logString, `"msg":"abc"`))
+}
+
+func TestErrorWithoutFileRoll(t *testing.T) {
+	t.Parallel()
+	var str bytes.Buffer
+	log := logger.NewElrondLogger()
+	log.SetOutput(&str)
+	log.ErrorWithoutFileRoll("abc")
+	logString := str.String()
+	assert.True(t, strings.Contains(logString, `"level":"error"`))
+	assert.True(t, strings.Contains(logString, `"msg":"abc"`))
+}
+
+func TestLogIfError(t *testing.T) {
+	t.Parallel()
+	var str bytes.Buffer
+	log := logger.NewElrondLogger()
+	log.SetOutput(&str)
+	log.LogIfError(errors.New("error"))
+	logString := str.String()
+	assert.True(t, strings.Contains(logString, `"level":"error"`))
+	assert.True(t, strings.Contains(logString, `"msg":"error"`))
 }
 
 func TestPanic(t *testing.T) {
@@ -176,11 +199,24 @@ func TestWithFileRotation(t *testing.T) {
 	file := log.File()
 	assert.NotNil(t, file)
 }
+
 func TestWithStderrRedirect(t *testing.T) {
 	log := logger.DefaultLogger()
 
 	err := log.ApplyOptions(logger.WithStderrRedirect())
 	assert.Nil(t, err)
+}
+
+func TestHeadline(t *testing.T) {
+	log := logger.DefaultLogger()
+	message := "One blockchain to rule them all"
+	delimiter := "///"
+	timestamp := "-"
+
+	formatedMessage := log.Headline(message, delimiter, timestamp)
+	assert.Contains(t, formatedMessage, message)
+	assert.Contains(t, formatedMessage, delimiter)
+	assert.Contains(t, formatedMessage, timestamp)
 }
 
 func swallowPanicLog(t *testing.T, logMsg string, panicMsg string, log *logger.Logger) {
