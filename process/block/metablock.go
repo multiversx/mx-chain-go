@@ -396,6 +396,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
 	_ = headerNoncePool.Put(headerHandler.GetNonce(), headerHash)
 
 	for i := 0; i < len(header.ShardInfo); i++ {
@@ -813,14 +814,14 @@ func (mp *metaProcessor) computeMissingHeaders(metaBlock *block.MetaBlock) map[u
 
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		shardData := metaBlock.ShardInfo[i]
-		header, _ := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
-		if header == nil {
+		hdr, err := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
+		if err != nil {
 			missingHeaders[shardData.ShardId] = append(missingHeaders[shardData.ShardId], shardData.HeaderHash)
 			continue
 		}
 
-		if header.Nonce > mp.currHighestShardHdrsNonces[shardData.ShardId] {
-			mp.currHighestShardHdrsNonces[shardData.ShardId] = header.Nonce
+		if hdr.Nonce > mp.currHighestShardHdrsNonces[shardData.ShardId] {
+			mp.currHighestShardHdrsNonces[shardData.ShardId] = hdr.Nonce
 		}
 	}
 
@@ -997,6 +998,10 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		RandSeed:     make([]byte, 0),
 	}
 
+	defer func() {
+		go mp.checkAndRequestIfShardHeadersMissing(round)
+	}()
+
 	shardInfo, err := mp.createShardInfo(maxHeadersInBlock, round, haveTime)
 	if err != nil {
 		return nil, err
@@ -1011,8 +1016,6 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	header.PeerInfo = peerInfo
 	header.RootHash = mp.getRootHash()
 	header.TxCount = getTxCount(shardInfo)
-
-	go mp.checkAndRequestIfShardHeadersMissing(header.Round)
 
 	return header, nil
 }

@@ -23,6 +23,9 @@ var ErrLowerRoundInBlock = errors.New("lower round in block")
 // ErrHigherRoundInBlock signals that the round index in block is higher than the current round of chronology
 var ErrHigherRoundInBlock = errors.New("higher round in block")
 
+// ErrHigherBootstrapRound signals that the round index in block is higher than the given round to bootstrap
+var ErrHigherBootstrapRound = errors.New("higher bootstrap round in block")
+
 // ErrBlockIsNotSigned signals that the block is not signed
 var ErrBlockIsNotSigned = errors.New("block is not signed")
 

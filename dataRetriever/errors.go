@@ -85,6 +85,9 @@ var ErrNilTxStorage = errors.New("nil transaction storage")
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
 
+// ErrNilHeadersNoncesStorage signals that a nil header-nonce storage has been provided
+var ErrNilHeadersNoncesStorage = errors.New("nil headers nonces storage")
+
 // ErrNilResolverSender signals that a nil resolver sender object has been provided
 var ErrNilResolverSender = errors.New("nil resolver sender")
 
@@ -94,9 +97,6 @@ var ErrNilNonceConverter = errors.New("nil nonce converter")
 // ErrInvalidNonceByteSlice signals that an invalid byte slice has been provided
 // and an uint64 can not be decoded from that byte slice
 var ErrInvalidNonceByteSlice = errors.New("invalid nonce byte slice")
-
-// ErrResolveNotHashType signals that an expected resolve type was other than hash type
-var ErrResolveNotHashType = errors.New("expected resolve type was hash type")
 
 // ErrResolveTypeUnknown signals that an unknown resolve type was provided
 var ErrResolveTypeUnknown = errors.New("unknown resolve type")

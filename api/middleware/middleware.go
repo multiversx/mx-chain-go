@@ -6,6 +6,7 @@ import (
 
 // ElrondHandler interface defines methods that can be used from `elrondFacade` context variable
 type ElrondHandler interface {
+
 }
 
 // WithElrondFacade middleware will set up an ElrondFacade object in the gin context

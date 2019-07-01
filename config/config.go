@@ -163,3 +163,8 @@ type ElasticSearchConfig struct {
 	Username string
 	Password string
 }
+
+// FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
+type FacadeConfig struct {
+	RestApiPort string
+}
