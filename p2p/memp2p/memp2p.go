@@ -312,7 +312,11 @@ func (messenger *MemP2PMessenger) SendToConnectedPeer(topic string, buff []byte,
 			return errors.New("Peer cannot send a direct message to itself")
 		}
 		message, _ := NewMemP2PMessage(topic, buff, messenger.ID())
-		destinationPeer := messenger.Network.PeersExceptOne(messenger.ID())[peerID]
+		destinationPeer, peerFound := messenger.Network.PeersExceptOne(messenger.ID())[peerID]
+
+		if peerFound == false {
+			return errors.New("Destination peer is not connected to the network")
+		}
 
 		return destinationPeer.ReceiveMessage(topic, message)
 	}
