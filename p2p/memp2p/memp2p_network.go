@@ -158,9 +158,9 @@ func (network *MemP2PNetwork) UnregisterPeer(peerID p2p.PeerID) {
 
 // LogMessage adds a message to its internal log of messages.
 func (network *MemP2PNetwork) LogMessage(message p2p.MessageP2P) {
-	network.messsageLogMutex.RLock()
+	network.messageLogMutex.RLock()
 	network.Messages = append(network.Messages, message)
-	network.messsageLogMutex.RUnlock()
+	network.messageLogMutex.RUnlock()
 }
 
 // IsPeerConnected returns true if the peer represented by the provided ID is
