@@ -128,12 +128,13 @@ func (scr *smartContractResults) RemoveTxBlockFromPools(body block.Body, miniBlo
 // RestoreTxBlockIntoPools restores the smartContractResults and miniblocks to associated pools
 func (scr *smartContractResults) RestoreTxBlockIntoPools(
 	body block.Body,
-	miniBlockHashes map[int][]byte,
 	miniBlockPool storage.Cacher,
-) (int, error) {
+) (int, map[int][]byte, error) {
 	if miniBlockPool == nil {
-		return 0, process.ErrNilMiniBlockPool
+		return 0, nil, process.ErrNilMiniBlockPool
 	}
+
+	miniBlockHashes := make(map[int][]byte)
 
 	scrRestored := 0
 	for i := 0; i < len(body); i++ {
@@ -145,28 +146,29 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		scrBuff, err := scr.storage.GetAll(dataRetriever.SmartContractResultUnit, miniBlock.TxHashes)
 		if err != nil {
-			return scrRestored, err
+			return scrRestored, miniBlockHashes, err
 		}
 
 		for txHash, txBuff := range scrBuff {
 			tx := smartContractResult.SmartContractResult{}
 			err = scr.marshalizer.Unmarshal(&tx, txBuff)
 			if err != nil {
-				return scrRestored, err
+				return scrRestored, miniBlockHashes, err
 			}
 
 			scr.scrPool.AddData([]byte(txHash), &tx, strCache)
 		}
 
-		err = scr.restoreMiniBlock(miniBlock, miniBlockPool, miniBlockHashes[i])
+		restoredHash, err := scr.restoreMiniBlock(miniBlock, miniBlockPool)
 		if err != nil {
-			return scrRestored, err
+			return scrRestored, miniBlockHashes, err
 		}
 
+		miniBlockHashes[i] = restoredHash
 		scrRestored += len(miniBlock.TxHashes)
 	}
 
-	return scrRestored, nil
+	return scrRestored, miniBlockHashes, nil
 }
 
 // ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state
@@ -250,8 +252,6 @@ func (scr *smartContractResults) CreateBlockStarted() {
 
 // RequestBlockSmartContractResults request for smartContractResults if missing from a block.Body
 func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
-	scr.CreateBlockStarted()
-
 	requestedScrs := 0
 	missingScrsForShards := scr.computeMissingAndExistingScrsForShards(body)
 

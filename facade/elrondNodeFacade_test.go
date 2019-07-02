@@ -399,7 +399,7 @@ func TestElrondNodeFacade_SendTransaction(t *testing.T) {
 		return "", nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
-	ef.SendTransaction(1, "test", "test", big.NewInt(0), 0, 0, "code", []byte{})
+	_, _ = ef.SendTransaction(1, "test", "test", big.NewInt(0), 0, 0, "code", []byte{})
 	assert.Equal(t, called, 1)
 }
 
@@ -511,14 +511,14 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 	ef := NewElrondNodeFacade(
 		&mock.NodeMock{},
 		&mock.ApiResolverStub{
-			GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
+			GetVmValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
 				wasCalled = true
 				return make([]byte, 0), nil
 			},
 		},
 	)
 
-	_, _ = ef.GetDataValue("", "")
+	_, _ = ef.GetVmValue("", "")
 	assert.True(t, wasCalled)
 }
 
