@@ -264,10 +264,10 @@ func (messenger *MemP2PMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadB
 // have their ReceiveMessage() function called synchronously. The call
 // to parametricBroadcast() is done synchronously as well. This function should
 // be called as a go-routine.
-func (messenger *MemP2PMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
+func (messenger *MemP2PMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
 	fmt.Printf("memp2p:BroadcastOnChannelBlocking\n")
 	err := messenger.parametricBroadcast(topic, buff, false)
-	return err
+	fmt.Errorf("%v", err)
 }
 
 // BroadcastOnChannel sends the message to all peers in the network. It calls
@@ -276,19 +276,19 @@ func (messenger *MemP2PMessenger) BroadcastOnChannelBlocking(channel string, top
 // parametricBroadcast() is done as a go-routine, which means this function is,
 // in fact, non-blocking, but it is identical with BroadcastOnChannelBlocking()
 // in all other regards.
-func (messenger *MemP2PMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) error {
+func (messenger *MemP2PMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
 	fmt.Printf("memp2p:BroadcastOnChannel\n")
 	err := messenger.parametricBroadcast(topic, buff, false)
-	return err
+	fmt.Errorf("%v", err)
 }
 
 // Broadcast asynchronously sends the message to all peers in the network. It
 // calls parametricBroadcast() with async=true, which means that peers will
 // have their ReceiveMessage() function independently called as go-routines.
-func (messenger *MemP2PMessenger) Broadcast(topic string, buff []byte) error {
+func (messenger *MemP2PMessenger) Broadcast(topic string, buff []byte) {
 	fmt.Printf("memp2p:Broadcast\n")
 	err := messenger.parametricBroadcast(topic, buff, true)
-	return err
+	fmt.Errorf("%v", err)
 }
 
 // parametricBroadcast sends a message to all peers in the network, with the
