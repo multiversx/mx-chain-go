@@ -438,12 +438,17 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRem
 		}
 	}
 
+	interMBs := tc.processAddedInterimTransactions()
+	if len(interMBs) > 0 {
+		miniBlocks = append(miniBlocks, interMBs...)
+	}
+
 	miniBlocks = append(miniBlocks, tc.processAddedInterimTransactions()...)
 	return miniBlocks
 }
 
 func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
-	miniBlocks := block.MiniBlockSlice{}
+	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	tc.mutInterimProcessors.RLock()
 
@@ -456,7 +461,9 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 		go func() {
 			currMbs := interimProc.CreateAllInterMiniBlocks()
 			resMutex.Lock()
-			miniBlocks = append(miniBlocks, currMbs...)
+			for _, value := range currMbs {
+				miniBlocks = append(miniBlocks, value)
+			}
 			resMutex.Unlock()
 			wg.Done()
 		}()

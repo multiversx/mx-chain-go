@@ -1521,7 +1521,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 
 	body = block.Body{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1}}
 	err = tc.VerifyCreatedBlockTransactions(body)
-	assert.Equal(t, process.ErrMiniBlockHashMismatch, err)
+	assert.Equal(t, process.ErrNilMiniBlocks, err)
 }
 
 func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {

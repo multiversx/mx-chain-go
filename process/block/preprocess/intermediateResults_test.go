@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -250,9 +251,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 	assert.Nil(t, err)
 
 	mbs := irp.CreateAllInterMiniBlocks()
-	for i := 0; i < nrShards; i++ {
-		assert.Equal(t, 0, len(mbs[i].TxHashes))
-	}
+	assert.Equal(t, 0, len(mbs))
 }
 
 func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *testing.T) {
@@ -282,9 +281,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 	assert.Nil(t, err)
 
 	mbs := irp.CreateAllInterMiniBlocks()
-	for i := 0; i < nrShards; i++ {
-		assert.Equal(t, 0, len(mbs[i].TxHashes))
-	}
+	assert.Equal(t, 0, len(mbs))
 }
 
 func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *testing.T) {
@@ -394,7 +391,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMissingMiniblock(
 	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: otherShard})
 
 	err = irp.VerifyInterMiniBlocks(body)
-	assert.Equal(t, process.ErrMiniBlockHashMismatch, err)
+	assert.Equal(t, process.ErrNilMiniBlocks, err)
 }
 
 func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatch(t *testing.T) {
@@ -477,10 +474,17 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 
-	mbs := irp.CreateAllInterMiniBlocks()
+	miniBlock := &block.MiniBlock{
+		SenderShardID:   shardCoordinator.SelfId(),
+		ReceiverShardID: otherShard,
+		Type:            block.SmartContractResultBlock}
+	for i := 0; i < len(txs); i++ {
+		txHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, txs[i])
+		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
+	}
 
 	body := block.Body{}
-	body = append(body, mbs[0])
+	body = append(body, miniBlock)
 
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
