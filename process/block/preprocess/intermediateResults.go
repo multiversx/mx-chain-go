@@ -2,6 +2,9 @@ package preprocess
 
 import (
 	"bytes"
+	"sort"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -11,8 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"sort"
-	"sync"
 )
 
 type intermediateResultsProcessor struct {

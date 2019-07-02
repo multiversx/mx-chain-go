@@ -2,6 +2,10 @@ package preprocess
 
 import (
 	"bytes"
+	"github.com/stretchr/testify/assert"
+	"sort"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -10,9 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/stretchr/testify/assert"
-	"sort"
-	"testing"
 )
 
 func TestNewIntermediateResultsProcessor_NilHashes(t *testing.T) {
