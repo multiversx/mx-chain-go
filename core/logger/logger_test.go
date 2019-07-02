@@ -6,7 +6,9 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/stretchr/testify/assert"
 )
@@ -217,6 +219,33 @@ func TestHeadline(t *testing.T) {
 	assert.Contains(t, formatedMessage, message)
 	assert.Contains(t, formatedMessage, delimiter)
 	assert.Contains(t, formatedMessage, timestamp)
+}
+
+func TestRedirectStderr(t *testing.T) {
+	file, _ := core.CreateFile("", "logs", "log")
+	err := logger.RedirectStderr(file)
+	assert.Nil(t, err)
+}
+
+func TestRedirectStderrWithNilFile(t *testing.T) {
+	err := logger.RedirectStderr(nil)
+	assert.NotNil(t, err)
+}
+
+func TestRollFiles(t *testing.T) {
+	t.Parallel()
+	log := logger.DefaultLogger()
+	mockTime := time.Date(2019, 1, 1, 1, 1, 1, 1, time.Local)
+
+	err := log.ApplyOptions(logger.WithFileRotation("", "logs", "log"))
+	assert.Nil(t, err)
+
+	for i := 0; i < logger.NrOfFilesToRemember()*2; i++ {
+		log.SetCreationTime(mockTime)
+		log.RollFiles()
+	}
+
+	assert.Equal(t, logger.NrOfFilesToRemember(), log.GetNrOfLogFiles())
 }
 
 func swallowPanicLog(t *testing.T, logMsg string, panicMsg string, log *logger.Logger) {

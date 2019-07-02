@@ -1,39 +1,30 @@
 package logger
 
 import (
-	"testing"
+	"os"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func (el *Logger) ErrorWithoutFileRoll(message string, extra ...interface{}) {
 	el.errorWithoutFileRoll(message, extra)
 }
 
-func TestRedirectStderr(t *testing.T) {
-	file, _ := newFile("", "logs", "log")
-	err := redirectStderr(file)
-	assert.Nil(t, err)
+func RedirectStderr(f *os.File) error {
+	return redirectStderr(f)
 }
 
-func TestRedirectStderrWithNilFile(t *testing.T) {
-	err := redirectStderr(nil)
-	assert.NotNil(t, err)
+func (el *Logger) RollFiles() {
+	el.rollFiles()
 }
 
-func TestRollFiles(t *testing.T) {
-	t.Parallel()
-	log := DefaultLogger()
-	mockTime := time.Date(2019, 1, 1, 1, 1, 1, 1, time.Local)
+func (el *Logger) SetCreationTime(t time.Time) {
+	el.file.creationTime = t
+}
 
-	err := log.ApplyOptions(WithFileRotation("", "logs", "log"))
-	assert.Nil(t, err)
+func (el *Logger) GetNrOfLogFiles() int {
+	return len(el.logFiles)
+}
 
-	for i := 0; i < nrOfFilesToRemember*2; i++ {
-		log.file.creationTime = mockTime
-		log.rollFiles()
-	}
-
-	assert.Equal(t, nrOfFilesToRemember, len(log.logFiles))
+func NrOfFilesToRemember() int {
+	return nrOfFilesToRemember
 }
