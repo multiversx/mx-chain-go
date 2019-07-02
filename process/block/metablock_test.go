@@ -1125,7 +1125,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	)
 
 	haveTime := func() bool { return true }
-	round := uint32(10)
+	round := uint64(10)
 	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
@@ -1244,7 +1244,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		MiniBlockHeaders: miniBlockHeaders3})
 
 	mp.SetNextKValidity(0)
-	round := uint32(40)
+	round := uint64(40)
 	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
@@ -1415,7 +1415,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	dataPool.ShardHeaders().Put(hdrHash33, headers[5])
 
 	mp.SetNextKValidity(1)
-	round := uint32(15)
+	round := uint64(15)
 	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
@@ -1586,7 +1586,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	dataPool.ShardHeaders().Put(hdrHash33, headers[5])
 
 	mp.SetNextKValidity(1)
-	round := uint32(20)
+	round := uint64(20)
 	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))

@@ -45,11 +45,11 @@ func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
 	sp.receivedMetaBlock(metaBlockHash)
 }
 
-func (sp *shardProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, round uint32, haveTime func() bool) error {
+func (sp *shardProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, round uint64, haveTime func() bool) error {
 	return sp.createAndProcessMiniBlockComplete(miniBlock, round, haveTime)
 }
 
-func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, round uint32, haveTime func() bool) (block.Body, error) {
+func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, round uint64, haveTime func() bool) (block.Body, error) {
 	return sp.createMiniBlocks(noShards, maxTxInBlock, round, haveTime)
 }
 
@@ -106,7 +106,7 @@ func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
 	return found
 }
 
-func (mp *metaProcessor) CreateShardInfo(maxMiniBlocksInBlock uint32, round uint32, haveTime func() bool) ([]block.ShardData, error) {
+func (mp *metaProcessor) CreateShardInfo(maxMiniBlocksInBlock uint32, round uint64, haveTime func() bool) ([]block.ShardData, error) {
 	return mp.createShardInfo(maxMiniBlocksInBlock, round, haveTime)
 }
 

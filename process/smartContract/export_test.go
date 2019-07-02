@@ -1,12 +1,13 @@
 package smartContract
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 func (sc *scProcessor) CreateVMCallInput(tx *transaction.Transaction) (*vmcommon.ContractCallInput, error) {
@@ -21,7 +22,7 @@ func (sc *scProcessor) CreateVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	return sc.createVMInput(tx)
 }
 
-func (sc *scProcessor) ProcessVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error) {
+func (sc *scProcessor) ProcessVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd state.AccountHandler, round uint64) ([]*smartContractResult.SmartContractResult, error) {
 	return sc.processVMOutput(vmOutput, tx, acntSnd, round)
 }
 
@@ -41,19 +42,19 @@ func (sc *scProcessor) GetAccountFromAddress(address []byte) (state.AccountHandl
 	return sc.getAccountFromAddress(address)
 }
 
-func (sc *scProcessor) SaveSCOutputToCurrentState(output *vmcommon.VMOutput, round uint32, txHash []byte) error {
+func (sc *scProcessor) SaveSCOutputToCurrentState(output *vmcommon.VMOutput, round uint64, txHash []byte) error {
 	return sc.saveSCOutputToCurrentState(output, round, txHash)
 }
 
-func (sc *scProcessor) SaveReturnData(returnData []*big.Int, round uint32, txHash []byte) error {
+func (sc *scProcessor) SaveReturnData(returnData []*big.Int, round uint64, txHash []byte) error {
 	return sc.saveReturnData(returnData, round, txHash)
 }
 
-func (sc *scProcessor) SaveReturnCode(returnCode vmcommon.ReturnCode, round uint32, txHash []byte) error {
+func (sc *scProcessor) SaveReturnCode(returnCode vmcommon.ReturnCode, round uint64, txHash []byte) error {
 	return sc.saveReturnCode(returnCode, round, txHash)
 }
 
-func (sc *scProcessor) SaveLogsIntoState(logs []*vmcommon.LogEntry, round uint32, txHash []byte) error {
+func (sc *scProcessor) SaveLogsIntoState(logs []*vmcommon.LogEntry, round uint64, txHash []byte) error {
 	return sc.saveLogsIntoState(logs, round, txHash)
 }
 

@@ -14,7 +14,7 @@ func createTestInterceptedMetaHeader() *block.InterceptedMetaHeader {
 	return block.NewInterceptedMetaHeader(
 		mock.NewMultiSigner(),
 		&mock.ChronologyValidatorStub{
-			ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+			ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
 				return nil
 			},
 		},

@@ -2,9 +2,10 @@ package block_test
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"math/big"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/sharding"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
@@ -76,7 +77,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 	mb := block.MetaBlock{
 		Nonce:         uint64(1),
 		Epoch:         uint32(1),
-		Round:         uint32(1),
+		Round:         uint64(1),
 		TimeStamp:     uint64(100000),
 		ShardInfo:     []block.ShardData{sd},
 		PeerInfo:      []block.PeerData{pd},
@@ -185,7 +186,7 @@ func TestMetaBlock_GetRootHash(t *testing.T) {
 func TestMetaBlock_GetRound(t *testing.T) {
 	t.Parallel()
 
-	round := uint32(1234)
+	round := uint64(1234)
 	m := block.MetaBlock{
 		Round: round,
 	}

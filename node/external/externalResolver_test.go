@@ -27,7 +27,7 @@ var testMarshalizer = &mock.MarshalizerFake{}
 
 func createMockProposerResolver() external.ProposerResolver {
 	return &mock.ProposerResolverStub{
-		ResolveProposerCalled: func(shardId uint32, roundIndex uint32, prevRandomSeed []byte) (bytes []byte, e error) {
+		ResolveProposerCalled: func(shardId uint32, roundIndex uint64, prevRandomSeed []byte) (bytes []byte, e error) {
 			return []byte(pk1), nil
 		},
 	}
@@ -259,7 +259,7 @@ func TestExternalResolver_ProposerResolverErrorsShouldErr(t *testing.T) {
 		createMockStorer(),
 		testMarshalizer,
 		&mock.ProposerResolverStub{
-			ResolveProposerCalled: func(shardId uint32, roundIndex uint32, prevRandomSeed []byte) (bytes []byte, e error) {
+			ResolveProposerCalled: func(shardId uint32, roundIndex uint64, prevRandomSeed []byte) (bytes []byte, e error) {
 				return nil, errExpected
 			},
 		},

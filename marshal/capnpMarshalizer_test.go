@@ -241,7 +241,7 @@ func (h *Header) GenerateDummyArray() []data.CapnpHelper {
 				RandSeed:         []byte(RandomStr(32)),
 				ShardId:          uint32(rand.Intn(20)),
 				TimeStamp:        uint64(rand.Intn(20)),
-				Round:            uint32(rand.Intn(20000)),
+				Round:            uint64(rand.Intn(20000)),
 				Epoch:            uint32(rand.Intn(20000)),
 				BlockBodyType:    block.TxBlock,
 				Signature:        []byte(RandomStr(32)),

@@ -18,7 +18,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(0)
@@ -84,7 +84,7 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(50)
@@ -151,7 +151,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(50)
@@ -219,7 +219,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := vmOpGas - 1
 	transferOnCalls := big.NewInt(50)
@@ -293,7 +293,7 @@ func deployContract(
 	gasLimit uint64,
 	scCode string,
 	initialValueForInternalVariable uint64,
-	round uint32,
+	round uint64,
 	txProc process.TransactionProcessor,
 	accnts state.AccountsAdapter,
 ) {

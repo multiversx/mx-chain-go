@@ -63,11 +63,11 @@ func (bfd *basicForkDetector) SetLastCheckpointNonce(nonce uint64) {
 	bfd.fork.lastCheckpointNonce = nonce
 }
 
-func (bfd *basicForkDetector) CheckpointRound() int32 {
+func (bfd *basicForkDetector) CheckpointRound() int64 {
 	return bfd.fork.checkpointRound
 }
 
-func (bfd *basicForkDetector) SetLastCheckpointRound(round int32) {
+func (bfd *basicForkDetector) SetLastCheckpointRound(round int64) {
 	bfd.fork.lastCheckpointRound = round
 }
 
