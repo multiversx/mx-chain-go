@@ -264,9 +264,10 @@ func (messenger *MemP2PMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadB
 // have their ReceiveMessage() function called synchronously. The call
 // to parametricBroadcast() is done synchronously as well. This function should
 // be called as a go-routine.
-func (messenger *MemP2PMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
+func (messenger *MemP2PMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
 	fmt.Printf("memp2p:BroadcastOnChannelBlocking\n")
-	messenger.parametricBroadcast(topic, buff, false)
+	err := messenger.parametricBroadcast(topic, buff, false)
+	return err
 }
 
 // BroadcastOnChannel sends the message to all peers in the network. It calls
@@ -275,32 +276,42 @@ func (messenger *MemP2PMessenger) BroadcastOnChannelBlocking(channel string, top
 // parametricBroadcast() is done as a go-routine, which means this function is,
 // in fact, non-blocking, but it is identical with BroadcastOnChannelBlocking()
 // in all other regards.
-func (messenger *MemP2PMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
+func (messenger *MemP2PMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) error {
 	fmt.Printf("memp2p:BroadcastOnChannel\n")
-	messenger.parametricBroadcast(topic, buff, false)
+	err := messenger.parametricBroadcast(topic, buff, false)
+	return err
 }
 
 // Broadcast asynchronously sends the message to all peers in the network. It
 // calls parametricBroadcast() with async=true, which means that peers will
 // have their ReceiveMessage() function independently called as go-routines.
-func (messenger *MemP2PMessenger) Broadcast(topic string, buff []byte) {
+func (messenger *MemP2PMessenger) Broadcast(topic string, buff []byte) error {
 	fmt.Printf("memp2p:Broadcast\n")
-	messenger.parametricBroadcast(topic, buff, true)
+	err := messenger.parametricBroadcast(topic, buff, true)
+	return err
 }
 
 // parametricBroadcast sends a message to all peers in the network, with the
 // possibility to choose from asynchronous or synchronous sending.
-func (messenger *MemP2PMessenger) parametricBroadcast(topic string, data []byte, async bool) {
+func (messenger *MemP2PMessenger) parametricBroadcast(topic string, data []byte, async bool) error {
+	var err error
+	err = nil
 	if messenger.IsConnectedToNetwork() {
 		message, _ := NewMemP2PMessage(topic, data, messenger.ID())
 		for _, peer := range messenger.Network.Peers() {
 			if async == true {
 				go peer.ReceiveMessage(topic, message)
 			} else {
-				peer.ReceiveMessage(topic, message)
+				err = peer.ReceiveMessage(topic, message)
+				if err != nil {
+					break
+				}
 			}
 		}
+	} else {
+		err = errors.New("Peer not connected to network, cannot send anything")
 	}
+	return err
 }
 
 // SendToConnectedPeer sends a message directly to the peer specified by the ID.
@@ -340,12 +351,12 @@ func (messenger *MemP2PMessenger) ReceiveMessage(topic string, message p2p.Messa
 		return p2p.ErrNilValidator
 	}
 
-	_ = validator.ProcessReceivedMessage(message)
+	err := validator.ProcessReceivedMessage(message)
 
 	if messenger.Network.LogMessages {
 		messenger.Network.LogMessage(message)
 	}
-	return nil
+	return err
 }
 
 // Close disconnects this Messenger from the network it was connected to.
