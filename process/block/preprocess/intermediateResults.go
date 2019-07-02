@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"sort"
 	"sync"
 )
 
@@ -80,6 +81,10 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 			miniBlocks[i].SenderShardID = irp.shardCoordinator.SelfId()
 			miniBlocks[i].ReceiverShardID = uint32(i)
 			miniBlocks[i].Type = irp.blockType
+
+			sort.Slice(miniBlocks[i].TxHashes, func(a, b int) bool {
+				return bytes.Compare(miniBlocks[i].TxHashes[a], miniBlocks[i].TxHashes[b]) < 0
+			})
 
 			finalMBs[uint32(i)] = miniBlocks[i]
 		}

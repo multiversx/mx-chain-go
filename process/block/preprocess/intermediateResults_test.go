@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
+	"sort"
 	"testing"
 )
 
@@ -478,10 +479,15 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 		SenderShardID:   shardCoordinator.SelfId(),
 		ReceiverShardID: otherShard,
 		Type:            block.SmartContractResultBlock}
+
 	for i := 0; i < len(txs); i++ {
 		txHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, txs[i])
 		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 	}
+
+	sort.Slice(miniBlock.TxHashes, func(a, b int) bool {
+		return bytes.Compare(miniBlock.TxHashes[a], miniBlock.TxHashes[b]) < 0
+	})
 
 	body := block.Body{}
 	body = append(body, miniBlock)
