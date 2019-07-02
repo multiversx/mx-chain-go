@@ -297,7 +297,10 @@ func (messenger *MemP2PMessenger) parametricBroadcast(topic string, data []byte,
 	var err error
 	err = nil
 	if messenger.IsConnectedToNetwork() {
-		message, _ := NewMemP2PMessage(topic, data, messenger.ID())
+		message, err := NewMemP2PMessage(topic, data, messenger.ID())
+		if err != nil {
+			return err
+		}
 		for _, peer := range messenger.Network.Peers() {
 			if async == true {
 				go peer.ReceiveMessage(topic, message)
