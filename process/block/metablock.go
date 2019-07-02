@@ -349,7 +349,7 @@ func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint
 	}
 
 	if len(msg) > 0 {
-		log.Info(fmt.Sprintf("the following miniblocks hashes were successfully processed:%s\n", msg))
+		log.Debug(fmt.Sprintf("the following miniblocks hashes were successfully processed:%s\n", msg))
 	}
 
 	return nil
@@ -894,7 +894,7 @@ func (mp *metaProcessor) createShardInfo(
 		return shardInfo, nil
 	}
 
-	log.Info(fmt.Sprintf("time elapsed to ordered %d hdrs: %v sec\n", len(orderedHdrs), timeAfter.Sub(timeBefore).Seconds()))
+	log.Debug(fmt.Sprintf("time elapsed to ordered %d hdrs: %v sec\n", len(orderedHdrs), timeAfter.Sub(timeBefore).Seconds()))
 
 	if err != nil {
 		return nil, err

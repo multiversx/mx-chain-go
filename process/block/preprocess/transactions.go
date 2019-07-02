@@ -504,16 +504,17 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	orderedTxes, orderedTxHashes, err := txs.getTxs(txStore)
 	timeAfter := time.Now()
 
+	if err != nil {
+		log.Info(err.Error())
+		return nil, err
+	}
+
 	if !haveTime() {
 		log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
 		return nil, process.ErrTimeIsOut
 	}
 
-	log.Info(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
-
-	if err != nil {
-		log.Debug(fmt.Sprintf("when trying to order txs: %s", err.Error()))
-	}
+	log.Debug(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
 
 	miniBlock := &block.MiniBlock{}
 	miniBlock.SenderShardID = sndShardId

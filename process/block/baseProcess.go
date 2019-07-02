@@ -264,7 +264,7 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 	})
 
 	if len(processedHdrs) > 0 {
-		log.Info(fmt.Sprintf("full processed metachain nonces for current header are between %d and %d\n",
+		log.Debug(fmt.Sprintf("full processed metachain nonces for current header are between %d and %d\n",
 			processedHdrs[0].GetNonce(),
 			processedHdrs[len(processedHdrs)-1].GetNonce()))
 	}

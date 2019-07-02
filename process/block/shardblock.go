@@ -525,7 +525,7 @@ func (sp *shardProcessor) CommitBlock(
 	lastNotarizedNonce := sp.lastNotarizedHdrs[sharding.MetachainShardId].GetNonce()
 	sp.mutNotarizedHdrs.RUnlock()
 
-	log.Info(fmt.Sprintf("last notarized block nonce from metachain is %d and max nonce used in current header is %d\n",
+	log.Debug(fmt.Sprintf("last notarized block nonce from metachain is %d and max nonce used in current header is %d\n",
 		lastNotarizedNonce,
 		maxNonce))
 
@@ -627,7 +627,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, maxNon
 		miniBlockHashes[i] = mbHash
 	}
 
-	log.Info(fmt.Sprintf("cross nini blocks in body: %d\n", len(miniBlockHashes)))
+	log.Debug(fmt.Sprintf("cross nini blocks in body: %d\n", len(miniBlockHashes)))
 
 	processedMetaHdrs := make([]data.HeaderHandler, 0)
 	for _, metaBlockKey := range sp.dataPool.MetaBlocks().Keys() {
@@ -647,7 +647,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, maxNon
 			continue
 		}
 
-		log.Info(fmt.Sprintf("meta header nonce: %d\n", hdr.Nonce))
+		log.Debug(fmt.Sprintf("meta header nonce: %d\n", hdr.Nonce))
 
 		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
@@ -660,7 +660,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, maxNon
 			delete(miniBlockHashes, key)
 		}
 
-		log.Info(fmt.Sprintf("cross mini blocks in meta header: %d\n", len(crossMiniBlockHashes)))
+		log.Debug(fmt.Sprintf("cross mini blocks in meta header: %d\n", len(crossMiniBlockHashes)))
 
 		processedAll := true
 		for key := range crossMiniBlockHashes {
@@ -1317,7 +1317,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		log.Info(err.Error())
 	}
 
-	log.Info(fmt.Sprintf("processed %d miniblocks and %d txs with destination in self shard\n", len(destMeMiniBlocks), txs))
+	log.Debug(fmt.Sprintf("processed %d miniblocks and %d txs with destination in self shard\n", len(destMeMiniBlocks), txs))
 
 	if len(destMeMiniBlocks) > 0 {
 		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
