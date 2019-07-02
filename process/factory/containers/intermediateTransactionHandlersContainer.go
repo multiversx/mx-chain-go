@@ -87,6 +87,7 @@ func (ppc *IntermediateTransactionHandlersContainer) Len() int {
 	return ppc.objects.Len()
 }
 
+// Keys returns all the existing keys in the container
 func (ppc *IntermediateTransactionHandlersContainer) Keys() []block.Type {
 	keys := make([]block.Type, 0)
 	for key := range ppc.objects.Iter() {

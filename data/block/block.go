@@ -32,7 +32,7 @@ const (
 	StateBlock Type = 1
 	// PeerBlock identifies a miniblock holding peer assignation
 	PeerBlock Type = 2
-	// SmartContractResult identifies a miniblock holding smartcontractresults
+	// SmartContractResultBlock identifies a miniblock holding smartcontractresults
 	SmartContractResultBlock Type = 3
 	// InvalidBlock identifies identifies an invalid miniblock
 	InvalidBlock Type = 4
