@@ -1642,10 +1642,8 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	hdrHash := []byte("hdr_hash1")
 
 	store := &mock.ChainStorerMock{
-		GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
-			m := make(map[string][]byte, 0)
-			m[string(hdrHash)] = buffHdr
-			return m, nil
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+			return buffHdr, nil
 		},
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &mock.StorerStub{

@@ -277,23 +277,31 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		hdrHashes = append(hdrHashes, shardData.HeaderHash)
 	}
 
-	hdrsBuff, err := mp.store.GetAll(dataRetriever.BlockHeaderUnit, hdrHashes)
-	if err != nil {
-		return err
-	}
-
-	for hdrHash, hdrBuff := range hdrsBuff {
-		hdr := block.Header{}
-		err = mp.marshalizer.Unmarshal(&hdr, hdrBuff)
+	for _, hdrHash := range hdrHashes {
+		buff, err := mp.store.Get(dataRetriever.BlockHeaderUnit, hdrHash)
 		if err != nil {
-			return err
+			log.Error(err.Error())
+			continue
+		}
+
+		hdr := block.Header{}
+		err = mp.marshalizer.Unmarshal(&hdr, buff)
+		if err != nil {
+			log.Error(err.Error())
+			continue
 		}
 
 		headerPool.Put([]byte(hdrHash), &hdr)
 
 		err = mp.store.GetStorer(dataRetriever.BlockHeaderUnit).Remove([]byte(hdrHash))
 		if err != nil {
-			return err
+			log.Error(err.Error())
+		}
+
+		nonceToByteSlice := mp.uint64Converter.ToByteSlice(hdr.Nonce)
+		err = mp.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Remove(nonceToByteSlice)
+		if err != nil {
+			log.Error(err.Error())
 		}
 
 		shardMBHeaderCounterMutex.Lock()
@@ -427,9 +435,28 @@ func (mp *metaProcessor) CommitBlock(
 		log.LogIfError(errNotCritical)
 	}
 
+	err = mp.createLastNotarizedHdrs(header)
+	if err != nil {
+		return err
+	}
+
 	_, err = mp.accounts.Commit()
 	if err != nil {
 		return err
+	}
+
+	log.Info(fmt.Sprintf("metaBlock with nonce %d and hash %s has been committed successfully\n",
+		header.Nonce,
+		core.ToB64(headerHash)))
+
+	errNotCritical = mp.removeBlockInfoFromPool(header)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
+	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
 	}
 
 	err = chainHandler.SetCurrentBlockBody(body)
@@ -443,21 +470,6 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
-
-	err = mp.createLastNotarizedHdrs(header)
-	if err != nil {
-		return err
-	}
-
-	errNotCritical = mp.removeBlockInfoFromPool(header)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-	}
-
-	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-	}
 
 	if mp.core != nil && mp.core.TPSBenchmark() != nil {
 		mp.core.TPSBenchmark().Update(header)
@@ -496,7 +508,7 @@ func (mp *metaProcessor) createLastNotarizedHdrs(header *block.MetaBlock) error 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
 		header, err := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
-		if header == nil {
+		if err != nil {
 			return err
 		}
 

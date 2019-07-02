@@ -2827,7 +2827,7 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	assert.False(t, (metaBlock3Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[5]))
 }
 
-func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockChain(t *testing.T) {
+func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockHeader(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 
@@ -2848,7 +2848,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockChain(t *testing.T
 	)
 	err := be.RestoreBlockIntoPools(nil, nil)
 	assert.NotNil(t, err)
-	assert.Equal(t, process.ErrNilTxBlockBody, err)
+	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
 func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.T) {
@@ -2870,7 +2870,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.
 		&mock.RequestHandlerMock{},
 	)
 
-	err := sp.RestoreBlockIntoPools(nil, nil)
+	err := sp.RestoreBlockIntoPools(&block.Header{}, nil)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilTxBlockBody)
 }
@@ -2939,7 +2939,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		metablockHeader,
 	)
 
-	err := sp.RestoreBlockIntoPools(nil, body)
+	err := sp.RestoreBlockIntoPools(&block.Header{}, body)
 
 	miniblockFromPool, _ := dataPool.MiniBlocks().Get(miniblockHash)
 	txFromPool, _ := dataPool.Transactions().SearchFirstData(txHash)

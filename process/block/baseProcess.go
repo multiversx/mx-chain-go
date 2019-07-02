@@ -269,6 +269,8 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 			processedHdrs[len(processedHdrs)-1].GetNonce()))
 	}
 
+	tmpLastNotarized := bp.lastNotarizedHdrs[shardId]
+
 	for i := 0; i < len(processedHdrs); i++ {
 		errNotCritical := bp.checkHeaderTypeCorrect(shardId, processedHdrs[i])
 		if errNotCritical != nil {
@@ -282,8 +284,11 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 			continue
 		}
 
-		bp.finalNotarizedHdrs[shardId] = bp.lastNotarizedHdrs[shardId]
 		bp.lastNotarizedHdrs[shardId] = processedHdrs[i]
+	}
+
+	if bp.lastNotarizedHdrs[shardId].GetNonce() != tmpLastNotarized.GetNonce() {
+		bp.finalNotarizedHdrs[shardId] = tmpLastNotarized
 	}
 
 	return nil
