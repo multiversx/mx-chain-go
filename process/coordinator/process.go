@@ -443,7 +443,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRem
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
-	miniBlocks = append(miniBlocks, tc.processAddedInterimTransactions()...)
 	return miniBlocks
 }
 
