@@ -364,6 +364,11 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][]byt
 		return process.ErrNilMetaBlockPool
 	}
 
+	metaHeaderNoncesPool := sp.dataPool.MetaHeadersNonces()
+	if metaHeaderNoncesPool == nil {
+		return process.ErrNilMetaHeadersNoncesDataPool
+	}
+
 	for _, metaBlockHash := range metaBlockHashes {
 		buff, err := sp.store.Get(dataRetriever.MetaBlockUnit, metaBlockHash)
 		if err != nil {
@@ -378,6 +383,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][]byt
 		}
 
 		metaBlockPool.Put(metaBlockHash, &metaBlock)
+		metaHeaderNoncesPool.Put(metaBlock.Nonce, &metaBlock)
 
 		err = sp.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
 		if err != nil {
@@ -516,9 +522,9 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	errNotCritical = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
+	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, maxNonce, processedMetaHdrs)
+	if err != nil {
+		return err
 	}
 
 	sp.mutNotarizedHdrs.RLock()
@@ -528,11 +534,6 @@ func (sp *shardProcessor) CommitBlock(
 	log.Debug(fmt.Sprintf("last notarized block nonce from metachain is %d and max nonce used in current header is %d\n",
 		lastNotarizedNonce,
 		maxNonce))
-
-	if maxNonce > 0 && lastNotarizedNonce != maxNonce {
-		err = process.ErrSaveLastNotarizedBlock
-		return err
-	}
 
 	_, err = sp.accounts.Commit()
 	if err != nil {
@@ -627,7 +628,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, maxNon
 		miniBlockHashes[i] = mbHash
 	}
 
-	log.Debug(fmt.Sprintf("cross nini blocks in body: %d\n", len(miniBlockHashes)))
+	log.Debug(fmt.Sprintf("cross mini blocks in body: %d\n", len(miniBlockHashes)))
 
 	processedMetaHdrs := make([]data.HeaderHandler, 0)
 	for _, metaBlockKey := range sp.dataPool.MetaBlocks().Keys() {
@@ -1255,14 +1256,13 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			continue
 		}
 
-		maxTxRemaining := uint32(maxTxInBlock) - nrTxAdded
-
 		if len(hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
 			usedMetaHdrsHashes = append(usedMetaHdrsHashes, orderedMetaBlocks[i].hash)
 			lastMetaHdr = hdr
 			continue
 		}
 
+		maxTxRemaining := uint32(maxTxInBlock) - nrTxAdded
 		currMBProcessed, currTxsAdded, hdrProcessFinished := sp.createAndprocessMiniBlocksFromHeader(hdr, maxTxRemaining, round, haveTime)
 
 		// all txs processed, add to processed miniblocks

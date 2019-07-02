@@ -156,8 +156,8 @@ func NewBaseProcessor(shardCord sharding.Coordinator) *baseProcessor {
 	return &baseProcessor{shardCoordinator: shardCord}
 }
 
-func (bp *baseProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
-	return bp.saveLastNotarizedHeader(shardId, processedHdrs)
+func (bp *baseProcessor) SaveLastNotarizedHeader(shardId uint32, maxNonce uint64, processedHdrs []data.HeaderHandler) error {
+	return bp.saveLastNotarizedHeader(shardId, maxNonce, processedHdrs)
 }
 
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {

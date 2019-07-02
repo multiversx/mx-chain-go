@@ -246,7 +246,7 @@ func (bp *baseProcessor) restoreLastNotarized() {
 	bp.mutNotarizedHdrs.Unlock()
 }
 
-func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
+func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, maxNonce uint64, processedHdrs []data.HeaderHandler) error {
 	bp.mutNotarizedHdrs.Lock()
 	defer bp.mutNotarizedHdrs.Unlock()
 
@@ -289,6 +289,10 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 
 	if bp.lastNotarizedHdrs[shardId].GetNonce() != tmpLastNotarized.GetNonce() {
 		bp.finalNotarizedHdrs[shardId] = tmpLastNotarized
+	}
+
+	if maxNonce > 0 && bp.lastNotarizedHdrs[shardId].GetNonce() != maxNonce {
+		return process.ErrSaveLastNotarizedBlock
 	}
 
 	return nil

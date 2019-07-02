@@ -3199,7 +3199,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(shardBlock, 0)
 	assert.Nil(t, err)
 
-	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, 0, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -3216,7 +3216,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(shardBlock, 46)
 	assert.Equal(t, nil, err)
 
-	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, 0, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -3233,7 +3233,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(shardBlock, 46)
 	assert.Nil(t, err)
 
-	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, 46, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -3382,7 +3382,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(shardBlock, 46)
 	assert.Nil(t, err)
 
-	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, 45, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -3508,7 +3508,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(processedMetaHdrs))
 
-	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, 46, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)

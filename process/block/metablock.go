@@ -271,6 +271,11 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		return process.ErrNilHeadersDataPool
 	}
 
+	headerNoncesPool := mp.dataPool.ShardHeadersNonces()
+	if headerNoncesPool == nil {
+		return process.ErrNilHeadersNoncesDataPool
+	}
+
 	hdrHashes := make([][]byte, 0)
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
@@ -292,6 +297,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		}
 
 		headerPool.Put([]byte(hdrHash), &hdr)
+		headerNoncesPool.Put(hdr.Nonce, &hdr)
 
 		err = mp.store.GetStorer(dataRetriever.BlockHeaderUnit).Remove([]byte(hdrHash))
 		if err != nil {
