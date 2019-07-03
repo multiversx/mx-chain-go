@@ -482,7 +482,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.txPreProcess.SaveTxBlockToStorage(body)
+	err = sp.txCoordinator.SaveBlockDataToStorage(body)
 	if err != nil {
 		return err
 	}
