@@ -133,8 +133,9 @@ func (boot *baseBootstrap) LoadBlocks(
 	hdrNonceHashDataUnit dataRetriever.UnitType,
 	getHeader func(uint64) (data.HeaderHandler, []byte, error),
 	getBlockBody func(data.HeaderHandler) (data.BodyHandler, error),
+	removeBlockBody func(uint64, dataRetriever.UnitType, dataRetriever.UnitType) error,
 ) error {
-	return boot.loadBlocks(blockFinality, blockUnit, hdrNonceHashDataUnit, getHeader, getBlockBody)
+	return boot.loadBlocks(blockFinality, blockUnit, hdrNonceHashDataUnit, getHeader, getBlockBody, removeBlockBody)
 }
 
 func (boot *baseBootstrap) ApplyBlock(
@@ -145,12 +146,28 @@ func (boot *baseBootstrap) ApplyBlock(
 	return boot.applyBlock(nonce, getHeader, getBlockBody)
 }
 
-func (boot *baseBootstrap) RemoveBlock(
+func (boot *baseBootstrap) RemoveBlockHeader(
 	nonce uint64,
 	blockUnit dataRetriever.UnitType,
 	hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
-	return boot.removeBlock(nonce, blockUnit, hdrNonceHashDataUnit)
+	return boot.removeBlockHeader(nonce, blockUnit, hdrNonceHashDataUnit)
+}
+
+func (boot *ShardBootstrap) RemoveBlockBody(
+	nonce uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
+	return boot.removeBlockBody(nonce, blockUnit, hdrNonceHashDataUnit)
+}
+
+func (boot *MetaBootstrap) RemoveBlockBody(
+	nonce uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
+	return boot.removeBlockBody(nonce, blockUnit, hdrNonceHashDataUnit)
 }
 
 func (boot *baseBootstrap) LoadNotarizedBlocks(blockFinality uint64,
@@ -166,6 +183,13 @@ func (boot *ShardBootstrap) ApplyNotarizedBlock(nonce uint64, notarizedHdrNonceH
 
 func (boot *MetaBootstrap) ApplyNotarizedBlock(nonce uint64, notarizedHdrNonceHashDataUnit dataRetriever.UnitType) error {
 	return boot.applyNotarizedBlock(nonce, notarizedHdrNonceHashDataUnit)
+}
+
+func (boot *baseBootstrap) RemoveNotarizedBlockHeader(
+	nonce uint64,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
+	return boot.removeNotarizedBlockHeader(nonce, hdrNonceHashDataUnit)
 }
 
 func (boot *ShardBootstrap) SyncFromStorer(

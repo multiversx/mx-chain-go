@@ -136,17 +136,17 @@ var ErrNilMessenger = errors.New("nil Messenger")
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
-// ErrNilHeadersDataPool signals that a nil header pool has been provided
+// ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
-// ErrNilMetachainHeadersDataPool signals that a nil metachain header pool has been provided
-var ErrNilMetachainHeadersDataPool = errors.New("nil metachain headers data pool")
+// ErrNilMetaHeadersDataPool signals that a nil metachain header pool has been provided
+var ErrNilMetaHeadersDataPool = errors.New("nil meta headers data pool")
 
 // ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
 var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
 
-//ErrNilMetachainHeadersNoncesDataPool signals a nil metachain header - nonce cache
-var ErrNilMetachainHeadersNoncesDataPool = errors.New("nil metachain headers nonces cache")
+//ErrNilMetaHeadersNoncesDataPool signals a nil metachain header - nonce cache
+var ErrNilMetaHeadersNoncesDataPool = errors.New("nil meta headers nonces cache")
 
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
@@ -213,6 +213,9 @@ var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 
 // ErrNilMetachainHeadersStorage signals that a nil metachain header storage has been provided
 var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")
+
+// ErrNilMetaHeadersStorage signals that a nil metachain header storage has been provided
+var ErrNilMetaHeadersStorage = errors.New("nil meta headers storage")
 
 // ErrNilBlockBodyStorage signals that a nil block body storage has been provided
 var ErrNilBlockBodyStorage = errors.New("nil block body storage")
@@ -355,8 +358,8 @@ var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
 // ErrNilTemporaryAccountsHandler signals that temporary accounts handler is nil
 var ErrNilTemporaryAccountsHandler = errors.New("temporary accounts handler is nil")
 
-// ErrBoostrapFromStorage signals that boostrap from storage has been failed
-var ErrBoostrapFromStorage = errors.New("boostrap from storage has been failed")
+// ErrNotEnoughValidBlocksInStorage signals that boostrap from storage failed due to not enough valid blocks stored
+var ErrNotEnoughValidBlocksInStorage = errors.New("not enough valid blocks in storage")
 
 // ErrNilSmartContractResult signals that the smart contract result is nil
 var ErrNilSmartContractResult = errors.New("smart contract result is nil")

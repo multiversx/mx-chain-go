@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type ResolverRequestHandler struct {
@@ -136,7 +137,16 @@ func (rrh *ResolverRequestHandler) RequestHeader(shardId uint32, hash []byte) {
 
 func (rrh *ResolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {
 	log.Debug(fmt.Sprintf("Requesting %s from shard %d with hash %s from network\n", baseTopic, destShardID, core.ToB64(hash)))
-	resolver, err := rrh.resolversFinder.CrossShardResolver(baseTopic, destShardID)
+
+	var resolver dataRetriever.Resolver
+	var err error
+
+	if destShardID == sharding.MetachainShardId {
+		resolver, err = rrh.resolversFinder.MetaChainResolver(baseTopic)
+	} else {
+		resolver, err = rrh.resolversFinder.CrossShardResolver(baseTopic, destShardID)
+	}
+
 	if err != nil {
 		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
 		return
