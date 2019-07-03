@@ -541,9 +541,7 @@ func (mp *metaProcessor) createLastNotarizedHdrs(header *block.MetaBlock) error 
 	}
 
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		if tmpNotedHdrs[i].GetNonce() != mp.lastNotarizedHdrs[i].GetNonce() {
-			mp.finalNotarizedHdrs[i] = tmpNotedHdrs[i]
-		}
+		mp.finalNotarizedHdrs[i] = tmpNotedHdrs[i]
 	}
 
 	return nil
