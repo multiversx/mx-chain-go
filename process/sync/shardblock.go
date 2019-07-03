@@ -663,7 +663,7 @@ func (boot *ShardBootstrap) rollback(header *block.Header) error {
 	}
 
 	boot.cleanCachesOnRollback(header, headerStore, headerNonceHashStore)
-	errNotCritical := boot.blkExecutor.RestoreBlockIntoPools(nil, body)
+	errNotCritical := boot.blkExecutor.RestoreBlockIntoPools(header, body)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}

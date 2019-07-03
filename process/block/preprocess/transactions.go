@@ -148,6 +148,11 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 	miniBlockHashes := make(map[int][]byte)
 
 	txsRestored := 0
+
+	if miniBlockPool == nil {
+		return txsRestored, miniBlockHashes, process.ErrNilMiniBlockPool
+	}
+
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
@@ -164,6 +169,11 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 			}
 
 			txs.txPool.AddData([]byte(txHash), &tx, strCache)
+
+			err = txs.storage.GetStorer(dataRetriever.TransactionUnit).Remove([]byte(txHash))
+			if err != nil {
+				return txsRestored, miniBlockHashes, err
+			}
 		}
 
 		restoredHash, err := txs.restoreMiniBlock(miniBlock, miniBlockPool)
@@ -383,16 +393,17 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	orderedTxes, orderedTxHashes, err := txs.getTxs(txStore)
 	timeAfter := time.Now()
 
+	if err != nil {
+		log.Info(err.Error())
+		return nil, err
+	}
+
 	if !haveTime() {
 		log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
 		return nil, process.ErrTimeIsOut
 	}
 
-	log.Info(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
-
-	if err != nil {
-		log.Debug(fmt.Sprintf("when trying to order txs: %s", err.Error()))
-	}
+	log.Debug(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
 
 	miniBlock := &block.MiniBlock{}
 	miniBlock.SenderShardID = sndShardId

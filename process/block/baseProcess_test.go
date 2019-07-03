@@ -256,6 +256,13 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 			}
 			return cs
 		},
+		ShardHeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
+			cs := &mock.Uint64CacherStub{}
+			cs.RemoveCalled = func(u uint64) {
+
+			}
+			return cs
+		},
 	}
 	return mdp
 }
@@ -316,11 +323,6 @@ func isInTxHashes(searched []byte, list [][]byte) bool {
 		}
 	}
 	return false
-}
-
-func computeHash(data interface{}, marshalizer marshal.Marshalizer, hasher hashing.Hasher) []byte {
-	buff, _ := marshalizer.Marshal(data)
-	return hasher.Compute(string(buff))
 }
 
 type wrongBody struct {
@@ -780,7 +782,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrShardWrongProcessed(t *testing.T) {
 
 	shardId := uint32(0)
 	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
-	assert.Nil(t, err)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 
 	lastNodesHdrs := base.LastNotarizedHdrs()
 	assert.Equal(t, uint64(0), lastNodesHdrs[shardId].GetNonce())
@@ -798,7 +800,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrMetaWrongProcessed(t *testing.T) {
 	prHdrs := createShardProcessHeadersToSaveLastNoterized(highestNonce, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
-	assert.Nil(t, err)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 
 	lastNodesHdrs := base.LastNotarizedHdrs()
 	assert.Equal(t, uint64(0), lastNodesHdrs[sharding.MetachainShardId].GetNonce())
