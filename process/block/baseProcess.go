@@ -240,13 +240,13 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 
 func (bp *baseProcessor) restoreLastNotarized() {
 	bp.mutNotarizedHdrs.Lock()
-	for i := uint32(0); i < bp.shardCoordinator.NumberOfShards(); i++ {
-		bp.lastNotarizedHdrs[i] = bp.finalNotarizedHdrs[i]
+	for shardId, _ := range bp.lastNotarizedHdrs {
+		bp.lastNotarizedHdrs[shardId] = bp.finalNotarizedHdrs[shardId]
 	}
 	bp.mutNotarizedHdrs.Unlock()
 }
 
-func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, maxNonce uint64, processedHdrs []data.HeaderHandler) error {
+func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
 	bp.mutNotarizedHdrs.Lock()
 	defer bp.mutNotarizedHdrs.Unlock()
 
@@ -271,29 +271,27 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, maxNonce uint64
 
 	tmpLastNotarized := bp.lastNotarizedHdrs[shardId]
 
+	defer func() {
+		if err != nil {
+			bp.lastNotarizedHdrs[shardId] = tmpLastNotarized
+		}
+	}()
+
 	for i := 0; i < len(processedHdrs); i++ {
-		errNotCritical := bp.checkHeaderTypeCorrect(shardId, processedHdrs[i])
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-			continue
+		err = bp.checkHeaderTypeCorrect(shardId, processedHdrs[i])
+		if err != nil {
+			return err
 		}
 
-		errNotCritical = bp.isHdrConstructionValid(processedHdrs[i], bp.lastNotarizedHdrs[shardId])
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-			continue
+		err = bp.isHdrConstructionValid(processedHdrs[i], bp.lastNotarizedHdrs[shardId])
+		if err != nil {
+			return err
 		}
 
 		bp.lastNotarizedHdrs[shardId] = processedHdrs[i]
 	}
 
-	if bp.lastNotarizedHdrs[shardId].GetNonce() != tmpLastNotarized.GetNonce() {
-		bp.finalNotarizedHdrs[shardId] = tmpLastNotarized
-	}
-
-	if maxNonce > 0 && bp.lastNotarizedHdrs[shardId].GetNonce() != maxNonce {
-		return process.ErrSaveLastNotarizedBlock
-	}
+	bp.finalNotarizedHdrs[shardId] = tmpLastNotarized
 
 	return nil
 }

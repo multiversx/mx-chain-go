@@ -372,6 +372,3 @@ var ErrNilScrDataPool = errors.New("smart contract result pool is nil")
 
 // ErrNilScrStorage signals that smart contract storage is nil
 var ErrNilScrStorage = errors.New("smart contract result storage is nil")
-
-// ErrSaveLastNotarizedBlock signals that save of last notarized block has been failed
-var ErrSaveLastNotarizedBlock = errors.New("save of last notarized block failed")

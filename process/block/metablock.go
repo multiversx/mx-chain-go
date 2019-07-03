@@ -247,9 +247,26 @@ func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error 
 		return process.ErrNilHeadersDataPool
 	}
 
+	headerNoncesPool := mp.dataPool.ShardHeadersNonces()
+	if headerNoncesPool == nil {
+		return process.ErrNilHeadersNoncesDataPool
+	}
+
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
+
+		obj, ok := headerPool.Peek(shardData.HeaderHash)
+		if !ok {
+			continue
+		}
+
+		hdr, ok := obj.(*block.Header)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
 		headerPool.Remove(shardData.HeaderHash)
+		headerNoncesPool.Remove(hdr.Nonce)
 	}
 
 	return nil
@@ -403,12 +420,6 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	body, ok := bodyHandler.(*block.MetaBlockBody)
-	if !ok {
-		err = process.ErrWrongTypeAssertion
-		return err
-	}
-
 	headerNoncePool := mp.dataPool.MetaBlockNonces()
 	if headerNoncePool == nil {
 		err = process.ErrNilDataPoolHolder
@@ -417,6 +428,12 @@ func (mp *metaProcessor) CommitBlock(
 
 	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
 	_ = headerNoncePool.Put(headerHandler.GetNonce(), headerHash)
+
+	body, ok := bodyHandler.(*block.MetaBlockBody)
+	if !ok {
+		err = process.ErrWrongTypeAssertion
+		return err
+	}
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
@@ -933,6 +950,7 @@ func (mp *metaProcessor) createShardInfo(
 		}
 
 		lastPushedHdr[shId] = orderedHdrs[index]
+
 		shardData := block.ShardData{}
 		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0)
 		shardData.TxCount = orderedHdrs[index].TxCount

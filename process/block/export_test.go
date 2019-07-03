@@ -53,8 +53,8 @@ func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, ro
 	return sp.createMiniBlocks(noShards, maxTxInBlock, round, haveTime)
 }
 
-func (sp *shardProcessor) GetProcessedMetaBlocksFromPool(body block.Body, maxNonce uint64) ([]data.HeaderHandler, error) {
-	return sp.getProcessedMetaBlocksFromPool(body, maxNonce)
+func (sp *shardProcessor) GetProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
+	return sp.getProcessedMetaBlocksFromPool(body, header)
 }
 
 func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
@@ -156,8 +156,8 @@ func NewBaseProcessor(shardCord sharding.Coordinator) *baseProcessor {
 	return &baseProcessor{shardCoordinator: shardCord}
 }
 
-func (bp *baseProcessor) SaveLastNotarizedHeader(shardId uint32, maxNonce uint64, processedHdrs []data.HeaderHandler) error {
-	return bp.saveLastNotarizedHeader(shardId, maxNonce, processedHdrs)
+func (bp *baseProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
+	return bp.saveLastNotarizedHeader(shardId, processedHdrs)
 }
 
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {

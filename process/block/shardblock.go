@@ -480,9 +480,23 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	headerNoncePool := sp.dataPool.HeadersNonces()
+	if headerNoncePool == nil {
+		err = process.ErrNilDataPoolHolder
+		return err
+	}
+
+	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
+	_ = headerNoncePool.Put(headerHandler.GetNonce(), headerHash)
+
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
+		return err
+	}
+
+	err = sp.txPreProcess.SaveTxBlockToStorage(body)
+	if err != nil {
 		return err
 	}
 
@@ -497,32 +511,12 @@ func (sp *shardProcessor) CommitBlock(
 		log.LogIfError(errNotCritical)
 	}
 
-	headerNoncePool := sp.dataPool.HeadersNonces()
-	if headerNoncePool == nil {
-		err = process.ErrNilDataPoolHolder
-		return err
-	}
-
-	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
-	_ = headerNoncePool.Put(headerHandler.GetNonce(), headerHash)
-
-	err = sp.txPreProcess.SaveTxBlockToStorage(body)
-	if err != nil {
-		return err
-	}
-
-	maxNonce := sp.getMaxNonceFromUsedMetaBlocks(header)
-
-	log.Info(fmt.Sprintf("the highest metachain block nonce used in shard header with nonce %d is %d\n",
-		header.Nonce,
-		maxNonce))
-
-	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromPool(body, maxNonce)
+	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromPool(body, header)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
 
-	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, maxNonce, processedMetaHdrs)
+	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	if err != nil {
 		return err
 	}
@@ -531,9 +525,8 @@ func (sp *shardProcessor) CommitBlock(
 	lastNotarizedNonce := sp.lastNotarizedHdrs[sharding.MetachainShardId].GetNonce()
 	sp.mutNotarizedHdrs.RUnlock()
 
-	log.Debug(fmt.Sprintf("last notarized block nonce from metachain is %d and max nonce used in current header is %d\n",
-		lastNotarizedNonce,
-		maxNonce))
+	log.Info(fmt.Sprintf("last notarized block nonce from metachain is %d\n",
+		lastNotarizedNonce))
 
 	_, err = sp.accounts.Commit()
 	if err != nil {
@@ -581,32 +574,8 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-// getMaxNonceFromUsedMetaBlocks returns the maximum nonce of meta blocks included in the given shard header
-func (sp *shardProcessor) getMaxNonceFromUsedMetaBlocks(header *block.Header) uint64 {
-	maxNonce := uint64(0)
-	for _, hash := range header.MetaBlockHashes {
-		metaBlock, _ := sp.dataPool.MetaBlocks().Peek(hash)
-		if metaBlock == nil {
-			log.Debug(process.ErrNilMetaBlockHeader.Error())
-			continue
-		}
-
-		hdr, ok := metaBlock.(*block.MetaBlock)
-		if !ok {
-			log.Debug(process.ErrWrongTypeAssertion.Error())
-			continue
-		}
-
-		if hdr.Nonce > maxNonce {
-			maxNonce = hdr.Nonce
-		}
-	}
-
-	return maxNonce
-}
-
 // getProcessedMetaBlocksFromPool returns all the meta blocks fully processed
-func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, maxNonce uint64) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
 	if body == nil {
 		return nil, process.ErrNilTxBlockBody
 	}
@@ -631,7 +600,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, maxNon
 	log.Debug(fmt.Sprintf("cross mini blocks in body: %d\n", len(miniBlockHashes)))
 
 	processedMetaHdrs := make([]data.HeaderHandler, 0)
-	for _, metaBlockKey := range sp.dataPool.MetaBlocks().Keys() {
+	for _, metaBlockKey := range header.MetaBlockHashes {
 		metaBlock, _ := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
 		if metaBlock == nil {
 			log.Debug(process.ErrNilMetaBlockHeader.Error())
@@ -641,10 +610,6 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, maxNon
 		hdr, ok := metaBlock.(*block.MetaBlock)
 		if !ok {
 			log.Debug(process.ErrWrongTypeAssertion.Error())
-			continue
-		}
-
-		if hdr.Nonce > maxNonce {
 			continue
 		}
 
@@ -721,6 +686,7 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 		}
 
 		sp.dataPool.MetaBlocks().Remove(headerHash)
+		sp.dataPool.MetaHeadersNonces().Remove(hdr.GetNonce())
 
 		log.Debug(fmt.Sprintf("metaBlock with nonce %d has been processed completely and removed from pool\n",
 			hdr.GetNonce()))
