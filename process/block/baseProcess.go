@@ -291,7 +291,9 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 		bp.lastNotarizedHdrs[shardId] = processedHdrs[i]
 	}
 
-	bp.finalNotarizedHdrs[shardId] = tmpLastNotarized
+	if tmpLastNotarized.GetNonce() != bp.lastNotarizedHdrs[shardId].GetNonce() {
+		bp.finalNotarizedHdrs[shardId] = tmpLastNotarized
+	}
 
 	return nil
 }
