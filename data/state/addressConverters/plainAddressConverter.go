@@ -2,9 +2,11 @@ package addressConverters
 
 import (
 	"encoding/hex"
+	"errors"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/btcsuite/btcutil/bech32"
 )
 
 // PlainAddressConverter is used to convert the address from/to different structures
@@ -105,4 +107,46 @@ func (pac *PlainAddressConverter) PrepareAddressBytes(addressBytes []byte) ([]by
 // AddressLen returns the address length
 func (pac *PlainAddressConverter) AddressLen() int {
 	return pac.addressLen
+}
+
+//the bech32 prefix will be erd, hrp separator is always 1
+//addresses will look like this erd1ajkdna0mnj56qwl4avp0qpmgc664x4qrdjq3rs6ddpsyfj9gna3s4sjy2n
+
+const erd = "erd"
+
+// ConvertToBech32 returns the address in bech32 format
+func (pac *PlainAddressConverter) ConvertToBech32(addressContainer state.AddressContainer) (string, error) {
+	if addressContainer == nil {
+		return "", state.ErrNilAddressContainer
+	}
+
+	conv, err := bech32.ConvertBits(addressContainer.Bytes(), 8, 5, true)
+	if err == nil {
+		enc, err := bech32.Encode(erd, conv)
+		if err == nil {
+			return enc, nil
+		}
+		return "", err
+	}
+	return "", err
+}
+
+// CreateAddressFromBech32 creates the address from bech32 string
+func (pac *PlainAddressConverter) CreateAddressFromBech32(bech32Address string) (state.AddressContainer, error) {
+	if len(bech32Address) == 0 {
+		return nil, state.ErrEmptyAddress
+	}
+
+	_, dec, err := bech32.Decode(bech32Address)
+	if err != nil {
+		//TODO move error to state/errors.go
+		return nil, errors.New("wrong bech32 string: " + bech32Address)
+	}
+	conv, err := bech32.ConvertBits(dec, 5, 8, false)
+	if err != nil {
+		//TODO move error to state/errors.go
+		return nil, errors.New("can't convert bech32 string")
+	}
+	//return decoded
+	return state.NewAddress(conv), nil
 }

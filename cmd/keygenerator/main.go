@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/urfave/cli"
 )
 
@@ -127,8 +128,18 @@ func generateFiles(ctx *cli.Context) error {
 	}
 
 	fmt.Println("Files generated successfully.")
-	fmt.Printf("   pk for balance: %s\n", pkHexBalance)
-	fmt.Printf("   pk for block signing: %s\n", pkHexBlockSigning)
+	fmt.Printf("\tpk for balance:\t%s\n", pkHexBalance)
+	ac, _ := addressConverters.NewPlainAddressConverter(32, "")
+	adr, _ := ac.CreateAddressFromHex(pkHexBalance)
+	bech32, _ := ac.ConvertToBech32(adr)
+	fmt.Printf("\tpk in bech32:\t%s\n", bech32)
+	fmt.Printf("\tpk for block signing:\t%s\n", pkHexBlockSigning)
+	//the block signing PK results in a bech32 string greater than the standard imposed 90 char limit
+	//but signing key is longer and can't be mistaken for a txid as it is the case with the balance one
+	//ac, _ = addressConverters.NewPlainAddressConverter(128, "")
+	//adr, _ = ac.CreateAddressFromHex(pkHexBlockSigning)
+	//bech32, _ = ac.ConvertToBech32(adr)
+	//fmt.Printf("\tpk for block signing in bech32: %s\n", bech32)
 
 	return nil
 }

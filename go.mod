@@ -9,6 +9,7 @@ require (
 	github.com/beevik/ntp v0.2.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
+	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/cornelk/hashmap v1.0.1-0.20190121140111-33e58823eb9d
 	github.com/dgraph-io/badger v1.5.5-0.20190226225317-8115aed38f8f
 	github.com/elastic/go-elasticsearch/v7 v7.1.0
