@@ -341,7 +341,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	return nil
 }
 
-func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][]byte, metaBlockHashes [][]byte) error {
+func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][][]byte, metaBlockHashes [][]byte) error {
 	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
 		return process.ErrNilMetaBlockPool
@@ -487,7 +487,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.txPreProcess.SaveTxBlockToStorage(body)
+	err = sp.txCoordinator.SaveBlockDataToStorage(body)
 	if err != nil {
 		return err
 	}

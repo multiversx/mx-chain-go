@@ -2741,7 +2741,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		metablockHeader,
 	)
 
-	err = sp.RestoreBlockIntoPools(nil, body)
+	err = sp.RestoreBlockIntoPools(&block.Header{}, body)
 
 	miniblockFromPool, _ := dataPool.MiniBlocks().Get(miniblockHash)
 	txFromPool, _ := dataPool.Transactions().SearchFirstData(txHash)
