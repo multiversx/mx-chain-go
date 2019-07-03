@@ -53,7 +53,7 @@ func TestNewMetachainHeaderInterceptor_NilMetachainHeadersShouldErr(t *testing.T
 		&mock.ChronologyValidatorStub{},
 	)
 
-	assert.Equal(t, process.ErrNilMetachainHeadersDataPool, err)
+	assert.Equal(t, process.ErrNilMetaHeadersDataPool, err)
 	assert.Nil(t, mhi)
 }
 
@@ -73,7 +73,7 @@ func TestNewMetachainHeaderInterceptor_NilMetachainHeadersNoncesShouldErr(t *tes
 		&mock.ChronologyValidatorStub{},
 	)
 
-	assert.Equal(t, process.ErrNilMetachainHeadersNoncesDataPool, err)
+	assert.Equal(t, process.ErrNilMetaHeadersNoncesDataPool, err)
 	assert.Nil(t, mhi)
 }
 
@@ -93,7 +93,7 @@ func TestNewMetachainHeaderInterceptor_NilMetachainStorerShouldErr(t *testing.T)
 		&mock.ChronologyValidatorStub{},
 	)
 
-	assert.Equal(t, process.ErrNilMetachainHeadersStorage, err)
+	assert.Equal(t, process.ErrNilMetaHeadersStorage, err)
 	assert.Nil(t, mhi)
 }
 
