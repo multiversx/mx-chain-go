@@ -456,6 +456,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
 	_ = headerNoncePool.Put(headerHandler.GetNonce(), headerHash)
 
 	err = sp.txCoordinator.SaveBlockDataToStorage(body)
@@ -778,25 +779,15 @@ func (sp *shardProcessor) computeMissingHeaders(header *block.Header) [][]byte {
 	missingHeaders := make([][]byte, 0)
 	sp.currHighestMetaHdrNonce = uint64(0)
 
-	metaBlockCache := sp.dataPool.MetaBlocks()
-	if metaBlockCache == nil {
-		return missingHeaders
-	}
-
 	for i := 0; i < len(header.MetaBlockHashes); i++ {
-		obj, ok := metaBlockCache.Peek(header.MetaBlockHashes[i])
-		if !ok {
+		hdr, err := process.GetMetaHeaderFromPool(header.MetaBlockHashes[i], sp.dataPool.MetaBlocks())
+		if err != nil {
 			missingHeaders = append(missingHeaders, header.MetaBlockHashes[i])
 			continue
 		}
 
-		metaBlock, ok := obj.(data.HeaderHandler)
-		if !ok {
-			continue
-		}
-
-		if metaBlock.GetNonce() > sp.currHighestMetaHdrNonce {
-			sp.currHighestMetaHdrNonce = metaBlock.GetNonce()
+		if hdr.Nonce > sp.currHighestMetaHdrNonce {
+			sp.currHighestMetaHdrNonce = hdr.Nonce
 		}
 	}
 
