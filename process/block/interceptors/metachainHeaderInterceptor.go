@@ -42,13 +42,13 @@ func NewMetachainHeaderInterceptor(
 		return nil, process.ErrNilMarshalizer
 	}
 	if metachainHeaders == nil {
-		return nil, process.ErrNilMetachainHeadersDataPool
+		return nil, process.ErrNilMetaHeadersDataPool
 	}
 	if metachainHeadersNonces == nil {
-		return nil, process.ErrNilMetachainHeadersNoncesDataPool
+		return nil, process.ErrNilMetaHeadersNoncesDataPool
 	}
 	if storer == nil {
-		return nil, process.ErrNilMetachainHeadersStorage
+		return nil, process.ErrNilMetaHeadersStorage
 	}
 	if multiSigVerifier == nil {
 		return nil, process.ErrNilMultiSigVerifier

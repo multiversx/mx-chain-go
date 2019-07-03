@@ -26,4 +26,5 @@ const (
 
 const ShardBlockFinality = 1
 const MetaBlockFinality = 1
+const ForkBlockFinality = 1
 const MaxHeaderRequestsAllowed = 10
