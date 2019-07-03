@@ -2,7 +2,6 @@ package addressConverters
 
 import (
 	"encoding/hex"
-	"errors"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -121,14 +120,16 @@ func (pac *PlainAddressConverter) ConvertToBech32(addressContainer state.Address
 	}
 
 	conv, err := bech32.ConvertBits(addressContainer.Bytes(), 8, 5, true)
-	if err == nil {
-		enc, err := bech32.Encode(erd, conv)
-		if err == nil {
-			return enc, nil
-		}
+	if err != nil {
 		return "", err
 	}
-	return "", err
+
+	enc, err := bech32.Encode(erd, conv)
+	if err != nil {
+		return "", err
+	}
+	//return encoded address
+	return enc, nil
 }
 
 // CreateAddressFromBech32 creates the address from bech32 string
@@ -139,13 +140,12 @@ func (pac *PlainAddressConverter) CreateAddressFromBech32(bech32Address string) 
 
 	_, dec, err := bech32.Decode(bech32Address)
 	if err != nil {
-		//TODO move error to state/errors.go
-		return nil, errors.New("wrong bech32 string: " + bech32Address)
+		return nil, state.ErrBech32WrongAddr
 	}
+
 	conv, err := bech32.ConvertBits(dec, 5, 8, false)
 	if err != nil {
-		//TODO move error to state/errors.go
-		return nil, errors.New("can't convert bech32 string")
+		return nil, state.ErrBech32ConvertError
 	}
 	//return decoded
 	return state.NewAddress(conv), nil

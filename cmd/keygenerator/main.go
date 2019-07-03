@@ -131,15 +131,16 @@ func generateFiles(ctx *cli.Context) error {
 	fmt.Printf("\tpk for balance:\t%s\n", pkHexBalance)
 	ac, _ := addressConverters.NewPlainAddressConverter(32, "")
 	adr, _ := ac.CreateAddressFromHex(pkHexBalance)
-	bech32, _ := ac.ConvertToBech32(adr)
-	fmt.Printf("\tpk in bech32:\t%s\n", bech32)
+	bech32, err := ac.ConvertToBech32(adr)
+	if err != nil {
+		fmt.Println("Could not display address in Bech32 format because ", err)
+	} else {
+		fmt.Printf("\tpk in bech32:\t%s\n", bech32)
+	}
 	fmt.Printf("\tpk for block signing:\t%s\n", pkHexBlockSigning)
-	//the block signing PK results in a bech32 string greater than the standard imposed 90 char limit
-	//but signing key is longer and can't be mistaken for a txid as it is the case with the balance one
-	//ac, _ = addressConverters.NewPlainAddressConverter(128, "")
-	//adr, _ = ac.CreateAddressFromHex(pkHexBlockSigning)
-	//bech32, _ = ac.ConvertToBech32(adr)
-	//fmt.Printf("\tpk for block signing in bech32: %s\n", bech32)
+	//the block signing PK would result in a bech32 string greater than the standard imposed 90
+	//char limit so we can't bech32 encode it, but signing key is anyway longer (128bytes vs 32bytes)
+	//and can't be mistaken for a txid as it is the case with the balance one
 
 	return nil
 }
