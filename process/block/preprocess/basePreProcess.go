@@ -71,18 +71,19 @@ func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool st
 	return nil
 }
 
-func (bpp *basePreProcess) restoreMiniBlock(miniBlock *block.MiniBlock, miniBlockPool storage.Cacher, restoredHash []byte) error {
+func (bpp *basePreProcess) restoreMiniBlock(miniBlock *block.MiniBlock, miniBlockPool storage.Cacher) ([]byte, error) {
 	miniBlockHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, miniBlock)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	var restoredHash []byte
 	miniBlockPool.Put(miniBlockHash, miniBlock)
 	if miniBlock.SenderShardID != bpp.shardCoordinator.SelfId() {
 		restoredHash = miniBlockHash
 	}
 
-	return err
+	return restoredHash, nil
 }
 
 func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
