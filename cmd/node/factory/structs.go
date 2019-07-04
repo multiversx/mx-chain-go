@@ -1252,30 +1252,61 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	intermediateProcessor, err := preprocess.NewIntermediateResultsProcessor(core.Hasher, core.Marshalizer, shardCoordinator, state.AddressConverter)
+	intermediateProcessor, err := preprocess.NewIntermediateResultsProcessor(
+		core.Hasher,
+		core.Marshalizer,
+		shardCoordinator,
+		state.AddressConverter,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 	//TODO: change the mock
-	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser,
-		core.Hasher, core.Marshalizer, state.AccountsAdapter, vmAccountsDB, state.AddressConverter, shardCoordinator, intermediateProcessor)
+	scProcessor, err := smartContract.NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		argsParser,
+		core.Hasher,
+		core.Marshalizer,
+		state.AccountsAdapter,
+		vmAccountsDB,
+		state.AddressConverter,
+		shardCoordinator,
+		intermediateProcessor,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	requestHandler, err := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic,
-		factory.SmartContractResultTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, MaxTxsToRequest)
+	requestHandler, err := requestHandlers.NewShardResolverRequestHandler(
+		resolversFinder,
+		factory.TransactionTopic,
+		factory.SmartContractResultTopic,
+		factory.MiniBlocksTopic,
+		factory.MetachainBlocksTopic,
+		MaxTxsToRequest,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	transactionProcessor, err := transaction.NewTxProcessor(state.AccountsAdapter, core.Hasher,
-		state.AddressConverter, core.Marshalizer, shardCoordinator, scProcessor)
+	transactionProcessor, err := transaction.NewTxProcessor(
+		state.AccountsAdapter,
+		core.Hasher,
+		state.AddressConverter,
+		core.Marshalizer,
+		shardCoordinator,
+		scProcessor,
+	)
 	if err != nil {
 		return nil, nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	blockTracker, err := track.NewShardBlockTracker(data.Datapool, core.Marshalizer, shardCoordinator, data.Store)
+	blockTracker, err := track.NewShardBlockTracker(
+		data.Datapool,
+		core.Marshalizer,
+		shardCoordinator,
+		data.Store,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
