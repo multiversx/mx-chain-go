@@ -36,6 +36,7 @@ type Logger struct {
 	file            *LogFileWriter
 	logFiles        []*os.File
 	roll            bool
+	rollLock        sync.Mutex
 	stackTraceDepth int
 }
 
@@ -142,7 +143,9 @@ func (el *Logger) SetOutput(out io.Writer) {
 func (el *Logger) Debug(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	if el.roll {
+		el.rollLock.Lock()
 		el.rollFiles()
+		el.rollLock.Unlock()
 	}
 
 	cl.WithFields(log.Fields{
@@ -154,7 +157,9 @@ func (el *Logger) Debug(message string, extra ...interface{}) {
 func (el *Logger) Info(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	if el.roll {
+		el.rollLock.Lock()
 		el.rollFiles()
+		el.rollLock.Unlock()
 	}
 
 	cl.WithFields(log.Fields{
@@ -166,7 +171,9 @@ func (el *Logger) Info(message string, extra ...interface{}) {
 func (el *Logger) Warn(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	if el.roll {
+		el.rollLock.Lock()
 		el.rollFiles()
+		el.rollLock.Unlock()
 	}
 
 	cl.WithFields(log.Fields{
@@ -178,7 +185,9 @@ func (el *Logger) Warn(message string, extra ...interface{}) {
 func (el *Logger) Error(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	if el.roll {
+		el.rollLock.Lock()
 		el.rollFiles()
+		el.rollLock.Unlock()
 	}
 
 	cl.WithFields(log.Fields{
@@ -197,7 +206,9 @@ func (el *Logger) errorWithoutFileRoll(message string, extra ...interface{}) {
 func (el *Logger) Panic(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	if el.roll {
+		el.rollLock.Lock()
 		el.rollFiles()
+		el.rollLock.Unlock()
 	}
 
 	cl.WithFields(log.Fields{
@@ -213,7 +224,9 @@ func (el *Logger) LogIfError(err error) {
 
 	cl := el.defaultFields()
 	if el.roll {
+		el.rollLock.Lock()
 		el.rollFiles()
+		el.rollLock.Unlock()
 	}
 
 	cl.Error(err.Error())
@@ -301,6 +314,7 @@ func (el *Logger) rollFiles() {
 	file, err := newFile(el.file.prefix, "logs", "log")
 	if err != nil {
 		el.errorWithoutFileRoll(err.Error())
+		return
 	}
 	el.file.creationTime = time.Now()
 	el.file.SetWriter(file)

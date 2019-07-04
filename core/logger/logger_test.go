@@ -3,6 +3,8 @@ package logger_test
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -225,6 +227,13 @@ func TestRedirectStderr(t *testing.T) {
 	file, _ := core.CreateFile("", "logs", "log")
 	err := logger.RedirectStderr(file)
 	assert.Nil(t, err)
+
+	message := "redirect ok"
+	os.Stderr.WriteString(message)
+
+	data, err := ioutil.ReadFile(file.Name())
+	assert.Nil(t, err)
+	assert.Contains(t, string(data), message)
 }
 
 func TestRedirectStderrWithNilFile(t *testing.T) {

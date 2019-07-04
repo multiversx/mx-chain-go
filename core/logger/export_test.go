@@ -14,7 +14,9 @@ func RedirectStderr(f *os.File) error {
 }
 
 func (el *Logger) RollFiles() {
+	el.rollLock.Lock()
 	el.rollFiles()
+	el.rollLock.Unlock()
 }
 
 func (el *Logger) SetCreationTime(t time.Time) {
