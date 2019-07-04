@@ -214,22 +214,22 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}
 
+	if sp.accounts.JournalLen() != 0 {
+		return process.ErrAccountStateDirty
+	}
+
 	defer func() {
 		go sp.checkAndRequestIfMetaHeadersMissing(header.Round)
 	}()
 
-	usedMetaHdrs, err := sp.checkMetaHeadersValidityAndFinality(header)
+	err = sp.checkMetaHeadersValidityAndFinality(header)
 	if err != nil {
 		return err
 	}
 
-	err = sp.verifyCrossShardMiniBlockDstMe(header, usedMetaHdrs)
+	err = sp.verifyCrossShardMiniBlockDstMe(header)
 	if err != nil {
 		return err
-	}
-
-	if sp.accounts.JournalLen() != 0 {
-		return process.ErrAccountStateDirty
 	}
 
 	defer func() {
@@ -252,36 +252,34 @@ func (sp *shardProcessor) ProcessBlock(
 }
 
 // checkMetaHeadersValidity - checks if listed metaheaders are valid as construction
-func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(header *block.Header) (map[string]*block.MetaBlock, error) {
+func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(header *block.Header) error {
 	metablockCache := sp.dataPool.MetaBlocks()
 	if metablockCache == nil {
-		return nil, process.ErrNilMetaBlockPool
+		return process.ErrNilMetaBlockPool
 	}
 
 	tmpNotedHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	hashAndHdr := make(map[string]*block.MetaBlock, 0)
 	currAddedMetaHdrs := make([]*block.MetaBlock, 0)
 	for _, metaHash := range header.MetaBlockHashes {
 		value, ok := metablockCache.Peek(metaHash)
 		if !ok {
-			return nil, process.ErrNilMetaBlockHeader
+			return process.ErrNilMetaBlockHeader
 		}
 
 		metaHdr, ok := value.(*block.MetaBlock)
 		if !ok {
-			return nil, process.ErrWrongTypeAssertion
+			return process.ErrWrongTypeAssertion
 		}
 
-		hashAndHdr[string(metaHash)] = metaHdr
 		currAddedMetaHdrs = append(currAddedMetaHdrs, metaHdr)
 	}
 
 	if len(currAddedMetaHdrs) == 0 {
-		return hashAndHdr, nil
+		return nil
 	}
 
 	sort.Slice(currAddedMetaHdrs, func(i, j int) bool {
@@ -291,17 +289,17 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(header *block.Head
 	for _, metaHdr := range currAddedMetaHdrs {
 		err := sp.isHdrConstructionValid(metaHdr, tmpNotedHdr)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		tmpNotedHdr = metaHdr
 	}
 
 	err = sp.checkMetaHdrFinality(tmpNotedHdr, header.Round)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return hashAndHdr, nil
+	return nil
 }
 
 // check if shard headers are final by checking if newer headers were constructed upon them
@@ -1010,7 +1008,7 @@ func (sp *shardProcessor) createAndProcessMiniBlockComplete(
 	return nil
 }
 
-func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header, metaHdrs map[string]*block.MetaBlock) error {
+func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header) error {
 	mMiniBlockMeta, err := sp.getAllMiniBlockDstMeFromMeta(hdr.Round, hdr.MetaBlockHashes)
 	if err != nil {
 		return err
@@ -1020,31 +1018,6 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header, meta
 	for mbHash := range miniBlockDstMe {
 		if _, ok := mMiniBlockMeta[mbHash]; !ok {
 			return process.ErrCrossShardMBWithoutConfirmationFromMeta
-		}
-
-		metaHdrHash := mMiniBlockMeta[mbHash]
-		if _, ok := metaHdrs[string(metaHdrHash)]; !ok {
-			return process.ErrHeaderBodyMismatch
-		}
-	}
-
-	return nil
-}
-
-func (sp *shardProcessor) verifyIncludedMetaBlocksFinality(currMetaBlocks []data.HeaderHandler, round uint32) error {
-	orderedMetablocks, err := sp.getOrderedMetaBlocks(round)
-	if err != nil {
-		return err
-	}
-
-	sort.Slice(currMetaBlocks, func(i, j int) bool {
-		return currMetaBlocks[i].GetNonce() < currMetaBlocks[j].GetNonce()
-	})
-
-	for i := 0; i < len(currMetaBlocks); i++ {
-		isFinal := sp.isMetaHeaderFinal(currMetaBlocks[i], orderedMetablocks, 0)
-		if !isFinal {
-			return process.ErrMetaBlockNotFinal
 		}
 	}
 

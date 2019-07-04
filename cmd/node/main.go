@@ -202,7 +202,7 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = "v1.0.4"
+	app.Version = "v1.0.7"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
@@ -234,6 +234,8 @@ func main() {
 	//TODO: The next line should be removed when the write in batches is done
 	// set the maximum allowed OS threads (not go routines) which can run in the same time (the default is 10000)
 	debug.SetMaxThreads(100000)
+
+	log.Info(fmt.Sprintf("Starting node with version %s\n", app.Version))
 
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
@@ -275,8 +277,6 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 
 	enableGopsIfNeeded(ctx, log)
-
-	log.Info("Starting node...")
 
 	stop := make(chan bool, 1)
 	sigs := make(chan os.Signal, 1)
