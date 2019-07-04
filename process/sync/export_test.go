@@ -63,12 +63,20 @@ func (bfd *basicForkDetector) SetLastCheckpointNonce(nonce uint64) {
 	bfd.fork.lastCheckpointNonce = nonce
 }
 
+func (bfd *basicForkDetector) SetCheckpointNonce(nonce uint64) {
+	bfd.fork.checkpointNonce = nonce
+}
+
 func (bfd *basicForkDetector) CheckpointRound() int32 {
 	return bfd.fork.checkpointRound
 }
 
 func (bfd *basicForkDetector) SetLastCheckpointRound(round int32) {
 	bfd.fork.lastCheckpointRound = round
+}
+
+func (bfd *basicForkDetector) SetCheckpointRound(round int32) {
+	bfd.fork.checkpointRound = round
 }
 
 func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header, state process.BlockHeaderState) error {

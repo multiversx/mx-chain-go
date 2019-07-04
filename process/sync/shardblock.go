@@ -46,7 +46,7 @@ func NewShardBootstrap(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	boostrapRoundIndex uint32,
+	bootstrapRoundIndex uint32,
 ) (*ShardBootstrap, error) {
 
 	if poolsHolder == nil {
@@ -79,19 +79,19 @@ func NewShardBootstrap(
 	}
 
 	base := &baseBootstrap{
-		blkc:               blkc,
-		blkExecutor:        blkExecutor,
-		store:              store,
-		headers:            poolsHolder.Headers(),
-		headersNonces:      poolsHolder.HeadersNonces(),
-		rounder:            rounder,
-		waitTime:           waitTime,
-		hasher:             hasher,
-		marshalizer:        marshalizer,
-		forkDetector:       forkDetector,
-		shardCoordinator:   shardCoordinator,
-		accounts:           accounts,
-		boostrapRoundIndex: boostrapRoundIndex,
+		blkc:                blkc,
+		blkExecutor:         blkExecutor,
+		store:               store,
+		headers:             poolsHolder.Headers(),
+		headersNonces:       poolsHolder.HeadersNonces(),
+		rounder:             rounder,
+		waitTime:            waitTime,
+		hasher:              hasher,
+		marshalizer:         marshalizer,
+		forkDetector:        forkDetector,
+		shardCoordinator:    shardCoordinator,
+		accounts:            accounts,
+		bootstrapRoundIndex: bootstrapRoundIndex,
 	}
 
 	boot := ShardBootstrap{
@@ -246,7 +246,7 @@ func (boot *ShardBootstrap) applyNotarizedBlock(
 
 	log.Info(fmt.Sprintf("apply notarized block with nonce %d and round %d\n", header.Nonce, header.Round))
 
-	if header.GetRound() > boot.boostrapRoundIndex {
+	if header.GetRound() > boot.bootstrapRoundIndex {
 		return ErrHigherBootstrapRound
 	}
 
@@ -315,7 +315,7 @@ func (boot *ShardBootstrap) receivedBodyHash(hash []byte) {
 
 // StartSync method will start SyncBlocks as a go routine
 func (boot *ShardBootstrap) StartSync() {
-	// when a node starts it first tries to boostrap from storage, if there already exist a database saved
+	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
 	err := boot.syncFromStorer(process.ShardBlockFinality,
 		dataRetriever.BlockHeaderUnit,

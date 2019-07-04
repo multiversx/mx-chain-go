@@ -41,7 +41,7 @@ func NewMetaBootstrap(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	boostrapRoundIndex uint32,
+	bootstrapRoundIndex uint32,
 ) (*MetaBootstrap, error) {
 
 	if poolsHolder == nil {
@@ -71,19 +71,19 @@ func NewMetaBootstrap(
 	}
 
 	base := &baseBootstrap{
-		blkc:               blkc,
-		blkExecutor:        blkExecutor,
-		store:              store,
-		headers:            poolsHolder.MetaChainBlocks(),
-		headersNonces:      poolsHolder.MetaBlockNonces(),
-		rounder:            rounder,
-		waitTime:           waitTime,
-		hasher:             hasher,
-		marshalizer:        marshalizer,
-		forkDetector:       forkDetector,
-		shardCoordinator:   shardCoordinator,
-		accounts:           accounts,
-		boostrapRoundIndex: boostrapRoundIndex,
+		blkc:                blkc,
+		blkExecutor:         blkExecutor,
+		store:               store,
+		headers:             poolsHolder.MetaChainBlocks(),
+		headersNonces:       poolsHolder.MetaBlockNonces(),
+		rounder:             rounder,
+		waitTime:            waitTime,
+		hasher:              hasher,
+		marshalizer:         marshalizer,
+		forkDetector:        forkDetector,
+		shardCoordinator:    shardCoordinator,
+		accounts:            accounts,
+		bootstrapRoundIndex: bootstrapRoundIndex,
 	}
 
 	boot := MetaBootstrap{
@@ -174,7 +174,7 @@ func (boot *MetaBootstrap) applyNotarizedBlock(
 
 	log.Info(fmt.Sprintf("apply notarized block with nonce %d and round %d\n", header.Nonce, header.Round))
 
-	if header.GetRound() > boot.boostrapRoundIndex {
+	if header.GetRound() > boot.bootstrapRoundIndex {
 		return ErrHigherBootstrapRound
 	}
 
@@ -211,7 +211,7 @@ func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
 
 // StartSync method will start SyncBlocks as a go routine
 func (boot *MetaBootstrap) StartSync() {
-	// when a node starts it first tries to boostrap from storage, if there already exist a database saved
+	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
 	err := boot.syncFromStorer(process.MetaBlockFinality,
 		dataRetriever.MetaBlockUnit,
 		dataRetriever.MetaHdrNonceHashDataUnit,

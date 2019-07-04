@@ -152,7 +152,7 @@ func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, spos.ErrNilBlootstraper, err)
+	assert.Equal(t, spos.ErrNilBootstrapper, err)
 }
 
 func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {

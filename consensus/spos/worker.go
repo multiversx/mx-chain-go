@@ -130,7 +130,7 @@ func checkNewWorkerParams(
 		return ErrNilBlocksTracker
 	}
 	if bootstraper == nil {
-		return ErrNilBlootstraper
+		return ErrNilBootstrapper
 	}
 	if broadcastMessenger == nil {
 		return ErrNilBroadcastMessenger

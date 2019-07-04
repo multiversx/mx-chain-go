@@ -183,7 +183,7 @@ func TestWorker_NewWorkerBlockTrackerNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilBlocksTracker, err)
 }
 
-func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockProcessor := &mock.BlockProcessorMock{}
@@ -215,7 +215,7 @@ func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 		syncTimerMock)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, spos.ErrNilBlootstraper, err)
+	assert.Equal(t, spos.ErrNilBootstrapper, err)
 }
 
 func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {

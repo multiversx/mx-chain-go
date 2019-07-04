@@ -107,7 +107,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBootstraperShouldFail(t *tes
 	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, spos.ErrNilBlootstraper, err)
+	assert.Equal(t, spos.ErrNilBootstrapper, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *testing.T) {
@@ -269,12 +269,12 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundI
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCurrentRoundReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	boostraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
 	container := mock.InitConsensusCore()
-	container.SetBootStrapper(boostraperMock)
+	container.SetBootStrapper(bootstraperMock)
 
 	sr := *initSubroundStartRoundWithContainer(container)
 

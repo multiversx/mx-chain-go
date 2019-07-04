@@ -475,10 +475,8 @@ func (sp *shardProcessor) CommitBlock(
 
 	nonceToByteSlice := sp.uint64Converter.ToByteSlice(header.Nonce)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.ShardId)
-	err = sp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
-	if err != nil {
-		return err
-	}
+	errNotCritical = sp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	log.LogIfError(errNotCritical)
 
 	headerNoncePool := sp.dataPool.HeadersNonces()
 	if headerNoncePool == nil {
@@ -578,6 +576,9 @@ func (sp *shardProcessor) CommitBlock(
 func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
 	if body == nil {
 		return nil, process.ErrNilTxBlockBody
+	}
+	if header == nil {
+		return nil, process.ErrNilBlockHeader
 	}
 
 	miniBlockHashes := make(map[int][]byte, 0)

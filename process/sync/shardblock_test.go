@@ -2635,7 +2635,7 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 	assert.Equal(t, 3, calls)
 }
 
-func TestBootstrap_LoadBlocksShouldErrBoostrapFromStorage(t *testing.T) {
+func TestBootstrap_LoadBlocksShouldErrBootstrapFromStorage(t *testing.T) {
 	t.Parallel()
 
 	pools := &mock.PoolsHolderStub{}
@@ -2702,7 +2702,7 @@ func TestBootstrap_LoadBlocksShouldErrBoostrapFromStorage(t *testing.T) {
 	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
-func TestBootstrap_LoadBlocksShouldErrBoostrapFromStorageWhenBlocksAreNotValid(t *testing.T) {
+func TestBootstrap_LoadBlocksShouldErrBootstrapFromStorageWhenBlocksAreNotValid(t *testing.T) {
 	t.Parallel()
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
@@ -3779,7 +3779,7 @@ func TestBootstrap_RemoveBlockHeaderShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestBootstrap_LoadNotarizedBlocksShouldErrBoostrapFromStorage(t *testing.T) {
+func TestBootstrap_LoadNotarizedBlocksShouldErrBootstrapFromStorage(t *testing.T) {
 	t.Parallel()
 
 	pools := &mock.PoolsHolderStub{}
@@ -3843,7 +3843,7 @@ func TestBootstrap_LoadNotarizedBlocksShouldErrBoostrapFromStorage(t *testing.T)
 	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
-func TestBootstrap_LoadNotarizedBlocksShouldErrBoostrapFromStorageWhenBlocksAreNotValid(t *testing.T) {
+func TestBootstrap_LoadNotarizedBlocksShouldErrBootstrapFromStorageWhenBlocksAreNotValid(t *testing.T) {
 	t.Parallel()
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()

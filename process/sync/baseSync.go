@@ -64,7 +64,7 @@ type baseBootstrap struct {
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	boostrapRoundIndex    uint32
+	bootstrapRoundIndex   uint32
 }
 
 func (boot *baseBootstrap) loadBlocks(
@@ -109,11 +109,11 @@ func (boot *baseBootstrap) loadBlocks(
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 
-	boostrapRoundIndex, errNotCritical := boot.getBlockRoundFromNonce(currentNonce, getHeader)
+	bootstrapRoundIndex, errNotCritical := boot.getBlockRoundFromNonce(currentNonce, getHeader)
 	if errNotCritical != nil {
 		log.Info(fmt.Sprintf(errNotCritical.Error()))
 	} else {
-		boot.boostrapRoundIndex = boostrapRoundIndex
+		boot.bootstrapRoundIndex = bootstrapRoundIndex
 	}
 
 	for i := currentNonce + 1; i <= highestNonceInStorer; i++ {
@@ -168,7 +168,7 @@ func (boot *baseBootstrap) applyBlock(
 
 	log.Info(fmt.Sprintf("apply block with nonce %d and round %d\n", header.GetNonce(), header.GetRound()))
 
-	if header.GetRound() > boot.boostrapRoundIndex {
+	if header.GetRound() > boot.bootstrapRoundIndex {
 		return ErrHigherBootstrapRound
 	}
 

@@ -73,7 +73,7 @@ func TestConsensusContainerValidator_ValidateNilBootstrapperShouldFail(t *testin
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilBlootstraper)
+	assert.Equal(t, err, ErrNilBootstrapper)
 }
 
 func TestConsensusContainerValidator_ValidateNilChronologyShouldFail(t *testing.T) {
