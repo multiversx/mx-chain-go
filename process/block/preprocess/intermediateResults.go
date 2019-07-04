@@ -71,8 +71,9 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 	irp.mutInterResultsForBlock.Lock()
 
 	for key, value := range irp.interResultsForBlock {
-		if value.receiverShardID != irp.shardCoordinator.SelfId() {
-			miniBlocks[value.receiverShardID].TxHashes = append(miniBlocks[value.receiverShardID].TxHashes, []byte(key))
+		recvShId := value.receiverShardID
+		if recvShId != irp.shardCoordinator.SelfId() {
+			miniBlocks[recvShId].TxHashes = append(miniBlocks[recvShId].TxHashes, []byte(key))
 		}
 	}
 
