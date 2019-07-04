@@ -167,11 +167,19 @@ VERSION:
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialNodesSk.pem",
 	}
+
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
 		Name:  "logLevel",
 		Usage: "This flag specifies the logger level",
 		Value: logger.LogInfo,
+  }
+
+	// boostrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
+	boostrapRoundIndex = cli.UintFlag{
+		Name:  "boostrap-round-index",
+		Usage: "Boostrap round index specifies the round index from which node should bootstrap from storage",
+		Value: math.MaxUint32,
 	}
 
 	//TODO remove uniqueID
@@ -215,6 +223,7 @@ func main() {
 		serversConfigurationFile,
 		restApiPort,
 		logLevel,
+		boostrapRoundIndex,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -442,6 +451,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		cryptoComponents,
 		processComponents,
 		networkComponents,
+		uint32(ctx.GlobalUint(boostrapRoundIndex.Name)),
 	)
 	if err != nil {
 		return err
@@ -613,6 +623,7 @@ func createNode(
 	crypto *factory.Crypto,
 	process *factory.Process,
 	network *factory.Network,
+	boostrapRoundIndex uint32,
 ) (*node.Node, error) {
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
@@ -645,6 +656,7 @@ func createNode(
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
+		node.WithBoostrapRoundIndex(boostrapRoundIndex),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
