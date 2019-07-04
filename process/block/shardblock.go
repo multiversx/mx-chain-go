@@ -1015,25 +1015,11 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header, meta
 	if err != nil {
 		return err
 	}
-	metablockCache := sp.dataPool.MetaBlocks()
-	if metablockCache == nil {
-		return process.ErrNilMetaBlockPool
-	}
 
 	miniBlockDstMe := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 	for mbHash := range miniBlockDstMe {
 		if _, ok := mMiniBlockMeta[mbHash]; !ok {
 			return process.ErrCrossShardMBWithoutConfirmationFromMeta
-		}
-
-		hdr, ok := metablockCache.Peek(mMiniBlockMeta[mbHash])
-		if !ok {
-			return process.ErrNilMetaBlockHeader
-		}
-
-		_, ok = hdr.(data.HeaderHandler)
-		if !ok {
-			return process.ErrWrongTypeAssertion
 		}
 
 		metaHdrHash := mMiniBlockMeta[mbHash]
