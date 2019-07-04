@@ -75,16 +75,8 @@ var defaultLoggerMutex = sync.RWMutex{}
 // DefaultLogger is a shorthand for instantiating a new logger with default settings.
 // If it fails to open the default log file it will return a logger with os.Stdout output.
 func DefaultLogger() *Logger {
-	defaultLoggerMutex.RLock()
-	dl := defaultLogger
-	defaultLoggerMutex.RUnlock()
-
-	if dl != nil {
-		return dl
-	}
-
 	defaultLoggerMutex.Lock()
-	dl = defaultLogger
+	dl := defaultLogger
 	if dl == nil {
 		defaultLogger = NewElrondLogger()
 		dl = defaultLogger
