@@ -149,13 +149,13 @@ func TestSetLevel(t *testing.T) {
 
 func TestWithFile(t *testing.T) {
 	t.Parallel()
-	log := logger.DefaultLogger()
+	log := logger.NewElrondLogger()
 	log.Warn("This test should pass if the file was opened in the correct mode")
 }
 
 func TestConcurrencyWithFileWriter(t *testing.T) {
 	t.Parallel()
-	log := logger.DefaultLogger()
+	log := logger.NewElrondLogger()
 
 	wg := sync.WaitGroup{}
 	wg.Add(999)
@@ -195,7 +195,7 @@ func TestLazyFileWriter_WriteSomeLinesBeforeProvidingFile(t *testing.T) {
 }
 
 func TestWithFileRotation(t *testing.T) {
-	log := logger.DefaultLogger()
+	log := logger.NewElrondLogger()
 
 	err := log.ApplyOptions(logger.WithFileRotation("", "logs", "log"))
 	assert.Nil(t, err)
@@ -205,14 +205,14 @@ func TestWithFileRotation(t *testing.T) {
 }
 
 func TestWithStderrRedirect(t *testing.T) {
-	log := logger.DefaultLogger()
+	log := logger.NewElrondLogger()
 
 	err := log.ApplyOptions(logger.WithStderrRedirect())
 	assert.Nil(t, err)
 }
 
 func TestHeadline(t *testing.T) {
-	log := logger.DefaultLogger()
+	log := logger.NewElrondLogger()
 	message := "One blockchain to rule them all"
 	delimiter := "///"
 	timestamp := "-"
@@ -243,7 +243,7 @@ func TestRedirectStderrWithNilFile(t *testing.T) {
 
 func TestRollFiles(t *testing.T) {
 	t.Parallel()
-	log := logger.DefaultLogger()
+	log := logger.NewElrondLogger()
 	mockTime := time.Date(2019, 1, 1, 1, 1, 1, 1, time.Local)
 
 	err := log.ApplyOptions(logger.WithFileRotation("", "logs", "log"))
