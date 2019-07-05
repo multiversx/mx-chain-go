@@ -438,10 +438,12 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher, marshalizer mars
 		}
 
 		newNode := bn.children[pos].reduceNode(pos)
+
 		return true, newNode, nil
 	}
 
 	bn.dirty = dirty
+
 	return true, bn, nil
 }
 
