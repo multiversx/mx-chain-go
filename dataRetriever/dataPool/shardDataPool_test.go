@@ -28,7 +28,7 @@ func TestNewShardedDataPool_NilTransactionsShouldErr(t *testing.T) {
 	assert.Nil(t, tdp)
 }
 
-func TestNewShardedDataPool_NilSmartContractResultsShouldErr(t *testing.T) {
+func TestNewShardedDataPool_NilUnsignedTransactionsShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
 		nil,
@@ -40,7 +40,7 @@ func TestNewShardedDataPool_NilSmartContractResultsShouldErr(t *testing.T) {
 		&mock.Uint64CacherStub{},
 	)
 
-	assert.Equal(t, dataRetriever.ErrNilSmartContractResultsPool, err)
+	assert.Equal(t, dataRetriever.ErrNilUnsignedTransactionPool, err)
 	assert.Nil(t, tdp)
 }
 
@@ -168,5 +168,5 @@ func TestNewShardedDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, txBlocks == tdp.MiniBlocks())
 	assert.True(t, peersBlock == tdp.PeerChangesBlocks())
 	assert.True(t, metaChainBlocks == tdp.MetaBlocks())
-	assert.True(t, scResults == tdp.SmartContractResults())
+	assert.True(t, scResults == tdp.UnsignedTransactions())
 }

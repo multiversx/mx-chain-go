@@ -119,7 +119,7 @@ func createTestShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
-	store.AddStorer(dataRetriever.SmartContractResultUnit, createMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
@@ -132,7 +132,7 @@ func createTestShardStore(numOfShards uint32) dataRetriever.StorageService {
 
 func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
-	scrPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
@@ -155,7 +155,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
-		scrPool,
+		uTxPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -246,7 +246,7 @@ func createNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
-	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.SmartContractResultTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
+	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.UnsignedTransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,
@@ -257,7 +257,7 @@ func createNetNode(
 		&mock.SCProcessorMock{},
 	)
 
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	fact, _ := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		store,
 		testMarshalizer,
@@ -270,7 +270,7 @@ func createNetNode(
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 	)
-	container, _ := factory.Create()
+	container, _ := fact.Create()
 
 	tc, _ := coordinator.NewTransactionCoordinator(
 		shardCoordinator,

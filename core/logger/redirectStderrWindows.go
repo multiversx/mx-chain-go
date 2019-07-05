@@ -26,7 +26,7 @@ func setStdHandle(stdhandle int32, handle syscall.Handle) error {
 
 // redirectStderr redirects the output of the stderr to the file passed in
 func redirectStderr(f *os.File) error {
-	if f==nil{
+	if f == nil {
 		return ErrNilFile
 	}
 
