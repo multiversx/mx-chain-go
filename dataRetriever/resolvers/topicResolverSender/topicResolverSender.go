@@ -90,10 +90,11 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 		peer := diffList[idx]
 
 		err = trs.messenger.SendToConnectedPeer(topicToSendRequest, buff, peer)
-		if err == nil {
-			msgSentCounter++
+		if err != nil {
+			continue
 		}
 
+		msgSentCounter++
 		if msgSentCounter == NumPeersToQuery {
 			break
 		}

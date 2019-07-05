@@ -17,7 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	pubsub_pb "github.com/libp2p/go-libp2p-pubsub/pb"
+	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/whyrusleeping/timecache"
 )
 
@@ -34,7 +34,7 @@ type directSender struct {
 	messageHandler func(msg p2p.MessageP2P) error
 	mutSeenMesages sync.Mutex
 	seenMessages   *timecache.TimeCache
-	mutexes        *MutexHolder
+	mutexForPeer   *MutexHolder
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -53,7 +53,8 @@ func NewDirectSender(
 	if messageHandler == nil {
 		return nil, p2p.ErrNilDirectSendMessageHandler
 	}
-	mutexes, err := NewMutexHolder(maxMutexes)
+
+	mutexForPeer, err := NewMutexHolder(maxMutexes)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +65,7 @@ func NewDirectSender(
 		hostP2P:        h,
 		seenMessages:   timecache.NewTimeCache(timeSeenMessages),
 		messageHandler: messageHandler,
-		mutexes:        mutexes,
+		mutexForPeer:   mutexForPeer,
 	}
 
 	//wire-up a handler for direct messages
@@ -78,7 +79,7 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 
 	go func(r ggio.ReadCloser) {
 		for {
-			msg := &pubsub_pb.Message{}
+			msg := &pubsubPb.Message{}
 
 			err := reader.ReadMsg(msg)
 			if err != nil {
@@ -103,7 +104,7 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 	}(reader)
 }
 
-func (ds *directSender) processReceivedDirectMessage(message *pubsub_pb.Message) error {
+func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message) error {
 	if message == nil {
 		return p2p.ErrNilMessage
 	}
@@ -121,7 +122,7 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsub_pb.Message)
 	return ds.messageHandler(p2pMsg)
 }
 
-func (ds *directSender) checkAndSetSeenMessage(msg *pubsub_pb.Message) bool {
+func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {
 	msgId := string(msg.GetFrom()) + string(msg.GetSeqno())
 
 	ds.mutSeenMesages.Lock()
@@ -149,7 +150,7 @@ func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
 		return p2p.ErrMessageTooLarge
 	}
 
-	mut := ds.mutexes.Get(string(peer))
+	mut := ds.mutexForPeer.Get(string(peer))
 	mut.Lock()
 	defer mut.Unlock()
 
@@ -231,9 +232,9 @@ func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, er
 	return foundStream, nil
 }
 
-func (ds *directSender) createMessage(topic string, buff []byte, conn network.Conn) *pubsub_pb.Message {
+func (ds *directSender) createMessage(topic string, buff []byte, conn network.Conn) *pubsubPb.Message {
 	seqno := ds.NextSeqno(&ds.counter)
-	mes := pubsub_pb.Message{}
+	mes := pubsubPb.Message{}
 	mes.Data = buff
 	mes.TopicIDs = []string{topic}
 	mes.From = []byte(conn.LocalPeer())
