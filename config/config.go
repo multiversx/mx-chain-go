@@ -72,14 +72,14 @@ type Config struct {
 	AccountsTrieStorage StorageConfig
 	BadBlocksCache      CacheConfig
 
-	TxBlockBodyDataPool       CacheConfig
-	StateBlockBodyDataPool    CacheConfig
-	PeerBlockBodyDataPool     CacheConfig
-	BlockHeaderDataPool       CacheConfig
-	BlockHeaderNoncesDataPool CacheConfig
-	TxDataPool                CacheConfig
-	SmartContractDataPool     CacheConfig
-	MetaBlockBodyDataPool     CacheConfig
+	TxBlockBodyDataPool         CacheConfig
+	StateBlockBodyDataPool      CacheConfig
+	PeerBlockBodyDataPool       CacheConfig
+	BlockHeaderDataPool         CacheConfig
+	BlockHeaderNoncesDataPool   CacheConfig
+	TxDataPool                  CacheConfig
+	UnsignedTransactionDataPool CacheConfig
+	MetaBlockBodyDataPool       CacheConfig
 
 	MiniBlockHeaderHashesDataPool CacheConfig
 	ShardHeadersDataPool          CacheConfig

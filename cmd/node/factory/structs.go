@@ -851,7 +851,7 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.SmartContractDataPool))
+	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
 		fmt.Println("error creating smart contract result")
 		return nil, err
