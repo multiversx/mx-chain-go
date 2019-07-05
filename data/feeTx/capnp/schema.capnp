@@ -4,16 +4,16 @@ $Go.package("capnp");
 $Go.import("_");
 
 
-struct SmartContractResultCapn {
+struct FeeTxCapn {
    nonce      @0:   UInt64; 
    value      @1:   Data;
    rcvAddr    @2:   Data;
-   txHash     @6:   Data;
+   txHash     @3:   Data;
 } 
 
 ##compile with:
 
 ##
 ##
-##   capnp compile -ogo ./schema.capnp
+##   capnpc  -I$GOPATH/src/github.com/glycerine/go-capnproto -ogo $GOPATH/src/github.com/ElrondNetwork/elrond-go/data/feeTx/capnp/schema.capnp
 
