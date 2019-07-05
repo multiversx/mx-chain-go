@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"math/big"
 	"math/rand"
 	"strings"
 	"sync"
@@ -803,4 +804,33 @@ func createGenesisMetaBlock() *dataBlock.MetaBlock {
 		RootHash:      rootHash,
 		PrevHash:      rootHash,
 	}
+}
+
+func createMintingForSenders(
+	nodes []*testNode,
+	senderShard uint32,
+	sendersPrivateKeys []crypto.PrivateKey,
+	value *big.Int,
+) {
+
+	for _, n := range nodes {
+		//only sender shard nodes will be minted
+		if n.shardId != senderShard {
+			continue
+		}
+
+		for _, sk := range sendersPrivateKeys {
+			pkBuff, _ := sk.GeneratePublic().ToByteArray()
+			adr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
+			account, _ := n.accntState.GetAccountWithJournal(adr)
+			_ = account.(*state.Account).SetBalanceWithJournal(value)
+		}
+
+		_, _ = n.accntState.Commit()
+	}
+}
+
+func skToPk(sk crypto.PrivateKey) []byte {
+	pkBuff, _ := sk.GeneratePublic().ToByteArray()
+	return pkBuff
 }
