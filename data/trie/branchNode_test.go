@@ -709,6 +709,7 @@ func TestBranchNode_isEmptyOrNil(t *testing.T) {
 }
 
 func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
+	t.Parallel()
 	tr := newEmptyTrie()
 	expectedTr := newEmptyTrie()
 
@@ -727,6 +728,7 @@ func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
 }
 
 func TestReduceBranchNodeWithBranchNodeChildShouldWork(t *testing.T) {
+	t.Parallel()
 	tr := newEmptyTrie()
 	expectedTr := newEmptyTrie()
 
@@ -745,6 +747,7 @@ func TestReduceBranchNodeWithBranchNodeChildShouldWork(t *testing.T) {
 }
 
 func TestReduceBranchNodeWithLeafNodeChildShouldWork(t *testing.T) {
+	t.Parallel()
 	tr := newEmptyTrie()
 	expectedTr := newEmptyTrie()
 
@@ -763,6 +766,7 @@ func TestReduceBranchNodeWithLeafNodeChildShouldWork(t *testing.T) {
 }
 
 func TestReduceBranchNodeWithLeafNodeValueShouldWork(t *testing.T) {
+	t.Parallel()
 	tr := newEmptyTrie()
 	expectedTr := newEmptyTrie()
 
