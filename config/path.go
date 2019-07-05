@@ -6,19 +6,23 @@ import (
 	"runtime"
 )
 
-// DefaultPath gives back the path to a default location in user HOME to be used for Elrond application storage
+// DefaultPath gives back the path to a default location in the current directory to be used for Elrond application
+// storage
 func DefaultPath() string {
-	home := os.Getenv("HOME")
+	workingDirectory, err := os.Getwd()
 
-	if home != "" {
-		switch runtime.GOOS {
-		case "windows":
-			return filepath.Join(home, "AppData", "Elrond")
-		case "linux":
-			return filepath.Join(home, ".elrond")
-		case "darwin":
-			return filepath.Join(home, "Library", "Elrond")
-		}
+	if err != nil {
+		return ""
 	}
-	return ""
+
+	switch runtime.GOOS {
+	case "windows":
+		return filepath.Join(workingDirectory, "Elrond")
+	case "linux":
+		return filepath.Join(workingDirectory, ".elrond")
+	case "darwin":
+		return filepath.Join(workingDirectory, "Elrond")
+	}
+
+	return "elrond"
 }
