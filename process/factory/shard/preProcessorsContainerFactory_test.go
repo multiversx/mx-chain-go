@@ -298,7 +298,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 			},
 		}
 	}
-	dataPool.SmartContractResultsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+	dataPool.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
 
@@ -321,7 +321,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 
 	container, err := ppcm.Create()
 	assert.Nil(t, container)
-	assert.Equal(t, process.ErrNilScrDataPool, err)
+	assert.Equal(t, process.ErrNilUTxDataPool, err)
 }
 
 func TestPreProcessorsContainerFactory_Create(t *testing.T) {
@@ -333,7 +333,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 			},
 		}
 	}
-	dataPool.SmartContractResultsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+	dataPool.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte)) {
 			},

@@ -3,8 +3,8 @@ package factory
 const (
 	// TransactionTopic is the topic used for sharing transactions
 	TransactionTopic = "transactions"
-	// SmartContractResultTopic is the topic used for sharing smart contract results
-	SmartContractResultTopic = "smartcontractresult"
+	// UnsignedTransactionTopic is the topic used for sharing unsigned transactions
+	UnsignedTransactionTopic = "unsignedTransactions"
 	// HeadersTopic is the topic used for sharing block headers
 	HeadersTopic = "headers"
 	// MiniBlocksTopic is the topic used for sharing mini blocks

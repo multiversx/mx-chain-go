@@ -56,7 +56,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				},
 			}
 		},
-		SmartContractResultsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
 				RegisterHandlerCalled: func(i func(key []byte)) {},
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
@@ -685,7 +685,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return shardedCacheMock
 			},
-			SmartContractResultsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return shardedCacheMock
 			},
 		},
@@ -1565,7 +1565,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		return shardCoordinator.SelfId() + 2
 	}
 
-	tdp.SmartContractResultsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+	tdp.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte)) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
@@ -1597,7 +1597,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	}
 
 	interProc, _ := container.Get(block.SmartContractResultBlock)
-	tx, _ := tdp.SmartContractResults().SearchFirstData(scrHash)
+	tx, _ := tdp.UnsignedTransactions().SearchFirstData(scrHash)
 	txs := make([]data.TransactionHandler, 0)
 	txs = append(txs, tx.(data.TransactionHandler))
 	err = interProc.AddIntermediateTransactions(txs)
