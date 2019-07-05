@@ -32,4 +32,5 @@ func redirectStderr(f *os.File) error {
 	}
 
 	os.Stderr = f
+	return nil
 }
