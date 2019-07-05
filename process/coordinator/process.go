@@ -9,10 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -24,6 +21,9 @@ type transactionCoordinator struct {
 
 	mutPreprocessor sync.RWMutex
 	txPreprocessors map[block.Type]process.PreProcessor
+
+	mutInterimProcessors sync.RWMutex
+	interimProcessors    map[block.Type]process.IntermediateTransactionHandler
 
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
@@ -39,10 +39,8 @@ func NewTransactionCoordinator(
 	accounts state.AccountsAdapter,
 	dataPool dataRetriever.PoolsHolder,
 	requestHandler process.RequestHandler,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	txProcessor process.TransactionProcessor,
-	store dataRetriever.StorageService,
+	preProcessors process.PreProcessorsContainer,
+	interProcessors process.IntermediateProcessorContainer,
 ) (*transactionCoordinator, error) {
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
@@ -55,6 +53,12 @@ func NewTransactionCoordinator(
 	}
 	if requestHandler == nil {
 		return nil, process.ErrNilRequestHandler
+	}
+	if interProcessors == nil {
+		return nil, process.ErrNilIntermediateProcessorContainer
+	}
+	if preProcessors == nil {
+		return nil, process.ErrNilPreProcessorsContainer
 	}
 
 	tc := &transactionCoordinator{
@@ -71,21 +75,24 @@ func NewTransactionCoordinator(
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	tc.requestedTxs = make(map[block.Type]int)
 	tc.txPreprocessors = make(map[block.Type]process.PreProcessor)
+	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)
 
-	// TODO: make a factory and send this on constructor
-	var err error
-	tc.txPreprocessors[block.TxBlock], err = preprocess.NewTransactionPreprocessor(
-		dataPool.Transactions(),
-		store,
-		hasher,
-		marshalizer,
-		txProcessor,
-		shardCoordinator,
-		accounts,
-		requestHandler.RequestTransaction,
-	)
-	if err != nil {
-		return nil, err
+	keys := preProcessors.Keys()
+	for _, value := range keys {
+		preproc, err := preProcessors.Get(value)
+		if err != nil {
+			return nil, err
+		}
+		tc.txPreprocessors[value] = preproc
+	}
+
+	keys = interProcessors.Keys()
+	for _, value := range keys {
+		interProc, err := interProcessors.Get(value)
+		if err != nil {
+			return nil, err
+		}
+		tc.interimProcessors[value] = interProc
 	}
 
 	return tc, nil
@@ -417,12 +424,12 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRem
 	for i := 0; i < int(tc.shardCoordinator.NumberOfShards()); i++ {
 		remainingSpace := int(maxTxRemaining) - addedTxs
 		if remainingSpace <= 0 {
-			return miniBlocks
+			break
 		}
 
 		miniBlock, err := txPreProc.CreateAndProcessMiniBlock(tc.shardCoordinator.SelfId(), uint32(i), remainingSpace, haveTime, round)
 		if err != nil {
-			return miniBlocks
+			break
 		}
 
 		if len(miniBlock.TxHashes) > 0 {
@@ -430,6 +437,39 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRem
 			miniBlocks = append(miniBlocks, miniBlock)
 		}
 	}
+
+	interMBs := tc.processAddedInterimTransactions()
+	if len(interMBs) > 0 {
+		miniBlocks = append(miniBlocks, interMBs...)
+	}
+
+	return miniBlocks
+}
+
+func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
+	miniBlocks := make(block.MiniBlockSlice, 0)
+
+	tc.mutInterimProcessors.RLock()
+
+	resMutex := sync.Mutex{}
+	// TODO: think if it is good in parallel or it is needed in sequences
+	wg := sync.WaitGroup{}
+	wg.Add(len(tc.interimProcessors))
+
+	for _, interimProc := range tc.interimProcessors {
+		go func() {
+			currMbs := interimProc.CreateAllInterMiniBlocks()
+			resMutex.Lock()
+			for _, value := range currMbs {
+				miniBlocks = append(miniBlocks, value)
+			}
+			resMutex.Unlock()
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	tc.mutInterimProcessors.RUnlock()
 
 	return miniBlocks
 }
@@ -453,6 +493,18 @@ func (tc *transactionCoordinator) getPreprocessor(blockType block.Type) process.
 	}
 
 	return preprocessor
+}
+
+func (tc *transactionCoordinator) getInterimProcessor(blockType block.Type) process.IntermediateTransactionHandler {
+	tc.mutInterimProcessors.RLock()
+	interProcessor, exists := tc.interimProcessors[blockType]
+	tc.mutInterimProcessors.RUnlock()
+
+	if !exists {
+		return nil
+	}
+
+	return interProcessor
 }
 
 // CreateMarshalizedData creates marshalized data for broadcasting
@@ -557,4 +609,31 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	}
 
 	return nil
+}
+
+func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body) error {
+	tc.mutInterimProcessors.RLock()
+
+	errMutex := sync.Mutex{}
+	var errFound error
+	// TODO: think if it is good in parallel or it is needed in sequences
+	wg := sync.WaitGroup{}
+	wg.Add(len(tc.interimProcessors))
+
+	for _, interimProc := range tc.interimProcessors {
+		go func() {
+			err := interimProc.VerifyInterMiniBlocks(body)
+			if err != nil {
+				errMutex.Lock()
+				errFound = err
+				errMutex.Unlock()
+			}
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	tc.mutInterimProcessors.RUnlock()
+
+	return errFound
 }

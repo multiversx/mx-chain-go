@@ -207,9 +207,22 @@ func TestPreProcessorsContainer_LenShouldWork(t *testing.T) {
 	_ = c.Add(block.TxBlock, &mock.PreProcessorMock{})
 	assert.Equal(t, 1, c.Len())
 
+	keys := c.Keys()
+	assert.Equal(t, 1, len(keys))
+	assert.Equal(t, block.TxBlock, keys[0])
+
 	_ = c.Add(block.PeerBlock, &mock.PreProcessorMock{})
 	assert.Equal(t, 2, c.Len())
 
+	keys = c.Keys()
+	assert.Equal(t, 2, len(keys))
+	assert.Contains(t, keys, block.TxBlock)
+	assert.Contains(t, keys, block.PeerBlock)
+
 	c.Remove(block.PeerBlock)
 	assert.Equal(t, 1, c.Len())
+
+	keys = c.Keys()
+	assert.Equal(t, 1, len(keys))
+	assert.Equal(t, block.TxBlock, keys[0])
 }
