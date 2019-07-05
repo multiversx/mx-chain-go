@@ -23,6 +23,9 @@ import (
 
 const timeSeenMessages = time.Second * 120
 const maxSendBuffSize = 1 << 20
+const maxMutexes = 10000
+
+var streamTimeout = time.Second * 5
 
 type directSender struct {
 	counter        uint64
@@ -31,6 +34,7 @@ type directSender struct {
 	messageHandler func(msg p2p.MessageP2P) error
 	mutSeenMesages sync.Mutex
 	seenMessages   *timecache.TimeCache
+	mutexes        *MutexHolder
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -43,13 +47,15 @@ func NewDirectSender(
 	if h == nil {
 		return nil, p2p.ErrNilHost
 	}
-
 	if ctx == nil {
 		return nil, p2p.ErrNilContext
 	}
-
 	if messageHandler == nil {
 		return nil, p2p.ErrNilDirectSendMessageHandler
+	}
+	mutexes, err := NewMutexHolder(maxMutexes)
+	if err != nil {
+		return nil, err
 	}
 
 	ds := &directSender{
@@ -58,6 +64,7 @@ func NewDirectSender(
 		hostP2P:        h,
 		seenMessages:   timecache.NewTimeCache(timeSeenMessages),
 		messageHandler: messageHandler,
+		mutexes:        mutexes,
 	}
 
 	//wire-up a handler for direct messages
@@ -100,15 +107,12 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsub_pb.Message)
 	if message == nil {
 		return p2p.ErrNilMessage
 	}
-
 	if message.TopicIDs == nil {
 		return p2p.ErrNilTopic
 	}
-
 	if len(message.TopicIDs) == 0 {
 		return p2p.ErrEmptyTopicList
 	}
-
 	if ds.checkAndSetSeenMessage(message) {
 		return p2p.ErrAlreadySeenMessage
 	}
@@ -145,6 +149,10 @@ func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
 		return p2p.ErrMessageTooLarge
 	}
 
+	mut := ds.mutexes.Get(string(peer))
+	mut.Lock()
+	defer mut.Unlock()
+
 	conn, err := ds.getConnection(peer)
 	if err != nil {
 		return err
@@ -177,24 +185,24 @@ func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
 	return nil
 }
 
-// SendAsync will asynchronously send a direct message to the connected peer
-func (ds *directSender) SendAsync(topic string, buff []byte, peer p2p.PeerID) {
-	go func() {
-		err := ds.Send(topic, buff, peer)
-		if err != nil {
-			log.Info(err.Error())
-		}
-	}()
-}
-
 func (ds *directSender) getConnection(p p2p.PeerID) (network.Conn, error) {
 	conns := ds.hostP2P.Network().ConnsToPeer(peer.ID(p))
-
 	if len(conns) == 0 {
 		return nil, p2p.ErrPeerNotDirectlyConnected
 	}
 
-	return conns[0], nil
+	//return the connection that has the highest number of streams
+	lStreams := 0
+	var conn network.Conn
+	for _, c := range conns {
+		length := len(c.GetStreams())
+		if length >= lStreams {
+			lStreams = length
+			conn = c
+		}
+	}
+
+	return conn, nil
 }
 
 func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, error) {
@@ -213,7 +221,8 @@ func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, er
 	var err error
 
 	if foundStream == nil {
-		foundStream, err = ds.hostP2P.NewStream(ds.ctx, conn.RemotePeer(), DirectSendID)
+		ctx, _ := context.WithTimeout(ds.ctx, streamTimeout)
+		foundStream, err = ds.hostP2P.NewStream(ctx, conn.RemotePeer(), DirectSendID)
 		if err != nil {
 			return nil, err
 		}

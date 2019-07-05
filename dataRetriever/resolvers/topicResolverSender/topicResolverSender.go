@@ -3,7 +3,6 @@ package topicResolverSender
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -14,8 +13,6 @@ const topicRequestSuffix = "_REQUEST"
 
 // NumPeersToQuery number of peers to send the message
 const NumPeersToQuery = 2
-
-var log = logger.DefaultLogger()
 
 type topicResolverSender struct {
 	messenger             dataRetriever.MessageHandler
@@ -66,35 +63,56 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 	topicToSendRequest := trs.topicName + topicRequestSuffix
 	excludedTopicSendRequest := trs.excludePeersFromTopic + topicRequestSuffix
 	allConnectedPeers := trs.messenger.ConnectedPeersOnTopic(topicToSendRequest)
-	excludedConnectedPeers := make([]p2p.PeerID, 0)
-
-	if len(trs.excludePeersFromTopic) > 0 {
-		excludedConnectedPeers = trs.messenger.ConnectedPeersOnTopic(excludedTopicSendRequest)
-	}
-
-	peersToSend, err := selectRandomPeers(allConnectedPeers, excludedConnectedPeers, NumPeersToQuery, trs.randomizer)
-	if err != nil {
-		return err
-	}
-	if len(peersToSend) == 0 {
+	if len(allConnectedPeers) == 0 {
 		return dataRetriever.ErrNoConnectedPeerToSendRequest
 	}
 
-	messageSent := false
-	for _, peer := range peersToSend {
+	excludedConnectedPeers := make([]p2p.PeerID, 0)
+	isExcludedTopicSet := len(trs.excludePeersFromTopic) > 0
+	if isExcludedTopicSet {
+		excludedConnectedPeers = trs.messenger.ConnectedPeersOnTopic(excludedTopicSendRequest)
+	}
+
+	diffList := makeDiffList(allConnectedPeers, excludedConnectedPeers)
+	if len(diffList) == 0 {
+		//no differences: fallback to all connected peers
+		diffList = allConnectedPeers
+	}
+
+	indexes := createIndexList(len(diffList))
+	shuffledIndexes, err := fisherYatesShuffle(indexes, trs.randomizer)
+	if err != nil {
+		return err
+	}
+
+	msgSentCounter := 0
+	for idx := range shuffledIndexes {
+		peer := diffList[idx]
+
 		err = trs.messenger.SendToConnectedPeer(topicToSendRequest, buff, peer)
-		if err != nil {
-			log.Debug(err.Error())
-		} else {
-			messageSent = true
+		if err == nil {
+			msgSentCounter++
+		}
+
+		if msgSentCounter == NumPeersToQuery {
+			break
 		}
 	}
 
-	if !messageSent {
+	if msgSentCounter == 0 {
 		return err
 	}
 
 	return nil
+}
+
+func createIndexList(listLength int) []int {
+	indexes := make([]int, listLength)
+	for i := 0; i < listLength; i++ {
+		indexes[i] = i
+	}
+
+	return indexes
 }
 
 // Send is used to send an array buffer to a connected peer
@@ -108,46 +126,20 @@ func (trs *topicResolverSender) TopicRequestSuffix() string {
 	return topicRequestSuffix
 }
 
-func selectRandomPeers(
-	allConnectedPeers []p2p.PeerID,
-	excludedConnectedPeers []p2p.PeerID,
-	peersToSend int,
-	randomizer dataRetriever.IntRandomizer,
-) ([]p2p.PeerID, error) {
+func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) ([]int, error) {
+	newIndexes := make([]int, len(indexes))
+	copy(newIndexes, indexes)
 
-	selectedPeers := make([]p2p.PeerID, 0)
-
-	if len(allConnectedPeers) == 0 {
-		return selectedPeers, nil
-	}
-
-	diffPeers := makeDiffList(allConnectedPeers, excludedConnectedPeers)
-	if len(diffPeers) == 0 {
-		//if no peer "from other" shard is found, this fallback ensures
-		//that the requests will be send to some of the connected peers
-		//hoping that they might have the required info
-		diffPeers = allConnectedPeers
-	}
-	if len(diffPeers) <= peersToSend {
-		return diffPeers, nil
-	}
-
-	uniqueIndexes := make(map[int]struct{})
-	//generating peersToSend number of unique indexes
-	for len(uniqueIndexes) < peersToSend {
-		newIndex, err := randomizer.Intn(len(diffPeers))
+	for i := len(newIndexes) - 1; i > 0; i-- {
+		j, err := randomizer.Intn(i + 1)
 		if err != nil {
 			return nil, err
 		}
 
-		uniqueIndexes[newIndex] = struct{}{}
+		newIndexes[i], newIndexes[j] = newIndexes[j], newIndexes[i]
 	}
 
-	for index := range uniqueIndexes {
-		selectedPeers = append(selectedPeers, diffPeers[index])
-	}
-
-	return selectedPeers, nil
+	return newIndexes, nil
 }
 
 func makeDiffList(
