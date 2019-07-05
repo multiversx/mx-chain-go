@@ -121,10 +121,9 @@ func NewMetaBootstrap(
 	errNotCritical := boot.syncFromStorer(process.MetaBlockFinality,
 		dataRetriever.MetaBlockUnit,
 		dataRetriever.MetaHdrNonceHashDataUnit,
-		process.ShardBlockFinality,
-		dataRetriever.ShardHdrNonceHashDataUnit)
+		process.ShardBlockFinality)
 	if errNotCritical != nil {
-		log.Info(err.Error())
+		log.Info(errNotCritical.Error())
 	}
 
 	return &boot, nil
@@ -135,7 +134,6 @@ func (boot *MetaBootstrap) syncFromStorer(
 	blockUnit dataRetriever.UnitType,
 	hdrNonceHashDataUnit dataRetriever.UnitType,
 	notarizedBlockFinality uint64,
-	notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
 	err := boot.loadBlocks(
 		blockFinality,

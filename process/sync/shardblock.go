@@ -141,7 +141,7 @@ func NewShardBootstrap(
 		hdrNonceHashDataUnit,
 		process.MetaBlockFinality)
 	if errNotCritical != nil {
-		log.Info(err.Error())
+		log.Info(errNotCritical.Error())
 	}
 
 	return &boot, nil
