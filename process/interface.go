@@ -49,6 +49,8 @@ type TransactionCoordinator interface {
 	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte)
 
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
+
+	VerifyCreatedBlockTransactions(body block.Body) error
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
@@ -61,7 +63,7 @@ type SmartContractProcessor interface {
 // IntermediateTransactionHandler handles transactions which are not resolved in only one step
 type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
-	CreateAllInterMiniBlocks() []*block.MiniBlock
+	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
 	VerifyInterMiniBlocks(body block.Body) error
 }
 
@@ -174,11 +176,28 @@ type PreProcessorsContainer interface {
 	Replace(key block.Type, val PreProcessor) error
 	Remove(key block.Type)
 	Len() int
+	Keys() []block.Type
 }
 
 // PreProcessorsContainerFactory defines the functionality to create an PreProcessors container
 type PreProcessorsContainerFactory interface {
 	Create() (PreProcessorsContainer, error)
+}
+
+// PreProcessorsContainer defines an PreProcessors holder data type with basic functionality
+type IntermediateProcessorContainer interface {
+	Get(key block.Type) (IntermediateTransactionHandler, error)
+	Add(key block.Type, val IntermediateTransactionHandler) error
+	AddMultiple(keys []block.Type, preprocessors []IntermediateTransactionHandler) error
+	Replace(key block.Type, val IntermediateTransactionHandler) error
+	Remove(key block.Type)
+	Len() int
+	Keys() []block.Type
+}
+
+// PreProcessorsContainerFactory defines the functionality to create an PreProcessors container
+type IntermediateProcessorsContainerFactory interface {
+	Create() (IntermediateProcessorContainer, error)
 }
 
 // Interceptor defines what a data interceptor should do

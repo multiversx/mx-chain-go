@@ -211,9 +211,6 @@ var ErrNilHeadersStorage = errors.New("nil headers storage")
 // ErrNilHeadersNonceHashStorage signals that a nil header nonce hash storage has been provided
 var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 
-// ErrNilMetachainHeadersStorage signals that a nil metachain header storage has been provided
-var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")
-
 // ErrNilMetaHeadersStorage signals that a nil metachain header storage has been provided
 var ErrNilMetaHeadersStorage = errors.New("nil meta headers storage")
 
@@ -399,3 +396,9 @@ var ErrNilUint64Converter = errors.New("unit64converter is nil")
 
 // ErrNilSmartContractResultProcessor signals that smart contract result processor is nil
 var ErrNilSmartContractResultProcessor = errors.New("nil smart contract result processor")
+
+// ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
+var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")
+
+// ErrNilPreProcessorsContainer signals that preprocessors container is nil
+var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
