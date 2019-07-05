@@ -71,9 +71,11 @@ func (boot *baseBootstrap) loadBlocks(
 	blockFinality uint64,
 	blockUnit dataRetriever.UnitType,
 	hdrNonceHashDataUnit dataRetriever.UnitType,
-	getHeader func(uint64) (data.HeaderHandler, []byte, error),
+	getHeader func(uint32, uint64) (data.HeaderHandler, []byte, error),
 	getBlockBody func(data.HeaderHandler) (data.BodyHandler, error),
 	removeBlockBody func(uint64, dataRetriever.UnitType, dataRetriever.UnitType) error,
+	getNonceWithLastNotarized func(uint64, uint64) (uint64, map[uint32]uint64, map[uint32]uint64),
+	applyNotarizedBlocks func(map[uint32]uint64, map[uint32]uint64) error,
 ) error {
 	var err error
 	var currentNonce uint64
@@ -82,9 +84,17 @@ func (boot *baseBootstrap) loadBlocks(
 
 	log.Info(fmt.Sprintf("the highest header nonce committed in storer is %d\n", highestNonceInStorer))
 
+	var finalNotarized map[uint32]uint64
+	var lastNotarized map[uint32]uint64
+
 	for currentNonce = highestNonceInStorer; currentNonce > blockFinality; currentNonce-- {
+		currentNonce, finalNotarized, lastNotarized = getNonceWithLastNotarized(currentNonce, blockFinality)
+		if currentNonce <= blockFinality {
+			return process.ErrNotEnoughValidBlocksInStorage
+		}
+
 		for i := currentNonce - blockFinality; i <= currentNonce; i++ {
-			err = boot.applyBlock(i, getHeader, getBlockBody)
+			err = boot.applyBlock(boot.shardCoordinator.SelfId(), i, getHeader, getBlockBody)
 			if err != nil {
 				log.Info(fmt.Sprintf("apply block with nonce %d: %s\n", i, err.Error()))
 				break
@@ -109,15 +119,13 @@ func (boot *baseBootstrap) loadBlocks(
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 
-	bootstrapRoundIndex, errNotCritical := boot.getBlockRoundFromNonce(currentNonce, getHeader)
-	if errNotCritical != nil {
-		log.Info(fmt.Sprintf(errNotCritical.Error()))
-	} else {
-		boot.bootstrapRoundIndex = bootstrapRoundIndex
-	}
-
 	for i := currentNonce + 1; i <= highestNonceInStorer; i++ {
 		boot.cleanupStorage(removeBlockBody, i, blockUnit, hdrNonceHashDataUnit)
+	}
+
+	err = applyNotarizedBlocks(finalNotarized, lastNotarized)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -139,38 +147,18 @@ func (boot *baseBootstrap) computeHighestNonce(hdrNonceHashDataUnit dataRetrieve
 	return highestNonceInStorer
 }
 
-func (boot *baseBootstrap) cleanupStorage(
-	removeBlockBody func(uint64, dataRetriever.UnitType, dataRetriever.UnitType) error,
-	nonce uint64,
-	blockUnit dataRetriever.UnitType,
-	hdrNonceHashDataUnit dataRetriever.UnitType) {
-
-	errNotCritical := removeBlockBody(nonce, blockUnit, hdrNonceHashDataUnit)
-	if errNotCritical != nil {
-		log.Info(fmt.Sprintf("remove block body with nonce %d: %s\n", nonce, errNotCritical.Error()))
-	}
-
-	errNotCritical = boot.removeBlockHeader(nonce, blockUnit, hdrNonceHashDataUnit)
-	if errNotCritical != nil {
-		log.Info(fmt.Sprintf("remove block header with nonce %d: %s\n", nonce, errNotCritical.Error()))
-	}
-}
-
 func (boot *baseBootstrap) applyBlock(
+	shardId uint32,
 	nonce uint64,
-	getHeader func(uint64) (data.HeaderHandler, []byte, error),
+	getHeader func(uint32, uint64) (data.HeaderHandler, []byte, error),
 	getBlockBody func(data.HeaderHandler) (data.BodyHandler, error),
 ) error {
-	header, headerHash, err := getHeader(nonce)
+	header, headerHash, err := getHeader(shardId, nonce)
 	if err != nil {
 		return err
 	}
 
 	log.Info(fmt.Sprintf("apply block with nonce %d and round %d\n", header.GetNonce(), header.GetRound()))
-
-	if header.GetRound() > boot.bootstrapRoundIndex {
-		return ErrHigherBootstrapRound
-	}
 
 	errNotCritical := boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
 	if errNotCritical != nil {
@@ -195,6 +183,23 @@ func (boot *baseBootstrap) applyBlock(
 	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
 
 	return nil
+}
+
+func (boot *baseBootstrap) cleanupStorage(
+	removeBlockBody func(uint64, dataRetriever.UnitType, dataRetriever.UnitType) error,
+	nonce uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType) {
+
+	errNotCritical := removeBlockBody(nonce, blockUnit, hdrNonceHashDataUnit)
+	if errNotCritical != nil {
+		log.Info(fmt.Sprintf("remove block body with nonce %d: %s\n", nonce, errNotCritical.Error()))
+	}
+
+	errNotCritical = boot.removeBlockHeader(nonce, blockUnit, hdrNonceHashDataUnit)
+	if errNotCritical != nil {
+		log.Info(fmt.Sprintf("remove block header with nonce %d: %s\n", nonce, errNotCritical.Error()))
+	}
 }
 
 func (boot *baseBootstrap) removeBlockHeader(
@@ -231,81 +236,29 @@ func (boot *baseBootstrap) removeBlockHeader(
 	return nil
 }
 
-func (boot *baseBootstrap) loadNotarizedBlocks(
-	blockFinality uint64,
-	hdrNonceHashDataUnit dataRetriever.UnitType,
-	applyNotarisedBlock func(uint64, dataRetriever.UnitType) error,
-) error {
-	var err error
-	var currentNonce uint64
-
-	highestNonceInStorer := boot.computeHighestNonce(hdrNonceHashDataUnit)
-
-	log.Info(fmt.Sprintf("the highest notarized header nonce committed in unit storer %d is %d\n",
-		hdrNonceHashDataUnit,
-		highestNonceInStorer))
-
-	for currentNonce = highestNonceInStorer; currentNonce > blockFinality; currentNonce-- {
-		for i := currentNonce - blockFinality; i <= currentNonce; i++ {
-			err = applyNotarisedBlock(i, hdrNonceHashDataUnit)
-			if err != nil {
-				log.Info(fmt.Sprintf("apply notarized block with nonce %d: %s\n", i, err.Error()))
-				break
-			}
-		}
-
-		if err == nil {
-			break
-		}
-	}
-
-	if currentNonce <= blockFinality {
-		return process.ErrNotEnoughValidBlocksInStorage
-	}
-
-	for i := currentNonce + 1; i <= highestNonceInStorer; i++ {
-		boot.cleanupNotarizedStorage(i, hdrNonceHashDataUnit)
-	}
-
-	return nil
-}
-
-func (boot *baseBootstrap) cleanupNotarizedStorage(nonce uint64, hdrNonceHashDataUnit dataRetriever.UnitType) {
-	errNotCritical := boot.removeNotarizedBlockHeader(nonce, hdrNonceHashDataUnit)
-	if errNotCritical != nil {
-		log.Info(fmt.Sprintf("remove notarized block header with nonce %d: %s\n", nonce, errNotCritical.Error()))
-	}
-}
-
-func (boot *baseBootstrap) removeNotarizedBlockHeader(
-	nonce uint64,
-	notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
-) error {
-	headerNonceHashStore := boot.store.GetStorer(notarizedHdrNonceHashDataUnit)
-	if headerNonceHashStore == nil {
-		return process.ErrNilHeadersNonceHashStorage
-	}
-
+func (boot *baseBootstrap) getShardHeaderFromStorage(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error) {
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-	err := headerNonceHashStore.Remove(nonceToByteSlice)
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardId)
+	headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return nil
+	header, err := process.GetShardHeaderFromStorage(headerHash, boot.marshalizer, boot.store)
+
+	return header, headerHash, err
 }
 
-func (boot *baseBootstrap) getBlockRoundFromNonce(
-	nonce uint64,
-	getHeader func(uint64) (data.HeaderHandler, []byte, error),
-) (uint32, error) {
-
-	header, _, err := getHeader(nonce)
+func (boot *baseBootstrap) getMetaHeaderFromStorage(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error) {
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	headerHash, err := boot.store.Get(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice)
 	if err != nil {
-		return 0, err
+		return nil, nil, err
 	}
 
-	return header.GetRound(), nil
+	header, err := process.GetMetaHeaderFromStorage(headerHash, boot.marshalizer, boot.store)
+
+	return header, headerHash, err
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
