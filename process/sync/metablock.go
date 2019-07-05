@@ -117,15 +117,6 @@ func NewMetaBootstrap(
 	//TODO: This should be injected when BlockProcessor will be refactored
 	boot.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
-	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
-	errNotCritical := boot.syncFromStorer(process.MetaBlockFinality,
-		dataRetriever.MetaBlockUnit,
-		dataRetriever.MetaHdrNonceHashDataUnit,
-		process.ShardBlockFinality)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-	}
-
 	return &boot, nil
 }
 
@@ -318,6 +309,15 @@ func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
 
 // StartSync method will start SyncBlocks as a go routine
 func (boot *MetaBootstrap) StartSync() {
+	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
+	errNotCritical := boot.syncFromStorer(process.MetaBlockFinality,
+		dataRetriever.MetaBlockUnit,
+		dataRetriever.MetaHdrNonceHashDataUnit,
+		process.ShardBlockFinality)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
 	go boot.syncBlocks()
 }
 

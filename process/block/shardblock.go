@@ -892,8 +892,6 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 func (sp *shardProcessor) requestFinalMissingHeaders() uint32 {
 	requestedBlockHeaders := uint32(0)
 	for i := sp.currHighestMetaHdrNonce + 1; i <= sp.currHighestMetaHdrNonce+uint64(sp.metaBlockFinality); i++ {
-		//_, err := sp.hasMetaHeaderWithNonce(i)
-		//if err != nil {
 		if !sp.dataPool.MetaHeadersNonces().Has(i) {
 			requestedBlockHeaders++
 			go sp.onRequestHeaderHandlerByNonce(sharding.MetachainShardId, i)
@@ -902,64 +900,6 @@ func (sp *shardProcessor) requestFinalMissingHeaders() uint32 {
 
 	return requestedBlockHeaders
 }
-
-//func (sp *shardProcessor) hasMetaHeaderWithHash(hash []byte) (*block.MetaBlock, error) {
-//	obj, ok := sp.dataPool.MetaBlocks().Peek(hash)
-//	if ok {
-//		hdr, ok := obj.(*block.MetaBlock)
-//		if ok {
-//			return hdr, nil
-//		}
-//	}
-//
-//	buff, err := sp.store.GetStorer(dataRetriever.MetaBlockUnit).Get(hash)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	metaBlock := block.MetaBlock{}
-//	err = sp.marshalizer.Unmarshal(&metaBlock, buff)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	sp.dataPool.MetaBlocks().Put(hash, &metaBlock)
-//	sp.dataPool.MetaHeadersNonces().Put(metaBlock.Nonce, &metaBlock)
-//
-//	return &metaBlock, nil
-//}
-//
-//func (sp *shardProcessor) hasMetaHeaderWithNonce(nonce uint64) (*block.MetaBlock, error) {
-//	obj, ok := sp.dataPool.MetaHeadersNonces().Get(nonce)
-//	if ok {
-//		hdr, ok := obj.(*block.MetaBlock)
-//		if ok {
-//			return hdr, nil
-//		}
-//	}
-//
-//	nonceToByteSlice := sp.uint64Converter.ToByteSlice(nonce)
-//	metaBlockHash, err := sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Get(nonceToByteSlice)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	buff, err := sp.store.GetStorer(dataRetriever.MetaBlockUnit).Get(metaBlockHash)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	metaBlock := block.MetaBlock{}
-//	err = sp.marshalizer.Unmarshal(&metaBlock, buff)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	sp.dataPool.MetaBlocks().Put(metaBlockHash, &metaBlock)
-//	sp.dataPool.MetaHeadersNonces().Put(metaBlock.Nonce, &metaBlock)
-//
-//	return &metaBlock, nil
-//}
 
 // receivedMiniBlock is a callback function when a new miniblock was received
 // it will further ask for missing transactions
@@ -1031,7 +971,6 @@ func (sp *shardProcessor) computeMissingHeaders(header *block.Header) [][]byte {
 	sp.currHighestMetaHdrNonce = uint64(0)
 
 	for i := 0; i < len(header.MetaBlockHashes); i++ {
-		//hdr, err := sp.hasMetaHeaderWithHash(header.MetaBlockHashes[i])
 		hdr, err := process.GetMetaHeaderFromPool(header.MetaBlockHashes[i], sp.dataPool.MetaBlocks())
 		if err != nil {
 			missingHeaders = append(missingHeaders, header.MetaBlockHashes[i])

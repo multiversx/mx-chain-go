@@ -134,16 +134,6 @@ func NewShardBootstrap(
 	//TODO: This should be injected when BlockProcessor will be refactored
 	boot.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
-	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
-	errNotCritical := boot.syncFromStorer(process.ShardBlockFinality,
-		dataRetriever.BlockHeaderUnit,
-		hdrNonceHashDataUnit,
-		process.MetaBlockFinality)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-	}
-
 	return &boot, nil
 }
 
@@ -416,6 +406,16 @@ func (boot *ShardBootstrap) receivedBodyHash(hash []byte) {
 
 // StartSync method will start SyncBlocks as a go routine
 func (boot *ShardBootstrap) StartSync() {
+	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
+	errNotCritical := boot.syncFromStorer(process.ShardBlockFinality,
+		dataRetriever.BlockHeaderUnit,
+		hdrNonceHashDataUnit,
+		process.MetaBlockFinality)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
 	go boot.syncBlocks()
 }
 
