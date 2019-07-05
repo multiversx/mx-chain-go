@@ -436,15 +436,9 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher, marshalizer mars
 		if err != nil {
 			return false, nil, err
 		}
-		if childPos != 16 {
-			newNode := bn.reduceNode(pos)
-			return true, newNode, nil
-		}
-		child := bn.children[pos]
-		if child, ok := child.(*leafNode); ok {
-			return true, newLeafNode([]byte{byte(pos)}, child.Value), nil
-		}
 
+		newNode := bn.children[pos].reduceNode(pos)
+		return true, newNode, nil
 	}
 
 	bn.dirty = dirty
@@ -452,10 +446,7 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher, marshalizer mars
 }
 
 func (bn *branchNode) reduceNode(pos int) node {
-	if child, ok := bn.children[pos].(*leafNode); ok {
-		return newLeafNode(concat([]byte{byte(pos)}, child.Key...), child.Value)
-	}
-	return newExtensionNode([]byte{byte(pos)}, bn.children[pos])
+	return newExtensionNode([]byte{byte(pos)}, bn)
 }
 
 func getChildPosition(n *branchNode) (nrOfChildren int, childPos int) {
