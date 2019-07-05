@@ -1,9 +1,9 @@
 package unsigned
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
