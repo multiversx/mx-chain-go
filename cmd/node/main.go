@@ -167,6 +167,12 @@ VERSION:
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialNodesSk.pem",
 	}
+	// logLevel defines the logger level
+	logLevel = cli.StringFlag{
+		Name:  "logLevel",
+		Usage: "This flag specifies the logger level",
+		Value: logger.LogInfo,
+	}
 	// boostrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
 	boostrapRoundIndex = cli.UintFlag{
 		Name:  "boostrap-round-index",
@@ -190,7 +196,6 @@ var coreServiceContainer serviceContainer.Core
 
 func main() {
 	log := logger.DefaultLogger()
-	log.SetLevel(logger.LogInfo)
 
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
@@ -215,6 +220,7 @@ func main() {
 		gopsEn,
 		serversConfigurationFile,
 		restApiPort,
+		logLevel,
 		boostrapRoundIndex,
 	}
 	app.Authors = []cli.Author{
@@ -251,6 +257,9 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 }
 
 func startNode(ctx *cli.Context, log *logger.Logger) error {
+	logLevel := ctx.GlobalString(logLevel.Name)
+	log.SetLevel(logLevel)
+
 	profileMode := ctx.GlobalString(profileMode.Name)
 	switch profileMode {
 	case "cpu":
@@ -692,12 +701,10 @@ func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, 
 	}
 
 	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
-	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
-	if err != nil {
-		return err
-	}
-
-	err = log.ApplyOptions(logger.WithFile(logFile))
+	err = log.ApplyOptions(
+		logger.WithFileRotation(hexPublicKey, defaultLogPath, "log"),
+		logger.WithStderrRedirect(),
+	)
 	if err != nil {
 		return err
 	}
