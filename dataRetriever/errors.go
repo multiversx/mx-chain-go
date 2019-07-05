@@ -61,8 +61,8 @@ var ErrNilMessenger = errors.New("nil Messenger")
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
-// ErrNilSmartContractResultsPool signals that a nil smart contract results pool has been provided
-var ErrNilSmartContractResultsPool = errors.New("nil smart contract results data pool")
+// ErrNilUnsignedTransactionPool signals that a nil unsigned transactions pool has been provided
+var ErrNilUnsignedTransactionPool = errors.New("nil smart contract results data pool")
 
 // ErrNilHeadersDataPool signals that a nil header pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")

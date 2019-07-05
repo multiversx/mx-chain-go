@@ -86,3 +86,17 @@ func (ppc *PreProcessorsContainer) Remove(key block.Type) {
 func (ppc *PreProcessorsContainer) Len() int {
 	return ppc.objects.Len()
 }
+
+func (ppc *PreProcessorsContainer) Keys() []block.Type {
+	keys := make([]block.Type, 0)
+	for key := range ppc.objects.Iter() {
+		uint8key, ok := key.Key.(uint8)
+		if !ok {
+			continue
+		}
+
+		blockType := block.Type(uint8key)
+		keys = append(keys, blockType)
+	}
+	return keys
+}

@@ -211,9 +211,6 @@ var ErrNilHeadersStorage = errors.New("nil headers storage")
 // ErrNilHeadersNonceHashStorage signals that a nil header nonce hash storage has been provided
 var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 
-// ErrNilMetachainHeadersStorage signals that a nil metachain header storage has been provided
-var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")
-
 // ErrNilMetaHeadersStorage signals that a nil metachain header storage has been provided
 var ErrNilMetaHeadersStorage = errors.New("nil meta headers storage")
 
@@ -367,14 +364,14 @@ var ErrNilSmartContractResult = errors.New("smart contract result is nil")
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
 
-// ErrNoSmartContractResultInMessage signals that message does not contain required data
-var ErrNoSmartContractResultInMessage = errors.New("no smart contract result in message")
+// ErrNoUnsignedTransactionInMessage signals that message does not contain required data
+var ErrNoUnsignedTransactionInMessage = errors.New("no smart contract result in message")
 
-// ErrNilScrDataPool signals that smart contract pool is nil
-var ErrNilScrDataPool = errors.New("smart contract result pool is nil")
+// ErrNilUTxDataPool signals that unsigned transaction pool is nil
+var ErrNilUTxDataPool = errors.New("smart contract result pool is nil")
 
-// ErrNilScrStorage signals that smart contract storage is nil
-var ErrNilScrStorage = errors.New("smart contract result storage is nil")
+// ErrNilUTxStorage signals that unsigned transaction storage is nil
+var ErrNilUTxStorage = errors.New("smart contract result storage is nil")
 
 // ErrNilScAddress signals that a nil smart contract address has been provided
 var ErrNilScAddress = errors.New("nil SC address")
@@ -399,3 +396,9 @@ var ErrNilUint64Converter = errors.New("unit64converter is nil")
 
 // ErrNilSmartContractResultProcessor signals that smart contract result processor is nil
 var ErrNilSmartContractResultProcessor = errors.New("nil smart contract result processor")
+
+// ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
+var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")
+
+// ErrNilPreProcessorsContainer signals that preprocessors container is nil
+var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")

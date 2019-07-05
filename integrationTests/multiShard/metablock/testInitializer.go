@@ -46,7 +46,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	mock2 "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -217,7 +216,7 @@ func createTestShardStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
-	store.AddStorer(dataRetriever.SmartContractResultUnit, createMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 
@@ -226,7 +225,7 @@ func createTestShardStore() dataRetriever.StorageService {
 
 func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
-	scrPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
@@ -249,7 +248,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
-		scrPool,
+		uTxPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -314,16 +313,30 @@ func createShardNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
-	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(tn.resolvers, factory.TransactionTopic, factory.SmartContractResultTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
-	txCoordinator, _ := coordinator.NewTransactionCoordinator(
+	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(tn.resolvers, factory.TransactionTopic, factory.UnsignedTransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
+
+	fact, _ := shard.NewPreProcessorsContainerFactory(
+		shardCoordinator,
+		store,
+		testMarshalizer,
+		testHasher,
+		dPool,
+		testAddressConverter,
+		accntAdapter,
+		requestHandler,
+		&mock.TxProcessorMock{},
+		&mock.SCProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
+	)
+	container, _ := fact.Create()
+
+	tc, _ := coordinator.NewTransactionCoordinator(
 		shardCoordinator,
 		accntAdapter,
 		dPool,
 		requestHandler,
-		testHasher,
-		testMarshalizer,
-		&mock2.TxProcessorMock{},
-		store,
+		container,
+		&mock.InterimProcessorContainerMock{},
 	)
 
 	blockProcessor, _ := block.NewShardProcessor(
@@ -352,7 +365,7 @@ func createShardNetNode(
 		createGenesisBlocks(shardCoordinator),
 		true,
 		requestHandler,
-		txCoordinator,
+		tc,
 		uint64Converter,
 	)
 

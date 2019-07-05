@@ -61,7 +61,7 @@ type Config struct {
 	PeerBlockBodyStorage       StorageConfig
 	BlockHeaderStorage         StorageConfig
 	TxStorage                  StorageConfig
-	SmartContractResultStorage StorageConfig
+	UnsignedTransactionStorage StorageConfig
 	ShardHdrNonceHashStorage   StorageConfig
 	MetaHdrNonceHashStorage    StorageConfig
 

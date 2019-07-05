@@ -1,7 +1,6 @@
 package shard
 
 import (
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -14,23 +13,17 @@ import (
 )
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator    sharding.Coordinator
-	messenger           process.TopicHandler
-	store               dataRetriever.StorageService
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	keyGen              crypto.KeyGenerator
-	singleSigner        crypto.SingleSigner
-	multiSigner         crypto.MultiSigner
-	dataPool            dataRetriever.PoolsHolder
-	addrConverter       state.AddressConverter
-	chronologyValidator process.ChronologyValidator
-	txProcessor         process.TransactionProcessor
-	scProcessor         process.SmartContractProcessor
-	scResultProcessor   process.SmartContractResultProcessor
-	interProcessor      process.IntermediateTransactionHandler
-	accounts            state.AccountsAdapter
-	requestHandler      process.RequestHandler
+	shardCoordinator  sharding.Coordinator
+	store             dataRetriever.StorageService
+	marshalizer       marshal.Marshalizer
+	hasher            hashing.Hasher
+	dataPool          dataRetriever.PoolsHolder
+	addrConverter     state.AddressConverter
+	txProcessor       process.TransactionProcessor
+	scProcessor       process.SmartContractProcessor
+	scResultProcessor process.SmartContractResultProcessor
+	accounts          state.AccountsAdapter
+	requestHandler    process.RequestHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -46,7 +39,6 @@ func NewPreProcessorsContainerFactory(
 	txProcessor process.TransactionProcessor,
 	scProcessor process.SmartContractProcessor,
 	scResultProcessor process.SmartContractResultProcessor,
-	interProcessor process.IntermediateTransactionHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -79,9 +71,6 @@ func NewPreProcessorsContainerFactory(
 	if scResultProcessor == nil {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
-	if interProcessor == nil {
-		return nil, process.ErrNilIntermediateTransactionHandler
-	}
 	if requestHandler == nil {
 		return nil, process.ErrNilRequestHandler
 	}
@@ -97,7 +86,6 @@ func NewPreProcessorsContainerFactory(
 		accounts:          accounts,
 		scProcessor:       scProcessor,
 		scResultProcessor: scResultProcessor,
-		interProcessor:    interProcessor,
 		requestHandler:    requestHandler,
 	}, nil
 }
@@ -146,7 +134,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 
 func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
 	scrPreprocessor, err := preprocess.NewSmartContractResultPreprocessor(
-		ppcm.dataPool.SmartContractResults(),
+		ppcm.dataPool.UnsignedTransactions(),
 		ppcm.store,
 		ppcm.hasher,
 		ppcm.marshalizer,

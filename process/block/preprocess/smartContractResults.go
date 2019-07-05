@@ -48,10 +48,10 @@ func NewSmartContractResultPreprocessor(
 		return nil, process.ErrNilMarshalizer
 	}
 	if scrDataPool == nil {
-		return nil, process.ErrNilScrDataPool
+		return nil, process.ErrNilUTxDataPool
 	}
 	if store == nil {
-		return nil, process.ErrNilScrStorage
+		return nil, process.ErrNilUTxStorage
 	}
 	if scrProcessor == nil {
 		return nil, process.ErrNilTxProcessor
@@ -144,7 +144,7 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 		}
 
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-		scrBuff, err := scr.storage.GetAll(dataRetriever.SmartContractResultUnit, miniBlock.TxHashes)
+		scrBuff, err := scr.storage.GetAll(dataRetriever.UnsignedTransactionUnit, miniBlock.TxHashes)
 		if err != nil {
 			return scrRestored, miniBlockHashes, err
 		}
@@ -224,7 +224,7 @@ func (scr *smartContractResults) SaveTxBlockToStorage(body block.Body) error {
 			continue
 		}
 
-		err := scr.saveTxsToStorage(miniBlock.TxHashes, &scr.scrForBlock, scr.storage, dataRetriever.SmartContractResultUnit)
+		err := scr.saveTxsToStorage(miniBlock.TxHashes, &scr.scrForBlock, scr.storage, dataRetriever.UnsignedTransactionUnit)
 		if err != nil {
 			return err
 		}
@@ -301,7 +301,7 @@ func (scr *smartContractResults) processSmartContractResult(
 	return nil
 }
 
-// RequestSmartContractResultsForMiniBlock requests missing smartContractResults for a certain miniblock
+// RequestUnsignedTransactionsForMiniBlock requests missing smartContractResults for a certain miniblock
 func (scr *smartContractResults) RequestTransactionsForMiniBlock(mb block.MiniBlock) int {
 	missingScrsForMiniBlock := scr.computeMissingScrsForMiniBlock(mb)
 	scr.onRequestSmartContractResult(mb.SenderShardID, missingScrsForMiniBlock)
@@ -335,7 +335,7 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 	strCache := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 	txCache := scr.scrPool.ShardDataStore(strCache)
 	if txCache == nil {
-		return nil, nil, process.ErrNilScrDataPool
+		return nil, nil, process.ErrNilUTxDataPool
 	}
 
 	// verify if all smartContractResult exists
