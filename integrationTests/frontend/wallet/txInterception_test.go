@@ -146,7 +146,6 @@ func testInterceptedTxFromFrontendGeneratedParams(
 
 		sig, _ := hex.DecodeString(frontendSignature)
 		assert.Equal(t, txRecovered.Signature, sig)
-
 		assert.Equal(t, txRecovered.Data, frontendData)
 
 		chDone <- struct{}{}
