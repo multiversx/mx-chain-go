@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"crypto/rand"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"math/big"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"

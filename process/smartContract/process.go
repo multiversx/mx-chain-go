@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -238,6 +238,11 @@ func (sc *scProcessor) DeploySmartContract(
 	}
 
 	vmInput, err := sc.createVMDeployInput(tx)
+	if err != nil {
+		return err
+	}
+
+	vmInput.ContractCode, err = hex.DecodeString(string(vmInput.ContractCode))
 	if err != nil {
 		return err
 	}

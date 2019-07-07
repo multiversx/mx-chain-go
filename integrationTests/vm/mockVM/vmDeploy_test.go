@@ -19,7 +19,7 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(0)
 
-	scCode := "mocked code, not taken into account"
+	scCode := "aaaa"
 	initialValueForInternalVariable := uint64(45)
 
 	tx := vm.CreateTx(
@@ -69,7 +69,7 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(50)
 
-	scCode := "mocked code, not taken into account"
+	scCode := "aaaa"
 	initialValueForInternalVariable := uint64(45)
 
 	tx := vm.CreateTx(
@@ -119,7 +119,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(50)
 
-	scCode := "mocked code, not taken into account"
+	scCode := "aaaa"
 	initialValueForInternalVariable := uint64(45)
 
 	tx := vm.CreateTx(
@@ -171,7 +171,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	gasLimit := vmOpGas - 1
 	transferOnCalls := big.NewInt(50)
 
-	scCode := "mocked code, not taken into account"
+	scCode := "aaaa"
 	initialValueForInternalVariable := uint64(45)
 
 	tx := vm.CreateTx(

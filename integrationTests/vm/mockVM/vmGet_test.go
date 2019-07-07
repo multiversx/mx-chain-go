@@ -34,7 +34,7 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(0)
 
-	scCode := "mocked code, not taken into account"
+	scCode := "aaaa"
 	initialValueForInternalVariable := uint64(45)
 
 	tx := vm.CreateTx(

@@ -23,7 +23,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(0)
 
-	scCode := "mocked code, not taken into account"
+	scCode := "aaaa"
 	initialValueForInternalVariable := uint64(45)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
@@ -89,7 +89,7 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(50)
 
-	scCode := "mocked code, not taken into account"
+	scCode := "aaaa"
 	initialValueForInternalVariable := uint64(45)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
@@ -156,7 +156,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(50)
 
-	scCode := "mocked code, not taken into account"
+	scCode := "aaaa"
 	initialValueForInternalVariable := uint64(45)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
@@ -224,7 +224,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	gasLimit := vmOpGas - 1
 	transferOnCalls := big.NewInt(50)
 
-	scCode := "mocked code, not taken into account"
+	scCode := "aaaa"
 	initialValueForInternalVariable := uint64(45)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)

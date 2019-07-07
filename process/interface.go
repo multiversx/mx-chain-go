@@ -67,7 +67,7 @@ type IntermediateTransactionHandler interface {
 	VerifyInterMiniBlocks(body block.Body) error
 }
 
-// Preprocessor is an interface used to prepare and process transaction data
+// PreProcessor is an interface used to prepare and process transaction data
 type PreProcessor interface {
 	CreateBlockStarted()
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
@@ -184,7 +184,7 @@ type PreProcessorsContainerFactory interface {
 	Create() (PreProcessorsContainer, error)
 }
 
-// PreProcessorsContainer defines an PreProcessors holder data type with basic functionality
+// IntermediateProcessorContainer defines an PreProcessors holder data type with basic functionality
 type IntermediateProcessorContainer interface {
 	Get(key block.Type) (IntermediateTransactionHandler, error)
 	Add(key block.Type, val IntermediateTransactionHandler) error
@@ -195,7 +195,7 @@ type IntermediateProcessorContainer interface {
 	Keys() []block.Type
 }
 
-// PreProcessorsContainerFactory defines the functionality to create an PreProcessors container
+// IntermediateProcessorsContainerFactory defines the functionality to create an PreProcessors container
 type IntermediateProcessorsContainerFactory interface {
 	Create() (IntermediateProcessorContainer, error)
 }
@@ -260,10 +260,10 @@ type ArgumentsParser interface {
 	GetArguments() ([]*big.Int, error)
 	GetCode() ([]byte, error)
 	GetFunction() (string, error)
-	ParseData(data []byte) error
+	ParseData(data string) error
 
-	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) []byte
-	GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error)
+	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
+	GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error)
 }
 
 // TemporaryAccountsHandler defines the functionality to create temporary accounts and pass to VM.
