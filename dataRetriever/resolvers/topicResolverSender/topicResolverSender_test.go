@@ -228,146 +228,49 @@ func TestMakeDiffList_NoneFoundInExcludedShouldRetAllPeers(t *testing.T) {
 	assert.Equal(t, allPeers, diff)
 }
 
-// ------- SelectRandomPeers
+// ------- FisherYatesShuffle
 
-func TestSelectRandomPeers_ConnectedPeersLen0ShoudRetEmpty(t *testing.T) {
-	t.Parallel()
+func TestFisherYatesShuffle_EmptyShouldReturnEmpty(t *testing.T) {
+	indexes := make([]int, 0)
+	randomizer := &mock.IntRandomizerMock{}
 
-	allPeerList := make([]p2p.PeerID, 0)
-	excludedPeerList := make([]p2p.PeerID, 0)
-	selectedPeers, err := topicResolverSender.SelectRandomPeers(allPeerList, excludedPeerList, 0, nil)
-
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(selectedPeers))
-}
-
-func TestSelectRandomPeers_ConnectedPeersLenSmallerThanRequiredShoudRetListTest1(t *testing.T) {
-	t.Parallel()
-
-	connectedPeers := []p2p.PeerID{p2p.PeerID("peer 1"), p2p.PeerID("peer 2")}
-	excludedPeerList := make([]p2p.PeerID, 0)
-	selectedPeers, err := topicResolverSender.SelectRandomPeers(connectedPeers, excludedPeerList, 3, nil)
+	resultIndexes, err := topicResolverSender.FisherYatesShuffle(indexes, randomizer)
 
 	assert.Nil(t, err)
-	assert.Equal(t, connectedPeers, selectedPeers)
+	assert.Empty(t, resultIndexes)
 }
 
-func TestSelectRandomPeers_ConnectedPeersLenSmallerThanRequiredShoudRetListTest2(t *testing.T) {
-	t.Parallel()
-
-	connectedPeers := []p2p.PeerID{p2p.PeerID("peer 1"), p2p.PeerID("peer 2")}
-	excludedPeerList := make([]p2p.PeerID, 0)
-	selectedPeers, err := topicResolverSender.SelectRandomPeers(connectedPeers, excludedPeerList, 2, nil)
-
-	assert.Nil(t, err)
-	assert.Equal(t, connectedPeers, selectedPeers)
-}
-
-func TestSelectRandomPeers_ConnectedPeersTestRandomizerRepeat0ThreeTimes(t *testing.T) {
-	t.Parallel()
-
-	connectedPeers := []p2p.PeerID{p2p.PeerID("peer 1"), p2p.PeerID("peer 2"), p2p.PeerID("peer 3")}
-
-	valuesGenerated := []int{0, 0, 0, 1}
-	idxGenerated := 0
-
-	mr := &mock.IntRandomizerMock{
-		IntnCalled: func(n int) (int, error) {
-			val := valuesGenerated[idxGenerated]
-			idxGenerated++
-			return val, nil
+func TestFisherYatesShuffle_OneElementShouldReturnTheSame(t *testing.T) {
+	indexes := []int{1}
+	randomizer := &mock.IntRandomizerMock{
+		IntnCalled: func(n int) (i int, e error) {
+			return n - 1, nil
 		},
 	}
 
-	excludedPeerList := make([]p2p.PeerID, 0)
-	selectedPeers, _ := topicResolverSender.SelectRandomPeers(connectedPeers, excludedPeerList, 2, mr)
+	resultIndexes, err := topicResolverSender.FisherYatesShuffle(indexes, randomizer)
 
-	//since iterating a map does not guarantee the order, we have to search in any combination possible
-	foundPeer0 := false
-	foundPeer1 := false
-
-	for i := 0; i < len(selectedPeers); i++ {
-		if selectedPeers[i] == connectedPeers[0] {
-			foundPeer0 = true
-		}
-		if selectedPeers[i] == connectedPeers[1] {
-			foundPeer1 = true
-		}
-	}
-
-	assert.True(t, foundPeer0 && foundPeer1)
-	assert.Equal(t, 2, len(selectedPeers))
+	assert.Nil(t, err)
+	assert.Equal(t, indexes, resultIndexes)
 }
 
-func TestSelectRandomPeers_ConnectedPeersTestRandomizerRepeat2TwoTimes(t *testing.T) {
-	t.Parallel()
-
-	connectedPeers := []p2p.PeerID{p2p.PeerID("peer 1"), p2p.PeerID("peer 2"), p2p.PeerID("peer 3")}
-
-	valuesGenerated := []int{2, 2, 0}
-	idxGenerated := 0
-
-	mr := &mock.IntRandomizerMock{
-		IntnCalled: func(n int) (int, error) {
-			val := valuesGenerated[idxGenerated]
-			idxGenerated++
-			return val, nil
+func TestFisherYatesShuffle_ShouldWork(t *testing.T) {
+	indexes := []int{1, 2, 3, 4, 5}
+	randomizer := &mock.IntRandomizerMock{
+		IntnCalled: func(n int) (i int, e error) {
+			return 0, nil
 		},
 	}
 
-	excludedPeerList := make([]p2p.PeerID, 0)
-	selectedPeers, _ := topicResolverSender.SelectRandomPeers(connectedPeers, excludedPeerList, 2, mr)
+	//this will cause a rotation of the first element:
+	//i = 4: 5, 2, 3, 4, 1 (swap 1 <-> 5)
+	//i = 3: 4, 2, 3, 5, 1 (swap 5 <-> 4)
+	//i = 2: 3, 2, 4, 5, 1 (swap 3 <-> 4)
+	//i = 1: 2, 3, 4, 5, 1 (swap 3 <-> 2)
 
-	//since iterating a map does not guarantee the order, we have to search in any combination possible
-	foundPeer0 := false
-	foundPeer2 := false
+	resultIndexes, err := topicResolverSender.FisherYatesShuffle(indexes, randomizer)
+	expectedResult := []int{2, 3, 4, 5, 1}
 
-	for i := 0; i < len(selectedPeers); i++ {
-		if selectedPeers[i] == connectedPeers[0] {
-			foundPeer0 = true
-		}
-		if selectedPeers[i] == connectedPeers[2] {
-			foundPeer2 = true
-		}
-	}
-
-	assert.True(t, foundPeer0 && foundPeer2)
-	assert.Equal(t, 2, len(selectedPeers))
-}
-
-func TestSelectRandomPeers_AllConnectedPeersIsExcludedListShouldPickFromAllConnectedList(t *testing.T) {
-	t.Parallel()
-
-	connectedPeers := []p2p.PeerID{p2p.PeerID("peer 1"), p2p.PeerID("peer 2"), p2p.PeerID("peer 3")}
-	excludedPeers := make([]p2p.PeerID, len(connectedPeers))
-	copy(excludedPeers, connectedPeers)
-
-	valuesGenerated := []int{0, 1, 2}
-	idxGenerated := 0
-
-	mr := &mock.IntRandomizerMock{
-		IntnCalled: func(n int) (int, error) {
-			val := valuesGenerated[idxGenerated]
-			idxGenerated++
-			return val, nil
-		},
-	}
-
-	selectedPeers, _ := topicResolverSender.SelectRandomPeers(connectedPeers, excludedPeers, 2, mr)
-
-	//since iterating a map does not guarantee the order, we have to search in any combination possible
-	foundPeer0 := false
-	foundPeer1 := false
-
-	for i := 0; i < len(selectedPeers); i++ {
-		if selectedPeers[i] == connectedPeers[0] {
-			foundPeer0 = true
-		}
-		if selectedPeers[i] == connectedPeers[1] {
-			foundPeer1 = true
-		}
-	}
-
-	assert.True(t, foundPeer0 && foundPeer1)
-	assert.Equal(t, 2, len(selectedPeers))
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, resultIndexes)
 }
