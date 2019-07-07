@@ -74,7 +74,7 @@ func TestAtArgumentParser_GetCode(t *testing.T) {
 	code, err := parser.GetCode()
 	assert.Nil(t, err)
 	assert.NotNil(t, code)
-	assert.Equal(t, "bbbbbbbb", hex.EncodeToString([]byte(code)))
+	assert.Equal(t, []byte("bbbbbbbb"), code)
 }
 
 func TestAtArgumentParser_GetCodeEmpty(t *testing.T) {
@@ -105,7 +105,7 @@ func TestAtArgumentParser_GetFunction(t *testing.T) {
 	function, err := parser.GetFunction()
 	assert.Nil(t, err)
 	assert.NotNil(t, function)
-	assert.Equal(t, "bbbbbbbb", hex.EncodeToString([]byte(function)))
+	assert.Equal(t, []byte("bbbbbbbb"), []byte(function))
 }
 
 func TestAtArgumentParser_GetFunctionEmpty(t *testing.T) {

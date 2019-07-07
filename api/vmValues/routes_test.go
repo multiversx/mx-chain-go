@@ -192,7 +192,7 @@ func TestGetDataValueAsHexBytes_FacadeErrorsShouldErr(t *testing.T) {
 func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.T) {
 	t.Parallel()
 
-	scAddress := "sc address"
+	scAddress := "aaaa"
 	fName := "function"
 	args := []string{"argument 1", "argument 2"}
 	errUnexpected := errors.New("unexpected error")
@@ -200,7 +200,11 @@ func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.
 
 	facade := mock.Facade{
 		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
-			if address == scAddress && funcName == fName && len(argsBuff) == len(args) {
+			areArgumentsCorrect := hex.EncodeToString([]byte(address)) == scAddress &&
+				funcName == fName &&
+				len(argsBuff) == len(args)
+
+			if areArgumentsCorrect {
 				paramsOk := true
 				for idx, arg := range args {
 					if arg != string(argsBuff[idx]) {
@@ -250,7 +254,7 @@ func TestGetDataValueAsString_FacadeErrorsShouldErr(t *testing.T) {
 func TestGetDataValueAsString_WithParametersShouldReturnValueAsHex(t *testing.T) {
 	t.Parallel()
 
-	scAddress := "sc address"
+	scAddress := "aaaa"
 	fName := "function"
 	args := []string{"argument 1", "argument 2"}
 	errUnexpected := errors.New("unexpected error")
@@ -258,7 +262,11 @@ func TestGetDataValueAsString_WithParametersShouldReturnValueAsHex(t *testing.T)
 
 	facade := mock.Facade{
 		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
-			if address == scAddress && funcName == fName && len(argsBuff) == len(args) {
+			areArgumentsCorrect := hex.EncodeToString([]byte(address)) == scAddress &&
+				funcName == fName &&
+				len(argsBuff) == len(args)
+
+			if areArgumentsCorrect {
 				paramsOk := true
 				for idx, arg := range args {
 					if arg != string(argsBuff[idx]) {
@@ -308,7 +316,7 @@ func TestGetDataValueAsInt_FacadeErrorsShouldErr(t *testing.T) {
 func TestGetDataValueAsInt_WithParametersShouldReturnValueAsHex(t *testing.T) {
 	t.Parallel()
 
-	scAddress := "sc address"
+	scAddress := "aaaa"
 	fName := "function"
 	args := []string{"argument 1", "argument 2"}
 	errUnexpected := errors.New("unexpected error")
@@ -316,7 +324,11 @@ func TestGetDataValueAsInt_WithParametersShouldReturnValueAsHex(t *testing.T) {
 
 	facade := mock.Facade{
 		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
-			if address == scAddress && funcName == fName && len(argsBuff) == len(args) {
+			areArgumentsCorrect := hex.EncodeToString([]byte(address)) == scAddress &&
+				funcName == fName &&
+				len(argsBuff) == len(args)
+
+			if areArgumentsCorrect {
 				paramsOk := true
 				for idx, arg := range args {
 					if arg != string(argsBuff[idx]) {
