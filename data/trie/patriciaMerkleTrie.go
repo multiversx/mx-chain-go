@@ -140,7 +140,7 @@ func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
 		return nil, err
 	}
 
-	for len(hexKey) >= 0 {
+	for {
 		encNode, err := node.getEncodedNode(tr.marshalizer)
 		if err != nil {
 			return nil, err
@@ -155,7 +155,6 @@ func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
 			return proof, nil
 		}
 	}
-	return nil, ErrNodeNotFound
 }
 
 // VerifyProof checks Merkle proofs.
