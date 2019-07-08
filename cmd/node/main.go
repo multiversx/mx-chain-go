@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -612,6 +613,17 @@ func CreateElasticIndexer(
 	return dbIndexer, nil
 }
 
+func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return nodesConfig.MetaChainConsensusGroupSize, nil
+	}
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return nodesConfig.ConsensusGroupSize, nil
+	}
+
+	return 0, state.ErrUnknownShardId
+}
+
 func createNode(
 	config *config.Config,
 	nodesConfig *sharding.NodesSetup,
@@ -628,6 +640,11 @@ func createNode(
 	network *factory.Network,
 	boostrapRoundIndex uint32,
 ) (*node.Node, error) {
+	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
@@ -638,7 +655,7 @@ func createNode(
 		node.WithBlockChain(data.Blkc),
 		node.WithDataStore(data.Store),
 		node.WithRoundDuration(nodesConfig.RoundDuration),
-		node.WithConsensusGroupSize(int(nodesConfig.ConsensusGroupSize)),
+		node.WithConsensusGroupSize(int(consensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(process.BlockProcessor),
 		node.WithBlockTracker(process.BlockTracker),
