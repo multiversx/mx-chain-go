@@ -538,6 +538,96 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	assert.True(t, wasCalled)
 }
 
+//------- processBlockHeader
+
+func TestMetaProcessor_ProcessBlockHeaderShouldPass(t *testing.T) {
+	t.Parallel()
+
+	mdp := initMetaDataPool()
+	accounts := &mock.AccountsStub{}
+	accounts.RevertToSnapshotCalled = func(snapshot int) error {
+		return nil
+	}
+	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
+		accounts,
+		mdp,
+		&mock.ForkDetectorMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.ChainStorerMock{},
+		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+		&mock.RequestHandlerMock{},
+	)
+
+	txHash := []byte("txhash")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock1 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+	}
+	miniblock2 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   2,
+		TxHashes:        txHashes,
+	}
+
+	miniBlocks := make([]block.MiniBlock, 0)
+	miniBlocks = append(miniBlocks, miniblock1, miniblock2)
+
+	metaBlock := &block.MetaBlock{
+		Round:     10,
+		Nonce:     45,
+		RootHash:  []byte("prevRootHash"),
+		ShardInfo: createShardData(mock.HasherMock{}, &mock.MarshalizerMock{}, miniBlocks),
+	}
+
+	err := mp.ProcessBlockHeaders(metaBlock, 1, haveTime)
+	assert.Nil(t, err)
+}
+
+//------- requestFinalMissingHeader
+func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
+	t.Parallel()
+
+	mdp := initMetaDataPool()
+	accounts := &mock.AccountsStub{}
+	accounts.RevertToSnapshotCalled = func(snapshot int) error {
+		return nil
+	}
+	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
+		accounts,
+		mdp,
+		&mock.ForkDetectorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.ChainStorerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		&mock.RequestHandlerMock{},
+	)
+	mdp.ShardHeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
+		cs := &mock.Uint64CacherStub{}
+		cs.PeekCalled = func(key uint64) (value interface{}, ok bool) {
+			return &block.Header{Nonce: 1}, true
+		}
+		cs.RemoveCalled = func(u uint64) {
+
+		}
+		return cs
+	}
+	mp.AddHdrHashToRequestedList([]byte("header_hash"))
+	mp.SetCurrHighestShardHdrsNonces(0, 1)
+	mp.SetCurrHighestShardHdrsNonces(1, 2)
+	mp.SetCurrHighestShardHdrsNonces(2, 3)
+	res := mp.RequestFinalMissingHeaders()
+	assert.Equal(t, res, uint32(3))
+}
+
 //------- CommitBlock
 
 func TestMetaProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {

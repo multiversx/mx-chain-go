@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"time"
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -81,6 +82,10 @@ func (mp *metaProcessor) AddHdrHashToRequestedList(hdrHash []byte) {
 	mp.allNeededShardHdrsFound = false
 }
 
+func (mp *metaProcessor) SetCurrHighestShardHdrsNonces(key uint32, value uint64) {
+	mp.currHighestShardHdrsNonces[key] = value
+}
+
 func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
 	mp.mutRequestedShardHdrsHashes.Lock()
 	defer mp.mutRequestedShardHdrsHashes.Unlock()
@@ -92,6 +97,14 @@ func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
 
 func (mp *metaProcessor) CreateShardInfo(maxMiniBlocksInBlock uint32, round uint32, haveTime func() bool) ([]block.ShardData, error) {
 	return mp.createShardInfo(maxMiniBlocksInBlock, round, haveTime)
+}
+
+func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint32, haveTime func() time.Duration) error {
+	return mp.processBlockHeaders(header, round, haveTime)
+}
+
+func (mp *metaProcessor) RequestFinalMissingHeaders() uint32 {
+	return mp.requestFinalMissingHeaders()
 }
 
 func (bp *baseProcessor) LastNotarizedHdrs() map[uint32]data.HeaderHandler {
