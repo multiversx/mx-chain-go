@@ -184,7 +184,7 @@ type PreProcessorsContainerFactory interface {
 	Create() (PreProcessorsContainer, error)
 }
 
-// IntermediateProcessorContainer defines an PreProcessors holder data type with basic functionality
+// IntermediateProcessorContainer defines an IntermediateProcessor holder data type with basic functionality
 type IntermediateProcessorContainer interface {
 	Get(key block.Type) (IntermediateTransactionHandler, error)
 	Add(key block.Type, val IntermediateTransactionHandler) error
@@ -195,7 +195,7 @@ type IntermediateProcessorContainer interface {
 	Keys() []block.Type
 }
 
-// IntermediateProcessorsContainerFactory defines the functionality to create an PreProcessors container
+// IntermediateProcessorsContainerFactory defines the functionality to create an IntermediateProcessors container
 type IntermediateProcessorsContainerFactory interface {
 	Create() (IntermediateProcessorContainer, error)
 }

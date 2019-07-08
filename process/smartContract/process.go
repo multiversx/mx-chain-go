@@ -242,11 +242,6 @@ func (sc *scProcessor) DeploySmartContract(
 		return err
 	}
 
-	vmInput.ContractCode, err = hex.DecodeString(string(vmInput.ContractCode))
-	if err != nil {
-		return err
-	}
-
 	// TODO: Smart contract address calculation
 	vmOutput, err := sc.vm.RunSmartContractCreate(vmInput)
 	if err != nil {
@@ -292,7 +287,12 @@ func (sc *scProcessor) createVMDeployInput(tx *transaction.Transaction) (*vmcomm
 	}
 
 	vmCreateInput := &vmcommon.ContractCreateInput{}
-	vmCreateInput.ContractCode, err = sc.argsParser.GetCode()
+	hexCode, err := sc.argsParser.GetCode()
+	if err != nil {
+		return nil, err
+	}
+
+	vmCreateInput.ContractCode, err = hex.DecodeString(string(hexCode))
 	if err != nil {
 		return nil, err
 	}

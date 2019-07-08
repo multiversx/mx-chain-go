@@ -68,7 +68,7 @@ func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transact
 	// GasLimit
 	dest.GasLimit = src.GasLimit()
 	// Data
-	dest.Data = string(src.Data())
+	dest.Data = src.Data()
 	// Signature
 	dest.Signature = src.Signature()
 	// Challenge
@@ -88,7 +88,7 @@ func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnp.TransactionC
 	dest.SetSndAddr(src.SndAddr)
 	dest.SetGasPrice(src.GasPrice)
 	dest.SetGasLimit(src.GasLimit)
-	dest.SetData([]byte(src.Data))
+	dest.SetData(src.Data)
 	dest.SetSignature(src.Signature)
 	dest.SetChallenge(src.Challenge)
 
