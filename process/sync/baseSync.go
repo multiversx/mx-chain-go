@@ -74,8 +74,9 @@ func (boot *baseBootstrap) loadBlocks(
 	getHeader func(uint32, uint64) (data.HeaderHandler, []byte, error),
 	getBlockBody func(data.HeaderHandler) (data.BodyHandler, error),
 	removeBlockBody func(uint64, dataRetriever.UnitType, dataRetriever.UnitType) error,
-	getNonceWithLastNotarized func(uint64, uint64) (uint64, map[uint32]uint64, map[uint32]uint64),
+	getNonceWithLastNotarized func(uint64) (uint64, map[uint32]uint64, map[uint32]uint64),
 	applyNotarizedBlocks func(map[uint32]uint64, map[uint32]uint64) error,
+	cleanupNotarizedStorage func(map[uint32]uint64),
 ) error {
 	var err error
 	var currentNonce uint64
@@ -87,14 +88,16 @@ func (boot *baseBootstrap) loadBlocks(
 	var finalNotarized map[uint32]uint64
 	var lastNotarized map[uint32]uint64
 
+	shardId := boot.shardCoordinator.SelfId()
+
 	for currentNonce = highestNonceInStorer; currentNonce > blockFinality; currentNonce-- {
-		currentNonce, finalNotarized, lastNotarized = getNonceWithLastNotarized(currentNonce, blockFinality)
+		currentNonce, finalNotarized, lastNotarized = getNonceWithLastNotarized(currentNonce)
 		if currentNonce <= blockFinality {
-			return process.ErrNotEnoughValidBlocksInStorage
+			break
 		}
 
 		for i := currentNonce - blockFinality; i <= currentNonce; i++ {
-			err = boot.applyBlock(boot.shardCoordinator.SelfId(), i, getHeader, getBlockBody)
+			err = boot.applyBlock(shardId, i, getHeader, getBlockBody)
 			if err != nil {
 				log.Info(fmt.Sprintf("apply block with nonce %d: %s\n", i, err.Error()))
 				break
@@ -116,19 +119,32 @@ func (boot *baseBootstrap) loadBlocks(
 	}
 
 	if currentNonce <= blockFinality {
-		return process.ErrNotEnoughValidBlocksInStorage
+		err = process.ErrNotEnoughValidBlocksInStorage
+		lastNotarized = make(map[uint32]uint64, 0)
+		finalNotarized = make(map[uint32]uint64, 0)
+		currentNonce = 0
+	}
+
+	if err == nil {
+		err = applyNotarizedBlocks(finalNotarized, lastNotarized)
+		if err != nil {
+			lastNotarized = make(map[uint32]uint64, 0)
+			finalNotarized = make(map[uint32]uint64, 0)
+			currentNonce = 0
+		}
+	}
+
+	if err == nil {
+		boot.addHeadersToForkDetector(shardId, currentNonce, getHeader)
 	}
 
 	for i := currentNonce + 1; i <= highestNonceInStorer; i++ {
 		boot.cleanupStorage(removeBlockBody, i, blockUnit, hdrNonceHashDataUnit)
 	}
 
-	err = applyNotarizedBlocks(finalNotarized, lastNotarized)
-	if err != nil {
-		return err
-	}
+	cleanupNotarizedStorage(lastNotarized)
 
-	return nil
+	return err
 }
 
 func (boot *baseBootstrap) computeHighestNonce(hdrNonceHashDataUnit dataRetriever.UnitType) uint64 {
@@ -160,11 +176,6 @@ func (boot *baseBootstrap) applyBlock(
 
 	log.Info(fmt.Sprintf("apply block with nonce %d and round %d\n", header.GetNonce(), header.GetRound()))
 
-	errNotCritical := boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-	}
-
 	blockBody, err := getBlockBody(header)
 	if err != nil {
 		return err
@@ -183,6 +194,32 @@ func (boot *baseBootstrap) applyBlock(
 	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
 
 	return nil
+}
+
+func (boot *baseBootstrap) addHeadersToForkDetector(
+	shardId uint32,
+	nonce uint64,
+	getHeader func(uint32, uint64) (data.HeaderHandler, []byte, error)) {
+
+	header, headerHash, errNotCritical := getHeader(shardId, nonce)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
+	prevHeader, prevHeaderHash, errNotCritical := getHeader(shardId, nonce-1)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
+	errNotCritical = boot.forkDetector.AddHeader(prevHeader, prevHeaderHash, process.BHProcessed)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
+	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
 }
 
 func (boot *baseBootstrap) cleanupStorage(

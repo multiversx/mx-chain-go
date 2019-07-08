@@ -151,7 +151,8 @@ func (boot *ShardBootstrap) syncFromStorer(
 		boot.getBlockBody,
 		boot.removeBlockBody,
 		boot.getNonceWithLastNotarized,
-		boot.applyNotarizedBlocks)
+		boot.applyNotarizedBlocks,
+		boot.cleanupNotarizedStorage)
 	if err != nil {
 		return err
 	}
@@ -159,10 +160,12 @@ func (boot *ShardBootstrap) syncFromStorer(
 	return nil
 }
 
-func (boot *ShardBootstrap) getNonceWithLastNotarized(
-	nonce uint64,
-	blockFinality uint64,
-) (uint64, map[uint32]uint64, map[uint32]uint64) {
+func (boot *ShardBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[uint32]uint64, map[uint32]uint64) {
+	var (
+		err           error
+		headerHandler data.HeaderHandler
+		metaBlock     *block.MetaBlock
+	)
 
 	lastNotarized := make(map[uint32]uint64, 0)
 	finalNotarized := make(map[uint32]uint64, 0)
@@ -170,7 +173,7 @@ func (boot *ShardBootstrap) getNonceWithLastNotarized(
 	nonceWithFinalNotarized := uint64(0)
 	resetNotarized := false
 
-	for currentNonce := nonce; currentNonce > blockFinality; currentNonce-- {
+	for currentNonce := nonce; currentNonce > 0; currentNonce-- {
 		if resetNotarized {
 			lastNotarized = make(map[uint32]uint64, 0)
 			finalNotarized = make(map[uint32]uint64, 0)
@@ -179,7 +182,7 @@ func (boot *ShardBootstrap) getNonceWithLastNotarized(
 			resetNotarized = false
 		}
 
-		headerHandler, _, err := boot.getShardHeaderFromStorage(boot.shardCoordinator.SelfId(), currentNonce)
+		headerHandler, _, err = boot.getShardHeaderFromStorage(boot.shardCoordinator.SelfId(), currentNonce)
 		if err != nil {
 			log.Info(err.Error())
 			resetNotarized = true
@@ -203,8 +206,9 @@ func (boot *ShardBootstrap) getNonceWithLastNotarized(
 
 		minNonce := uint64(math.MaxUint64)
 		for _, metaBlockHash := range header.MetaBlockHashes {
-			metaBlock, err := process.GetMetaHeaderFromStorage(metaBlockHash, boot.marshalizer, boot.store)
+			metaBlock, err = process.GetMetaHeaderFromStorage(metaBlockHash, boot.marshalizer, boot.store)
 			if err != nil {
+				log.Info(err.Error())
 				break
 			}
 
@@ -222,7 +226,6 @@ func (boot *ShardBootstrap) getNonceWithLastNotarized(
 		}
 
 		if err != nil {
-			log.Info(err.Error())
 			resetNotarized = true
 			continue
 		}
@@ -253,7 +256,7 @@ func (boot *ShardBootstrap) getNonceWithLastNotarized(
 	}
 
 	log.Info(fmt.Sprintf("bootstrap from shard block with nonce %d which contains last notarized meta block\n"+
-		"last notarized meta block is %d and final notarized meta block is %d",
+		"last notarized meta block is %d and final notarized meta block is %d\n",
 		nonceWithLastNotarized, lastNotarized[sharding.MetachainShardId], finalNotarized[sharding.MetachainShardId]))
 
 	return nonceWithLastNotarized, finalNotarized, lastNotarized
@@ -279,17 +282,18 @@ func (boot *ShardBootstrap) applyNotarizedBlocks(
 
 	boot.blkExecutor.SetLastNotarizedHdr(sharding.MetachainShardId, headerHandler)
 
+	return nil
+}
+
+func (boot *ShardBootstrap) cleanupNotarizedStorage(lastNotarized map[uint32]uint64) {
 	highestNonceInStorer := boot.computeHighestNonce(dataRetriever.MetaHdrNonceHashDataUnit)
 
-	for i := nonce + 1; i <= highestNonceInStorer; i++ {
+	for i := lastNotarized[sharding.MetachainShardId] + 1; i <= highestNonceInStorer; i++ {
 		errNotCritical := boot.removeBlockHeader(i, dataRetriever.MetaBlockUnit, dataRetriever.MetaHdrNonceHashDataUnit)
 		if errNotCritical != nil {
-			log.Info(fmt.Sprintf("remove notarized block header with nonce %d: %s\n",
-				i, errNotCritical.Error()))
+			log.Info(fmt.Sprintf("remove notarized block header with nonce %d: %s\n", i, errNotCritical.Error()))
 		}
 	}
-
-	return nil
 }
 
 func (boot *ShardBootstrap) removeBlockBody(
@@ -498,7 +502,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		if isForkDetected {
 			log.Info(err.Error())
 			boot.removeHeaderFromPools(hdr)
-			//err = boot.forkChoice()
+			err = boot.forkChoice()
 		}
 
 		return err
@@ -509,7 +513,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 	if err != nil {
 		log.Info(err.Error())
 		boot.removeHeaderFromPools(hdr)
-		//err = boot.forkChoice()
+		err = boot.forkChoice()
 
 		return err
 	}

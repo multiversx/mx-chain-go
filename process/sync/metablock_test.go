@@ -1028,100 +1028,100 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 	assert.Nil(t, r)
 }
 
-//func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T) {
-//	t.Parallel()
-//
-//	ebm := createMetaBlockProcessor()
-//
-//	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
-//	blkc := mock.BlockChainMock{}
-//	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-//		return &hdr
-//	}
-//
-//	pools := &mock.MetaPoolsHolderStub{}
-//	pools.MetaChainBlocksCalled = func() storage.Cacher {
-//		sds := &mock.CacherStub{}
-//
-//		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-//			if bytes.Equal([]byte("aaa"), key) {
-//				return &block.MetaBlock{
-//					Nonce:    2,
-//					Round:    1,
-//					RootHash: []byte("bbb")}, true
-//			}
-//
-//			return nil, false
-//		}
-//
-//		sds.RegisterHandlerCalled = func(func(key []byte)) {
-//		}
-//		sds.RemoveCalled = func(key []byte) {
-//		}
-//
-//		return sds
-//	}
-//	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64Cacher {
-//		hnc := &mock.Uint64CacherStub{}
-//		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
-//		}
-//		hnc.RemoveCalled = func(u uint64) {
-//		}
-//		hnc.GetCalled = func(u uint64) (bytes interface{}, b bool) {
-//			if u == 2 {
-//				return []byte("aaa"), false
-//			}
-//
-//			return nil, false
-//		}
-//		return hnc
-//	}
-//
-//	hasher := &mock.HasherMock{}
-//	marshalizer := &mock.MarshalizerMock{}
-//	forkDetector := &mock.ForkDetectorMock{}
-//	forkDetector.CheckForkCalled = func() (bool, uint64) {
-//		return false, math.MaxUint64
-//	}
-//	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
-//		return uint64(hdr.Nonce)
-//	}
-//	forkDetector.ProbableHighestNonceCalled = func() uint64 {
-//		return 2
-//	}
-//
-//	shardCoordinator := mock.NewOneShardCoordinatorMock()
-//	account := &mock.AccountsStub{}
-//
-//	rnd, _ := round.NewRound(time.Now(),
-//		time.Now().Add(2*time.Duration(100*time.Millisecond)),
-//		time.Duration(100*time.Millisecond),
-//		mock.SyncTimerMock{})
-//
-//	ebm.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-//		return process.ErrInvalidBlockHash
-//	}
-//
-//	bs, _ := sync.NewMetaBootstrap(
-//		pools,
-//		createStore(),
-//		&blkc,
-//		rnd,
-//		ebm,
-//		waitTime,
-//		hasher,
-//		marshalizer,
-//		forkDetector,
-//		createMockResolversFinderMeta(),
-//		shardCoordinator,
-//		account,
-//		math.MaxUint32,
-//	)
-//
-//	err := bs.SyncBlock()
-//
-//	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, err)
-//}
+func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T) {
+	t.Parallel()
+
+	ebm := createMetaBlockProcessor()
+
+	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
+	blkc := mock.BlockChainMock{}
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return &hdr
+	}
+
+	pools := &mock.MetaPoolsHolderStub{}
+	pools.MetaChainBlocksCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
+
+		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+			if bytes.Equal([]byte("aaa"), key) {
+				return &block.MetaBlock{
+					Nonce:    2,
+					Round:    1,
+					RootHash: []byte("bbb")}, true
+			}
+
+			return nil, false
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+		sds.RemoveCalled = func(key []byte) {
+		}
+
+		return sds
+	}
+	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+		}
+		hnc.RemoveCalled = func(u uint64) {
+		}
+		hnc.GetCalled = func(u uint64) (bytes interface{}, b bool) {
+			if u == 2 {
+				return []byte("aaa"), false
+			}
+
+			return nil, false
+		}
+		return hnc
+	}
+
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	forkDetector.CheckForkCalled = func() (bool, uint64) {
+		return false, math.MaxUint64
+	}
+	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
+		return uint64(hdr.Nonce)
+	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 2
+	}
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	rnd, _ := round.NewRound(time.Now(),
+		time.Now().Add(2*time.Duration(100*time.Millisecond)),
+		time.Duration(100*time.Millisecond),
+		mock.SyncTimerMock{})
+
+	ebm.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+		return process.ErrInvalidBlockHash
+	}
+
+	bs, _ := sync.NewMetaBootstrap(
+		pools,
+		createStore(),
+		&blkc,
+		rnd,
+		ebm,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinderMeta(),
+		shardCoordinator,
+		account,
+		math.MaxUint32,
+	)
+
+	err := bs.SyncBlock()
+
+	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, err)
+}
 
 func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndexIsZero(t *testing.T) {
 	t.Parallel()
@@ -2106,82 +2106,6 @@ func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadBlocksFails(t *testing.T) 
 
 	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
-
-//func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadNotarizedBlocksFails(t *testing.T) {
-//	t.Parallel()
-//
-//	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-//
-//	pools := createMockMetaPools()
-//	blkc := initBlockchain()
-//	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-//		return &block.Header{}
-//	}
-//
-//	rnd := &mock.RounderMock{}
-//	blkExec := &mock.BlockProcessorMock{}
-//	hasher := &mock.HasherMock{}
-//	marshalizer := &mock.MarshalizerMock{}
-//	forkDetector := &mock.ForkDetectorMock{
-//		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
-//			return nil
-//		},
-//	}
-//	shardCoordinator := mock.NewOneShardCoordinatorMock()
-//	account := &mock.AccountsStub{
-//		RecreateTrieCalled: func(rootHash []byte) error {
-//			return nil
-//		},
-//	}
-//
-//	store := createStore()
-//	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
-//		if bytes.Equal(key, uint64Converter.ToByteSlice(1)) ||
-//			bytes.Equal(key, uint64Converter.ToByteSlice(2)) ||
-//			bytes.Equal(key, uint64Converter.ToByteSlice(3)) {
-//			return nil
-//		}
-//
-//		return errors.New("key not found")
-//	}
-//
-//	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
-//		if unitType == dataRetriever.MetaBlockUnit {
-//			return &mock.StorerStub{
-//				GetCalled: func(key []byte) ([]byte, error) {
-//					buff, _ := marshalizer.Marshal(&block.Header{})
-//					return buff, nil
-//				},
-//			}
-//		}
-//
-//		return nil
-//	}
-//
-//	bs, _ := sync.NewMetaBootstrap(
-//		pools,
-//		store,
-//		blkc,
-//		rnd,
-//		blkExec,
-//		waitTime,
-//		hasher,
-//		marshalizer,
-//		forkDetector,
-//		createMockResolversFinderMeta(),
-//		shardCoordinator,
-//		account,
-//		math.MaxUint32,
-//	)
-//
-//	err := bs.SyncFromStorer(process.MetaBlockFinality,
-//		dataRetriever.MetaBlockUnit,
-//		dataRetriever.MetaHdrNonceHashDataUnit,
-//		process.ShardBlockFinality,
-//		dataRetriever.ShardHdrNonceHashDataUnit)
-//
-//	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
-//}
 
 func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 	t.Parallel()

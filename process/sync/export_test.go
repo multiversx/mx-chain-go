@@ -142,8 +142,9 @@ func (boot *baseBootstrap) LoadBlocks(
 	getHeader func(uint32, uint64) (data.HeaderHandler, []byte, error),
 	getBlockBody func(data.HeaderHandler) (data.BodyHandler, error),
 	removeBlockBody func(uint64, dataRetriever.UnitType, dataRetriever.UnitType) error,
-	getNonceWithLastNotarized func(uint64, uint64) (uint64, map[uint32]uint64, map[uint32]uint64),
+	getNonceWithLastNotarized func(uint64) (uint64, map[uint32]uint64, map[uint32]uint64),
 	applyNotarizedBlocks func(map[uint32]uint64, map[uint32]uint64) error,
+	cleanupNotarizedStorage func(map[uint32]uint64),
 ) error {
 	return boot.loadBlocks(
 		blockFinality,
@@ -153,7 +154,8 @@ func (boot *baseBootstrap) LoadBlocks(
 		getBlockBody,
 		removeBlockBody,
 		getNonceWithLastNotarized,
-		applyNotarizedBlocks)
+		applyNotarizedBlocks,
+		cleanupNotarizedStorage)
 }
 
 func (boot *baseBootstrap) ApplyBlock(
