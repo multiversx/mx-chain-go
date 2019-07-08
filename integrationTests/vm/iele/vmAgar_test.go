@@ -39,7 +39,7 @@ func TestDeployAgarioContract(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("195d84b4aec942d3534d2ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	destinationAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
@@ -73,7 +73,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("195d84b4aec942d3534d2ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
 
 	userAddress := []byte("10000000000000000000000000000000")
 	userNonce := uint64(10)

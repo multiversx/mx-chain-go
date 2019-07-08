@@ -9,6 +9,8 @@ github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHu
 github.com/ElrondNetwork/concurrent-map v0.1.2/go.mod h1:3XwSwn4JHI0lrKxWLZvtp53Emr8BXYTmNQGwcukHJEE=
 github.com/ElrondNetwork/elrond-vm v0.0.6 h1:vWULWtPal4DoFkKyevdqZYdzQedEZeoqsrbuUZaIlHM=
 github.com/ElrondNetwork/elrond-vm v0.0.6/go.mod h1:A+rISXkeBCTI3F8FtOYMyyp60vqf4OjMhL3u2a2q4sE=
+github.com/ElrondNetwork/elrond-vm v0.0.7 h1:gbq5G0jWtdZoTNrzi4H+g5wSz64ie4WjgXcCNcHCpaw=
+github.com/ElrondNetwork/elrond-vm v0.0.7/go.mod h1:A+rISXkeBCTI3F8FtOYMyyp60vqf4OjMhL3u2a2q4sE=
 github.com/ElrondNetwork/elrond-vm-common v0.0.4/go.mod h1:VqCCN0cX0e4D/KDc7MGNV9ElrOsfnjuJnGvcODVjzbk=
 github.com/ElrondNetwork/elrond-vm-common v0.0.5 h1:AOWJyMYDPtGbwsd2+BpDBYkEQE+QBvsKF0acozrNCko=
 github.com/ElrondNetwork/elrond-vm-common v0.0.5/go.mod h1:VqCCN0cX0e4D/KDc7MGNV9ElrOsfnjuJnGvcODVjzbk=

@@ -40,7 +40,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("195d84b4aec942d3534d2ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	destinationAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
 	addValue := uint64(128)
 	data := fmt.Sprintf("add@%X", addValue)
 	//contract call tx
@@ -108,7 +108,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("195d84b4aec942d3534d2ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	destinationAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
 	addValue := uint64(128)
 	data := fmt.Sprintf("add@%X", addValue)
 	//contract call tx that will fail with out of gas
