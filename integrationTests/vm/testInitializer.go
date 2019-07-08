@@ -215,7 +215,6 @@ func CreateTx(
 	scCodeOrFunc string,
 ) *dataTransaction.Transaction {
 
-	//fmt.Sprintf("%s@%X", scCodeOrFunc, scValue)
 	txData := scCodeOrFunc
 	tx := &dataTransaction.Transaction{
 		Nonce:    senderNonce,
