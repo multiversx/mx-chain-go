@@ -42,8 +42,8 @@ const (
 	defaultLogPath     = "logs"
 	defaultStatsPath   = "stats"
 	defaultDBPath      = "db"
-	defaultEpochString = "Epoch_"
-	defaultShardString = "Shard_"
+	defaultEpochString = "Epoch"
+	defaultShardString = "Shard"
 	metachainShardName = "metachain"
 )
 
@@ -178,9 +178,8 @@ VERSION:
 		Value: math.MaxUint32,
 	}
 
-	wd, _ = os.Getwd()
-
 	// workingDirectory defines a flag for the path for the working directory.
+	wd, err          = os.Getwd()
 	workingDirectory = cli.StringFlag{
 		Name:  "working-directory",
 		Usage: "The node will store here DB, Logs and Stats",
@@ -367,8 +366,11 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	workingDir := ctx.GlobalString(workingDirectory.Name)
 
-	uniqueDBFolder := filepath.Join(workingDir, defaultDBPath, defaultEpochString+fmt.Sprint(0),
-		defaultShardString+fmt.Sprint(shardCoordinator.SelfId()))
+	uniqueDBFolder := filepath.Join(
+		workingDir,
+		defaultDBPath,
+		fmt.Sprintf("%s_%d", defaultEpochString, 0),
+		fmt.Sprintf("%s_%d", defaultShardString, shardCoordinator.SelfId()))
 
 	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanup {
@@ -389,6 +391,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	os.MkdirAll(workingDir, os.ModePerm)
 
 	err = ioutil.WriteFile(filepath.Join(workingDir, "session.info"), []byte(output), 0644)
+	log.LogIfError(err)
 
 	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
