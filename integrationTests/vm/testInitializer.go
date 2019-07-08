@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
@@ -20,6 +21,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	ielecommon "github.com/ElrondNetwork/elrond-vm/iele/common"
+	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -99,14 +102,13 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 
 func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) process.TransactionProcessor {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
-	//TODO uncomment the following 2 lines
-	//cryptoHook := &hooks.VMCryptoHook{}
-	//vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, ielecommon.Default)
+	cryptoHook := hooks.NewVMCryptoHook()
+	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, ielecommon.Default)
 	//Uncomment this to enable trace printing of the vm
 	//vm.SetTracePretty()
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
-		nil,
+		vm,
 		argsParser,
 		testHasher,
 		testMarshalizer,
@@ -130,6 +132,7 @@ func TestDeployedContractContents(
 	dataValues map[string]*big.Int,
 ) {
 
+	scCodeBytes, _ := hex.DecodeString(scCode)
 	destinationAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(destinationAddressBytes)
 	destinationRecovAccount, _ := accnts.GetExistingAccount(destinationAddress)
 	destinationRecovShardAccount, ok := destinationRecovAccount.(*state.Account)
@@ -139,9 +142,9 @@ func TestDeployedContractContents(
 	assert.Equal(t, uint64(0), destinationRecovShardAccount.GetNonce())
 	assert.Equal(t, requiredBalance, destinationRecovShardAccount.Balance)
 	//test codehash
-	assert.Equal(t, testHasher.Compute(scCode), destinationRecovAccount.GetCodeHash())
+	assert.Equal(t, testHasher.Compute(string(scCodeBytes)), destinationRecovAccount.GetCodeHash())
 	//test code
-	assert.Equal(t, []byte(scCode), destinationRecovAccount.GetCode())
+	assert.Equal(t, scCodeBytes, destinationRecovAccount.GetCode())
 	//in this test we know we have a as a variable inside the contract, we can ask directly its value
 	// using trackableDataTrie functionality
 	assert.NotNil(t, destinationRecovShardAccount.GetRootHash())
@@ -214,7 +217,7 @@ func CreateTx(
 		Value:    value,
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  receiverAddressBytes,
-		Data:     []byte(txData),
+		Data:     txData,
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 	}

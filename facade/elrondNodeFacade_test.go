@@ -222,7 +222,7 @@ func TestElrondFacade_GenerateTransactionWithCorrectInputsShouldReturnNoError(t 
 	tr := &transaction.Transaction{
 		SndAddr: []byte(sender),
 		RcvAddr: []byte(receiver),
-		Data:    []byte(data),
+		Data:    data,
 		Value:   value}
 
 	node := &mock.NodeMock{
@@ -231,7 +231,7 @@ func TestElrondFacade_GenerateTransactionWithCorrectInputsShouldReturnNoError(t 
 			return &transaction.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
-				Data:    []byte(data),
+				Data:    data,
 				Value:   value,
 			}, nil
 		},

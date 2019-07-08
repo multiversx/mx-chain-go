@@ -49,11 +49,11 @@ func TestGenerateTransaction_WithParametersShouldReturnTransaction(t *testing.T)
 	data := "data"
 
 	facade := mock.Facade{
-		GenerateTransactionHandler: func(sender string, receiver string, value *big.Int, code string) (transaction *tr.Transaction, e error) {
+		GenerateTransactionHandler: func(sender string, receiver string, value *big.Int, data string) (transaction *tr.Transaction, e error) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
-				Data:    []byte(code),
+				Data:    data,
 				Value:   value,
 			}, nil
 		},
@@ -157,7 +157,7 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
-				Data:    []byte(data),
+				Data:    data,
 				Value:   value,
 			}, nil
 		},
@@ -195,7 +195,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
-				Data:    []byte(data),
+				Data:    data,
 				Value:   value,
 			}, nil
 		},

@@ -364,7 +364,7 @@ func (ei *elasticIndexer) buildTransactionBulks(
 				SenderShard:   mb.SenderShardID,
 				GasPrice:      currentTx.GasPrice,
 				GasLimit:      currentTx.GasLimit,
-				Data:          hex.EncodeToString(currentTx.Data),
+				Data:          currentTx.Data,
 				Signature:     hex.EncodeToString(currentTx.Signature),
 				Timestamp:     time.Duration(header.GetTimeStamp()),
 				Status:        mbTxStatus,

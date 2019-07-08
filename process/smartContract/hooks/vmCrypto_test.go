@@ -14,7 +14,7 @@ import (
 func TestVMCrypto_Sha256ReturnsASha256Hash(t *testing.T) {
 	t.Parallel()
 
-	vmch := &hooks.VMCryptoHook{}
+	vmch := hooks.NewVMCryptoHook()
 
 	inputString := "input string for hashing"
 	expectedHash := hex.EncodeToString(sha256.Sha256{}.Compute(inputString))
@@ -27,7 +27,7 @@ func TestVMCrypto_Sha256ReturnsASha256Hash(t *testing.T) {
 func TestVMCrypto_Keccak256ReturnsAKeccak256Hash(t *testing.T) {
 	t.Parallel()
 
-	vmch := &hooks.VMCryptoHook{}
+	vmch := hooks.NewVMCryptoHook()
 
 	inputString := "input string for hashing"
 	expectedHash := hex.EncodeToString(keccak.Keccak{}.Compute(inputString))
@@ -40,7 +40,7 @@ func TestVMCrypto_Keccak256ReturnsAKeccak256Hash(t *testing.T) {
 func TestVMCrypto_DeprecatedFuncsReturnErr(t *testing.T) {
 	t.Parallel()
 
-	vmch := &hooks.VMCryptoHook{}
+	vmch := hooks.NewVMCryptoHook()
 
 	_, err := vmch.Ripemd160("")
 	assert.Equal(t, hooks.ErrNotImplemented, err)

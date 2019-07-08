@@ -10,8 +10,6 @@ import (
 )
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
-	t.Skip("this test should be un-skipped soon")
-
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
@@ -20,7 +18,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode, _ := hex.DecodeString("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101")
+	scCode := "0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101"
 	initialValueForInternalVariable := uint64(45)
 
 	tx := vm.CreateTx(
@@ -31,7 +29,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		scCode,
 		initialValueForInternalVariable,
 	)
 
@@ -62,8 +60,6 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 }
 
 func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
-	t.Skip("this test should be un-skipped soon")
-
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
@@ -73,7 +69,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	gasLimit := uint64(100)
 	transferOnCalls := big.NewInt(50)
 
-	scCode, _ := hex.DecodeString("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101")
+	scCode := "0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101"
 	initialValueForInternalVariable := uint64(45)
 
 	tx := vm.CreateTx(
@@ -84,7 +80,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		scCode,
 		initialValueForInternalVariable,
 	)
 

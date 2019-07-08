@@ -274,7 +274,7 @@ func TestNewInterceptedTransaction_NilSignatureShouldErr(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -294,7 +294,7 @@ func TestNewInterceptedTransaction_NilSenderAddressShouldErr(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -314,7 +314,7 @@ func TestNewInterceptedTransaction_NilRecvAddressShouldErr(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   nil,
@@ -334,7 +334,7 @@ func TestNewInterceptedTransaction_NilValueShouldErr(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     nil,
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -354,7 +354,7 @@ func TestNewInterceptedTransaction_NilNegativeValueShouldErr(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(-2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -374,7 +374,7 @@ func TestNewInterceptedTransaction_InvalidSenderShouldErr(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -394,7 +394,7 @@ func TestNewInterceptedTransaction_VerifyFailsShouldErr(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -414,7 +414,7 @@ func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -435,7 +435,7 @@ func TestNewInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
