@@ -67,6 +67,23 @@ type IntermediateTransactionHandler interface {
 	VerifyInterMiniBlocks(body block.Body) error
 }
 
+// TransactionVerifier interface validates if the transaction is good and if it should be processed
+type TransactionVerifier interface {
+	IsTransactionValid(tx data.TransactionHandler) error
+}
+
+// UnsignedTxHandler creates and verifies unsigned transactions for current round
+type UnsignedTxHandler interface {
+	CleanProcessedUTxs()
+	AddProcessedUTx(tx data.TransactionHandler)
+	CreateAllUTxs() []data.TransactionHandler
+	VerifyCreatedUTxs(block block.Body)
+}
+
+type SpecialAddressHandler interface {
+	GetMyOwnAddress() []byte
+}
+
 // Preprocessor is an interface used to prepare and process transaction data
 type PreProcessor interface {
 	CreateBlockStarted()

@@ -402,3 +402,9 @@ var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor co
 
 // ErrNilPreProcessorsContainer signals that preprocessors container is nil
 var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
+
+// ErrNotEnoughFeeInTransactions signals that the transaction does not enough fee
+var ErrNotEnoughFeeInTransactions = errors.New("transaction fee is not enough")
+
+// ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
+var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
