@@ -679,7 +679,7 @@ func TestBranchNode_reduceNode(t *testing.T) {
 	bn := newBranchNode()
 	bn.children = children
 	ln := newLeafNode([]byte{2, 100, 111, 103}, []byte("dog"))
-	node := bn.reduceNode(2)
+	node := bn.children[2].reduceNode(2)
 	assert.Equal(t, ln, node)
 }
 
@@ -706,6 +706,82 @@ func TestBranchNode_isEmptyOrNil(t *testing.T) {
 
 	bn = nil
 	assert.Equal(t, ErrNilNode, bn.isEmptyOrNil())
+}
+
+func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
+	t.Parallel()
+	tr := newEmptyTrie()
+	expectedTr := newEmptyTrie()
+
+	expectedTr.Update([]byte("dog"), []byte("dog"))
+	expectedTr.Update([]byte("doll"), []byte("doll"))
+
+	tr.Update([]byte("dog"), []byte("dog"))
+	tr.Update([]byte("doll"), []byte("doll"))
+	tr.Update([]byte("wolf"), []byte("wolf"))
+	tr.Delete([]byte("wolf"))
+
+	expectedHash, _ := expectedTr.Root()
+	hash, _ := tr.Root()
+
+	assert.Equal(t, expectedHash, hash)
+}
+
+func TestReduceBranchNodeWithBranchNodeChildShouldWork(t *testing.T) {
+	t.Parallel()
+	tr := newEmptyTrie()
+	expectedTr := newEmptyTrie()
+
+	expectedTr.Update([]byte("dog"), []byte("puppy"))
+	expectedTr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Delete([]byte("doe"))
+
+	expectedHash, _ := expectedTr.Root()
+	hash, _ := tr.Root()
+
+	assert.Equal(t, expectedHash, hash)
+}
+
+func TestReduceBranchNodeWithLeafNodeChildShouldWork(t *testing.T) {
+	t.Parallel()
+	tr := newEmptyTrie()
+	expectedTr := newEmptyTrie()
+
+	expectedTr.Update([]byte("doe"), []byte("reindeer"))
+	expectedTr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Delete([]byte("dog"))
+
+	expectedHash, _ := expectedTr.Root()
+	hash, _ := tr.Root()
+
+	assert.Equal(t, expectedHash, hash)
+}
+
+func TestReduceBranchNodeWithLeafNodeValueShouldWork(t *testing.T) {
+	t.Parallel()
+	tr := newEmptyTrie()
+	expectedTr := newEmptyTrie()
+
+	expectedTr.Update([]byte("doe"), []byte("reindeer"))
+	expectedTr.Update([]byte("dog"), []byte("puppy"))
+
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Delete([]byte("dogglesworth"))
+
+	expectedHash, _ := expectedTr.Root()
+	hash, _ := tr.Root()
+
+	assert.Equal(t, expectedHash, hash)
 }
 
 func newEmptyTrie() data.Trie {
