@@ -4,9 +4,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -38,6 +40,9 @@ import (
 const (
 	defaultLogPath     = "logs"
 	defaultStatsPath   = "stats"
+	defaultDBPath      = "db"
+	defaultEpochString = "Epoch_"
+	defaultShardString = "Shard_"
 	metachainShardName = "metachain"
 )
 
@@ -172,15 +177,14 @@ VERSION:
 		Value: math.MaxUint32,
 	}
 
+	wd, _ = os.Getwd()
+
 	// workingDirectory defines a flag for the path for the working directory.
 	workingDirectory = cli.StringFlag{
 		Name:  "working-directory",
 		Usage: "The node will store here DB, Logs and Stats",
-		Value: os.Getwd(),
+		Value: wd,
 	}
-
-	//TODO remove uniqueID
-	uniqueID = ""
 
 	rm *statistics.ResourceMonitor
 )
@@ -360,24 +364,32 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	publicKey, err := pubKey.ToByteArray()
-	if err != nil {
-		return err
-	}
+	workingDir := ctx.GlobalString(workingDirectory.Name)
 
-	uniqueID = core.GetTrimmedPk(hex.EncodeToString(publicKey))
-
-	fmt.Sprintf("%s%s%s", shardCoordinator.os.PathSeparator, e.What)
+	uniqueDBFolder := filepath.Join(workingDir, defaultDBPath, defaultEpochString+fmt.Sprint(0),
+		defaultShardString+fmt.Sprint(shardCoordinator.SelfId()))
 
 	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanup {
-		err = os.RemoveAll(config.DefaultPath() + uniqueID)
+		err = os.RemoveAll(uniqueDBFolder)
 		if err != nil {
 			return err
 		}
 	}
 
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueID)
+	output := fmt.Sprintf("%s:%s\n%s:%v\n%s:%v\n%s:%s\n%s:%s\n",
+		"PublicKey", factory.GetPkEncoded(pubKey),
+		"ShardId", shardCoordinator.SelfId(),
+		"TotalShards", shardCoordinator.NumberOfShards(),
+		"AppVersion", "TestVersion",
+		"OsVersion", "TestOs",
+	)
+
+	os.MkdirAll(workingDir, os.ModePerm)
+
+	err = ioutil.WriteFile(filepath.Join(workingDir, "session.info"), []byte(output), 0644)
+
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
@@ -389,12 +401,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log)
+	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log, workingDir)
 	if err != nil {
 		return err
 	}
 
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueID)
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
@@ -709,14 +721,15 @@ func createNode(
 	return nd, nil
 }
 
-func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger) error {
+func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger,
+	workingDir string) error {
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return err
 	}
 
 	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
-	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
+	logFile, err := core.CreateFile(hexPublicKey, filepath.Join(workingDir, defaultLogPath), "log")
 	if err != nil {
 		return err
 	}
@@ -726,7 +739,7 @@ func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, 
 		return err
 	}
 
-	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
+	statsFile, err := core.CreateFile(hexPublicKey, filepath.Join(workingDir, defaultStatsPath), "txt")
 	if err != nil {
 		return err
 	}
