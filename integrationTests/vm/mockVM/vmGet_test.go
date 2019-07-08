@@ -2,6 +2,7 @@ package mockVM
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -34,8 +35,8 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(0)
 
-	scCode := "aaaa"
 	initialValueForInternalVariable := uint64(45)
+	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -46,7 +47,6 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 		gasPrice,
 		gasLimit,
 		scCode,
-		initialValueForInternalVariable,
 	)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)

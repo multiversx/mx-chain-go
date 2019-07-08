@@ -2,7 +2,6 @@ package vm
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -100,12 +99,18 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 	return vm
 }
 
-func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) process.TransactionProcessor {
+func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 	cryptoHook := hooks.NewVMCryptoHook()
 	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, ielecommon.Default)
 	//Uncomment this to enable trace printing of the vm
 	//vm.SetTracePretty()
+
+	return vm, blockChainHook
+}
+
+func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) process.TransactionProcessor {
+	vm, blockChainHook := CreateVMAndBlockchainHook(accnts)
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		vm,
@@ -208,10 +213,10 @@ func CreateTx(
 	gasPrice uint64,
 	gasLimit uint64,
 	scCodeOrFunc string,
-	scValue uint64,
 ) *dataTransaction.Transaction {
 
-	txData := fmt.Sprintf("%s@%X", scCodeOrFunc, scValue)
+	//fmt.Sprintf("%s@%X", scCodeOrFunc, scValue)
+	txData := scCodeOrFunc
 	tx := &dataTransaction.Transaction{
 		Nonce:    senderNonce,
 		Value:    value,

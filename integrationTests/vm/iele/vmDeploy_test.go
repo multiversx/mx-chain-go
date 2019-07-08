@@ -2,6 +2,7 @@ package mockVM
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -18,8 +19,9 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode := "0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101"
 	initialValueForInternalVariable := uint64(45)
+	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%X",
+		initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -30,7 +32,6 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		gasPrice,
 		gasLimit,
 		scCode,
-		initialValueForInternalVariable,
 	)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
@@ -69,8 +70,9 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	gasLimit := uint64(100)
 	transferOnCalls := big.NewInt(50)
 
-	scCode := "0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101"
 	initialValueForInternalVariable := uint64(45)
+	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%X",
+		initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -81,7 +83,6 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		gasPrice,
 		gasLimit,
 		scCode,
-		initialValueForInternalVariable,
 	)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
