@@ -255,6 +255,7 @@ func createNetNode(
 		testMarshalizer,
 		shardCoordinator,
 		&mock.SCProcessorMock{},
+		&mock.UnsignedTxHandlerMock{},
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(

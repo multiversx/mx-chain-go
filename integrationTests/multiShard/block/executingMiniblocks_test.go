@@ -34,6 +34,8 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	valMinting := big.NewInt(100)
 	valToTransferPerTx := big.NewInt(2)
+	gasPricePerTx := uint64(2)
+	gasLimitPerTx := uint64(2)
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
 	advertiser.Bootstrap()
@@ -79,7 +81,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	}
 
 	fmt.Println("Step 3. Generating transactions...")
-	generateAndDisseminateTxs(proposerNode.node, sendersPrivateKeys, receiversPrivateKeys, valToTransferPerTx)
+	generateAndDisseminateTxs(proposerNode.node, sendersPrivateKeys, receiversPrivateKeys, valToTransferPerTx, gasPricePerTx, gasPricePerTx)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
 
@@ -170,6 +172,12 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		for _, sk := range sendersPrivateKeys {
 			valTransferred := big.NewInt(0).Mul(valToTransferPerTx, big.NewInt(int64(len(receiversPrivateKeys))))
 			valRemaining := big.NewInt(0).Sub(valMinting, valTransferred)
+
+			consumedFee := big.NewInt(0)
+			consumedFee = consumedFee.Mul(big.NewInt(0).SetUint64(gasPricePerTx), big.NewInt(0).SetUint64(gasLimitPerTx))
+			consumedFee = consumedFee.Mul(consumedFee, big.NewInt(int64(len(receiversPrivateKeys))))
+
+			valRemaining = valRemaining.Sub(valRemaining, consumedFee)
 			testPrivateKeyHasBalance(t, n, sk, valRemaining)
 		}
 		//test receiver balances from same shard
@@ -378,6 +386,8 @@ func generateAndDisseminateTxs(
 	senders []crypto.PrivateKey,
 	receiversPrivateKeys map[uint32][]crypto.PrivateKey,
 	valToTransfer *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
 ) {
 
 	for i := 0; i < len(senders); i++ {
@@ -385,14 +395,14 @@ func generateAndDisseminateTxs(
 		incrementalNonce := uint64(0)
 		for _, recvPrivateKeys := range receiversPrivateKeys {
 			receiverKey := recvPrivateKeys[i]
-			tx := generateTransferTx(incrementalNonce, senderKey, receiverKey, valToTransfer)
+			tx := generateTransferTx(incrementalNonce, senderKey, receiverKey, valToTransfer, gasPrice, gasLimit)
 			n.SendTransaction(
 				tx.Nonce,
 				hex.EncodeToString(tx.SndAddr),
 				hex.EncodeToString(tx.RcvAddr),
 				tx.Value,
-				0,
-				0,
+				tx.GasPrice,
+				tx.GasLimit,
 				string(tx.Data),
 				tx.Signature,
 			)
@@ -405,14 +415,19 @@ func generateTransferTx(
 	nonce uint64,
 	sender crypto.PrivateKey,
 	receiver crypto.PrivateKey,
-	valToTransfer *big.Int) *transaction.Transaction {
+	valToTransfer *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
+) *transaction.Transaction {
 
 	tx := transaction.Transaction{
-		Nonce:   nonce,
-		Value:   valToTransfer,
-		RcvAddr: skToPk(receiver),
-		SndAddr: skToPk(sender),
-		Data:    make([]byte, 0),
+		Nonce:    nonce,
+		Value:    valToTransfer,
+		RcvAddr:  skToPk(receiver),
+		SndAddr:  skToPk(sender),
+		Data:     make([]byte, 0),
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
 	}
 	txBuff, _ := testMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}

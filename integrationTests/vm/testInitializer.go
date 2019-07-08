@@ -84,8 +84,17 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		addrConv,
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.UnsignedTxHandlerMock{},
 	)
-	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
+	txProcessor, _ := transaction.NewTxProcessor(
+		accnts,
+		testHasher,
+		addrConv,
+		testMarshalizer,
+		oneShardCoordinator,
+		scProcessor,
+		&mock.UnsignedTxHandlerMock{},
+	)
 
 	return txProcessor
 }
@@ -115,8 +124,17 @@ func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) proc
 		addrConv,
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.UnsignedTxHandlerMock{},
 	)
-	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
+	txProcessor, _ := transaction.NewTxProcessor(
+		accnts,
+		testHasher,
+		addrConv,
+		testMarshalizer,
+		oneShardCoordinator,
+		scProcessor,
+		&mock.UnsignedTxHandlerMock{},
+	)
 
 	return txProcessor
 }

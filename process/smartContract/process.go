@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/feeTx"
 	"math/big"
 	"sync"
 
@@ -186,7 +187,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	// VM is formally verified and the output is correct
-	crossTxs, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
+	crossTxs, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
 	}
@@ -195,6 +196,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	if err != nil {
 		return err
 	}
+
+	sc.txFeeHandler.AddProcessedUTx(consumedFee)
 
 	return nil
 }
@@ -255,7 +258,7 @@ func (sc *scProcessor) DeploySmartContract(
 	}
 
 	// VM is formally verified, the output is correct
-	crossTxs, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
+	crossTxs, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
 	}
@@ -264,6 +267,8 @@ func (sc *scProcessor) DeploySmartContract(
 	if err != nil {
 		return err
 	}
+
+	sc.txFeeHandler.AddProcessedUTx(consumedFee)
 
 	return nil
 }
@@ -367,40 +372,40 @@ func (sc *scProcessor) processVMOutput(
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
 	round uint32,
-) ([]data.TransactionHandler, error) {
+) ([]data.TransactionHandler, *feeTx.FeeTx, error) {
 	if vmOutput == nil {
-		return nil, process.ErrNilVMOutput
+		return nil, nil, process.ErrNilVMOutput
 	}
 	if tx == nil {
-		return nil, process.ErrNilTransaction
+		return nil, nil, process.ErrNilTransaction
 	}
 
 	txBytes, err := sc.marshalizer.Marshal(tx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	txHash := sc.hasher.Compute(string(txBytes))
 
 	err = sc.saveSCOutputToCurrentState(vmOutput, round, txHash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	crossOutAccs, err := sc.processSCOutputAccounts(vmOutput.OutputAccounts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	crossTxs, err := sc.createCrossShardTransactions(crossOutAccs, tx, txHash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	totalGasRefund := big.NewInt(0)
 	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
-	scrIfCrossShard, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
+	scrIfCrossShard, consumedFee, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if scrIfCrossShard != nil {
@@ -409,15 +414,20 @@ func (sc *scProcessor) processVMOutput(
 
 	err = sc.deleteAccounts(vmOutput.DeletedAccounts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = sc.processTouchedAccounts(vmOutput.TouchedAccounts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return crossTxs, nil
+	currFeeTx := &feeTx.FeeTx{
+		Nonce: tx.Nonce,
+		Value: consumedFee,
+	}
+
+	return crossTxs, currFeeTx, nil
 }
 
 func (sc *scProcessor) createSmartContractResult(
@@ -459,13 +469,17 @@ func (sc *scProcessor) refundGasToSender(
 	tx *transaction.Transaction,
 	txHash []byte,
 	acntSnd state.AccountHandler,
-) (*smartContractResult.SmartContractResult, error) {
+) (*smartContractResult.SmartContractResult, *big.Int, error) {
+	consumedFee := big.NewInt(0)
+	consumedFee = consumedFee.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
 	if gasRefund == nil || gasRefund.Cmp(big.NewInt(0)) <= 0 {
-		return nil, nil
+		return nil, consumedFee, nil
 	}
 
 	refundErd := big.NewInt(0)
 	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GasPrice)))
+
+	consumedFee = consumedFee.Sub(consumedFee, refundErd)
 
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
 		scTx := &smartContractResult.SmartContractResult{}
@@ -474,21 +488,21 @@ func (sc *scProcessor) refundGasToSender(
 		scTx.SndAddr = tx.RcvAddr
 		scTx.Nonce = tx.Nonce
 		scTx.TxHash = txHash
-		return scTx, nil
+		return scTx, consumedFee, nil
 	}
 
 	stAcc, ok := acntSnd.(*state.Account)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	newBalance := big.NewInt(0).Add(stAcc.Balance, refundErd)
 	err := stAcc.SetBalanceWithJournal(newBalance)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return nil, nil
+	return nil, consumedFee, nil
 }
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.

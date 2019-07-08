@@ -16,8 +16,8 @@ import (
 
 var log = logger.DefaultLogger()
 
-const MinGasPrice = 1
-const MinTxFee = 1
+var MinGasPrice = int64(1)
+var MinTxFee = int64(1)
 
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
@@ -37,8 +37,8 @@ func NewTxProcessor(
 	addressConv state.AddressConverter,
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
-	txFeeHandler process.UnsignedTxHandler,
 	scProcessor process.SmartContractProcessor,
+	txFeeHandler process.UnsignedTxHandler,
 ) (*txProcessor, error) {
 
 	if accounts == nil {
@@ -115,7 +115,7 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 	minFee = minFee.Mul(big.NewInt(txDataLen), big.NewInt(MinGasPrice))
 	minFee = minFee.Add(minFee, big.NewInt(MinTxFee))
 
-	if minFee.Cmp(cost) < 0 {
+	if minFee.Cmp(cost) > 0 {
 		return nil, process.ErrNotEnoughFeeInTransactions
 	}
 
