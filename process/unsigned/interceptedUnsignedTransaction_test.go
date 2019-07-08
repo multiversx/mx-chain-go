@@ -1,4 +1,4 @@
-package smartContract_test
+package unsigned_test
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +19,7 @@ var recvShard = uint32(3)
 var senderAddress = []byte("sender")
 var recvAddress = []byte("receiver")
 
-func createInterceptedScrFromPlainScr(scr *smartContractResult.SmartContractResult) (*smartContract.InterceptedSmartContractResult, error) {
+func createInterceptedScrFromPlainScr(scr *smartContractResult.SmartContractResult) (*unsigned.InterceptedUnsignedTransaction, error) {
 	marshalizer := &mock.MarshalizerMock{}
 	txBuff, _ := marshalizer.Marshal(scr)
 
@@ -36,7 +36,7 @@ func createInterceptedScrFromPlainScr(scr *smartContractResult.SmartContractResu
 		return shardCoordinator.CurrentShard
 	}
 
-	return smartContract.NewInterceptedSmartContractResult(
+	return unsigned.NewInterceptedUnsignedTransaction(
 		txBuff,
 		marshalizer,
 		mock.HasherMock{},
@@ -49,10 +49,10 @@ func createInterceptedScrFromPlainScr(scr *smartContractResult.SmartContractResu
 	)
 }
 
-func TestNewInterceptedSmartContractResult_NilBufferShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_NilBufferShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txi, err := smartContract.NewInterceptedSmartContractResult(
+	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		nil,
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
@@ -64,10 +64,10 @@ func TestNewInterceptedSmartContractResult_NilBufferShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilBuffer, err)
 }
 
-func TestNewInterceptedSmartContractResult_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txi, err := smartContract.NewInterceptedSmartContractResult(
+	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		make([]byte, 0),
 		nil,
 		mock.HasherMock{},
@@ -79,10 +79,10 @@ func TestNewInterceptedSmartContractResult_NilMarshalizerShouldErr(t *testing.T)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestNewInterceptedSmartContractResult_NilHasherShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txi, err := smartContract.NewInterceptedSmartContractResult(
+	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
 		nil,
@@ -94,10 +94,10 @@ func TestNewInterceptedSmartContractResult_NilHasherShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
-func TestNewInterceptedSmartContractResult_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txi, err := smartContract.NewInterceptedSmartContractResult(
+	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
@@ -109,10 +109,10 @@ func TestNewInterceptedSmartContractResult_NilAddressConverterShouldErr(t *testi
 	assert.Equal(t, process.ErrNilAddressConverter, err)
 }
 
-func TestNewInterceptedSmartContractResult_NilCoordinatorShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txi, err := smartContract.NewInterceptedSmartContractResult(
+	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
@@ -124,12 +124,12 @@ func TestNewInterceptedSmartContractResult_NilCoordinatorShouldErr(t *testing.T)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestNewInterceptedSmartContractResult_UnmarshalingTxFailsShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
 
-	txi, err := smartContract.NewInterceptedSmartContractResult(
+	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		make([]byte, 0),
 		&mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
@@ -145,10 +145,10 @@ func TestNewInterceptedSmartContractResult_UnmarshalingTxFailsShouldErr(t *testi
 	assert.Equal(t, errExpected, err)
 }
 
-func TestNewInterceptedSmartContractResult_AddrConvFailsShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_AddrConvFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txi, err := smartContract.NewInterceptedSmartContractResult(
+	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		[]byte("{}"),
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
@@ -164,7 +164,7 @@ func TestNewInterceptedSmartContractResult_AddrConvFailsShouldErr(t *testing.T) 
 	assert.Equal(t, process.ErrInvalidSndAddr, err)
 }
 
-func TestNewInterceptedSmartContractResult_NilTxHashShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_NilTxHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
@@ -182,7 +182,7 @@ func TestNewInterceptedSmartContractResult_NilTxHashShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilTxHash, err)
 }
 
-func TestNewInterceptedSmartContractResult_NilSenderAddressShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_NilSenderAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
@@ -200,7 +200,7 @@ func TestNewInterceptedSmartContractResult_NilSenderAddressShouldErr(t *testing.
 	assert.Equal(t, process.ErrNilSndAddr, err)
 }
 
-func TestNewInterceptedSmartContractResult_NilRecvAddressShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_NilRecvAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
@@ -218,7 +218,7 @@ func TestNewInterceptedSmartContractResult_NilRecvAddressShouldErr(t *testing.T)
 	assert.Equal(t, process.ErrNilRcvAddr, err)
 }
 
-func TestNewInterceptedSmartContractResult_NilValueShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_NilValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
@@ -236,7 +236,7 @@ func TestNewInterceptedSmartContractResult_NilValueShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilValue, err)
 }
 
-func TestNewInterceptedSmartContractResult_NilNegativeValueShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_NilNegativeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
@@ -254,7 +254,7 @@ func TestNewInterceptedSmartContractResult_NilNegativeValueShouldErr(t *testing.
 	assert.Equal(t, process.ErrNegativeValue, err)
 }
 
-func TestNewInterceptedSmartContractResult_InvalidSenderShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_InvalidSenderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
@@ -272,7 +272,7 @@ func TestNewInterceptedSmartContractResult_InvalidSenderShouldErr(t *testing.T) 
 	assert.Equal(t, process.ErrNilSndAddr, err)
 }
 
-func TestNewInterceptedSmartContractResult_ShouldWork(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
@@ -288,10 +288,10 @@ func TestNewInterceptedSmartContractResult_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, txi)
 	assert.Nil(t, err)
-	assert.Equal(t, tx, txi.SmartContractResult())
+	assert.Equal(t, tx, txi.UnsignedTransaction())
 }
 
-func TestNewInterceptedSmartContractResult_OkValsGettersShouldWork(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
@@ -308,5 +308,5 @@ func TestNewInterceptedSmartContractResult_OkValsGettersShouldWork(t *testing.T)
 	assert.Equal(t, senderShard, txi.SndShard())
 	assert.Equal(t, recvShard, txi.RcvShard())
 	assert.True(t, txi.IsAddressedToOtherShards())
-	assert.Equal(t, tx, txi.SmartContractResult())
+	assert.Equal(t, tx, txi.UnsignedTransaction())
 }

@@ -78,11 +78,11 @@
         BatchDelaySeconds = 15
         MaxBatchSize = 30000
 
-[SmartContractResultStorage]
-    [SmartContractResultStorage.Cache]
+[UnsignedTransactionStorage]
+    [UnsignedTransactionStorage.Cache]
         Size = 100000
         Type = "LRU"
-    [SmartContractResultStorage.DB]
+    [UnsignedTransactionStorage.DB]
         FilePath = "SmartContractResult"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 15
@@ -151,7 +151,7 @@
     Type = "FIFOSharded"
     Shards = 32
 
-[SmartContractDataPool]
+[UnsignedTransactionDataPool]
     Size = 100000
     Type = "LRU"
 
