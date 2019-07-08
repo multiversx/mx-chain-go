@@ -104,37 +104,6 @@ func NewSmartContractProcessor(
 		mapExecState:     make(map[uint32]scExecutionState)}, nil
 }
 
-// ComputeTransactionType calculates the type of the transaction
-func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (process.TransactionType, error) {
-	err := sc.checkTxValidity(tx)
-	if err != nil {
-		return 0, err
-	}
-
-	isEmptyAddress := sc.isDestAddressEmpty(tx)
-	if isEmptyAddress {
-		if len(tx.Data) > 0 {
-			return process.SCDeployment, nil
-		}
-		return 0, process.ErrWrongTransaction
-	}
-
-	acntDst, err := sc.getAccountFromAddress(tx.RcvAddr)
-	if err != nil {
-		return 0, err
-	}
-
-	if acntDst == nil {
-		return process.MoveBalance, nil
-	}
-
-	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 {
-		return process.SCInvoking, nil
-	}
-
-	return process.MoveBalance, nil
-}
-
 func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
 	if tx == nil || tx.IsInterfaceNil() {
 		return process.ErrNilTransaction

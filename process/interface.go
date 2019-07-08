@@ -17,7 +17,7 @@ import (
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
-	ProcessTransaction(transaction *transaction.Transaction, round uint32) error
+	ProcessTransaction(tx data.TransactionHandler, roundIndex uint32) error
 }
 
 // SmartContractResultProcessor is the main interface for smart contract result execution engine
@@ -55,7 +55,6 @@ type TransactionCoordinator interface {
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
 	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
 	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) error
 }
@@ -78,6 +77,7 @@ type UnsignedTxHandler interface {
 	AddProcessedUTx(tx data.TransactionHandler)
 	CreateAllUTxs() []data.TransactionHandler
 	VerifyCreatedUTxs() error
+	AddTxFeeFromBlock(tx data.TransactionHandler)
 }
 
 type SpecialAddressHandler interface {

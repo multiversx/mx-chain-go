@@ -13,7 +13,7 @@ type FeeTx struct {
 	Nonce   uint64   `capid:"0" json:"nonce"`
 	Value   *big.Int `capid:"1" json:"value"`
 	RcvAddr []byte   `capid:"2" json:"receiver"`
-	TxHash  []byte   `capid:"3" json:"txHash"`
+	ShardId uint32   `capid:"3" json:"ShardId"`
 }
 
 // Save saves the serialized data of a FeeTx into a stream through Capnp protocol
@@ -54,7 +54,6 @@ func FeeTxCapnToGo(src capnp.FeeTxCapn, dest *FeeTx) *FeeTx {
 	}
 
 	dest.RcvAddr = src.RcvAddr()
-	dest.TxHash = src.TxHash()
 
 	return dest
 }
@@ -67,7 +66,6 @@ func FeeTxGoToCapn(seg *capn.Segment, src *FeeTx) capnp.FeeTxCapn {
 	dest.SetNonce(src.Nonce)
 	dest.SetValue(value)
 	dest.SetRcvAddr(src.RcvAddr)
-	dest.SetTxHash(src.TxHash)
 
 	return dest
 }

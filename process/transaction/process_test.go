@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"crypto/rand"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"math/big"
 	"testing"
 
@@ -52,6 +53,7 @@ func createTxProcessor() txproc.TxProcessor {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	return txProc
@@ -70,6 +72,7 @@ func TestNewTxProcessor_NilAccountsShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -87,6 +90,7 @@ func TestNewTxProcessor_NilHasherShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -104,6 +108,7 @@ func TestNewTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilAddressConverter, err)
@@ -121,6 +126,7 @@ func TestNewTxProcessor_NilMarshalizerMockShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -138,6 +144,7 @@ func TestNewTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 		nil,
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -155,6 +162,7 @@ func TestNewTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilSmartContractProcessor, err)
@@ -172,6 +180,7 @@ func TestNewTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		nil,
+		&mock.TxTypeHandlerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilUnsignedTxHandler, err)
@@ -189,6 +198,7 @@ func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	assert.Nil(t, err)
@@ -210,6 +220,7 @@ func TestTxProcessor_GetAddressErrAddressConvShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	addressConv.Fail = true
@@ -248,6 +259,7 @@ func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	adr1 := mock.NewAddressMock([]byte{65})
@@ -271,6 +283,7 @@ func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	adr1 := mock.NewAddressMock([]byte{65})
@@ -311,6 +324,7 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 		shardCoordinator,
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
@@ -360,6 +374,7 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 		shardCoordinator,
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
@@ -394,6 +409,7 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	a1, a2, err := execTx.GetAccounts(adr1, adr2)
@@ -419,6 +435,7 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	a1, a2, err := execTx.GetAccounts(adr1, adr1)
@@ -641,6 +658,7 @@ func TestTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	addressConv.Fail = true
@@ -660,6 +678,7 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	tx := transaction.Transaction{}
@@ -696,6 +715,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	err = execTx.ProcessTransaction(&tx, 4)
@@ -746,6 +766,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 		shardCoordinator,
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	err = execTx.ProcessTransaction(&tx, 4)
@@ -788,6 +809,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	execTx.SetMinTxFee(0)
@@ -842,6 +864,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 		shardCoordinator,
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	execTx.SetMinTxFee(0)
@@ -896,6 +919,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 		shardCoordinator,
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	err = execTx.ProcessTransaction(&tx, 4)
@@ -942,6 +966,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	execTx.SetMinTxFee(0)
@@ -987,22 +1012,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	acntDst.SetCode([]byte{65})
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-
-	scProcessor, err := smartContract.NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
-		&mock.ArgumentParserMock{},
-		mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		accounts,
-		&mock.TemporaryAccountsHandlerMock{},
-		addrConverter,
-		mock.NewOneShardCoordinatorMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.UnsignedTxHandlerMock{},
-	)
 	scProcessorMock := &mock.SCProcessorMock{}
 
-	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
 	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
 		wasCalled = true
@@ -1017,6 +1028,11 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		scProcessorMock,
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
+				return process.SCInvoking, nil
+			},
+		},
 	)
 
 	err = execTx.ProcessTransaction(&tx, 4)
@@ -1056,21 +1072,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
-		&mock.ArgumentParserMock{},
-		mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		accounts,
-		&mock.TemporaryAccountsHandlerMock{},
-		addrConverter,
-		mock.NewOneShardCoordinatorMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.UnsignedTxHandlerMock{},
-	)
 	scProcessorMock := &mock.SCProcessorMock{}
 
-	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
 	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
 		wasCalled = true
@@ -1085,6 +1088,9 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		mock.NewOneShardCoordinatorMock(),
 		scProcessorMock,
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
+			return process.SCInvoking, nil
+		}},
 	)
 
 	err = execTx.ProcessTransaction(&tx, 4)
@@ -1134,25 +1140,17 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
-		&mock.ArgumentParserMock{},
-		mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		accounts,
-		&mock.TemporaryAccountsHandlerMock{},
-		addrConverter,
-		shardCoordinator,
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.UnsignedTxHandlerMock{},
-	)
 	scProcessorMock := &mock.SCProcessorMock{}
-	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
 	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}
+
+	computeType, _ := coordinator.NewTxTypeHandler(
+		&mock.AddressConverterMock{},
+		shardCoordinator,
+		accounts)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -1162,6 +1160,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		shardCoordinator,
 		scProcessorMock,
 		&mock.UnsignedTxHandlerMock{},
+		computeType,
 	)
 
 	execTx.SetMinTxFee(0)

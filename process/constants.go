@@ -22,6 +22,8 @@ const (
 	SCDeployment
 	// SCInvoking defines ID of a transaction of type smart contract call
 	SCInvoking
+	// TxFee defines ID of a transaction of type tx fee
+	TxFee
 	// InvalidTransaction defines unknown transaction type
 	InvalidTransaction
 )

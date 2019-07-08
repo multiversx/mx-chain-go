@@ -38,6 +38,17 @@ func (ftxh *feeTxHandler) CleanProcessedUTxs() {
 	ftxh.mutTxs.Unlock()
 }
 
+func (ftxh *feeTxHandler) AddTxFeeFromBlock(tx data.TransactionHandler) {
+	currFeeTx, ok := tx.(*feeTx.FeeTx)
+	if !ok {
+		log.Debug(process.ErrWrongTypeAssertion.Error())
+	}
+
+	ftxh.mutTxs.Lock()
+	ftxh.feeTxsFromBlock[string(tx.GetRecvAddress())] = currFeeTx
+	ftxh.mutTxs.Unlock()
+}
+
 // AddProcessedUTx adds a new feeTx to the cache
 func (ftxh *feeTxHandler) AddProcessedUTx(tx data.TransactionHandler) {
 	currFeeTx, ok := tx.(*feeTx.FeeTx)
