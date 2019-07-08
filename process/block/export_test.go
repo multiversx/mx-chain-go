@@ -151,3 +151,36 @@ func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body blo
 func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
 	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
 }
+
+func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint32) {
+	sp.checkAndRequestIfMetaHeadersMissing(round)
+}
+
+func (sp *shardProcessor) IsMetaHeaderFinal(currHdr data.HeaderHandler, sortedHdrs []*hashAndHdr, startPos int) bool {
+	return sp.isMetaHeaderFinal(currHdr, sortedHdrs, startPos)
+}
+
+func (sp *shardProcessor) GetHashAndHdrStruct(header data.HeaderHandler, hash []byte) *hashAndHdr {
+	return &hashAndHdr{header, hash}
+}
+
+func (sp *shardProcessor) GetDummyHashAndHdrSlice(header data.HeaderHandler) []*hashAndHdr {
+	return []*hashAndHdr{{hash: []byte("test"), hdr: header}, {hash: []byte("test2"), hdr: header}}
+}
+
+func (sp *shardProcessor) RequestFinalMissingHeaders() uint32 {
+	return sp.requestFinalMissingHeaders()
+}
+
+func (sp *shardProcessor) VerifyIncludedMetaBlocksFinality(currMetaBlocks []data.HeaderHandler, round uint32) error {
+	return sp.verifyIncludedMetaBlocksFinality(currMetaBlocks, round)
+}
+
+func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
+	noShards uint32,
+	maxTxInBlock int,
+	round uint32,
+	haveTime func() bool,
+) (block.MiniBlockSlice, uint32, error) {
+	return sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxTxInBlock, round, haveTime)
+}
