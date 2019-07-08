@@ -8,7 +8,6 @@ import (
 	"sync"
 )
 
-const burnPercentage = 0.5      // 100 = 100%, 0 = 0%
 const communityPercentage = 0.1 // 10 = 100%, 0 = 0%
 const leaderPercentage = 0.4    // 10 = 100%, 0 = 0%
 
@@ -17,7 +16,7 @@ type feeTxHandler struct {
 	mutTxs  sync.Mutex
 	feeTxs  []*feeTx.FeeTx
 
-	createdTxs []*feeTx.FeeTx
+	feeTxsFromBlock map[string]*feeTx.FeeTx
 }
 
 // NewFeeTxHandler constructor for the fx tee handler
@@ -26,6 +25,7 @@ func NewFeeTxHandler(address process.SpecialAddressHandler) (*feeTxHandler, erro
 		address: address,
 	}
 	ftxh.feeTxs = make([]*feeTx.FeeTx, 0)
+	ftxh.feeTxsFromBlock = make(map[string]*feeTx.FeeTx)
 
 	return ftxh, nil
 }
@@ -34,7 +34,7 @@ func NewFeeTxHandler(address process.SpecialAddressHandler) (*feeTxHandler, erro
 func (ftxh *feeTxHandler) CleanProcessedUTxs() {
 	ftxh.mutTxs.Lock()
 	ftxh.feeTxs = make([]*feeTx.FeeTx, 0)
-	ftxh.createdTxs = make([]*feeTx.FeeTx, 0)
+	ftxh.feeTxsFromBlock = make(map[string]*feeTx.FeeTx)
 	ftxh.mutTxs.Unlock()
 }
 
@@ -66,7 +66,7 @@ func (ftxh *feeTxHandler) createLeaderTx(totalGathered *big.Int) *feeTx.FeeTx {
 	currTx := &feeTx.FeeTx{}
 
 	currTx.Value = getPercentageOfValue(totalGathered, leaderPercentage)
-	currTx.RcvAddr = ftxh.address.GetMyOwnAddress()
+	currTx.RcvAddr = ftxh.address.GetLeaderAddress()
 
 	return currTx
 }
@@ -107,6 +107,29 @@ func (ftxh *feeTxHandler) CreateAllUTxs() []data.TransactionHandler {
 
 // VerifyCreatedUTxs creates all fee txs from added values, than verifies if in block the values are the same
 func (ftxh *feeTxHandler) VerifyCreatedUTxs() error {
+	calculatedFeeTxs := ftxh.CreateAllUTxs()
+
+	ftxh.mutTxs.Lock()
+	defer ftxh.mutTxs.Unlock()
+
+	totalFeesFromBlock := big.NewInt(0)
+	for _, value := range ftxh.feeTxsFromBlock {
+		totalFeesFromBlock = totalFeesFromBlock.Add(totalFeesFromBlock, value.Value)
+	}
+
+	totalCalculatedFees := big.NewInt(0)
+	for _, value := range calculatedFeeTxs {
+		totalCalculatedFees = totalCalculatedFees.Add(totalCalculatedFees, value.GetValue())
+
+		commTxFromBlock := ftxh.feeTxsFromBlock[string(value.GetRecvAddress())]
+		if commTxFromBlock.Value.Cmp(value.GetValue()) != 0 {
+			return process.ErrTxsFeesDoesNotMatch
+		}
+	}
+
+	if totalCalculatedFees.Cmp(totalFeesFromBlock) != 0 {
+		return process.ErrTxsFeesDoesNotMatch
+	}
 
 	return nil
 }

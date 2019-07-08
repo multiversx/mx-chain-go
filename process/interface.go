@@ -77,12 +77,12 @@ type UnsignedTxHandler interface {
 	CleanProcessedUTxs()
 	AddProcessedUTx(tx data.TransactionHandler)
 	CreateAllUTxs() []data.TransactionHandler
-	VerifyCreatedUTxs(header data.HeaderHandler, block block.Body) error
+	VerifyCreatedUTxs() error
 }
 
 type SpecialAddressHandler interface {
-	GetMyOwnAddress() []byte
 	GetElrondCommunityAddress() []byte
+	GetLeaderAddress() []byte
 }
 
 // Preprocessor is an interface used to prepare and process transaction data
