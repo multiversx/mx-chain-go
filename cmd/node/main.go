@@ -172,6 +172,13 @@ VERSION:
 		Value: math.MaxUint32,
 	}
 
+	// workingDirectory defines a flag for the path for the working directory.
+	workingDirectory = cli.StringFlag{
+		Name:  "working-directory",
+		Usage: "The node will store here DB, Logs and Stats",
+		Value: os.Getwd(),
+	}
+
 	//TODO remove uniqueID
 	uniqueID = ""
 
@@ -223,6 +230,7 @@ func main() {
 		serversConfigurationFile,
 		restApiPort,
 		boostrapRoundIndex,
+		workingDirectory,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -358,6 +366,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 
 	uniqueID = core.GetTrimmedPk(hex.EncodeToString(publicKey))
+
+	fmt.Sprintf("%s%s%s", shardCoordinator.os.PathSeparator, e.What)
 
 	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanup {
