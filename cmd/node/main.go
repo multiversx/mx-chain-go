@@ -171,6 +171,12 @@ VERSION:
 		Usage: "Bootstrap round index specifies the round index from which node should bootstrap from storage",
 		Value: math.MaxUint32,
 	}
+	// enableTxIndexing enables transaction indexing. There can be cases when it's too expensive to index all transactions
+	//  so we provide the command line option to disable this behaviour
+	enableTxIndexing = cli.BoolTFlag{
+		Name:  "tx-indexing",
+		Usage: "Enables transaction indexing. There can be cases when it's too expensive to index all transactions so we provide the command line option to disable this behaviour",
+	}
 
 	//TODO remove uniqueID
 	uniqueID = ""
@@ -223,6 +229,7 @@ func main() {
 		serversConfigurationFile,
 		restApiPort,
 		bootstrapRoundIndex,
+		enableTxIndexing,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -410,6 +417,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	if generalConfig.Explorer.Enabled {
 		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
 		dbIndexer, err = CreateElasticIndexer(
+			ctx,
 			serversConfigurationFileName,
 			generalConfig.Explorer.IndexerURL,
 			shardCoordinator,
@@ -586,12 +594,14 @@ func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConf
 // CreateElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
 func CreateElasticIndexer(
+	ctx *cli.Context,
 	serversConfigurationFileName string,
 	url string,
 	coordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	log *logger.Logger,
+
 ) (indexer.Indexer, error) {
 	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
 	if err != nil {
@@ -604,7 +614,9 @@ func CreateElasticIndexer(
 		serversConfig.ElasticSearch.Password,
 		coordinator,
 		marshalizer,
-		hasher, log)
+		hasher,
+		log,
+		&indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)})
 	if err != nil {
 		return nil, err
 	}
