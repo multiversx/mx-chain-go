@@ -322,7 +322,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler, round 
 		}
 
 		// found a header with the next nonce
-		if tmpHdr.hdr.GetNonce() == header.GetNonce()+1 {
+		if tmpHdr.hdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 			err := sp.isHdrConstructionValid(tmpHdr.hdr, lastVerifiedHdr)
 			if err != nil {
 				continue

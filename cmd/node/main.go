@@ -202,7 +202,7 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = "v1.0.7"
+	app.Version = "v1.0.8"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,

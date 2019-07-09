@@ -11,7 +11,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	blockChain := &mock.BlockChainMock{}
 	blockProcessorMock := mock.InitBlockProcessorMock()
 	blocksTrackerMock := &mock.BlocksTrackerMock{}
-	bootstraperMock := &mock.BootstraperMock{}
+	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	chronologyHandlerMock := mock.InitChronologyHandlerMock()
 	blsPrivateKeyMock := &mock.PrivateKeyMock{}
@@ -28,7 +28,7 @@ func initConsensusDataContainer() *ConsensusCore {
 		blockChain:             blockChain,
 		blockProcessor:         blockProcessorMock,
 		blocksTracker:          blocksTrackerMock,
-		bootstraper:            bootstraperMock,
+		bootstrapper:           bootstrapperMock,
 		broadcastMessenger:     broadcastMessengerMock,
 		chronologyHandler:      chronologyHandlerMock,
 		hasher:                 hasherMock,
@@ -69,7 +69,7 @@ func TestConsensusContainerValidator_ValidateNilBootstrapperShouldFail(t *testin
 	t.Parallel()
 
 	container := initConsensusDataContainer()
-	container.bootstraper = nil
+	container.bootstrapper = nil
 
 	err := ValidateConsensusCore(container)
 

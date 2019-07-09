@@ -90,6 +90,8 @@ func NewMetaBootstrap(
 		baseBootstrap: base,
 	}
 
+	base.storageBoostrapper = &boot
+
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.MetaChainResolver(factory.MetachainBlocksTopic)
 	if err != nil {
@@ -129,17 +131,27 @@ func (boot *MetaBootstrap) syncFromStorer(
 	err := boot.loadBlocks(
 		blockFinality,
 		blockUnit,
-		hdrNonceHashDataUnit,
-		boot.getMetaHeaderFromStorage,
-		boot.getBlockBody,
-		boot.removeBlockBody,
-		boot.getNonceWithLastNotarized,
-		boot.applyNotarizedBlocks,
-		boot.cleanupNotarizedStorage)
+		hdrNonceHashDataUnit)
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (boot *MetaBootstrap) getHeader(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error) {
+	return boot.getMetaHeaderFromStorage(shardId, nonce)
+}
+
+func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	return &block.MetaBlockBody{}, nil
+}
+
+func (boot *MetaBootstrap) removeBlockBody(
+	nonce uint64,
+	blockUnit dataRetriever.UnitType,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+) error {
 	return nil
 }
 
@@ -167,7 +179,7 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 			resetNotarized = false
 		}
 
-		headerHandler, _, err = boot.getMetaHeaderFromStorage(sharding.MetachainShardId, currentNonce)
+		headerHandler, _, err = boot.getHeader(sharding.MetachainShardId, currentNonce)
 		if err != nil {
 			log.Info(err.Error())
 			resetNotarized = true
@@ -258,20 +270,24 @@ func (boot *MetaBootstrap) applyNotarizedBlocks(
 ) error {
 	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
 		nonce := finalNotarized[i]
-		headerHandler, _, err := boot.getShardHeaderFromStorage(i, nonce)
-		if err != nil {
-			return err
-		}
+		if nonce > 0 {
+			headerHandler, _, err := boot.getShardHeaderFromStorage(i, nonce)
+			if err != nil {
+				return err
+			}
 
-		boot.blkExecutor.SetLastNotarizedHdr(i, headerHandler)
+			boot.blkExecutor.SetLastNotarizedHdr(i, headerHandler)
+		}
 
 		nonce = lastNotarized[i]
-		headerHandler, _, err = boot.getShardHeaderFromStorage(i, nonce)
-		if err != nil {
-			return err
-		}
+		if nonce > 0 {
+			headerHandler, _, err := boot.getShardHeaderFromStorage(i, nonce)
+			if err != nil {
+				return err
+			}
 
-		boot.blkExecutor.SetLastNotarizedHdr(i, headerHandler)
+			boot.blkExecutor.SetLastNotarizedHdr(i, headerHandler)
+		}
 	}
 
 	return nil
@@ -289,18 +305,6 @@ func (boot *MetaBootstrap) cleanupNotarizedStorage(lastNotarized map[uint32]uint
 			}
 		}
 	}
-}
-
-func (boot *MetaBootstrap) removeBlockBody(
-	nonce uint64,
-	blockUnit dataRetriever.UnitType,
-	hdrNonceHashDataUnit dataRetriever.UnitType,
-) error {
-	return nil
-}
-
-func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	return &block.MetaBlockBody{}, nil
 }
 
 func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
