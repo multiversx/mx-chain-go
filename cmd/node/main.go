@@ -4,9 +4,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -39,6 +41,9 @@ import (
 const (
 	defaultLogPath     = "logs"
 	defaultStatsPath   = "stats"
+	defaultDBPath      = "db"
+	defaultEpochString = "Epoch"
+	defaultShardString = "Shard"
 	metachainShardName = "metachain"
 )
 
@@ -173,8 +178,12 @@ VERSION:
 		Value: math.MaxUint32,
 	}
 
-	//TODO remove uniqueID
-	uniqueID = ""
+	// workingDirectory defines a flag for the path for the working directory.
+	workingDirectory = cli.StringFlag{
+		Name:  "working-directory",
+		Usage: "The node will store here DB, Logs and Stats",
+		Value: "",
+	}
 
 	rm *statistics.ResourceMonitor
 )
@@ -224,6 +233,7 @@ func main() {
 		serversConfigurationFile,
 		restApiPort,
 		boostrapRoundIndex,
+		workingDirectory,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -353,22 +363,54 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	publicKey, err := pubKey.ToByteArray()
-	if err != nil {
-		return err
+	workingDir := ctx.GlobalString(workingDirectory.Name)
+
+	if workingDir == "" {
+		workingDir, err = os.Getwd()
+		if err != nil {
+			log.LogIfError(err)
+			workingDir = ""
+		}
 	}
 
-	uniqueID = core.GetTrimmedPk(hex.EncodeToString(publicKey))
+	var shardId = "metachain"
+	if shardCoordinator.SelfId() != sharding.MetachainShardId {
+		shardId = fmt.Sprintf("%d", shardCoordinator.SelfId())
+	}
+
+	uniqueDBFolder := filepath.Join(
+		workingDir,
+		defaultDBPath,
+		fmt.Sprintf("%s_%d", defaultEpochString, 0),
+		fmt.Sprintf("%s_%s", defaultShardString, shardId))
 
 	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanup {
-		err = os.RemoveAll(config.DefaultPath() + uniqueID)
+		err = os.RemoveAll(uniqueDBFolder)
 		if err != nil {
 			return err
 		}
 	}
 
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueID)
+	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
+		"PublicKey", factory.GetPkEncoded(pubKey),
+		"ShardId", shardId,
+		"TotalShards", shardCoordinator.NumberOfShards(),
+		"AppVersion", "TestVersion",
+		"OsVersion", "TestOs",
+	)
+
+	logDirectory := filepath.Join(workingDir, defaultLogPath)
+
+	err = os.MkdirAll(logDirectory, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
+	log.LogIfError(err)
+
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
@@ -380,12 +422,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log)
+	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log, workingDir)
 	if err != nil {
 		return err
 	}
 
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueID)
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
@@ -716,14 +758,15 @@ func createNode(
 	return nd, nil
 }
 
-func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger) error {
+func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger,
+	workingDir string) error {
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return err
 	}
 
 	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
-	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
+	logFile, err := core.CreateFile(hexPublicKey, filepath.Join(workingDir, defaultLogPath), "log")
 	if err != nil {
 		return err
 	}
@@ -733,7 +776,7 @@ func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, 
 		return err
 	}
 
-	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
+	statsFile, err := core.CreateFile(hexPublicKey, filepath.Join(workingDir, defaultStatsPath), "txt")
 	if err != nil {
 		return err
 	}

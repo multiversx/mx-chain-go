@@ -1342,9 +1342,9 @@ func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
 	}
 }
 
-func getDBFromConfig(cfg config.DBConfig, uniqueID string) storageUnit.DBConfig {
+func getDBFromConfig(cfg config.DBConfig, uniquePath string) storageUnit.DBConfig {
 	return storageUnit.DBConfig{
-		FilePath:          filepath.Join(config.DefaultPath()+uniqueID, cfg.FilePath),
+		FilePath:          filepath.Join(uniquePath, cfg.FilePath),
 		Type:              storageUnit.DBType(cfg.Type),
 		MaxBatchSize:      cfg.MaxBatchSize,
 		BatchDelaySeconds: cfg.BatchDelaySeconds,
