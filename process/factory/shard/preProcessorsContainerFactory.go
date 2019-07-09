@@ -134,7 +134,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 
 func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
 	scrPreprocessor, err := preprocess.NewSmartContractResultPreprocessor(
-		ppcm.dataPool.SmartContractResults(),
+		ppcm.dataPool.UnsignedTransactions(),
 		ppcm.store,
 		ppcm.hasher,
 		ppcm.marshalizer,

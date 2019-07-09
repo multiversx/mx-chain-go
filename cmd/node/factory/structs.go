@@ -58,7 +58,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
@@ -68,6 +67,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	ielecommon "github.com/ElrondNetwork/elrond-vm/iele/common"
+	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -602,7 +603,11 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 	return nil, errors.New("can not create blockchain")
 }
 
-func createDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
+func createDataStoreFromConfig(
+	config *config.Config,
+	shardCoordinator sharding.Coordinator,
+	uniqueID string,
+) (dataRetriever.StorageService, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return createShardDataStoreFromConfig(config, shardCoordinator, uniqueID)
 	}
@@ -612,8 +617,12 @@ func createDataStoreFromConfig(config *config.Config, shardCoordinator sharding.
 	return nil, errors.New("can not create data store")
 }
 
-func createShardDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
-	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit, scrUnit, metaHdrHashNonceUnit, shardHdrHashNonceUnit *storageUnit.Unit
+func createShardDataStoreFromConfig(
+	config *config.Config,
+	shardCoordinator sharding.Coordinator,
+	uniqueID string,
+) (dataRetriever.StorageService, error) {
+	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit, unsignedTxUnit, metaHdrHashNonceUnit, shardHdrHashNonceUnit *storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -631,8 +640,8 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 			if txUnit != nil {
 				_ = txUnit.DestroyUnit()
 			}
-			if scrUnit != nil {
-				_ = scrUnit.DestroyUnit()
+			if unsignedTxUnit != nil {
+				_ = unsignedTxUnit.DestroyUnit()
 			}
 			if metachainHeaderUnit != nil {
 				_ = metachainHeaderUnit.DestroyUnit()
@@ -654,10 +663,10 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 		return nil, err
 	}
 
-	scrUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.SmartContractResultStorage.Cache),
-		getDBFromConfig(config.SmartContractResultStorage.DB, uniqueID),
-		getBloomFromConfig(config.SmartContractResultStorage.Bloom))
+	unsignedTxUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
+		getDBFromConfig(config.UnsignedTransactionStorage.DB, uniqueID),
+		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -719,7 +728,7 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 	store.AddStorer(dataRetriever.PeerChangesUnit, peerBlockUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaBlockUnit, metachainHeaderUnit)
-	store.AddStorer(dataRetriever.SmartContractResultUnit, scrUnit)
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, unsignedTxUnit)
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardCoordinator.SelfId())
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
@@ -727,7 +736,11 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 	return store, err
 }
 
-func createMetaChainDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
+func createMetaChainDataStoreFromConfig(
+	config *config.Config,
+	shardCoordinator sharding.Coordinator,
+	uniqueID string,
+) (dataRetriever.StorageService, error) {
 	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, metaHdrHashNonceUnit *storageUnit.Unit
 	var shardHdrHashNonceUnits []*storageUnit.Unit
 	var err error
@@ -839,7 +852,7 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	scrPool, err := shardedData.NewShardedData(getCacherFromConfig(config.SmartContractDataPool))
+	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
 		fmt.Println("error creating smart contract result")
 		return nil, err
@@ -899,7 +912,7 @@ func createShardDataPoolFromConfig(
 
 	return dataPool.NewShardedDataPool(
 		txPool,
-		scrPool,
+		uTxPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -1263,9 +1276,13 @@ func newShardBlockProcessorAndTracker(
 	if err != nil {
 		return nil, nil, err
 	}
-	//TODO: change the mock
+
+	//TODO replace this with a vm factory
+	cryptoHook := hooks.NewVMCryptoHook()
+	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, ielecommon.Default)
+
 	scProcessor, err := smartContract.NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		ieleVM,
 		argsParser,
 		core.Hasher,
 		core.Marshalizer,
@@ -1282,7 +1299,7 @@ func newShardBlockProcessorAndTracker(
 	requestHandler, err := requestHandlers.NewShardResolverRequestHandler(
 		resolversFinder,
 		factory.TransactionTopic,
-		factory.SmartContractResultTopic,
+		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
 		factory.MetachainBlocksTopic,
 		MaxTxsToRequest,

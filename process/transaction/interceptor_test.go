@@ -380,7 +380,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -416,7 +416,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{
 		HasCalled: func(key []byte) error {
-			return errors.New("Key not found")
+			return errors.New("key not found")
 		},
 	}
 	signer := &mock.SignerMock{
@@ -438,7 +438,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 	tx1 := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -450,7 +450,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 	tx2 := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -515,7 +515,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t 
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -551,7 +551,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) error {
-		return errors.New("Key not found")
+		return errors.New("key not found")
 	}
 	signer := &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
@@ -572,7 +572,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -641,7 +641,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -717,7 +717,7 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
-		Data:      []byte("data"),
+		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,

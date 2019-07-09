@@ -91,7 +91,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 				value,
 				recvAddressBytes,
 				senderAddressBytes,
-				nil,
+				"",
 			)
 
 			if err != nil {
@@ -166,7 +166,7 @@ func (n *Node) GenerateAndSendBulkTransactionsOneByOne(receiverHex string, value
 			value,
 			recvAddressBytes,
 			senderAddressBytes,
-			nil,
+			"",
 		)
 		if err != nil {
 			return err
@@ -254,7 +254,7 @@ func (n *Node) generateAndSignSingleTx(
 	value *big.Int,
 	rcvAddrBytes []byte,
 	sndAddrBytes []byte,
-	dataBytes []byte,
+	data string,
 ) (*transaction.Transaction, []byte, error) {
 
 	if n.marshalizer == nil {
@@ -269,7 +269,7 @@ func (n *Node) generateAndSignSingleTx(
 		Value:   value,
 		RcvAddr: rcvAddrBytes,
 		SndAddr: sndAddrBytes,
-		Data:    dataBytes,
+		Data:    data,
 	}
 
 	marshalizedTx, err := n.marshalizer.Marshal(&tx)
@@ -296,10 +296,10 @@ func (n *Node) generateAndSignTxBuffArray(
 	value *big.Int,
 	rcvAddrBytes []byte,
 	sndAddrBytes []byte,
-	dataBytes []byte,
+	data string,
 ) (*transaction.Transaction, []byte, error) {
 
-	tx, txBuff, err := n.generateAndSignSingleTx(nonce, value, rcvAddrBytes, sndAddrBytes, dataBytes)
+	tx, txBuff, err := n.generateAndSignSingleTx(nonce, value, rcvAddrBytes, sndAddrBytes, data)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -346,7 +346,7 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 		value,
 		receiverAddress.Bytes(),
 		senderAddress.Bytes(),
-		[]byte(transactionData))
+		transactionData)
 
 	return tx, err
 }

@@ -83,7 +83,7 @@ func newTestTxPool() map[string]data.TransactionHandler {
 		SndAddr:   []byte("sender_address1"),
 		GasPrice:  uint64(10000),
 		GasLimit:  uint64(1000),
-		Data:      []byte("tx_data1"),
+		Data:      "tx_data1",
 		Signature: []byte("signature1"),
 		Challenge: []byte("challange1"),
 	}
@@ -95,7 +95,7 @@ func newTestTxPool() map[string]data.TransactionHandler {
 		SndAddr:   []byte("sender_address2"),
 		GasPrice:  uint64(10000),
 		GasLimit:  uint64(1000),
-		Data:      []byte("tx_data2"),
+		Data:      "tx_data2",
 		Signature: []byte("signature2"),
 		Challenge: []byte("challange2"),
 	}
@@ -107,7 +107,7 @@ func newTestTxPool() map[string]data.TransactionHandler {
 		SndAddr:   []byte("sender_address3"),
 		GasPrice:  uint64(10000),
 		GasLimit:  uint64(1000),
-		Data:      []byte("tx_data3"),
+		Data:      "tx_data3",
 		Signature: []byte("signature3"),
 		Challenge: []byte("challange3"),
 	}

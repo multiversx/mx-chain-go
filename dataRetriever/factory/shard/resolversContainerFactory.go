@@ -83,7 +83,7 @@ func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer
 		return nil, err
 	}
 
-	keys, resolverSlice, err = rcf.generateTxResolvers(factory.SmartContractResultTopic, dataRetriever.SmartContractResultUnit)
+	keys, resolverSlice, err = rcf.generateTxResolvers(factory.UnsignedTransactionTopic, dataRetriever.UnsignedTransactionUnit)
 	if err != nil {
 		return nil, err
 	}

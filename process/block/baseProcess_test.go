@@ -88,7 +88,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				},
 			}
 		},
-		SmartContractResultsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
 				RegisterHandlerCalled: func(i func(key []byte)) {},
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {

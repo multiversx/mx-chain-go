@@ -7,7 +7,7 @@ import (
 
 type shardedDataPool struct {
 	transactions         dataRetriever.ShardedDataCacherNotifier
-	smartContractResults dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
 	headers              storage.Cacher
 	metaBlocks           storage.Cacher
 	hdrNonces            dataRetriever.Uint64Cacher
@@ -19,7 +19,7 @@ type shardedDataPool struct {
 // NewShardedDataPool creates a data pools holder object
 func NewShardedDataPool(
 	transactions dataRetriever.ShardedDataCacherNotifier,
-	smartContractResults dataRetriever.ShardedDataCacherNotifier,
+	unsignedTransactions dataRetriever.ShardedDataCacherNotifier,
 	headers storage.Cacher,
 	hdrNonces dataRetriever.Uint64Cacher,
 	miniBlocks storage.Cacher,
@@ -31,8 +31,8 @@ func NewShardedDataPool(
 	if transactions == nil {
 		return nil, dataRetriever.ErrNilTxDataPool
 	}
-	if smartContractResults == nil {
-		return nil, dataRetriever.ErrNilSmartContractResultsPool
+	if unsignedTransactions == nil {
+		return nil, dataRetriever.ErrNilUnsignedTransactionPool
 	}
 	if headers == nil {
 		return nil, dataRetriever.ErrNilHeadersDataPool
@@ -55,7 +55,7 @@ func NewShardedDataPool(
 
 	return &shardedDataPool{
 		transactions:         transactions,
-		smartContractResults: smartContractResults,
+		unsignedTransactions: unsignedTransactions,
 		headers:              headers,
 		hdrNonces:            hdrNonces,
 		metaHdrNonces:        metaHdrNonces,
@@ -71,8 +71,8 @@ func (tdp *shardedDataPool) Transactions() dataRetriever.ShardedDataCacherNotifi
 }
 
 // SmartContractResults returns the holder for transactions
-func (tdp *shardedDataPool) SmartContractResults() dataRetriever.ShardedDataCacherNotifier {
-	return tdp.smartContractResults
+func (tdp *shardedDataPool) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return tdp.unsignedTransactions
 }
 
 // Headers returns the holder for headers

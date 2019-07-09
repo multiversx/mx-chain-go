@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -107,7 +107,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 		return nil, err
 	}
 
-	keys, interceptorSlice, err = icf.generateScrInterceptors()
+	keys, interceptorSlice, err = icf.generateUnsignedTxsInterceptors()
 	if err != nil {
 		return nil, err
 	}
@@ -229,9 +229,9 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
 }
 
-//------- Smart Contract Results interceptors
+//------- Unsigned transactions interceptors
 
-func (icf *interceptorsContainerFactory) generateScrInterceptors() ([]string, []process.Interceptor, error) {
+func (icf *interceptorsContainerFactory) generateUnsignedTxsInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
 	noOfShards := shardC.NumberOfShards()
@@ -240,9 +240,9 @@ func (icf *interceptorsContainerFactory) generateScrInterceptors() ([]string, []
 	interceptorSlice := make([]process.Interceptor, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierScr := factory.SmartContractResultTopic + shardC.CommunicationIdentifier(idx)
+		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
 
-		interceptor, err := icf.createOneScrInterceptor(identifierScr)
+		interceptor, err := icf.createOneUnsignedTxInterceptor(identifierScr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -251,9 +251,9 @@ func (icf *interceptorsContainerFactory) generateScrInterceptors() ([]string, []
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	identifierTx := factory.SmartContractResultTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTx := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 
-	interceptor, err := icf.createOneScrInterceptor(identifierTx)
+	interceptor, err := icf.createOneUnsignedTxInterceptor(identifierTx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -263,13 +263,13 @@ func (icf *interceptorsContainerFactory) generateScrInterceptors() ([]string, []
 	return keys, interceptorSlice, nil
 }
 
-func (icf *interceptorsContainerFactory) createOneScrInterceptor(identifier string) (process.Interceptor, error) {
-	scrStorer := icf.store.GetStorer(dataRetriever.SmartContractResultUnit)
+func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(identifier string) (process.Interceptor, error) {
+	uTxStorer := icf.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 
-	interceptor, err := smartContract.NewScrInterceptor(
+	interceptor, err := unsigned.NewUnsignedTxInterceptor(
 		icf.marshalizer,
-		icf.dataPool.SmartContractResults(),
-		scrStorer,
+		icf.dataPool.UnsignedTransactions(),
+		uTxStorer,
 		icf.addrConverter,
 		icf.hasher,
 		icf.shardCoordinator)
