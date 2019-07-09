@@ -1016,7 +1016,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 	t.Parallel()
 
-	hdr := block.Header{Nonce: 1}
+	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
 	blkc := mock.BlockChainMock{}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
@@ -1037,6 +1037,9 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
 		}
 
+		sds.RemoveCalled = func(key []byte) {
+		}
+
 		return sds
 	}
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
@@ -1051,6 +1054,10 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 
 			return nil, false
 		}
+
+		hnc.RemoveCalled = func(u uint64) {
+		}
+
 		return hnc
 	}
 	hasher := &mock.HasherMock{}
@@ -1061,6 +1068,9 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
+	}
+	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
+		return 1
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1470,7 +1480,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	)
 
 	err := bs.SyncBlock()
-	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, err)
+	assert.Equal(t, process.ErrInvalidBlockHash, err)
 }
 
 func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndexIsZero(t *testing.T) {

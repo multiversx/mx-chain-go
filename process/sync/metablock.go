@@ -377,6 +377,16 @@ func (boot *MetaBootstrap) SyncBlock() error {
 		return err
 	}
 
+	defer func() {
+		if err != nil {
+			boot.removeHeaderFromPools(hdr)
+			err = boot.forkChoice()
+			if err != nil {
+				log.Info(err.Error())
+			}
+		}
+	}()
+
 	haveTime := func() time.Duration {
 		return boot.rounder.TimeDuration()
 	}
@@ -384,23 +394,12 @@ func (boot *MetaBootstrap) SyncBlock() error {
 	blockBody := &block.MetaBlockBody{}
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 	if err != nil {
-		isForkDetected := err != process.ErrTimeIsOut
-		if isForkDetected {
-			log.Info(err.Error())
-			boot.removeHeaderFromPools(hdr)
-			err = boot.forkChoice()
-		}
-
 		return err
 	}
 
 	timeBefore := time.Now()
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
 	if err != nil {
-		log.Info(err.Error())
-		boot.removeHeaderFromPools(hdr)
-		err = boot.forkChoice()
-
 		return err
 	}
 	timeAfter := time.Now()

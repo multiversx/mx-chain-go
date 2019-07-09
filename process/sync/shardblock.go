@@ -485,9 +485,20 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		return err
 	}
 
+	defer func() {
+		if err != nil {
+			boot.removeHeaderFromPools(hdr)
+			err = boot.forkChoice()
+			if err != nil {
+				log.Info(err.Error())
+			}
+		}
+	}()
+
 	//TODO remove after all types of block bodies are implemented
 	if hdr.BlockBodyType != block.TxBlock {
-		return process.ErrNotImplementedBlockProcessingType
+		err = process.ErrNotImplementedBlockProcessingType
+		return err
 	}
 
 	miniBlockHashes := make([][]byte, 0)
@@ -506,29 +517,19 @@ func (boot *ShardBootstrap) SyncBlock() error {
 
 	miniBlockSlice, ok := blk.(block.MiniBlockSlice)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		err = process.ErrWrongTypeAssertion
+		return err
 	}
 
 	blockBody := block.Body(miniBlockSlice)
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 	if err != nil {
-		isForkDetected := err != process.ErrTimeIsOut
-		if isForkDetected {
-			log.Info(err.Error())
-			boot.removeHeaderFromPools(hdr)
-			err = boot.forkChoice()
-		}
-
 		return err
 	}
 
 	timeBefore := time.Now()
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
 	if err != nil {
-		log.Info(err.Error())
-		boot.removeHeaderFromPools(hdr)
-		err = boot.forkChoice()
-
 		return err
 	}
 	timeAfter := time.Now()
