@@ -402,7 +402,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	logDirectory := filepath.Join(workingDir, defaultLogPath)
 
-	os.MkdirAll(logDirectory, os.ModePerm)
+	err = os.MkdirAll(logDirectory, os.ModePerm)
 	if err != nil {
 		return err
 	}
