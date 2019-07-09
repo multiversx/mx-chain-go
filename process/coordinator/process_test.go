@@ -1495,6 +1495,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		adrConv,
+		&mock.SpecialAddressHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -1537,6 +1538,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		adrConv,
+		&mock.SpecialAddressHandlerMock{},
 	)
 	container, _ := factory.Create()
 

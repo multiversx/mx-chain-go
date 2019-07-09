@@ -80,9 +80,11 @@ type UnsignedTxHandler interface {
 	AddTxFeeFromBlock(tx data.TransactionHandler)
 }
 
+// SpecialAddressHandler responds with needed special addresses
 type SpecialAddressHandler interface {
 	GetElrondCommunityAddress() []byte
 	GetLeaderAddress() []byte
+	ShardIdForAddress([]byte) uint32
 }
 
 // Preprocessor is an interface used to prepare and process transaction data

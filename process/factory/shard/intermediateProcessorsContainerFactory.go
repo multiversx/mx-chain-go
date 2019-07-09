@@ -8,14 +8,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type intermediateProcessorsContainerFactory struct {
-	shardCoordinator sharding.Coordinator
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	addrConverter    state.AddressConverter
+	shardCoordinator      sharding.Coordinator
+	marshalizer           marshal.Marshalizer
+	hasher                hashing.Hasher
+	addrConverter         state.AddressConverter
+	specialAddressHandler process.SpecialAddressHandler
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -24,6 +26,7 @@ func NewIntermediateProcessorsContainerFactory(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	addrConverter state.AddressConverter,
+	specialAddressHandler process.SpecialAddressHandler,
 ) (*intermediateProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -38,12 +41,16 @@ func NewIntermediateProcessorsContainerFactory(
 	if addrConverter == nil {
 		return nil, process.ErrNilAddressConverter
 	}
+	if specialAddressHandler == nil {
+		return nil, process.ErrNilSpecialAddressHandler
+	}
 
 	return &intermediateProcessorsContainerFactory{
-		shardCoordinator: shardCoordinator,
-		marshalizer:      marshalizer,
-		hasher:           hasher,
-		addrConverter:    addrConverter,
+		shardCoordinator:      shardCoordinator,
+		marshalizer:           marshalizer,
+		hasher:                hasher,
+		addrConverter:         addrConverter,
+		specialAddressHandler: specialAddressHandler,
 	}, nil
 }
 
@@ -61,6 +68,16 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 		return nil, err
 	}
 
+	interproc, err = ppcm.createTxFeeIntermediateProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(block.TxFeeBlock, interproc)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
@@ -71,6 +88,16 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 		ppcm.shardCoordinator,
 		ppcm.addrConverter,
 		block.SmartContractResultBlock,
+	)
+
+	return irp, err
+}
+
+func (ppcm *intermediateProcessorsContainerFactory) createTxFeeIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
+	irp, err := unsigned.NewFeeTxHandler(
+		ppcm.specialAddressHandler,
+		ppcm.hasher,
+		ppcm.marshalizer,
 	)
 
 	return irp, err

@@ -414,3 +414,6 @@ var ErrTxsFeesDoesNotMatch = errors.New("calculated tx fees with block tx fee do
 
 // ErrNilTxTypeHandler signals that tx type handler is nil
 var ErrNilTxTypeHandler = errors.New("nil tx type handler")
+
+// ErrNilSpecialAddressHandler signals that special address handler is nil
+var ErrNilSpecialAddressHandler = errors.New("nil special address handler")

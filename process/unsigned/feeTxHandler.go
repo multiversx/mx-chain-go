@@ -1,8 +1,12 @@
 package unsigned
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/feeTx"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"math/big"
 	"sync"
@@ -12,22 +16,80 @@ const communityPercentage = 0.1 // 10 = 100%, 0 = 0%
 const leaderPercentage = 0.4    // 10 = 100%, 0 = 0%
 
 type feeTxHandler struct {
-	address process.SpecialAddressHandler
-	mutTxs  sync.Mutex
-	feeTxs  []*feeTx.FeeTx
+	address     process.SpecialAddressHandler
+	hasher      hashing.Hasher
+	marshalizer marshal.Marshalizer
+	mutTxs      sync.Mutex
+	feeTxs      []*feeTx.FeeTx
 
 	feeTxsFromBlock map[string]*feeTx.FeeTx
 }
 
 // NewFeeTxHandler constructor for the fx tee handler
-func NewFeeTxHandler(address process.SpecialAddressHandler) (*feeTxHandler, error) {
+func NewFeeTxHandler(
+	address process.SpecialAddressHandler,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+) (*feeTxHandler, error) {
+	if address == nil {
+		return nil, process.ErrNilSpecialAddressHandler
+	}
+	if hasher == nil {
+		return nil, process.ErrNilHasher
+	}
+	if marshalizer == nil {
+		return nil, process.ErrNilMarshalizer
+	}
+
 	ftxh := &feeTxHandler{
-		address: address,
+		address:     address,
+		hasher:      hasher,
+		marshalizer: marshalizer,
 	}
 	ftxh.feeTxs = make([]*feeTx.FeeTx, 0)
 	ftxh.feeTxsFromBlock = make(map[string]*feeTx.FeeTx)
 
 	return ftxh, nil
+}
+
+func (ftxh *feeTxHandler) AddIntermediateTransactions(txs []data.TransactionHandler) error {
+	return nil
+}
+
+func (ftxh *feeTxHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
+	calculatedFeeTxs := ftxh.CreateAllUTxs()
+
+	miniBlocks := make(map[uint32]*block.MiniBlock)
+	for _, value := range calculatedFeeTxs {
+		dstShId := ftxh.address.ShardIdForAddress(value.GetRecvAddress())
+
+		txHash, err := core.CalculateHash(ftxh.marshalizer, ftxh.hasher, value)
+		if err != nil {
+			log.Debug(err.Error())
+			continue
+		}
+
+		var ok bool
+		var mb *block.MiniBlock
+		if mb, ok = miniBlocks[dstShId]; !ok {
+			mb = &block.MiniBlock{
+				ReceiverShardID: dstShId,
+			}
+		}
+
+		mb.TxHashes = append(mb.TxHashes, txHash)
+		miniBlocks[dstShId] = mb
+	}
+
+	return miniBlocks
+}
+
+// VerifyInterMiniBlocks verifies if transaction fees were correctly handled for the block
+func (ftxh *feeTxHandler) VerifyInterMiniBlocks(body block.Body) error {
+	err := ftxh.VerifyCreatedUTxs()
+	ftxh.CleanProcessedUTxs()
+
+	return err
 }
 
 // CleanProcessedUTxs deletes the cached data
@@ -103,6 +165,7 @@ func (ftxh *feeTxHandler) CreateAllUTxs() []data.TransactionHandler {
 	}
 
 	if totalFee.Cmp(big.NewInt(1)) < 0 {
+		ftxh.feeTxs = make([]*feeTx.FeeTx, 0)
 		return nil
 	}
 
@@ -112,6 +175,8 @@ func (ftxh *feeTxHandler) CreateAllUTxs() []data.TransactionHandler {
 	currFeeTxs := make([]data.TransactionHandler, 0)
 	currFeeTxs = append(currFeeTxs, leaderTx)
 	currFeeTxs = append(currFeeTxs, communityTx)
+
+	ftxh.feeTxs = make([]*feeTx.FeeTx, 0)
 
 	return currFeeTxs
 }

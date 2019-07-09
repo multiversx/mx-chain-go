@@ -211,11 +211,7 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32,
 				return process.ErrMissingTransaction
 			}
 
-			currTx, ok := txInfo.tx.(*transaction.Transaction)
-			if !ok {
-				return process.ErrWrongTypeAssertion
-			}
-
+			currTx := txInfo.tx
 			err := txs.processAndRemoveBadTransaction(
 				txHash,
 				currTx,
@@ -298,7 +294,7 @@ func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) 
 // processAndRemoveBadTransactions processed transactions, if txs are with error it removes them from pool
 func (txs *transactions) processAndRemoveBadTransaction(
 	transactionHash []byte,
-	transaction *transaction.Transaction,
+	transaction data.TransactionHandler,
 	round uint32,
 	sndShardId uint32,
 	dstShardId uint32,
@@ -352,7 +348,7 @@ func (txs *transactions) computeMissingTxsForMiniBlock(mb block.MiniBlock) [][]b
 func (txs *transactions) getAllTxsFromMiniBlock(
 	mb *block.MiniBlock,
 	haveTime func() bool,
-) ([]*transaction.Transaction, [][]byte, error) {
+) ([]data.TransactionHandler, [][]byte, error) {
 
 	strCache := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 	txCache := txs.txPool.ShardDataStore(strCache)
@@ -361,7 +357,7 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	}
 
 	// verify if all transaction exists
-	transactions := make([]*transaction.Transaction, 0)
+	transactions := make([]data.TransactionHandler, 0)
 	txHashes := make([][]byte, 0)
 	for _, txHash := range mb.TxHashes {
 		if !haveTime() {
@@ -373,7 +369,7 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 			return nil, nil, process.ErrNilTransaction
 		}
 
-		tx, ok := tmp.(*transaction.Transaction)
+		tx, ok := tmp.(data.TransactionHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
