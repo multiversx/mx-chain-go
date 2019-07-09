@@ -13,6 +13,11 @@ import (
 type VMCryptoHook struct {
 }
 
+// NewVMCryptoHook creates a new instance of a vm crypto hook
+func NewVMCryptoHook() *VMCryptoHook {
+	return &VMCryptoHook{}
+}
+
 // Sha256 returns a sha 256 hash of the input string. Should return in hex format.
 func (vmch *VMCryptoHook) Sha256(str string) (string, error) {
 	return hex.EncodeToString(sha256.Sha256{}.Compute(str)), nil

@@ -17,16 +17,16 @@ func TestTransaction_SaveLoad(t *testing.T) {
 		SndAddr:   []byte("sender_address"),
 		GasPrice:  uint64(10000),
 		GasLimit:  uint64(1000),
-		Data:      []byte("tx_data"),
+		Data:      "tx_data",
 		Signature: []byte("signature"),
 		Challenge: []byte("challange"),
 	}
 
 	var b bytes.Buffer
-	tx.Save(&b)
+	_ = tx.Save(&b)
 
 	loadTx := transaction.Transaction{}
-	loadTx.Load(&b)
+	_ = loadTx.Load(&b)
 
 	assert.Equal(t, loadTx, tx)
 }
@@ -34,7 +34,7 @@ func TestTransaction_SaveLoad(t *testing.T) {
 func TestTransaction_GetData(t *testing.T) {
 	t.Parallel()
 
-	data := []byte("data")
+	data := "data"
 	tx := &transaction.Transaction{Data: data}
 
 	assert.Equal(t, data, tx.Data)
@@ -70,7 +70,7 @@ func TestTransaction_GetValue(t *testing.T) {
 func TestTransaction_SetData(t *testing.T) {
 	t.Parallel()
 
-	data := []byte("data")
+	data := "data"
 	tx := &transaction.Transaction{}
 	tx.SetData(data)
 

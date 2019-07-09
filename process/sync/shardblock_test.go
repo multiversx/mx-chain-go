@@ -183,7 +183,7 @@ func createFullStore() dataRetriever.StorageService {
 func createBlockProcessor() *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{
 		ProcessBlockCalled: func(blk data.ChainHandler, hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
-			blk.SetCurrentBlockHeader(hdr.(*block.Header))
+			_ = blk.SetCurrentBlockHeader(hdr.(*block.Header))
 			return nil
 		},
 		RevertAccountStateCalled: func() {
@@ -4776,7 +4776,7 @@ func removeBlockBody(
 	hdrNonceHashDataUnit dataRetriever.UnitType,
 	blockUnit dataRetriever.UnitType,
 ) error {
-	fmt.Printf("remove block body with nonce %d with hdr nonce hash data unit type %d and block unit type %d",
+	fmt.Printf("remove block body with nonce %d with hdr nonce hash data unit type %d and block unit type %d\n",
 		nonce,
 		hdrNonceHashDataUnit,
 		blockUnit)

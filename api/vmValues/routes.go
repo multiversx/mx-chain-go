@@ -54,7 +54,14 @@ func vmValueFromAccount(c *gin.Context) ([]byte, int, error) {
 		argsBuff = append(argsBuff, buff)
 	}
 
-	returnedData, err := ef.GetVmValue(gval.ScAddress, gval.FuncName, argsBuff...)
+	adrBytes, err := hex.DecodeString(gval.ScAddress)
+	if err != nil {
+		return nil,
+			http.StatusBadRequest,
+			errors.New(fmt.Sprintf("'%s' is not a valid hex string: %s", gval.ScAddress, err.Error()))
+	}
+
+	returnedData, err := ef.GetVmValue(string(adrBytes), gval.FuncName, argsBuff...)
 	if err != nil {
 		return nil, http.StatusBadRequest, err
 	}
