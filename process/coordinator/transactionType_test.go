@@ -146,7 +146,9 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	tth, err := NewTxTypeHandler(
 		addressConverter,
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
+		&mock.AccountsStub{GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return acntDst, nil
+		}},
 	)
 
 	assert.NotNil(t, tth)

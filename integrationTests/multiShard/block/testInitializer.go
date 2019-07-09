@@ -248,6 +248,8 @@ func createNetNode(
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.UnsignedTransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
 
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(testAddressConverter, shardCoordinator, accntAdapter)
+
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,
 		testHasher,
@@ -256,6 +258,7 @@ func createNetNode(
 		shardCoordinator,
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		txTypeHandler,
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(

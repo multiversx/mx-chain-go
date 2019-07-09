@@ -2,14 +2,22 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 type UnsignedTxHandlerMock struct {
 	CleanProcessedUtxsCalled func()
 	AddProcessedUTxCalled    func(tx data.TransactionHandler)
 	CreateAllUTxsCalled      func() []data.TransactionHandler
-	VerifyCreatedUTxsCalled  func(header data.HeaderHandler, body block.Body) error
+	VerifyCreatedUTxsCalled  func() error
+	AddTxFeeFromBlockCalled  func(tx data.TransactionHandler)
+}
+
+func (ut *UnsignedTxHandlerMock) AddTxFeeFromBlock(tx data.TransactionHandler) {
+	if ut.AddTxFeeFromBlockCalled == nil {
+		return
+	}
+
+	ut.AddTxFeeFromBlockCalled(tx)
 }
 
 func (ut *UnsignedTxHandlerMock) CleanProcessedUTxs() {
@@ -18,7 +26,6 @@ func (ut *UnsignedTxHandlerMock) CleanProcessedUTxs() {
 	}
 
 	ut.CleanProcessedUtxsCalled()
-	return
 }
 
 func (ut *UnsignedTxHandlerMock) AddProcessedUTx(tx data.TransactionHandler) {
@@ -27,7 +34,6 @@ func (ut *UnsignedTxHandlerMock) AddProcessedUTx(tx data.TransactionHandler) {
 	}
 
 	ut.AddProcessedUTxCalled(tx)
-	return
 }
 
 func (ut *UnsignedTxHandlerMock) CreateAllUTxs() []data.TransactionHandler {
@@ -37,9 +43,9 @@ func (ut *UnsignedTxHandlerMock) CreateAllUTxs() []data.TransactionHandler {
 	return ut.CreateAllUTxsCalled()
 }
 
-func (ut *UnsignedTxHandlerMock) VerifyCreatedUTxs(header data.HeaderHandler, body block.Body) error {
+func (ut *UnsignedTxHandlerMock) VerifyCreatedUTxs() error {
 	if ut.VerifyCreatedUTxsCalled == nil {
 		return nil
 	}
-	return ut.VerifyCreatedUTxsCalled(header, body)
+	return ut.VerifyCreatedUTxsCalled()
 }

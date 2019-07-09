@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"math/big"
 	"testing"
 
@@ -86,6 +87,12 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 	)
+
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(
+		addrConv,
+		oneShardCoordinator,
+		accnts)
+
 	txProcessor, _ := transaction.NewTxProcessor(
 		accnts,
 		testHasher,
@@ -94,6 +101,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		oneShardCoordinator,
 		scProcessor,
 		&mock.UnsignedTxHandlerMock{},
+		txTypeHandler,
 	)
 
 	return txProcessor
@@ -126,6 +134,12 @@ func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) proc
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 	)
+
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(
+		addrConv,
+		oneShardCoordinator,
+		accnts)
+
 	txProcessor, _ := transaction.NewTxProcessor(
 		accnts,
 		testHasher,
@@ -134,6 +148,7 @@ func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) proc
 		oneShardCoordinator,
 		scProcessor,
 		&mock.UnsignedTxHandlerMock{},
+		txTypeHandler,
 	)
 
 	return txProcessor

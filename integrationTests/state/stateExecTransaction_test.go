@@ -40,6 +40,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 		shardCoordinator,
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	nonce := uint64(6)
@@ -96,6 +97,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 		shardCoordinator,
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	nonce := uint64(6)
@@ -177,6 +179,7 @@ func testExecTransactionsMoreTxWithRevert(
 		shardCoordinator,
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	txToGenerate := 15000
