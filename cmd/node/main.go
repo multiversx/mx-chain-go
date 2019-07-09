@@ -179,11 +179,10 @@ VERSION:
 	}
 
 	// workingDirectory defines a flag for the path for the working directory.
-	wd, err          = os.Getwd()
 	workingDirectory = cli.StringFlag{
 		Name:  "working-directory",
 		Usage: "The node will store here DB, Logs and Stats",
-		Value: wd,
+		Value: "",
 	}
 
 	rm *statistics.ResourceMonitor
@@ -366,6 +365,14 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	workingDir := ctx.GlobalString(workingDirectory.Name)
 
+	if workingDir == "" {
+		workingDir, err = os.Getwd()
+		if err != nil {
+			log.LogIfError(err)
+			workingDir = ""
+		}
+	}
+
 	uniqueDBFolder := filepath.Join(
 		workingDir,
 		defaultDBPath,
@@ -389,6 +396,9 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	)
 
 	os.MkdirAll(workingDir, os.ModePerm)
+	if err != nil {
+		return err
+	}
 
 	err = ioutil.WriteFile(filepath.Join(workingDir, "session.info"), []byte(output), 0644)
 	log.LogIfError(err)
