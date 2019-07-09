@@ -139,7 +139,7 @@ func (ftxh *feeTxHandler) createLeaderTx(totalGathered *big.Int) *feeTx.FeeTx {
 	currTx := &feeTx.FeeTx{}
 
 	currTx.Value = getPercentageOfValue(totalGathered, leaderPercentage)
-	currTx.RcvAddr = ftxh.address.GetLeaderAddress()
+	currTx.RcvAddr = ftxh.address.OwnAddress()
 
 	return currTx
 }
@@ -148,7 +148,7 @@ func (ftxh *feeTxHandler) createCommunityTx(totalGathered *big.Int) *feeTx.FeeTx
 	currTx := &feeTx.FeeTx{}
 
 	currTx.Value = getPercentageOfValue(totalGathered, communityPercentage)
-	currTx.RcvAddr = ftxh.address.GetElrondCommunityAddress()
+	currTx.RcvAddr = ftxh.address.ElrondCommunityAddress()
 
 	return currTx
 }

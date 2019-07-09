@@ -1,25 +1,25 @@
 package mock
 
 type SpecialAddressHandlerMock struct {
-	GetElrondCommunityAddressCalled func() []byte
-	GetLeaderAddressCalled          func() []byte
-	ShardIdForAddressCalled         func([]byte) uint32
+	ElrondCommunityAddressCalled func() []byte
+	OwnAddressCalled             func() []byte
+	ShardIdForAddressCalled      func([]byte) uint32
 }
 
-func (sh *SpecialAddressHandlerMock) GetElrondCommunityAddress() []byte {
-	if sh.GetElrondCommunityAddressCalled == nil {
+func (sh *SpecialAddressHandlerMock) ElrondCommunityAddress() []byte {
+	if sh.ElrondCommunityAddressCalled == nil {
 		return []byte("elrond")
 	}
 
-	return sh.GetElrondCommunityAddressCalled()
+	return sh.ElrondCommunityAddressCalled()
 }
 
-func (sh *SpecialAddressHandlerMock) GetLeaderAddress() []byte {
-	if sh.GetLeaderAddressCalled == nil {
+func (sh *SpecialAddressHandlerMock) OwnAddress() []byte {
+	if sh.OwnAddressCalled == nil {
 		return []byte("leader")
 	}
 
-	return sh.GetLeaderAddressCalled()
+	return sh.OwnAddressCalled()
 }
 
 func (sh *SpecialAddressHandlerMock) ShardIdForAddress(addr []byte) uint32 {

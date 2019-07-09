@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data/address"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -53,7 +54,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -1265,16 +1265,46 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	intermediateProcessor, err := preprocess.NewIntermediateResultsProcessor(
-		core.Hasher,
-		core.Marshalizer,
-		shardCoordinator,
+	specialAddressHolder, err := address.NewSpecialAddressHolder(
+		[]byte("elrond"),
+		[]byte("own"),
 		state.AddressConverter,
-		dataBlock.SmartContractResultBlock,
+		shardCoordinator)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
+		shardCoordinator,
+		core.Marshalizer,
+		core.Hasher,
+		state.AddressConverter,
+		specialAddressHolder,
 	)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	interimProcContainer, err := interimProcFactory.Create()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	scResults, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	feeTxInterim, err := interimProcContainer.Get(dataBlock.TxFeeBlock)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	feeTxHandler, ok := feeTxInterim.(process.UnsignedTxHandler)
+	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
 	//TODO: change the mock
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		&mock.VMExecutionHandlerStub{},
@@ -1285,7 +1315,8 @@ func newShardBlockProcessorAndTracker(
 		vmAccountsDB,
 		state.AddressConverter,
 		shardCoordinator,
-		intermediateProcessor,
+		scResults,
+		feeTxHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1303,6 +1334,11 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
+	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	transactionProcessor, err := transaction.NewTxProcessor(
 		state.AccountsAdapter,
 		core.Hasher,
@@ -1310,6 +1346,8 @@ func newShardBlockProcessorAndTracker(
 		core.Marshalizer,
 		shardCoordinator,
 		scProcessor,
+		feeTxHandler,
+		txTypeHandler,
 	)
 	if err != nil {
 		return nil, nil, errors.New("could not create transaction processor: " + err.Error())
@@ -1343,21 +1381,6 @@ func newShardBlockProcessorAndTracker(
 	}
 
 	preProcContainer, err := preProcFactory.Create()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
-		shardCoordinator,
-		core.Marshalizer,
-		core.Hasher,
-		state.AddressConverter,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	interimProcContainer, err := interimProcFactory.Create()
 	if err != nil {
 		return nil, nil, err
 	}
