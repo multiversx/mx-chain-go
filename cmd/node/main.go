@@ -373,11 +373,16 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		}
 	}
 
+	var shardId = "metachain"
+	if shardCoordinator.SelfId() != sharding.MetachainShardId {
+		shardId = fmt.Sprintf("%d", shardCoordinator.SelfId())
+	}
+
 	uniqueDBFolder := filepath.Join(
 		workingDir,
 		defaultDBPath,
 		fmt.Sprintf("%s_%d", defaultEpochString, 0),
-		fmt.Sprintf("%s_%d", defaultShardString, shardCoordinator.SelfId()))
+		fmt.Sprintf("%s_%s", defaultShardString, shardId))
 
 	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanup {
@@ -387,20 +392,22 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		}
 	}
 
-	output := fmt.Sprintf("%s:%s\n%s:%v\n%s:%v\n%s:%s\n%s:%s\n",
+	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
 		"PublicKey", factory.GetPkEncoded(pubKey),
-		"ShardId", shardCoordinator.SelfId(),
+		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
 		"AppVersion", "TestVersion",
 		"OsVersion", "TestOs",
 	)
 
-	os.MkdirAll(workingDir, os.ModePerm)
+	logDirectory := filepath.Join(workingDir, defaultLogPath)
+
+	os.MkdirAll(logDirectory, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(workingDir, "session.info"), []byte(output), 0644)
+	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
 	log.LogIfError(err)
 
 	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
