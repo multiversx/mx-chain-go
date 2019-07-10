@@ -131,7 +131,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
 	}
 
-	hdrBuff, _ := marshalizer.Marshal(&hdr)
+	hdrBuff, _ := marshalizer.Marshal(&hdr1)
 	msig, _ := multiSigner.Create(shard0PubKeys, 0)
 	bitmap := []byte{1, 0, 0}
 	_, _ = msig.CreateSignatureShare(hdrBuff, bitmap)

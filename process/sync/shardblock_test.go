@@ -4767,7 +4767,7 @@ func getBlockBody(header data.HeaderHandler) (data.BodyHandler, error) {
 }
 
 func applyNotarisedBlock(nonce uint64, unitType dataRetriever.UnitType) error {
-	fmt.Printf("apply block with nonce %d in unit type %d", nonce, unitType)
+	fmt.Printf("apply block with nonce %d in unit type %d\n", nonce, unitType)
 	return nil
 }
 
@@ -4776,7 +4776,7 @@ func removeBlockBody(
 	hdrNonceHashDataUnit dataRetriever.UnitType,
 	blockUnit dataRetriever.UnitType,
 ) error {
-	fmt.Printf("remove block body with nonce %d with hdr nonce hash data unit type %d and block unit type %d",
+	fmt.Printf("remove block body with nonce %d with hdr nonce hash data unit type %d and block unit type %d\n",
 		nonce,
 		hdrNonceHashDataUnit,
 		blockUnit)
