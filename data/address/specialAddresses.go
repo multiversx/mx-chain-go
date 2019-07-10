@@ -49,7 +49,7 @@ func (sp *specialAddresses) ElrondCommunityAddress() []byte {
 }
 
 // OwnAddress provides own address
-func (sp *specialAddresses) OwnAddress() []byte {
+func (sp *specialAddresses) LeaderAddress() []byte {
 	return sp.ownAddress
 }
 

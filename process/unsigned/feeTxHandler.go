@@ -139,7 +139,7 @@ func (ftxh *feeTxHandler) createLeaderTx(totalGathered *big.Int) *feeTx.FeeTx {
 	currTx := &feeTx.FeeTx{}
 
 	currTx.Value = getPercentageOfValue(totalGathered, leaderPercentage)
-	currTx.RcvAddr = ftxh.address.OwnAddress()
+	currTx.RcvAddr = ftxh.address.LeaderAddress()
 
 	return currTx
 }

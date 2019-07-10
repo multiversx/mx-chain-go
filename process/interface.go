@@ -83,7 +83,7 @@ type UnsignedTxHandler interface {
 // SpecialAddressHandler responds with needed special addresses
 type SpecialAddressHandler interface {
 	ElrondCommunityAddress() []byte
-	OwnAddress() []byte
+	LeaderAddress() []byte
 	ShardIdForAddress([]byte) uint32
 }
 

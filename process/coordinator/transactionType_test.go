@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"crypto/rand"
+	"github.com/ElrondNetwork/elrond-go/data/feeTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -10,6 +11,58 @@ import (
 	"math/big"
 	"testing"
 )
+
+func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
+	t.Parallel()
+
+	tth, err := NewTxTypeHandler(
+		&mock.AddressConverterMock{},
+		nil,
+		&mock.AccountsStub{},
+	)
+
+	assert.Nil(t, tth)
+	assert.Equal(t, process.ErrNilAddressConverter, err)
+}
+
+func TestNewTxTypeHandler_NilShardCoord(t *testing.T) {
+	t.Parallel()
+
+	tth, err := NewTxTypeHandler(
+		&mock.AddressConverterMock{},
+		nil,
+		&mock.AccountsStub{},
+	)
+
+	assert.Nil(t, tth)
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestNewTxTypeHandler_NilAccounts(t *testing.T) {
+	t.Parallel()
+
+	tth, err := NewTxTypeHandler(
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		nil,
+	)
+
+	assert.Nil(t, tth)
+	assert.Equal(t, process.ErrNilAccountsAdapter, err)
+}
+
+func TestNewTxTypeHandler_ValsOk(t *testing.T) {
+	t.Parallel()
+
+	tth, err := NewTxTypeHandler(
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+	)
+
+	assert.NotNil(t, tth)
+	assert.Nil(t, err)
+}
 
 func generateRandomByteSlice(size int) []byte {
 	buff := make([]byte, size)
@@ -187,4 +240,22 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	txType, err := tth.ComputeTransactionType(tx)
 	assert.Nil(t, err)
 	assert.Equal(t, process.MoveBalance, txType)
+}
+
+func TestTxTypeHandler_ComputeTransactionTypeTxFee(t *testing.T) {
+	t.Parallel()
+
+	tth, err := NewTxTypeHandler(
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+	)
+
+	assert.NotNil(t, tth)
+	assert.Nil(t, err)
+
+	tx := &feeTx.FeeTx{}
+	txType, err := tth.ComputeTransactionType(tx)
+	assert.Nil(t, err)
+	assert.Equal(t, process.TxFee, txType)
 }

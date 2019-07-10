@@ -14,7 +14,7 @@ func (sh *SpecialAddressHandlerMock) ElrondCommunityAddress() []byte {
 	return sh.ElrondCommunityAddressCalled()
 }
 
-func (sh *SpecialAddressHandlerMock) OwnAddress() []byte {
+func (sh *SpecialAddressHandlerMock) LeaderAddress() []byte {
 	if sh.OwnAddressCalled == nil {
 		return []byte("leader")
 	}
