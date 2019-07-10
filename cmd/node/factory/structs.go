@@ -1265,6 +1265,7 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
+	// TODO: construct this correctly on the PR
 	specialAddressHolder, err := address.NewSpecialAddressHolder(
 		[]byte("elrond"),
 		[]byte("own"),
