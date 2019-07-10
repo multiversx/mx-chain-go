@@ -1,6 +1,8 @@
 package block
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -9,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"time"
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -48,7 +49,7 @@ func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []
 	return sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
 }
 
-func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error){
+func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
 	shardProcessor, err := NewShardProcessor(
 		&mock.ServiceContainerMock{},
 		tdp,
