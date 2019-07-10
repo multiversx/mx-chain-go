@@ -91,7 +91,6 @@ func (boot *baseBootstrap) loadBlocks(
 	hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
 	var err error
-	var currentNonce uint64
 	var validNonce uint64
 
 	highestNonceInStorer := boot.computeHighestNonce(hdrNonceHashDataUnit)
@@ -103,7 +102,8 @@ func (boot *baseBootstrap) loadBlocks(
 
 	shardId := boot.shardCoordinator.SelfId()
 
-	for currentNonce = highestNonceInStorer; currentNonce > blockFinality; currentNonce-- {
+	currentNonce := highestNonceInStorer
+	for currentNonce > blockFinality {
 		validNonce, finalNotarized, lastNotarized = boot.storageBootstrapper.getNonceWithLastNotarized(currentNonce)
 		if validNonce <= blockFinality {
 			break
@@ -128,11 +128,14 @@ func (boot *baseBootstrap) loadBlocks(
 					boot.blkc.GetCurrentBlockHeader().GetNonce(),
 					boot.blkc.GetCurrentBlockHeader().GetShardID(),
 					err.Error()))
+				currentNonce--
 				continue
 			}
 
 			break
 		}
+
+		currentNonce--
 	}
 
 	defer func() {
