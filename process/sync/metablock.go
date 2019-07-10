@@ -155,6 +155,52 @@ func (boot *MetaBootstrap) removeBlockBody(
 	return nil
 }
 
+func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[uint32]uint64, map[uint32]uint64) {
+	ni := notarizedInfo{}
+	ni.reset()
+	for currentNonce := nonce; currentNonce > 0; currentNonce-- {
+		metaBlock, ok := boot.isMetaBlockValid(currentNonce)
+		if !ok {
+			ni.reset()
+			continue
+		}
+
+		if ni.startNonce == 0 {
+			ni.startNonce = currentNonce
+		}
+
+		if len(metaBlock.ShardInfo) == 0 {
+			continue
+		}
+
+		maxNonce, err := boot.getMaxNotarizedHeadersNoncesInMetaBlock(metaBlock, &ni)
+		if err != nil {
+			log.Info(err.Error())
+			ni.reset()
+			continue
+		}
+
+		if !boot.areNotarizedShardHeadersFound(&ni, maxNonce, currentNonce) {
+			continue
+		}
+
+		break
+	}
+
+	log.Info(fmt.Sprintf("bootstrap from meta block with nonce %d\n", ni.startNonce))
+
+	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
+		if ni.nonceWithLastNotarized[i]-ni.nonceWithFinalNotarized[i] > 1 {
+			ni.finalNotarized[i] = ni.lastNotarized[i]
+		}
+
+		log.Info(fmt.Sprintf("last notarized block from shard %d is %d and final notarized block is %d\n",
+			i, ni.lastNotarized[i], ni.finalNotarized[i]))
+	}
+
+	return ni.startNonce, ni.finalNotarized, ni.lastNotarized
+}
+
 func (boot *MetaBootstrap) isMetaBlockValid(nonce uint64) (*block.MetaBlock, bool) {
 	headerHandler, _, err := boot.getHeader(sharding.MetachainShardId, nonce)
 	if err != nil {
@@ -225,52 +271,6 @@ func (boot *MetaBootstrap) areNotarizedShardHeadersFound(
 	}
 
 	return foundAllNotarizedShardHeaders
-}
-
-func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[uint32]uint64, map[uint32]uint64) {
-	ni := notarizedInfo{}
-	ni.reset()
-	for currentNonce := nonce; currentNonce > 0; currentNonce-- {
-		metaBlock, ok := boot.isMetaBlockValid(currentNonce)
-		if !ok {
-			ni.reset()
-			continue
-		}
-
-		if ni.startNonce == 0 {
-			ni.startNonce = currentNonce
-		}
-
-		if len(metaBlock.ShardInfo) == 0 {
-			continue
-		}
-
-		maxNonce, err := boot.getMaxNotarizedHeadersNoncesInMetaBlock(metaBlock, &ni)
-		if err != nil {
-			log.Info(err.Error())
-			ni.reset()
-			continue
-		}
-
-		if !boot.areNotarizedShardHeadersFound(&ni, maxNonce, currentNonce) {
-			continue
-		}
-
-		break
-	}
-
-	log.Info(fmt.Sprintf("bootstrap from meta block with nonce %d\n", ni.startNonce))
-
-	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		if ni.nonceWithLastNotarized[i]-ni.nonceWithFinalNotarized[i] > 1 {
-			ni.finalNotarized[i] = ni.lastNotarized[i]
-		}
-
-		log.Info(fmt.Sprintf("last notarized block from shard %d is %d and final notarized block is %d\n",
-			i, ni.lastNotarized[i], ni.finalNotarized[i]))
-	}
-
-	return ni.startNonce, ni.finalNotarized, ni.lastNotarized
 }
 
 func (boot *MetaBootstrap) applyNotarizedBlocks(
