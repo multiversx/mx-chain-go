@@ -159,6 +159,7 @@ type ServersConfig struct {
 	Prometheus    PrometheusConfig
 }
 
+// PrometheusConfig will hold configuration for prometheus, such as the join URL
 type PrometheusConfig struct {
 	PrometheusJoinURL string
 }

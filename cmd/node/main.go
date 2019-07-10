@@ -158,7 +158,7 @@ VERSION:
 	// flag for monitoring using Prometheus
 	prometheus = cli.BoolFlag{
 		Name:  "prometheus",
-		Usage: "Will make the node available for prometheus&grafana monitoring",
+		Usage: "Will make the node available for prometheus and grafana monitoring",
 	}
 
 	// initialBalancesSkPemFile defines a flag for the path to the ...

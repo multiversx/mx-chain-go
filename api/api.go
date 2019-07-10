@@ -2,10 +2,11 @@ package api
 
 import (
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -42,22 +43,28 @@ func Start(elrondFacade MainApiHandler) error {
 	registerRoutes(ws, elrondFacade, elrondFacade.PrometheusMonitoring())
 
 	if elrondFacade.PrometheusMonitoring() {
-		joinMonitoringSystem(elrondFacade.RestApiPort(), elrondFacade.PrometheusJoinURL())
+		err = joinMonitoringSystem(elrondFacade.RestApiPort(), elrondFacade.PrometheusJoinURL())
+		if err != nil {
+			return err
+		}
 	}
 
 	return ws.Run(fmt.Sprintf(":%s", elrondFacade.RestApiPort()))
 }
 
-func joinMonitoringSystem(port string, prometheusJoinURL string) {
+func joinMonitoringSystem(port string, prometheusJoinURL string) error {
 	req, err := http.NewRequest("POST", prometheusJoinURL, strings.NewReader(port))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
-	} else {
-		defer resp.Body.Close()
+		return err
 	}
+	err = resp.Body.Close()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler, registerPrometheus bool) {
