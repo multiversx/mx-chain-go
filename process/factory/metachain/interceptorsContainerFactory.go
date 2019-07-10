@@ -23,7 +23,6 @@ type interceptorsContainerFactory struct {
 	nodesCoordinator    sharding.NodesCoordinator
 	messenger           process.TopicHandler
 	multiSigner         crypto.MultiSigner
-	chronologyValidator process.ChronologyValidator
 	tpsBenchmark        *statistics.TpsBenchmark
 }
 
@@ -37,7 +36,6 @@ func NewInterceptorsContainerFactory(
 	hasher hashing.Hasher,
 	multiSigner crypto.MultiSigner,
 	dataPool dataRetriever.MetaPoolsHolder,
-	chronologyValidator process.ChronologyValidator,
 ) (*interceptorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -64,9 +62,6 @@ func NewInterceptorsContainerFactory(
 	if dataPool == nil {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if chronologyValidator == nil {
-		return nil, process.ErrNilChronologyValidator
-	}
 
 	return &interceptorsContainerFactory{
 		shardCoordinator:    shardCoordinator,
@@ -77,7 +72,6 @@ func NewInterceptorsContainerFactory(
 		hasher:              hasher,
 		multiSigner:         multiSigner,
 		dataPool:            dataPool,
-		chronologyValidator: chronologyValidator,
 	}, nil
 }
 
@@ -134,7 +128,6 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
-		icf.chronologyValidator,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -182,7 +175,6 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identif
 		icf.hasher,
 		icf.shardCoordinator,
 		icf.nodesCoordinator,
-		icf.chronologyValidator,
 	)
 	if err != nil {
 		return nil, err

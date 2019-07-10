@@ -64,7 +64,6 @@ func TestNewHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -86,7 +85,6 @@ func TestNewHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
@@ -108,7 +106,6 @@ func TestNewHeaderInterceptor_NilHeadersNoncesShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Equal(t, process.ErrNilHeadersNoncesDataPool, err)
@@ -131,7 +128,6 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Nil(t, err)
@@ -156,7 +152,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Equal(t, process.ErrNilMessage, hi.ProcessReceivedMessage(nil))
@@ -173,11 +168,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	headers := &mock.CacherStub{}
 
 	multisigner := mock.NewMultiSigner()
-	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
-			return nil
-		},
-	}
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
 		if u == testedNonce {
@@ -204,10 +194,9 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		nodesCoordinator,
-		chronologyValidator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
@@ -255,11 +244,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 	headers := &mock.CacherStub{}
 
 	multisigner := mock.NewMultiSigner()
-	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
-			return nil
-		},
-	}
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
 		if u == testedNonce {
@@ -287,10 +271,9 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		nodesCoordinator,
-		chronologyValidator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
@@ -333,11 +316,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 	headers := &mock.CacherStub{}
 
 	multisigner := mock.NewMultiSigner()
-	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
-			return nil
-		},
-	}
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
 		if u == testedNonce {
@@ -372,10 +350,9 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 		mock.HasherMock{},
 		shardCoordinator,
 		nodesCoordinator,
-		chronologyValidator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)

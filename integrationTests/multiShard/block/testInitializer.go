@@ -231,7 +231,6 @@ func createNetNode(
 		testMultiSig,
 		dPool,
 		testAddressConverter,
-		&mock.ChronologyValidatorMock{},
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -703,7 +702,6 @@ func createMetaNetNode(
 		testHasher,
 		testMultiSig,
 		dPool,
-		&mock.ChronologyValidatorMock{},
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {

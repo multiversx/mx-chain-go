@@ -13,7 +13,6 @@ import (
 type InterceptedHeader struct {
 	*block.Header
 	multiSigVerifier    crypto.MultiSigVerifier
-	chronologyValidator process.ChronologyValidator
 	hash                []byte
 	nodesCoordinator    sharding.NodesCoordinator
 	marshalizer         marshal.Marshalizer
@@ -22,7 +21,6 @@ type InterceptedHeader struct {
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
 func NewInterceptedHeader(
 	multiSigVerifier crypto.MultiSigVerifier,
-	chronologyValidator process.ChronologyValidator,
 	nodesCoordinator sharding.NodesCoordinator,
 	marshalizer marshal.Marshalizer,
 ) *InterceptedHeader {
@@ -30,7 +28,6 @@ func NewInterceptedHeader(
 	return &InterceptedHeader{
 		Header:              &block.Header{},
 		multiSigVerifier:    multiSigVerifier,
-		chronologyValidator: chronologyValidator,
 		nodesCoordinator:    nodesCoordinator,
 		marshalizer:         marshalizer,
 	}
@@ -68,7 +65,7 @@ func (inHdr *InterceptedHeader) IntegrityAndValidity(coordinator sharding.Coordi
 		return err
 	}
 
-	return inHdr.validityCheck()
+	return nil
 }
 
 // Integrity checks the integrity of the state block wrapper
@@ -111,19 +108,6 @@ func (inHdr *InterceptedHeader) Integrity(coordinator sharding.Coordinator) erro
 	default:
 		return process.ErrInvalidBlockBodyType
 	}
-}
-
-func (inHdr *InterceptedHeader) validityCheck() error {
-	if inHdr.chronologyValidator == nil {
-		return process.ErrNilChronologyValidator
-	}
-
-	return inHdr.chronologyValidator.ValidateReceivedBlock(
-		inHdr.ShardId,
-		inHdr.Epoch,
-		inHdr.Nonce,
-		inHdr.Round,
-	)
 }
 
 // VerifySig verifies a signature

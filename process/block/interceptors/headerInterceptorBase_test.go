@@ -29,7 +29,6 @@ func TestNewHeaderInterceptorBase_NilMarshalizerShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -46,7 +45,6 @@ func TestNewHeaderInterceptorBase_NilStorerShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Equal(t, process.ErrNilHeadersStorage, err)
@@ -64,7 +62,6 @@ func TestNewHeaderInterceptorBase_NilMultiSignerShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Nil(t, hi)
@@ -82,7 +79,6 @@ func TestNewHeaderInterceptorBase_NilHasherShouldErr(t *testing.T) {
 		nil,
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -100,7 +96,6 @@ func TestNewHeaderInterceptorBase_NilShardCoordinatorShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		nil,
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -118,7 +113,6 @@ func TestNewHeaderInterceptorBase_NilNodesCoordinatorShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		nil,
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Equal(t, process.ErrNilNodesCoordinator, err)
@@ -136,7 +130,6 @@ func TestNewHeaderInterceptorBase_OkValsShouldWork(t *testing.T) {
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Nil(t, err)
@@ -156,7 +149,6 @@ func TestHeaderInterceptorBase_ParseReceivedMessageNilMessageShouldErr(t *testin
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	hdr, err := hib.ParseReceivedMessage(nil)
@@ -176,7 +168,6 @@ func TestHeaderInterceptorBase_ParseReceivedMessageNilDataToProcessShouldErr(t *
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	msg := &mock.P2PMessageMock{}
@@ -203,7 +194,6 @@ func TestHeaderInterceptorBase_ParseReceivedMessageMarshalizerErrorsAtUnmarshali
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -221,11 +211,6 @@ func TestHeaderInterceptorBase_ParseReceivedMessageSanityCheckFailedShouldErr(t 
 	storer := &mock.StorerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	multisigner := mock.NewMultiSigner()
-	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
-			return nil
-		},
-	}
 
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	hib, _ := interceptors.NewHeaderInterceptorBase(
@@ -235,10 +220,9 @@ func TestHeaderInterceptorBase_ParseReceivedMessageSanityCheckFailedShouldErr(t 
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		nodesCoordinator,
-		chronologyValidator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
@@ -281,11 +265,6 @@ func TestHeaderInterceptorBase_ParseReceivedMessageValsOkShouldWork(t *testing.T
 	marshalizer := &mock.MarshalizerMock{}
 	testedNonce := uint64(67)
 	multisigner := mock.NewMultiSigner()
-	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
-			return nil
-		},
-	}
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) error {
 		return errors.New("Key not found")
@@ -300,10 +279,9 @@ func TestHeaderInterceptorBase_ParseReceivedMessageValsOkShouldWork(t *testing.T
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
 		nodesCoordinator,
-		chronologyValidator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)

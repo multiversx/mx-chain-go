@@ -19,7 +19,6 @@ type HeaderInterceptorBase struct {
 	hasher              hashing.Hasher
 	shardCoordinator    sharding.Coordinator
 	nodesCoordinator    sharding.NodesCoordinator
-	chronologyValidator process.ChronologyValidator
 }
 
 // NewHeaderInterceptorBase creates a new HeaderIncterceptorBase instance
@@ -30,7 +29,6 @@ func NewHeaderInterceptorBase(
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	chronologyValidator process.ChronologyValidator,
 ) (*HeaderInterceptorBase, error) {
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
@@ -50,9 +48,6 @@ func NewHeaderInterceptorBase(
 	if nodesCoordinator == nil {
 		return nil, process.ErrNilNodesCoordinator
 	}
-	if chronologyValidator == nil {
-		return nil, process.ErrNilChronologyValidator
-	}
 
 	hdrIntercept := &HeaderInterceptorBase{
 		marshalizer:         marshalizer,
@@ -61,7 +56,6 @@ func NewHeaderInterceptorBase(
 		hasher:              hasher,
 		shardCoordinator:    shardCoordinator,
 		nodesCoordinator:    nodesCoordinator,
-		chronologyValidator: chronologyValidator,
 	}
 
 	return hdrIntercept, nil
@@ -79,7 +73,6 @@ func (hib *HeaderInterceptorBase) ParseReceivedMessage(message p2p.MessageP2P) (
 
 	hdrIntercepted := block.NewInterceptedHeader(
 		hib.multiSigVerifier,
-		hib.chronologyValidator,
 		hib.nodesCoordinator,
 		hib.marshalizer,
 	)

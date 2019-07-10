@@ -12,20 +12,17 @@ import (
 type InterceptedMetaHeader struct {
 	*block.MetaBlock
 	multiSigVerifier    crypto.MultiSigVerifier
-	chronologyValidator process.ChronologyValidator
 	hash                []byte
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
 func NewInterceptedMetaHeader(
 	multiSigVerifier crypto.MultiSigVerifier,
-	chronologyValidator process.ChronologyValidator,
 ) *InterceptedMetaHeader {
 
 	return &InterceptedMetaHeader{
 		MetaBlock:           &block.MetaBlock{},
 		multiSigVerifier:    multiSigVerifier,
-		chronologyValidator: chronologyValidator,
 	}
 }
 
@@ -51,7 +48,7 @@ func (imh *InterceptedMetaHeader) IntegrityAndValidity(coordinator sharding.Coor
 		return err
 	}
 
-	return imh.validityCheck()
+	return nil
 }
 
 // Integrity checks the integrity of the state block wrapper
@@ -96,19 +93,6 @@ func (imh *InterceptedMetaHeader) Integrity(coordinator sharding.Coordinator) er
 	}
 
 	return nil
-}
-
-func (imh *InterceptedMetaHeader) validityCheck() error {
-	if imh.chronologyValidator == nil {
-		return process.ErrNilChronologyValidator
-	}
-
-	return imh.chronologyValidator.ValidateReceivedBlock(
-		sharding.MetachainShardId,
-		imh.Epoch,
-		imh.Nonce,
-		imh.Round,
-	)
 }
 
 // VerifySig verifies a signature

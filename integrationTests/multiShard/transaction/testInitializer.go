@@ -250,7 +250,6 @@ func createNetNode(
 		multiSigner,
 		dPool,
 		addrConverter,
-		&mock.ChronologyValidatorMock{},
 	)
 	interceptorsContainer, _ := interceptorContainerFactory.Create()
 

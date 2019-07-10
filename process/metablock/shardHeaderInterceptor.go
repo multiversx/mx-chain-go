@@ -37,7 +37,6 @@ func NewShardHeaderInterceptor(
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	chronologyValidator process.ChronologyValidator,
 ) (*ShardHeaderInterceptor, error) {
 
 	if headers == nil {
@@ -54,7 +53,6 @@ func NewShardHeaderInterceptor(
 		hasher,
 		shardCoordinator,
 		nodesCoordinator,
-		chronologyValidator,
 	)
 	if err != nil {
 		return nil, err

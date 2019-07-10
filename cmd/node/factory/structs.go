@@ -196,7 +196,11 @@ func NewStateComponentsFactoryArgs(
 
 // StateComponentsFactory creates the state components
 func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
-	addressConverter, err := addressConverters.NewPlainAddressConverter(args.config.Address.Length, args.config.Address.Prefix)
+	addressConverter, err := addressConverters.NewPlainAddressConverter(
+		args.config.Address.Length,
+		args.config.Address.Prefix,
+	)
+
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
 	}
@@ -231,7 +235,12 @@ type dataComponentsFactoryArgs struct {
 }
 
 // NewDataComponentsFactoryArgs initializes the arguments necessary for creating the data components
-func NewDataComponentsFactoryArgs(config *config.Config, shardCoordinator sharding.Coordinator, core *Core, uniqueID string) *dataComponentsFactoryArgs {
+func NewDataComponentsFactoryArgs(
+	config *config.Config,
+	shardCoordinator sharding.Coordinator,
+	core *Core,
+	uniqueID string,
+) *dataComponentsFactoryArgs {
 	return &dataComponentsFactoryArgs{
 		config:           config,
 		shardCoordinator: shardCoordinator,
@@ -476,8 +485,18 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	blockProcessor, blockTracker, err := newBlockProcessorAndTracker(resolversFinder, args.shardCoordinator,
-		args.data, args.core, args.state, forkDetector, shardsGenesisBlocks, args.nodesConfig, args.coreServiceContainer)
+	blockProcessor, blockTracker, err := newBlockProcessorAndTracker(
+		resolversFinder,
+		args.shardCoordinator,
+		args.data,
+		args.core,
+		args.state,
+		forkDetector,
+		shardsGenesisBlocks,
+		args.nodesConfig,
+		args.coreServiceContainer,
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -1084,7 +1103,6 @@ func newShardInterceptorAndResolverContainerFactory(
 		crypto.MultiSigner,
 		data.Datapool,
 		state.AddressConverter,
-		&nullChronologyValidator{},
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1129,7 +1147,6 @@ func newMetaInterceptorAndResolverContainerFactory(
 		core.Hasher,
 		crypto.MultiSigner,
 		data.MetaDatapool,
-		&nullChronologyValidator{},
 	)
 	if err != nil {
 		return nil, nil, err
