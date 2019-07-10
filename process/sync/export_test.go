@@ -212,11 +212,11 @@ func (boot *MetaBootstrap) SyncFromStorer(
 }
 
 func (boot *ShardBootstrap) SetStorageBootstrapper(sb storageBootstrapper) {
-	boot.storageBoostrapper = sb
+	boot.storageBootstrapper = sb
 }
 
 func (boot *MetaBootstrap) SetStorageBootstrapper(sb storageBootstrapper) {
-	boot.storageBoostrapper = sb
+	boot.storageBootstrapper = sb
 }
 
 type StorageBootstrapperMock struct {

@@ -3932,15 +3932,15 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 			return &mock.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, shardBlockHash3) {
-						buff, _ := marshalizer.Marshal(&block.Header{MetaBlockHashes: metaBlockHashes1})
+						buff, _ := marshalizer.Marshal(&block.Header{Nonce: 3, MetaBlockHashes: metaBlockHashes1})
 						return buff, nil
 					}
 					if bytes.Equal(key, shardBlockHash4) {
-						buff, _ := marshalizer.Marshal(&block.Header{MetaBlockHashes: metaBlockHashes2})
+						buff, _ := marshalizer.Marshal(&block.Header{Nonce: 4, MetaBlockHashes: metaBlockHashes2})
 						return buff, nil
 					}
 					if bytes.Equal(key, shardBlockHash5) {
-						buff, _ := marshalizer.Marshal(&block.Header{MetaBlockHashes: metaBlockHashes3})
+						buff, _ := marshalizer.Marshal(&block.Header{Nonce: 5, MetaBlockHashes: metaBlockHashes3})
 						return buff, nil
 					}
 

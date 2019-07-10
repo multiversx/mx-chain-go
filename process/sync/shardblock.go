@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// ShardBootstrap implements the boostrsap mechanism
+// ShardBootstrap implements the bootstrap mechanism
 type ShardBootstrap struct {
 	*baseBootstrap
 
@@ -100,7 +100,7 @@ func NewShardBootstrap(
 		miniBlocks:    poolsHolder.MiniBlocks(),
 	}
 
-	base.storageBoostrapper = &boot
+	base.storageBootstrapper = &boot
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)
@@ -263,13 +263,64 @@ func (boot *ShardBootstrap) isHeaderValid(nonce uint64) (*block.Header, bool) {
 	return header, true
 }
 
-func (boot *ShardBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[uint32]uint64, map[uint32]uint64) {
-	var (
-		err       error
-		metaBlock *block.MetaBlock
-		ni        notarizedInfo
-	)
+func (boot *ShardBootstrap) getMinNotarizedMetaBlockNonceInHeader(
+	header *block.Header,
+	ni *notarizedInfo,
+) (uint64, error) {
 
+	minNonce := uint64(math.MaxUint64)
+	shardId := sharding.MetachainShardId
+	for _, metaBlockHash := range header.MetaBlockHashes {
+		metaBlock, err := process.GetMetaHeaderFromStorage(metaBlockHash, boot.marshalizer, boot.store)
+		if err != nil {
+			return minNonce, err
+		}
+
+		if ni.nonceWithLastNotarized[shardId] == 0 && metaBlock.Nonce == ni.lastNotarized[shardId] {
+			ni.nonceWithLastNotarized[shardId] = header.Nonce
+		}
+
+		if ni.nonceWithFinalNotarized[shardId] == 0 && metaBlock.Nonce == ni.finalNotarized[shardId] {
+			ni.nonceWithFinalNotarized[shardId] = header.Nonce
+		}
+
+		if metaBlock.Nonce < minNonce {
+			minNonce = metaBlock.Nonce
+		}
+	}
+
+	return minNonce, nil
+}
+
+func (boot *ShardBootstrap) areNotarizedMetaBlocksFound(ni *notarizedInfo, notarizedNonce uint64) bool {
+	shardId := sharding.MetachainShardId
+	if notarizedNonce == 0 {
+		return false
+	}
+
+	if ni.lastNotarized[shardId] == 0 {
+		ni.lastNotarized[shardId] = notarizedNonce - 1
+		return false
+	}
+
+	if ni.nonceWithLastNotarized[shardId] == 0 {
+		return false
+	}
+
+	if ni.finalNotarized[shardId] == 0 {
+		ni.finalNotarized[shardId] = notarizedNonce - 1
+		return false
+	}
+
+	if ni.nonceWithFinalNotarized[shardId] == 0 {
+		return false
+	}
+
+	return true
+}
+
+func (boot *ShardBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[uint32]uint64, map[uint32]uint64) {
+	ni := notarizedInfo{}
 	ni.reset()
 	shardId := sharding.MetachainShardId
 	for currentNonce := nonce; currentNonce > 0; currentNonce-- {
@@ -287,47 +338,14 @@ func (boot *ShardBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map
 			continue
 		}
 
-		minNonce := uint64(math.MaxUint64)
-		for _, metaBlockHash := range header.MetaBlockHashes {
-			metaBlock, err = process.GetMetaHeaderFromStorage(metaBlockHash, boot.marshalizer, boot.store)
-			if err != nil {
-				log.Info(err.Error())
-				break
-			}
-
-			if ni.nonceWithLastNotarized[shardId] == 0 && metaBlock.Nonce == ni.lastNotarized[shardId] {
-				ni.nonceWithLastNotarized[shardId] = currentNonce
-			}
-
-			if ni.nonceWithFinalNotarized[shardId] == 0 && metaBlock.Nonce == ni.finalNotarized[shardId] {
-				ni.nonceWithFinalNotarized[shardId] = currentNonce
-			}
-
-			if metaBlock.Nonce < minNonce {
-				minNonce = metaBlock.Nonce
-			}
-		}
-
+		minNonce, err := boot.getMinNotarizedMetaBlockNonceInHeader(header, &ni)
 		if err != nil {
+			log.Info(err.Error())
 			ni.reset()
 			continue
 		}
 
-		if ni.lastNotarized[shardId] == 0 {
-			ni.lastNotarized[shardId] = minNonce - 1
-			continue
-		}
-
-		if ni.nonceWithLastNotarized[shardId] == 0 {
-			continue
-		}
-
-		if ni.finalNotarized[shardId] == 0 {
-			ni.finalNotarized[shardId] = minNonce - 1
-			continue
-		}
-
-		if ni.nonceWithFinalNotarized[shardId] == 0 {
+		if !boot.areNotarizedMetaBlocksFound(&ni, minNonce) {
 			continue
 		}
 
