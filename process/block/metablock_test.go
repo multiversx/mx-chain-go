@@ -263,18 +263,8 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, err := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, err := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	assert.Nil(t, err)
 	assert.NotNil(t, mp)
 }
@@ -285,19 +275,10 @@ func TestMetaProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	blk := &block.MetaBlockBody{}
+
 	err := mp.ProcessBlock(nil, &block.MetaBlock{}, blk, haveTime)
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
@@ -306,19 +287,10 @@ func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	blk := &block.MetaBlockBody{}
+
 	err := mp.ProcessBlock(&blockchain.MetaChain{}, nil, blk, haveTime)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
@@ -327,18 +299,9 @@ func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
+
 	err := mp.ProcessBlock(&blockchain.MetaChain{}, &block.MetaBlock{}, nil, haveTime)
 	assert.Equal(t, process.ErrNilBlockBody, err)
 }
@@ -347,19 +310,10 @@ func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	blk := &block.MetaBlockBody{}
+
 	err := mp.ProcessBlock(&blockchain.MetaChain{}, &block.MetaBlock{}, blk, nil)
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
 }
@@ -405,18 +359,8 @@ func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 
 	blkc := &blockchain.MetaChain{}
 	hdr := &block.MetaBlock{
@@ -431,18 +375,8 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
 			Nonce: 1,
@@ -460,18 +394,8 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
 			Nonce: 1,
