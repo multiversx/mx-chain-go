@@ -155,50 +155,44 @@ func (boot *MetaBootstrap) removeBlockBody(
 	return nil
 }
 
+func (boot *MetaBootstrap) isMetaBlockValid(nonce uint64) (*block.MetaBlock, bool) {
+	headerHandler, _, err := boot.getHeader(sharding.MetachainShardId, nonce)
+	if err != nil {
+		log.Info(err.Error())
+		return nil, false
+	}
+
+	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		log.Info(process.ErrWrongTypeAssertion.Error())
+		return nil, false
+	}
+
+	if metaBlock.Round > boot.bootstrapRoundIndex {
+		log.Info(ErrHigherRoundInBlock.Error())
+		return nil, false
+	}
+
+	return metaBlock, true
+}
+
 func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[uint32]uint64, map[uint32]uint64) {
 	var (
-		err           error
-		headerHandler data.HeaderHandler
-		header        *block.Header
+		err    error
+		header *block.Header
+		ni     notarizedInfo
 	)
 
-	lastNotarized := make(map[uint32]uint64, 0)
-	finalNotarized := make(map[uint32]uint64, 0)
-	nonceWithLastNotarized := make(map[uint32]uint64, 0)
-	nonceWithFinalNotarized := make(map[uint32]uint64, 0)
-	startNonce := uint64(0)
-	resetNotarized := false
-
+	ni.reset()
 	for currentNonce := nonce; currentNonce > 0; currentNonce-- {
-		if resetNotarized {
-			lastNotarized = make(map[uint32]uint64, 0)
-			finalNotarized = make(map[uint32]uint64, 0)
-			nonceWithLastNotarized = make(map[uint32]uint64, 0)
-			nonceWithFinalNotarized = make(map[uint32]uint64, 0)
-			startNonce = uint64(0)
-			resetNotarized = false
-		}
-
-		headerHandler, _, err = boot.getHeader(sharding.MetachainShardId, currentNonce)
-		if err != nil {
-			log.Info(err.Error())
-			resetNotarized = true
-			continue
-		}
-
-		metaBlock, ok := headerHandler.(*block.MetaBlock)
+		metaBlock, ok := boot.isMetaBlockValid(currentNonce)
 		if !ok {
-			log.Info(process.ErrWrongTypeAssertion.Error())
-			resetNotarized = true
+			ni.reset()
 			continue
 		}
 
-		if metaBlock.Round > boot.bootstrapRoundIndex {
-			continue
-		}
-
-		if startNonce == 0 {
-			startNonce = currentNonce
+		if ni.startNonce == 0 {
+			ni.startNonce = currentNonce
 		}
 
 		if len(metaBlock.ShardInfo) == 0 {
@@ -219,27 +213,27 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 		}
 
 		if err != nil {
-			resetNotarized = true
+			ni.reset()
 			continue
 		}
 
 		for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-			if lastNotarized[i] == 0 {
-				lastNotarized[i] = maxNonce[i]
-				nonceWithLastNotarized[i] = currentNonce
+			if ni.lastNotarized[i] == 0 {
+				ni.lastNotarized[i] = maxNonce[i]
+				ni.nonceWithLastNotarized[i] = currentNonce
 				continue
 			}
 
-			if finalNotarized[i] == 0 {
-				finalNotarized[i] = maxNonce[i]
-				nonceWithFinalNotarized[i] = currentNonce
+			if ni.finalNotarized[i] == 0 {
+				ni.finalNotarized[i] = maxNonce[i]
+				ni.nonceWithFinalNotarized[i] = currentNonce
 				continue
 			}
 		}
 
 		foundAllNotarizedShardHeaders := true
 		for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-			if lastNotarized[i] == 0 || finalNotarized[i] == 0 {
+			if ni.lastNotarized[i] == 0 || ni.finalNotarized[i] == 0 {
 				foundAllNotarizedShardHeaders = false
 				break
 			}
@@ -250,18 +244,18 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 		}
 	}
 
-	log.Info(fmt.Sprintf("boostrap from meta block with nonce %d\n", startNonce))
+	log.Info(fmt.Sprintf("boostrap from meta block with nonce %d\n", ni.startNonce))
 
 	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		if nonceWithLastNotarized[i]-nonceWithFinalNotarized[i] > 1 {
-			finalNotarized[i] = lastNotarized[i]
+		if ni.nonceWithLastNotarized[i]-ni.nonceWithFinalNotarized[i] > 1 {
+			ni.finalNotarized[i] = ni.lastNotarized[i]
 		}
 
 		log.Info(fmt.Sprintf("last notarized block from shard %d is %d and final notarized block is %d\n",
-			i, lastNotarized[i], finalNotarized[i]))
+			i, ni.lastNotarized[i], ni.finalNotarized[i]))
 	}
 
-	return startNonce, finalNotarized, lastNotarized
+	return ni.startNonce, ni.finalNotarized, ni.lastNotarized
 }
 
 func (boot *MetaBootstrap) applyNotarizedBlocks(
@@ -379,10 +373,18 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 	defer func() {
 		if err != nil {
-			boot.removeHeaderFromPools(hdr)
-			err = boot.forkChoice()
-			if err != nil {
-				log.Info(err.Error())
+			if err == process.ErrTimeIsOut {
+				boot.requestsWithTimeout++
+			}
+
+			isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+			if isForkDetected {
+				boot.requestsWithTimeout = 0
+				boot.removeHeaderFromPools(hdr)
+				err = boot.forkChoice()
+				if err != nil {
+					log.Info(err.Error())
+				}
 			}
 		}
 	}()
@@ -406,6 +408,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
 
 	log.Info(fmt.Sprintf("block with nonce %d has been synced successfully\n", hdr.Nonce))
+	boot.requestsWithTimeout = 0
 	return nil
 }
 

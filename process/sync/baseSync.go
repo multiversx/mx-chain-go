@@ -29,6 +29,22 @@ const sleepTime = time.Duration(5 * time.Millisecond)
 // block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
 const maxRoundsToWait = 5
 
+type notarizedInfo struct {
+	lastNotarized           map[uint32]uint64
+	finalNotarized          map[uint32]uint64
+	nonceWithLastNotarized  map[uint32]uint64
+	nonceWithFinalNotarized map[uint32]uint64
+	startNonce              uint64
+}
+
+func (ni *notarizedInfo) reset() {
+	ni.lastNotarized = make(map[uint32]uint64, 0)
+	ni.finalNotarized = make(map[uint32]uint64, 0)
+	ni.nonceWithLastNotarized = make(map[uint32]uint64, 0)
+	ni.nonceWithFinalNotarized = make(map[uint32]uint64, 0)
+	ni.startNonce = uint64(0)
+}
+
 type baseBootstrap struct {
 	headers       storage.Cacher
 	headersNonces dataRetriever.Uint64Cacher
@@ -66,6 +82,7 @@ type baseBootstrap struct {
 	mutSyncStateListeners sync.RWMutex
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	bootstrapRoundIndex   uint32
+	requestsWithTimeout   uint32
 }
 
 func (boot *baseBootstrap) loadBlocks(
