@@ -163,39 +163,51 @@ func (txs *transactions) RemoveTxBlockFromPools(body block.Body, miniBlockPool s
 // RestoreTxBlockIntoPools restores the transactions and miniblocks to associated pools
 func (txs *transactions) RestoreTxBlockIntoPools(
 	body block.Body,
-	miniBlockHashes map[int][]byte,
 	miniBlockPool storage.Cacher,
-) (int, error) {
+) (int, map[int][]byte, error) {
+	miniBlockHashes := make(map[int][]byte, 0)
+	txsRestored := 0
+
 	if miniBlockPool == nil {
-		return 0, process.ErrNilMiniBlockPool
+		return txsRestored, miniBlockHashes, process.ErrNilMiniBlockPool
 	}
 
-	txsRestored := 0
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 		if err != nil {
-			return txsRestored, err
+			return txsRestored, miniBlockHashes, err
 		}
 
 		for txHash, txBuff := range txsBuff {
 			tx := transaction.Transaction{}
 			err = txs.marshalizer.Unmarshal(&tx, txBuff)
 			if err != nil {
-				return txsRestored, err
+				return txsRestored, miniBlockHashes, err
 			}
 
 			txs.txPool.AddData([]byte(txHash), &tx, strCache)
+
+			err = txs.storage.GetStorer(dataRetriever.TransactionUnit).Remove([]byte(txHash))
+			if err != nil {
+				return txsRestored, miniBlockHashes, err
+			}
 		}
 
 		buff, err := txs.marshalizer.Marshal(miniBlock)
 		if err != nil {
-			return txsRestored, err
+			return txsRestored, miniBlockHashes, err
 		}
 
 		miniBlockHash := txs.hasher.Compute(string(buff))
 		miniBlockPool.Put(miniBlockHash, miniBlock)
+
+		err = txs.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
+		if err != nil {
+			return txsRestored, miniBlockHashes, err
+		}
+
 		if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
 			miniBlockHashes[i] = miniBlockHash
 		}
@@ -203,7 +215,7 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 		txsRestored += len(miniBlock.TxHashes)
 	}
 
-	return txsRestored, nil
+	return txsRestored, miniBlockHashes, nil
 }
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
@@ -492,16 +504,17 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	orderedTxes, orderedTxHashes, err := txs.getTxs(txStore)
 	timeAfter := time.Now()
 
+	if err != nil {
+		log.Info(err.Error())
+		return nil, err
+	}
+
 	if !haveTime() {
 		log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
 		return nil, process.ErrTimeIsOut
 	}
 
-	log.Info(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
-
-	if err != nil {
-		log.Debug(fmt.Sprintf("when trying to order txs: %s", err.Error()))
-	}
+	log.Debug(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
 
 	miniBlock := &block.MiniBlock{}
 	miniBlock.SenderShardID = sndShardId
