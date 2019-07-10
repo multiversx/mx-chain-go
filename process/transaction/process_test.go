@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"crypto/rand"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/stretchr/testify/assert"
 )

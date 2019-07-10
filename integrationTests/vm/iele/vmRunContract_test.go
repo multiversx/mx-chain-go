@@ -2,6 +2,7 @@ package mockVM
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -12,8 +13,6 @@ import (
 )
 
 func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
-	t.Skip("this test should be un-skipped soon")
-
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
@@ -22,8 +21,9 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode, _ := hex.DecodeString("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101")
 	initialValueForInternalVariable := uint64(45)
+	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%X",
+		initialValueForInternalVariable)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 
@@ -34,15 +34,15 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode),
-		initialValueForInternalVariable,
+		scCode,
 		round,
 		txProc,
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("195d84b4aec942d3534d2ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	destinationAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
 	addValue := uint64(128)
+	data := fmt.Sprintf("add@%X", addValue)
 	//contract call tx
 	txRun := vm.CreateTx(
 		t,
@@ -52,8 +52,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		"add",
-		addValue,
+		data,
 	)
 
 	err := txProc.ProcessTransaction(txRun, round)
@@ -82,8 +81,6 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 }
 
 func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
-	t.Skip("this test should be un-skipped soon")
-
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
@@ -92,8 +89,9 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode, _ := hex.DecodeString("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101")
 	initialValueForInternalVariable := uint64(45)
+	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%X",
+		initialValueForInternalVariable)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	//deploy will transfer 0 and will succeed
@@ -105,15 +103,15 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		gasPrice,
 		gasLimit,
 		string(scCode),
-		initialValueForInternalVariable,
 		round,
 		txProc,
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("195d84b4aec942d3534d2ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	destinationAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
 	addValue := uint64(128)
-	//contract call tx that will feil with out of gas
+	data := fmt.Sprintf("add@%X", addValue)
+	//contract call tx that will fail with out of gas
 	gasLimitFail := uint64(100)
 	txRun := vm.CreateTx(
 		t,
@@ -123,8 +121,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		transferOnCalls,
 		gasPrice,
 		gasLimitFail,
-		"add",
-		addValue,
+		data,
 	)
 
 	err := txProc.ProcessTransaction(txRun, round)
@@ -161,7 +158,6 @@ func deployContract(
 	gasPrice uint64,
 	gasLimit uint64,
 	scCode string,
-	initialValueForInternalVariable uint64,
 	round uint32,
 	txProc process.TransactionProcessor,
 	accnts state.AccountsAdapter,
@@ -177,7 +173,6 @@ func deployContract(
 		gasPrice,
 		gasLimit,
 		scCode,
-		initialValueForInternalVariable,
 	)
 
 	err := txProc.ProcessTransaction(tx, round)

@@ -274,7 +274,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) error {
-		return errors.New("Key not found")
+		return errors.New("key not found")
 	}
 
 	scri, _ := unsigned.NewUnsignedTxInterceptor(
@@ -288,7 +288,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 	scrNewer := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(2),
-		Data:    []byte("data"),
+		Data:    "data",
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
 		TxHash:  []byte("txHash"),
@@ -343,7 +343,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 	scrNewer := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(2),
-		Data:    []byte("data"),
+		Data:    "data",
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
 		TxHash:  []byte("txHash"),
@@ -405,7 +405,7 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 	scrNewer := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(2),
-		Data:    []byte("data"),
+		Data:    "data",
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
 		TxHash:  []byte("txHash"),

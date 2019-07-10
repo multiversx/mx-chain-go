@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"reflect"
 	"sync/atomic"
 	"testing"
@@ -20,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -2409,15 +2409,15 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
 	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
-		Data:  txHash1,
+		Data:  string(txHash1),
 	}, cacheId)
 	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
 		Nonce: tx2Nonce,
-		Data:  txHash2,
+		Data:  string(txHash2),
 	}, cacheId)
 	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
 		Nonce: tx3Nonce,
-		Data:  txHash3,
+		Data:  string(txHash3),
 	}, cacheId)
 
 	tx1ExecutionResult := uint64(0)
@@ -2428,13 +2428,13 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		ProcessTransactionCalled: func(trans data.TransactionHandler, round uint32) error {
 			transaction, _ := trans.(*transaction.Transaction)
 			//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
-			if bytes.Equal(transaction.Data, txHash1) {
+			if transaction.Data == string(txHash1) {
 				tx1ExecutionResult = transaction.Nonce
 			}
-			if bytes.Equal(transaction.Data, txHash2) {
+			if transaction.Data == string(txHash2) {
 				tx2ExecutionResult = transaction.Nonce
 			}
-			if bytes.Equal(transaction.Data, txHash3) {
+			if transaction.Data == string(txHash3) {
 				tx3ExecutionResult = transaction.Nonce
 			}
 

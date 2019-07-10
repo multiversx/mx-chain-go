@@ -1,11 +1,12 @@
 package smartContract
 
 import (
-	"bytes"
+	"encoding/hex"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewAtArgumentParser(t *testing.T) {
@@ -35,7 +36,7 @@ func TestAtArgumentParser_GetArguments(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	err = parser.ParseData([]byte("aaaa@a@b@c"))
+	err = parser.ParseData("aaaa@a@b@c")
 	assert.Nil(t, err)
 
 	args, err := parser.GetArguments()
@@ -51,7 +52,7 @@ func TestAtArgumentParser_GetArgumentsEmpty(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	err = parser.ParseData([]byte("aaaa"))
+	err = parser.ParseData("aaaa")
 	assert.Nil(t, err)
 
 	args, err := parser.GetArguments()
@@ -67,13 +68,13 @@ func TestAtArgumentParser_GetCode(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	err = parser.ParseData([]byte("bbbbbbb@aaaa"))
+	err = parser.ParseData("bbbbbbbb@aaaa")
 	assert.Nil(t, err)
 
 	code, err := parser.GetCode()
 	assert.Nil(t, err)
 	assert.NotNil(t, code)
-	assert.Equal(t, []byte("bbbbbbb"), code)
+	assert.Equal(t, []byte("bbbbbbbb"), code)
 }
 
 func TestAtArgumentParser_GetCodeEmpty(t *testing.T) {
@@ -83,7 +84,7 @@ func TestAtArgumentParser_GetCodeEmpty(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	err = parser.ParseData([]byte("@aaaa"))
+	err = parser.ParseData("@aaaa")
 	assert.Equal(t, process.ErrStringSplitFailed, err)
 
 	code, err := parser.GetCode()
@@ -98,13 +99,13 @@ func TestAtArgumentParser_GetFunction(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	err = parser.ParseData([]byte("bbbbbbb@aaaa"))
+	err = parser.ParseData("bbbbbbbb@aaaa")
 	assert.Nil(t, err)
 
 	function, err := parser.GetFunction()
 	assert.Nil(t, err)
 	assert.NotNil(t, function)
-	assert.Equal(t, "bbbbbbb", function)
+	assert.Equal(t, []byte("bbbbbbbb"), []byte(function))
 }
 
 func TestAtArgumentParser_GetFunctionEmpty(t *testing.T) {
@@ -114,7 +115,7 @@ func TestAtArgumentParser_GetFunctionEmpty(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	err = parser.ParseData([]byte("@a"))
+	err = parser.ParseData("@a")
 	assert.Equal(t, process.ErrStringSplitFailed, err)
 
 	function, err := parser.GetFunction()
@@ -129,18 +130,18 @@ func TestAtArgumentParser_ParseData(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	err = parser.ParseData([]byte("a"))
+	err = parser.ParseData("ab")
 	assert.Nil(t, err)
 }
 
-func TestAtArgumentParser_ParseDataNil(t *testing.T) {
+func TestAtArgumentParser_ParseDataEmpty(t *testing.T) {
 	t.Parallel()
 
 	parser, err := NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	err = parser.ParseData(nil)
+	err = parser.ParseData("")
 	assert.Equal(t, process.ErrStringSplitFailed, err)
 }
 
@@ -154,37 +155,37 @@ func TestAtArgumentParser_CreateDataFromStorageUpdate(t *testing.T) {
 	data := parser.CreateDataFromStorageUpdate(nil)
 	assert.Equal(t, 0, len(data))
 
-	test := []byte("test")
+	test := []byte("aaaa")
 	stUpd := vmcommon.StorageUpdate{Offset: test, Data: test}
 	stUpdates := make([]*vmcommon.StorageUpdate, 0)
 	stUpdates = append(stUpdates, &stUpd, &stUpd, &stUpd)
-	result := []byte("")
-	sep := []byte("@")
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
+	result := ""
+	sep := "@"
+	result = result + hex.EncodeToString(test)
+	result = result + sep
+	result = result + hex.EncodeToString(test)
+	result = result + sep
+	result = result + hex.EncodeToString(test)
+	result = result + sep
+	result = result + hex.EncodeToString(test)
+	result = result + sep
+	result = result + hex.EncodeToString(test)
+	result = result + sep
+	result = result + hex.EncodeToString(test)
 
 	data = parser.CreateDataFromStorageUpdate(stUpdates)
 
-	assert.True(t, bytes.Equal(result, data))
+	assert.Equal(t, result, data)
 }
 
-func TestAtArgumentParser_GetStorageUpdatesNilData(t *testing.T) {
+func TestAtArgumentParser_GetStorageUpdatesEmptyData(t *testing.T) {
 	t.Parallel()
 
 	parser, err := NewAtArgumentParser()
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	stUpdates, err := parser.GetStorageUpdates(nil)
+	stUpdates, err := parser.GetStorageUpdates("")
 
 	assert.Nil(t, stUpdates)
 	assert.Equal(t, process.ErrStringSplitFailed, err)
@@ -197,18 +198,18 @@ func TestAtArgumentParser_GetStorageUpdatesWrongData(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	test := []byte("test")
-	result := []byte("")
-	sep := []byte("@")
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
+	test := "test"
+	result := ""
+	sep := "@"
+	result = result + test
+	result = result + sep
+	result = result + test
+	result = result + sep
+	result = result + test
+	result = result + sep
+	result = result + test
+	result = result + sep
+	result = result + test
 
 	stUpdates, err := parser.GetStorageUpdates(result)
 
@@ -223,25 +224,25 @@ func TestAtArgumentParser_GetStorageUpdates(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	test := []byte("test")
-	result := []byte("")
-	sep := []byte("@")
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
+	test := "aaaa"
+	result := ""
+	sep := "@"
+	result = result + test
+	result = result + sep
+	result = result + test
+	result = result + sep
+	result = result + test
+	result = result + sep
+	result = result + test
+	result = result + sep
+	result = result + test
+	result = result + sep
+	result = result + test
 	stUpdates, err := parser.GetStorageUpdates(result)
 
 	assert.Nil(t, err)
 	for i := 0; i < 2; i++ {
-		assert.Equal(t, test, stUpdates[i].Data)
-		assert.Equal(t, test, stUpdates[i].Offset)
+		assert.Equal(t, test, hex.EncodeToString(stUpdates[i].Data))
+		assert.Equal(t, test, hex.EncodeToString(stUpdates[i].Offset))
 	}
 }

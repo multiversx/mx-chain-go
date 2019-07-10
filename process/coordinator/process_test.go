@@ -33,7 +33,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 					return &mock.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, testHash) {
-								return &transaction.Transaction{Nonce: 10, Data: []byte(id)}, true
+								return &transaction.Transaction{Nonce: 10, Data: id}, true
 							}
 							return nil, false
 						},
@@ -1303,15 +1303,15 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
 	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
-		Data:  txHash1,
+		Data:  string(txHash1),
 	}, cacheId)
 	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
 		Nonce: tx2Nonce,
-		Data:  txHash2,
+		Data:  string(txHash2),
 	}, cacheId)
 	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
 		Nonce: tx3Nonce,
-		Data:  txHash3,
+		Data:  string(txHash3),
 	}, cacheId)
 
 	tx1ExecutionResult := uint64(0)
@@ -1413,15 +1413,15 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
 	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
-		Data:  txHash1,
+		Data:  string(txHash1),
 	}, cacheId)
 	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
 		Nonce: tx2Nonce,
-		Data:  txHash2,
+		Data:  string(txHash2),
 	}, cacheId)
 	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
 		Nonce: tx3Nonce,
-		Data:  txHash3,
+		Data:  string(txHash3),
 	}, cacheId)
 
 	currentJournalLen := 445

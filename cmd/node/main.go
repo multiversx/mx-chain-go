@@ -23,15 +23,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	ielecommon "github.com/ElrondNetwork/elrond-vm/iele/common"
+	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
@@ -455,7 +459,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	apiResolver, err := createApiResolver()
+	vmAccountsDB, err := hooks.NewVMAccountsDB(stateComponents.AccountsAdapter, stateComponents.AddressConverter)
+	if err != nil {
+		return err
+	}
+
+	apiResolver, err := createApiResolver(vmAccountsDB)
 	if err != nil {
 		return err
 	}
@@ -607,6 +616,17 @@ func CreateElasticIndexer(
 	return dbIndexer, nil
 }
 
+func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return nodesConfig.MetaChainConsensusGroupSize, nil
+	}
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return nodesConfig.ConsensusGroupSize, nil
+	}
+
+	return 0, state.ErrUnknownShardId
+}
+
 func createNode(
 	config *config.Config,
 	nodesConfig *sharding.NodesSetup,
@@ -623,6 +643,11 @@ func createNode(
 	network *factory.Network,
 	boostrapRoundIndex uint32,
 ) (*node.Node, error) {
+	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
@@ -633,7 +658,7 @@ func createNode(
 		node.WithBlockChain(data.Blkc),
 		node.WithDataStore(data.Store),
 		node.WithRoundDuration(nodesConfig.RoundDuration),
-		node.WithConsensusGroupSize(int(nodesConfig.ConsensusGroupSize)),
+		node.WithConsensusGroupSize(int(consensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(process.BlockProcessor),
 		node.WithBlockTracker(process.BlockTracker),
@@ -766,11 +791,12 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver() (facade.ApiResolver, error) {
+func createApiResolver(vmAccountsDB vmcommon.BlockchainHook) (facade.ApiResolver, error) {
 	//TODO replace this with a vm factory
-	vm := &mock.VMExecutionHandlerStub{}
+	cryptoHook := hooks.NewVMCryptoHook()
+	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, ielecommon.Default)
 
-	scDataGetter, err := smartContract.NewSCDataGetter(vm)
+	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
 	if err != nil {
 		return nil, err
 	}
