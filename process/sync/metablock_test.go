@@ -129,6 +129,7 @@ func TestNewMetaBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -165,6 +166,7 @@ func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -200,6 +202,7 @@ func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersNoncesShouldErr(t *testing.T
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -231,6 +234,7 @@ func TestNewMetaBootstrap_NilStoreShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -262,6 +266,7 @@ func TestNewMetaBootstrap_NilBlockchainShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -293,6 +298,7 @@ func TestNewMetaBootstrap_NilRounderShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -324,6 +330,7 @@ func TestNewMetaBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -355,6 +362,7 @@ func TestNewMetaBootstrap_NilHasherShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -386,6 +394,7 @@ func TestNewMetaBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -417,6 +426,7 @@ func TestNewMetaBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -449,6 +459,7 @@ func TestNewMetaBootstrap_NilResolversContainerShouldErr(t *testing.T) {
 		nil,
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -480,6 +491,7 @@ func TestNewMetaBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		nil,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -511,6 +523,7 @@ func TestNewMetaBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		shardCoordinator,
 		nil,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -553,6 +566,7 @@ func TestNewMetaBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 		resFinder,
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -595,6 +609,7 @@ func TestNewMetaBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 		resFinder,
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, bs)
@@ -651,6 +666,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.NotNil(t, bs)
@@ -710,6 +726,7 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	r := bs.SyncBlock()
@@ -761,6 +778,7 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	r := bs.SyncBlock()
@@ -812,6 +830,7 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	bs.StartSync()
@@ -908,6 +927,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	bs.StartSync()
@@ -1000,6 +1020,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	r := bs.SyncBlock()
@@ -1094,6 +1115,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	err := bs.SyncBlock()
@@ -1133,6 +1155,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundI
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.Nil(t, err)
@@ -1172,6 +1195,7 @@ func TestMetaBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreat
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.True(t, bs.ShouldSync())
@@ -1215,6 +1239,7 @@ func TestMetaBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.False(t, bs.ShouldSync())
@@ -1258,6 +1283,7 @@ func TestMetaBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	assert.True(t, bs.ShouldSync())
@@ -1292,6 +1318,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	hdr, _ := bs.GetHeaderFromPoolWithNonce(0)
@@ -1355,6 +1382,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	hdr2, _ := bs.GetHeaderFromPoolWithNonce(0)
@@ -1423,6 +1451,7 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	bs.ReceivedHeaders(addedHash)
@@ -1495,6 +1524,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddTo
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	bs.ReceivedHeaders(addedHash)
@@ -1530,6 +1560,7 @@ func TestMetaBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	err := bs.ForkChoice()
@@ -1562,6 +1593,7 @@ func TestMetaBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -1609,6 +1641,7 @@ func TestMetaBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -1730,6 +1763,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	bs.SetForkNonce(currentHdrNonce)
@@ -1885,6 +1919,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	bs.SetForkNonce(currentHdrNonce)
@@ -1946,6 +1981,7 @@ func TestMetaBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testin
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	f1 := func(bool) {}
@@ -1986,6 +2022,7 @@ func TestMetaBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	mutex.RLock()
@@ -2058,6 +2095,7 @@ func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadBlocksFails(t *testing.T) 
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	err := bs.SyncFromStorer(process.MetaBlockFinality,
@@ -2066,7 +2104,7 @@ func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadBlocksFails(t *testing.T) 
 		process.ShardBlockFinality,
 		dataRetriever.ShardHdrNonceHashDataUnit)
 
-	assert.Equal(t, process.ErrBoostrapFromStorage, err)
+	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
 func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadNotarizedBlocksFails(t *testing.T) {
@@ -2133,6 +2171,7 @@ func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadNotarizedBlocksFails(t *te
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	err := bs.SyncFromStorer(process.MetaBlockFinality,
@@ -2141,7 +2180,7 @@ func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadNotarizedBlocksFails(t *te
 		process.ShardBlockFinality,
 		dataRetriever.ShardHdrNonceHashDataUnit)
 
-	assert.Equal(t, process.ErrBoostrapFromStorage, err)
+	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
 func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {
@@ -2220,6 +2259,7 @@ func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	err := bs.SyncFromStorer(process.MetaBlockFinality,
@@ -2267,6 +2307,7 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenHeaderIsNotFound(t *testi
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	err := bs.ApplyNotarizedBlock(1,
@@ -2314,12 +2355,65 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenGetMetaHeaderFromStorageF
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	err := bs.ApplyNotarizedBlock(1,
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
 	assert.Equal(t, process.ErrMissingHeader, err)
+}
+
+func TestMetaBootstrap_ApplyNotarizedBlockShouldErrHigherBootstrapRound(t *testing.T) {
+	t.Parallel()
+
+	pools := createMockMetaPools()
+	blkc := initBlockchain()
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{
+		SetLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
+		},
+	}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	store := createStore()
+	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+		if unitType == dataRetriever.BlockHeaderUnit {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					buff, _ := marshalizer.Marshal(&block.Header{Round: 2})
+					return buff, nil
+				},
+			}
+		}
+
+		return nil
+	}
+
+	bs, _ := sync.NewMetaBootstrap(
+		pools,
+		store,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinderMeta(),
+		shardCoordinator,
+		account,
+		1,
+	)
+
+	err := bs.ApplyNotarizedBlock(1,
+		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
+
+	assert.Equal(t, sync.ErrHigherBootstrapRound, err)
 }
 
 func TestMetaBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
@@ -2365,6 +2459,7 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 		createMockResolversFinderMeta(),
 		shardCoordinator,
 		account,
+		math.MaxUint32,
 	)
 
 	err := bs.ApplyNotarizedBlock(1,

@@ -72,7 +72,7 @@ type Messenger interface {
 	// to and listening to.
 	Addresses() []string
 
-	// Explicitly connect to a specific peer with a known address (note that the
+	// ConnectToPeer explicitly connect to a specific peer with a known address (note that the
 	// address contains the peer ID). This function is usually not called
 	// manually, because any underlying implementation of the Messenger interface
 	// should be keeping connections to peers open.
@@ -137,7 +137,7 @@ type Messenger interface {
 	// message, blocking until sending is completed.
 	BroadcastOnChannelBlocking(channel string, topic string, buff []byte)
 
-	// BroadcastOnChannelBlocking asynchronously sends a message on a given topic
+	// BroadcastOnChannel asynchronously sends a message on a given topic
 	// through a specified channel.
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 

@@ -70,6 +70,8 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.SmartContractResultUnit, createMemUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 
 	return store
 }
@@ -152,6 +154,7 @@ func createAccountsDB() *state.AccountsDB {
 
 func createNetNode(
 	dPool dataRetriever.PoolsHolder,
+	store dataRetriever.StorageService,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
@@ -177,7 +180,6 @@ func createNetNode(
 	sk, pk := keyGen.GeneratePair()
 	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasherSigning)
 	blkc := createTestBlockChain()
-	store := createTestStore()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	dataPacker, _ := partitioning.NewSizeDataPacker(marshalizer)
 

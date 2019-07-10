@@ -12,18 +12,20 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	ggio "github.com/gogo/protobuf/io"
-	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	pubsub_pb "github.com/libp2p/go-libp2p-pubsub/pb"
+	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/whyrusleeping/timecache"
 )
 
 const timeSeenMessages = time.Second * 120
 const maxSendBuffSize = 1 << 20
+const maxMutexes = 10000
+
+var streamTimeout = time.Second * 5
 
 type directSender struct {
 	counter        uint64
@@ -32,6 +34,7 @@ type directSender struct {
 	messageHandler func(msg p2p.MessageP2P) error
 	mutSeenMesages sync.Mutex
 	seenMessages   *timecache.TimeCache
+	mutexForPeer   *MutexHolder
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -44,13 +47,16 @@ func NewDirectSender(
 	if h == nil {
 		return nil, p2p.ErrNilHost
 	}
-
 	if ctx == nil {
 		return nil, p2p.ErrNilContext
 	}
-
 	if messageHandler == nil {
 		return nil, p2p.ErrNilDirectSendMessageHandler
+	}
+
+	mutexForPeer, err := NewMutexHolder(maxMutexes)
+	if err != nil {
+		return nil, err
 	}
 
 	ds := &directSender{
@@ -59,6 +65,7 @@ func NewDirectSender(
 		hostP2P:        h,
 		seenMessages:   timecache.NewTimeCache(timeSeenMessages),
 		messageHandler: messageHandler,
+		mutexForPeer:   mutexForPeer,
 	}
 
 	//wire-up a handler for direct messages
@@ -72,7 +79,7 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 
 	go func(r ggio.ReadCloser) {
 		for {
-			msg := &pubsub_pb.Message{}
+			msg := &pubsubPb.Message{}
 
 			err := reader.ReadMsg(msg)
 			if err != nil {
@@ -97,19 +104,16 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 	}(reader)
 }
 
-func (ds *directSender) processReceivedDirectMessage(message *pubsub_pb.Message) error {
+func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message) error {
 	if message == nil {
 		return p2p.ErrNilMessage
 	}
-
 	if message.TopicIDs == nil {
 		return p2p.ErrNilTopic
 	}
-
 	if len(message.TopicIDs) == 0 {
 		return p2p.ErrEmptyTopicList
 	}
-
 	if ds.checkAndSetSeenMessage(message) {
 		return p2p.ErrAlreadySeenMessage
 	}
@@ -118,7 +122,7 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsub_pb.Message)
 	return ds.messageHandler(p2pMsg)
 }
 
-func (ds *directSender) checkAndSetSeenMessage(msg *pubsub_pb.Message) bool {
+func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {
 	msgId := string(msg.GetFrom()) + string(msg.GetSeqno())
 
 	ds.mutSeenMesages.Lock()
@@ -146,6 +150,10 @@ func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
 		return p2p.ErrMessageTooLarge
 	}
 
+	mut := ds.mutexForPeer.Get(string(peer))
+	mut.Lock()
+	defer mut.Unlock()
+
 	conn, err := ds.getConnection(peer)
 	if err != nil {
 		return err
@@ -161,35 +169,41 @@ func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
 	bufw := bufio.NewWriter(stream)
 	w := ggio.NewDelimitedWriter(bufw)
 
-	go func(msg proto.Message) {
-		err := w.WriteMsg(msg)
-		if err != nil {
-			log.LogIfError(err)
-			_ = stream.Reset()
-			_ = helpers.FullClose(stream)
-			return
-		}
+	err = w.WriteMsg(msg)
+	if err != nil {
+		_ = stream.Reset()
+		_ = helpers.FullClose(stream)
+		return err
+	}
 
-		err = bufw.Flush()
-		if err != nil {
-			log.LogIfError(err)
-			_ = stream.Reset()
-			_ = helpers.FullClose(stream)
-			return
-		}
-	}(msg)
+	err = bufw.Flush()
+	if err != nil {
+		_ = stream.Reset()
+		_ = helpers.FullClose(stream)
+		return err
+	}
 
 	return nil
 }
 
 func (ds *directSender) getConnection(p p2p.PeerID) (network.Conn, error) {
 	conns := ds.hostP2P.Network().ConnsToPeer(peer.ID(p))
-
 	if len(conns) == 0 {
 		return nil, p2p.ErrPeerNotDirectlyConnected
 	}
 
-	return conns[0], nil
+	//return the connection that has the highest number of streams
+	lStreams := 0
+	var conn network.Conn
+	for _, c := range conns {
+		length := len(c.GetStreams())
+		if length >= lStreams {
+			lStreams = length
+			conn = c
+		}
+	}
+
+	return conn, nil
 }
 
 func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, error) {
@@ -208,7 +222,8 @@ func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, er
 	var err error
 
 	if foundStream == nil {
-		foundStream, err = ds.hostP2P.NewStream(ds.ctx, conn.RemotePeer(), DirectSendID)
+		ctx, _ := context.WithTimeout(ds.ctx, streamTimeout)
+		foundStream, err = ds.hostP2P.NewStream(ctx, conn.RemotePeer(), DirectSendID)
 		if err != nil {
 			return nil, err
 		}
@@ -217,9 +232,9 @@ func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, er
 	return foundStream, nil
 }
 
-func (ds *directSender) createMessage(topic string, buff []byte, conn network.Conn) *pubsub_pb.Message {
+func (ds *directSender) createMessage(topic string, buff []byte, conn network.Conn) *pubsubPb.Message {
 	seqno := ds.NextSeqno(&ds.counter)
-	mes := pubsub_pb.Message{}
+	mes := pubsubPb.Message{}
 	mes.Data = buff
 	mes.TopicIDs = []string{topic}
 	mes.From = []byte(conn.LocalPeer())

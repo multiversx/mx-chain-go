@@ -14,7 +14,7 @@ import (
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
 	GenerateTransaction(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
-	SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, code string, signature []byte) (string, error)
+	SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	GenerateAndSendBulkTransactions(string, *big.Int, uint64) error
 	GenerateAndSendBulkTransactionsOneByOne(string, *big.Int, uint64) error
@@ -43,8 +43,8 @@ type SendTxRequest struct {
 	Value     *big.Int `form:"value" json:"value"`
 	Data      string   `form:"data" json:"data"`
 	Nonce     uint64   `form:"nonce" json:"nonce"`
-	GasPrice  *big.Int `form:"gasPrice" json:"gasPrice"`
-	GasLimit  *big.Int `form:"gasLimit" json:"gasLimit"`
+	GasPrice  uint64   `form:"gasPrice" json:"gasPrice"`
+	GasLimit  uint64   `form:"gasLimit" json:"gasLimit"`
 	Signature string   `form:"signature" json:"signature"`
 	Challenge string   `form:"challenge" json:"challenge"`
 }
@@ -66,12 +66,6 @@ func Routes(router *gin.RouterGroup) {
 	router.POST("/generate-and-send-multiple-one-by-one", GenerateAndSendBulkTransactionsOneByOne)
 	router.POST("/send", SendTransaction)
 	router.GET("/:txhash", GetTransaction)
-}
-
-// RoutesForTransactionsLists defines routes related to lists of transactions. Used separately so
-// it will not conflict with the wildcard for transaction details route
-func RoutesForTransactionsLists(router *gin.RouterGroup) {
-	router.GET("/recent", RecentTransactions)
 }
 
 // GenerateTransaction generates a new transaction given a sender, receiver, value and data
@@ -119,7 +113,7 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	txHash, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, gtx.Value, gtx.Data, signature)
+	txHash, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, gtx.Value, gtx.GasPrice, gtx.GasLimit, gtx.Data, signature)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error())})
 		return
@@ -205,35 +199,6 @@ func GetTransaction(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})
 }
 
-// RecentTransactions returns the list of latest transactions from all shards
-func RecentTransactions(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"transactions": buildDummyRecentTransactions()})
-}
-
-func buildDummyRecentTransactions() []TxResponse {
-	txs := make([]TxResponse, 0)
-	for i := 0; i < 10; i++ {
-		txs = append(txs, TxResponse{
-			SendTxRequest{
-				Sender:    "0x000000",
-				Receiver:  "0x11111",
-				Value:     big.NewInt(10),
-				Data:      "",
-				Nonce:     1,
-				GasPrice:  big.NewInt(10),
-				GasLimit:  big.NewInt(10),
-				Signature: "0x12314212313",
-			},
-			1,
-			"0x3213894328492",
-			10,
-			"0x000000000",
-			1558361492,
-		})
-	}
-	return txs
-}
-
 func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
 	response := TxResponse{}
 	response.Nonce = tx.Nonce
@@ -243,8 +208,8 @@ func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
 	response.Signature = hex.EncodeToString(tx.Signature)
 	response.Challenge = string(tx.Challenge)
 	response.Value = tx.Value
-	response.GasLimit = big.NewInt(int64(tx.GasLimit))
-	response.GasPrice = big.NewInt(int64(tx.GasPrice))
+	response.GasLimit = tx.GasLimit
+	response.GasPrice = tx.GasPrice
 
 	return response
 }

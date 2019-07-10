@@ -4,9 +4,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -23,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -38,6 +41,9 @@ import (
 const (
 	defaultLogPath     = "logs"
 	defaultStatsPath   = "stats"
+	defaultDBPath      = "db"
+	defaultEpochString = "Epoch"
+	defaultShardString = "Shard"
 	metachainShardName = "metachain"
 )
 
@@ -62,13 +68,13 @@ VERSION:
 	genesisFile = cli.StringFlag{
 		Name:  "genesis-file",
 		Usage: "The node will extract bootstrapping info from the genesis.json",
-		Value: "genesis.json",
+		Value: "./config/genesis.json",
 	}
 	// nodesFile defines a flag for the path of the initial nodes file.
 	nodesFile = cli.StringFlag{
 		Name:  "nodesSetup-file",
 		Usage: "The node will extract initial nodes info from the nodesSetup.json",
-		Value: "nodesSetup.json",
+		Value: "./config/nodesSetup.json",
 	}
 	// txSignSk defines a flag for the path of the single sign private key used when starting the node
 	txSignSk = cli.StringFlag{
@@ -146,6 +152,13 @@ VERSION:
 		Name:  "storage-cleanup",
 		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk",
 	}
+
+	// restApiPort defines a flag for port on which the rest API will start on
+	restApiPort = cli.StringFlag{
+		Name:  "rest-api-port",
+		Usage: "The port on which the rest API will start on",
+		Value: "8080",
+	}
 	// initialBalancesSkPemFile defines a flag for the path to the ...
 	initialBalancesSkPemFile = cli.StringFlag{
 		Name:  "initialBalancesSkPemFile",
@@ -158,9 +171,19 @@ VERSION:
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialNodesSk.pem",
 	}
+	// boostrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
+	boostrapRoundIndex = cli.UintFlag{
+		Name:  "boostrap-round-index",
+		Usage: "Boostrap round index specifies the round index from which node should bootstrap from storage",
+		Value: math.MaxUint32,
+	}
 
-	//TODO remove uniqueID
-	uniqueID = ""
+	// workingDirectory defines a flag for the path for the working directory.
+	workingDirectory = cli.StringFlag{
+		Name:  "working-directory",
+		Usage: "The node will store here DB, Logs and Stats",
+		Value: "",
+	}
 
 	rm *statistics.ResourceMonitor
 )
@@ -189,7 +212,7 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = "v0.0.1"
+	app.Version = "v1.0.4"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
@@ -208,6 +231,9 @@ func main() {
 		initialNodesSkPemFile,
 		gopsEn,
 		serversConfigurationFile,
+		restApiPort,
+		boostrapRoundIndex,
+		workingDirectory,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -337,22 +363,54 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	publicKey, err := pubKey.ToByteArray()
-	if err != nil {
-		return err
+	workingDir := ctx.GlobalString(workingDirectory.Name)
+
+	if workingDir == "" {
+		workingDir, err = os.Getwd()
+		if err != nil {
+			log.LogIfError(err)
+			workingDir = ""
+		}
 	}
 
-	uniqueID = core.GetTrimmedPk(hex.EncodeToString(publicKey))
+	var shardId = "metachain"
+	if shardCoordinator.SelfId() != sharding.MetachainShardId {
+		shardId = fmt.Sprintf("%d", shardCoordinator.SelfId())
+	}
+
+	uniqueDBFolder := filepath.Join(
+		workingDir,
+		defaultDBPath,
+		fmt.Sprintf("%s_%d", defaultEpochString, 0),
+		fmt.Sprintf("%s_%s", defaultShardString, shardId))
 
 	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanup {
-		err = os.RemoveAll(config.DefaultPath() + uniqueID)
+		err = os.RemoveAll(uniqueDBFolder)
 		if err != nil {
 			return err
 		}
 	}
 
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueID)
+	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
+		"PublicKey", factory.GetPkEncoded(pubKey),
+		"ShardId", shardId,
+		"TotalShards", shardCoordinator.NumberOfShards(),
+		"AppVersion", "TestVersion",
+		"OsVersion", "TestOs",
+	)
+
+	logDirectory := filepath.Join(workingDir, defaultLogPath)
+
+	err = os.MkdirAll(logDirectory, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
+	log.LogIfError(err)
+
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
@@ -364,12 +422,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log)
+	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log, workingDir)
 	if err != nil {
 		return err
 	}
 
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueID)
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
@@ -432,6 +490,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		cryptoComponents,
 		processComponents,
 		networkComponents,
+		uint32(ctx.GlobalUint(boostrapRoundIndex.Name)),
 	)
 	if err != nil {
 		return err
@@ -450,9 +509,13 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	ef := facade.NewElrondNodeFacade(currentNode, externalResolver)
 
+	efConfig := &config.FacadeConfig{
+		RestApiPort: ctx.GlobalString(restApiPort.Name),
+	}
 	ef.SetLogger(log)
 	ef.SetSyncer(syncer)
 	ef.SetTpsBenchmark(tpsBenchmark)
+	ef.SetConfig(efConfig)
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
@@ -592,6 +655,17 @@ func CreateElasticIndexer(
 	return dbIndexer, nil
 }
 
+func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return nodesConfig.MetaChainConsensusGroupSize, nil
+	}
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return nodesConfig.ConsensusGroupSize, nil
+	}
+
+	return 0, state.ErrUnknownShardId
+}
+
 func createNode(
 	config *config.Config,
 	nodesConfig *sharding.NodesSetup,
@@ -606,7 +680,13 @@ func createNode(
 	crypto *factory.Crypto,
 	process *factory.Process,
 	network *factory.Network,
+	boostrapRoundIndex uint32,
 ) (*node.Node, error) {
+	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
@@ -617,7 +697,7 @@ func createNode(
 		node.WithBlockChain(data.Blkc),
 		node.WithDataStore(data.Store),
 		node.WithRoundDuration(nodesConfig.RoundDuration),
-		node.WithConsensusGroupSize(int(nodesConfig.ConsensusGroupSize)),
+		node.WithConsensusGroupSize(int(consensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(process.BlockProcessor),
 		node.WithBlockTracker(process.BlockTracker),
@@ -638,6 +718,7 @@ func createNode(
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
+		node.WithBoostrapRoundIndex(boostrapRoundIndex),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -677,14 +758,15 @@ func createNode(
 	return nd, nil
 }
 
-func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger) error {
+func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger,
+	workingDir string) error {
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return err
 	}
 
 	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
-	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
+	logFile, err := core.CreateFile(hexPublicKey, filepath.Join(workingDir, defaultLogPath), "log")
 	if err != nil {
 		return err
 	}
@@ -694,7 +776,7 @@ func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, 
 		return err
 	}
 
-	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
+	statsFile, err := core.CreateFile(hexPublicKey, filepath.Join(workingDir, defaultStatsPath), "txt")
 	if err != nil {
 		return err
 	}
