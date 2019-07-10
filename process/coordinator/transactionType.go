@@ -3,6 +3,7 @@ package coordinator
 import (
 	"bytes"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/feeTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -44,6 +45,11 @@ func (tc *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pro
 	err := tc.checkTxValidity(tx)
 	if err != nil {
 		return process.InvalidTransaction, err
+	}
+
+	_, isTxfee := tx.(*feeTx.FeeTx)
+	if isTxfee {
+		return process.TxFee, nil
 	}
 
 	isEmptyAddress := tc.isDestAddressEmpty(tx)

@@ -1340,13 +1340,13 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 			ProcessTransactionCalled: func(trans data.TransactionHandler, round uint32) error {
 				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 				tx, _ := trans.(*transaction.Transaction)
-				if bytes.Equal(tx.Data, txHash1) {
+				if tx.Data == string(txHash1) {
 					tx1ExecutionResult = tx.Nonce
 				}
-				if bytes.Equal(tx.Data, txHash2) {
+				if tx.Data == string(txHash2) {
 					tx2ExecutionResult = tx.Nonce
 				}
-				if bytes.Equal(tx.Data, txHash3) {
+				if tx.Data == string(txHash3) {
 					tx3ExecutionResult = tx.Nonce
 				}
 
@@ -1451,7 +1451,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction data.TransactionHandler, round uint32) error {
-				if bytes.Equal(transaction.GetData(), txHash2) {
+				if transaction.GetData() == string(txHash2) {
 					return process.ErrHigherNonceInTransaction
 				}
 				return nil

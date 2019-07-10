@@ -16,8 +16,8 @@ func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
 	t.Parallel()
 
 	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
 		nil,
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 	)
 
@@ -173,7 +173,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = make([]byte, addressConverter.AddressLen())
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	txType, err := tth.ComputeTransactionType(tx)
@@ -189,7 +189,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	_, acntDst := createAccounts(tx)
@@ -220,7 +220,7 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	_, acntDst := createAccounts(tx)
@@ -245,8 +245,9 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 func TestTxTypeHandler_ComputeTransactionTypeTxFee(t *testing.T) {
 	t.Parallel()
 
+	addrConv := &mock.AddressConverterMock{}
 	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
+		addrConv,
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 	)
@@ -254,8 +255,13 @@ func TestTxTypeHandler_ComputeTransactionTypeTxFee(t *testing.T) {
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	tx := &feeTx.FeeTx{}
+	tx := &feeTx.FeeTx{RcvAddr: []byte("leader")}
 	txType, err := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.ErrWrongTransaction, err)
+	assert.Equal(t, process.InvalidTransaction, txType)
+
+	tx = &feeTx.FeeTx{RcvAddr: generateRandomByteSlice(addrConv.AddressLen())}
+	txType, err = tth.ComputeTransactionType(tx)
 	assert.Nil(t, err)
 	assert.Equal(t, process.TxFee, txType)
 }

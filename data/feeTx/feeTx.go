@@ -81,8 +81,8 @@ func (scr *FeeTx) GetValue() *big.Int {
 }
 
 // GetData returns the data of the fee transaction
-func (scr *FeeTx) GetData() []byte {
-	return nil
+func (scr *FeeTx) GetData() string {
+	return ""
 }
 
 // GetRecvAddress returns the receiver address from the fee transaction
@@ -101,7 +101,7 @@ func (scr *FeeTx) SetValue(value *big.Int) {
 }
 
 // SetData sets the data of the fee transaction
-func (scr *FeeTx) SetData(data []byte) {
+func (scr *FeeTx) SetData(data string) {
 }
 
 // SetRecvAddress sets the receiver address of the fee transaction

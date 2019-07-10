@@ -396,7 +396,7 @@ func generateAndDisseminateTxs(
 		for _, recvPrivateKeys := range receiversPrivateKeys {
 			receiverKey := recvPrivateKeys[i]
 			tx := generateTransferTx(incrementalNonce, senderKey, receiverKey, valToTransfer, gasPrice, gasLimit)
-			n.SendTransaction(
+			_, _ = n.SendTransaction(
 				tx.Nonce,
 				hex.EncodeToString(tx.SndAddr),
 				hex.EncodeToString(tx.RcvAddr),
@@ -425,7 +425,7 @@ func generateTransferTx(
 		Value:    valToTransfer,
 		RcvAddr:  skToPk(receiver),
 		SndAddr:  skToPk(sender),
-		Data:     make([]byte, 0),
+		Data:     "",
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
