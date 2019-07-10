@@ -520,10 +520,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	prometheusJoinURLAvailable := true
 	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
-	if err != nil {
-		prometheusJoinURLAvailable = false
-	}
-	if prometheusJoinUrl == "" {
+	if err != nil || prometheusJoinUrl == "" {
 		prometheusJoinURLAvailable = false
 	}
 

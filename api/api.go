@@ -6,11 +6,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/go-playground/validator.v8"
 
 	"github.com/ElrondNetwork/elrond-go/api/address"
@@ -40,7 +39,7 @@ func Start(elrondFacade MainApiHandler) error {
 	if err != nil {
 		return err
 	}
-	registerRoutes(ws, elrondFacade, elrondFacade.PrometheusMonitoring())
+	registerRoutes(ws, elrondFacade)
 
 	if elrondFacade.PrometheusMonitoring() {
 		err = joinMonitoringSystem(elrondFacade.RestApiPort(), elrondFacade.PrometheusJoinURL())
@@ -61,13 +60,10 @@ func joinMonitoringSystem(port string, prometheusJoinURL string) error {
 		return err
 	}
 	err = resp.Body.Close()
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
-func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler, registerPrometheus bool) {
+func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	nodeRoutes := ws.Group("/node")
 	nodeRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	node.Routes(nodeRoutes)
@@ -80,7 +76,7 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler, regis
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	transaction.Routes(txRoutes)
 
-	if registerPrometheus {
+	if elrondFacade.(MainApiHandler).PrometheusMonitoring() {
 		nodeRoutes.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	}
 
