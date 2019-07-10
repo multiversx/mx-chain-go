@@ -176,7 +176,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 		userNonce,
 		big.NewInt(0),
 		gasPrice,
-		gasLimit*30,
+		gasLimit,
 		data,
 	)
 
