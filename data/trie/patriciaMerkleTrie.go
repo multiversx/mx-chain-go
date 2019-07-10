@@ -2,6 +2,8 @@ package trie
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -239,6 +241,20 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 
 	newTr.root = newRoot
 	return newTr, nil
+}
+
+// Print outputs a graphical view of the trie. Mainly used in tests/debugging
+func (tr *patriciaMerkleTrie) Print(writer io.Writer) {
+	if writer == nil {
+		return
+	}
+	if tr.root == nil {
+		_, _ = fmt.Fprintln(writer, "*** EMPTY TRIE ***")
+
+		return
+	}
+
+	tr.root.print(writer, 0)
 }
 
 func emptyTrie(root []byte) bool {

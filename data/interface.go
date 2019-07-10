@@ -1,6 +1,9 @@
 package data
 
-import "math/big"
+import (
+	"io"
+	"math/big"
+)
 
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
@@ -86,6 +89,7 @@ type Trie interface {
 	VerifyProof(proofs [][]byte, key []byte) (bool, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
+	Print(writer io.Writer)
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed

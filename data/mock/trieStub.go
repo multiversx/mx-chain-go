@@ -2,6 +2,7 @@ package mock
 
 import (
 	"errors"
+	"io"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -81,4 +82,8 @@ func (ts *TrieStub) Recreate(root []byte) (data.Trie, error) {
 	}
 
 	return nil, errNotImplemented
+}
+
+func (ts *TrieStub) Print(writer io.Writer) {
+	_, _ = writer.Write([]byte("stub trie"))
 }

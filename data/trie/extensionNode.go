@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sync"
 
@@ -299,9 +300,11 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
 		return false, nil, ErrChildPosOutOfRange
 	}
-	branch.children[oldChildPos] = newExtensionNode(en.Key[keyMatchLen+1:], en.child)
-	if len(en.Key) == 1 {
+	followingExtensionNode := newExtensionNode(en.Key[keyMatchLen+1:], en.child)
+	if len(followingExtensionNode.Key) < 1 {
 		branch.children[oldChildPos] = en.child
+	} else {
+		branch.children[oldChildPos] = followingExtensionNode
 	}
 	n.Key = n.Key[keyMatchLen+1:]
 	branch.children[newChildPos] = n
@@ -362,4 +365,15 @@ func (en *extensionNode) isEmptyOrNil() error {
 		return ErrEmptyNode
 	}
 	return nil
+}
+
+func (en *extensionNode) print(writer io.Writer, index int) {
+	key := ""
+	for _, k := range en.Key {
+		key += fmt.Sprintf("%d", k)
+	}
+
+	str := fmt.Sprintf("E:(%s) - ", key)
+	_, _ = fmt.Fprint(writer, str)
+	en.child.print(writer, index+len(str))
 }
