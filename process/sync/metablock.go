@@ -180,17 +180,15 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 			continue
 		}
 
-		if !boot.areNotarizedShardHeadersFound(&ni, maxNonce, currentNonce) {
-			continue
+		if boot.areNotarizedShardHeadersFound(&ni, maxNonce, currentNonce) {
+			break
 		}
-
-		break
 	}
 
 	log.Info(fmt.Sprintf("bootstrap from meta block with nonce %d\n", ni.startNonce))
 
 	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		if ni.nonceWithLastNotarized[i]-ni.nonceWithFinalNotarized[i] > 1 {
+		if ni.blockWithLastNotarized[i]-ni.blockWithFinalNotarized[i] > 1 {
 			ni.finalNotarized[i] = ni.lastNotarized[i]
 		}
 
@@ -251,13 +249,13 @@ func (boot *MetaBootstrap) areNotarizedShardHeadersFound(
 	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
 		if ni.lastNotarized[i] == 0 {
 			ni.lastNotarized[i] = notarizedNonce[i]
-			ni.nonceWithLastNotarized[i] = nonce
+			ni.blockWithLastNotarized[i] = nonce
 			continue
 		}
 
 		if ni.finalNotarized[i] == 0 {
 			ni.finalNotarized[i] = notarizedNonce[i]
-			ni.nonceWithFinalNotarized[i] = nonce
+			ni.blockWithFinalNotarized[i] = nonce
 			continue
 		}
 	}
@@ -361,6 +359,22 @@ func (boot *MetaBootstrap) syncBlocks() {
 	}
 }
 
+func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error) {
+	if err == process.ErrTimeIsOut {
+		boot.requestsWithTimeout++
+	}
+
+	isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	if isForkDetected {
+		boot.requestsWithTimeout = 0
+		boot.removeHeaderFromPools(hdr)
+		errNotCritical := boot.forkChoice()
+		if errNotCritical != nil {
+			log.Info(errNotCritical.Error())
+		}
+	}
+}
+
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool
 // and if it is not found there it will be requested from the network. After the header is received,
 // it requests the block body in the same way(pool and than, if it is not found in the pool, from network).
@@ -388,19 +402,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 	defer func() {
 		if err != nil {
-			if err == process.ErrTimeIsOut {
-				boot.requestsWithTimeout++
-			}
-
-			isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
-			if isForkDetected {
-				boot.requestsWithTimeout = 0
-				boot.removeHeaderFromPools(hdr)
-				err = boot.forkChoice()
-				if err != nil {
-					log.Info(err.Error())
-				}
-			}
+			boot.doJobOnSyncBlockFail(hdr, err)
 		}
 	}()
 

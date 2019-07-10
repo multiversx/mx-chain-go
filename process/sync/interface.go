@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
+// storageBootstrapper is the main interface for bootstrap from storage execution engine
 type storageBootstrapper interface {
 	getHeader(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error)
 	getBlockBody(data.HeaderHandler) (data.BodyHandler, error)

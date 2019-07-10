@@ -268,19 +268,17 @@ func (boot *ShardBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map
 			continue
 		}
 
-		if !boot.areNotarizedMetaBlocksFound(&ni, minNonce) {
-			continue
+		if boot.areNotarizedMetaBlocksFound(&ni, minNonce) {
+			break
 		}
-
-		break
 	}
 
-	if ni.nonceWithLastNotarized[shardId]-ni.nonceWithFinalNotarized[shardId] > 1 {
+	if ni.blockWithLastNotarized[shardId]-ni.blockWithFinalNotarized[shardId] > 1 {
 		ni.finalNotarized[shardId] = ni.lastNotarized[shardId]
 	}
 
-	if ni.nonceWithLastNotarized[shardId] != 0 {
-		ni.startNonce = ni.nonceWithLastNotarized[shardId]
+	if ni.blockWithLastNotarized[shardId] != 0 {
+		ni.startNonce = ni.blockWithLastNotarized[shardId]
 	}
 
 	log.Info(fmt.Sprintf("bootstrap from shard block with nonce %d which contains last notarized meta block\n"+
@@ -324,12 +322,12 @@ func (boot *ShardBootstrap) getMinNotarizedMetaBlockNonceInHeader(
 			return minNonce, err
 		}
 
-		if ni.nonceWithLastNotarized[shardId] == 0 && metaBlock.Nonce == ni.lastNotarized[shardId] {
-			ni.nonceWithLastNotarized[shardId] = header.Nonce
+		if ni.blockWithLastNotarized[shardId] == 0 && metaBlock.Nonce == ni.lastNotarized[shardId] {
+			ni.blockWithLastNotarized[shardId] = header.Nonce
 		}
 
-		if ni.nonceWithFinalNotarized[shardId] == 0 && metaBlock.Nonce == ni.finalNotarized[shardId] {
-			ni.nonceWithFinalNotarized[shardId] = header.Nonce
+		if ni.blockWithFinalNotarized[shardId] == 0 && metaBlock.Nonce == ni.finalNotarized[shardId] {
+			ni.blockWithFinalNotarized[shardId] = header.Nonce
 		}
 
 		if metaBlock.Nonce < minNonce {
@@ -351,7 +349,7 @@ func (boot *ShardBootstrap) areNotarizedMetaBlocksFound(ni *notarizedInfo, notar
 		return false
 	}
 
-	if ni.nonceWithLastNotarized[shardId] == 0 {
+	if ni.blockWithLastNotarized[shardId] == 0 {
 		return false
 	}
 
@@ -360,7 +358,7 @@ func (boot *ShardBootstrap) areNotarizedMetaBlocksFound(ni *notarizedInfo, notar
 		return false
 	}
 
-	if ni.nonceWithFinalNotarized[shardId] == 0 {
+	if ni.blockWithFinalNotarized[shardId] == 0 {
 		return false
 	}
 
@@ -472,6 +470,22 @@ func (boot *ShardBootstrap) syncBlocks() {
 	}
 }
 
+func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
+	if err == process.ErrTimeIsOut {
+		boot.requestsWithTimeout++
+	}
+
+	isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	if isForkDetected {
+		boot.requestsWithTimeout = 0
+		boot.removeHeaderFromPools(hdr)
+		errNotCritical := boot.forkChoice()
+		if errNotCritical != nil {
+			log.Info(errNotCritical.Error())
+		}
+	}
+}
+
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool
 // and if it is not found there it will be requested from the network. After the header is received,
 // it requests the block body in the same way(pool and than, if it is not found in the pool, from network).
@@ -500,19 +514,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 
 	defer func() {
 		if err != nil {
-			if err == process.ErrTimeIsOut {
-				boot.requestsWithTimeout++
-			}
-
-			isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
-			if isForkDetected {
-				boot.requestsWithTimeout = 0
-				boot.removeHeaderFromPools(hdr)
-				err = boot.forkChoice()
-				if err != nil {
-					log.Info(err.Error())
-				}
-			}
+			boot.doJobOnSyncBlockFail(hdr, err)
 		}
 	}()
 

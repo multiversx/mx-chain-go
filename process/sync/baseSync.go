@@ -32,16 +32,16 @@ const maxRoundsToWait = 5
 type notarizedInfo struct {
 	lastNotarized           map[uint32]uint64
 	finalNotarized          map[uint32]uint64
-	nonceWithLastNotarized  map[uint32]uint64
-	nonceWithFinalNotarized map[uint32]uint64
+	blockWithLastNotarized  map[uint32]uint64
+	blockWithFinalNotarized map[uint32]uint64
 	startNonce              uint64
 }
 
 func (ni *notarizedInfo) reset() {
 	ni.lastNotarized = make(map[uint32]uint64, 0)
 	ni.finalNotarized = make(map[uint32]uint64, 0)
-	ni.nonceWithLastNotarized = make(map[uint32]uint64, 0)
-	ni.nonceWithFinalNotarized = make(map[uint32]uint64, 0)
+	ni.blockWithLastNotarized = make(map[uint32]uint64, 0)
+	ni.blockWithFinalNotarized = make(map[uint32]uint64, 0)
 	ni.startNonce = uint64(0)
 }
 
