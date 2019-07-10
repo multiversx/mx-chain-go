@@ -241,7 +241,7 @@ func main() {
 		serversConfigurationFile,
 		restApiPort,
 		usePrometheus,
-    bootstrapRoundIndex,
+		bootstrapRoundIndex,
 		workingDirectory,
 	}
 	app.Authors = []cli.Author{
