@@ -214,17 +214,22 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}
 
+	if sp.accounts.JournalLen() != 0 {
+		return process.ErrAccountStateDirty
+	}
+
 	defer func() {
 		go sp.checkAndRequestIfMetaHeadersMissing(header.Round)
 	}()
 
-	err = sp.verifyCrossShardMiniBlockDstMe(header)
+	err = sp.checkMetaHeadersValidityAndFinality(header)
 	if err != nil {
 		return err
 	}
 
-	if sp.accounts.JournalLen() != 0 {
-		return process.ErrAccountStateDirty
+	err = sp.verifyCrossShardMiniBlockDstMe(header)
+	if err != nil {
+		return err
 	}
 
 	defer func() {
@@ -241,6 +246,95 @@ func (sp *shardProcessor) ProcessBlock(
 	if !sp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateMissmatch
 		return err
+	}
+
+	return nil
+}
+
+// checkMetaHeadersValidity - checks if listed metaheaders are valid as construction
+func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(header *block.Header) error {
+	metablockCache := sp.dataPool.MetaBlocks()
+	if metablockCache == nil {
+		return process.ErrNilMetaBlockPool
+	}
+
+	tmpNotedHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	if err != nil {
+		return err
+	}
+
+	currAddedMetaHdrs := make([]*block.MetaBlock, 0)
+	for _, metaHash := range header.MetaBlockHashes {
+		value, ok := metablockCache.Peek(metaHash)
+		if !ok {
+			return process.ErrNilMetaBlockHeader
+		}
+
+		metaHdr, ok := value.(*block.MetaBlock)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		currAddedMetaHdrs = append(currAddedMetaHdrs, metaHdr)
+	}
+
+	if len(currAddedMetaHdrs) == 0 {
+		return nil
+	}
+
+	sort.Slice(currAddedMetaHdrs, func(i, j int) bool {
+		return currAddedMetaHdrs[i].Nonce < currAddedMetaHdrs[j].Nonce
+	})
+
+	for _, metaHdr := range currAddedMetaHdrs {
+		err := sp.isHdrConstructionValid(metaHdr, tmpNotedHdr)
+		if err != nil {
+			return err
+		}
+		tmpNotedHdr = metaHdr
+	}
+
+	err = sp.checkMetaHdrFinality(tmpNotedHdr, header.Round)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// check if shard headers are final by checking if newer headers were constructed upon them
+func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler, round uint32) error {
+	if header == nil {
+		return process.ErrNilBlockHeader
+	}
+
+	sortedMetaHdrs, err := sp.getOrderedMetaBlocks(round)
+	if err != nil {
+		return err
+	}
+
+	lastVerifiedHdr := header
+	// verify if there are "K" block after current to make this one final
+	nextBlocksVerified := 0
+	for _, tmpHdr := range sortedMetaHdrs {
+		if nextBlocksVerified >= sp.metaBlockFinality {
+			break
+		}
+
+		// found a header with the next nonce
+		if tmpHdr.hdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
+			err := sp.isHdrConstructionValid(tmpHdr.hdr, lastVerifiedHdr)
+			if err != nil {
+				continue
+			}
+
+			lastVerifiedHdr = tmpHdr.hdr
+			nextBlocksVerified += 1
+		}
+	}
+
+	if nextBlocksVerified < sp.metaBlockFinality {
+		return process.ErrHeaderNotFinal
 	}
 
 	return nil
@@ -475,10 +569,8 @@ func (sp *shardProcessor) CommitBlock(
 
 	nonceToByteSlice := sp.uint64Converter.ToByteSlice(header.Nonce)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.ShardId)
-	err = sp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
-	if err != nil {
-		return err
-	}
+	errNotCritical = sp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	log.LogIfError(errNotCritical)
 
 	headerNoncePool := sp.dataPool.HeadersNonces()
 	if headerNoncePool == nil {
@@ -578,6 +670,9 @@ func (sp *shardProcessor) CommitBlock(
 func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
 	if body == nil {
 		return nil, process.ErrNilTxBlockBody
+	}
+	if header == nil {
+		return nil, process.ErrNilBlockHeader
 	}
 
 	miniBlockHashes := make(map[int][]byte, 0)
@@ -918,54 +1013,11 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header) erro
 	if err != nil {
 		return err
 	}
-	metablockCache := sp.dataPool.MetaBlocks()
-	if metablockCache == nil {
-		return process.ErrNilMetaBlockPool
-	}
 
-	currMetaBlocks := make([]data.HeaderHandler, 0)
 	miniBlockDstMe := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 	for mbHash := range miniBlockDstMe {
 		if _, ok := mMiniBlockMeta[mbHash]; !ok {
 			return process.ErrCrossShardMBWithoutConfirmationFromMeta
-		}
-
-		hdr, ok := metablockCache.Peek(mMiniBlockMeta[mbHash])
-		if !ok {
-			return process.ErrNilMetaBlockHeader
-		}
-
-		metaHdr, ok := hdr.(data.HeaderHandler)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-
-		currMetaBlocks = append(currMetaBlocks, metaHdr)
-	}
-
-	if len(currMetaBlocks) == 0 {
-		return nil
-	}
-
-	err = sp.verifyIncludedMetaBlocksFinality(currMetaBlocks, hdr.Round)
-
-	return err
-}
-
-func (sp *shardProcessor) verifyIncludedMetaBlocksFinality(currMetaBlocks []data.HeaderHandler, round uint32) error {
-	orderedMetablocks, err := sp.getOrderedMetaBlocks(round)
-	if err != nil {
-		return err
-	}
-
-	sort.Slice(currMetaBlocks, func(i, j int) bool {
-		return currMetaBlocks[i].GetNonce() < currMetaBlocks[j].GetNonce()
-	})
-
-	for i := 0; i < len(currMetaBlocks); i++ {
-		isFinal := sp.isMetaHeaderFinal(currMetaBlocks[i], orderedMetablocks, 0)
-		if !isFinal {
-			return process.ErrMetaBlockNotFinal
 		}
 	}
 
@@ -1048,11 +1100,6 @@ func (sp *shardProcessor) getOrderedMetaBlocks(round uint32) ([]*hashAndHdr, err
 		}
 
 		orderedMetaBlocks = append(orderedMetaBlocks, &hashAndHdr{hdr: hdr, hash: key})
-	}
-
-	// sort headers for each shard
-	if len(orderedMetaBlocks) == 0 {
-		return nil, process.ErrNoNewMetablocks
 	}
 
 	sort.Slice(orderedMetaBlocks, func(i, j int) bool {

@@ -22,7 +22,7 @@ type Worker struct {
 	consensusService   ConsensusService
 	blockProcessor     process.BlockProcessor
 	blockTracker       process.BlocksTracker
-	bootstraper        process.Bootstrapper
+	bootstrapper       process.Bootstrapper
 	broadcastMessenger consensus.BroadcastMessenger
 	consensusState     *ConsensusState
 	forkDetector       process.ForkDetector
@@ -48,7 +48,7 @@ func NewWorker(
 	consensusService ConsensusService,
 	blockProcessor process.BlockProcessor,
 	blockTracker process.BlocksTracker,
-	bootstraper process.Bootstrapper,
+	bootstrapper process.Bootstrapper,
 	broadcastMessenger consensus.BroadcastMessenger,
 	consensusState *ConsensusState,
 	forkDetector process.ForkDetector,
@@ -63,7 +63,7 @@ func NewWorker(
 		consensusService,
 		blockProcessor,
 		blockTracker,
-		bootstraper,
+		bootstrapper,
 		broadcastMessenger,
 		consensusState,
 		forkDetector,
@@ -82,7 +82,7 @@ func NewWorker(
 		consensusService:   consensusService,
 		blockProcessor:     blockProcessor,
 		blockTracker:       blockTracker,
-		bootstraper:        bootstraper,
+		bootstrapper:       bootstrapper,
 		broadcastMessenger: broadcastMessenger,
 		consensusState:     consensusState,
 		forkDetector:       forkDetector,
@@ -97,7 +97,7 @@ func NewWorker(
 	wrk.executeMessageChannel = make(chan *consensus.Message)
 	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(*consensus.Message) bool)
 	wrk.consensusStateChangedChannel = make(chan bool, 1)
-	wrk.bootstraper.AddSyncStateListener(wrk.receivedSyncState)
+	wrk.bootstrapper.AddSyncStateListener(wrk.receivedSyncState)
 	wrk.initReceivedMessages()
 
 	go wrk.checkChannels()
@@ -109,7 +109,7 @@ func checkNewWorkerParams(
 	consensusService ConsensusService,
 	blockProcessor process.BlockProcessor,
 	blockTracker process.BlocksTracker,
-	bootstraper process.Bootstrapper,
+	bootstrapper process.Bootstrapper,
 	broadcastMessenger consensus.BroadcastMessenger,
 	consensusState *ConsensusState,
 	forkDetector process.ForkDetector,
@@ -129,8 +129,8 @@ func checkNewWorkerParams(
 	if blockTracker == nil {
 		return ErrNilBlocksTracker
 	}
-	if bootstraper == nil {
-		return ErrNilBlootstraper
+	if bootstrapper == nil {
+		return ErrNilBootstrapper
 	}
 	if broadcastMessenger == nil {
 		return ErrNilBroadcastMessenger
@@ -376,7 +376,7 @@ func (wrk *Worker) Extend(subroundId int) {
 	log.Info(fmt.Sprintf("extend function is called from subround: %s\n",
 		wrk.consensusService.GetSubroundName(subroundId)))
 
-	if wrk.bootstraper.ShouldSync() {
+	if wrk.bootstrapper.ShouldSync() {
 		return
 	}
 

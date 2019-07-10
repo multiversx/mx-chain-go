@@ -240,7 +240,7 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 
 func (bp *baseProcessor) restoreLastNotarized() {
 	bp.mutNotarizedHdrs.Lock()
-	for shardId, _ := range bp.lastNotarizedHdrs {
+	for shardId := range bp.lastNotarizedHdrs {
 		bp.lastNotarizedHdrs[shardId] = bp.finalNotarizedHdrs[shardId]
 	}
 	bp.mutNotarizedHdrs.Unlock()

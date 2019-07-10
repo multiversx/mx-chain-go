@@ -109,7 +109,7 @@ func TestConsensusCore_WithNilBootstrapperShouldFail(t *testing.T) {
 		consensusCoreMock.ValidatorGroupSelector())
 
 	assert.Nil(t, consensusCore)
-	assert.Equal(t, spos.ErrNilBlootstraper, err)
+	assert.Equal(t, spos.ErrNilBootstrapper, err)
 }
 
 func TestConsensusCore_WithNilBroadcastMessengerShouldFail(t *testing.T) {

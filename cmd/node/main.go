@@ -171,10 +171,10 @@ VERSION:
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialNodesSk.pem",
 	}
-	// boostrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
-	boostrapRoundIndex = cli.UintFlag{
-		Name:  "boostrap-round-index",
-		Usage: "Boostrap round index specifies the round index from which node should bootstrap from storage",
+	// bootstrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
+	bootstrapRoundIndex = cli.UintFlag{
+		Name:  "bootstrap-round-index",
+		Usage: "Bootstrap round index specifies the round index from which node should bootstrap from storage",
 		Value: math.MaxUint32,
 	}
 
@@ -212,7 +212,7 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = "v1.0.4"
+	app.Version = "v1.0.8"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
@@ -232,7 +232,7 @@ func main() {
 		gopsEn,
 		serversConfigurationFile,
 		restApiPort,
-		boostrapRoundIndex,
+		bootstrapRoundIndex,
 		workingDirectory,
 	}
 	app.Authors = []cli.Author{
@@ -247,7 +247,7 @@ func main() {
 	debug.SetMaxThreads(100000)
 
 	app.Action = func(c *cli.Context) error {
-		return startNode(c, log)
+		return startNode(c, log, app.Version)
 	}
 
 	err := app.Run(os.Args)
@@ -268,7 +268,7 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 	return nil, errors.New("no consensus provided in config file")
 }
 
-func startNode(ctx *cli.Context, log *logger.Logger) error {
+func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	profileMode := ctx.GlobalString(profileMode.Name)
 	switch profileMode {
 	case "cpu":
@@ -287,11 +287,11 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	enableGopsIfNeeded(ctx, log)
 
-	log.Info("Starting node...")
-
 	stop := make(chan bool, 1)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	log.Info(fmt.Sprintf("Starting node with version %s\n", version))
 
 	configurationFileName := ctx.GlobalString(configurationFile.Name)
 	generalConfig, err := loadMainConfig(configurationFileName, log)
@@ -396,7 +396,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		"PublicKey", factory.GetPkEncoded(pubKey),
 		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
-		"AppVersion", "TestVersion",
+		"AppVersion", version,
 		"OsVersion", "TestOs",
 	)
 
@@ -490,7 +490,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		cryptoComponents,
 		processComponents,
 		networkComponents,
-		uint32(ctx.GlobalUint(boostrapRoundIndex.Name)),
+		uint32(ctx.GlobalUint(bootstrapRoundIndex.Name)),
 	)
 	if err != nil {
 		return err
@@ -680,7 +680,7 @@ func createNode(
 	crypto *factory.Crypto,
 	process *factory.Process,
 	network *factory.Network,
-	boostrapRoundIndex uint32,
+	bootstrapRoundIndex uint32,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -718,7 +718,7 @@ func createNode(
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
-		node.WithBoostrapRoundIndex(boostrapRoundIndex),
+		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
