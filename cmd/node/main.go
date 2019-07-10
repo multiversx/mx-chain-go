@@ -572,8 +572,11 @@ func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
 	baseURL := serversConfig.Prometheus.PrometheusBaseURL
 	statusURL := baseURL + serversConfig.Prometheus.StatusRoute
 	resp, err := http.Get(statusURL)
-	if err != nil || resp.StatusCode == http.StatusNotFound {
+	if err != nil {
 		return "", err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return "", errors.New("prometheus URL not available")
 	}
 	joinURL := baseURL + serversConfig.Prometheus.JoinRoute
 	return joinURL, nil
