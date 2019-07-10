@@ -273,9 +273,7 @@ func (txs *transactions) SaveTxBlockToStorage(body block.Body) error {
 			}
 
 			errNotCritical := txs.storage.Put(dataRetriever.TransactionUnit, txHash, buff)
-			if errNotCritical != nil {
-				log.Error(errNotCritical.Error())
-			}
+			log.LogIfError(errNotCritical)
 		}
 	}
 

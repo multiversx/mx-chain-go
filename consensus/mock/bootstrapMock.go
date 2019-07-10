@@ -5,8 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
-// BootstraperMock mocks the implementation for a Bootstraper
-type BootstraperMock struct {
+// BootstrapperMock mocks the implementation for a Bootstrapper
+type BootstrapperMock struct {
 	CreateAndCommitEmptyBlockCalled func(uint32) (data.BodyHandler, data.HeaderHandler, error)
 	AddSyncStateListenerCalled      func(func(bool))
 	ShouldSyncCalled                func() bool
@@ -14,7 +14,7 @@ type BootstraperMock struct {
 	StopSyncCalled                  func()
 }
 
-func (boot *BootstraperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
+func (boot *BootstrapperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 	if boot.CreateAndCommitEmptyBlockCalled != nil {
 		return boot.CreateAndCommitEmptyBlockCalled(shardForCurrentNode)
 	}
@@ -23,7 +23,7 @@ func (boot *BootstraperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint3
 	return bb, &block.Header{}, nil
 }
 
-func (boot *BootstraperMock) AddSyncStateListener(syncStateNotifier func(bool)) {
+func (boot *BootstrapperMock) AddSyncStateListener(syncStateNotifier func(bool)) {
 	if boot.AddSyncStateListenerCalled != nil {
 		boot.AddSyncStateListenerCalled(syncStateNotifier)
 		return
@@ -32,7 +32,7 @@ func (boot *BootstraperMock) AddSyncStateListener(syncStateNotifier func(bool)) 
 	return
 }
 
-func (boot *BootstraperMock) ShouldSync() bool {
+func (boot *BootstrapperMock) ShouldSync() bool {
 	if boot.ShouldSyncCalled != nil {
 		return boot.ShouldSyncCalled()
 	}
@@ -40,10 +40,10 @@ func (boot *BootstraperMock) ShouldSync() bool {
 	return false
 }
 
-func (boot *BootstraperMock) StartSync() {
+func (boot *BootstrapperMock) StartSync() {
 	boot.StartSyncCalled()
 }
 
-func (boot *BootstraperMock) StopSync() {
+func (boot *BootstrapperMock) StopSync() {
 	boot.StopSyncCalled()
 }
