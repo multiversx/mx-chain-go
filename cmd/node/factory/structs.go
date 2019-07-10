@@ -390,6 +390,7 @@ type processComponentsFactoryArgs struct {
 	nodesConfig          *sharding.NodesSetup
 	syncer               ntp.SyncTimer
 	shardCoordinator     sharding.Coordinator
+	nodesCoordinator     sharding.NodesCoordinator
 	data                 *Data
 	core                 *Core
 	crypto               *Crypto
@@ -428,7 +429,7 @@ func NewProcessComponentsFactoryArgs(
 // ProcessComponentsFactory creates the process components
 func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
 	interceptorContainerFactory, resolversContainerFactory, err := newInterceptorAndResolverContainerFactory(
-		args.shardCoordinator, args.data, args.core, args.crypto, args.state, args.network)
+		args.shardCoordinator, args.nodesCoordinator, args.data, args.core, args.crypto, args.state, args.network)
 	if err != nil {
 		return nil, err
 	}
@@ -1044,6 +1045,7 @@ func createNetMessenger(
 
 func newInterceptorAndResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
 	core *Core,
 	crypto *Crypto,
@@ -1051,10 +1053,10 @@ func newInterceptorAndResolverContainerFactory(
 	network *Network,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return newShardInterceptorAndResolverContainerFactory(shardCoordinator, data, core, crypto, state, network)
+		return newShardInterceptorAndResolverContainerFactory(shardCoordinator, nodesCoordinator, data, core, crypto, state, network)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return newMetaInterceptorAndResolverContainerFactory(shardCoordinator, data, core, crypto, network)
+		return newMetaInterceptorAndResolverContainerFactory(shardCoordinator, nodesCoordinator, data, core, crypto, network)
 	}
 
 	return nil, nil, errors.New("could not create interceptor and resolver container factory")
@@ -1062,6 +1064,7 @@ func newInterceptorAndResolverContainerFactory(
 
 func newShardInterceptorAndResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
 	core *Core,
 	crypto *Crypto,
@@ -1071,6 +1074,7 @@ func newShardInterceptorAndResolverContainerFactory(
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
+		nodesCoordinator,
 		network.NetMessenger,
 		data.Store,
 		core.Marshalizer,
@@ -1109,6 +1113,7 @@ func newShardInterceptorAndResolverContainerFactory(
 
 func newMetaInterceptorAndResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
 	core *Core,
 	crypto *Crypto,
@@ -1117,6 +1122,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
 		shardCoordinator,
+		nodesCoordinator,
 		network.NetMessenger,
 		data.Store,
 		core.Marshalizer,

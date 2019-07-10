@@ -11,6 +11,7 @@ import (
 )
 
 func createTestInterceptedHeader() *block.InterceptedHeader {
+
 	return block.NewInterceptedHeader(
 		mock.NewMultiSigner(),
 		&mock.ChronologyValidatorStub{
@@ -18,6 +19,8 @@ func createTestInterceptedHeader() *block.InterceptedHeader {
 				return nil
 			},
 		},
+		&mock.NodesCoordinatorMock{},
+		&mock.MarshalizerMock{Fail: false},
 	)
 }
 
@@ -251,6 +254,8 @@ func TestInterceptedHeader_IntegrityAndValidityNilChronologyValidatorShouldErr(t
 	hdr := block.NewInterceptedHeader(
 		mock.NewMultiSigner(),
 		nil,
+		&mock.NodesCoordinatorMock{},
+		&mock.MarshalizerMock{Fail: false},
 	)
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
@@ -283,7 +288,7 @@ func TestInterceptedHeader_VerifySigOkValsShouldWork(t *testing.T) {
 
 	hdr := createTestInterceptedHeader()
 	hdr.PrevHash = make([]byte, 0)
-	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.PubKeysBitmap = []byte{1}
 	hdr.BlockBodyType = block2.PeerBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)

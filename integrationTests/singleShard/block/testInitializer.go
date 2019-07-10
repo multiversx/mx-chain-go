@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	llsig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -128,7 +129,8 @@ func createMultiSigner(
 	publicKeys := make([]string, 1)
 	pubKey, _ := publicKey.ToByteArray()
 	publicKeys[0] = string(pubKey)
-	multiSigner, err := multisig.NewBelNevMultisig(hasher, publicKeys, privateKey, keyGen, 0)
+	llsigner := &llsig.KyberMultiSignerBLS{}
+	multiSigner, err := multisig.NewBLSMultisig(llsigner, hasher, publicKeys, privateKey, keyGen, 0)
 
 	return multiSigner, err
 }
@@ -152,24 +154,28 @@ func createNetNode(
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 ) (
 	*node.Node,
 	p2p.Messenger,
 	crypto.PrivateKey,
+	crypto.PublicKey,
+	crypto.MultiSigner,
 	dataRetriever.ResolversFinder) {
 
 	hasher := sha256.Sha256{}
+	hasherSigning := &mock.HasherSpongeMock{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
 	messenger := createMessenger(context.Background())
 
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
-	suite := kyber.NewBlakeSHA256Ed25519()
+	suite := kyber.NewSuitePairingBn256()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
-	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
+	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasherSigning)
 	blkc := createTestBlockChain()
 	store := createTestStore()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
@@ -177,6 +183,7 @@ func createNetNode(
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
+		nodesCoordinator,
 		messenger,
 		store,
 		marshalizer,
@@ -222,7 +229,7 @@ func createNetNode(
 		node.WithDataStore(store),
 	)
 
-	return n, messenger, sk, resolversFinder
+	return n, messenger, sk, pk, multiSigner, resolversFinder
 }
 
 func createMessenger(ctx context.Context) p2p.Messenger {

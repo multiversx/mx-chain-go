@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 )
 
 func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
@@ -21,6 +22,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	hasher := sha256.Sha256{}
 	dPool := createTestDataPool()
 
 	startingNonce := uint64(6)
@@ -29,8 +31,8 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	accntAdapter := createAccountsDB()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
-
-	n, _, sk, _ := createNetNode(dPool, accntAdapter, shardCoordinator)
+	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(1, hasher, 0, 1)
+	n, _, sk, _ := createNetNode(dPool, accntAdapter, shardCoordinator, nodesCoordinator)
 
 	n.Start()
 	defer n.Stop()

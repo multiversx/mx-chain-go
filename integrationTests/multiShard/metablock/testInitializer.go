@@ -32,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -52,6 +53,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"math/big"
 )
 
 var r *rand.Rand
@@ -80,6 +82,21 @@ type testNode struct {
 }
 
 //------- Common
+
+func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
+	validatorsMap := make(map[uint32][]sharding.Validator)
+
+	for shardId, shardNodesPks := range pubKeysMap {
+		shardValidators := make([]sharding.Validator, 0)
+		for i := 0; i < len(shardNodesPks); i++ {
+			v, _ := consensus.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]))
+			shardValidators = append(shardValidators, v)
+		}
+		validatorsMap[shardId] = shardValidators
+	}
+
+	return validatorsMap
+}
 
 func createMemUnit() storage.Storer {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
@@ -171,26 +188,56 @@ func createNodes(
 	nodesInMetachain int,
 	senderShard uint32,
 	initialAddr string,
+	hasher hashing.Hasher,
 ) []*testNode {
+
+	nodesCoordMap := make(map[uint32][]sharding.NodesCoordinator)
+	pkMap := make(map[uint32][]string)
 
 	nodes := make([]*testNode, nodesInMetachain+1)
 	//first node is a shard node
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(1, senderShard)
+	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(1, hasher, senderShard, 1)
+
 	nodes[0] = createShardNetNode(
 		createTestShardDataPool(),
 		createAccountsDB(),
 		shardCoordinator,
+		nodesCoordinator,
 		initialAddr,
 	)
 
+	pk, _ := nodes[0].pk.ToByteArray()
+	shard0NodesCoord := make([]sharding.NodesCoordinator, 1)
+	shard0NodesCoord[0] = nodesCoordinator
+	nodesCoordMap[0] = shard0NodesCoord
+	pkMap[0] = []string{string(pk)}
+
+	metaNodesCoordinators := make([]sharding.NodesCoordinator, 0)
+	metaPubKeys := make([]string, 0)
 	for i := 0; i < nodesInMetachain; i++ {
 		shardCoordinator, _ = sharding.NewMultiShardCoordinator(1, sharding.MetachainShardId)
+		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(1, hasher, sharding.MetachainShardId, 1)
 		nodes[i+1] = createMetaNetNode(
 			createTestMetaDataPool(),
 			createAccountsDB(),
 			shardCoordinator,
+			nodesCoordinator,
 			initialAddr,
 		)
+		metaNodesCoordinators = append(metaNodesCoordinators, nodesCoordinator)
+		pk, _ := nodes[i+1].pk.ToByteArray()
+		metaPubKeys = append(metaPubKeys, string(pk))
+	}
+
+	nodesCoordMap[sharding.MetachainShardId] = metaNodesCoordinators
+	pkMap[sharding.MetachainShardId] = metaPubKeys
+	valMap := genValidatorsFromPubKeys(pkMap)
+
+	for _, nodeCoordList := range nodesCoordMap {
+		for _, nodeCoord := range nodeCoordList {
+			nodeCoord.LoadNodesPerShards(valMap)
+		}
 	}
 
 	return nodes
@@ -261,11 +308,11 @@ func createShardNetNode(
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	initialAddr string,
 ) *testNode {
 
 	tn := testNode{}
-
 	tn.messenger = createMessengerWithKadDht(context.Background(), initialAddr)
 	suite := kyber.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
@@ -283,6 +330,7 @@ func createShardNetNode(
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
+		nodesCoordinator,
 		tn.messenger,
 		store,
 		testMarshalizer,
@@ -442,6 +490,7 @@ func createMetaNetNode(
 	dPool dataRetriever.MetaPoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	initialAddr string,
 ) *testNode {
 
@@ -462,6 +511,7 @@ func createMetaNetNode(
 
 	interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
 		shardCoordinator,
+		nodesCoordinator,
 		tn.messenger,
 		store,
 		testMarshalizer,

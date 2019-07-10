@@ -29,18 +29,23 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	dPoolResolver := createTestDataPool()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
+	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(1, hasher, 0, 1)
 
 	fmt.Println("Requestor:")
 	nRequestor, mesRequestor, sk1, resolversFinder := createNetNode(
 		dPoolRequestor,
 		createAccountsDB(),
-		shardCoordinator)
+		shardCoordinator,
+		nodesCoordinator,
+	)
 
 	fmt.Println("Resolver:")
 	nResolver, mesResolver, _, _ := createNetNode(
 		dPoolResolver,
 		createAccountsDB(),
-		shardCoordinator)
+		shardCoordinator,
+		nodesCoordinator,
+	)
 
 	nRequestor.Start()
 	nResolver.Start()

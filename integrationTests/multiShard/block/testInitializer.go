@@ -55,6 +55,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"math/big"
 )
 
 var r *rand.Rand
@@ -182,12 +183,14 @@ func createNetNode(
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	targetShardId uint32,
 	initialAddr string,
 ) (
 	*node.Node,
 	p2p.Messenger,
 	crypto.PrivateKey,
+	crypto.PublicKey,
 	dataRetriever.ResolversFinder,
 	process.BlockProcessor,
 	data.ChainHandler) {
@@ -217,6 +220,7 @@ func createNetNode(
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
+		nodesCoordinator,
 		messenger,
 		store,
 		testMarshalizer,
@@ -318,7 +322,7 @@ func createNetNode(
 		fmt.Println(err.Error())
 	}
 
-	return n, messenger, sk, resolversFinder, blockProcessor, blkc
+	return n, messenger, sk, pk, resolversFinder, blockProcessor, blkc
 }
 
 func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
@@ -388,6 +392,21 @@ func displayAndStartNodes(nodes []*testNode) {
 	}
 }
 
+func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
+	validatorsMap := make(map[uint32][]sharding.Validator)
+
+	for shardId, shardNodesPks := range pubKeysMap {
+		shardValidators := make([]sharding.Validator, 0)
+		for i := 0; i < len(shardNodesPks); i++ {
+			v, _ := consensus.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]))
+			shardValidators = append(shardValidators, v)
+		}
+		validatorsMap[shardId] = shardValidators
+	}
+
+	return validatorsMap
+}
+
 func createNodes(
 	numOfShards int,
 	nodesPerShard int,
@@ -397,24 +416,39 @@ func createNodes(
 	//first node generated will have is pk belonging to firstSkShardId
 	numMetaChainNodes := 1
 	nodes := make([]*testNode, int(numOfShards)*nodesPerShard+numMetaChainNodes)
+	nodesCoordinators := make(map[uint32][]sharding.NodesCoordinator)
+	nodesPublicKeys := make(map[uint32][]string)
 
 	idx := 0
 	for shardId := 0; shardId < numOfShards; shardId++ {
+		shardNodesCoordinators := make([]sharding.NodesCoordinator, 0)
+		shardPubKeys := make([]string, 0)
+
 		for j := 0; j < nodesPerShard; j++ {
 			testNode := &testNode{
 				dPool:   createTestShardDataPool(),
 				shardId: uint32(shardId),
 			}
-
 			shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
+			nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
+				1,
+				testHasher,
+				uint32(shardId),
+				uint32(numOfShards),
+			)
+			shardNodesCoordinators = append(shardNodesCoordinators, nodesCoordinator)
+
 			accntAdapter := createAccountsDB()
-			n, mes, sk, resFinder, blkProcessor, blkc := createNetNode(
+			n, mes, sk, pk, resFinder, blkProcessor, blkc := createNetNode(
 				testNode.dPool,
 				accntAdapter,
 				shardCoordinator,
+				nodesCoordinator,
 				testNode.shardId,
 				serviceID,
 			)
+			pubKeyBytes, _ := pk.ToByteArray()
+			shardPubKeys = append(shardPubKeys, string(pubKeyBytes))
 			_ = n.CreateShardedStores()
 
 			testNode.node = n
@@ -459,18 +493,47 @@ func createNodes(
 			nodes[idx] = testNode
 			idx++
 		}
+
+		nodesCoordinators[uint32(shardId)] = shardNodesCoordinators
+		nodesPublicKeys[uint32(shardId)] = shardPubKeys
 	}
 
-	shardCoordinatorMeta, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), sharding.MetachainShardId)
-	tn := createMetaNetNode(
-		createTestMetaDataPool(),
-		createAccountsDB(),
-		shardCoordinatorMeta,
-		serviceID,
-	)
+	metaNodesCoordinators := make([]sharding.NodesCoordinator, 0)
+	metaNodesPubKeys := make([]string, 0)
+
 	for i := 0; i < numMetaChainNodes; i++ {
+		shardCoordinatorMeta, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), sharding.MetachainShardId)
+		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
+			1,
+			testHasher,
+			sharding.MetachainShardId,
+			uint32(numOfShards),
+		)
+
+		tn := createMetaNetNode(
+			createTestMetaDataPool(),
+			createAccountsDB(),
+			shardCoordinatorMeta,
+			nodesCoordinator,
+			serviceID,
+		)
+
+		metaNodesCoordinators = append(metaNodesCoordinators, nodesCoordinator)
+		pkBytes, _ := tn.pk.ToByteArray()
+		metaNodesPubKeys = append(metaNodesPubKeys, string(pkBytes))
+
 		idx := i + int(numOfShards)*nodesPerShard
 		nodes[idx] = tn
+	}
+
+	nodesCoordinators[sharding.MetachainShardId] = metaNodesCoordinators
+	nodesPublicKeys[sharding.MetachainShardId] = metaNodesPubKeys
+	mapValidators := genValidatorsFromPubKeys(nodesPublicKeys)
+
+	for _, shardCoord := range nodesCoordinators {
+		for j := 0; j < len(shardCoord); j++ {
+			shardCoord[j].LoadNodesPerShards(mapValidators)
+		}
 	}
 
 	return nodes
@@ -608,6 +671,7 @@ func createMetaNetNode(
 	dPool dataRetriever.MetaPoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	initialAddr string,
 ) *testNode {
 
@@ -628,6 +692,7 @@ func createMetaNetNode(
 
 	interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
 		shardCoordinator,
+		nodesCoordinator,
 		tn.messenger,
 		store,
 		testMarshalizer,

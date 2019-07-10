@@ -484,7 +484,7 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 
 // createNodesCoordinator creates a index hashed group selector object
 func (n *Node) createNodesCoordinator() (sharding.NodesCoordinator, error) {
-	nCoordinator, err := sharding.NewIndexHashedGroupSelector(
+	nCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
 		n.consensusGroupSize,
 		n.hasher,
 		n.shardCoordinator.SelfId(),
@@ -498,17 +498,15 @@ func (n *Node) createNodesCoordinator() (sharding.NodesCoordinator, error) {
 	nbShards := n.shardCoordinator.NumberOfShards()
 
 	for sh := uint32(0); sh < nbShards; sh++ {
-		nodesInShard := len(n.initialNodesPubkeys[sh])
-		nodesMap[sh] = make([]sharding.Validator, nodesInShard)
-
-		for i := 0; i < nodesInShard; i++ {
-			validator, err := consensus.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[sh][i]))
-			if err != nil {
-				return nil, err
-			}
-
-			nodesMap[sh][i] = validator
+		err = n.createValidatorsForShard(nodesMap, sh)
+		if err != nil {
+			return nil, err
 		}
+	}
+
+	err = n.createValidatorsForShard(nodesMap, sharding.MetachainShardId)
+	if err != nil {
+		return nil, err
 	}
 
 	err = nCoordinator.LoadNodesPerShards(nodesMap)
@@ -517,6 +515,22 @@ func (n *Node) createNodesCoordinator() (sharding.NodesCoordinator, error) {
 	}
 
 	return nCoordinator, nil
+}
+
+func (n *Node) createValidatorsForShard(nodesMap map[uint32][]sharding.Validator, shId uint32) (err error) {
+	nodesInShard := len(n.initialNodesPubkeys[shId])
+	nodesMap[shId] = make([]sharding.Validator, nodesInShard)
+
+	for i := 0; i < nodesInShard; i++ {
+		validator, err := consensus.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shId][i]))
+		if err != nil {
+			return err
+		}
+
+		nodesMap[shId][i] = validator
+	}
+
+	return nil
 }
 
 // createConsensusTopic creates a consensus topic for node

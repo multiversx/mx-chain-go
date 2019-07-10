@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // InterceptedHeader represents the wrapper over HeaderWrapper struct.
@@ -14,18 +15,24 @@ type InterceptedHeader struct {
 	multiSigVerifier    crypto.MultiSigVerifier
 	chronologyValidator process.ChronologyValidator
 	hash                []byte
+	nodesCoordinator    sharding.NodesCoordinator
+	marshalizer         marshal.Marshalizer
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
 func NewInterceptedHeader(
 	multiSigVerifier crypto.MultiSigVerifier,
 	chronologyValidator process.ChronologyValidator,
+	nodesCoordinator sharding.NodesCoordinator,
+	marshalizer marshal.Marshalizer,
 ) *InterceptedHeader {
 
 	return &InterceptedHeader{
 		Header:              &block.Header{},
 		multiSigVerifier:    multiSigVerifier,
 		chronologyValidator: chronologyValidator,
+		nodesCoordinator:    nodesCoordinator,
+		marshalizer:         marshalizer,
 	}
 }
 
@@ -121,10 +128,46 @@ func (inHdr *InterceptedHeader) validityCheck() error {
 
 // VerifySig verifies a signature
 func (inHdr *InterceptedHeader) VerifySig() error {
-	// TODO: Check block signature after multisig will be implemented
-	// TODO: the interceptors do not have access yet to consensus group selection to validate multisigs
-	// TODO: verify that the block proposer is among the signers and in the bitmap
-	return nil
+	randSeed := inHdr.GetPrevRandSeed()
+	bitmap := inHdr.GetPubKeysBitmap()
+
+	if len(bitmap) == 0 {
+		return process.ErrNilPubKeysBitmap
+	}
+
+	if bitmap[0]&1 == 0 {
+		return process.ErrBlockProposerSignatureMissing
+
+	}
+	consensusPubKeys, err := inHdr.nodesCoordinator.GetValidatorsPublicKeys(randSeed)
+	if err != nil {
+		return err
+	}
+
+	verifier, err := inHdr.multiSigVerifier.Create(consensusPubKeys, 0)
+	if err != nil {
+		return err
+	}
+
+	err = verifier.SetAggregatedSig(inHdr.Signature)
+	if err != nil {
+		return err
+	}
+
+	// get marshalled block header without signature and bitmap
+	// as this is the message that was signed
+	headerCopy := *inHdr.Header
+	headerCopy.Signature = nil
+	headerCopy.PubKeysBitmap = nil
+
+	headerBytes, err := inHdr.marshalizer.Marshal(headerCopy)
+	if err != nil {
+		return err
+	}
+
+	err = verifier.Verify(headerBytes, bitmap)
+
+	return err
 }
 
 func (inHdr *InterceptedHeader) validatePeerBlock() error {

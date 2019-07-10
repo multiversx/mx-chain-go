@@ -18,6 +18,7 @@ type HeaderInterceptorBase struct {
 	multiSigVerifier    crypto.MultiSigVerifier
 	hasher              hashing.Hasher
 	shardCoordinator    sharding.Coordinator
+	nodesCoordinator    sharding.NodesCoordinator
 	chronologyValidator process.ChronologyValidator
 }
 
@@ -28,6 +29,7 @@ func NewHeaderInterceptorBase(
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	chronologyValidator process.ChronologyValidator,
 ) (*HeaderInterceptorBase, error) {
 	if marshalizer == nil {
@@ -45,6 +47,9 @@ func NewHeaderInterceptorBase(
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if nodesCoordinator == nil {
+		return nil, process.ErrNilNodesCoordinator
+	}
 	if chronologyValidator == nil {
 		return nil, process.ErrNilChronologyValidator
 	}
@@ -55,6 +60,7 @@ func NewHeaderInterceptorBase(
 		multiSigVerifier:    multiSigVerifier,
 		hasher:              hasher,
 		shardCoordinator:    shardCoordinator,
+		nodesCoordinator:    nodesCoordinator,
 		chronologyValidator: chronologyValidator,
 	}
 
@@ -71,7 +77,12 @@ func (hib *HeaderInterceptorBase) ParseReceivedMessage(message p2p.MessageP2P) (
 		return nil, process.ErrNilDataToProcess
 	}
 
-	hdrIntercepted := block.NewInterceptedHeader(hib.multiSigVerifier, hib.chronologyValidator)
+	hdrIntercepted := block.NewInterceptedHeader(
+		hib.multiSigVerifier,
+		hib.chronologyValidator,
+		hib.nodesCoordinator,
+		hib.marshalizer,
+	)
 	err := hib.marshalizer.Unmarshal(hdrIntercepted, message.Data())
 	if err != nil {
 		return nil, err

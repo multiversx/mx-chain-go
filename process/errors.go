@@ -163,6 +163,9 @@ var ErrNegativeValue = errors.New("negative value")
 // ErrNilShardCoordinator signals that an operation has been attempted to or with a nil shard coordinator
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
+// ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
 // ErrInvalidRcvAddr signals that an operation has been attempted to or with an invalid receiver address
 var ErrInvalidRcvAddr = errors.New("invalid receiver address")
 
@@ -174,6 +177,9 @@ var ErrNilKeyGen = errors.New("nil key generator")
 
 // ErrNilSingleSigner signals that a nil single signer is used
 var ErrNilSingleSigner = errors.New("nil single signer")
+
+// ErrBlockProposerSignatureMissing signals that block proposer signature is missing from the block aggregated sig
+var ErrBlockProposerSignatureMissing = errors.New("block proposer signature is missing")
 
 // ErrNilMultiSigVerifier signals that a nil multi-signature verifier is used
 var ErrNilMultiSigVerifier = errors.New("nil multi-signature verifier")

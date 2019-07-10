@@ -13,9 +13,38 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"math/big"
+	"fmt"
 )
 
 var durTimeout = time.Duration(time.Second)
+
+func generateValidatorsMap(shardSize, metachainSize, nbShards uint32) map[uint32][]sharding.Validator {
+	nodes := make(map[uint32][]sharding.Validator)
+
+	// shards
+	for shard := uint32(0); shard < nbShards; shard++ {
+		shardNodes := make([]sharding.Validator, 0)
+		for valIdx := uint32(0); valIdx < shardSize; valIdx++ {
+			pk := fmt.Sprintf("pubKey_sh%d_node%d", shard, valIdx)
+			v, _ := consensus.NewValidator(big.NewInt(0), 1, []byte(pk))
+			shardNodes = append(shardNodes, v)
+		}
+		nodes[shard] = shardNodes
+	}
+
+	metaNodes := make([]sharding.Validator, 0)
+	for mValIdx := uint32(0); mValIdx < metachainSize; mValIdx++ {
+		pk := fmt.Sprintf("pubKey_meta_node%d", mValIdx)
+		v, _ := consensus.NewValidator(big.NewInt(0), 1, []byte(pk))
+		metaNodes = append(metaNodes, v)
+	}
+	nodes[sharding.MetachainShardId] = metaNodes
+
+	return nodes
+}
 
 //------- NewHeaderInterceptor
 
@@ -34,6 +63,7 @@ func TestNewHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
 		&mock.ChronologyValidatorStub{},
 	)
 
@@ -55,6 +85,7 @@ func TestNewHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
 		&mock.ChronologyValidatorStub{},
 	)
 
@@ -76,6 +107,7 @@ func TestNewHeaderInterceptor_NilHeadersNoncesShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
 		&mock.ChronologyValidatorStub{},
 	)
 
@@ -98,6 +130,7 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
 		&mock.ChronologyValidatorStub{},
 	)
 
@@ -122,6 +155,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
 		&mock.ChronologyValidatorStub{},
 	)
 
@@ -157,6 +191,10 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 		return errors.New("Key not found")
 	}
 
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	nodes := generateValidatorsMap(3, 3, 1)
+	nodesCoordinator.LoadNodesPerShards(nodes)
+
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
 		headers,
@@ -165,14 +203,15 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
+		nodesCoordinator,
 		chronologyValidator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
+	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator, nodesCoordinator, marshalizer)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
-	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.PubKeysBitmap = []byte{1}
 	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
@@ -235,6 +274,10 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 		return nil
 	}
 
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	nodes := generateValidatorsMap(3, 3, 1)
+	nodesCoordinator.LoadNodesPerShards(nodes)
+
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
 		headers,
@@ -243,14 +286,15 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
+		nodesCoordinator,
 		chronologyValidator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
+	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator, nodesCoordinator, marshalizer)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
-	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.PubKeysBitmap = []byte{1}
 	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
@@ -310,6 +354,15 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 	shardCoordinator.CurrentShard = 2
 	shardCoordinator.SetNoShards(5)
 
+	nodesCoordinator := &mock.NodesCoordinatorMock{
+		NbShards:      5,
+		ConsensusSize: 1,
+		ShardId:       2,
+	}
+
+	nodes := generateValidatorsMap(3, 3, 5)
+	nodesCoordinator.LoadNodesPerShards(nodes)
+
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
 		headers,
@@ -318,14 +371,15 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 		multisigner,
 		mock.HasherMock{},
 		shardCoordinator,
+		nodesCoordinator,
 		chronologyValidator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
+	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator, nodesCoordinator, marshalizer)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
-	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.PubKeysBitmap = []byte{1}
 	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
@@ -348,5 +402,4 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 	}
 
 	assert.Nil(t, hi.ProcessReceivedMessage(msg))
-
 }

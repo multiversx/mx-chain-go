@@ -3,6 +3,7 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"bytes"
 )
 
 // BelNevMock is used to mock belare neven multisignature scheme
@@ -77,13 +78,28 @@ func (bnm *BelNevMock) SetAggregatedSig(aggSig []byte) error {
 
 // Verify returns nil if the aggregateed signature is verified for the given public keys
 func (bnm *BelNevMock) Verify(msg []byte, bitmap []byte) error {
-	return bnm.VerifyMock(msg, bitmap)
+	if bnm.VerifyMock != nil {
+		return bnm.VerifyMock(msg, bitmap)
+	}
+
+	if msg == nil {
+		return crypto.ErrNilMessage
+	}
+
+	if bitmap == nil {
+		return crypto.ErrNilBitmap
+	}
+
+	return nil
 }
 
 // CreateCommitment creates a secret commitment and the corresponding public commitment point
 func (bnm *BelNevMock) CreateCommitment() (commSecret []byte, commitment []byte) {
+	if bnm.CreateCommitmentMock != nil {
+		return bnm.CreateCommitmentMock()
+	}
 
-	return bnm.CreateCommitmentMock()
+	return []byte("commitment secret"), []byte("commitment")
 }
 
 // StoreCommitmentHash adds a commitment hash to the list on the specified position
@@ -92,18 +108,18 @@ func (bnm *BelNevMock) StoreCommitmentHash(index uint16, commHash []byte) error 
 		bnm.commHash = commHash
 
 		return nil
-	} else {
-		return bnm.StoreCommitmentHashMock(index, commHash)
 	}
+
+	return bnm.StoreCommitmentHashMock(index, commHash)
 }
 
 // CommitmentHash returns the commitment hash from the list on the specified position
 func (bnm *BelNevMock) CommitmentHash(index uint16) ([]byte, error) {
 	if bnm.CommitmentHashMock == nil {
 		return bnm.commHash, nil
-	} else {
-		return bnm.CommitmentHashMock(index)
 	}
+
+	return bnm.CommitmentHashMock(index)
 }
 
 // StoreCommitment adds a commitment to the list on the specified position
@@ -116,9 +132,9 @@ func (bnm *BelNevMock) StoreCommitment(index uint16, value []byte) error {
 		bnm.commitments[index] = value
 
 		return nil
-	} else {
-		return bnm.StoreCommitmentMock(index, value)
 	}
+
+	return bnm.StoreCommitmentMock(index, value)
 }
 
 // Commitment returns the commitment from the list with the specified position
@@ -129,19 +145,27 @@ func (bnm *BelNevMock) Commitment(index uint16) ([]byte, error) {
 		}
 
 		return bnm.commitments[index], nil
-	} else {
-		return bnm.CommitmentMock(index)
 	}
+
+	return bnm.CommitmentMock(index)
 }
 
 // AggregateCommitments aggregates the list of commitments
 func (bnm *BelNevMock) AggregateCommitments(bitmap []byte) error {
-	return bnm.AggregateCommitmentsMock(bitmap)
+	if bnm.AggregateCommitmentsMock != nil {
+		return bnm.AggregateCommitmentsMock(bitmap)
+	}
+
+	return nil
 }
 
 // CreateSignatureShare creates a partial signature
 func (bnm *BelNevMock) CreateSignatureShare(msg []byte, bitmap []byte) ([]byte, error) {
-	return bnm.CreateSignatureShareMock(msg, bitmap)
+	if bnm.CreateSignatureShareMock != nil {
+		return bnm.CreateSignatureShareMock(msg, bitmap)
+	}
+
+	return []byte("signature share"), nil
 }
 
 // StoreSignatureShare adds the partial signature of the signer with specified position
@@ -156,12 +180,28 @@ func (bnm *BelNevMock) StoreSignatureShare(index uint16, sig []byte) error {
 
 // VerifySignatureShare verifies the partial signature of the signer with specified position
 func (bnm *BelNevMock) VerifySignatureShare(index uint16, sig []byte, msg []byte, bitmap []byte) error {
-	return bnm.VerifySignatureShareMock(index, sig, msg, bitmap)
+	if bnm.VerifySignatureShareMock(index, sig, msg, bitmap) != nil {
+		return bnm.VerifySignatureShareMock(index, sig, msg, bitmap)
+	}
+
+	if bytes.Equal([]byte("signature share"), sig) {
+		return nil
+	}
+
+	return crypto.ErrSigNotValid
 }
 
 // AggregateSigs aggregates all collected partial signatures
 func (bnm *BelNevMock) AggregateSigs(bitmap []byte) ([]byte, error) {
-	return bnm.AggregateSigsMock(bitmap)
+	if bnm.AggregateSigsMock != nil {
+		return bnm.AggregateSigsMock(bitmap)
+	}
+
+	if bitmap == nil {
+		return nil, crypto.ErrNilBitmap
+	}
+
+	return []byte("aggregated signature"), nil
 }
 
 // SignatureShare

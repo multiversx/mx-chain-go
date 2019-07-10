@@ -20,6 +20,7 @@ type interceptorsContainerFactory struct {
 	store               dataRetriever.StorageService
 	dataPool            dataRetriever.MetaPoolsHolder
 	shardCoordinator    sharding.Coordinator
+	nodesCoordinator    sharding.NodesCoordinator
 	messenger           process.TopicHandler
 	multiSigner         crypto.MultiSigner
 	chronologyValidator process.ChronologyValidator
@@ -29,6 +30,7 @@ type interceptorsContainerFactory struct {
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewInterceptorsContainerFactory(
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	messenger process.TopicHandler,
 	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
@@ -40,6 +42,9 @@ func NewInterceptorsContainerFactory(
 
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
+	}
+	if nodesCoordinator == nil {
+		return nil, process.ErrNilNodesCoordinator
 	}
 	if messenger == nil {
 		return nil, process.ErrNilMessenger
@@ -65,6 +70,7 @@ func NewInterceptorsContainerFactory(
 
 	return &interceptorsContainerFactory{
 		shardCoordinator:    shardCoordinator,
+		nodesCoordinator:    nodesCoordinator,
 		messenger:           messenger,
 		store:               store,
 		marshalizer:         marshalizer,
@@ -175,6 +181,7 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identif
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
+		icf.nodesCoordinator,
 		icf.chronologyValidator,
 	)
 	if err != nil {

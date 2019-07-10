@@ -28,19 +28,22 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	dPoolResolver := createTestDataPool()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
+	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(1, hasher, 0, 1)
 
 	fmt.Println("Requestor:	")
-	nRequestor, mesRequestor, _, resolversFinder := createNetNode(
+	nRequestor, mesRequestor, _, _, _, resolversFinder := createNetNode(
 		dPoolRequestor,
 		createAccountsDB(),
 		shardCoordinator,
+		nodesCoordinator,
 	)
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := createNetNode(
+	nResolver, mesResolver, _, _, _, _ := createNetNode(
 		dPoolResolver,
 		createAccountsDB(),
 		shardCoordinator,
+		nodesCoordinator,
 	)
 
 	nRequestor.Start()

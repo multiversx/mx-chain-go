@@ -2,10 +2,12 @@ package block
 
 import (
 	"fmt"
+	"math/big"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -14,6 +16,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
+
+func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
+	validatorsMap := make(map[uint32][]sharding.Validator)
+
+	for shardId, shardNodesPks := range pubKeysMap {
+		shardValidators := make([]sharding.Validator, 0)
+		for i := 0; i < len(shardNodesPks); i++ {
+			v, _ := consensus.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]))
+			shardValidators = append(shardValidators, v)
+		}
+		validatorsMap[shardId] = shardValidators
+	}
+
+	return validatorsMap
+}
 
 func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	if testing.Short() {
@@ -27,18 +44,37 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	dPoolResolver := createTestDataPool()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
+	nodesCoordinator1, _ := sharding.NewIndexHashedNodesCoordinator(1, hasher, 0, 1)
+	nodesCoordinator2, _ := sharding.NewIndexHashedNodesCoordinator(1, hasher, 0, 1)
 
 	fmt.Println("Requestor:")
-	nRequestor, mesRequestor, _, resolversFinder := createNetNode(
+	nRequestor, mesRequestor, _, pk1, multiSigner, resolversFinder := createNetNode(
 		dPoolRequestor,
 		createAccountsDB(),
-		shardCoordinator)
+		shardCoordinator,
+		nodesCoordinator1,
+	)
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := createNetNode(
+	nResolver, mesResolver, _, pk2, _, _ := createNetNode(
 		dPoolResolver,
 		createAccountsDB(),
-		shardCoordinator)
+		shardCoordinator,
+		nodesCoordinator2,
+	)
+
+	pubKeyMap := make(map[uint32][]string)
+	shard0PubKeys := make([]string, 2)
+	pk1Bytes, _ := pk1.ToByteArray()
+	pk2Bytes, _ := pk2.ToByteArray()
+
+	shard0PubKeys[0] = string(pk1Bytes)
+	shard0PubKeys[1] = string(pk2Bytes)
+
+	pubKeyMap[0] = shard0PubKeys
+	validatorsMap := genValidatorsFromPubKeys(pubKeyMap)
+	nodesCoordinator1.LoadNodesPerShards(validatorsMap)
+	nodesCoordinator2.LoadNodesPerShards(validatorsMap)
 
 	nRequestor.Start()
 	nResolver.Start()
@@ -57,8 +93,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	//Step 1. Generate a header
 	hdr := block.Header{
 		Nonce:            0,
-		PubKeysBitmap:    []byte{255, 0},
-		Signature:        []byte("signature"),
+		PubKeysBitmap:    nil,
+		Signature:        nil,
 		PrevHash:         []byte("prev hash"),
 		TimeStamp:        uint64(time.Now().Unix()),
 		Round:            1,
@@ -72,6 +108,15 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	}
 
 	hdrBuff, _ := marshalizer.Marshal(&hdr)
+	msig, _ := multiSigner.Create(shard0PubKeys, 0)
+	bitmap := []byte{1, 0, 0}
+	_, _ = msig.CreateSignatureShare(hdrBuff, bitmap)
+	aggSig, _ := msig.AggregateSigs(bitmap)
+
+	hdr.PubKeysBitmap = bitmap
+	hdr.Signature = aggSig
+
+	hdrBuff, _ = marshalizer.Marshal(&hdr)
 	hdrHash := hasher.Compute(string(hdrBuff))
 
 	//Step 2. resolver has the header

@@ -165,6 +165,7 @@ func createNetNode(
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 ) (
 	*node.Node,
 	p2p.Messenger,
@@ -190,6 +191,7 @@ func createNetNode(
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
+		nodesCoordinator,
 		messenger,
 		store,
 		marshalizer,

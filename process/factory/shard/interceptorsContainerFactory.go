@@ -26,12 +26,14 @@ type interceptorsContainerFactory struct {
 	multiSigner         crypto.MultiSigner
 	dataPool            dataRetriever.PoolsHolder
 	addrConverter       state.AddressConverter
+	nodesCoordinator    sharding.NodesCoordinator
 	chronologyValidator process.ChronologyValidator
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewInterceptorsContainerFactory(
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	messenger process.TopicHandler,
 	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
@@ -74,12 +76,16 @@ func NewInterceptorsContainerFactory(
 	if addrConverter == nil {
 		return nil, process.ErrNilAddressConverter
 	}
+	if nodesCoordinator == nil {
+		return nil, process.ErrNilNodesCoordinator
+	}
 	if chronologyValidator == nil {
 		return nil, process.ErrNilChronologyValidator
 	}
 
 	return &interceptorsContainerFactory{
 		shardCoordinator:    shardCoordinator,
+		nodesCoordinator:    nodesCoordinator,
 		messenger:           messenger,
 		store:               store,
 		marshalizer:         marshalizer,
@@ -297,6 +303,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
+		icf.nodesCoordinator,
 		icf.chronologyValidator,
 	)
 	if err != nil {

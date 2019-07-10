@@ -17,8 +17,8 @@ type indexHashedNodesCoordinator struct {
 	consensusGroupSize   int
 }
 
-// NewIndexHashedGroupSelector creates a new index hashed group selector
-func NewIndexHashedGroupSelector(
+// NewIndexHashedNodesCoordinator creates a new index hashed group selector
+func NewIndexHashedNodesCoordinator(
 	consensusGroupSize int,
 	hasher hashing.Hasher,
 	shardId uint32,
