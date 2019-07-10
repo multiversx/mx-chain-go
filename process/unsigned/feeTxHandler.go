@@ -104,6 +104,7 @@ func (ftxh *feeTxHandler) AddTxFeeFromBlock(tx data.TransactionHandler) {
 	currFeeTx, ok := tx.(*feeTx.FeeTx)
 	if !ok {
 		log.Debug(process.ErrWrongTypeAssertion.Error())
+		return
 	}
 
 	ftxh.mutTxs.Lock()
@@ -116,6 +117,7 @@ func (ftxh *feeTxHandler) AddProcessedUTx(tx data.TransactionHandler) {
 	currFeeTx, ok := tx.(*feeTx.FeeTx)
 	if !ok {
 		log.Debug(process.ErrWrongTypeAssertion.Error())
+		return
 	}
 
 	ftxh.mutTxs.Lock()
@@ -197,7 +199,10 @@ func (ftxh *feeTxHandler) VerifyCreatedUTxs() error {
 	for _, value := range calculatedFeeTxs {
 		totalCalculatedFees = totalCalculatedFees.Add(totalCalculatedFees, value.GetValue())
 
-		commTxFromBlock := ftxh.feeTxsFromBlock[string(value.GetRecvAddress())]
+		commTxFromBlock, ok := ftxh.feeTxsFromBlock[string(value.GetRecvAddress())]
+		if !ok {
+			return process.ErrTxsFeesDoesNotMatch
+		}
 		if commTxFromBlock.Value.Cmp(value.GetValue()) != 0 {
 			return process.ErrTxsFeesDoesNotMatch
 		}
