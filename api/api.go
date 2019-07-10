@@ -76,7 +76,8 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	transaction.Routes(txRoutes)
 
-	if elrondFacade.(MainApiHandler).PrometheusMonitoring() {
+	apiHandler, ok := elrondFacade.(MainApiHandler)
+	if ok && apiHandler.PrometheusMonitoring() {
 		nodeRoutes.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	}
 

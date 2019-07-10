@@ -161,7 +161,9 @@ type ServersConfig struct {
 
 // PrometheusConfig will hold configuration for prometheus, such as the join URL
 type PrometheusConfig struct {
-	PrometheusJoinURL string
+	PrometheusBaseURL string
+	JoinRoute         string
+	StatusRoute       string
 }
 
 // ElasticSearchConfig will hold the configuration for the elastic search

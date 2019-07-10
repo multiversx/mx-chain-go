@@ -161,9 +161,9 @@ VERSION:
 		Value: "8080",
 	}
 
-	// flag for monitoring using Prometheus
-	prometheus = cli.BoolFlag{
-		Name:  "prometheus",
+	// usePrometheus joins the node for prometheus monitoring if set
+	usePrometheus = cli.BoolFlag{
+		Name:  "use-prometheus",
 		Usage: "Will make the node available for prometheus and grafana monitoring",
 	}
 
@@ -240,7 +240,7 @@ func main() {
 		gopsEn,
 		serversConfigurationFile,
 		restApiPort,
-		prometheus,
+		usePrometheus,
 		boostrapRoundIndex,
 		workingDirectory,
 	}
@@ -518,15 +518,15 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	ef := facade.NewElrondNodeFacade(currentNode, externalResolver)
 
-	prometheusJoinURLAvailable := true
+	prometheusURLAvailable := true
 	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
 	if err != nil || prometheusJoinUrl == "" {
-		prometheusJoinURLAvailable = false
+		prometheusURLAvailable = false
 	}
 
 	efConfig := &config.FacadeConfig{
 		RestApiPort:       ctx.GlobalString(restApiPort.Name),
-		Prometheus:        ctx.GlobalBool(prometheus.Name) && prometheusJoinURLAvailable,
+		Prometheus:        ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable,
 		PrometheusJoinURL: prometheusJoinUrl,
 	}
 
@@ -569,13 +569,14 @@ func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	joinURL := serversConfig.Prometheus.PrometheusJoinURL
-	statusURL := strings.Replace(joinURL, "/join", "/status", 1)
-	_, err = http.Get(statusURL)
-	if err != nil {
+	baseURL := serversConfig.Prometheus.PrometheusBaseURL
+	statusURL := baseURL + serversConfig.Prometheus.StatusRoute
+	resp, err := http.Get(statusURL)
+	if err != nil || resp.StatusCode == http.StatusNotFound {
 		return "", err
 	}
-	return serversConfig.Prometheus.PrometheusJoinURL, nil
+	joinURL := baseURL + serversConfig.Prometheus.JoinRoute
+	return joinURL, nil
 }
 
 func enableGopsIfNeeded(ctx *cli.Context, log *logger.Logger) {
