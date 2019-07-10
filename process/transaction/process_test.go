@@ -981,6 +981,58 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, 4, saveAccountCalled)
 }
 
+func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
+	journalizeCalled := 0
+	saveAccountCalled := 0
+	tracker := &mock.AccountTrackerStub{
+		JournalizeCalled: func(entry state.JournalEntry) {
+			journalizeCalled++
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			saveAccountCalled++
+			return nil
+		},
+	}
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 4
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+	tx.Value = big.NewInt(61)
+	tx.GasPrice = 2
+	tx.GasLimit = 2
+
+	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
+	assert.Nil(t, err)
+	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
+	assert.Nil(t, err)
+
+	acntSrc.Nonce = 4
+	acntSrc.Balance = big.NewInt(90)
+	acntDst.Balance = big.NewInt(10)
+
+	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+
+	execTx, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.SCProcessorMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
+	)
+
+	err = execTx.ProcessTransaction(&tx, 4)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(5), acntSrc.Nonce)
+	assert.Equal(t, big.NewInt(25), acntSrc.Balance)
+	assert.Equal(t, big.NewInt(71), acntDst.Balance)
+	assert.Equal(t, 4, journalizeCalled)
+	assert.Equal(t, 4, saveAccountCalled)
+}
+
 func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	journalizeCalled := 0
 	saveAccountCalled := 0
