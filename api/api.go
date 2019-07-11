@@ -6,16 +6,15 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/api/address"
+	"github.com/ElrondNetwork/elrond-go/api/middleware"
+	"github.com/ElrondNetwork/elrond-go/api/node"
+	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/go-playground/validator.v8"
-
-	"github.com/ElrondNetwork/elrond-go/api/address"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
-	"github.com/ElrondNetwork/elrond-go/api/node"
-	"github.com/ElrondNetwork/elrond-go/api/transaction"
 )
 
 type validatorInput struct {
