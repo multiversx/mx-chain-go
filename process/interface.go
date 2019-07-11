@@ -113,7 +113,7 @@ type ForkDetector interface {
 	CheckFork() (bool, uint64)
 	GetHighestFinalBlockNonce() uint64
 	ProbableHighestNonce() uint64
-	ResetProbableHighestNonceIfNeed()
+	ResetProbableHighestNonceIfNeeded()
 }
 
 // InterceptorsContainer defines an interceptors holder data type with basic functionality

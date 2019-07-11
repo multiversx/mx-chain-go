@@ -351,9 +351,9 @@ func (bfd *basicForkDetector) ProbableHighestNonce() uint64 {
 	return probableHighestNonce
 }
 
-// ResetProbableHighestNonceIfNeed resets the probableHighestNonce to checkpoint if after maxRoundsToWait nothing
+// ResetProbableHighestNonceIfNeeded resets the probableHighestNonce to checkpoint if after maxRoundsToWait nothing
 // is received so the node will act as synchronized
-func (bfd *basicForkDetector) ResetProbableHighestNonceIfNeed() {
+func (bfd *basicForkDetector) ResetProbableHighestNonceIfNeeded() {
 	bfd.mutFork.Lock()
 	roundsWithoutReceivedBlock := bfd.rounder.Index() - bfd.fork.lastBlockRound
 	if roundsWithoutReceivedBlock > maxRoundsToWait {

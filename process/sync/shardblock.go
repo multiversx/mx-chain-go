@@ -509,7 +509,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 
 	hdr, err := boot.getHeaderRequestingIfMissing(nonce)
 	if err != nil {
-		boot.forkDetector.ResetProbableHighestNonceIfNeed()
+		boot.forkDetector.ResetProbableHighestNonceIfNeeded()
 		return err
 	}
 

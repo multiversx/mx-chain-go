@@ -444,7 +444,7 @@ func TestBasicForkDetector_ResetProbableHighestNonce(t *testing.T) {
 	assert.Equal(t, uint64(11), bfd.ProbableHighestNonce())
 
 	rounderMock.RoundIndex = 22
-	bfd.ResetProbableHighestNonceIfNeed()
+	bfd.ResetProbableHighestNonceIfNeeded()
 	assert.Equal(t, uint64(10), bfd.ProbableHighestNonce())
 }
 
