@@ -37,6 +37,46 @@ func initAccountsMock() *mock.AccountsStub {
 	}
 }
 
+func initBasicTestData() (*mock.PoolsHolderFake, *blockchain.BlockChain, []byte, block.Body, [][]byte, *mock.HasherStub, *mock.MarshalizerMock, error, []byte) {
+	tdp := mock.NewPoolsHolderFake()
+	txHash := []byte("tx_hash1")
+	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
+	blkc := &blockchain.BlockChain{
+		CurrentBlockHeader: &block.Header{
+			Nonce: 0,
+		},
+	}
+	rootHash := []byte("rootHash")
+	body := make(block.Body, 0)
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+	}
+	body = append(body, &miniblock)
+	hasher := &mock.HasherStub{}
+	marshalizer := &mock.MarshalizerMock{}
+	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbHash := hasher.Compute(string(mbbytes))
+	return tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, nil, mbHash
+}
+
+func initBlockHeader(rootHash []byte, mbHdrs []block.MiniBlockHeader, txHashes [][]byte) block.Header {
+	hdr := block.Header{
+		Nonce:            1,
+		PrevHash:         []byte(""),
+		Signature:        []byte("signature"),
+		PubKeysBitmap:    []byte("00110"),
+		ShardId:          0,
+		RootHash:         rootHash,
+		MiniBlockHeaders: mbHdrs,
+		MetaBlockHashes:  txHashes,
+	}
+	return hdr
+}
+
 //------- NewBlockProcessor
 
 func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
@@ -1123,30 +1163,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	t.Parallel()
 
-	tdp := mock.NewPoolsHolderFake()
-	txHash := []byte("tx_hash1")
-	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
-	blkc := &blockchain.BlockChain{
-		CurrentBlockHeader: &block.Header{
-			Nonce: 0,
-		},
-	}
-	rootHash := []byte("rootHash")
-	body := make(block.Body, 0)
-	txHashes := make([][]byte, 0)
-	txHashes = append(txHashes, txHash)
-	miniblock := block.MiniBlock{
-		ReceiverShardID: 0,
-		SenderShardID:   1,
-		TxHashes:        txHashes,
-	}
-	body = append(body, &miniblock)
-
-	hasher := &mock.HasherStub{}
-	marshalizer := &mock.MarshalizerMock{}
-
-	mbbytes, _ := marshalizer.Marshal(miniblock)
-	mbHash := hasher.Compute(string(mbbytes))
+	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, _, mbHash := initBasicTestData()
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
 		SenderShardID:   1,
@@ -1234,6 +1251,519 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	assert.False(t, wasCalled)
 }
 
+func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) {
+	t.Parallel()
+	txHash := []byte("tx_hash1")
+	tdp := initDataPool(txHash)
+
+	blkc := &blockchain.BlockChain{
+		CurrentBlockHeader: &block.Header{
+			Nonce: 0,
+		},
+	}
+	rootHash := []byte("rootHash")
+	body := make(block.Body, 0)
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        txHashes,
+	}
+	body = append(body, &miniblock)
+
+	hasher := &mock.HasherStub{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbHash := hasher.Compute(string(mbbytes))
+	mbHdr := block.MiniBlockHeader{
+		SenderShardID:   0,
+		ReceiverShardID: 0,
+		TxCount:         uint32(len(txHashes)),
+		Hash:            mbHash}
+	mbHdrs := make([]block.MiniBlockHeader, 0)
+	mbHdrs = append(mbHdrs, mbHdr)
+
+	hdr := block.Header{
+		Nonce:            1,
+		PrevHash:         []byte(""),
+		Signature:        []byte("signature"),
+		PubKeysBitmap:    []byte("00110"),
+		ShardId:          0,
+		RootHash:         rootHash,
+		MiniBlockHeaders: mbHdrs,
+	}
+	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+	sp, _ := blproc.NewShardProcessorEmptyWith3shards(tdp, genesisBlocks)
+	haveTimeLessThanZero := func() time.Duration {
+		return time.Duration(-1 * time.Millisecond)
+	}
+
+	// should return err
+	err := sp.ProcessBlock(blkc, &hdr, body, haveTimeLessThanZero)
+	assert.Equal(t, process.ErrTimeIsOut, err)
+}
+
+func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, _, mbHash := initBasicTestData()
+	mbHdr := block.MiniBlockHeader{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxCount:         uint32(len(txHashes)),
+		Hash:            mbHash}
+	mbHdrs := make([]block.MiniBlockHeader, 0)
+	mbHdrs = append(mbHdrs, mbHdr)
+
+	hdr := initBlockHeader(rootHash, mbHdrs, txHashes)
+
+	shardMiniBlock := block.ShardMiniBlockHeader{
+		ReceiverShardId: mbHdr.ReceiverShardID,
+		SenderShardId:   mbHdr.SenderShardID,
+		TxCount:         mbHdr.TxCount,
+		Hash:            mbHdr.Hash,
+	}
+	shardMiniblockHdrs := make([]block.ShardMiniBlockHeader, 0)
+	shardMiniblockHdrs = append(shardMiniblockHdrs, shardMiniBlock)
+	shardHeader := block.ShardData{
+		ShardMiniBlockHeaders: shardMiniblockHdrs,
+	}
+	shardHdrs := make([]block.ShardData, 0)
+	shardHdrs = append(shardHdrs, shardHeader)
+
+	meta := block.MetaBlock{
+		Nonce:     1,
+		ShardInfo: shardHdrs,
+	}
+	metaBytes, _ := marshalizer.Marshal(meta)
+	metaHash := hasher.Compute(string(metaBytes))
+
+	tdp.MetaBlocks().Put(metaHash, meta)
+
+	meta = block.MetaBlock{
+		Nonce:     2,
+		ShardInfo: make([]block.ShardData, 0),
+	}
+	metaBytes, _ = marshalizer.Marshal(meta)
+	metaHash = hasher.Compute(string(metaBytes))
+
+	tdp.MetaBlocks().Put(metaHash, meta)
+
+	// set accounts not dirty
+	journalLen := func() int { return 0 }
+	revertToSnapshot := func(snapshot int) error {
+		return nil
+	}
+	rootHashCalled := func() ([]byte, error) {
+		return rootHash, nil
+	}
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{
+			JournalLenCalled:       journalLen,
+			RevertToSnapshotCalled: revertToSnapshot,
+			RootHashCalled:         rootHashCalled,
+		},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		true,
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+
+	// should return err
+	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
+	assert.Equal(t, process.ErrTimeIsOut, err)
+}
+
+func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx_hash1")
+	tdp := initDataPool(txHash)
+	blkc := &blockchain.BlockChain{
+		CurrentBlockHeader: &block.Header{
+			Nonce: 0,
+		},
+	}
+	rootHash := []byte("rootHash")
+	body := make(block.Body, 0)
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+		TxHashes:        txHashes,
+	}
+	body = append(body, &miniblock)
+
+	hasher := &mock.HasherStub{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbHash := hasher.Compute(string(mbbytes))
+	mbHdr := block.MiniBlockHeader{
+		SenderShardID:   1,
+		ReceiverShardID: 0,
+		TxCount:         uint32(len(txHashes)),
+		Hash:            mbHash,
+	}
+	mbHdrs := make([]block.MiniBlockHeader, 0)
+	mbHdrs = append(mbHdrs, mbHdr)
+
+	hdr := initBlockHeader(rootHash, mbHdrs, txHashes)
+
+	rootHashCalled := func() ([]byte, error) {
+		return rootHash, nil
+	}
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{
+			RootHashCalled: rootHashCalled,
+		},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		true,
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+
+	// should return err
+	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
+	assert.Equal(t, err, process.ErrHeaderBodyMismatch)
+}
+
+//------- checkAndRequestIfMetaHeadersMissing
+func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdrNoncesRequestCalled := 0
+	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, _, mbHash := initBasicTestData()
+	mbHdr := block.MiniBlockHeader{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxCount:         uint32(len(txHashes)),
+		Hash:            mbHash}
+	mbHdrs := make([]block.MiniBlockHeader, 0)
+	mbHdrs = append(mbHdrs, mbHdr)
+
+	hdr := initBlockHeader(rootHash, mbHdrs, txHashes)
+
+	shardMiniBlock := block.ShardMiniBlockHeader{
+		ReceiverShardId: mbHdr.ReceiverShardID,
+		SenderShardId:   mbHdr.SenderShardID,
+		TxCount:         mbHdr.TxCount,
+		Hash:            mbHdr.Hash,
+	}
+	shardMiniblockHdrs := make([]block.ShardMiniBlockHeader, 0)
+	shardMiniblockHdrs = append(shardMiniblockHdrs, shardMiniBlock)
+	shardHeader := block.ShardData{
+		ShardMiniBlockHeaders: shardMiniblockHdrs,
+	}
+	shardHdrs := make([]block.ShardData, 0)
+	shardHdrs = append(shardHdrs, shardHeader)
+
+	meta := &block.MetaBlock{
+		Nonce:     1,
+		ShardInfo: shardHdrs,
+		Round:     0,
+	}
+	metaBytes, _ := marshalizer.Marshal(meta)
+	metaHash := hasher.Compute(string(metaBytes))
+
+	tdp.MetaBlocks().Put(metaHash, meta)
+
+	meta = &block.MetaBlock{
+		Nonce:     2,
+		ShardInfo: make([]block.ShardData, 0),
+		Round:     1,
+	}
+	metaBytes, _ = marshalizer.Marshal(meta)
+	metaHash = hasher.Compute(string(metaBytes))
+
+	tdp.MetaBlocks().Put(metaHash, meta)
+
+	// set accounts not dirty
+	journalLen := func() int { return 0 }
+	revertToSnapshot := func(snapshot int) error {
+		return nil
+	}
+	rootHashCalled := func() ([]byte, error) {
+		return rootHash, nil
+	}
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{
+			JournalLenCalled:       journalLen,
+			RevertToSnapshotCalled: revertToSnapshot,
+			RootHashCalled:         rootHashCalled,
+		},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		true,
+		&mock.RequestHandlerMock{
+			RequestHeaderHandlerByNonceCalled: func(destShardID uint32, nonce uint64) {
+				mutex.Lock()
+				hdrNoncesRequestCalled++
+				mutex.Unlock()
+			},
+		},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+
+	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
+
+	sp.CheckAndRequestIfMetaHeadersMissing(2)
+	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, hdrNoncesRequestCalled, 1)
+	assert.Equal(t, err, process.ErrTimeIsOut)
+}
+
+//-------- isMetaHeaderFinal
+func TestShardProcessor_IsMetaHeaderFinalShouldPass(t *testing.T) {
+	t.Parallel()
+
+	tdp := mock.NewPoolsHolderFake()
+	txHash := []byte("tx_hash1")
+	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
+	blkc := &blockchain.BlockChain{
+		CurrentBlockHeader: &block.Header{
+			Nonce: 0,
+		},
+	}
+	rootHash := []byte("rootHash")
+	body := make(block.Body, 0)
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+	}
+	body = append(body, &miniblock)
+
+	hasher := &mock.HasherStub{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbHash := hasher.Compute(string(mbbytes))
+	mbHdr := block.MiniBlockHeader{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxCount:         uint32(len(txHashes)),
+		Hash:            mbHash,
+	}
+	mbHdrs := make([]block.MiniBlockHeader, 0)
+	mbHdrs = append(mbHdrs, mbHdr)
+
+	hdr := initBlockHeader(rootHash, mbHdrs, txHashes)
+
+	shardMiniBlock := block.ShardMiniBlockHeader{
+		ReceiverShardId: mbHdr.ReceiverShardID,
+		SenderShardId:   mbHdr.SenderShardID,
+		TxCount:         mbHdr.TxCount,
+		Hash:            mbHdr.Hash,
+	}
+	shardMiniblockHdrs := make([]block.ShardMiniBlockHeader, 0)
+	shardMiniblockHdrs = append(shardMiniblockHdrs, shardMiniBlock)
+	shardHeader := block.ShardData{
+		ShardMiniBlockHeaders: shardMiniblockHdrs,
+	}
+	shardHdrs := make([]block.ShardData, 0)
+	shardHdrs = append(shardHdrs, shardHeader)
+
+	meta := block.MetaBlock{
+		Nonce:     1,
+		ShardInfo: shardHdrs,
+	}
+	metaBytes, _ := marshalizer.Marshal(meta)
+	metaHash := hasher.Compute(string(metaBytes))
+
+	tdp.MetaBlocks().Put(metaHash, meta)
+
+	meta = block.MetaBlock{
+		Nonce:     2,
+		ShardInfo: make([]block.ShardData, 0),
+	}
+	metaBytes, _ = marshalizer.Marshal(meta)
+	metaHash = hasher.Compute(string(metaBytes))
+
+	tdp.MetaBlocks().Put(metaHash, meta)
+	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+	sp, _ := blproc.NewShardProcessorEmptyWith3shards(tdp, genesisBlocks)
+
+	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
+	assert.Equal(t, err, process.ErrTimeIsOut)
+	res := sp.IsMetaHeaderFinal(&hdr, nil, 0)
+	assert.Equal(t, res, false)
+	res = sp.IsMetaHeaderFinal(nil, sp.GetDummyHashAndHdrSlice(&hdr), 0)
+	assert.Equal(t, res, false)
+	hdrCopy := hdr
+	hdrCopy.SetNonce(hdrCopy.GetNonce() + 1)
+	hdrCopy.SetRound(hdrCopy.GetRound() + 1)
+
+	res = sp.IsMetaHeaderFinal(&hdr, sp.GetDummyHashAndHdrSlice(&hdrCopy), 0)
+	assert.Equal(t, res, true)
+}
+
+//-------- requestFinalMissingHeaders
+func TestShardProcessor_RequestFinalMissingHeaders(t *testing.T) {
+	t.Parallel()
+
+	tdp := mock.NewPoolsHolderFake()
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		true,
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+
+	res := sp.RequestFinalMissingHeaders()
+	assert.Equal(t, res > 0, true)
+}
+
+//--------- verifyIncludedMetaBlocksFinality
+func TestShardProcessor_VerifyIncludedMetaBlocksFinalityShouldPass(t *testing.T) {
+	t.Parallel()
+
+	tdp := mock.NewPoolsHolderFake()
+	txHash := []byte("tx_hash1")
+	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
+	rootHash := []byte("rootHash")
+	body := make(block.Body, 0)
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+	}
+	body = append(body, &miniblock)
+
+	hasher := &mock.HasherStub{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbHash := hasher.Compute(string(mbbytes))
+	mbHdr := block.MiniBlockHeader{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxCount:         uint32(len(txHashes)),
+		Hash:            mbHash}
+	mbHdrs := make([]block.MiniBlockHeader, 0)
+	mbHdrs = append(mbHdrs, mbHdr)
+
+	hdr := initBlockHeader(rootHash, mbHdrs, txHashes)
+
+	shardMiniBlock := block.ShardMiniBlockHeader{
+		ReceiverShardId: mbHdr.ReceiverShardID,
+		SenderShardId:   mbHdr.SenderShardID,
+		TxCount:         mbHdr.TxCount,
+		Hash:            mbHdr.Hash,
+	}
+	shardMiniblockHdrs := make([]block.ShardMiniBlockHeader, 0)
+	shardMiniblockHdrs = append(shardMiniblockHdrs, shardMiniBlock)
+	shardHeader := block.ShardData{
+		ShardMiniBlockHeaders: shardMiniblockHdrs,
+	}
+	shardHdrs := make([]block.ShardData, 0)
+	shardHdrs = append(shardHdrs, shardHeader)
+
+	meta := &block.MetaBlock{
+		Nonce:     1,
+		ShardInfo: shardHdrs,
+		Round:     2,
+	}
+	metaBytes, _ := marshalizer.Marshal(meta)
+	metaHash := hasher.Compute(string(metaBytes))
+
+	tdp.MetaBlocks().Put(metaHash, meta)
+
+	meta = &block.MetaBlock{
+		Nonce:     2,
+		ShardInfo: make([]block.ShardData, 0),
+		Round:     3,
+	}
+	metaBytes, _ = marshalizer.Marshal(meta)
+	metaHash = hasher.Compute(string(metaBytes))
+
+	tdp.MetaBlocks().Put(metaHash, meta)
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		true,
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+	hdrs := make([]data.HeaderHandler, 0)
+	hdrs = append(hdrs, &hdr)
+
+	err := sp.VerifyIncludedMetaBlocksFinality(hdrs, 4)
+	assert.Nil(t, err)
+}
+
+func TestShardProcessor_VerifyIncludedMetaBlocksFinalityShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mbHdrs := make([]block.MiniBlockHeader, 0)
+	rootHash := []byte("rootHash")
+	txHash := []byte("txhash1")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	hdr := initBlockHeader(rootHash, mbHdrs, txHashes)
+
+	tdp := mock.NewPoolsHolderFake()
+	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+	sp, _ := blproc.NewShardProcessorEmptyWith3shards(tdp, genesisBlocks)
+	hdrs := make([]data.HeaderHandler, 0)
+	hdrs = append(hdrs, &hdr)
+
+	err := sp.VerifyIncludedMetaBlocksFinality(hdrs, 0)
+	assert.Equal(t, err, process.ErrNoNewMetablocks)
+}
+
 //------- CommitBlock
 
 func TestShardProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
@@ -1260,6 +1790,7 @@ func TestShardProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 	blk := make(block.Body, 0)
+
 	err := sp.CommitBlock(nil, &block.Header{}, blk)
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
@@ -1312,6 +1843,7 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 	blkc := createTestBlockchain()
+
 	err := sp.CommitBlock(blkc, hdr, body)
 	assert.Equal(t, errMarshalizer, err)
 }
@@ -1384,6 +1916,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	blkc, _ := blockchain.NewBlockChain(
 		generateTestCache(),
 	)
+
 	err := sp.CommitBlock(blkc, hdr, body)
 	assert.True(t, wasCalled)
 	assert.Nil(t, err)
@@ -1459,6 +1992,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	blkc, _ := blockchain.NewBlockChain(
 		generateTestCache(),
 	)
+
 	err = sp.CommitBlock(blkc, hdr, body)
 
 	assert.Nil(t, err)
@@ -2381,6 +2915,149 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	assert.Equal(t, int32(0), atomic.LoadInt32(&miniBlockHash1Requested))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&miniBlockHash2Requested))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&miniBlockHash2Requested))
+}
+
+//--------- receivedMetaBlockNoMissingMiniBlocks
+func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+
+	//we will have a metablock that will return 3 miniblock hashes
+	//1 miniblock hash will be in cache
+	//2 will be requested on network
+
+	miniBlockHash1 := []byte("miniblock hash 1 found in cache")
+
+	metaBlock := mock.HeaderHandlerStub{
+		GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+			return map[string]uint32{
+				string(miniBlockHash1): 0,
+			}
+		},
+	}
+
+	//put this metaBlock inside datapool
+	metaBlockHash := []byte("metablock hash")
+	dataPool.MetaBlocks().Put(metaBlockHash, &metaBlock)
+	//put the existing miniblock inside datapool
+	dataPool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
+
+	noOfMissingMiniBlocks := int32(0)
+
+	requestHandler := &mock.RequestHandlerMock{RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
+		atomic.AddInt32(&noOfMissingMiniBlocks, 1)
+	}}
+
+	tc, _ := coordinator.NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(3),
+		initAccountsMock(),
+		dataPool,
+		requestHandler,
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+	)
+
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		dataPool,
+		initStore(),
+		hasher,
+		marshalizer,
+		initAccountsMock(),
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		true,
+		requestHandler,
+		tc,
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+	sp.ReceivedMetaBlock(metaBlockHash)
+	assert.Equal(t, int32(0), atomic.LoadInt32(&noOfMissingMiniBlocks))
+}
+
+//--------- createAndProcessCrossMiniBlocksDstMe
+func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
+	t.Parallel()
+
+	tdp := mock.NewPoolsHolderFake()
+	txHash := []byte("tx_hash1")
+	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
+	body := make(block.Body, 0)
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+	}
+	body = append(body, &miniblock)
+
+	hasher := &mock.HasherStub{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	mbbytes, _ := marshalizer.Marshal(miniblock)
+	mbHash := hasher.Compute(string(mbbytes))
+	mbHdr := block.MiniBlockHeader{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxCount:         uint32(len(txHashes)),
+		Hash:            mbHash}
+	mbHdrs := make([]block.MiniBlockHeader, 0)
+	mbHdrs = append(mbHdrs, mbHdr)
+
+	shardMiniBlock := block.ShardMiniBlockHeader{
+		ReceiverShardId: mbHdr.ReceiverShardID,
+		SenderShardId:   mbHdr.SenderShardID,
+		TxCount:         mbHdr.TxCount,
+		Hash:            mbHdr.Hash,
+	}
+	shardMiniblockHdrs := make([]block.ShardMiniBlockHeader, 0)
+	shardMiniblockHdrs = append(shardMiniblockHdrs, shardMiniBlock)
+	shardHeader := block.ShardData{
+		ShardMiniBlockHeaders: shardMiniblockHdrs,
+	}
+	shardHdrs := make([]block.ShardData, 0)
+	shardHdrs = append(shardHdrs, shardHeader)
+
+	meta := &block.MetaBlock{
+		Nonce:        1,
+		ShardInfo:    make([]block.ShardData, 0),
+		Round:        1,
+		PrevRandSeed: []byte("roothash"),
+	}
+	metaBytes, _ := marshalizer.Marshal(meta)
+	metaHash := hasher.Compute(string(metaBytes))
+
+	tdp.MetaBlocks().Put(metaHash, meta)
+
+	haveTimeReturnsBool := func() bool {
+		return true
+	}
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		true,
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+	miniBlockSlice, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, 2, haveTimeReturnsBool)
+	assert.Equal(t, err == nil, true)
+	assert.Equal(t, len(miniBlockSlice) == 0, true)
+	assert.Equal(t, noOfTxs, uint32(0))
 }
 
 //------- createMiniBlocks
