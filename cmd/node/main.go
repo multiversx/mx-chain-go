@@ -794,7 +794,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 func createApiResolver(vmAccountsDB vmcommon.BlockchainHook) (facade.ApiResolver, error) {
 	//TODO replace this with a vm factory
 	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, ielecommon.Default)
+	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, ielecommon.Danse)
 
 	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
 	if err != nil {
