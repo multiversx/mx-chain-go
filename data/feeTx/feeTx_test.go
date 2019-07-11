@@ -14,6 +14,7 @@ func TestFeeTx_SaveLoad(t *testing.T) {
 		Nonce:   uint64(1),
 		Value:   big.NewInt(1),
 		RcvAddr: []byte("receiver_address"),
+		ShardId: 10,
 	}
 
 	var b bytes.Buffer

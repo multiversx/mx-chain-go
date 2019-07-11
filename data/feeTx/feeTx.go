@@ -54,6 +54,7 @@ func FeeTxCapnToGo(src capnp.FeeTxCapn, dest *FeeTx) *FeeTx {
 	}
 
 	dest.RcvAddr = src.RcvAddr()
+	dest.ShardId = src.ShardId()
 
 	return dest
 }
@@ -66,6 +67,7 @@ func FeeTxGoToCapn(seg *capn.Segment, src *FeeTx) capnp.FeeTxCapn {
 	dest.SetNonce(src.Nonce)
 	dest.SetValue(value)
 	dest.SetRcvAddr(src.RcvAddr)
+	dest.SetShardId(src.ShardId)
 
 	return dest
 }
