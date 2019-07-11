@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"io/ioutil"
 	"math"
 	"os"
@@ -368,8 +367,19 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	log.Info("Starting with public key: " + factory.GetPkEncoded(pubKey))
 
 	destinationShardAsObserverString := ctx.GlobalString(destinationShardAsObserver.Name)
+	if destinationShardAsObserverString != metachainShardName {
+		shardId, err := strconv.Atoi(destinationShardAsObserverString)
+		if err == nil {
+			if int64(shardId) >= 0 &&
+				int64(shardId) < int64(nodesConfig.NumberOfShards()) {
+				generalConfig.GeneralSettings.DestinationShardAsObserver = fmt.Sprintf("%d", shardId)
+			}
+		}
+	} else {
+		generalConfig.GeneralSettings.DestinationShardAsObserver = destinationShardAsObserverString
+	}
 
-	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log, destShard)
+	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
 	}
@@ -585,7 +595,6 @@ func createShardCoordinator(
 	pubKey crypto.PublicKey,
 	settingsConfig config.GeneralSettingsConfig,
 	log *logger.Logger,
-	destinationShardAsObserver string,
 ) (shardCoordinator sharding.Coordinator,
 	err error) {
 	if pubKey == nil {
@@ -601,18 +610,7 @@ func createShardCoordinator(
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
 		log.Info("Starting as observer node...")
 
-		//if(destinationShardAsObserver != metachainShardName) {
-		//	tempshard, err := strconv.Atoi(destinationShardAsObserver)
-		//
-		//}
-		//
-		//if int64(destinationShardAsObserver) >= 0 &&
-		//	int64(destinationShardAsObserver) < int64(nodesConfig.NumberOfShards() ){
-		//	selfShardId = uint32(destinationShardAsObserver)
-		//	err = nil
-		//} else{
-		//	selfShardId, err = processDestinationShardAsObserver(settingsConfig)
-		//}
+		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
 	}
 	if err != nil {
 		return nil, err
