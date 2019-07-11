@@ -42,7 +42,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(99981597)
+	expectedBalance := big.NewInt(99978648)
 	vm.TestAccount(
 		t,
 		accnts,
