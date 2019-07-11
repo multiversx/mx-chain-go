@@ -754,6 +754,8 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 100
 	}
+	forkDetector.ResetProbableHighestNonceIfNeedCalled = func() {
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
