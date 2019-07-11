@@ -1,7 +1,6 @@
 package smartContract
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"encoding/base64"
@@ -35,7 +34,6 @@ import (
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -111,9 +109,9 @@ func createTestShardChain() *blockchain.BlockChain {
 		badBlockCache,
 	)
 	blockChain.GenesisHeader = &dataBlock.Header{}
-	genisisHeaderM, _ := testMarshalizer.Marshal(blockChain.GenesisHeader)
+	genesisHeaderM, _ := testMarshalizer.Marshal(blockChain.GenesisHeader)
 
-	blockChain.SetGenesisHeaderHash(testHasher.Compute(string(genisisHeaderM)))
+	blockChain.SetGenesisHeaderHash(testHasher.Compute(string(genesisHeaderM)))
 
 	return blockChain
 }
@@ -419,30 +417,6 @@ func getConnectableAddress(mes p2p.Messenger) string {
 	return ""
 }
 
-func makeDisplayTable(nodes []*testNode) string {
-	header := []string{"pk", "shard ID", "txs", "miniblocks", "headers", "metachain headers", "connections"}
-	dataLines := make([]*display.LineData, len(nodes))
-	for idx, n := range nodes {
-		buffPk, _ := n.pk.ToByteArray()
-
-		dataLines[idx] = display.NewLineData(
-			false,
-			[]string{
-				hex.EncodeToString(buffPk),
-				fmt.Sprintf("%d", n.shardId),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.txsRecv)),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.miniblocksRecv)),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.headersRecv)),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.metachainHdrRecv)),
-				fmt.Sprintf("%d / %d", len(n.messenger.ConnectedPeersOnTopic(factory.TransactionTopic+"_"+
-					fmt.Sprintf("%d", n.shardId))), len(n.messenger.ConnectedPeers())),
-			},
-		)
-	}
-	table, _ := display.CreateTableString(header, dataLines)
-	return table
-}
-
 func displayAndStartNodes(nodes []*testNode) {
 	for _, n := range nodes {
 		skBuff, _ := n.sk.ToByteArray()
@@ -548,86 +522,6 @@ func createNodes(
 	}
 
 	return nodes
-}
-
-func getMiniBlocksHashesFromShardIds(body dataBlock.Body, shardIds ...uint32) [][]byte {
-	hashes := make([][]byte, 0)
-
-	for _, miniblock := range body {
-		for _, shardId := range shardIds {
-			if miniblock.ReceiverShardID == shardId {
-				buff, _ := testMarshalizer.Marshal(miniblock)
-				hashes = append(hashes, testHasher.Compute(string(buff)))
-			}
-		}
-	}
-
-	return hashes
-}
-
-func equalSlices(slice1 [][]byte, slice2 [][]byte) bool {
-	if len(slice1) != len(slice2) {
-		return false
-	}
-
-	//check slice1 has all elements in slice2
-	for _, buff1 := range slice1 {
-		found := false
-		for _, buff2 := range slice2 {
-			if bytes.Equal(buff1, buff2) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	//check slice2 has all elements in slice1
-	for _, buff2 := range slice2 {
-		found := false
-		for _, buff1 := range slice1 {
-			if bytes.Equal(buff1, buff2) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
-}
-
-func uint32InSlice(searched uint32, list []uint32) bool {
-	for _, val := range list {
-		if val == searched {
-			return true
-		}
-	}
-	return false
-}
-
-func generatePrivateKeyInShardId(
-	coordinator sharding.Coordinator,
-	shardId uint32,
-) crypto.PrivateKey {
-
-	suite := kyber.NewBlakeSHA256Ed25519()
-	keyGen := signing.NewKeyGenerator(suite)
-	sk, pk := keyGen.GeneratePair()
-
-	for {
-		buff, _ := pk.ToByteArray()
-		addr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(buff)
-
-		if coordinator.ComputeId(addr) == shardId {
-			return sk
-		}
-
-		sk, pk = keyGen.GeneratePair()
-	}
 }
 
 func createTestMetaChain() data.ChainHandler {
@@ -880,9 +774,4 @@ func createVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecuti
 	vm.GasForOperation = uint64(opGas)
 
 	return vm, blockChainHook
-}
-
-func skToPk(sk crypto.PrivateKey) []byte {
-	pkBuff, _ := sk.GeneratePublic().ToByteArray()
-	return pkBuff
 }

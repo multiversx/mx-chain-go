@@ -12,9 +12,77 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
+
+var gasPrice = 1
+var gasLimit = 1000
+var initialValueForInternalVariable = uint64(45)
+
+func createScCallsNodes() (p2p.Messenger, []*testNode) {
+	advertiser := createMessengerWithKadDht(context.Background(), "")
+	advertiser.Bootstrap()
+
+	nodes := createNodes(
+		2,
+		1,
+		getConnectableAddress(advertiser),
+	)
+	displayAndStartNodes(nodes)
+
+	return advertiser, nodes
+}
+
+func deploySmartContract(t *testing.T, nodeToProcess *testNode, roundNumber uint32, senderAddressBytes []byte, senderNonce uint64) {
+	scCode := "aaaa"
+
+	contractTx := createTx(
+		t,
+		senderAddressBytes,
+		vm.CreateEmptyAddress().Bytes(),
+		senderNonce,
+		big.NewInt(0),
+		scCode,
+		initialValueForInternalVariable,
+	)
+
+	err := nodeToProcess.txProcessor.ProcessTransaction(contractTx, roundNumber)
+	assert.Nil(t, err)
+	_, err = nodeToProcess.accntState.Commit()
+	assert.Nil(t, err)
+}
+
+func createTx(
+	t *testing.T,
+	senderAddressBytes []byte,
+	receiverAddressBytes []byte,
+	senderNonce uint64,
+	value *big.Int,
+	scCodeOrFunc string,
+	scValue uint64,
+) *transaction.Transaction {
+
+	txData := fmt.Sprintf("%s@%X", scCodeOrFunc, scValue)
+	tx := &transaction.Transaction{
+		Nonce:    senderNonce,
+		Value:    value,
+		RcvAddr:  receiverAddressBytes,
+		SndAddr:  senderAddressBytes,
+		GasPrice: uint64(gasPrice),
+		GasLimit: uint64(gasLimit),
+		Data:     txData,
+	}
+	assert.NotNil(t, tx)
+
+	return tx
+}
+
+func haveTime() time.Duration {
+	//fair enough to process a few transactions
+	return time.Second * 2
+}
 
 // Test within a network of two shards the following situation
 // 1. Node in first shard deploys a smart contract -> we also make sure that the resulting smart contract address falls within the same shard
@@ -27,25 +95,12 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	numOfShards := 2
-	nodesPerShard := 1
 	generalRoundNumber := uint32(1)
-
 	senderShard := uint32(0)
 	senderNonce := uint64(1)
 	senderMintingValue := big.NewInt(100000000)
-	//receiverShard := uint32(1)
 
-	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
-
-	nodes := createNodes(
-		numOfShards,
-		nodesPerShard,
-		getConnectableAddress(advertiser),
-	)
-	displayAndStartNodes(nodes)
-
+	advertiser, nodes := createScCallsNodes()
 	defer func() {
 		advertiser.Close()
 		for _, n := range nodes {
@@ -65,25 +120,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	createMintingForSenders(nodes, senderShard, [][]byte{senderAddressBytes}, senderMintingValue)
 
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
-	scCode := "aaaa"
-	initialValueForInternalVariable := uint64(45)
-
-	contractTx := createTx(
-		t,
-		senderAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
-		senderNonce,
-		big.NewInt(0),
-		1,
-		100000,
-		scCode,
-		initialValueForInternalVariable,
-	)
-
-	err := proposerNodeShard1.txProcessor.ProcessTransaction(contractTx, generalRoundNumber)
-	assert.Nil(t, err)
-	_, err = proposerNodeShard1.accntState.Commit()
-	assert.Nil(t, err)
+	deploySmartContract(t, proposerNodeShard1, generalRoundNumber, senderAddressBytes, senderNonce)
 
 	// Test that the gas for deploying the smart contract was substracted from the sender's account
 	acc, _ := proposerNodeShard1.node.GetAccount(hex.EncodeToString(senderAddressBytes))
@@ -106,13 +143,11 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 		scDeploymentAdddress,
 		senderNonce,
 		big.NewInt(0),
-		1,
-		100,
 		"Add",
 		addValue,
 	)
 
-	err = proposerNodeShard1.txProcessor.ProcessTransaction(contractCallTx, generalRoundNumber)
+	err := proposerNodeShard1.txProcessor.ProcessTransaction(contractCallTx, generalRoundNumber)
 	assert.Nil(t, err)
 	_, err = proposerNodeShard1.accntState.Commit()
 	assert.Nil(t, err)
@@ -123,7 +158,6 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	expectedValue.Sub(expectedValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
 	assert.Equal(t, senderNonce, acc.Nonce)
-
 
 	senderNonce++
 	generalRoundNumber++
@@ -140,26 +174,14 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	numOfShards := 2
-	nodesPerShard := 1
 	generalRoundNumber := uint32(1)
-
 	senderShard := uint32(0)
 	receiverShard := uint32(1)
 	senderNonce := uint64(1)
 	mintingValue := big.NewInt(100000000)
 	receiverNonce := uint64(1)
 
-	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
-
-	nodes := createNodes(
-		numOfShards,
-		nodesPerShard,
-		getConnectableAddress(advertiser),
-	)
-	displayAndStartNodes(nodes)
-
+	advertiser, nodes := createScCallsNodes()
 	defer func() {
 		advertiser.Close()
 		for _, n := range nodes {
@@ -182,25 +204,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	createMintingForSenders(nodes, receiverShard, [][]byte{secondShardAddressBytes}, mintingValue)
 
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
-	scCode := "aaaa"
-	initialValueForInternalVariable := uint64(45)
-
-	contractTx := createTx(
-		t,
-		senderAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
-		senderNonce,
-		big.NewInt(0),
-		1,
-		100000,
-		scCode,
-		initialValueForInternalVariable,
-	)
-
-	err := proposerNodeShard1.txProcessor.ProcessTransaction(contractTx, generalRoundNumber)
-	assert.Nil(t, err)
-	_, err = proposerNodeShard1.accntState.Commit()
-	assert.Nil(t, err)
+	deploySmartContract(t, proposerNodeShard1, generalRoundNumber, senderAddressBytes, senderNonce)
 
 	// Test that the gas for deploying the smart contract was substracted from the sender's account
 	acc, _ := proposerNodeShard1.node.GetAccount(hex.EncodeToString(senderAddressBytes))
@@ -223,14 +227,12 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 		scDeploymentAdddress,
 		receiverNonce,
 		big.NewInt(0),
-		1,
-		100,
 		"Add",
 		addValue,
 	)
 
 	// The second shard should process this tx as MoveBalance
-	err = proposerNodeShard2.txProcessor.ProcessTransaction(contractCallTx, generalRoundNumber)
+	err := proposerNodeShard2.txProcessor.ProcessTransaction(contractCallTx, generalRoundNumber)
 	assert.Nil(t, err)
 	_, err = proposerNodeShard2.accntState.Commit()
 	assert.Nil(t, err)
@@ -269,29 +271,14 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	numOfShards := 2
-	nodesPerShard := 1
 	generalRoundNumber := uint32(1)
-
 	scShard := uint32(0)
 	accShard := uint32(1)
 	accNonce := uint64(1)
 	mintingValue := big.NewInt(100000000)
 	scNonce := uint64(1)
 
-	gasPrice := 1
-	gasLimit := 1000
-
-	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
-
-	nodes := createNodes(
-		numOfShards,
-		nodesPerShard,
-		getConnectableAddress(advertiser),
-	)
-	displayAndStartNodes(nodes)
-
+	advertiser, nodes := createScCallsNodes()
 	defer func() {
 		advertiser.Close()
 		for _, n := range nodes {
@@ -314,25 +301,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	createMintingForSenders(nodes, accShard, [][]byte{accountShardAddressBytes}, mintingValue)
 
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
-	scCode := "aaaa"
-	initialValueForInternalVariable := uint64(45)
-
-	contractTx := createTx(
-		t,
-		scAccountAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
-		accNonce,
-		big.NewInt(0),
-		uint64(gasPrice),
-		uint64(gasLimit),
-		scCode,
-		initialValueForInternalVariable,
-	)
-
-	err := proposerNodeShardSC.txProcessor.ProcessTransaction(contractTx, generalRoundNumber)
-	assert.Nil(t, err)
-	_, err = proposerNodeShardSC.accntState.Commit()
-	assert.Nil(t, err)
+	deploySmartContract(t, proposerNodeShardSC, generalRoundNumber, scAccountAddressBytes, accNonce)
 
 	// Test that the gas for deploying the smart contract was substracted from the sender's account
 	acc, _ := proposerNodeShardSC.node.GetAccount(hex.EncodeToString(scAccountAddressBytes))
@@ -358,14 +327,12 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 		scDeploymentAdddress,
 		scNonce,
 		big.NewInt(0),
-		uint64(gasPrice),
-		uint64(gasLimit),
 		"Withdraw",
 		withdrawValue,
 	)
 
 	// The account shard should process this tx as MoveBalance
-	err = proposerNodeShardAccount.txProcessor.ProcessTransaction(contractCallTx, generalRoundNumber)
+	err := proposerNodeShardAccount.txProcessor.ProcessTransaction(contractCallTx, generalRoundNumber)
 	assert.Nil(t, err)
 	_, err = proposerNodeShardAccount.accntState.Commit()
 	assert.Nil(t, err)
@@ -438,36 +405,4 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	finalValue := big.NewInt(0).Add(mintingValue, big.NewInt(int64(withdrawValue + uint64(gasLimit - 1*gasPrice))))
 	acc, _ = proposerNodeShardAccount.node.GetAccount(hex.EncodeToString(accountShardAddressBytes))
 	assert.Equal(t, finalValue, acc.Balance)
-}
-
-func createTx(
-	t *testing.T,
-	senderAddressBytes []byte,
-	receiverAddressBytes []byte,
-	senderNonce uint64,
-	value *big.Int,
-	gasPrice uint64,
-	gasLimit uint64,
-	scCodeOrFunc string,
-	scValue uint64,
-) *transaction.Transaction {
-
-	txData := fmt.Sprintf("%s@%X", scCodeOrFunc, scValue)
-	tx := &transaction.Transaction{
-		Nonce:    senderNonce,
-		Value:    value,
-		RcvAddr:  receiverAddressBytes,
-		SndAddr:  senderAddressBytes,
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
-		Data:     txData,
-	}
-	assert.NotNil(t, tx)
-
-	return tx
-}
-
-func haveTime() time.Duration {
-	//fair enough to process a few transactions
-	return time.Second * 2
 }
