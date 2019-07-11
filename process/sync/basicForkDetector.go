@@ -355,8 +355,8 @@ func (bfd *basicForkDetector) ProbableHighestNonce() uint64 {
 // is received so the node will act as synchronized
 func (bfd *basicForkDetector) ResetProbableHighestNonceIfNeeded() {
 	//TODO: This mechanism should be improved to avoid the situation when a malicious group of 2/3 + 1 from a
-	// consensus group size, could keep all the shard in sync mode, by creating fakes block higher than current commited
-	// block + 1 which could not be verified by hash - prev hash and only by rand seed - prev random seed
+	// consensus group size, could keep all the shard in sync mode, by creating fake blocks higher than current
+	// committed block + 1, which could not be verified by hash -> prev hash and only by rand seed -> prev random seed
 	bfd.mutFork.Lock()
 	roundsWithoutReceivedBlock := bfd.rounder.Index() - bfd.fork.lastBlockRound
 	if roundsWithoutReceivedBlock > maxRoundsToWait {
