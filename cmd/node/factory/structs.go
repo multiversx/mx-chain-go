@@ -27,7 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
-	block2 "github.com/ElrondNetwork/elrond-go/data/block"
+	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
@@ -1281,7 +1281,7 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	scForwarder, err := interimProcContainer.Get(block2.SmartContractResultBlock)
+	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
 	if err != nil {
 		return nil, nil, err
 	}
