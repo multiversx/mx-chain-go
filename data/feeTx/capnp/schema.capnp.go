@@ -12,9 +12,9 @@ import (
 
 type FeeTxCapn C.Struct
 
-func NewFeeTxCapn(s *C.Segment) FeeTxCapn      { return FeeTxCapn(s.NewStruct(8, 3)) }
-func NewRootFeeTxCapn(s *C.Segment) FeeTxCapn  { return FeeTxCapn(s.NewRootStruct(8, 3)) }
-func AutoNewFeeTxCapn(s *C.Segment) FeeTxCapn  { return FeeTxCapn(s.NewStructAR(8, 3)) }
+func NewFeeTxCapn(s *C.Segment) FeeTxCapn      { return FeeTxCapn(s.NewStruct(16, 2)) }
+func NewRootFeeTxCapn(s *C.Segment) FeeTxCapn  { return FeeTxCapn(s.NewRootStruct(16, 2)) }
+func AutoNewFeeTxCapn(s *C.Segment) FeeTxCapn  { return FeeTxCapn(s.NewStructAR(16, 2)) }
 func ReadRootFeeTxCapn(s *C.Segment) FeeTxCapn { return FeeTxCapn(s.Root(0).ToStruct()) }
 func (s FeeTxCapn) Nonce() uint64              { return C.Struct(s).Get64(0) }
 func (s FeeTxCapn) SetNonce(v uint64)          { C.Struct(s).Set64(0, v) }
@@ -22,8 +22,8 @@ func (s FeeTxCapn) Value() []byte              { return C.Struct(s).GetObject(0)
 func (s FeeTxCapn) SetValue(v []byte)          { C.Struct(s).SetObject(0, s.Segment.NewData(v)) }
 func (s FeeTxCapn) RcvAddr() []byte            { return C.Struct(s).GetObject(1).ToData() }
 func (s FeeTxCapn) SetRcvAddr(v []byte)        { C.Struct(s).SetObject(1, s.Segment.NewData(v)) }
-func (s FeeTxCapn) TxHash() []byte             { return C.Struct(s).GetObject(2).ToData() }
-func (s FeeTxCapn) SetTxHash(v []byte)         { C.Struct(s).SetObject(2, s.Segment.NewData(v)) }
+func (s FeeTxCapn) ShardId() uint32            { return C.Struct(s).Get32(8) }
+func (s FeeTxCapn) SetShardId(v uint32)        { C.Struct(s).Set32(8, v) }
 func (s FeeTxCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -90,12 +90,12 @@ func (s FeeTxCapn) WriteJSON(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("\"txHash\":")
+	_, err = b.WriteString("\"shardId\":")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.TxHash()
+		s := s.ShardId()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -183,12 +183,12 @@ func (s FeeTxCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("txHash = ")
+	_, err = b.WriteString("shardId = ")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.TxHash()
+		s := s.ShardId()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -214,7 +214,7 @@ func (s FeeTxCapn) MarshalCapLit() ([]byte, error) {
 type FeeTxCapn_List C.PointerList
 
 func NewFeeTxCapnList(s *C.Segment, sz int) FeeTxCapn_List {
-	return FeeTxCapn_List(s.NewCompositeList(8, 3, sz))
+	return FeeTxCapn_List(s.NewCompositeList(16, 2, sz))
 }
 func (s FeeTxCapn_List) Len() int           { return C.PointerList(s).Len() }
 func (s FeeTxCapn_List) At(i int) FeeTxCapn { return FeeTxCapn(C.PointerList(s).At(i).ToStruct()) }
