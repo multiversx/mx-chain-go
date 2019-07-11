@@ -5,9 +5,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -22,7 +22,7 @@ import (
 )
 
 var log = logger.DefaultLogger()
-var genesisFile = "genesisBad.json"
+var genesisFile = "genesisEdgeCase.json"
 
 type InitialBalance struct {
 	PubKey  string `json:"pubkey"`
@@ -38,10 +38,14 @@ type testPair struct {
 	val []byte
 }
 
+const generate32ByteSlices = 0
+const generate32HexByteSlices = 1
+
 func TestCreationOfTheGenesisState(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+	t.Parallel()
 
 	genesisBalances := &Genesis{}
 	err := core.LoadJsonFile(genesisBalances, genesisFile, log)
@@ -67,7 +71,9 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 	}
 }
 
-func TestExtensionNodeToBranchVariant1(t *testing.T) {
+func TestExtensionNodeToBranchEdgeCaseSet1(t *testing.T) {
+	t.Parallel()
+
 	marsh := &marshal.JsonMarshalizer{}
 	hasher := sha256.Sha256{}
 
@@ -84,8 +90,8 @@ func TestExtensionNodeToBranchVariant1(t *testing.T) {
 	_ = tr1.Update([]byte(key3), []byte(val))
 
 	fmt.Println()
-	tr1.Print(os.Stdout)
-	fmt.Println()
+	strTr1 := tr1.String()
+	fmt.Println(strTr1)
 
 	hash1, _ := tr1.Root()
 	fmt.Printf("root hash1: %s\n", base64.StdEncoding.EncodeToString(hash1))
@@ -97,13 +103,15 @@ func TestExtensionNodeToBranchVariant1(t *testing.T) {
 	fmt.Printf("root hash2: %s\n", base64.StdEncoding.EncodeToString(hash2))
 
 	fmt.Println()
-	tr2.Print(os.Stdout)
-	fmt.Println()
+	strTr2 := tr2.String()
+	fmt.Println(strTr2)
 
 	assert.Equal(t, hash1, hash2)
 }
 
-func TestExtensionNodeToBranchVariant2(t *testing.T) {
+func TestExtensionNodeToBranchEdgeCaseSet2(t *testing.T) {
+	t.Parallel()
+
 	marsh := &marshal.JsonMarshalizer{}
 	hasher := sha256.Sha256{}
 
@@ -126,8 +134,8 @@ func TestExtensionNodeToBranchVariant2(t *testing.T) {
 	_ = tr1.Update([]byte(key4), []byte(val))
 
 	fmt.Println()
-	tr1.Print(os.Stdout)
-	fmt.Println()
+	strTr1 := tr1.String()
+	fmt.Println(strTr1)
 
 	hash1, _ := tr1.Root()
 	fmt.Printf("root hash1: %s\n", base64.StdEncoding.EncodeToString(hash1))
@@ -140,8 +148,8 @@ func TestExtensionNodeToBranchVariant2(t *testing.T) {
 	_ = tr2.Update([]byte(key6), []byte(val))
 
 	fmt.Println()
-	tr2.Print(os.Stdout)
-	fmt.Println()
+	strTr2 := tr2.String()
+	fmt.Println(strTr2)
 
 	hash2, _ := tr2.Root()
 	fmt.Printf("root hash2: %s\n", base64.StdEncoding.EncodeToString(hash2))
@@ -149,22 +157,26 @@ func TestExtensionNodeToBranchVariant2(t *testing.T) {
 	assert.Equal(t, hash1, hash2)
 }
 
-func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylces(t *testing.T) {
+func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32byteSlices(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+	t.Parallel()
 
 	marsh := &marshal.JsonMarshalizer{}
 	hasher := sha256.Sha256{}
 
-	totalPairs, removablePairs, totalPairsIdx, removablePairsIdx := generateTestData(1000, 500)
+	totalPairs, totalPairsIdx, removablePairsIdx := generateTestData(
+		1000,
+		500,
+		generate32ByteSlices,
+	)
 
 	numTests := 1000
 	referenceTrie, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
-	referenceAfterAddRootHash, referenceFinalRootHash := execute(
+	refAfterAddRootHash, refFinalRootHash, refTotalPairsIdx, refRemovablePairsIdx := execute(
 		referenceTrie,
 		totalPairs,
-		removablePairs,
 		totalPairsIdx,
 		removablePairsIdx,
 	)
@@ -172,36 +184,143 @@ func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylces(t *testing.T) {
 	for i := 0; i < numTests; i++ {
 		tr, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
 
-		afterAddRootHash, finalRootHash := execute(
+		afterAddRootHash, finalRootHash, totalPairsIdx, removablePairsIdx := execute(
 			tr,
 			totalPairs,
-			removablePairs,
 			totalPairsIdx,
 			removablePairsIdx,
 		)
 
-		if !bytes.Equal(afterAddRootHash, referenceAfterAddRootHash) ||
-			!bytes.Equal(finalRootHash, referenceFinalRootHash) {
+		if !bytes.Equal(afterAddRootHash, refAfterAddRootHash) ||
+			!bytes.Equal(finalRootHash, refFinalRootHash) {
 
 			assert.Fail(t, "mismatched root hashes")
-			fmt.Printf("expected after add root hash: %s\n", base64.StdEncoding.EncodeToString(referenceAfterAddRootHash))
-			fmt.Printf("actual after add root hash: %s\n", base64.StdEncoding.EncodeToString(afterAddRootHash))
-			fmt.Printf("expected final add root hash: %s\n", base64.StdEncoding.EncodeToString(referenceFinalRootHash))
-			fmt.Printf("actual final root hash: %s\n", base64.StdEncoding.EncodeToString(finalRootHash))
-
-			fmt.Println()
-			fmt.Println("Reference trie:")
-			referenceTrie.Print(os.Stdout)
-
-			fmt.Println()
-			fmt.Println("Actual trie:")
-			tr.Print(os.Stdout)
+			printTestDebugLines(
+				refAfterAddRootHash,
+				afterAddRootHash,
+				refFinalRootHash,
+				finalRootHash,
+				totalPairs,
+				refTotalPairsIdx,
+				totalPairsIdx,
+				refRemovablePairsIdx,
+				removablePairsIdx,
+				referenceTrie,
+				tr,
+			)
 
 			return
 		}
 	}
 
 	fmt.Printf("Completed %d iterations\n", numTests)
+}
+
+func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32HexByteSlices(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	t.Parallel()
+
+	marsh := &marshal.JsonMarshalizer{}
+	hasher := sha256.Sha256{}
+
+	totalPairs, totalPairsIdx, removablePairsIdx := generateTestData(
+		1000,
+		500,
+		generate32HexByteSlices,
+	)
+
+	numTests := 1000
+	referenceTrie, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+	refAfterAddRootHash, refFinalRootHash, refTotalPairsIdx, refRemovablePairsIdx := execute(
+		referenceTrie,
+		totalPairs,
+		totalPairsIdx,
+		removablePairsIdx,
+	)
+
+	for i := 0; i < numTests; i++ {
+		tr, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+
+		afterAddRootHash, finalRootHash, totalPairsIdx, removablePairsIdx := execute(
+			tr,
+			totalPairs,
+			totalPairsIdx,
+			removablePairsIdx,
+		)
+
+		if !bytes.Equal(afterAddRootHash, refAfterAddRootHash) ||
+			!bytes.Equal(finalRootHash, refFinalRootHash) {
+
+			assert.Fail(t, "mismatched root hashes")
+			printTestDebugLines(
+				refAfterAddRootHash,
+				afterAddRootHash,
+				refFinalRootHash,
+				finalRootHash,
+				totalPairs,
+				refTotalPairsIdx,
+				totalPairsIdx,
+				refRemovablePairsIdx,
+				removablePairsIdx,
+				referenceTrie,
+				tr,
+			)
+
+			return
+		}
+	}
+
+	fmt.Printf("Completed %d iterations\n", numTests)
+}
+
+func printTestDebugLines(
+	referenceAfterAddRootHash []byte,
+	afterAddRootHash []byte,
+	referenceFinalRootHash []byte,
+	finalRootHash []byte,
+	totalPairs []*testPair,
+	referenceTotalPairsIdx []int,
+	totalPairsIdx []int,
+	referenceRemovablePairs []int,
+	removablePairs []int,
+	referenceTrie data.Trie,
+	tr data.Trie,
+) {
+
+	fmt.Printf("expected after add root hash: %s\n", base64.StdEncoding.EncodeToString(referenceAfterAddRootHash))
+	fmt.Printf("actual after add root hash: %s\n", base64.StdEncoding.EncodeToString(afterAddRootHash))
+	fmt.Printf("expected final add root hash: %s\n", base64.StdEncoding.EncodeToString(referenceFinalRootHash))
+	fmt.Printf("actual final root hash: %s\n", base64.StdEncoding.EncodeToString(finalRootHash))
+
+	fmt.Println()
+	fmt.Println("Test pairs as hex:")
+	for _, tp := range totalPairs {
+		fmt.Printf("%s %s\n", hex.EncodeToString(tp.key), hex.EncodeToString(tp.val))
+	}
+
+	fmt.Println()
+	fmt.Println("Reference total pairs idx, test total pairs idx:")
+	for idx := range referenceTotalPairsIdx {
+		fmt.Printf("%d %d\n", referenceTotalPairsIdx[idx], totalPairsIdx[idx])
+	}
+
+	fmt.Println()
+	fmt.Println("Reference removable pairs idx, test removable pairs idx:")
+	for idx := range referenceRemovablePairs {
+		fmt.Printf("%d %d\n", referenceRemovablePairs[idx], removablePairs[idx])
+	}
+
+	fmt.Println()
+	fmt.Println("Reference trie:")
+	strRefTrie := referenceTrie.String()
+	fmt.Println(strRefTrie)
+
+	fmt.Println()
+	fmt.Println("Actual trie:")
+	strTr := tr.String()
+	fmt.Println(strTr)
 }
 
 func getRootHashByRunningInitialBalances(initialBalances []*InitialBalance) ([]byte, state.AccountsAdapter) {
@@ -247,10 +366,9 @@ func fisherYatesShuffle(indexes []int) ([]int, error) {
 func execute(
 	tr data.Trie,
 	totalPairs []*testPair,
-	removablePairs []*testPair,
 	totalPairsIdx []int,
 	removablePairsIdx []int,
-) ([]byte, []byte) {
+) ([]byte, []byte, []int, []int) {
 
 	randomTotalPairsIdx, _ := fisherYatesShuffle(totalPairsIdx)
 	randomRemovablePirsIdx, _ := fisherYatesShuffle(removablePairsIdx)
@@ -263,37 +381,44 @@ func execute(
 	afterAddRootHash, _ := tr.Root()
 
 	for _, idx := range randomRemovablePirsIdx {
-		tPair := removablePairs[idx]
+		tPair := totalPairs[idx]
 
 		_ = tr.Delete(tPair.key)
 	}
 	finalRootHash, _ := tr.Root()
 
-	return afterAddRootHash, finalRootHash
+	return afterAddRootHash, finalRootHash, randomTotalPairsIdx, randomRemovablePirsIdx
 }
 
-func generateTestData(numTotalPairs int, numRemovablePairs int) ([]*testPair, []*testPair, []int, []int) {
+func generateTestData(numTotalPairs int, numRemovablePairs int, generationMethod int) ([]*testPair, []int, []int) {
 	totalPairs := make([]*testPair, numTotalPairs)
 	totalPairsIndexes := make([]int, numTotalPairs)
-	removablePairs := make([]*testPair, numRemovablePairs)
 	removablePairsIndexes := make([]int, numRemovablePairs)
 
-	sizeBuff := 32
-
 	for i := 0; i < numTotalPairs; i++ {
-		totalPairs[i] = &testPair{
-			key: generateRandomSlice(sizeBuff),
-			val: generateRandomSlice(sizeBuff),
+		switch generationMethod {
+		case generate32ByteSlices:
+			sizeBuff := 32
+			totalPairs[i] = &testPair{
+				key: generateRandomSlice(sizeBuff),
+				val: generateRandomSlice(sizeBuff),
+			}
+		case generate32HexByteSlices:
+			sizeBuff := 16
+			totalPairs[i] = &testPair{
+				key: []byte(hex.EncodeToString(generateRandomSlice(sizeBuff))),
+				val: []byte(hex.EncodeToString(generateRandomSlice(sizeBuff))),
+			}
 		}
+
 		totalPairsIndexes[i] = i
 
 		if i < numRemovablePairs {
-			removablePairs[i] = totalPairs[i]
 			removablePairsIndexes[i] = i
 		}
 	}
 
-	return totalPairs, removablePairs, totalPairsIndexes, removablePairsIndexes
+	return totalPairs, totalPairsIndexes, removablePairsIndexes
 }
 
 func generateRandomSlice(size int) []byte {

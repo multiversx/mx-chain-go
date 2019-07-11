@@ -1,7 +1,6 @@
 package data
 
 import (
-	"io"
 	"math/big"
 )
 
@@ -89,7 +88,7 @@ type Trie interface {
 	VerifyProof(proofs [][]byte, key []byte) (bool, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
-	Print(writer io.Writer)
+	String() string
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed

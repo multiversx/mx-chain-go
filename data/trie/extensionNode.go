@@ -300,6 +300,7 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
 		return false, nil, ErrChildPosOutOfRange
 	}
+
 	followingExtensionNode := newExtensionNode(en.Key[keyMatchLen+1:], en.child)
 	if len(followingExtensionNode.Key) < 1 {
 		branch.children[oldChildPos] = en.child
