@@ -196,7 +196,8 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 	errMutex := sync.Mutex{}
 
 	wg := sync.WaitGroup{}
-	wg.Add(len(separatedBodies))
+	// Length of body types + another go routine for the intermediate transactions
+	wg.Add(len(separatedBodies) + 1)
 
 	for key, value := range separatedBodies {
 		go func() {
@@ -214,9 +215,29 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 				errFound = err
 				errMutex.Unlock()
 			}
+
 			wg.Done()
 		}()
 	}
+
+	go func() {
+		intermediatePreproc := tc.getInterimProcessor(block.SmartContractResultBlock)
+		if intermediatePreproc == nil {
+			wg.Done()
+			return
+		}
+
+		err := intermediatePreproc.SaveCurrentIntermediateTxToStorage()
+		if err != nil {
+			log.Debug(err.Error())
+
+			errMutex.Lock()
+			errFound = err
+			errMutex.Unlock()
+		}
+
+		wg.Done()
+	}()
 
 	wg.Wait()
 

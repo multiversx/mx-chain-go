@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -21,6 +22,7 @@ type intermediateResultsProcessor struct {
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
 	adrConv          state.AddressConverter
+	store            dataRetriever.StorageService
 	blockType        block.Type
 
 	mutInterResultsForBlock sync.Mutex
@@ -33,6 +35,7 @@ func NewIntermediateResultsProcessor(
 	marshalizer marshal.Marshalizer,
 	coordinator sharding.Coordinator,
 	adrConv state.AddressConverter,
+	store dataRetriever.StorageService,
 	blockType block.Type,
 ) (*intermediateResultsProcessor, error) {
 	if hasher == nil {
@@ -47,6 +50,9 @@ func NewIntermediateResultsProcessor(
 	if adrConv == nil {
 		return nil, process.ErrNilAddressConverter
 	}
+	if store == nil {
+		return nil, process.ErrNilStorage
+	}
 
 	irp := &intermediateResultsProcessor{
 		hasher:           hasher,
@@ -54,6 +60,7 @@ func NewIntermediateResultsProcessor(
 		shardCoordinator: coordinator,
 		adrConv:          adrConv,
 		blockType:        blockType,
+		store:            store,
 	}
 
 	irp.interResultsForBlock = make(map[string]*txInfo, 0)
@@ -159,6 +166,30 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
 		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
+	}
+
+	return nil
+}
+
+// SaveCurrentIntermediateTxToStorage saves all current intermediate results to the provided storage unit
+func (irp *intermediateResultsProcessor) SaveCurrentIntermediateTxToStorage() error {
+	irp.mutInterResultsForBlock.Lock()
+	defer irp.mutInterResultsForBlock.Unlock()
+
+	for _, txInfoValue := range irp.interResultsForBlock {
+		if txInfoValue.tx == nil {
+			return process.ErrMissingTransaction
+		}
+
+		buff, err := irp.marshalizer.Marshal(txInfoValue.tx)
+		if err != nil {
+			return err
+		}
+
+		errNotCritical := irp.store.Put(dataRetriever.UnsignedTransactionUnit, irp.hasher.Compute(string(buff)), buff)
+		if errNotCritical != nil {
+			log.Error(errNotCritical.Error())
+		}
 	}
 
 	return nil
