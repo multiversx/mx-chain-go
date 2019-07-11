@@ -8,7 +8,7 @@ struct FeeTxCapn {
    nonce      @0:   UInt64; 
    value      @1:   Data;
    rcvAddr    @2:   Data;
-   txHash     @3:   Data;
+   shardId    @3:   UInt32;
 } 
 
 ##compile with:

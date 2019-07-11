@@ -484,12 +484,10 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 			// this has to be processed last
 			continue
 		}
-		go func() {
-			currMbs := interimProc.CreateAllInterMiniBlocks()
-			for _, value := range currMbs {
-				miniBlocks = append(miniBlocks, value)
-			}
-		}()
+		currMbs := interimProc.CreateAllInterMiniBlocks()
+		for _, value := range currMbs {
+			miniBlocks = append(miniBlocks, value)
+		}
 	}
 
 	tc.mutInterimProcessors.Unlock()
