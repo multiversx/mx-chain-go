@@ -99,7 +99,8 @@ func (bp *baseProcessor) checkBlockValidity(
 				return nil
 			}
 
-			log.Info(fmt.Sprintf("hash not match: local block hash is empty and node received block with previous hash %s\n",
+			log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
+				core.ToB64(chainHandler.GetGenesisHeaderHash()),
 				core.ToB64(headerHandler.GetPrevHash())))
 
 			return process.ErrInvalidBlockHash

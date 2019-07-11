@@ -384,6 +384,8 @@ func (wrk *Worker) Extend(subroundId int) {
 		time.Sleep(time.Millisecond)
 	}
 
+	log.Debug(fmt.Sprintf("account state is reverted to snapshot\n"))
+
 	wrk.blockProcessor.RevertAccountState()
 }
 
