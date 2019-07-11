@@ -2,18 +2,18 @@ package interceptors_test
 
 import (
 	"errors"
+	"fmt"
+	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/stretchr/testify/assert"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"math/big"
-	"fmt"
+	"github.com/stretchr/testify/assert"
 )
 
 //------- NewHeaderInterceptorBase
@@ -245,13 +245,11 @@ func createNodesCoordinator() sharding.NodesCoordinator {
 	}
 
 	//metachain
-	metachainValidators := make([]sharding.Validator, 0)
 	pubKeyBytes := []byte("pk_meta")
 	v, _ := consensus.NewValidator(big.NewInt(0), 1, pubKeyBytes)
-	metachainValidators = append(metachainValidators, v)
 
 	validators[0] = shardValidators
-	validators[sharding.MetachainShardId] = metachainValidators
+	validators[sharding.MetachainShardId] = []sharding.Validator{v}
 
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	nodesCoordinator.LoadNodesPerShards(validators)

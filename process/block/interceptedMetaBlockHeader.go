@@ -5,24 +5,31 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // InterceptedHeader represents the wrapper over HeaderWrapper struct.
 // It implements Newer and Hashed interfaces
 type InterceptedMetaHeader struct {
 	*block.MetaBlock
-	multiSigVerifier    crypto.MultiSigVerifier
-	hash                []byte
+	multiSigVerifier crypto.MultiSigVerifier
+	hash             []byte
+	nodesCoordinator sharding.NodesCoordinator
+	marshalizer      marshal.Marshalizer
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
 func NewInterceptedMetaHeader(
 	multiSigVerifier crypto.MultiSigVerifier,
+	nodesCoordinator sharding.NodesCoordinator,
+	marshalizer marshal.Marshalizer,
 ) *InterceptedMetaHeader {
 
 	return &InterceptedMetaHeader{
-		MetaBlock:           &block.MetaBlock{},
-		multiSigVerifier:    multiSigVerifier,
+		MetaBlock:        &block.MetaBlock{},
+		multiSigVerifier: multiSigVerifier,
+		nodesCoordinator: nodesCoordinator,
+		marshalizer:      marshalizer,
 	}
 }
 
@@ -97,10 +104,46 @@ func (imh *InterceptedMetaHeader) Integrity(coordinator sharding.Coordinator) er
 
 // VerifySig verifies a signature
 func (imh *InterceptedMetaHeader) VerifySig() error {
-	// TODO: Check block signature after multisig will be implemented
-	// TODO: the interceptors do not have access yet to consensus group selection to validate multisigs
-	// TODO: verify that the block proposer is among the signers
-	return nil
+	randSeed := imh.GetPrevRandSeed()
+	bitmap := imh.GetPubKeysBitmap()
+
+	if len(bitmap) == 0 {
+		return process.ErrNilPubKeysBitmap
+	}
+
+	if bitmap[0]&1 == 0 {
+		return process.ErrBlockProposerSignatureMissing
+
+	}
+	consensusPubKeys, err := imh.nodesCoordinator.GetValidatorsPublicKeys(randSeed)
+	if err != nil {
+		return err
+	}
+
+	verifier, err := imh.multiSigVerifier.Create(consensusPubKeys, 0)
+	if err != nil {
+		return err
+	}
+
+	err = verifier.SetAggregatedSig(imh.Signature)
+	if err != nil {
+		return err
+	}
+
+	// get marshalled block header without signature and bitmap
+	// as this is the message that was signed
+	headerCopy := *imh
+	headerCopy.Signature = nil
+	headerCopy.PubKeysBitmap = nil
+
+	headerBytes, err := imh.marshalizer.Marshal(headerCopy)
+	if err != nil {
+		return err
+	}
+
+	err = verifier.Verify(headerBytes, bitmap)
+
+	return err
 }
 
 // IsInterfaceNil return if there is no value under the interface

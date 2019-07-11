@@ -185,7 +185,7 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 
 	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n", randomSource))
 
-	nextConsensusGroup, err := sr.GetNextConsensusGroup(randomSource, sr.ValidatorGroupSelector())
+	nextConsensusGroup, err := sr.GetNextConsensusGroup(randomSource, sr.NodesCoordinator())
 	if err != nil {
 		return err
 	}

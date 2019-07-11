@@ -136,7 +136,7 @@ func (cc *ConsensusCore) SyncTimer() ntp.SyncTimer {
 }
 
 // NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
-func (cc *ConsensusCore) ValidatorGroupSelector() sharding.NodesCoordinator {
+func (cc *ConsensusCore) NodesCoordinator() sharding.NodesCoordinator {
 	return cc.validatorGroupSelector
 }
 

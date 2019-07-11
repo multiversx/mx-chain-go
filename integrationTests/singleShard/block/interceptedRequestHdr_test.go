@@ -72,14 +72,10 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	)
 
 	pubKeyMap := make(map[uint32][]string)
-	shard0PubKeys := make([]string, 2)
 	pk1Bytes, _ := pk1.ToByteArray()
 	pk2Bytes, _ := pk2.ToByteArray()
 
-	shard0PubKeys[0] = string(pk1Bytes)
-	shard0PubKeys[1] = string(pk2Bytes)
-
-	pubKeyMap[0] = shard0PubKeys
+	pubKeyMap[0] = []string{string(pk1Bytes), string(pk2Bytes)}
 	validatorsMap := genValidatorsFromPubKeys(pubKeyMap)
 	nodesCoordinator1.LoadNodesPerShards(validatorsMap)
 	nodesCoordinator2.LoadNodesPerShards(validatorsMap)
@@ -132,7 +128,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	}
 
 	hdrBuff, _ := marshalizer.Marshal(&hdr1)
-	msig, _ := multiSigner.Create(shard0PubKeys, 0)
+	msig, _ := multiSigner.Create(pubKeyMap[0], 0)
 	bitmap := []byte{1, 0, 0}
 	_, _ = msig.CreateSignatureShare(hdrBuff, bitmap)
 	aggSig, _ := msig.AggregateSigs(bitmap)

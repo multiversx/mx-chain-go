@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"strings"
 	"sync"
@@ -55,7 +56,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"math/big"
 )
 
 var r *rand.Rand
@@ -353,42 +353,50 @@ func getConnectableAddress(mes p2p.Messenger) string {
 	return ""
 }
 
-func makeDisplayTable(nodes []*testNode) string {
+func makeDisplayTable(nodes map[uint32][]*testNode) string {
 	header := []string{"pk", "shard ID", "txs", "miniblocks", "headers", "metachain headers", "connections"}
-	dataLines := make([]*display.LineData, len(nodes))
-	for idx, n := range nodes {
-		buffPk, _ := n.pk.ToByteArray()
+	dataLines := make([]*display.LineData, 0)
 
-		dataLines[idx] = display.NewLineData(
-			false,
-			[]string{
-				hex.EncodeToString(buffPk),
-				fmt.Sprintf("%d", n.shardId),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.txsRecv)),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.miniblocksRecv)),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.headersRecv)),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.metachainHdrRecv)),
-				fmt.Sprintf("%d / %d", len(n.messenger.ConnectedPeersOnTopic(factory.TransactionTopic+"_"+
-					fmt.Sprintf("%d", n.shardId))), len(n.messenger.ConnectedPeers())),
-			},
-		)
+	for _, nList := range nodes {
+		for _, n := range nList {
+			buffPk, _ := n.pk.ToByteArray()
+
+			dataLine := display.NewLineData(
+				false,
+				[]string{
+					hex.EncodeToString(buffPk),
+					fmt.Sprintf("%d", n.shardId),
+					fmt.Sprintf("%d", atomic.LoadInt32(&n.txsRecv)),
+					fmt.Sprintf("%d", atomic.LoadInt32(&n.miniblocksRecv)),
+					fmt.Sprintf("%d", atomic.LoadInt32(&n.headersRecv)),
+					fmt.Sprintf("%d", atomic.LoadInt32(&n.metachainHdrRecv)),
+					fmt.Sprintf("%d / %d", len(n.messenger.ConnectedPeersOnTopic(factory.TransactionTopic+"_"+
+						fmt.Sprintf("%d", n.shardId))), len(n.messenger.ConnectedPeers())),
+				},
+			)
+
+			dataLines = append(dataLines, dataLine)
+		}
 	}
 	table, _ := display.CreateTableString(header, dataLines)
 	return table
 }
 
-func displayAndStartNodes(nodes []*testNode) {
-	for _, n := range nodes {
-		skBuff, _ := n.sk.ToByteArray()
-		pkBuff, _ := n.pk.ToByteArray()
+func displayAndStartNodes(nodes map[uint32][]*testNode) {
+	for _, nodeList := range nodes {
 
-		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
-			n.shardId,
-			hex.EncodeToString(skBuff),
-			hex.EncodeToString(pkBuff),
-		)
-		_ = n.node.Start()
-		_ = n.node.P2PBootstrap()
+		for _, n := range nodeList {
+			skBuff, _ := n.sk.ToByteArray()
+			pkBuff, _ := n.pk.ToByteArray()
+
+			fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
+				n.shardId,
+				hex.EncodeToString(skBuff),
+				hex.EncodeToString(pkBuff),
+			)
+			_ = n.node.Start()
+			_ = n.node.P2PBootstrap()
+		}
 	}
 }
 
@@ -411,18 +419,18 @@ func createNodes(
 	numOfShards int,
 	nodesPerShard int,
 	serviceID string,
-) []*testNode {
+) map[uint32][]*testNode {
 
 	//first node generated will have is pk belonging to firstSkShardId
 	numMetaChainNodes := 1
-	nodes := make([]*testNode, int(numOfShards)*nodesPerShard+numMetaChainNodes)
+	nodes := make(map[uint32][]*testNode)
 	nodesCoordinators := make(map[uint32][]sharding.NodesCoordinator)
 	nodesPublicKeys := make(map[uint32][]string)
 
-	idx := 0
 	for shardId := 0; shardId < numOfShards; shardId++ {
 		shardNodesCoordinators := make([]sharding.NodesCoordinator, 0)
 		shardPubKeys := make([]string, 0)
+		shardNodes := make([]*testNode, nodesPerShard)
 
 		for j := 0; j < nodesPerShard; j++ {
 			testNode := &testNode{
@@ -490,10 +498,10 @@ func createNodes(
 				&singlesig.SchnorrSigner{},
 			)
 
-			nodes[idx] = testNode
-			idx++
+			shardNodes[j] = testNode
 		}
 
+		nodes[uint32(shardId)] = shardNodes
 		nodesCoordinators[uint32(shardId)] = shardNodesCoordinators
 		nodesPublicKeys[uint32(shardId)] = shardPubKeys
 	}
@@ -501,6 +509,7 @@ func createNodes(
 	metaNodesCoordinators := make([]sharding.NodesCoordinator, 0)
 	metaNodesPubKeys := make([]string, 0)
 
+	metaNodes := make([]*testNode, numMetaChainNodes)
 	for i := 0; i < numMetaChainNodes; i++ {
 		shardCoordinatorMeta, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), sharding.MetachainShardId)
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
@@ -510,7 +519,7 @@ func createNodes(
 			uint32(numOfShards),
 		)
 
-		tn := createMetaNetNode(
+		metaNodes[i] = createMetaNetNode(
 			createTestMetaDataPool(),
 			createAccountsDB(),
 			shardCoordinatorMeta,
@@ -519,13 +528,11 @@ func createNodes(
 		)
 
 		metaNodesCoordinators = append(metaNodesCoordinators, nodesCoordinator)
-		pkBytes, _ := tn.pk.ToByteArray()
+		pkBytes, _ := metaNodes[i].pk.ToByteArray()
 		metaNodesPubKeys = append(metaNodesPubKeys, string(pkBytes))
-
-		idx := i + int(numOfShards)*nodesPerShard
-		nodes[idx] = tn
 	}
 
+	nodes[sharding.MetachainShardId] = metaNodes
 	nodesCoordinators[sharding.MetachainShardId] = metaNodesCoordinators
 	nodesPublicKeys[sharding.MetachainShardId] = metaNodesPubKeys
 	mapValidators := genValidatorsFromPubKeys(nodesPublicKeys)

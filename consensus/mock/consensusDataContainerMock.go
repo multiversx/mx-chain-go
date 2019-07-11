@@ -77,7 +77,7 @@ func (cdc *ConsensusCoreMock) SyncTimer() ntp.SyncTimer {
 	return cdc.syncTimer
 }
 
-func (cdc *ConsensusCoreMock) ValidatorGroupSelector() sharding.NodesCoordinator {
+func (cdc *ConsensusCoreMock) NodesCoordinator() sharding.NodesCoordinator {
 	return cdc.validatorGroupSelector
 }
 

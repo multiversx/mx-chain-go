@@ -287,7 +287,9 @@ func (n *Node) StartConsensus() error {
 		n.rounder,
 		n.shardCoordinator,
 		n.syncTimer,
-		nCoordinator)
+		nCoordinator,
+	)
+
 	if err != nil {
 		return err
 	}

@@ -193,7 +193,6 @@ func createNodes(
 
 	nodesCoordMap := make(map[uint32][]sharding.NodesCoordinator)
 	pkMap := make(map[uint32][]string)
-
 	nodes := make([]*testNode, nodesInMetachain+1)
 	//first node is a shard node
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(1, senderShard)
@@ -208,9 +207,7 @@ func createNodes(
 	)
 
 	pk, _ := nodes[0].pk.ToByteArray()
-	shard0NodesCoord := make([]sharding.NodesCoordinator, 1)
-	shard0NodesCoord[0] = nodesCoordinator
-	nodesCoordMap[0] = shard0NodesCoord
+	nodesCoordMap[0] = []sharding.NodesCoordinator{nodesCoordinator}
 	pkMap[0] = []string{string(pk)}
 
 	metaNodesCoordinators := make([]sharding.NodesCoordinator, 0)

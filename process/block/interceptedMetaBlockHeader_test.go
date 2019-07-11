@@ -13,6 +13,8 @@ import (
 func createTestInterceptedMetaHeader() *block.InterceptedMetaHeader {
 	return block.NewInterceptedMetaHeader(
 		mock.NewMultiSigner(),
+		&mock.NodesCoordinatorMock{},
+		&mock.MarshalizerMock{Fail: false},
 	)
 }
 
@@ -297,7 +299,7 @@ func TestInterceptedMetaHeader_VerifySigOkValsShouldWork(t *testing.T) {
 
 	hdr := createTestInterceptedMetaHeader()
 	hdr.PrevHash = make([]byte, 0)
-	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.PubKeysBitmap = []byte{1, 0, 0}
 	hdr.Signature = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
 	hdr.PrevRandSeed = make([]byte, 0)

@@ -545,17 +545,6 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-type nullChronologyValidator struct {
-}
-
-// ValidateReceivedBlock should validate if parameters to be checked are valid
-// In this implementation it just returns nil
-func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
-	//TODO when implementing a workable variant take into account to receive headers "from future" (nonce or round > current round)
-	// as this might happen when clocks are slightly de-synchronized
-	return nil
-}
-
 func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	switch cfg.Hasher.Type {
 	case "sha256":
@@ -576,7 +565,13 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 	return nil, errors.New("no marshalizer provided in config file")
 }
 
-func getTrie(cfg config.StorageConfig, marshalizer marshal.Marshalizer, hasher hashing.Hasher, uniqueID string) (data.Trie, error) {
+func getTrie(
+	cfg config.StorageConfig,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	uniqueID string,
+) (data.Trie, error) {
+
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(cfg.Cache),
 		getDBFromConfig(cfg.DB, uniqueID),
@@ -619,7 +614,12 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 	return nil, errors.New("can not create blockchain")
 }
 
-func createDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
+func createDataStoreFromConfig(
+	config *config.Config,
+	shardCoordinator sharding.Coordinator,
+	uniqueID string,
+) (dataRetriever.StorageService, error) {
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return createShardDataStoreFromConfig(config, shardCoordinator, uniqueID)
 	}
@@ -629,8 +629,20 @@ func createDataStoreFromConfig(config *config.Config, shardCoordinator sharding.
 	return nil, errors.New("can not create data store")
 }
 
-func createShardDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
-	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit, scrUnit, metaHdrHashNonceUnit, shardHdrHashNonceUnit *storageUnit.Unit
+func createShardDataStoreFromConfig(
+	config *config.Config,
+	shardCoordinator sharding.Coordinator,
+	uniqueID string,
+) (dataRetriever.StorageService, error) {
+
+	var headerUnit *storageUnit.Unit
+	var peerBlockUnit *storageUnit.Unit
+	var miniBlockUnit *storageUnit.Unit
+	var txUnit *storageUnit.Unit
+	var metachainHeaderUnit *storageUnit.Unit
+	var scrUnit *storageUnit.Unit
+	var metaHdrHashNonceUnit *storageUnit.Unit
+	var shardHdrHashNonceUnit *storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -744,7 +756,12 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 	return store, err
 }
 
-func createMetaChainDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
+func createMetaChainDataStoreFromConfig(
+	config *config.Config,
+	shardCoordinator sharding.Coordinator,
+	uniqueID string,
+) (dataRetriever.StorageService, error) {
+
 	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, metaHdrHashNonceUnit *storageUnit.Unit
 	var shardHdrHashNonceUnits []*storageUnit.Unit
 	var err error
@@ -1072,10 +1089,25 @@ func newInterceptorAndResolverContainerFactory(
 	network *Network,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return newShardInterceptorAndResolverContainerFactory(shardCoordinator, nodesCoordinator, data, core, crypto, state, network)
+		return newShardInterceptorAndResolverContainerFactory(
+			shardCoordinator,
+			nodesCoordinator,
+			data,
+			core,
+			crypto,
+			state,
+			network,
+		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return newMetaInterceptorAndResolverContainerFactory(shardCoordinator, nodesCoordinator, data, core, crypto, network)
+		return newMetaInterceptorAndResolverContainerFactory(
+			shardCoordinator,
+			nodesCoordinator,
+			data,
+			core,
+			crypto,
+			network,
+		)
 	}
 
 	return nil, nil, errors.New("could not create interceptor and resolver container factory")
@@ -1220,7 +1252,11 @@ func generateGenesisHeadersForInit(
 	}
 
 	if nodesSetup.IsMetaChainActive() {
-		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesPubKeys())
+		genesisBlock, err := genesis.CreateMetaGenesisBlock(
+			uint64(nodesSetup.StartTime),
+			nodesSetup.InitialNodesPubKeys(),
+		)
+
 		if err != nil {
 			return nil, err
 		}
@@ -1242,11 +1278,31 @@ func newBlockProcessorAndTracker(
 	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return newShardBlockProcessorAndTracker(resolversFinder, shardCoordinator, data, core, state, forkDetector, shardsGenesisBlocks, nodesConfig, coreServiceContainer)
+		return newShardBlockProcessorAndTracker(
+			resolversFinder,
+			shardCoordinator,
+			data,
+			core,
+			state,
+			forkDetector,
+			shardsGenesisBlocks,
+			nodesConfig,
+			coreServiceContainer,
+		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return newMetaBlockProcessorAndTracker(resolversFinder, shardCoordinator, data, core, state, forkDetector, shardsGenesisBlocks, coreServiceContainer)
+		return newMetaBlockProcessorAndTracker(
+			resolversFinder,
+			shardCoordinator,
+			data,
+			core,
+			state,
+			forkDetector,
+			shardsGenesisBlocks,
+			coreServiceContainer,
+		)
 	}
 
 	return nil, nil, errors.New("could not create block processor and tracker")
@@ -1329,7 +1385,12 @@ func newMetaBlockProcessorAndTracker(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
-	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic)
+
+	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
+		resolversFinder,
+		factory.ShardHeadersForMetachainTopic,
+	)
+
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1453,7 +1514,14 @@ func decodeAddress(address string) ([]byte, error) {
 	return hex.DecodeString(address)
 }
 
-func getSk(ctx *cli.Context, log *logger.Logger, skName string, skIndexName string, skPemFileName string) ([]byte, error) {
+func getSk(
+	ctx *cli.Context,
+	log *logger.Logger,
+	skName string,
+	skIndexName string,
+	skPemFileName string,
+) ([]byte, error) {
+
 	//if flag is defined, it shall overwrite what was read from pem file
 	if ctx.GlobalIsSet(skName) {
 		encodedSk := []byte(ctx.GlobalString(skName))

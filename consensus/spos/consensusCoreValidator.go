@@ -41,7 +41,7 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container.SyncTimer() == nil {
 		return ErrNilSyncTimer
 	}
-	if container.ValidatorGroupSelector() == nil {
+	if container.NodesCoordinator() == nil {
 		return ErrNilValidatorGroupSelector
 	}
 	if container.RandomnessPrivateKey() == nil {

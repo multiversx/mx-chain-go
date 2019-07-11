@@ -60,8 +60,8 @@ func (fct *factory) SyncTimer() ntp.SyncTimer {
 	return fct.consensusCore.SyncTimer()
 }
 
-func (fct *factory) ValidatorGroupSelector() sharding.NodesCoordinator {
-	return fct.consensusCore.ValidatorGroupSelector()
+func (fct *factory) NodesCoordinator() sharding.NodesCoordinator {
+	return fct.consensusCore.NodesCoordinator()
 }
 
 func (fct *factory) Worker() spos.WorkerHandler {

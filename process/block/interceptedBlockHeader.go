@@ -3,19 +3,19 @@ package block
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // InterceptedHeader represents the wrapper over HeaderWrapper struct.
 // It implements Newer and Hashed interfaces
 type InterceptedHeader struct {
 	*block.Header
-	multiSigVerifier    crypto.MultiSigVerifier
-	hash                []byte
-	nodesCoordinator    sharding.NodesCoordinator
-	marshalizer         marshal.Marshalizer
+	multiSigVerifier crypto.MultiSigVerifier
+	hash             []byte
+	nodesCoordinator sharding.NodesCoordinator
+	marshalizer      marshal.Marshalizer
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -26,10 +26,10 @@ func NewInterceptedHeader(
 ) *InterceptedHeader {
 
 	return &InterceptedHeader{
-		Header:              &block.Header{},
-		multiSigVerifier:    multiSigVerifier,
-		nodesCoordinator:    nodesCoordinator,
-		marshalizer:         marshalizer,
+		Header:           &block.Header{},
+		multiSigVerifier: multiSigVerifier,
+		nodesCoordinator: nodesCoordinator,
+		marshalizer:      marshalizer,
 	}
 }
 
