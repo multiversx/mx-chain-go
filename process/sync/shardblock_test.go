@@ -249,7 +249,8 @@ func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.For
 		},
 		ProbableHighestNonceCalled: func() uint64 {
 			return uint64(0)
-		}}
+		},
+	}
 }
 
 func initBlockchain() *mock.BlockChainMock {
