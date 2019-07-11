@@ -380,6 +380,14 @@ func (sc *scProcessor) processVMOutput(
 	}
 	txHash := sc.hasher.Compute(string(txBytes))
 
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		log.Info(fmt.Sprintf(
+			"error processing tx %s in VM: return code: %s",
+			hex.EncodeToString(txHash),
+			vmOutput.ReturnCode),
+		)
+	}
+
 	err = sc.saveSCOutputToCurrentState(vmOutput, round, txHash)
 	if err != nil {
 		return nil, err
