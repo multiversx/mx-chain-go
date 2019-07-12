@@ -385,22 +385,23 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 	log.Info("Starting with public key: " + factory.GetPkEncoded(pubKey))
 
-	destinationShardAsObserverString := ctx.GlobalString(destinationShardAsObserver.Name)
-	if strings.ToLower(destinationShardAsObserverString) != strings.ToLower(metachainShardName) {
-		shardId, err := strconv.Atoi(destinationShardAsObserverString)
-		if err == nil {
-			if int64(shardId) >= 0 &&
-				int64(shardId) < int64(nodesConfig.NumberOfShards()) {
-				generalConfig.GeneralSettings.DestinationShardAsObserver = fmt.Sprintf("%d", shardId)
+	if ctx.IsSet(destinationShardAsObserver.Name) {
+		destinationShardAsObserverString := ctx.GlobalString(destinationShardAsObserver.Name)
+		if strings.ToLower(destinationShardAsObserverString) != strings.ToLower(metachainShardName) {
+			shardId, err := strconv.Atoi(destinationShardAsObserverString)
+			if err == nil {
+				if int64(shardId) >= 0 &&
+					int64(shardId) < int64(nodesConfig.NumberOfShards()) {
+					generalConfig.GeneralSettings.DestinationShardAsObserver = fmt.Sprintf("%d", shardId)
+				}
 			}
+		} else {
+			generalConfig.GeneralSettings.DestinationShardAsObserver = strings.ToLower(destinationShardAsObserverString)
 		}
-	} else {
-		generalConfig.GeneralSettings.DestinationShardAsObserver = strings.ToLower(destinationShardAsObserverString)
 	}
 
-	networkIDString := ctx.GlobalString(networkID.Name)
-	if networkIDString != "" {
-		generalConfig.Network.NetworkID = networkIDString
+	if ctx.IsSet(networkID.Name) {
+		generalConfig.GeneralSettings.NetworkID = ctx.GlobalString(networkID.Name)
 	}
 
 	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
@@ -408,9 +409,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	workingDir := ctx.GlobalString(workingDirectory.Name)
-
-	if workingDir == "" {
+	var workingDir = ""
+	if ctx.IsSet(workingDirectory.Name) {
+		workingDir = ctx.GlobalString(workingDirectory.Name)
+	} else {
 		workingDir, err = os.Getwd()
 		if err != nil {
 			log.LogIfError(err)

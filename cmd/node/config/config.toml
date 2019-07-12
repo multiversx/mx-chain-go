@@ -4,12 +4,12 @@
    # value will be given as string. For example: "0", "1", "15", "metachain"
    DestinationShardAsObserver = "0"
 
+   # NetworkID will be used for network versions
+   NetworkID = "undefined"
+
 [Explorer]
     Enabled = false
     IndexerURL = "http://localhost:9200"
-
-[Network]
-    NetworkID = "undefined"
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]

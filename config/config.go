@@ -96,7 +96,6 @@ type Config struct {
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
 	Explorer        ExplorerConfig
-	Network         NetworkConfig
 
 	NTPConfig NTPConfig
 }
@@ -146,17 +145,13 @@ type HeartbeatConfig struct {
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
+	NetworkID                  string
 }
 
 // ExplorerConfig will hold the configuration for the explorer indexer
 type ExplorerConfig struct {
 	Enabled    bool
 	IndexerURL string
-}
-
-// NetworkConfig will hold the configuration for the network, such as testnet version
-type NetworkConfig struct {
-	NetworkID string
 }
 
 // ServersConfig will hold all the confidential settings for servers
