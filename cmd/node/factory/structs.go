@@ -53,7 +53,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -67,7 +66,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	ielecommon "github.com/ElrondNetwork/elrond-vm/iele/common"
+	"github.com/ElrondNetwork/elrond-vm/iele/common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -1266,13 +1265,23 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	intermediateProcessor, err := preprocess.NewIntermediateResultsProcessor(
-		core.Hasher,
-		core.Marshalizer,
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
+		core.Marshalizer,
+		core.Hasher,
 		state.AddressConverter,
-		dataBlock.SmartContractResultBlock,
+		data.Store,
 	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	interimProcContainer, err := interimProcFactory.Create()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1290,7 +1299,7 @@ func newShardBlockProcessorAndTracker(
 		vmAccountsDB,
 		state.AddressConverter,
 		shardCoordinator,
-		intermediateProcessor,
+		scForwarder,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1348,21 +1357,6 @@ func newShardBlockProcessorAndTracker(
 	}
 
 	preProcContainer, err := preProcFactory.Create()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
-		shardCoordinator,
-		core.Marshalizer,
-		core.Hasher,
-		state.AddressConverter,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	interimProcContainer, err := interimProcFactory.Create()
 	if err != nil {
 		return nil, nil, err
 	}

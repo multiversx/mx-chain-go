@@ -1,13 +1,11 @@
-package block
+package smartContract
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -36,7 +34,6 @@ import (
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -47,14 +44,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
@@ -65,6 +66,9 @@ var testMarshalizer = &marshal.JsonMarshalizer{}
 var testAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 var testMultiSig = mock.NewMultiSigner(1)
 var rootHash = []byte("root hash")
+var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
+
+var opGas = int64(1)
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -76,8 +80,11 @@ type testNode struct {
 	shardId            uint32
 	accntState         state.AccountsAdapter
 	blkc               data.ChainHandler
+	store              dataRetriever.StorageService
 	blkProcessor       process.BlockProcessor
 	txProcessor        process.TransactionProcessor
+	txCoordinator      process.TransactionCoordinator
+	scrForwarder       process.IntermediateTransactionHandler
 	broadcastMessenger consensus.BroadcastMessenger
 	sk                 crypto.PrivateKey
 	pk                 crypto.PublicKey
@@ -102,9 +109,9 @@ func createTestShardChain() *blockchain.BlockChain {
 		badBlockCache,
 	)
 	blockChain.GenesisHeader = &dataBlock.Header{}
-	genisisHeaderM, _ := testMarshalizer.Marshal(blockChain.GenesisHeader)
+	genesisHeaderM, _ := testMarshalizer.Marshal(blockChain.GenesisHeader)
 
-	blockChain.SetGenesisHeaderHash(testHasher.Compute(string(genisisHeaderM)))
+	blockChain.SetGenesisHeaderHash(testHasher.Compute(string(genesisHeaderM)))
 
 	return blockChain
 }
@@ -198,7 +205,10 @@ func createNetNode(
 	dataRetriever.ResolversFinder,
 	process.BlockProcessor,
 	process.TransactionProcessor,
-	data.ChainHandler) {
+	process.TransactionCoordinator,
+	process.IntermediateTransactionHandler,
+	data.ChainHandler,
+	dataRetriever.StorageService) {
 
 	messenger := createMessengerWithKadDht(context.Background(), initialAddr)
 	suite := kyber.NewBlakeSHA256Ed25519()
@@ -254,13 +264,37 @@ func createNetNode(
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.UnsignedTransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
 
+	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
+		shardCoordinator,
+		testMarshalizer,
+		testHasher,
+		testAddressConverter,
+		store,
+	)
+	interimProcContainer, _ := interimProcFactory.Create()
+	scForwarder, _ := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
+
+	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter)
+	argsParser, _ := smartContract.NewAtArgumentParser()
+	scProcessor, _ := smartContract.NewSmartContractProcessor(
+		vm,
+		argsParser,
+		testHasher,
+		testMarshalizer,
+		accntAdapter,
+		blockChainHook,
+		addrConv,
+		shardCoordinator,
+		scForwarder,
+	)
+
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,
 		testHasher,
 		testAddressConverter,
 		testMarshalizer,
 		shardCoordinator,
-		&mock.SCProcessorMock{},
+		scProcessor,
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
@@ -273,8 +307,8 @@ func createNetNode(
 		accntAdapter,
 		requestHandler,
 		txProcessor,
-		&mock.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		scProcessor,
+		scProcessor,
 	)
 	container, _ := fact.Create()
 
@@ -284,7 +318,7 @@ func createNetNode(
 		dPool,
 		requestHandler,
 		container,
-		&mock.InterimProcessorContainerMock{},
+		interimProcContainer,
 	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
@@ -352,7 +386,7 @@ func createNetNode(
 		fmt.Println(err.Error())
 	}
 
-	return n, messenger, sk, resolversFinder, blockProcessor, txProcessor,blkc
+	return n, messenger, sk, resolversFinder, blockProcessor, txProcessor, tc, scForwarder, blkc, store
 }
 
 func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
@@ -381,30 +415,6 @@ func getConnectableAddress(mes p2p.Messenger) string {
 		return addr
 	}
 	return ""
-}
-
-func makeDisplayTable(nodes []*testNode) string {
-	header := []string{"pk", "shard ID", "txs", "miniblocks", "headers", "metachain headers", "connections"}
-	dataLines := make([]*display.LineData, len(nodes))
-	for idx, n := range nodes {
-		buffPk, _ := n.pk.ToByteArray()
-
-		dataLines[idx] = display.NewLineData(
-			false,
-			[]string{
-				hex.EncodeToString(buffPk),
-				fmt.Sprintf("%d", n.shardId),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.txsRecv)),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.miniblocksRecv)),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.headersRecv)),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.metachainHdrRecv)),
-				fmt.Sprintf("%d / %d", len(n.messenger.ConnectedPeersOnTopic(factory.TransactionTopic+"_"+
-					fmt.Sprintf("%d", n.shardId))), len(n.messenger.ConnectedPeers())),
-			},
-		)
-	}
-	table, _ := display.CreateTableString(header, dataLines)
-	return table
 }
 
 func displayAndStartNodes(nodes []*testNode) {
@@ -442,7 +452,7 @@ func createNodes(
 
 			shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
 			accntAdapter := createAccountsDB()
-			n, mes, sk, resFinder, blkProcessor, txProcessor, blkc := createNetNode(
+			n, mes, sk, resFinder, blkProcessor, txProcessor, transactionCoordinator, scrForwarder, blkc, store := createNetNode(
 				testNode.dPool,
 				accntAdapter,
 				shardCoordinator,
@@ -459,7 +469,10 @@ func createNodes(
 			testNode.accntState = accntAdapter
 			testNode.blkProcessor = blkProcessor
 			testNode.txProcessor = txProcessor
+			testNode.scrForwarder = scrForwarder
 			testNode.blkc = blkc
+			testNode.store = store
+			testNode.txCoordinator = transactionCoordinator
 			testNode.dPool.Headers().RegisterHandler(func(key []byte) {
 				atomic.AddInt32(&testNode.headersRecv, 1)
 				testNode.mutHeaders.Lock()
@@ -509,86 +522,6 @@ func createNodes(
 	}
 
 	return nodes
-}
-
-func getMiniBlocksHashesFromShardIds(body dataBlock.Body, shardIds ...uint32) [][]byte {
-	hashes := make([][]byte, 0)
-
-	for _, miniblock := range body {
-		for _, shardId := range shardIds {
-			if miniblock.ReceiverShardID == shardId {
-				buff, _ := testMarshalizer.Marshal(miniblock)
-				hashes = append(hashes, testHasher.Compute(string(buff)))
-			}
-		}
-	}
-
-	return hashes
-}
-
-func equalSlices(slice1 [][]byte, slice2 [][]byte) bool {
-	if len(slice1) != len(slice2) {
-		return false
-	}
-
-	//check slice1 has all elements in slice2
-	for _, buff1 := range slice1 {
-		found := false
-		for _, buff2 := range slice2 {
-			if bytes.Equal(buff1, buff2) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	//check slice2 has all elements in slice1
-	for _, buff2 := range slice2 {
-		found := false
-		for _, buff1 := range slice1 {
-			if bytes.Equal(buff1, buff2) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
-}
-
-func uint32InSlice(searched uint32, list []uint32) bool {
-	for _, val := range list {
-		if val == searched {
-			return true
-		}
-	}
-	return false
-}
-
-func generatePrivateKeyInShardId(
-	coordinator sharding.Coordinator,
-	shardId uint32,
-) crypto.PrivateKey {
-
-	suite := kyber.NewBlakeSHA256Ed25519()
-	keyGen := signing.NewKeyGenerator(suite)
-	sk, pk := keyGen.GeneratePair()
-
-	for {
-		buff, _ := pk.ToByteArray()
-		addr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(buff)
-
-		if coordinator.ComputeId(addr) == shardId {
-			return sk
-		}
-
-		sk, pk = keyGen.GeneratePair()
-	}
 }
 
 func createTestMetaChain() data.ChainHandler {
@@ -815,7 +748,7 @@ func createGenesisMetaBlock() *dataBlock.MetaBlock {
 func createMintingForSenders(
 	nodes []*testNode,
 	senderShard uint32,
-	sendersPrivateKeys []crypto.PrivateKey,
+	sendersPublicKeys [][]byte,
 	value *big.Int,
 ) {
 
@@ -825,9 +758,8 @@ func createMintingForSenders(
 			continue
 		}
 
-		for _, sk := range sendersPrivateKeys {
-			pkBuff, _ := sk.GeneratePublic().ToByteArray()
-			adr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
+		for _, pk := range sendersPublicKeys {
+			adr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(pk)
 			account, _ := n.accntState.GetAccountWithJournal(adr)
 			_ = account.(*state.Account).SetBalanceWithJournal(value)
 		}
@@ -836,7 +768,10 @@ func createMintingForSenders(
 	}
 }
 
-func skToPk(sk crypto.PrivateKey) []byte {
-	pkBuff, _ := sk.GeneratePublic().ToByteArray()
-	return pkBuff
+func createVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
+	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
+	vm.GasForOperation = uint64(opGas)
+
+	return vm, blockChainHook
 }

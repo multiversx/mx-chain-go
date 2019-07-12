@@ -3,6 +3,7 @@ package shard
 import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -16,6 +17,7 @@ type intermediateProcessorsContainerFactory struct {
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
 	addrConverter    state.AddressConverter
+	store            dataRetriever.StorageService
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -24,6 +26,7 @@ func NewIntermediateProcessorsContainerFactory(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	addrConverter state.AddressConverter,
+	store dataRetriever.StorageService,
 ) (*intermediateProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -38,12 +41,16 @@ func NewIntermediateProcessorsContainerFactory(
 	if addrConverter == nil {
 		return nil, process.ErrNilAddressConverter
 	}
+	if store == nil {
+		return nil, process.ErrNilStorage
+	}
 
 	return &intermediateProcessorsContainerFactory{
 		shardCoordinator: shardCoordinator,
 		marshalizer:      marshalizer,
 		hasher:           hasher,
 		addrConverter:    addrConverter,
+		store:            store,
 	}, nil
 }
 
@@ -70,6 +77,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 		ppcm.marshalizer,
 		ppcm.shardCoordinator,
 		ppcm.addrConverter,
+		ppcm.store,
 		block.SmartContractResultBlock,
 	)
 

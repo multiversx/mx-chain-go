@@ -65,6 +65,7 @@ type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
 	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
 	VerifyInterMiniBlocks(body block.Body) error
+	SaveCurrentIntermediateTxToStorage() error
 }
 
 // PreProcessor is an interface used to prepare and process transaction data

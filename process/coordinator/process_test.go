@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"bytes"
+	"errors"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -1494,6 +1495,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		adrConv,
+		&mock.ChainStorerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -1536,6 +1538,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		adrConv,
+		&mock.ChainStorerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -1606,4 +1609,89 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	body := block.Body{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1, TxHashes: [][]byte{scrHash}}}
 	err = tc.VerifyCreatedBlockTransactions(body)
 	assert.Nil(t, err)
+}
+
+func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx_hash1")
+	tdp := initDataPool(txHash)
+	retError := errors.New("save error")
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(3),
+		initAccountsMock(),
+		tdp,
+		&mock.RequestHandlerMock{},
+		createPreProcessorContainerWithDataPool(tdp),
+		&mock.InterimProcessorContainerMock{
+			KeysCalled: func() []block.Type {
+				return []block.Type{block.SmartContractResultBlock}
+			},
+			GetCalled: func(key block.Type) (handler process.IntermediateTransactionHandler, e error) {
+				if key == block.SmartContractResultBlock {
+					return &mock.IntermediateTransactionHandlerMock{
+						SaveCurrentIntermediateTxToStorageCalled: func() error {
+							return retError
+						},
+					}, nil
+				}
+				return nil, errors.New("invalid handler type")
+			},
+		},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	body := block.Body{}
+	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
+	body = append(body, miniBlock)
+
+	tc.RequestBlockTransactions(body)
+
+	err = tc.SaveBlockDataToStorage(body)
+	assert.Equal(t, retError, err)
+}
+
+func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx_hash1")
+	tdp := initDataPool(txHash)
+	intermediateTxWereSaved := false
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(3),
+		initAccountsMock(),
+		tdp,
+		&mock.RequestHandlerMock{},
+		createPreProcessorContainerWithDataPool(tdp),
+		&mock.InterimProcessorContainerMock{
+			KeysCalled: func() []block.Type {
+				return []block.Type{block.SmartContractResultBlock}
+			},
+			GetCalled: func(key block.Type) (handler process.IntermediateTransactionHandler, e error) {
+				if key == block.SmartContractResultBlock {
+					return &mock.IntermediateTransactionHandlerMock{
+						SaveCurrentIntermediateTxToStorageCalled: func() error {
+							intermediateTxWereSaved = true
+							return nil
+						},
+					}, nil
+				}
+				return nil, errors.New("invalid handler type")
+			},
+		},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	body := block.Body{}
+	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
+	body = append(body, miniBlock)
+
+	tc.RequestBlockTransactions(body)
+
+	err = tc.SaveBlockDataToStorage(body)
+	assert.Nil(t, err)
+
+	assert.True(t, intermediateTxWereSaved)
 }
