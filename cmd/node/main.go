@@ -376,7 +376,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	log.Info("Starting with public key: " + factory.GetPkEncoded(pubKey))
 
 	destinationShardAsObserverString := ctx.GlobalString(destinationShardAsObserver.Name)
-	if destinationShardAsObserverString != metachainShardName {
+	if strings.ToLower(destinationShardAsObserverString) != strings.ToLower(metachainShardName) {
 		shardId, err := strconv.Atoi(destinationShardAsObserverString)
 		if err == nil {
 			if int64(shardId) >= 0 &&
@@ -385,7 +385,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 			}
 		}
 	} else {
-		generalConfig.GeneralSettings.DestinationShardAsObserver = destinationShardAsObserverString
+		generalConfig.GeneralSettings.DestinationShardAsObserver = strings.ToLower(destinationShardAsObserverString)
 	}
 
 	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
@@ -459,7 +459,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s",
+	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
 		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
 		"ShardId", shardId,
