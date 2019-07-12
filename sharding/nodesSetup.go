@@ -10,8 +10,15 @@ import (
 // InitialNode holds data from json
 type InitialNode struct {
 	PubKey        string `json:"pubkey"`
+	Address       string `json:"address"`
 	assignedShard uint32
-	pubKey        []byte
+	nodeInfo
+}
+
+// nodeInfo holds node info
+type nodeInfo struct {
+	pubKey  []byte
+	address []byte
 }
 
 // NodesSetup hold data for decoded data from json file
@@ -30,7 +37,7 @@ type NodesSetup struct {
 	nrOfShards         uint32
 	nrOfNodes          uint32
 	nrOfMetaChainNodes uint32
-	allNodesPubKeys    map[uint32][]string
+	allNodesInfos      map[uint32][]*nodeInfo
 }
 
 // NewNodesSetup creates a new decoded nodes structure from json config file
@@ -68,11 +75,18 @@ func (ns *NodesSetup) processConfig() error {
 	ns.nrOfMetaChainNodes = 0
 	for i := 0; i < len(ns.InitialNodes); i++ {
 		ns.InitialNodes[i].pubKey, err = hex.DecodeString(ns.InitialNodes[i].PubKey)
+		ns.InitialNodes[i].address, err = hex.DecodeString(ns.InitialNodes[i].Address)
 
 		// decoder treats empty string as correct, it is not allowed to have empty string as public key
 		if ns.InitialNodes[i].PubKey == "" || err != nil {
 			ns.InitialNodes[i].pubKey = nil
 			return ErrCouldNotParsePubKey
+		}
+
+		// decoder treats empty string as correct, it is not allowed to have empty string as address
+		if ns.InitialNodes[i].Address == "" || err != nil {
+			ns.InitialNodes[i].address = nil
+			return ErrCouldNotParseAddress
 		}
 
 		ns.nrOfNodes++
@@ -145,29 +159,30 @@ func (ns *NodesSetup) createInitialNodesPubKeys() {
 		nrOfShardAndMeta += 1
 	}
 
-	ns.allNodesPubKeys = make(map[uint32][]string, nrOfShardAndMeta)
+	ns.allNodesInfos = make(map[uint32][]*nodeInfo, nrOfShardAndMeta)
 	for _, in := range ns.InitialNodes {
-		if in.pubKey != nil {
-			ns.allNodesPubKeys[in.assignedShard] = append(ns.allNodesPubKeys[in.assignedShard], string(in.pubKey))
+		if in.pubKey != nil && in.address != nil {
+			ns.allNodesInfos[in.assignedShard] = append(ns.allNodesInfos[in.assignedShard],
+				&nodeInfo{in.pubKey, in.address})
 		}
 	}
 }
 
-// InitialNodesPubKeys - gets initial public keys
-func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
-	return ns.allNodesPubKeys
+// InitialNodesInfos - gets initial public keys
+func (ns *NodesSetup) InitialNodesInfos() map[uint32][]*nodeInfo {
+	return ns.allNodesInfos
 }
 
-// InitialNodesPubKeysForShard - gets initial public keys
-func (ns *NodesSetup) InitialNodesPubKeysForShard(shardId uint32) ([]string, error) {
-	if ns.allNodesPubKeys[shardId] == nil {
+// InitialNodesInfosForShard - gets initial public keys
+func (ns *NodesSetup) InitialNodesInfosForShard(shardId uint32) ([]*nodeInfo, error) {
+	if ns.allNodesInfos[shardId] == nil {
 		return nil, ErrShardIdOutOfRange
 	}
-	if len(ns.allNodesPubKeys[shardId]) == 0 {
+	if len(ns.allNodesInfos[shardId]) == 0 {
 		return nil, ErrNoPubKeys
 	}
 
-	return ns.allNodesPubKeys[shardId], nil
+	return ns.allNodesInfos[shardId], nil
 }
 
 // NumberOfShards returns the calculated number of shards

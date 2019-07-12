@@ -95,7 +95,7 @@
     [ShardHdrNonceHashStorage.DB]
         FilePath = "ShardHdrHashNonce"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 10
+        BatchDelaySeconds = 30
         MaxBatchSize = 1
 
 [MetaHdrNonceHashStorage]
@@ -105,7 +105,7 @@
     [MetaHdrNonceHashStorage.DB]
         FilePath = "MetaHdrHashNonce"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 10
+        BatchDelaySeconds = 30
         MaxBatchSize = 1
 
 [AccountsTrieStorage]
@@ -115,8 +115,8 @@
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 10
-        MaxBatchSize = 1
+        BatchDelaySeconds = 15
+        MaxBatchSize = 30000
 
 [BadBlocksCache]
     Size = 10000

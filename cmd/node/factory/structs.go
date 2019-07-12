@@ -320,7 +320,7 @@ func NewCryptoComponentsFactoryArgs(
 
 // CryptoComponentsFactory creates the crypto components
 func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error) {
-	initialPubKeys := args.nodesConfig.InitialNodesPubKeys()
+	initialNodesInfos := args.nodesConfig.InitialNodesInfos()
 	txSingleSigner := &singlesig.SchnorrSigner{}
 	singleSigner, err := createSingleSigner(args.config)
 	if err != nil {
@@ -332,12 +332,12 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 		return nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
-	currentShardPubKeys, err := args.nodesConfig.InitialNodesPubKeysForShard(args.shardCoordinator.SelfId())
+	currentShardNodesInfos, err := args.nodesConfig.InitialNodesInfosForShard(args.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, errors.New("could not start creation of multiSigner: " + err.Error())
 	}
 
-	multiSigner, err := createMultiSigner(args.config, multisigHasher, currentShardPubKeys, args.privKey, args.keyGen)
+	multiSigner, err := createMultiSigner(args.config, multisigHasher, currentShardNodesInfos, args.privKey, args.keyGen)
 	if err != nil {
 		return nil, err
 	}
@@ -362,7 +362,7 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 		TxSignKeyGen:   txSignKeyGen,
 		TxSignPrivKey:  txSignPrivKey,
 		TxSignPubKey:   txSignPubKey,
-		InitialPubKeys: initialPubKeys,
+		InitialPubKeys: initialNodesInfos,
 	}, nil
 }
 
@@ -1197,7 +1197,7 @@ func generateGenesisHeadersForInit(
 	}
 
 	if nodesSetup.IsMetaChainActive() {
-		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesPubKeys())
+		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesInfos())
 		if err != nil {
 			return nil, err
 		}
