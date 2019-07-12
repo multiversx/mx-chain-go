@@ -104,17 +104,20 @@ func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, stat
 	nonceDif := int64(header.GetNonce() - bfd.fork.lastCheckpointNonce)
 	bfd.mutFork.RUnlock()
 
-	if roundDif < 0 {
+	if roundDif <= 0 {
 		return ErrLowerRoundInBlock
 	}
-	if nonceDif < 0 {
+	if nonceDif <= 0 {
 		return ErrLowerNonceInBlock
 	}
 	if int32(header.GetRound()) > bfd.rounder.Index() {
 		return ErrHigherRoundInBlock
 	}
-	if int32(header.GetRound()) < bfd.rounder.Index()-process.ForkBlockFinality {
-		return ErrLowerRoundInBlock
+	if header.GetNonce() == bfd.fork.checkpointNonce {
+		roundTooOld := int32(header.GetRound()) < bfd.rounder.Index()-process.ForkBlockFinality
+		if roundTooOld {
+			return ErrLowerRoundInBlock
+		}
 	}
 	if int64(roundDif) < nonceDif {
 		return ErrHigherNonceInBlock
@@ -341,15 +344,19 @@ func (bfd *basicForkDetector) GetHighestFinalBlockNonce() uint64 {
 
 // ProbableHighestNonce gets the probable highest nonce
 func (bfd *basicForkDetector) ProbableHighestNonce() uint64 {
-	// TODO: This fallback mechanism should be improved
-	// This mechanism is necessary to manage the case when the node will act as synchronized because no new block,
-	// higher than its checkpoint, would be received anymore (this could be the case when during an epoch, the number of
-	// validators in one shard decrease under the size of 2/3 + 1 of the consensus group. In this case no new block would
-	// be proposed anymore and any node which would try to boostrap, would be stuck at the genesis block. This case could
-	// be solved, if the proposed blocks received from leaders would also call the AddHeader method of this class).
+	bfd.mutFork.Lock()
+	probableHighestNonce := bfd.fork.probableHighestNonce
+	bfd.mutFork.Unlock()
 
-	// If after maxRoundsToWait nothing is received, the probableHighestNonce will be set to checkpoint,
-	// so the node will act as synchronized
+	return probableHighestNonce
+}
+
+// ResetProbableHighestNonceIfNeeded resets the probableHighestNonce to checkpoint if after maxRoundsToWait nothing
+// is received so the node will act as synchronized
+func (bfd *basicForkDetector) ResetProbableHighestNonceIfNeeded() {
+	//TODO: This mechanism should be improved to avoid the situation when a malicious group of 2/3 + 1 from a
+	// consensus group size, could keep all the shard in sync mode, by creating fake blocks higher than current
+	// committed block + 1, which could not be verified by hash -> prev hash and only by rand seed -> prev random seed
 	bfd.mutFork.Lock()
 	roundsWithoutReceivedBlock := bfd.rounder.Index() - bfd.fork.lastBlockRound
 	if roundsWithoutReceivedBlock > maxRoundsToWait {
@@ -357,8 +364,5 @@ func (bfd *basicForkDetector) ProbableHighestNonce() uint64 {
 			bfd.fork.probableHighestNonce = bfd.fork.checkpointNonce
 		}
 	}
-	probableHighestNonce := bfd.fork.probableHighestNonce
 	bfd.mutFork.Unlock()
-
-	return probableHighestNonce
 }

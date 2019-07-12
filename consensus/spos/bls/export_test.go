@@ -24,7 +24,7 @@ func (fct *factory) BlockProcessor() process.BlockProcessor {
 	return fct.consensusCore.BlockProcessor()
 }
 
-func (fct *factory) Bootstraper() process.Bootstrapper {
+func (fct *factory) Bootstrapper() process.Bootstrapper {
 	return fct.consensusCore.BootStrapper()
 }
 
