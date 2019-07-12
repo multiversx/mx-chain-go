@@ -156,7 +156,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
 
-	_, metaHeader = proposeMetaBlock(t, metaNode, uint32(3))
+	_, metaHeader = proposeMetaBlock(t, metaNode, uint32(4))
 	metaNode.broadcastMessenger.BroadcastBlock(nil, metaHeader)
 	metaNode.blkProcessor.CommitBlock(metaNode.blkc, metaHeader, &block.MetaBlockBody{})
 	fmt.Println("Delaying for disseminating meta header...")

@@ -132,7 +132,7 @@ func (imh *InterceptedMetaHeader) VerifySig() error {
 
 	// get marshalled block header without signature and bitmap
 	// as this is the message that was signed
-	headerCopy := *imh
+	headerCopy := *imh.MetaBlock
 	headerCopy.Signature = nil
 	headerCopy.PubKeysBitmap = nil
 
