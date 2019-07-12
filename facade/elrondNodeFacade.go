@@ -19,6 +19,7 @@ import (
 
 // DefaultRestPort is the default port the REST API will start on if not specified
 const DefaultRestPort = "8080"
+
 // DefaultRestPortOff is the default value that should be passed if it is desired
 //  to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
@@ -122,12 +123,22 @@ func (ef *ElrondNodeFacade) RestApiPort() string {
 	return ef.config.RestApiPort
 }
 
+// PrometheusMonitoring returns if prometheus is enabled for monitoring by the flag
+func (ef *ElrondNodeFacade) PrometheusMonitoring() bool {
+	return ef.config.Prometheus
+}
+
+// PrometheusJoinURL will return the join URL from server.toml
+func (ef *ElrondNodeFacade) PrometheusJoinURL() string {
+	return ef.config.PrometheusJoinURL
+}
+
 func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	switch ef.RestApiPort() {
 	case DefaultRestPortOff:
-		ef.log.Info(fmt.Sprintf("Web server is off") )
+		ef.log.Info(fmt.Sprintf("Web server is off"))
 		break
 	default:
 		ef.log.Info("Starting web server...")

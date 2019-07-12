@@ -2,17 +2,19 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
-
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"gopkg.in/go-playground/validator.v8"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"gopkg.in/go-playground/validator.v8"
 )
 
 type validatorInput struct {
@@ -23,6 +25,8 @@ type validatorInput struct {
 // MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
 type MainApiHandler interface {
 	RestApiPort() string
+	PrometheusMonitoring() bool
+	PrometheusJoinURL() string
 }
 
 // Start will boot up the api and appropriate routes, handlers and validators
@@ -36,7 +40,26 @@ func Start(elrondFacade MainApiHandler) error {
 	}
 	registerRoutes(ws, elrondFacade)
 
+	if elrondFacade.PrometheusMonitoring() {
+		err = joinMonitoringSystem(elrondFacade.RestApiPort(), elrondFacade.PrometheusJoinURL())
+		if err != nil {
+			return err
+		}
+	}
+
 	return ws.Run(fmt.Sprintf(":%s", elrondFacade.RestApiPort()))
+}
+
+func joinMonitoringSystem(port string, prometheusJoinURL string) error {
+	req, err := http.NewRequest("POST", prometheusJoinURL, strings.NewReader(port))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	err = resp.Body.Close()
+	return err
 }
 
 func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
@@ -51,6 +74,11 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	txRoutes := ws.Group("/transaction")
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	transaction.Routes(txRoutes)
+
+	apiHandler, ok := elrondFacade.(MainApiHandler)
+	if ok && apiHandler.PrometheusMonitoring() {
+		nodeRoutes.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	}
 
 }
 

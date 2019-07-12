@@ -175,10 +175,6 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	if haveTime() < 0 {
-		return process.ErrTimeIsOut
-	}
-
 	defer func() {
 		if err != nil {
 			mp.RevertAccountState()
@@ -415,10 +411,8 @@ func (mp *metaProcessor) CommitBlock(
 	log.LogIfError(errNotCritical)
 
 	nonceToByteSlice := mp.uint64Converter.ToByteSlice(header.Nonce)
-	err = mp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
-	if err != nil {
-		return err
-	}
+	errNotCritical = mp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	log.LogIfError(errNotCritical)
 
 	headerNoncePool := mp.dataPool.MetaBlockNonces()
 	if headerNoncePool == nil {
