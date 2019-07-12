@@ -1538,7 +1538,9 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 
 	sp.CheckAndRequestIfMetaHeadersMissing(2)
 	time.Sleep(100 * time.Millisecond)
+	mutex.Lock()
 	assert.Equal(t, hdrNoncesRequestCalled, 1)
+	mutex.Unlock()
 	assert.Equal(t, err, process.ErrTimeIsOut)
 }
 
@@ -1737,10 +1739,9 @@ func TestShardProcessor_VerifyIncludedMetaBlocksFinalityShouldPass(t *testing.T)
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
-	hdrs := make([]data.HeaderHandler, 0)
-	hdrs = append(hdrs, &hdr)
+	hdr.Round = 4
 
-	err := sp.VerifyIncludedMetaBlocksFinality(hdrs, 4)
+	err := sp.CheckMetaHeadersValidityAndFinality(&hdr)
 	assert.Nil(t, err)
 }
 
@@ -1757,10 +1758,9 @@ func TestShardProcessor_VerifyIncludedMetaBlocksFinalityShouldErr(t *testing.T) 
 	tdp := mock.NewPoolsHolderFake()
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 	sp, _ := blproc.NewShardProcessorEmptyWith3shards(tdp, genesisBlocks)
-	hdrs := make([]data.HeaderHandler, 0)
-	hdrs = append(hdrs, &hdr)
 
-	err := sp.VerifyIncludedMetaBlocksFinality(hdrs, 0)
+	hdr.Round = 0
+	err := sp.CheckMetaHeadersValidityAndFinality(&hdr)
 	assert.Equal(t, err, process.ErrNoNewMetablocks)
 }
 

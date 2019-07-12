@@ -132,7 +132,7 @@ func (bpp *basePreProcess) saveTxsToStorage(
 
 		errNotCritical := store.Put(dataUnit, txHash, buff)
 		if errNotCritical != nil {
-			log.Error(errNotCritical.Error())
+			log.LogIfError(errNotCritical)
 		}
 	}
 

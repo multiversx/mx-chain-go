@@ -224,8 +224,8 @@ func (sp *shardProcessor) RequestFinalMissingHeaders() uint32 {
 	return sp.requestFinalMissingHeaders()
 }
 
-func (sp *shardProcessor) VerifyIncludedMetaBlocksFinality(currMetaBlocks []data.HeaderHandler, round uint32) error {
-	return sp.verifyIncludedMetaBlocksFinality(currMetaBlocks, round)
+func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality(hdr *block.Header) error {
+	return sp.checkMetaHeadersValidityAndFinality(hdr)
 }
 
 func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
