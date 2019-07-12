@@ -128,16 +128,26 @@ func generateFiles(ctx *cli.Context) error {
 	}
 
 	fmt.Println("Files generated successfully.")
-	fmt.Printf("\tpk for balance:\t%s\n", pkHexBalance)
-	ac, _ := addressConverters.NewPlainAddressConverter(32, "")
-	adr, _ := ac.CreateAddressFromHex(pkHexBalance)
+	fmt.Printf("\tpublic key for balance:\t%s\n", pkHexBalance)
+
+	ac, err := addressConverters.NewPlainAddressConverter(32, "")
+	if err != nil {
+		fmt.Println("For some peculiar reason I could not generate an addressConverter because ", err)
+		return nil
+	}
+
+	adr, err := ac.CreateAddressFromHex(pkHexBalance)
+	if err != nil {
+		fmt.Println("The plot thickens: I could not covert the hex representation to an address because ", err)
+	}
+
 	bech32, err := ac.ConvertToBech32(adr)
 	if err != nil {
 		fmt.Println("Could not display address in Bech32 format because ", err)
 	} else {
-		fmt.Printf("\tpk in bech32:\t%s\n", bech32)
+		fmt.Printf("\tpublic key for balance - in bech32 format:\t%s\n", bech32)
 	}
-	fmt.Printf("\tpk for block signing:\t%s\n", pkHexBlockSigning)
+	fmt.Printf("\tpublic key for block signing:\t%s\n", pkHexBlockSigning)
 	//the block signing PK would result in a bech32 string greater than the standard imposed 90
 	//char limit so we can't bech32 encode it, but signing key is anyway longer (128bytes vs 32bytes)
 	//and can't be mistaken for a txid as it is the case with the balance one
