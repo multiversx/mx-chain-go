@@ -990,6 +990,8 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 100
 	}
+	forkDetector.ResetProbableHighestNonceIfNeededCalled = func() {
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1249,6 +1251,8 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
+	}
+	forkDetector.ResetProbableHighestNonceIfNeededCalled = func() {
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1517,7 +1521,8 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 		},
 		ProbableHighestNonceCalled: func() uint64 {
 			return 0
-		}}
+		},
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}

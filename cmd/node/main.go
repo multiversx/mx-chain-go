@@ -161,6 +161,13 @@ VERSION:
 		Value: "8080",
 	}
 
+	// networkID defines the version of the network. If set, will override the same parameter from config.toml
+	networkID = cli.StringFlag{
+		Name:  "network-id",
+		Usage: "The network version, overriding the one from config.toml",
+		Value: "",
+	}
+
 	// usePrometheus joins the node for prometheus monitoring if set
 	usePrometheus = cli.BoolFlag{
 		Name:  "use-prometheus",
@@ -173,12 +180,14 @@ VERSION:
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialBalancesSk.pem",
 	}
+
 	// initialNodesSkPemFile defines a flag for the path to the ...
 	initialNodesSkPemFile = cli.StringFlag{
 		Name:  "initialNodesSkPemFile",
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialNodesSk.pem",
 	}
+
 	// bootstrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
 	bootstrapRoundIndex = cli.UintFlag{
 		Name:  "bootstrap-round-index",
@@ -190,6 +199,13 @@ VERSION:
 	workingDirectory = cli.StringFlag{
 		Name:  "working-directory",
 		Usage: "The node will store here DB, Logs and Stats",
+		Value: "",
+	}
+
+	// destinationShardAsObserver defines a flag for the prefered shard to be assigned to as an observer.
+	destinationShardAsObserver = cli.StringFlag{
+		Name:  "destination-shard-as-observer",
+		Usage: "The preferred shard as an observer",
 		Value: "",
 	}
 
@@ -239,10 +255,12 @@ func main() {
 		initialNodesSkPemFile,
 		gopsEn,
 		serversConfigurationFile,
+		networkID,
 		restApiPort,
 		usePrometheus,
 		bootstrapRoundIndex,
 		workingDirectory,
+		destinationShardAsObserver,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -367,14 +385,23 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 	log.Info("Starting with public key: " + factory.GetPkEncoded(pubKey))
 
+	if ctx.IsSet(destinationShardAsObserver.Name) {
+		generalConfig.GeneralSettings.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
+	}
+
+	if ctx.IsSet(networkID.Name) {
+		generalConfig.GeneralSettings.NetworkID = ctx.GlobalString(networkID.Name)
+	}
+
 	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
 	}
 
-	workingDir := ctx.GlobalString(workingDirectory.Name)
-
-	if workingDir == "" {
+	var workingDir = ""
+	if ctx.IsSet(workingDirectory.Name) {
+		workingDir = ctx.GlobalString(workingDirectory.Name)
+	} else {
 		workingDir, err = os.Getwd()
 		if err != nil {
 			log.LogIfError(err)
@@ -401,23 +428,12 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
-	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
-		"PublicKey", factory.GetPkEncoded(pubKey),
-		"ShardId", shardId,
-		"TotalShards", shardCoordinator.NumberOfShards(),
-		"AppVersion", version,
-		"OsVersion", "TestOs",
-	)
-
 	logDirectory := filepath.Join(workingDir, defaultLogPath)
 
 	err = os.MkdirAll(logDirectory, os.ModePerm)
 	if err != nil {
 		return err
 	}
-
-	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
-	log.LogIfError(err)
 
 	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
@@ -448,6 +464,18 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
+		"PkBlockSign", factory.GetPkEncoded(pubKey),
+		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
+		"ShardId", shardId,
+		"TotalShards", shardCoordinator.NumberOfShards(),
+		"AppVersion", version,
+		"OsVersion", "TestOs",
+	)
+
+	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
+	log.LogIfError(err)
 
 	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
 	if err != nil {
@@ -621,8 +649,9 @@ func createShardCoordinator(
 	}
 
 	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
-	if err == sharding.ErrNoValidPublicKey {
+	if err == sharding.ErrPublicKeyNotFoundInGenesis {
 		log.Info("Starting as observer node...")
+
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
 	}
 	if err != nil {
