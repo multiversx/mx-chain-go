@@ -386,18 +386,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	log.Info("Starting with public key: " + factory.GetPkEncoded(pubKey))
 
 	if ctx.IsSet(destinationShardAsObserver.Name) {
-		destinationShardAsObserverString := ctx.GlobalString(destinationShardAsObserver.Name)
-		if strings.ToLower(destinationShardAsObserverString) != strings.ToLower(metachainShardName) {
-			shardId, err := strconv.Atoi(destinationShardAsObserverString)
-			if err == nil {
-				if int64(shardId) >= 0 &&
-					int64(shardId) < int64(nodesConfig.NumberOfShards()) {
-					generalConfig.GeneralSettings.DestinationShardAsObserver = fmt.Sprintf("%d", shardId)
-				}
-			}
-		} else {
-			generalConfig.GeneralSettings.DestinationShardAsObserver = strings.ToLower(destinationShardAsObserverString)
-		}
+		generalConfig.GeneralSettings.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
 	}
 
 	if ctx.IsSet(networkID.Name) {
