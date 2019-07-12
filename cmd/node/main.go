@@ -193,6 +193,13 @@ VERSION:
 		Value: "",
 	}
 
+	// destinationShardAsObserver defines a flag for the prefered shard to be assigned to as an observer.
+	destinationShardAsObserver = cli.StringFlag{
+		Name:  "destination-shard-as-observer",
+		Usage: "The preferred shard as an observer",
+		Value: "",
+	}
+
 	rm *statistics.ResourceMonitor
 )
 
@@ -243,6 +250,7 @@ func main() {
 		usePrometheus,
 		bootstrapRoundIndex,
 		workingDirectory,
+		destinationShardAsObserver,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -367,6 +375,19 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 	log.Info("Starting with public key: " + factory.GetPkEncoded(pubKey))
 
+	destinationShardAsObserverString := ctx.GlobalString(destinationShardAsObserver.Name)
+	if strings.ToLower(destinationShardAsObserverString) != strings.ToLower(metachainShardName) {
+		shardId, err := strconv.Atoi(destinationShardAsObserverString)
+		if err == nil {
+			if int64(shardId) >= 0 &&
+				int64(shardId) < int64(nodesConfig.NumberOfShards()) {
+				generalConfig.GeneralSettings.DestinationShardAsObserver = fmt.Sprintf("%d", shardId)
+			}
+		}
+	} else {
+		generalConfig.GeneralSettings.DestinationShardAsObserver = strings.ToLower(destinationShardAsObserverString)
+	}
+
 	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
@@ -401,23 +422,12 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
-	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
-		"PublicKey", factory.GetPkEncoded(pubKey),
-		"ShardId", shardId,
-		"TotalShards", shardCoordinator.NumberOfShards(),
-		"AppVersion", version,
-		"OsVersion", "TestOs",
-	)
-
 	logDirectory := filepath.Join(workingDir, defaultLogPath)
 
 	err = os.MkdirAll(logDirectory, os.ModePerm)
 	if err != nil {
 		return err
 	}
-
-	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
-	log.LogIfError(err)
 
 	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
@@ -448,6 +458,18 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
+		"PkBlockSign", factory.GetPkEncoded(pubKey),
+		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
+		"ShardId", shardId,
+		"TotalShards", shardCoordinator.NumberOfShards(),
+		"AppVersion", version,
+		"OsVersion", "TestOs",
+	)
+
+	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
+	log.LogIfError(err)
 
 	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
 	if err != nil {
@@ -621,8 +643,9 @@ func createShardCoordinator(
 	}
 
 	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
-	if err == sharding.ErrNoValidPublicKey {
+	if err == sharding.ErrPublicKeyNotFoundInGenesis {
 		log.Info("Starting as observer node...")
+
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
 	}
 	if err != nil {
