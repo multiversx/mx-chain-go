@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sync"
 
@@ -476,4 +477,22 @@ func (bn *branchNode) isEmptyOrNil() error {
 		}
 	}
 	return ErrEmptyNode
+}
+
+func (bn *branchNode) print(writer io.Writer, index int) {
+	str := fmt.Sprintf("B:")
+	_, _ = fmt.Fprintln(writer, str)
+	for i := 0; i < len(bn.children); i++ {
+		child := bn.children[i]
+		if child == nil {
+			continue
+		}
+
+		for j := 0; j < index+len(str)-1; j++ {
+			_, _ = fmt.Fprint(writer, " ")
+		}
+		str2 := fmt.Sprintf("+ %d: ", i)
+		_, _ = fmt.Fprint(writer, str2)
+		child.print(writer, index+len(str)-1+len(str2))
+	}
 }

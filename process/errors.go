@@ -355,7 +355,7 @@ var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
 // ErrNilTemporaryAccountsHandler signals that temporary accounts handler is nil
 var ErrNilTemporaryAccountsHandler = errors.New("temporary accounts handler is nil")
 
-// ErrNotEnoughValidBlocksInStorage signals that boostrap from storage failed due to not enough valid blocks stored
+// ErrNotEnoughValidBlocksInStorage signals that bootstrap from storage failed due to not enough valid blocks stored
 var ErrNotEnoughValidBlocksInStorage = errors.New("not enough valid blocks in storage")
 
 // ErrNilSmartContractResult signals that the smart contract result is nil

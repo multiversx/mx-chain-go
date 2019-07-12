@@ -122,6 +122,16 @@ func (ef *ElrondNodeFacade) RestApiPort() string {
 	return ef.config.RestApiPort
 }
 
+// PrometheusMonitoring returns if prometheus is enabled for monitoring by the flag
+func (ef *ElrondNodeFacade) PrometheusMonitoring() bool {
+	return ef.config.Prometheus
+}
+
+// PrometheusJoinURL will return the join URL from server.toml
+func (ef *ElrondNodeFacade) PrometheusJoinURL() string {
+	return ef.config.PrometheusJoinURL
+}
+
 func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 	defer wg.Done()
 
