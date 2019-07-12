@@ -133,6 +133,11 @@ func (ef *ElrondNodeFacade) PrometheusJoinURL() string {
 	return ef.config.PrometheusJoinURL
 }
 
+// PrometheusNetworkID will return the NetworkID from config.toml or the flag
+func (ef *ElrondNodeFacade) PrometheusNetworkID() string {
+	return ef.config.PrometheusJobName
+}
+
 func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 	defer wg.Done()
 

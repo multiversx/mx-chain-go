@@ -178,4 +178,5 @@ type FacadeConfig struct {
 	RestApiPort       string
 	Prometheus        bool
 	PrometheusJoinURL string
+	PrometheusJobName string
 }
