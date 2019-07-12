@@ -13,8 +13,8 @@ type MetaPoolsHolderFake struct {
 	metaChainBlocks    storage.Cacher
 	miniBlockHashes    dataRetriever.ShardedDataCacherNotifier
 	shardHeaders       storage.Cacher
-	metaBlockNonces    dataRetriever.Uint64Cacher
-	shardHeadersNonces dataRetriever.Uint64Cacher
+	metaBlockNonces    dataRetriever.Uint64SyncMapCacher
+	shardHeadersNonces dataRetriever.Uint64SyncMapCacher
 }
 
 func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
@@ -24,12 +24,12 @@ func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	mphf.shardHeaders, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 
 	cacheShardHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	mphf.shardHeadersNonces, _ = dataPool.NewNonceToHashCacher(
+	mphf.shardHeadersNonces, _ = dataPool.NewNonceSyncMapCacher(
 		cacheShardHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
 	cacheHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	mphf.metaBlockNonces, _ = dataPool.NewNonceToHashCacher(
+	mphf.metaBlockNonces, _ = dataPool.NewNonceSyncMapCacher(
 		cacheHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
@@ -48,10 +48,10 @@ func (mphf *MetaPoolsHolderFake) ShardHeaders() storage.Cacher {
 	return mphf.shardHeaders
 }
 
-func (mphf *MetaPoolsHolderFake) MetaBlockNonces() dataRetriever.Uint64Cacher {
+func (mphf *MetaPoolsHolderFake) MetaBlockNonces() dataRetriever.Uint64SyncMapCacher {
 	return mphf.metaBlockNonces
 }
 
-func (mphf *MetaPoolsHolderFake) ShardHeadersNonces() dataRetriever.Uint64Cacher {
+func (mphf *MetaPoolsHolderFake) ShardHeadersNonces() dataRetriever.Uint64SyncMapCacher {
 	return mphf.shardHeadersNonces
 }

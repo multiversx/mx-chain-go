@@ -47,7 +47,7 @@ func (ni *notarizedInfo) reset() {
 
 type baseBootstrap struct {
 	headers       storage.Cacher
-	headersNonces dataRetriever.Uint64Cacher
+	headersNonces dataRetriever.Uint64SyncMapCacher
 
 	blkc        data.ChainHandler
 	blkExecutor process.BlockProcessor
@@ -337,15 +337,10 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
-func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64) {
-	headerHash, _ := boot.headersNonces.Get(nonce)
-	byteHeaderHash, ok := headerHash.([]byte)
-
-	if ok {
-		log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n",
-			nonce,
-			core.ToB64(byteHeaderHash)))
-	}
+func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, hash []byte) {
+	log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n",
+		nonce,
+		core.ToB64(hash)))
 
 	n := boot.requestedHeaderNonce()
 	if n == nil {
@@ -425,10 +420,10 @@ func (boot *baseBootstrap) ShouldSync() bool {
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
-	value, _ := boot.headersNonces.Get(header.GetNonce())
-	boot.headersNonces.Remove(header.GetNonce())
+	syncMap, _ := boot.headersNonces.Get(header.GetNonce())
+	boot.headersNonces.RemoveShardId(header.GetNonce(), header.GetShardID())
 
-	hash, ok := value.([]byte)
+	hash, ok := syncMap.Load(header.GetShardID())
 	if ok {
 		boot.headers.Remove(hash)
 	}

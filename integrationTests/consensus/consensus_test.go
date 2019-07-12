@@ -32,7 +32,7 @@ func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint
 	fmt.Println("Step 1. Setup nodes...")
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	concMap := &sync.Map{}
 
@@ -128,9 +128,9 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 
 	mutex := &sync.Mutex{}
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -174,7 +174,7 @@ func TestConsensusBLSFullTest(t *testing.T) {
 	runFullConsensusTest(t, blsConsensusType)
 }
 
-func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
+func runConsensusWithNotEnoughValidators(t *testing.T, _ string) {
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
@@ -183,9 +183,9 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 
 	mutex := &sync.Mutex{}
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 

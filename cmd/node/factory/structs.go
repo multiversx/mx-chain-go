@@ -862,7 +862,7 @@ func createShardDataPoolFromConfig(
 		fmt.Println("error creating hdrNoncesCacher")
 		return nil, err
 	}
-	hdrNonces, err := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSliceConverter)
+	hdrNonces, err := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
 		fmt.Println("error creating hdrNonces")
 		return nil, err
@@ -888,7 +888,7 @@ func createShardDataPoolFromConfig(
 		fmt.Println("error creating metaBlockNoncesCacher")
 		return nil, err
 	}
-	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
+	metaBlockNonces, err := dataPool.NewNonceSyncMapCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
 		fmt.Println("error creating metaBlockNonces")
 		return nil, err
@@ -935,7 +935,7 @@ func createMetaDataPoolFromConfig(
 		fmt.Println("error creating shard headers nonces pool")
 		return nil, err
 	}
-	shardHeadersNonces, err := dataPool.NewNonceToHashCacher(shardHeadersNoncesCacher, uint64ByteSliceConverter)
+	shardHeadersNonces, err := dataPool.NewNonceSyncMapCacher(shardHeadersNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
 		fmt.Println("error creating shard headers nonces pool")
 		return nil, err
@@ -947,7 +947,7 @@ func createMetaDataPoolFromConfig(
 		fmt.Println("error creating metaBlockNoncesCacher")
 		return nil, err
 	}
-	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
+	metaBlockNonces, err := dataPool.NewNonceSyncMapCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
 		fmt.Println("error creating metaBlockNonces")
 		return nil, err

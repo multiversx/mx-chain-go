@@ -1414,7 +1414,7 @@ func TestShardProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		true,
 		&mock.RequestHandlerMock{},
 	)
-	tdp.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
+	tdp.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		return nil
 	}
 	blkc := createTestBlockchain()

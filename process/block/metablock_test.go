@@ -676,7 +676,7 @@ func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 	)
 
-	mdp.MetaBlockNoncesCalled = func() dataRetriever.Uint64Cacher {
+	mdp.MetaBlockNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		return nil
 	}
 	blkc := createTestBlockchain()

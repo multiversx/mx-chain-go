@@ -31,7 +31,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 		seed,
 		discovery.NewKadDhtPeerDiscoverer(time.Second, randezVous, nil))
 	seed++
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	//Step 2. Create noOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, noOfPeers)
@@ -47,19 +47,19 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 			seed+i,
 			kadDht)
 
-		peers[i].Bootstrap()
+		_ = peers[i].Bootstrap()
 	}
 
 	//cleanup function that closes all messengers
 	defer func() {
 		for i := 0; i < noOfPeers; i++ {
 			if peers[i] != nil {
-				peers[i].Close()
+				_ = peers[i].Close()
 			}
 		}
 
 		if advertiser != nil {
-			advertiser.Close()
+			_ = advertiser.Close()
 		}
 	}()
 
@@ -111,7 +111,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 		}
 
 		seed++
-		advertisers[i].Bootstrap()
+		_ = advertisers[i].Bootstrap()
 	}
 
 	//Step 2. Create noOfPeers instances of messenger type and call bootstrap
@@ -128,20 +128,20 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 			seed+i,
 			kadDht)
 
-		peers[i].Bootstrap()
+		_ = peers[i].Bootstrap()
 	}
 
 	//cleanup function that closes all messengers
 	defer func() {
 		for i := 0; i < noOfPeers; i++ {
 			if peers[i] != nil {
-				peers[i].Close()
+				_ = peers[i].Close()
 			}
 		}
 
 		for i := 0; i < noOfAdvertisers; i++ {
 			if advertisers[i] != nil {
-				advertisers[i].Close()
+				_ = advertisers[i].Close()
 			}
 		}
 	}()

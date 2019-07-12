@@ -183,12 +183,15 @@ func (rcf *resolversContainerFactory) generateTxResolvers(topic string, unit dat
 func (rcf *resolversContainerFactory) createTxResolver(topic string, excludedTopic string, unit dataRetriever.UnitType) (dataRetriever.Resolver, error) {
 	txStorer := rcf.store.GetStorer(unit)
 
+	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
+	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		topic,
 		excludedTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
+		uint32(0),
 	)
 	if err != nil {
 		return nil, err
@@ -226,6 +229,7 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
+		shardC.SelfId(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -302,6 +306,7 @@ func (rcf *resolversContainerFactory) createMiniBlocksResolver(topic string, exc
 		excludedTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
+		uint32(0),
 	)
 	if err != nil {
 		return nil, err
@@ -339,6 +344,7 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolver() ([]strin
 		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
+		shardC.SelfId(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -380,6 +386,7 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
+		shardC.SelfId(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -426,6 +433,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
+		sharding.MetachainShardId,
 	)
 	if err != nil {
 		return nil, nil, err

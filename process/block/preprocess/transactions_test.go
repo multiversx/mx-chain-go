@@ -2,6 +2,9 @@ package preprocess
 
 import (
 	"bytes"
+	"reflect"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -11,8 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
-	"reflect"
-	"testing"
 )
 
 func initDataPool() *mock.PoolsHolderStub {
@@ -45,12 +46,8 @@ func initDataPool() *mock.PoolsHolderStub {
 				},
 			}
 		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
-			return &mock.Uint64CacherStub{
-				PutCalled: func(u uint64, i interface{}) bool {
-					return true
-				},
-			}
+		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
+			return &mock.Uint64SyncMapCacherStub{}
 		},
 		MetaBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{

@@ -52,36 +52,36 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 	defer func() {
 		for i := 0; i < noOfPeers; i++ {
 			if peers[i] != nil {
-				peers[i].Close()
+				_ = peers[i].Close()
 			}
 		}
 
 		if advertiser != nil {
-			advertiser.Close()
+			_ = advertiser.Close()
 		}
 	}()
 
 	//link all peers so they can connect to each other
-	netw.LinkAll()
+	_ = netw.LinkAll()
 
 	//Step 3. Call bootstrap on all peers
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 	for _, p := range peers {
-		p.Bootstrap()
+		_ = p.Bootstrap()
 	}
 	waitForBootstrapAndShowConnected(peers)
 
 	//Step 4. Disconnect one peer
 	disconnectedPeer := peers[5]
 	fmt.Printf("--- Diconnecting peer: %v ---\n", disconnectedPeer.ID().Pretty())
-	netw.UnlinkPeers(getPeerId(advertiser), getPeerId(disconnectedPeer))
-	netw.DisconnectPeers(getPeerId(advertiser), getPeerId(disconnectedPeer))
-	netw.DisconnectPeers(getPeerId(disconnectedPeer), getPeerId(advertiser))
+	_ = netw.UnlinkPeers(getPeerId(advertiser), getPeerId(disconnectedPeer))
+	_ = netw.DisconnectPeers(getPeerId(advertiser), getPeerId(disconnectedPeer))
+	_ = netw.DisconnectPeers(getPeerId(disconnectedPeer), getPeerId(advertiser))
 	for _, p := range peers {
 		if p != disconnectedPeer {
-			netw.UnlinkPeers(getPeerId(p), getPeerId(disconnectedPeer))
-			netw.DisconnectPeers(getPeerId(p), getPeerId(disconnectedPeer))
-			netw.DisconnectPeers(getPeerId(disconnectedPeer), getPeerId(p))
+			_ = netw.UnlinkPeers(getPeerId(p), getPeerId(disconnectedPeer))
+			_ = netw.DisconnectPeers(getPeerId(p), getPeerId(disconnectedPeer))
+			_ = netw.DisconnectPeers(getPeerId(disconnectedPeer), getPeerId(p))
 		}
 	}
 	for i := 0; i < 5; i++ {
@@ -99,7 +99,7 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 
 	//Step 5. Re-link and test connections
 	fmt.Println("--- Re-linking ---")
-	netw.LinkAll()
+	_ = netw.LinkAll()
 	for i := 0; i < 5; i++ {
 		waitForBootstrapAndShowConnected(peers)
 	}

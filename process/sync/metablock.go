@@ -449,9 +449,12 @@ func (boot *MetaBootstrap) getHeaderWithNonce(nonce uint64) (*block.MetaBlock, e
 
 // getHeaderFromPoolWithNonce method returns the block header from a given nonce
 func (boot *MetaBootstrap) getHeaderFromPoolWithNonce(nonce uint64) (*block.MetaBlock, error) {
-	value, _ := boot.headersNonces.Get(nonce)
-	hash, ok := value.([]byte)
+	syncMap, ok := boot.headersNonces.Get(nonce)
+	if !ok {
+		return nil, process.ErrMissingHashForHeaderNonce
+	}
 
+	hash, ok := syncMap.Load(sharding.MetachainShardId)
 	if hash == nil || !ok {
 		return nil, process.ErrMissingHashForHeaderNonce
 	}

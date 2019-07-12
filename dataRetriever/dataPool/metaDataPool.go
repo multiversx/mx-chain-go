@@ -9,8 +9,8 @@ type metaDataPool struct {
 	metaBlocks         storage.Cacher
 	miniBlockHashes    dataRetriever.ShardedDataCacherNotifier
 	shardHeaders       storage.Cacher
-	shardHeadersNonces dataRetriever.Uint64Cacher
-	metaBlockNonces    dataRetriever.Uint64Cacher
+	shardHeadersNonces dataRetriever.Uint64SyncMapCacher
+	metaBlockNonces    dataRetriever.Uint64SyncMapCacher
 }
 
 // NewMetaDataPool creates a data pools holder object
@@ -18,8 +18,8 @@ func NewMetaDataPool(
 	metaBlocks storage.Cacher,
 	miniBlockHashes dataRetriever.ShardedDataCacherNotifier,
 	shardHeaders storage.Cacher,
-	metaBlockNonces dataRetriever.Uint64Cacher,
-	shardHeadersNonces dataRetriever.Uint64Cacher,
+	metaBlockNonces dataRetriever.Uint64SyncMapCacher,
+	shardHeadersNonces dataRetriever.Uint64SyncMapCacher,
 ) (*metaDataPool, error) {
 
 	if metaBlocks == nil {
@@ -63,11 +63,11 @@ func (mdp *metaDataPool) ShardHeaders() storage.Cacher {
 }
 
 // MetaBlockNonces returns the holder for meta block nonces
-func (mdp *metaDataPool) MetaBlockNonces() dataRetriever.Uint64Cacher {
+func (mdp *metaDataPool) MetaBlockNonces() dataRetriever.Uint64SyncMapCacher {
 	return mdp.metaBlockNonces
 }
 
 // ShardHeadersNonces returns the holder for shard headers nonces
-func (mdp *metaDataPool) ShardHeadersNonces() dataRetriever.Uint64Cacher {
+func (mdp *metaDataPool) ShardHeadersNonces() dataRetriever.Uint64SyncMapCacher {
 	return mdp.shardHeadersNonces
 }

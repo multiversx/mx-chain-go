@@ -135,6 +135,7 @@ func (rcf *resolversContainerFactory) createShardHeaderResolver(topic string, ex
 		excludedTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
+		shardID,
 	)
 	if err != nil {
 		return nil, err
@@ -167,7 +168,7 @@ func (rcf *resolversContainerFactory) createShardHeaderResolver(topic string, ex
 
 func (rcf *resolversContainerFactory) generateMetaChainHeaderResolvers() ([]string, []dataRetriever.Resolver, error) {
 	identifierHeader := factory.MetachainBlocksTopic
-	resolver, err := rcf.createMetaChainHeaderResolver(identifierHeader)
+	resolver, err := rcf.createMetaChainHeaderResolver(identifierHeader, sharding.MetachainShardId)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -175,7 +176,7 @@ func (rcf *resolversContainerFactory) generateMetaChainHeaderResolvers() ([]stri
 	return []string{identifierHeader}, []dataRetriever.Resolver{resolver}, nil
 }
 
-func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier string) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier string, shardId uint32) (dataRetriever.Resolver, error) {
 	hdrStorer := rcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
@@ -184,6 +185,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 		emptyExcludePeersOnTopic,
 		rcf.marshalizer,
 		rcf.intRandomizer,
+		shardId,
 	)
 	if err != nil {
 		return nil, err

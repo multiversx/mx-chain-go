@@ -10,8 +10,8 @@ type shardedDataPool struct {
 	smartContractResults dataRetriever.ShardedDataCacherNotifier
 	headers              storage.Cacher
 	metaBlocks           storage.Cacher
-	hdrNonces            dataRetriever.Uint64Cacher
-	metaHdrNonces        dataRetriever.Uint64Cacher
+	hdrNonces            dataRetriever.Uint64SyncMapCacher
+	metaHdrNonces        dataRetriever.Uint64SyncMapCacher
 	miniBlocks           storage.Cacher
 	peerChangesBlocks    storage.Cacher
 }
@@ -21,11 +21,11 @@ func NewShardedDataPool(
 	transactions dataRetriever.ShardedDataCacherNotifier,
 	smartContractResults dataRetriever.ShardedDataCacherNotifier,
 	headers storage.Cacher,
-	hdrNonces dataRetriever.Uint64Cacher,
+	hdrNonces dataRetriever.Uint64SyncMapCacher,
 	miniBlocks storage.Cacher,
 	peerChangesBlocks storage.Cacher,
 	metaBlocks storage.Cacher,
-	metaHdrNonces dataRetriever.Uint64Cacher,
+	metaHdrNonces dataRetriever.Uint64SyncMapCacher,
 ) (*shardedDataPool, error) {
 
 	if transactions == nil {
@@ -81,7 +81,7 @@ func (tdp *shardedDataPool) Headers() storage.Cacher {
 }
 
 // HeadersNonces returns the holder for (nonce, header hash) pairs
-func (tdp *shardedDataPool) HeadersNonces() dataRetriever.Uint64Cacher {
+func (tdp *shardedDataPool) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
 	return tdp.hdrNonces
 }
 
@@ -101,6 +101,6 @@ func (tdp *shardedDataPool) MetaBlocks() storage.Cacher {
 }
 
 // MetaHeadersNonces returns the holder for (nonce, meta header hash) pairs
-func (tdp *shardedDataPool) MetaHeadersNonces() dataRetriever.Uint64Cacher {
+func (tdp *shardedDataPool) MetaHeadersNonces() dataRetriever.Uint64SyncMapCacher {
 	return tdp.metaHdrNonces
 }

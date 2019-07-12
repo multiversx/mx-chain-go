@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -477,7 +478,9 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][]byt
 		}
 
 		metaBlockPool.Put(metaBlockHash, &metaBlock)
-		metaHeaderNoncesPool.Put(metaBlock.Nonce, &metaBlock)
+		syncMap := &dataPool.ShardIdHashSyncMap{}
+		syncMap.Store(metaBlock.GetShardID(), metaBlockHash)
+		metaHeaderNoncesPool.Merge(metaBlock.Nonce, syncMap)
 
 		err = sp.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
 		if err != nil {
@@ -579,7 +582,9 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
-	_ = headerNoncePool.Put(headerHandler.GetNonce(), headerHash)
+	syncMap := &dataPool.ShardIdHashSyncMap{}
+	syncMap.Store(headerHandler.GetShardID(), headerHash)
+	headerNoncePool.Merge(headerHandler.GetNonce(), syncMap)
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
@@ -781,7 +786,7 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 		}
 
 		sp.dataPool.MetaBlocks().Remove(headerHash)
-		sp.dataPool.MetaHeadersNonces().Remove(hdr.GetNonce())
+		sp.dataPool.MetaHeadersNonces().RemoveNonce(hdr.GetNonce())
 
 		log.Debug(fmt.Sprintf("metaBlock with nonce %d has been processed completely and removed from pool\n",
 			hdr.GetNonce()))

@@ -153,7 +153,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	hdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+	hdrNonces, _ := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -163,7 +163,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	metaHdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	metaHdrNonces, _ := dataPool.NewNonceToHashCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+	metaHdrNonces, _ := dataPool.NewNonceSyncMapCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}

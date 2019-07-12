@@ -88,11 +88,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				},
 			}
 		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
-			return &mock.Uint64CacherStub{
-				PutCalled: func(u uint64, i interface{}) bool {
-					return true
-				},
+		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
+			return &mock.Uint64SyncMapCacherStub{
+				MergeCalled: func(u uint64, syncMap dataRetriever.ShardIdHashMap) {},
 			}
 		},
 		MetaBlocksCalled: func() storage.Cacher {
@@ -146,8 +144,8 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			return cs
 		},
-		MetaHeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
-			cs := &mock.Uint64CacherStub{}
+		MetaHeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
+			cs := &mock.Uint64SyncMapCacherStub{}
 			cs.HasCalled = func(u uint64) bool {
 				return true
 			}
@@ -159,11 +157,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 
 func initMetaDataPool() *mock.MetaPoolsHolderStub {
 	mdp := &mock.MetaPoolsHolderStub{
-		MetaBlockNoncesCalled: func() dataRetriever.Uint64Cacher {
-			return &mock.Uint64CacherStub{
-				PutCalled: func(u uint64, i interface{}) bool {
-					return true
-				},
+		MetaBlockNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
+			return &mock.Uint64SyncMapCacherStub{
+				MergeCalled: func(u uint64, syncMap dataRetriever.ShardIdHashMap) {},
 			}
 		},
 		MetaChainBlocksCalled: func() storage.Cacher {
@@ -226,11 +222,9 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 			}
 			return cs
 		},
-		ShardHeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
-			cs := &mock.Uint64CacherStub{}
-			cs.RemoveCalled = func(u uint64) {
-
-			}
+		ShardHeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
+			cs := &mock.Uint64SyncMapCacherStub{}
+			cs.RemoveNonceCalled = func(u uint64) {}
 			return cs
 		},
 	}
