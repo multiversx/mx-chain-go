@@ -181,9 +181,6 @@ var ErrNilMultiSigVerifier = errors.New("nil multi-signature verifier")
 // ErrInvalidBlockBodyType signals that an operation has been attempted with an invalid block body type
 var ErrInvalidBlockBodyType = errors.New("invalid block body type")
 
-// ErrNotImplementedBlockProcessingType signals that a not supported block body type was found in header
-var ErrNotImplementedBlockProcessingType = errors.New("not implemented block processing type")
-
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
 
@@ -307,9 +304,6 @@ var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to c
 // ErrNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
 var ErrNotarizedHdrsSliceIsNil = errors.New("notarized shard headers slice is nil")
 
-// ErrNoNewMetablocks signals that no new metablocks are in the pool
-var ErrNoNewMetablocks = errors.New("there is no new metablocks")
-
 // ErrNoSortedHdrsForShard signals that there are no sorted hdrs in pool
 var ErrNoSortedHdrsForShard = errors.New("no sorted headers in pool")
 
@@ -318,9 +312,6 @@ var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblo
 
 // ErrHeaderBodyMismatch signals that the header does not attest all data from the block
 var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header data")
-
-// ErrMetaBlockNotFinal signals that metablock is not final
-var ErrMetaBlockNotFinal = errors.New("cannot attest meta blocks finality")
 
 // ErrNilSmartContractProcessor signals that smart contract call executor is nil
 var ErrNilSmartContractProcessor = errors.New("smart contract processor is nil")
