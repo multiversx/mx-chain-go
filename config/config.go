@@ -96,6 +96,7 @@ type Config struct {
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
 	Explorer        ExplorerConfig
+	Network         NetworkConfig
 
 	NTPConfig NTPConfig
 }
@@ -151,6 +152,11 @@ type GeneralSettingsConfig struct {
 type ExplorerConfig struct {
 	Enabled    bool
 	IndexerURL string
+}
+
+// NetworkConfig will hold the configuration for the network, such as testnet version
+type NetworkConfig struct {
+	NetworkID string
 }
 
 // ServersConfig will hold all the confidential settings for servers

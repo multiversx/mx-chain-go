@@ -8,6 +8,9 @@
     Enabled = false
     IndexerURL = "http://localhost:9200"
 
+[Network]
+    NetworkID = "undefined"
+
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Size = 10000

@@ -161,6 +161,13 @@ VERSION:
 		Value: "8080",
 	}
 
+	// networkID defines the version of the network. If set, will override the same parameter from config.toml
+	networkID = cli.StringFlag{
+		Name:  "network-id",
+		Usage: "The network version, overriding the one from config.toml",
+		Value: "",
+	}
+
 	// usePrometheus joins the node for prometheus monitoring if set
 	usePrometheus = cli.BoolFlag{
 		Name:  "use-prometheus",
@@ -173,12 +180,14 @@ VERSION:
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialBalancesSk.pem",
 	}
+
 	// initialNodesSkPemFile defines a flag for the path to the ...
 	initialNodesSkPemFile = cli.StringFlag{
 		Name:  "initialNodesSkPemFile",
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialNodesSk.pem",
 	}
+
 	// bootstrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
 	bootstrapRoundIndex = cli.UintFlag{
 		Name:  "bootstrap-round-index",
@@ -246,6 +255,7 @@ func main() {
 		initialNodesSkPemFile,
 		gopsEn,
 		serversConfigurationFile,
+		networkID,
 		restApiPort,
 		usePrometheus,
 		bootstrapRoundIndex,
@@ -386,6 +396,11 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	} else {
 		generalConfig.GeneralSettings.DestinationShardAsObserver = strings.ToLower(destinationShardAsObserverString)
+	}
+
+	networkIDString := ctx.GlobalString(networkID.Name)
+	if networkIDString != "" {
+		generalConfig.Network.NetworkID = networkIDString
 	}
 
 	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
