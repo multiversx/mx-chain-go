@@ -166,6 +166,13 @@ VERSION:
 		Value: "8080",
 	}
 
+	// networkID defines the version of the network. If set, will override the same parameter from config.toml
+	networkID = cli.StringFlag{
+		Name:  "network-id",
+		Usage: "The network version, overriding the one from config.toml",
+		Value: "",
+	}
+
 	// usePrometheus joins the node for prometheus monitoring if set
 	usePrometheus = cli.BoolFlag{
 		Name:  "use-prometheus",
@@ -178,6 +185,7 @@ VERSION:
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialBalancesSk.pem",
 	}
+
 	// initialNodesSkPemFile defines a flag for the path to the ...
 	initialNodesSkPemFile = cli.StringFlag{
 		Name:  "initialNodesSkPemFile",
@@ -247,6 +255,7 @@ func main() {
 		initialNodesSkPemFile,
 		gopsEn,
 		serversConfigurationFile,
+		networkID,
 		restApiPort,
 		logLevel,
 		usePrometheus,
@@ -380,17 +389,12 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 	log.Info("Starting with public key: " + factory.GetPkEncoded(pubKey))
 
-	destinationShardAsObserverString := ctx.GlobalString(destinationShardAsObserver.Name)
-	if strings.ToLower(destinationShardAsObserverString) != strings.ToLower(metachainShardName) {
-		shardId, err := strconv.Atoi(destinationShardAsObserverString)
-		if err == nil {
-			if int64(shardId) >= 0 &&
-				int64(shardId) < int64(nodesConfig.NumberOfShards()) {
-				generalConfig.GeneralSettings.DestinationShardAsObserver = fmt.Sprintf("%d", shardId)
-			}
-		}
-	} else {
-		generalConfig.GeneralSettings.DestinationShardAsObserver = strings.ToLower(destinationShardAsObserverString)
+	if ctx.IsSet(destinationShardAsObserver.Name) {
+		generalConfig.GeneralSettings.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
+	}
+
+	if ctx.IsSet(networkID.Name) {
+		generalConfig.GeneralSettings.NetworkID = ctx.GlobalString(networkID.Name)
 	}
 
 	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
@@ -398,9 +402,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	workingDir := ctx.GlobalString(workingDirectory.Name)
-
-	if workingDir == "" {
+	var workingDir = ""
+	if ctx.IsSet(workingDirectory.Name) {
+		workingDir = ctx.GlobalString(workingDirectory.Name)
+	} else {
 		workingDir, err = os.Getwd()
 		if err != nil {
 			log.LogIfError(err)
