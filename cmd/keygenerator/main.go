@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -64,6 +65,17 @@ func main() {
 	}
 }
 
+func backupFileIfExists(filename string) {
+	if _, err := os.Stat(filename); err != nil {
+		if os.IsNotExist(err) {
+			return
+		}
+	}
+	//if we reached here the file probably exists, make a timestamped backup
+	os.Rename(filename, filename+"."+fmt.Sprintf("%d", time.Now().Unix()))
+
+}
+
 func generateFiles(ctx *cli.Context) error {
 	var initialBalancesSkFile, initialNodesSkFile *os.File
 
@@ -83,6 +95,7 @@ func generateFiles(ctx *cli.Context) error {
 		}
 	}()
 
+	backupFileIfExists(initialBalancesSkFileName)
 	err := os.Remove(initialBalancesSkFileName)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -93,6 +106,7 @@ func generateFiles(ctx *cli.Context) error {
 		return err
 	}
 
+	backupFileIfExists(initialNodesSkFileName)
 	err = os.Remove(initialNodesSkFileName)
 	if err != nil && !os.IsNotExist(err) {
 		return err
