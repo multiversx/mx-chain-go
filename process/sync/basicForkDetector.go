@@ -2,10 +2,12 @@ package sync
 
 import (
 	"bytes"
+	"fmt"
 	"math"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -233,8 +235,20 @@ func (bfd *basicForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
 	hdrInfos := bfd.headers[nonce]
 	bfd.mutHeaders.RUnlock()
 
+	log.Info(fmt.Sprintf("remove header with nonce %d and hash %s from fork detector\n",
+		nonce,
+		core.ToB64(hash)))
+
 	for _, hdrInfoStored := range hdrInfos {
+		log.Info(fmt.Sprintf("hdrInfoStoredNonce = %d hdrInfoStoredRound = %d hdrInfoStoredState = %d hdrInfoStoredHash = %s\n",
+			hdrInfoStored.nonce,
+			hdrInfoStored.round,
+			hdrInfoStored.state,
+			core.ToB64(hdrInfoStored.hash)))
 		if bytes.Equal(hdrInfoStored.hash, hash) {
+			log.Info(fmt.Sprintf("header with nonce %d and hash %s has been removed from fork detector\n",
+				hdrInfoStored.nonce,
+				core.ToB64(hdrInfoStored.hash)))
 			continue
 		}
 

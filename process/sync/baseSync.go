@@ -325,7 +325,7 @@ func (boot *baseBootstrap) requestedHeaderNonce() *uint64 {
 }
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n",
+	log.Info(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n",
 		headerHandler.GetNonce(),
 		core.ToB64(headerHash)))
 
@@ -420,15 +420,25 @@ func (boot *baseBootstrap) ShouldSync() bool {
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
-	syncMap, _ := boot.headersNonces.Get(header.GetNonce())
 	boot.headersNonces.RemoveShardId(header.GetNonce(), header.GetShardID())
 
-	hash, ok := syncMap.Load(header.GetShardID())
-	if ok {
-		boot.headers.Remove(hash)
+	hash, err := boot.computeHeaderHash(header)
+	if err != nil {
+		log.Info(err.Error())
+		return nil
 	}
 
+	boot.headers.Remove(hash)
 	return hash
+}
+
+func (boot *baseBootstrap) computeHeaderHash(handler data.HeaderHandler) ([]byte, error) {
+	buff, err := boot.marshalizer.Marshal(handler)
+	if err != nil {
+		return nil, err
+	}
+
+	return boot.hasher.Compute(string(buff)), nil
 }
 
 func (boot *baseBootstrap) cleanCachesOnRollback(
