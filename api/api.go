@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
@@ -74,6 +75,10 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	txRoutes := ws.Group("/transaction")
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	transaction.Routes(txRoutes)
+
+	vmValuesRoutes := ws.Group("/vm-values")
+	vmValuesRoutes.Use(middleware.WithElrondFacade(elrondFacade))
+	vmValues.Routes(vmValuesRoutes)
 
 	apiHandler, ok := elrondFacade.(MainApiHandler)
 	if ok && apiHandler.PrometheusMonitoring() {

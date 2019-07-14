@@ -15,7 +15,7 @@ type SmartContractResult struct {
 	RcvAddr []byte   `capid:"2" json:"receiver"`
 	SndAddr []byte   `capid:"3" json:"sender"`
 	Code    []byte   `capid:"4" json:"code,omitempty"`
-	Data    []byte   `capid:"5" json:"data,omitempty"`
+	Data    string   `capid:"5" json:"data,omitempty"`
 	TxHash  []byte   `capid:"6" json:"txHash"`
 }
 
@@ -58,7 +58,7 @@ func SmartContractResultCapnToGo(src capnp.SmartContractResultCapn, dest *SmartC
 
 	dest.RcvAddr = src.RcvAddr()
 	dest.SndAddr = src.SndAddr()
-	dest.Data = src.Data()
+	dest.Data = string(src.Data())
 	dest.Code = src.Code()
 	dest.TxHash = src.TxHash()
 
@@ -74,9 +74,54 @@ func SmartContractResultGoToCapn(seg *capn.Segment, src *SmartContractResult) ca
 	dest.SetValue(value)
 	dest.SetRcvAddr(src.RcvAddr)
 	dest.SetSndAddr(src.SndAddr)
-	dest.SetData(src.Data)
+	dest.SetData([]byte(src.Data))
 	dest.SetCode(src.Code)
 	dest.SetTxHash(src.TxHash)
 
 	return dest
+}
+
+// IsInterfaceNil verifies if underlying object is nil
+func (scr *SmartContractResult) IsInterfaceNil() bool {
+	return scr == nil
+}
+
+// GetValue returns the value of the smart contract result
+func (scr *SmartContractResult) GetValue() *big.Int {
+	return scr.Value
+}
+
+// GetData returns the data of the smart contract result
+func (scr *SmartContractResult) GetData() string {
+	return scr.Data
+}
+
+// GetRecvAddress returns the receiver address from the smart contract result
+func (scr *SmartContractResult) GetRecvAddress() []byte {
+	return scr.RcvAddr
+}
+
+// GetSndAddress returns the sender address from the smart contract result
+func (scr *SmartContractResult) GetSndAddress() []byte {
+	return scr.SndAddr
+}
+
+// SetValue sets the value of the smart contract result
+func (scr *SmartContractResult) SetValue(value *big.Int) {
+	scr.Value = value
+}
+
+// SetData sets the data of the smart contract result
+func (scr *SmartContractResult) SetData(data string) {
+	scr.Data = data
+}
+
+// SetRecvAddress sets the receiver address of the smart contract result
+func (scr *SmartContractResult) SetRecvAddress(addr []byte) {
+	scr.RcvAddr = addr
+}
+
+// SetSndAddress sets the sender address of the smart contract result
+func (scr *SmartContractResult) SetSndAddress(addr []byte) {
+	scr.SndAddr = addr
 }

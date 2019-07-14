@@ -535,7 +535,7 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShou
 		1,
 	)
 
-	rrh.RequestSmartContractResults(0, make([][]byte, 0))
+	rrh.RequestUnsignedTransactions(0, make([][]byte, 0))
 }
 
 func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing.T) {
@@ -563,7 +563,7 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 		1,
 	)
 
-	rrh.RequestSmartContractResults(0, make([][]byte, 0))
+	rrh.RequestUnsignedTransactions(0, make([][]byte, 0))
 }
 
 func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
@@ -590,7 +590,7 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 		1,
 	)
 
-	rrh.RequestSmartContractResults(0, [][]byte{[]byte("txHash")})
+	rrh.RequestUnsignedTransactions(0, [][]byte{[]byte("txHash")})
 
 	select {
 	case <-chTxRequested:
@@ -633,7 +633,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 		1,
 	)
 
-	rrh.RequestSmartContractResults(0, [][]byte{[]byte("txHash")})
+	rrh.RequestUnsignedTransactions(0, [][]byte{[]byte("txHash")})
 
 	select {
 	case <-chTxRequested:

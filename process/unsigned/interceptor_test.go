@@ -1,35 +1,35 @@
-package smartContract_test
+package unsigned_test
 
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/stretchr/testify/assert"
 )
 
 var durTimeout = time.Duration(time.Second)
 
-//------- NewScrInterceptor
+//------- NewUnsignedTxInterceptor
 
-func TestNewScrInterceptor_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewUnsignedTxInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 
-	scri, err := smartContract.NewScrInterceptor(
+	scri, err := unsigned.NewUnsignedTxInterceptor(
 		nil,
-		scrPool,
+		uTxPool,
 		storer,
 		addrConv,
 		mock.HasherMock{},
@@ -39,14 +39,14 @@ func TestNewScrInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	assert.Nil(t, scri)
 }
 
-func TestNewScrInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
+func TestNewUnsignedTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 
-	scri, err := smartContract.NewScrInterceptor(
+	scri, err := unsigned.NewUnsignedTxInterceptor(
 		&mock.MarshalizerMock{},
 		nil,
 		storer,
@@ -54,39 +54,39 @@ func TestNewScrInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		oneSharder)
 
-	assert.Equal(t, process.ErrNilScrDataPool, err)
+	assert.Equal(t, process.ErrNilUTxDataPool, err)
 	assert.Nil(t, scri)
 }
 
-func TestNewScrInterceptor_NilStorerShouldErr(t *testing.T) {
+func TestNewUnsignedTxInterceptor_NilStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	scri, err := smartContract.NewScrInterceptor(
+	scri, err := unsigned.NewUnsignedTxInterceptor(
 		&mock.MarshalizerMock{},
-		scrPool,
+		uTxPool,
 		nil,
 		addrConv,
 		mock.HasherMock{},
 		oneSharder)
 
-	assert.Equal(t, process.ErrNilScrStorage, err)
+	assert.Equal(t, process.ErrNilUTxStorage, err)
 	assert.Nil(t, scri)
 }
 
-func TestNewScrInterceptor_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewUnsignedTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 
-	scri, err := smartContract.NewScrInterceptor(
+	scri, err := unsigned.NewUnsignedTxInterceptor(
 		&mock.MarshalizerMock{},
-		scrPool,
+		uTxPool,
 		storer,
 		nil,
 		mock.HasherMock{},
@@ -96,17 +96,17 @@ func TestNewScrInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 	assert.Nil(t, scri)
 }
 
-func TestNewScrInterceptor_NilHasherShouldErr(t *testing.T) {
+func TestNewUnsignedTxInterceptor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 
-	scri, err := smartContract.NewScrInterceptor(
+	scri, err := unsigned.NewUnsignedTxInterceptor(
 		&mock.MarshalizerMock{},
-		scrPool,
+		uTxPool,
 		storer,
 		addrConv,
 		nil,
@@ -116,16 +116,16 @@ func TestNewScrInterceptor_NilHasherShouldErr(t *testing.T) {
 	assert.Nil(t, scri)
 }
 
-func TestNewScrInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
+func TestNewUnsignedTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	storer := &mock.StorerStub{}
 
-	scri, err := smartContract.NewScrInterceptor(
+	scri, err := unsigned.NewUnsignedTxInterceptor(
 		&mock.MarshalizerMock{},
-		scrPool,
+		uTxPool,
 		storer,
 		addrConv,
 		mock.HasherMock{},
@@ -135,17 +135,17 @@ func TestNewScrInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 	assert.Nil(t, scri)
 }
 
-func TestNewScrInterceptor_OkValsShouldWork(t *testing.T) {
+func TestNewUnsignedTxInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 
-	scri, err := smartContract.NewScrInterceptor(
+	scri, err := unsigned.NewUnsignedTxInterceptor(
 		&mock.MarshalizerMock{},
-		scrPool,
+		uTxPool,
 		storer,
 		addrConv,
 		mock.HasherMock{},
@@ -160,14 +160,14 @@ func TestNewScrInterceptor_OkValsShouldWork(t *testing.T) {
 func TestTransactionInterceptor_ProcessReceivedMessageNilMesssageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 
-	scri, _ := smartContract.NewScrInterceptor(
+	scri, _ := unsigned.NewUnsignedTxInterceptor(
 		&mock.MarshalizerMock{},
-		scrPool,
+		uTxPool,
 		storer,
 		addrConv,
 		mock.HasherMock{},
@@ -181,14 +181,14 @@ func TestTransactionInterceptor_ProcessReceivedMessageNilMesssageShouldErr(t *te
 func TestTransactionInterceptor_ProcessReceivedMessageMilMessageDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 
-	scri, _ := smartContract.NewScrInterceptor(
+	scri, _ := unsigned.NewUnsignedTxInterceptor(
 		&mock.MarshalizerMock{},
-		scrPool,
+		uTxPool,
 		storer,
 		addrConv,
 		mock.HasherMock{},
@@ -206,18 +206,18 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarsha
 
 	errMarshalizer := errors.New("marshalizer error")
 
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 
-	scri, _ := smartContract.NewScrInterceptor(
+	scri, _ := unsigned.NewUnsignedTxInterceptor(
 		&mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return errMarshalizer
 			},
 		},
-		scrPool,
+		uTxPool,
 		storer,
 		addrConv,
 		mock.HasherMock{},
@@ -235,12 +235,12 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarsha
 func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 
-	scri, _ := smartContract.NewScrInterceptor(
+	scri, _ := unsigned.NewUnsignedTxInterceptor(
 		&mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return nil
@@ -249,7 +249,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShou
 				return nil, nil
 			},
 		},
-		scrPool,
+		uTxPool,
 		storer,
 		addrConv,
 		mock.HasherMock{},
@@ -261,7 +261,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShou
 
 	err := scri.ProcessReceivedMessage(msg)
 
-	assert.Equal(t, process.ErrNoSmartContractResultInMessage, err)
+	assert.Equal(t, process.ErrNoUnsignedTransactionInMessage, err)
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(t *testing.T) {
@@ -269,17 +269,17 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 
 	marshalizer := &mock.MarshalizerMock{}
 	chanDone := make(chan struct{}, 10)
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) error {
-		return errors.New("Key not found")
+		return errors.New("key not found")
 	}
 
-	scri, _ := smartContract.NewScrInterceptor(
+	scri, _ := unsigned.NewUnsignedTxInterceptor(
 		marshalizer,
-		scrPool,
+		uTxPool,
 		storer,
 		addrConv,
 		mock.HasherMock{},
@@ -288,7 +288,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 	scrNewer := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(2),
-		Data:    []byte("data"),
+		Data:    "data",
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
 		TxHash:  []byte("txHash"),
@@ -301,7 +301,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 	}
 	scrBuff, _ := marshalizer.Marshal(scrNewer)
 
-	scrPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
+	uTxPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
 		if bytes.Equal(mock.HasherMock{}.Compute(string(scrBuff)), key) {
 			chanDone <- struct{}{}
 		}
@@ -322,7 +322,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 
 	marshalizer := &mock.MarshalizerMock{}
 	chanDone := make(chan struct{}, 10)
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 
 	multiSharder := mock.NewMultipleShardsCoordinatorMock()
@@ -332,9 +332,9 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 	}
 	storer := &mock.StorerStub{}
 
-	scri, _ := smartContract.NewScrInterceptor(
+	scri, _ := unsigned.NewUnsignedTxInterceptor(
 		marshalizer,
-		scrPool,
+		uTxPool,
 		storer,
 		addrConv,
 		mock.HasherMock{},
@@ -343,7 +343,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 	scrNewer := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(2),
-		Data:    []byte("data"),
+		Data:    "data",
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
 		TxHash:  []byte("txHash"),
@@ -355,7 +355,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 		DataField: buff,
 	}
 
-	scrPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
+	uTxPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
 		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
 			chanDone <- struct{}{}
 		}
@@ -376,7 +376,7 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 
 	marshalizer := &mock.MarshalizerMock{}
 	chanDone := make(chan struct{}, 10)
-	scrPool := &mock.ShardedDataStub{}
+	uTxPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) error {
@@ -394,9 +394,9 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 		return called
 	}
 
-	scri, _ := smartContract.NewScrInterceptor(
+	scri, _ := unsigned.NewUnsignedTxInterceptor(
 		marshalizer,
-		scrPool,
+		uTxPool,
 		storer,
 		addrConv,
 		mock.HasherMock{},
@@ -405,7 +405,7 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 	scrNewer := &smartContractResult.SmartContractResult{
 		Nonce:   1,
 		Value:   big.NewInt(2),
-		Data:    []byte("data"),
+		Data:    "data",
 		RcvAddr: recvAddress,
 		SndAddr: senderAddress,
 		TxHash:  []byte("txHash"),
@@ -417,7 +417,7 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 		DataField: buff,
 	}
 
-	scrPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
+	uTxPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
 		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
 			chanDone <- struct{}{}
 		}

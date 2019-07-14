@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 )
 
 // LogFileWriter is a custom io.Writer implementation suited for our application.
@@ -11,10 +12,12 @@ import (
 // After the writer will be provided, the buffer slice will be set to nil and the provided writer will be
 // called from this point on.
 type LogFileWriter struct {
-	writer     io.Writer
-	buffer     [][]byte
-	writerLock sync.RWMutex
-	bufferLock sync.Mutex
+	creationTime time.Time
+	prefix       string
+	writer       io.Writer
+	buffer       [][]byte
+	writerLock   sync.RWMutex
+	bufferLock   sync.Mutex
 }
 
 // Writer will return the current writer

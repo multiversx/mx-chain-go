@@ -519,12 +519,6 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		}
 	}()
 
-	//TODO remove after all types of block bodies are implemented
-	if hdr.BlockBodyType != block.TxBlock {
-		err = process.ErrNotImplementedBlockProcessingType
-		return err
-	}
-
 	miniBlockHashes := make([][]byte, 0)
 	for i := 0; i < len(hdr.MiniBlockHeaders); i++ {
 		miniBlockHashes = append(miniBlockHashes, hdr.MiniBlockHeaders[i].Hash)
@@ -558,9 +552,9 @@ func (boot *ShardBootstrap) SyncBlock() error {
 	}
 	timeAfter := time.Now()
 	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
-
 	log.Info(fmt.Sprintf("block with nonce %d has been synced successfully\n", hdr.Nonce))
 	boot.requestsWithTimeout = 0
+
 	return nil
 }
 

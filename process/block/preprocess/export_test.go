@@ -5,24 +5,49 @@ func (txs *transactions) ReceivedTransaction(txHash []byte) {
 }
 
 func (txs *transactions) AddTxHashToRequestedList(txHash []byte) {
-	txs.mutTxsForBlock.Lock()
-	defer txs.mutTxsForBlock.Unlock()
+	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	defer txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
-	if txs.txsForBlock == nil {
-		txs.txsForBlock = make(map[string]*txInfo)
+	if txs.txsForCurrBlock.txHashAndInfo == nil {
+		txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 	}
-	txs.txsForBlock[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
+	txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
 }
 
 func (txs *transactions) IsTxHashRequested(txHash []byte) bool {
-	txs.mutTxsForBlock.Lock()
-	defer txs.mutTxsForBlock.Unlock()
+	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	defer txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
-	return !txs.txsForBlock[string(txHash)].has
+	return txs.txsForCurrBlock.txHashAndInfo[string(txHash)].tx == nil ||
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)].tx.IsInterfaceNil()
 }
 
 func (txs *transactions) SetMissingTxs(missingTxs int) {
-	txs.mutTxsForBlock.Lock()
-	txs.missingTxs = missingTxs
-	txs.mutTxsForBlock.Unlock()
+	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	txs.txsForCurrBlock.missingTxs = missingTxs
+	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
+}
+
+func (scr *smartContractResults) AddScrHashToRequestedList(txHash []byte) {
+	scr.scrForBlock.mutTxsForBlock.Lock()
+	defer scr.scrForBlock.mutTxsForBlock.Unlock()
+
+	if scr.scrForBlock.txHashAndInfo == nil {
+		scr.scrForBlock.txHashAndInfo = make(map[string]*txInfo)
+	}
+	scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
+}
+
+func (scr *smartContractResults) IsScrHashRequested(txHash []byte) bool {
+	scr.scrForBlock.mutTxsForBlock.Lock()
+	defer scr.scrForBlock.mutTxsForBlock.Unlock()
+
+	return scr.scrForBlock.txHashAndInfo[string(txHash)].tx == nil ||
+		scr.scrForBlock.txHashAndInfo[string(txHash)].tx.IsInterfaceNil()
+}
+
+func (scr *smartContractResults) SetMissingScr(missingTxs int) {
+	scr.scrForBlock.mutTxsForBlock.Lock()
+	scr.scrForBlock.missingTxs = missingTxs
+	scr.scrForBlock.mutTxsForBlock.Unlock()
 }
