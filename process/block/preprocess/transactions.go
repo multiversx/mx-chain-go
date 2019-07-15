@@ -31,7 +31,6 @@ type transactions struct {
 	storage              dataRetriever.StorageService
 	txProcessor          process.TransactionProcessor
 	accounts             state.AccountsAdapter
-	interTxHandler       process.IntermediateTransactionHandler
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object

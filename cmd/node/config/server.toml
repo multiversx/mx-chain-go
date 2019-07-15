@@ -1,3 +1,7 @@
 [ElasticSearch]
     Username = "basic_auth_username"
     Password = "basic_auth_password"
+[Prometheus]
+    PrometheusBaseURL = ""
+    JoinRoute = "/join"
+    StatusRoute = "/status"

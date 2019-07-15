@@ -187,5 +187,5 @@ func (ns *NodesSetup) GetShardIDForPubKey(pubKey []byte) (uint32, error) {
 			return in.assignedShard, nil
 		}
 	}
-	return 0, ErrNoValidPublicKey
+	return 0, ErrPublicKeyNotFoundInGenesis
 }

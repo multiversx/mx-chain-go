@@ -54,7 +54,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 		&mock.ServiceContainerMock{},
 		tdp,
 		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
+		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -216,16 +216,16 @@ func (sp *shardProcessor) GetHashAndHdrStruct(header data.HeaderHandler, hash []
 	return &hashAndHdr{header, hash}
 }
 
-func (sp *shardProcessor) GetDummyHashAndHdrSlice(header data.HeaderHandler) []*hashAndHdr {
-	return []*hashAndHdr{{hash: []byte("test"), hdr: header}, {hash: []byte("test2"), hdr: header}}
-}
-
 func (sp *shardProcessor) RequestFinalMissingHeaders() uint32 {
 	return sp.requestFinalMissingHeaders()
 }
 
-func (sp *shardProcessor) VerifyIncludedMetaBlocksFinality(currMetaBlocks []data.HeaderHandler, round uint32) error {
-	return sp.verifyIncludedMetaBlocksFinality(currMetaBlocks, round)
+func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality(hdr *block.Header) error {
+	return sp.checkMetaHeadersValidityAndFinality(hdr)
+}
+
+func (sp *shardProcessor) GetOrderedMetaBlocks(round uint32) ([]*hashAndHdr, error) {
+	return sp.getOrderedMetaBlocks(round)
 }
 
 func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(

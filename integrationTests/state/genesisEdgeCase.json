@@ -1,0 +1,28 @@
+{
+  "initialBalances": [
+    {
+      "pubkey": "b4c5e9ccef1d0d69b33d188f463dea2aeb6d6e15652c0c4d1f73490e12c8b310",
+      "balance": "1000000000"
+    },
+    {
+      "pubkey": "b38d1859eca61018f2c9946051029211176aa1b6ff17951ba202c6e8bcdaf410",
+      "balance": "1000000000"
+    },
+    {
+      "pubkey": "8ff00e8184a23ac04b5256b6637a2106e353dd9e3da522eb366e751346195a10",
+      "balance": "1000000000"
+    },
+    {
+      "pubkey": "e9e9db7161265fa30385e69d6300a270a5dfc2ec3b0607e820ad375c5074c510",
+      "balance": "1000000000"
+    },
+    {
+      "pubkey": "27fdc446fda52671a69c4b7856e44ac5cdb0c9d63e94c56f18a75d1d186cac10",
+      "balance": "1000000000"
+    },
+    {
+      "pubkey": "81450e391260c99b5f4f0b9eff5540136f1d4baa654871c773d0af8a4ccf0410",
+      "balance": "1000000000"
+    }
+  ]
+}

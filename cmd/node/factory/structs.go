@@ -67,7 +67,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	ielecommon "github.com/ElrondNetwork/elrond-vm/iele/common"
+	"github.com/ElrondNetwork/elrond-vm/iele/common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -1471,9 +1471,9 @@ func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
 	}
 }
 
-func getDBFromConfig(cfg config.DBConfig, uniqueID string) storageUnit.DBConfig {
+func getDBFromConfig(cfg config.DBConfig, uniquePath string) storageUnit.DBConfig {
 	return storageUnit.DBConfig{
-		FilePath:          filepath.Join(config.DefaultPath()+uniqueID, cfg.FilePath),
+		FilePath:          filepath.Join(uniquePath, cfg.FilePath),
 		Type:              storageUnit.DBType(cfg.Type),
 		MaxBatchSize:      cfg.MaxBatchSize,
 		BatchDelaySeconds: cfg.BatchDelaySeconds,

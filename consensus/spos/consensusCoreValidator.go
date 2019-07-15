@@ -15,7 +15,7 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 		return ErrNilBlocksTracker
 	}
 	if container.BootStrapper() == nil {
-		return ErrNilBlootstraper
+		return ErrNilBootstrapper
 	}
 	if container.BroadcastMessenger() == nil {
 		return ErrNilBroadcastMessenger

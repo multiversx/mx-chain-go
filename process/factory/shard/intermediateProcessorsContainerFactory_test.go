@@ -16,6 +16,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.SpecialAddressHandlerMock{},
+		&mock.ChainStorerMock{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -31,6 +32,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.SpecialAddressHandlerMock{},
+		&mock.ChainStorerMock{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -46,6 +48,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		nil,
 		&mock.AddressConverterMock{},
 		&mock.SpecialAddressHandlerMock{},
+		&mock.ChainStorerMock{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -61,10 +64,26 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 		&mock.HasherMock{},
 		nil,
 		&mock.SpecialAddressHandlerMock{},
+		&mock.ChainStorerMock{},
 	)
 
 	assert.Nil(t, ipcf)
 	assert.Equal(t, process.ErrNilAddressConverter, err)
+}
+
+func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
+	t.Parallel()
+
+	ipcf, err := NewIntermediateProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		nil,
+	)
+
+	assert.Nil(t, ipcf)
+	assert.Equal(t, process.ErrNilStorage, err)
 }
 
 func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
@@ -76,6 +95,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.SpecialAddressHandlerMock{},
+		&mock.ChainStorerMock{},
 	)
 
 	assert.Nil(t, err)
@@ -91,6 +111,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.SpecialAddressHandlerMock{},
+		&mock.ChainStorerMock{},
 	)
 
 	assert.Nil(t, err)

@@ -64,6 +64,7 @@ type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
 	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
 	VerifyInterMiniBlocks(body block.Body) error
+	SaveCurrentIntermediateTxToStorage() error
 }
 
 // TransactionVerifier interface validates if the transaction is good and if it should be processed
@@ -171,6 +172,7 @@ type ForkDetector interface {
 	CheckFork() (bool, uint64)
 	GetHighestFinalBlockNonce() uint64
 	ProbableHighestNonce() uint64
+	ResetProbableHighestNonceIfNeeded()
 }
 
 // InterceptorsContainer defines an interceptors holder data type with basic functionality

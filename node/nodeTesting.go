@@ -122,7 +122,6 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 
 	//the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
-	fmt.Printf("Identifier: %s\n", identifier)
 
 	packets, err := dataPacker.PackDataInChunks(transactions, core.MaxBulkTransactionSize)
 	if err != nil {
@@ -228,7 +227,6 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string) (uint64
 	}
 
 	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
-	fmt.Printf("Sender shard Id: %d\n", senderShardId)
 
 	newNonce := uint64(0)
 	if senderShardId != n.shardCoordinator.SelfId() {
