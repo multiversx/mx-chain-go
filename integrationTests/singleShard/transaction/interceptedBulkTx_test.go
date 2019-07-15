@@ -32,10 +32,12 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	n, _, sk, _ := createNetNode(dPool, accntAdapter, shardCoordinator)
 
-	n.Start()
-	defer n.Stop()
+	_ = n.Start()
+	defer func() {
+		_ = n.Stop()
+	}()
 
-	n.P2PBootstrap()
+	_ = n.P2PBootstrap()
 
 	time.Sleep(time.Second)
 
@@ -43,8 +45,8 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	nodePubKeyBytes, _ := sk.GeneratePublic().ToByteArray()
 	nodeAddress, _ := addrConverter.CreateAddressFromPublicKeyBytes(nodePubKeyBytes)
 	nodeAccount, _ := accntAdapter.GetAccountWithJournal(nodeAddress)
-	nodeAccount.(*state.Account).SetNonceWithJournal(startingNonce)
-	accntAdapter.Commit()
+	_ = nodeAccount.(*state.Account).SetNonceWithJournal(startingNonce)
+	_, _ = accntAdapter.Commit()
 
 	noOfTx := 8000
 

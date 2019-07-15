@@ -478,7 +478,8 @@ func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
 	isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
 	if isForkDetected {
 		boot.requestsWithTimeout = 0
-		boot.removeHeaderFromPools(hdr)
+		hash := boot.removeHeaderFromPools(hdr)
+		boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
 		errNotCritical := boot.forkChoice()
 		if errNotCritical != nil {
 			log.Info(errNotCritical.Error())
@@ -577,8 +578,12 @@ func (boot *ShardBootstrap) getHeaderWithNonce(nonce uint64) (*block.Header, err
 
 // getHeaderFromPoolWithNonce method returns the block header from a given nonce
 func (boot *ShardBootstrap) getHeaderFromPoolWithNonce(nonce uint64) (*block.Header, error) {
-	value, _ := boot.headersNonces.Get(nonce)
-	hash, ok := value.([]byte)
+	syncMap, ok := boot.headersNonces.Get(nonce)
+	if !ok {
+		return nil, process.ErrMissingHashForHeaderNonce
+	}
+
+	hash, ok := syncMap.Load(boot.shardCoordinator.SelfId())
 
 	if hash == nil || !ok {
 		return nil, process.ErrMissingHashForHeaderNonce

@@ -20,6 +20,7 @@ type topicResolverSender struct {
 	topicName             string
 	excludePeersFromTopic string
 	randomizer            dataRetriever.IntRandomizer
+	targetShardId         uint32
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
@@ -29,6 +30,7 @@ func NewTopicResolverSender(
 	excludePeersFromTopic string,
 	marshalizer marshal.Marshalizer,
 	randomizer dataRetriever.IntRandomizer,
+	targetShardId uint32,
 ) (*topicResolverSender, error) {
 
 	if messenger == nil {
@@ -47,6 +49,7 @@ func NewTopicResolverSender(
 		excludePeersFromTopic: excludePeersFromTopic,
 		marshalizer:           marshalizer,
 		randomizer:            randomizer,
+		targetShardId:         targetShardId,
 	}
 
 	return resolver, nil
@@ -125,6 +128,11 @@ func (trs *topicResolverSender) Send(buff []byte, peer p2p.PeerID) error {
 // TopicRequestSuffix returns the suffix that will be added to create a new channel for requests
 func (trs *topicResolverSender) TopicRequestSuffix() string {
 	return topicRequestSuffix
+}
+
+// TargetShardID returns the target shard ID for this resolver should serve data
+func (trs *topicResolverSender) TargetShardID() uint32 {
+	return trs.targetShardId
 }
 
 func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) ([]int, error) {

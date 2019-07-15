@@ -34,14 +34,14 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 
 	//Step 2. Call bootstrap to start the discovery process
 	for _, peer := range peers {
-		peer.Bootstrap()
+		_ = peer.Bootstrap()
 	}
 
 	//cleanup function that closes all messengers
 	defer func() {
 		for i := 0; i < noOfPeers; i++ {
 			if peers[i] != nil {
-				peers[i].Close()
+				_ = peers[i].Close()
 			}
 		}
 	}()

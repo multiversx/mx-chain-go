@@ -80,12 +80,8 @@ func initDataPool() *mock.PoolsHolderStub {
 				},
 			}
 		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
-			return &mock.Uint64CacherStub{
-				PutCalled: func(u uint64, i interface{}) bool {
-					return true
-				},
-			}
+		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
+			return &mock.Uint64SyncMapCacherStub{}
 		},
 		MetaBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{
