@@ -478,7 +478,8 @@ func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
 	isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
 	if isForkDetected {
 		boot.requestsWithTimeout = 0
-		boot.removeHeaderFromPools(hdr)
+		hash := boot.removeHeaderFromPools(hdr)
+		boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
 		errNotCritical := boot.forkChoice()
 		if errNotCritical != nil {
 			log.Info(errNotCritical.Error())
