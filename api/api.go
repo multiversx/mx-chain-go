@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
+	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -24,7 +24,7 @@ type validatorInput struct {
 	Validator validator.Func
 }
 
-type prometheusDetails struct {
+type prometheus struct {
 	NodePort  string
 	NetworkID string
 }
@@ -46,6 +46,7 @@ func Start(elrondFacade MainApiHandler) error {
 	if err != nil {
 		return err
 	}
+
 	registerRoutes(ws, elrondFacade)
 
 	if elrondFacade.PrometheusMonitoring() {
@@ -60,21 +61,27 @@ func Start(elrondFacade MainApiHandler) error {
 
 func joinMonitoringSystem(elrondFacade MainApiHandler) error {
 	prometheusJoinUrl := elrondFacade.PrometheusJoinURL()
-	structToSend := prometheusDetails{
+	structToSend := prometheus{
 		NodePort:  elrondFacade.RestApiPort(),
 		NetworkID: elrondFacade.PrometheusNetworkID(),
 	}
+
 	jsonValue, err := json.Marshal(structToSend)
 	if err != nil {
 		return err
 	}
+
 	req, err := http.NewRequest("POST", prometheusJoinUrl, bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return err
+	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
+
 	err = resp.Body.Close()
 	return err
 }
