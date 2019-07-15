@@ -437,8 +437,8 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 	return hash
 }
 
-func (boot *baseBootstrap) computeHeaderHash(handler data.HeaderHandler) ([]byte, error) {
-	buff, err := boot.marshalizer.Marshal(handler)
+func (boot *baseBootstrap) computeHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
+	buff, err := boot.marshalizer.Marshal(headerHandler)
 	if err != nil {
 		return nil, err
 	}
