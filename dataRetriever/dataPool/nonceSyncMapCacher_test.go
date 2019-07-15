@@ -33,7 +33,7 @@ func TestNewNonceSyncMapCacher_SliceConverterShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilUint64ByteSliceConverter, err)
 }
 
-func TestNewNonceSyncMapCacher_ShuldWork(t *testing.T) {
+func TestNewNonceSyncMapCacher_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	nsmc, err := dataPool.NewNonceSyncMapCacher(&mock.CacherStub{}, &mock.Uint64ByteSliceConverterMock{})
@@ -443,7 +443,7 @@ func TestNonceSyncMapCacher_MergeInConcurrentialSettingShouldWork(t *testing.T) 
 
 		assert.True(t, ok)
 		valsInsideMap := 0
-		retrievedMap.Range(func(sharId uint32, hash []byte) bool {
+		retrievedMap.Range(func(shardId uint32, hash []byte) bool {
 			valsInsideMap++
 			return true
 		})
