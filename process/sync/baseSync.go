@@ -427,7 +427,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
 	boot.headersNonces.Remove(header.GetNonce())
 
-	hash, err := boot.computeHeaderHash(header)
+	hash, err := core.CalculateHash(boot.marshalizer, boot.hasher, header)
 	if err != nil {
 		log.Info(err.Error())
 		return nil
@@ -435,20 +435,6 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 
 	boot.headers.Remove(hash)
 	return hash
-}
-
-func (boot *baseBootstrap) computeHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
-	buff, err := boot.marshalizer.Marshal(headerHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	hash, err := core.CalculateHash(boot.marshalizer, boot.hasher, buff)
-	if err != nil {
-		return nil, err
-	}
-
-	return hash, nil
 }
 
 func (boot *baseBootstrap) cleanCachesOnRollback(
