@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -2135,10 +2136,17 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 		},
 	}
 
-	hasher := &mock.HasherMock{}
+	hasher := &mock.HasherStub{
+		ComputeCalled: func(s string) []byte {
+			return currentHdrHash
+		},
+	}
 
 	//a marshalizer stub
 	marshalizer := &mock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return json.Marshal(obj)
+		},
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			if bytes.Equal(buff, prevHdrBytes) {
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
@@ -2291,10 +2299,17 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 		},
 	}
 
-	hasher := &mock.HasherMock{}
+	hasher := &mock.HasherStub{
+		ComputeCalled: func(s string) []byte {
+			return currentHdrHash
+		},
+	}
 
 	//a marshalizer stub
 	marshalizer := &mock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return []byte("X"), nil
+		},
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			if bytes.Equal(buff, prevHdrBytes) {
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
@@ -4704,33 +4719,4 @@ func NewStorageBootstrapperMock() *sync.StorageBootstrapperMock {
 	}
 
 	return &sbm
-}
-
-func getHeaderFromStorage(nonce uint64) (data.HeaderHandler, []byte, error) {
-	return &block.Header{Nonce: nonce, Round: 2}, []byte("hash"), nil
-}
-
-func getBlockBody(header data.HeaderHandler) (data.BodyHandler, error) {
-	if header != nil {
-		return &block.Body{}, nil
-	}
-
-	return nil, errors.New("get block body failed")
-}
-
-func applyNotarisedBlock(nonce uint64, unitType dataRetriever.UnitType) error {
-	fmt.Printf("apply block with nonce %d in unit type %d", nonce, unitType)
-	return nil
-}
-
-func removeBlockBody(
-	nonce uint64,
-	hdrNonceHashDataUnit dataRetriever.UnitType,
-	blockUnit dataRetriever.UnitType,
-) error {
-	fmt.Printf("remove block body with nonce %d with hdr nonce hash data unit type %d and block unit type %d\n",
-		nonce,
-		hdrNonceHashDataUnit,
-		blockUnit)
-	return nil
 }

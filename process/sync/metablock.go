@@ -395,7 +395,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 	nonce := boot.getNonceForNextBlock()
 
-	hdr, err := boot.getHeaderRequestingIfMissing(nonce)
+	hdr, err := boot.getRequestedHeaderIfMissing(nonce)
 	if err != nil {
 		boot.forkDetector.ResetProbableHighestNonceIfNeeded()
 		return err
@@ -498,9 +498,9 @@ func (boot *MetaBootstrap) requestHeader(nonce uint64) {
 	}
 }
 
-// getHeaderWithNonce method gets the header with given nonce from pool, if it exist there,
+// getRequestedHeaderIfMissing method gets the header with given nonce from pool, if it exist there,
 // and if not it will be requested from network
-func (boot *MetaBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.MetaBlock, error) {
+func (boot *MetaBootstrap) getRequestedHeaderIfMissing(nonce uint64) (*block.MetaBlock, error) {
 	hdr, err := boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
 		process.EmptyChannel(boot.chRcvHdr)

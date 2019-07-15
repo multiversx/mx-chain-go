@@ -425,15 +425,25 @@ func (boot *baseBootstrap) ShouldSync() bool {
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
-	value, _ := boot.headersNonces.Get(header.GetNonce())
 	boot.headersNonces.Remove(header.GetNonce())
 
-	hash, ok := value.([]byte)
-	if ok {
-		boot.headers.Remove(hash)
+	hash, err := boot.computeHeaderHash(header)
+	if err != nil {
+		log.Info(err.Error())
+		return nil
 	}
 
+	boot.headers.Remove(hash)
 	return hash
+}
+
+func (boot *baseBootstrap) computeHeaderHash(handler data.HeaderHandler) ([]byte, error) {
+	buff, err := boot.marshalizer.Marshal(handler)
+	if err != nil {
+		return nil, err
+	}
+
+	return boot.hasher.Compute(string(buff)), nil
 }
 
 func (boot *baseBootstrap) cleanCachesOnRollback(

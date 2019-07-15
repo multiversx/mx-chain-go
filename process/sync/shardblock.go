@@ -507,7 +507,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 
 	nonce := boot.getNonceForNextBlock()
 
-	hdr, err := boot.getHeaderRequestingIfMissing(nonce)
+	hdr, err := boot.getRequestedHeaderIfMissing(nonce)
 	if err != nil {
 		boot.forkDetector.ResetProbableHighestNonceIfNeeded()
 		return err
@@ -524,7 +524,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		miniBlockHashes = append(miniBlockHashes, hdr.MiniBlockHeaders[i].Hash)
 	}
 
-	blk, err := boot.getMiniBlocksRequestingIfMissing(miniBlockHashes)
+	blk, err := boot.getRequestedMiniBlocksIfMissing(miniBlockHashes)
 	if err != nil {
 		return err
 	}
@@ -626,9 +626,9 @@ func (boot *ShardBootstrap) requestHeader(nonce uint64) {
 	}
 }
 
-// getHeaderWithNonce method gets the header with given nonce from pool, if it exist there,
+// getRequestedHeaderIfMissing method gets the header with given nonce from pool, if it exist there,
 // and if not it will be requested from network
-func (boot *ShardBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Header, error) {
+func (boot *ShardBootstrap) getRequestedHeaderIfMissing(nonce uint64) (*block.Header, error) {
 	hdr, err := boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
 		process.EmptyChannel(boot.chRcvHdr)
@@ -664,12 +664,12 @@ func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 	}
 }
 
-// getMiniBlocksRequestingIfMissing method gets the body with given nonce from pool, if it exist there,
+// getRequestedMiniBlocksIfMissing method gets the body with given nonce from pool, if it exist there,
 // and if not it will be requested from network
 // the func returns interface{} as to match the next implementations for block body fetchers
 // that will be added. The block executor should decide by parsing the header block body type value
 // what kind of block body received.
-func (boot *ShardBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (interface{}, error) {
+func (boot *ShardBootstrap) getRequestedMiniBlocksIfMissing(hashes [][]byte) (interface{}, error) {
 	miniBlocks := boot.miniBlockResolver.GetMiniBlocks(hashes)
 	if miniBlocks == nil {
 		process.EmptyChannel(boot.chRcvMiniBlocks)
