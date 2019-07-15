@@ -145,7 +145,6 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 	txPool dataRetriever.ShardedDataCacherNotifier,
 ) bool {
 	forBlock.mutTxsForBlock.Lock()
-	defer forBlock.mutTxsForBlock.Unlock()
 
 	if forBlock.missingTxs > 0 {
 		txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
@@ -157,9 +156,12 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 				forBlock.missingTxs--
 			}
 		}
+		missingTxs := forBlock.missingTxs
+		forBlock.mutTxsForBlock.Unlock()
 
-		return forBlock.missingTxs == 0
+		return missingTxs == 0
 	}
+	forBlock.mutTxsForBlock.Unlock()
 
 	return false
 }
