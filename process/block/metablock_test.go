@@ -538,7 +538,7 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
 		&mock.RequestHandlerMock{},
 	)
-	mdp.ShardHeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+	mdp.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		cs := &mock.Uint64SyncMapCacherStub{}
 		cs.GetCalled = func(key uint64) (dataRetriever.ShardIdHashMap, bool) {
 			syncMap := &dataPool.ShardIdHashSyncMap{}
@@ -695,7 +695,7 @@ func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 	)
 
-	mdp.MetaBlockNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+	mdp.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		return nil
 	}
 	blkc := createTestBlockchain()

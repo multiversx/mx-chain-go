@@ -244,7 +244,7 @@ func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error 
 		return process.ErrNilHeadersDataPool
 	}
 
-	headerNoncesPool := mp.dataPool.ShardHeadersNonces()
+	headerNoncesPool := mp.dataPool.HeadersNonces()
 	if headerNoncesPool == nil {
 		return process.ErrNilHeadersNoncesDataPool
 	}
@@ -263,7 +263,7 @@ func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error 
 		}
 
 		headerPool.Remove(shardData.HeaderHash)
-		headerNoncesPool.RemoveNonce(hdr.Nonce)
+		headerNoncesPool.RemoveShardId(hdr.Nonce, hdr.ShardId)
 	}
 
 	return nil
@@ -285,7 +285,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		return process.ErrNilHeadersDataPool
 	}
 
-	headerNoncesPool := mp.dataPool.ShardHeadersNonces()
+	headerNoncesPool := mp.dataPool.HeadersNonces()
 	if headerNoncesPool == nil {
 		return process.ErrNilHeadersNoncesDataPool
 	}
@@ -417,7 +417,7 @@ func (mp *metaProcessor) CommitBlock(
 	errNotCritical = mp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	log.LogIfError(errNotCritical)
 
-	headerNoncePool := mp.dataPool.MetaBlockNonces()
+	headerNoncePool := mp.dataPool.HeadersNonces()
 	if headerNoncePool == nil {
 		err = process.ErrNilDataPoolHolder
 		return err
@@ -722,7 +722,7 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 		return
 	}
 
-	shardHdrsNoncesCache := mp.dataPool.ShardHeadersNonces()
+	shardHdrsNoncesCache := mp.dataPool.HeadersNonces()
 	if shardHdrsNoncesCache == nil && mp.nextKValidity > 0 {
 		return
 	}
@@ -784,7 +784,7 @@ func (mp *metaProcessor) requestFinalMissingHeaders() uint32 {
 				continue
 			}
 
-			mapOfHashes, okPeek := mp.dataPool.ShardHeadersNonces().Get(i)
+			mapOfHashes, okPeek := mp.dataPool.HeadersNonces().Get(i)
 			var okLoad bool
 			if okPeek {
 				_, okLoad = mapOfHashes.Load(shardId)

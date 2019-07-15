@@ -2,7 +2,8 @@ package dataPool
 
 import "sync"
 
-// ShardIdHashSyncMap is a simple wrapper over a sync map that has specialized methods for load, store, range and so on
+// ShardIdHashSyncMap is a simple wrapper over a sync map
+// that has specialized methods for load, store, range and so on
 type ShardIdHashSyncMap struct {
 	innerMap sync.Map
 }
@@ -40,10 +41,10 @@ func (sihsm *ShardIdHashSyncMap) Range(f func(shardId uint32, hash []byte) bool)
 	}
 
 	sihsm.innerMap.Range(func(key, value interface{}) bool {
-		shardId := key.(uint32)
-		hash := value.([]byte)
+		uint32Key := key.(uint32)
+		bytesValue := value.([]byte)
 
-		return f(shardId, hash)
+		return f(uint32Key, bytesValue)
 	})
 }
 

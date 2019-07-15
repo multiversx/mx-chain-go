@@ -174,12 +174,12 @@ func TestConsensusBLSFullTest(t *testing.T) {
 	runFullConsensusTest(t, blsConsensusType)
 }
 
-func runConsensusWithNotEnoughValidators(t *testing.T, _ string) {
+func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(4000)
-	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, bnConsensusType)
+	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
 	mutex := &sync.Mutex{}
 	defer func() {

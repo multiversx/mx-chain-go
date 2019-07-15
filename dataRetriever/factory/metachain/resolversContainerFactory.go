@@ -147,7 +147,7 @@ func (rcf *resolversContainerFactory) createShardHeaderResolver(topic string, ex
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.ShardHeaders(),
-		rcf.dataPools.ShardHeadersNonces(),
+		rcf.dataPools.HeadersNonces(),
 		hdrStorer,
 		hdrNonceStore,
 		rcf.marshalizer,
@@ -195,7 +195,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.MetaChainBlocks(),
-		rcf.dataPools.MetaBlockNonces(),
+		rcf.dataPools.HeadersNonces(),
 		hdrStorer,
 		hdrNonceStore,
 		rcf.marshalizer,

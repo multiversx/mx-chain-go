@@ -47,7 +47,7 @@ func NewMetaBootstrap(
 	if poolsHolder == nil {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if poolsHolder.MetaBlockNonces() == nil {
+	if poolsHolder.HeadersNonces() == nil {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
 	if poolsHolder.MetaChainBlocks() == nil {
@@ -75,7 +75,7 @@ func NewMetaBootstrap(
 		blkExecutor:         blkExecutor,
 		store:               store,
 		headers:             poolsHolder.MetaChainBlocks(),
-		headersNonces:       poolsHolder.MetaBlockNonces(),
+		headersNonces:       poolsHolder.HeadersNonces(),
 		rounder:             rounder,
 		waitTime:            waitTime,
 		hasher:              hasher,

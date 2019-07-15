@@ -66,9 +66,6 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.MetaBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
-	pools.MetaHeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		return &mock.Uint64SyncMapCacherStub{}
-	}
 	pools.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}

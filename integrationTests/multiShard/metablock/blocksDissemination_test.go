@@ -176,7 +176,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 
 		syncMap := &dataPool.ShardIdHashSyncMap{}
 		syncMap.Store(sharding.MetachainShardId, metaHeaderHash2)
-		nodes[i+1].metaDataPool.MetaBlockNonces().Merge(metaHdr2.GetNonce(), syncMap)
+		nodes[i+1].metaDataPool.HeadersNonces().Merge(metaHdr2.GetNonce(), syncMap)
 	}
 
 	for i := 0; i < 5; i++ {

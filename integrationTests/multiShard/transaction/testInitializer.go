@@ -117,10 +117,8 @@ func createTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetr
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	metaHdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	metaHdrNonces, _ := dataPool.NewNonceSyncMapCacher(metaHdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
-	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
+	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
@@ -130,7 +128,6 @@ func createTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetr
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
-		metaHdrNonces,
 	)
 
 	return dPool

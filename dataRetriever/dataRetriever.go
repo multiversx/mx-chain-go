@@ -185,7 +185,6 @@ type PoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 	MetaBlocks() storage.Cacher
-	MetaHeadersNonces() Uint64SyncMapCacher
 }
 
 // MetaPoolsHolder defines getter for data pools for metachain
@@ -193,8 +192,7 @@ type MetaPoolsHolder interface {
 	MetaChainBlocks() storage.Cacher
 	MiniBlockHashes() ShardedDataCacherNotifier
 	ShardHeaders() storage.Cacher
-	MetaBlockNonces() Uint64SyncMapCacher
-	ShardHeadersNonces() Uint64SyncMapCacher
+	HeadersNonces() Uint64SyncMapCacher
 }
 
 // StorageService is the interface for data storage unit provided services

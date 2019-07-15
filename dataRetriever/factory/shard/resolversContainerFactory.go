@@ -443,7 +443,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools.MetaBlocks(),
-		rcf.dataPools.MetaHeadersNonces(),
+		rcf.dataPools.HeadersNonces(),
 		hdrStorer,
 		hdrNonceStore,
 		rcf.marshalizer,

@@ -3,9 +3,7 @@ package block_test
 import (
 	"bytes"
 	"errors"
-	"math/rand"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 
@@ -24,13 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
-
-var r *rand.Rand
-var mutex sync.Mutex
-
-func init() {
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
-}
 
 func haveTime() time.Duration {
 	return time.Duration(2000 * time.Millisecond)
@@ -121,6 +112,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 			return &mock.Uint64SyncMapCacherStub{
 				MergeCalled: func(u uint64, syncMap dataRetriever.ShardIdHashMap) {},
+				HasCalled: func(nonce uint64) bool {
+					return true
+				},
 			}
 		},
 		MetaBlocksCalled: func() storage.Cacher {
@@ -174,24 +168,12 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			return cs
 		},
-		MetaHeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			cs := &mock.Uint64SyncMapCacherStub{}
-			cs.HasCalled = func(u uint64) bool {
-				return true
-			}
-			return cs
-		},
 	}
 	return sdp
 }
 
 func initMetaDataPool() *mock.MetaPoolsHolderStub {
 	mdp := &mock.MetaPoolsHolderStub{
-		MetaBlockNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			return &mock.Uint64SyncMapCacherStub{
-				MergeCalled: func(u uint64, syncMap dataRetriever.ShardIdHashMap) {},
-			}
-		},
 		MetaChainBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -227,9 +209,7 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 				return nil, false
 			}
 			sdc.RegisterHandlerCalled = func(i func(key []byte)) {}
-			sdc.RemoveDataCalled = func(key []byte, cacheId string) {
-
-			}
+			sdc.RemoveDataCalled = func(key []byte, cacheId string) {}
 			return sdc
 		},
 		ShardHeadersCalled: func() storage.Cacher {
@@ -245,16 +225,17 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 			cs.LenCalled = func() int {
 				return 0
 			}
-			cs.RemoveCalled = func(key []byte) {
-			}
+			cs.RemoveCalled = func(key []byte) {}
 			cs.KeysCalled = func() [][]byte {
 				return nil
 			}
 			return cs
 		},
-		ShardHeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
+		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 			cs := &mock.Uint64SyncMapCacherStub{}
 			cs.RemoveNonceCalled = func(u uint64) {}
+			cs.MergeCalled = func(u uint64, syncMap dataRetriever.ShardIdHashMap) {}
+			cs.RemoveShardIdCalled = func(nonce uint64, shardId uint32) {}
 			return cs
 		},
 	}

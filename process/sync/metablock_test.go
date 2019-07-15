@@ -43,7 +43,7 @@ func createMockMetaPools() *mock.MetaPoolsHolderStub {
 		}
 		return sds
 	}
-	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{
 			GetCalled: func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
 				return nil, false
@@ -170,42 +170,6 @@ func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilMetaBlockPool, err)
-}
-
-func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersNoncesShouldErr(t *testing.T) {
-	t.Parallel()
-
-	pools := createMockMetaPools()
-	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		return nil
-	}
-	blkc := initBlockchain()
-	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	forkDetector := &mock.ForkDetectorMock{}
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
-
-	bs, err := sync.NewMetaBootstrap(
-		pools,
-		createStore(),
-		blkc,
-		rnd,
-		blkExec,
-		waitTime,
-		hasher,
-		marshalizer,
-		forkDetector,
-		&mock.ResolversFinderStub{},
-		shardCoordinator,
-		account,
-		math.MaxUint32,
-	)
-
-	assert.Nil(t, bs)
-	assert.Equal(t, process.ErrNilHeadersNoncesDataPool, err)
 }
 
 func TestNewMetaBootstrap_NilStoreShouldErr(t *testing.T) {
@@ -634,7 +598,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 
 		return sds
 	}
-	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {
 			wasCalled++
@@ -877,7 +841,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 		return sds
 	}
-	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
 		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
@@ -978,7 +942,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 
 		return sds
 	}
-	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
 		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
@@ -1067,7 +1031,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 
 		return sds
 	}
-	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
 		hnc.RemoveNonceCalled = func(u uint64) {}
@@ -1355,7 +1319,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 
 		return sds
 	}
-	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
 		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
@@ -1628,7 +1592,7 @@ func TestMetaBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 	pools.MetaChainBlocksCalled = func() storage.Cacher {
 		return createHeadersDataPool(newHdrHash, remFlags)
 	}
-	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		return createHeadersNoncesDataPool(
 			newHdrNonce,
 			newHdrHash,
@@ -1705,7 +1669,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 		return createHeadersDataPool(currentHdrHash, remFlags)
 	}
 	//data pool headers-nonces
-	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		return createHeadersNoncesDataPool(
 			currentHdrNonce,
 			currentHdrHash,
@@ -1861,7 +1825,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 		return createHeadersDataPool(currentHdrHash, remFlags)
 	}
 	//data pool headers-nonces
-	pools.MetaBlockNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		return createHeadersNoncesDataPool(
 			currentHdrNonce,
 			currentHdrHash,
