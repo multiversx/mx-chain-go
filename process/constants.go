@@ -22,6 +22,8 @@ const (
 	SCDeployment
 	// SCInvoking defines ID of a transaction of type smart contract call
 	SCInvoking
+	// InvalidTransaction defines unknown transaction type
+	InvalidTransaction
 )
 
 const ShardBlockFinality = 1

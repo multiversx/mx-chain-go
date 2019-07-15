@@ -64,16 +64,17 @@ type ChainHandler interface {
 	PutBadBlock(blockHash []byte)
 }
 
+// TransactionHandler defines the type of executable transaction
 type TransactionHandler interface {
 	IsInterfaceNil() bool
 
 	GetValue() *big.Int
-	GetData() []byte
+	GetData() string
 	GetRecvAddress() []byte
 	GetSndAddress() []byte
 
 	SetValue(*big.Int)
-	SetData([]byte)
+	SetData(string)
 	SetRecvAddress([]byte)
 	SetSndAddress([]byte)
 }

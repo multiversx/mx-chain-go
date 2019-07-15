@@ -5,18 +5,18 @@ type HasherStub struct {
 	EmptyHashCalled func() []byte
 }
 
-func (hash HasherStub) Compute(s string) []byte {
+func (hash *HasherStub) Compute(s string) []byte {
 	if hash.ComputeCalled != nil {
 		return hash.ComputeCalled(s)
 	}
 	return nil
 }
-func (hash HasherStub) EmptyHash() []byte {
+func (hash *HasherStub) EmptyHash() []byte {
 	if hash.EmptyHashCalled != nil {
 		hash.EmptyHashCalled()
 	}
 	return nil
 }
-func (HasherStub) Size() int {
+func (hash *HasherStub) Size() int {
 	return 0
 }
