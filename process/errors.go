@@ -181,9 +181,6 @@ var ErrNilMultiSigVerifier = errors.New("nil multi-signature verifier")
 // ErrInvalidBlockBodyType signals that an operation has been attempted with an invalid block body type
 var ErrInvalidBlockBodyType = errors.New("invalid block body type")
 
-// ErrNotImplementedBlockProcessingType signals that a not supported block body type was found in header
-var ErrNotImplementedBlockProcessingType = errors.New("not implemented block processing type")
-
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
 
@@ -358,11 +355,41 @@ var ErrNilSmartContractResult = errors.New("smart contract result is nil")
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
 
-// ErrNoSmartContractResultInMessage signals that message does not contain required data
-var ErrNoSmartContractResultInMessage = errors.New("no smart contract result in message")
+// ErrNoUnsignedTransactionInMessage signals that message does not contain required data
+var ErrNoUnsignedTransactionInMessage = errors.New("no unsigned transactions in message")
 
-// ErrNilScrDataPool signals that smart contract pool is nil
-var ErrNilScrDataPool = errors.New("smart contract result pool is nil")
+// ErrNilUTxDataPool signals that unsigned transaction pool is nil
+var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 
-// ErrNilScrStorage signals that smart contract storage is nil
-var ErrNilScrStorage = errors.New("smart contract result storage is nil")
+// ErrNilUTxStorage signals that unsigned transaction storage is nil
+var ErrNilUTxStorage = errors.New("unsigned transactions storage is nil")
+
+// ErrNilScAddress signals that a nil smart contract address has been provided
+var ErrNilScAddress = errors.New("nil SC address")
+
+// ErrEmptyFunctionName signals that an empty function name has been provided
+var ErrEmptyFunctionName = errors.New("empty function name")
+
+// ErrMiniBlockHashMismatch signals that miniblock hashes does not match
+var ErrMiniBlockHashMismatch = errors.New("miniblocks does not match")
+
+// ErrNilIntermediateTransactionHandler signals that nil intermediate transaction handler was provided
+var ErrNilIntermediateTransactionHandler = errors.New("intermediate transaction handler is nil")
+
+// ErrWrongTypeInMiniBlock signals that type is not correct for processing
+var ErrWrongTypeInMiniBlock = errors.New("type in miniblock is not correct for processing")
+
+// ErrNilTransactionCoordinator signals that transaction coordinator is nil
+var ErrNilTransactionCoordinator = errors.New("transaction coordinator is nil")
+
+// ErrNilUint64Converter signals that uint64converter is nil
+var ErrNilUint64Converter = errors.New("unit64converter is nil")
+
+// ErrNilSmartContractResultProcessor signals that smart contract result processor is nil
+var ErrNilSmartContractResultProcessor = errors.New("nil smart contract result processor")
+
+// ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
+var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")
+
+// ErrNilPreProcessorsContainer signals that preprocessors container is nil
+var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")

@@ -9,8 +9,8 @@ import (
 
 type SCProcessorMock struct {
 	ComputeTransactionTypeCalled          func(tx *transaction.Transaction) (process.TransactionType, error)
-	ExecuteSmartContractTransactionCalled func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
-	DeploySmartContractCalled             func(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) ([]*smartContractResult.SmartContractResult, error)
+	ExecuteSmartContractTransactionCalled func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
+	DeploySmartContractCalled             func(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) error
 	ProcessSmartContractResultCalled      func(scr *smartContractResult.SmartContractResult) error
 }
 
@@ -28,9 +28,9 @@ func (sc *SCProcessorMock) ExecuteSmartContractTransaction(
 	tx *transaction.Transaction,
 	acntSrc, acntDst state.AccountHandler,
 	round uint32,
-) ([]*smartContractResult.SmartContractResult, error) {
+) error {
 	if sc.ExecuteSmartContractTransactionCalled == nil {
-		return nil, nil
+		return nil
 	}
 
 	return sc.ExecuteSmartContractTransactionCalled(tx, acntSrc, acntDst, round)
@@ -40,9 +40,9 @@ func (sc *SCProcessorMock) DeploySmartContract(
 	tx *transaction.Transaction,
 	acntSrc state.AccountHandler,
 	round uint32,
-) ([]*smartContractResult.SmartContractResult, error) {
+) error {
 	if sc.DeploySmartContractCalled == nil {
-		return nil, nil
+		return nil
 	}
 
 	return sc.DeploySmartContractCalled(tx, acntSrc, round)

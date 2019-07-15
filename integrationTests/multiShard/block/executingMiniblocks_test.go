@@ -412,42 +412,13 @@ func generateTransferTx(
 		Value:   valToTransfer,
 		RcvAddr: skToPk(receiver),
 		SndAddr: skToPk(sender),
-		Data:    make([]byte, 0),
+		Data:    "",
 	}
 	txBuff, _ := testMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
 	tx.Signature, _ = signer.Sign(sender, txBuff)
 
 	return &tx
-}
-
-func skToPk(sk crypto.PrivateKey) []byte {
-	pkBuff, _ := sk.GeneratePublic().ToByteArray()
-	return pkBuff
-}
-
-func createMintingForSenders(
-	nodes []*testNode,
-	senderShard uint32,
-	sendersPrivateKeys []crypto.PrivateKey,
-	value *big.Int,
-) {
-
-	for _, n := range nodes {
-		//only sender shard nodes will be minted
-		if n.shardId != senderShard {
-			continue
-		}
-
-		for _, sk := range sendersPrivateKeys {
-			pkBuff, _ := sk.GeneratePublic().ToByteArray()
-			adr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
-			account, _ := n.accntState.GetAccountWithJournal(adr)
-			_ = account.(*state.Account).SetBalanceWithJournal(value)
-		}
-
-		_, _ = n.accntState.Commit()
-	}
 }
 
 func testPrivateKeyHasBalance(t *testing.T, n *testNode, sk crypto.PrivateKey, expectedBalance *big.Int) {

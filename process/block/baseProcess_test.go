@@ -88,6 +88,36 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				},
 			}
 		},
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &mock.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if reflect.DeepEqual(key, testHash) {
+								return &transaction.Transaction{Nonce: 10}, true
+							}
+							return nil, false
+						},
+						KeysCalled: func() [][]byte {
+							return [][]byte{[]byte("key1"), []byte("key2")}
+						},
+						LenCalled: func() int {
+							return 0
+						},
+					}
+				},
+				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+				},
+			}
+		},
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 			return &mock.Uint64SyncMapCacherStub{
 				MergeCalled: func(u uint64, syncMap dataRetriever.ShardIdHashMap) {},
@@ -305,7 +335,6 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 		initStore(),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
@@ -313,6 +342,8 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		true,
 		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	blkc := createTestBlockchain()
 	body := &block.Body{}
@@ -378,7 +409,6 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 		store,
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
@@ -386,6 +416,8 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		true,
 		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	assert.True(t, bp.VerifyStateRoot(rootHash))
 }
@@ -402,7 +434,6 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 		initStore(),
 		&mock.HasherStub{},
 		marshalizer,
-		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
@@ -410,6 +441,8 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		true,
 		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	expectedError := errors.New("marshalizer fail")
@@ -438,7 +471,6 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		initStore(),
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
@@ -446,6 +478,8 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		true,
 		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
