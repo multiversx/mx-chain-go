@@ -1703,10 +1703,17 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 		},
 	}
 
-	hasher := &mock.HasherMock{}
+	hasher := &mock.HasherStub{
+		ComputeCalled: func(s string) []byte {
+			return currentHdrHash
+		},
+	}
 
 	//a marshalizer stub
 	marshalizer := &mock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return []byte("X"), nil
+		},
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			if bytes.Equal(buff, prevHdrBytes) {
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
@@ -1861,10 +1868,17 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 		},
 	}
 
-	hasher := &mock.HasherMock{}
+	hasher := &mock.HasherStub{
+		ComputeCalled: func(s string) []byte {
+			return currentHdrHash
+		},
+	}
 
 	//a marshalizer stub
 	marshalizer := &mock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return []byte("X"), nil
+		},
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			if bytes.Equal(buff, prevHdrBytes) {
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)

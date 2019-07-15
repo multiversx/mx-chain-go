@@ -420,14 +420,15 @@ func (boot *baseBootstrap) ShouldSync() bool {
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
-	syncMap, _ := boot.headersNonces.Get(header.GetNonce())
 	boot.headersNonces.RemoveShardId(header.GetNonce(), header.GetShardID())
 
-	hash, ok := syncMap.Load(header.GetShardID())
-	if ok {
-		boot.headers.Remove(hash)
+	hash, err := core.CalculateHash(boot.marshalizer, boot.hasher, header)
+	if err != nil {
+		log.Info(err.Error())
+		return nil
 	}
 
+	boot.headers.Remove(hash)
 	return hash
 }
 
