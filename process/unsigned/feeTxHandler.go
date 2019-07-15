@@ -52,10 +52,18 @@ func NewFeeTxHandler(
 	return ftxh, nil
 }
 
+// SaveCurrentIntermediateTxToStorage saves current cached data into storage - already saaved for txs
+func (ftxh *feeTxHandler) SaveCurrentIntermediateTxToStorage() error {
+	//TODO implement me - save only created feeTxs
+	return nil
+}
+
+// AddIntermediateTransactions adds intermediate transactions to local cache
 func (ftxh *feeTxHandler) AddIntermediateTransactions(txs []data.TransactionHandler) error {
 	return nil
 }
 
+// CreateAllInterMiniBlocks creates miniblocks from process transactions
 func (ftxh *feeTxHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
 	calculatedFeeTxs := ftxh.CreateAllUTxs()
 

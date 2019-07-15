@@ -79,6 +79,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
+		&mock.SpecialAddressHandlerMock{},
 		nil,
 	)
 

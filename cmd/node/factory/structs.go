@@ -1282,6 +1282,7 @@ func newShardBlockProcessorAndTracker(
 		core.Hasher,
 		state.AddressConverter,
 		specialAddressHolder,
+		data.Store,
 	)
 	if err != nil {
 		return nil, nil, err
