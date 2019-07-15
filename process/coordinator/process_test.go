@@ -87,11 +87,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				},
 			}
 		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
-			return &mock.Uint64CacherStub{
-				PutCalled: func(u uint64, i interface{}) bool {
-					return true
-				},
+		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
+			return &mock.Uint64SyncMapCacherStub{
+				MergeCalled: func(u uint64, hashMap dataRetriever.ShardIdHashMap) {},
 			}
 		},
 		MetaBlocksCalled: func() storage.Cacher {
@@ -148,8 +146,8 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			return cs
 		},
-		MetaHeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
-			cs := &mock.Uint64CacherStub{}
+		MetaHeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
+			cs := &mock.Uint64SyncMapCacherStub{}
 			cs.HasCalled = func(u uint64) bool {
 				return true
 			}
