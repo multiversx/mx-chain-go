@@ -25,7 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -2145,7 +2144,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 	//a marshalizer stub
 	marshalizer := &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
-			return json.Marshal(obj)
+			return []byte("X"), nil
 		},
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			if bytes.Equal(buff, prevHdrBytes) {

@@ -443,7 +443,12 @@ func (boot *baseBootstrap) computeHeaderHash(headerHandler data.HeaderHandler) (
 		return nil, err
 	}
 
-	return boot.hasher.Compute(string(buff)), nil
+	hash, err := core.CalculateHash(boot.marshalizer, boot.hasher, buff)
+	if err != nil {
+		return nil, err
+	}
+
+	return hash, nil
 }
 
 func (boot *baseBootstrap) cleanCachesOnRollback(
