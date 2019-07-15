@@ -26,8 +26,8 @@ const (
 	MetaShardDataUnit UnitType = 5
 	// MetaPeerDataUnit is the metachain peer data unit identifier
 	MetaPeerDataUnit UnitType = 6
-	// SmartContractResultUnit is the smart contract results unit identifier
-	SmartContractResultUnit UnitType = 7
+	// UnsignedTransactionUnit is the unsigned transaction unit identifier
+	UnsignedTransactionUnit UnitType = 7
 	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
 	MetaHdrNonceHashDataUnit UnitType = 8
 
@@ -181,7 +181,7 @@ type Uint64Cacher interface {
 // PoolsHolder defines getters for data pools
 type PoolsHolder interface {
 	Transactions() ShardedDataCacherNotifier
-	SmartContractResults() ShardedDataCacherNotifier
+	UnsignedTransactions() ShardedDataCacherNotifier
 	Headers() storage.Cacher
 	HeadersNonces() Uint64Cacher
 	MiniBlocks() storage.Cacher

@@ -91,7 +91,7 @@ func createTestStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
-	store.AddStorer(dataRetriever.SmartContractResultUnit, createMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(coordinator.SelfId()), createMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 
@@ -103,7 +103,7 @@ func createTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetr
 		txPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	}
 
-	scrPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
@@ -124,7 +124,7 @@ func createTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetr
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
-		scrPool,
+		uTxPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,

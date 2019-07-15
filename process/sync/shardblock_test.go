@@ -184,7 +184,7 @@ func createFullStore() dataRetriever.StorageService {
 func createBlockProcessor() *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{
 		ProcessBlockCalled: func(blk data.ChainHandler, hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
-			blk.SetCurrentBlockHeader(hdr.(*block.Header))
+			_ = blk.SetCurrentBlockHeader(hdr.(*block.Header))
 			return nil
 		},
 		RevertAccountStateCalled: func() {
@@ -4704,4 +4704,33 @@ func NewStorageBootstrapperMock() *sync.StorageBootstrapperMock {
 	}
 
 	return &sbm
+}
+
+func getHeaderFromStorage(nonce uint64) (data.HeaderHandler, []byte, error) {
+	return &block.Header{Nonce: nonce, Round: 2}, []byte("hash"), nil
+}
+
+func getBlockBody(header data.HeaderHandler) (data.BodyHandler, error) {
+	if header != nil {
+		return &block.Body{}, nil
+	}
+
+	return nil, errors.New("get block body failed")
+}
+
+func applyNotarisedBlock(nonce uint64, unitType dataRetriever.UnitType) error {
+	fmt.Printf("apply block with nonce %d in unit type %d", nonce, unitType)
+	return nil
+}
+
+func removeBlockBody(
+	nonce uint64,
+	hdrNonceHashDataUnit dataRetriever.UnitType,
+	blockUnit dataRetriever.UnitType,
+) error {
+	fmt.Printf("remove block body with nonce %d with hdr nonce hash data unit type %d and block unit type %d\n",
+		nonce,
+		hdrNonceHashDataUnit,
+		blockUnit)
+	return nil
 }

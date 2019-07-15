@@ -33,7 +33,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	ielecommon "github.com/ElrondNetwork/elrond-vm/iele/common"
+	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
@@ -187,7 +192,12 @@ VERSION:
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialNodesSk.pem",
 	}
-
+	// logLevel defines the logger level
+	logLevel = cli.StringFlag{
+		Name:  "logLevel",
+		Usage: "This flag specifies the logger level",
+		Value: logger.LogInfo,
+	}
 	// bootstrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
 	bootstrapRoundIndex = cli.UintFlag{
 		Name:  "bootstrap-round-index",
@@ -212,15 +222,6 @@ VERSION:
 	rm *statistics.ResourceMonitor
 )
 
-// TODO - remove this mock and replace with a valid implementation
-type mockProposerResolver struct {
-}
-
-// ResolveProposer computes a block proposer. For now, this is mocked.
-func (mockProposerResolver) ResolveProposer(shardId uint32, roundIndex uint32, prevRandomSeed []byte) ([]byte, error) {
-	return []byte("mocked proposer"), nil
-}
-
 // dbIndexer will hold the database indexer. Defined globally so it can be initialised only in
 //  certain conditions. If those conditions will not be met, it will stay as nil
 var dbIndexer indexer.Indexer
@@ -231,7 +232,6 @@ var coreServiceContainer serviceContainer.Core
 
 func main() {
 	log := logger.DefaultLogger()
-	log.SetLevel(logger.LogInfo)
 
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
@@ -257,6 +257,7 @@ func main() {
 		serversConfigurationFile,
 		networkID,
 		restApiPort,
+		logLevel,
 		usePrometheus,
 		bootstrapRoundIndex,
 		workingDirectory,
@@ -296,6 +297,9 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 }
 
 func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
+	logLevel := ctx.GlobalString(logLevel.Name)
+	log.SetLevel(logLevel)
+
 	profileMode := ctx.GlobalString(profileMode.Name)
 	switch profileMode {
 	case "cpu":
@@ -533,18 +537,17 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	externalResolver, err := external.NewExternalResolver(
-		shardCoordinator,
-		dataComponents.Blkc,
-		dataComponents.Store,
-		coreComponents.Marshalizer,
-		&mockProposerResolver{},
-	)
+	vmAccountsDB, err := hooks.NewVMAccountsDB(stateComponents.AccountsAdapter, stateComponents.AddressConverter)
 	if err != nil {
 		return err
 	}
 
-	ef := facade.NewElrondNodeFacade(currentNode, externalResolver)
+	apiResolver, err := createApiResolver(vmAccountsDB)
+	if err != nil {
+		return err
+	}
+
+	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
 
 	prometheusURLAvailable := true
 	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
@@ -832,12 +835,10 @@ func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, 
 	}
 
 	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
-	logFile, err := core.CreateFile(hexPublicKey, filepath.Join(workingDir, defaultLogPath), "log")
-	if err != nil {
-		return err
-	}
-
-	err = log.ApplyOptions(logger.WithFile(logFile))
+	err = log.ApplyOptions(
+		logger.WithFileRotation(hexPublicKey,  filepath.Join(workingDir, defaultLogPath), "log"),
+		logger.WithStderrRedirect(),
+	)
 	if err != nil {
 		return err
 	}
@@ -897,4 +898,17 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	}()
 
 	return nil
+}
+
+func createApiResolver(vmAccountsDB vmcommon.BlockchainHook) (facade.ApiResolver, error) {
+	//TODO replace this with a vm factory
+	cryptoHook := hooks.NewVMCryptoHook()
+	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, ielecommon.Danse)
+
+	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
+	if err != nil {
+		return nil, err
+	}
+
+	return external.NewNodeApiResolver(scDataGetter)
 }
