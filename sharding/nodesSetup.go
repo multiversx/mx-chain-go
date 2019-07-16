@@ -63,7 +63,7 @@ func NewNodesSetup(nodesFilePath string, numOfNodes uint64) (*NodesSetup, error)
 	}
 
 	nodes.processShardAssignment()
-	nodes.createInitialNodesPubKeys()
+	nodes.createInitialNodesInfo()
 
 	return nodes, nil
 }
@@ -153,7 +153,7 @@ func (ns *NodesSetup) processShardAssignment() {
 	}
 }
 
-func (ns *NodesSetup) createInitialNodesPubKeys() {
+func (ns *NodesSetup) createInitialNodesInfo() {
 	nrOfShardAndMeta := ns.nrOfShards
 	if ns.MetaChainActive {
 		nrOfShardAndMeta += 1
@@ -168,15 +168,9 @@ func (ns *NodesSetup) createInitialNodesPubKeys() {
 	}
 }
 
-// InitialNodesInfo - gets initial nodes info
-func (ns *NodesSetup) InitialNodesInfo() map[uint32][]*NodeInfo {
-	return ns.allNodesInfo
-}
-
 // InitialNodesPubKeys - gets initial nodes public keys
 func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
 	allNodesPubKeys := make(map[uint32][]string, 0)
-
 	for shardId, nodesInfo := range ns.allNodesInfo {
 		pubKeys := make([]string, 0)
 		for i := 0; i < len(nodesInfo); i++ {
@@ -189,8 +183,13 @@ func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
 	return allNodesPubKeys
 }
 
-// InitialNodesInfoForShard - gets initial nodes info for shard
-func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]*NodeInfo, error) {
+// InitialNodesInfo - gets initial nodes info
+func (ns *NodesSetup) InitialNodesInfo() map[uint32][]*NodeInfo {
+	return ns.allNodesInfo
+}
+
+// InitialNodesPubKeysForShard - gets initial nodes public keys for shard
+func (ns *NodesSetup) InitialNodesPubKeysForShard(shardId uint32) ([]string, error) {
 	if ns.allNodesInfo[shardId] == nil {
 		return nil, ErrShardIdOutOfRange
 	}
@@ -198,11 +197,17 @@ func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]*NodeInfo, err
 		return nil, ErrNoPubKeys
 	}
 
-	return ns.allNodesInfo[shardId], nil
+	nodesInfo := ns.allNodesInfo[shardId]
+	pubKeys := make([]string, 0)
+	for i := 0; i < len(nodesInfo); i++ {
+		pubKeys = append(pubKeys, string(nodesInfo[i].pubKey))
+	}
+
+	return pubKeys, nil
 }
 
-// InitialNodesPubKeysForShard - gets initial nodes public keys for shard
-func (ns *NodesSetup) InitialNodesPubKeysForShard(shardId uint32) ([]*NodeInfo, error) {
+// InitialNodesInfoForShard - gets initial nodes info for shard
+func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]*NodeInfo, error) {
 	if ns.allNodesInfo[shardId] == nil {
 		return nil, ErrShardIdOutOfRange
 	}

@@ -320,7 +320,7 @@ func NewCryptoComponentsFactoryArgs(
 
 // CryptoComponentsFactory creates the crypto components
 func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error) {
-	initialNodesInfos := args.nodesConfig.InitialNodesInfo()
+	initialPubKeys := args.nodesConfig.InitialNodesPubKeys()
 	txSingleSigner := &singlesig.SchnorrSigner{}
 	singleSigner, err := createSingleSigner(args.config)
 	if err != nil {
@@ -332,21 +332,12 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 		return nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
-	currentShardNodesInfo, err := args.nodesConfig.InitialNodesInfoForShard(args.shardCoordinator.SelfId())
+	currentShardNodesPubKeys, err := args.nodesConfig.InitialNodesPubKeysForShard(args.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, errors.New("could not start creation of multiSigner: " + err.Error())
 	}
 
-	initialPubKeys := make([]string, 0)
-	//for i := 0; i < len(currentShardNodesInfo); i++ {
-	//	currentShardNodesInfo
-	//}
-
-	for nodeInfo := range currentShardNodesInfo {
-		append(pubKeys, nodeInfo.)
-	}
-
-	multiSigner, err := createMultiSigner(args.config, multisigHasher, initialPubKeys, args.privKey, args.keyGen)
+	multiSigner, err := createMultiSigner(args.config, multisigHasher, currentShardNodesPubKeys, args.privKey, args.keyGen)
 	if err != nil {
 		return nil, err
 	}
