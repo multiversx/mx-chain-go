@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const maxTransactionsInBlock = 1500
+const maxTransactionsInBlock = 15000
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
@@ -1118,7 +1118,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		return nil, 0, err
 	}
 
-	log.Info(fmt.Sprintf("meta blocks ordered: %d \n", len(orderedMetaBlocks)))
+	log.Info(fmt.Sprintf("meta blocks ordered: %d\n", len(orderedMetaBlocks)))
 
 	lastMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
@@ -1129,7 +1129,12 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	usedMetaHdrsHashes := make([][]byte, 0)
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		if !haveTime() {
-			log.Info(fmt.Sprintf("time is up after putting %d cross txs with destination to current shard \n", nrTxAdded))
+			log.Info(fmt.Sprintf("time is up after putting %d cross txs with destination to current shard\n", nrTxAdded))
+			break
+		}
+
+		if len(usedMetaHdrsHashes) > process.MaxMetaHeadersAllowedInShardHeader {
+			log.Info(fmt.Sprintf("max meta headers allowed in shard header exceeded\n"))
 			break
 		}
 

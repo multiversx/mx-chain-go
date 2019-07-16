@@ -5,11 +5,11 @@
    DestinationShardAsObserver = "0"
 
    # NetworkID will be used for network versions
-   NetworkID = "undefined"
+   NetworkID = "ElrondPublicTestNET"
 
 [Explorer]
     Enabled = false
-    IndexerURL = "http://localhost:9200"
+    IndexerURL = "https://elastic-aws.elrond.com"
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
