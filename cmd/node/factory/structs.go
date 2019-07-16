@@ -1197,7 +1197,7 @@ func generateGenesisHeadersForInit(
 	}
 
 	if nodesSetup.IsMetaChainActive() {
-		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesInfo())
+		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesPubKeys())
 		if err != nil {
 			return nil, err
 		}
