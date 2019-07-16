@@ -59,7 +59,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 	return header, err
 }
 
-func CreateMetaGenesisBlock(genesisTime uint64, initialPubKeys map[uint32][]string) (data.HeaderHandler, error) {
+func CreateMetaGenesisBlock(genesisTime uint64, initialNodesInfo map[uint32][]*sharding.NodeInfo) (data.HeaderHandler, error) {
 	//TODO create the right metachain genesis block here
 	rootHash := []byte("root hash")
 	header := &block.MetaBlock{

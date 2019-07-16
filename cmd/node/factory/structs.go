@@ -320,7 +320,7 @@ func NewCryptoComponentsFactoryArgs(
 
 // CryptoComponentsFactory creates the crypto components
 func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error) {
-	initialNodesInfos := args.nodesConfig.InitialNodesInfos()
+	initialNodesInfos := args.nodesConfig.InitialNodesInfo()
 	txSingleSigner := &singlesig.SchnorrSigner{}
 	singleSigner, err := createSingleSigner(args.config)
 	if err != nil {
@@ -332,12 +332,21 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 		return nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
-	currentShardNodesInfos, err := args.nodesConfig.InitialNodesInfosForShard(args.shardCoordinator.SelfId())
+	currentShardNodesInfo, err := args.nodesConfig.InitialNodesInfoForShard(args.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, errors.New("could not start creation of multiSigner: " + err.Error())
 	}
 
-	multiSigner, err := createMultiSigner(args.config, multisigHasher, currentShardNodesInfos, args.privKey, args.keyGen)
+	initialPubKeys := make([]string, 0)
+	//for i := 0; i < len(currentShardNodesInfo); i++ {
+	//	currentShardNodesInfo
+	//}
+
+	for nodeInfo := range currentShardNodesInfo {
+		append(pubKeys, nodeInfo.)
+	}
+
+	multiSigner, err := createMultiSigner(args.config, multisigHasher, initialPubKeys, args.privKey, args.keyGen)
 	if err != nil {
 		return nil, err
 	}
@@ -362,7 +371,7 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 		TxSignKeyGen:   txSignKeyGen,
 		TxSignPrivKey:  txSignPrivKey,
 		TxSignPubKey:   txSignPubKey,
-		InitialPubKeys: initialNodesInfos,
+		InitialPubKeys: initialPubKeys,
 	}, nil
 }
 
@@ -1197,7 +1206,7 @@ func generateGenesisHeadersForInit(
 	}
 
 	if nodesSetup.IsMetaChainActive() {
-		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesInfos())
+		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesInfo())
 		if err != nil {
 			return nil, err
 		}

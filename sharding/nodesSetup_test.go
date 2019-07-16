@@ -162,7 +162,7 @@ func TestNodesSetup_NewNodesShouldTrimInitialNodesList(t *testing.T) {
 
 func TestNodesSetup_InitialNodesPubKeysFromNil(t *testing.T) {
 	ns := sharding.NodesSetup{}
-	inPubKeys := ns.InitialNodesInfos()
+	inPubKeys := ns.InitialNodesInfo()
 
 	assert.NotNil(t, ns)
 	assert.Nil(t, inPubKeys)
@@ -351,7 +351,7 @@ func TestNodesSetup_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShar
 
 func TestNodesSetup_InitialNodesPubKeysForShardNil(t *testing.T) {
 	ns := sharding.NodesSetup{}
-	inPK, err := ns.InitialNodesInfosForShard(0)
+	inPK, err := ns.InitialNodesInfoForShard(0)
 
 	assert.NotNil(t, ns)
 	assert.Nil(t, inPK)
@@ -360,7 +360,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardNil(t *testing.T) {
 
 func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
 	ns := createNodesSetupOneShardOneNode()
-	inPK, err := ns.InitialNodesInfosForShard(1)
+	inPK, err := ns.InitialNodesInfoForShard(1)
 
 	assert.NotNil(t, ns)
 	assert.Nil(t, inPK)
@@ -369,7 +369,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
 
 func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
 	ns := createNodesSetupTwoShardTwoNodes()
-	inPK, err := ns.InitialNodesInfosForShard(1)
+	inPK, err := ns.InitialNodesInfoForShard(1)
 
 	assert.NotNil(t, ns)
 	assert.Equal(t, len(inPK), 2)
@@ -379,7 +379,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
 func TestNodesSetup_InitialNodesPubKeysForShardWrongMeta(t *testing.T) {
 	ns := createNodesSetupTwoShardTwoNodes()
 	metaId := sharding.MetachainShardId
-	inPK, err := ns.InitialNodesInfosForShard(metaId)
+	inPK, err := ns.InitialNodesInfoForShard(metaId)
 
 	assert.NotNil(t, ns)
 	assert.Nil(t, inPK)
@@ -389,7 +389,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardWrongMeta(t *testing.T) {
 func TestNodesSetup_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
 	ns := createNodesSetupTwoShard6NodesMeta()
 	metaId := sharding.MetachainShardId
-	inPK, err := ns.InitialNodesInfosForShard(metaId)
+	inPK, err := ns.InitialNodesInfoForShard(metaId)
 
 	assert.NotNil(t, ns)
 	assert.Equal(t, len(inPK), 2)
