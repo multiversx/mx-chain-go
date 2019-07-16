@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const maxTransactionsInBlock = 15000
+const maxTransactionsInBlock = 1500
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
