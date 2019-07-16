@@ -144,9 +144,8 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 	forBlock *txsForBlock,
 	txPool dataRetriever.ShardedDataCacherNotifier,
 ) bool {
-	currMissingTxs := 0
-
 	forBlock.mutTxsForBlock.Lock()
+
 	if forBlock.missingTxs > 0 {
 		txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
 		if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
@@ -157,12 +156,14 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 				forBlock.missingTxs--
 			}
 		}
+		missingTxs := forBlock.missingTxs
+		forBlock.mutTxsForBlock.Unlock()
 
-		currMissingTxs = forBlock.missingTxs
+		return missingTxs == 0
 	}
 	forBlock.mutTxsForBlock.Unlock()
 
-	return currMissingTxs == 0
+	return false
 }
 
 // getTransactionFromPool gets the transaction from a given shard id and a given transaction hash

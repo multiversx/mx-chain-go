@@ -236,7 +236,7 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = "v1.0.8"
+	app.Version = "v1.0.9"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
@@ -323,6 +323,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Info(fmt.Sprintf("Starting node with version %s\n", version))
+	log.Info(fmt.Sprintf("Process ID: %d\n", os.Getpid()))
 
 	configurationFileName := ctx.GlobalString(configurationFile.Name)
 	generalConfig, err := loadMainConfig(configurationFileName, log)
@@ -836,7 +837,7 @@ func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, 
 
 	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
 	err = log.ApplyOptions(
-		logger.WithFileRotation(hexPublicKey,  filepath.Join(workingDir, defaultLogPath), "log"),
+		logger.WithFileRotation(hexPublicKey, filepath.Join(workingDir, defaultLogPath), "log"),
 		logger.WithStderrRedirect(),
 	)
 	if err != nil {

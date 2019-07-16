@@ -47,7 +47,7 @@ func NewMetaBootstrap(
 	if poolsHolder == nil {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if poolsHolder.MetaBlockNonces() == nil {
+	if poolsHolder.HeadersNonces() == nil {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
 	if poolsHolder.MetaChainBlocks() == nil {
@@ -75,7 +75,7 @@ func NewMetaBootstrap(
 		blkExecutor:         blkExecutor,
 		store:               store,
 		headers:             poolsHolder.MetaChainBlocks(),
-		headersNonces:       poolsHolder.MetaBlockNonces(),
+		headersNonces:       poolsHolder.HeadersNonces(),
 		rounder:             rounder,
 		waitTime:            waitTime,
 		hasher:              hasher,
@@ -367,7 +367,8 @@ func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error)
 	isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
 	if isForkDetected {
 		boot.requestsWithTimeout = 0
-		boot.removeHeaderFromPools(hdr)
+		hash := boot.removeHeaderFromPools(hdr)
+		boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
 		errNotCritical := boot.forkChoice()
 		if errNotCritical != nil {
 			log.Info(errNotCritical.Error())
@@ -450,9 +451,12 @@ func (boot *MetaBootstrap) getHeaderWithNonce(nonce uint64) (*block.MetaBlock, e
 
 // getHeaderFromPoolWithNonce method returns the block header from a given nonce
 func (boot *MetaBootstrap) getHeaderFromPoolWithNonce(nonce uint64) (*block.MetaBlock, error) {
-	value, _ := boot.headersNonces.Get(nonce)
-	hash, ok := value.([]byte)
+	syncMap, ok := boot.headersNonces.Get(nonce)
+	if !ok {
+		return nil, process.ErrMissingHashForHeaderNonce
+	}
 
+	hash, ok := syncMap.Load(sharding.MetachainShardId)
 	if hash == nil || !ok {
 		return nil, process.ErrMissingHashForHeaderNonce
 	}
