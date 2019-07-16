@@ -31,6 +31,9 @@ const DirectSendID = protocol.ID("/directsend/1.0.0")
 const refreshPeersOnTopic = time.Second * 60
 const ttlPeersOnTopic = time.Second * 120
 
+var messageHeader = 200
+var maxSendBuffSize = (1 << 20) - messageHeader
+
 var log = logger.DefaultLogger()
 
 type networkMessenger struct {
@@ -60,19 +63,15 @@ func NewNetworkMessenger(
 	if ctx == nil {
 		return nil, p2p.ErrNilContext
 	}
-
 	if port < 0 {
 		return nil, p2p.ErrInvalidPort
 	}
-
 	if p2pPrivKey == nil {
 		return nil, p2p.ErrNilP2PprivateKey
 	}
-
 	if outgoingPLB == nil {
 		return nil, p2p.ErrNilChannelLoadBalancer
 	}
-
 	if peerDiscoverer == nil {
 		return nil, p2p.ErrNilPeerDiscoverer
 	}
@@ -369,6 +368,11 @@ func (netMes *networkMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadBal
 // BroadcastOnChannelBlocking tries to send a byte buffer onto a topic using provided channel
 // It is a blocking method. It needs to be launched on a go routine
 func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
+	if len(buff) > maxSendBuffSize {
+		log.Error(fmt.Sprintf("Broadcast: message too large on topic '%s'", channel))
+		return
+	}
+
 	sendable := &p2p.SendableData{
 		Buff:  buff,
 		Topic: topic,
