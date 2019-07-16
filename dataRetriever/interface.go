@@ -31,8 +31,8 @@ const (
 	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
 	MetaHdrNonceHashDataUnit UnitType = 8
 
-	//TODO: Add only unit types lower than 100
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
+	//TODO: Add only unit types lower than 100
 	ShardHdrNonceHashDataUnit UnitType = 100
 	//TODO: Do not add unit type greater than 100 as the metachain creates this kind of unit type for each shard.
 	//100 -> shard 0, 101 -> shard 1 and so on. This should be replaced with a factory which will manage the unit types
@@ -55,9 +55,7 @@ type HeaderResolver interface {
 type MiniBlocksResolver interface {
 	Resolver
 	RequestDataFromHashArray(hashes [][]byte) error
-
-	// TODO miniblockresolver should not know about miniblockslice
-	GetMiniBlocks(hashes [][]byte) block.MiniBlockSlice
+	GetMiniBlocks(hashes [][]byte) block.MiniBlockSlice // TODO miniblockresolver should not know about miniblockslice
 }
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
@@ -65,6 +63,7 @@ type TopicResolverSender interface {
 	SendOnRequestTopic(rd *RequestData) error
 	Send(buff []byte, peer p2p.PeerID) error
 	TopicRequestSuffix() string
+	TargetShardID() uint32
 }
 
 // ResolversContainer defines a resolvers holder data type with basic functionality
@@ -115,13 +114,8 @@ type IntRandomizer interface {
 	Intn(n int) (int, error)
 }
 
+// StorageType defines the storage levels on a node
 type StorageType uint8
-
-const (
-	CACHE     StorageType = 0
-	LOCALDISC StorageType = 1
-	NETWORK   StorageType = 2
-)
 
 // DataRetriever interface provides functionality over high level data request component
 type DataRetriever interface {
@@ -163,19 +157,23 @@ type ShardedDataCacherNotifier interface {
 	CreateShardStore(cacheId string)
 }
 
-// Uint64Cacher defines a cacher-type struct that uses uint64 keys and []byte values (usually hashes)
-type Uint64Cacher interface {
+// ShardIdHashMap represents a map for shardId and hash
+type ShardIdHashMap interface {
+	Load(shardId uint32) ([]byte, bool)
+	Store(shardId uint32, hash []byte)
+	Range(f func(shardId uint32, hash []byte) bool)
+	Delete(shardId uint32)
+}
+
+// Uint64SyncMapCacher defines a cacher-type struct that uses uint64 keys and sync-maps values
+type Uint64SyncMapCacher interface {
 	Clear()
-	Put(uint64, interface{}) bool
-	Get(uint64) (interface{}, bool)
-	Has(uint64) bool
-	Peek(uint64) (interface{}, bool)
-	HasOrAdd(uint64, interface{}) (bool, bool)
-	Remove(uint64)
-	RemoveOldest()
-	Keys() []uint64
-	Len() int
-	RegisterHandler(handler func(nonce uint64))
+	Get(nonce uint64) (ShardIdHashMap, bool)
+	Merge(nonce uint64, src ShardIdHashMap)
+	RemoveNonce(nonce uint64)
+	RemoveShardId(nonce uint64, shardId uint32)
+	RegisterHandler(handler func(nonce uint64, shardId uint32, value []byte))
+	Has(nonce uint64) bool
 }
 
 // PoolsHolder defines getters for data pools
@@ -183,11 +181,10 @@ type PoolsHolder interface {
 	Transactions() ShardedDataCacherNotifier
 	UnsignedTransactions() ShardedDataCacherNotifier
 	Headers() storage.Cacher
-	HeadersNonces() Uint64Cacher
+	HeadersNonces() Uint64SyncMapCacher
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 	MetaBlocks() storage.Cacher
-	MetaHeadersNonces() Uint64Cacher
 }
 
 // MetaPoolsHolder defines getter for data pools for metachain
@@ -195,8 +192,7 @@ type MetaPoolsHolder interface {
 	MetaChainBlocks() storage.Cacher
 	MiniBlockHashes() ShardedDataCacherNotifier
 	ShardHeaders() storage.Cacher
-	MetaBlockNonces() Uint64Cacher
-	ShardHeadersNonces() Uint64Cacher
+	HeadersNonces() Uint64SyncMapCacher
 }
 
 // StorageService is the interface for data storage unit provided services

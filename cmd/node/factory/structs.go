@@ -877,7 +877,7 @@ func createShardDataPoolFromConfig(
 		fmt.Println("error creating hdrNoncesCacher")
 		return nil, err
 	}
-	hdrNonces, err := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSliceConverter)
+	hdrNonces, err := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
 		fmt.Println("error creating hdrNonces")
 		return nil, err
@@ -897,18 +897,6 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
-	metaBlockNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		fmt.Println("error creating metaBlockNoncesCacher")
-		return nil, err
-	}
-	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
-	if err != nil {
-		fmt.Println("error creating metaBlockNonces")
-		return nil, err
-	}
-
 	return dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
@@ -917,7 +905,6 @@ func createShardDataPoolFromConfig(
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlockBody,
-		metaBlockNonces,
 	)
 }
 
@@ -945,30 +932,18 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	shardHeadersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	headersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		fmt.Println("error creating shard headers nonces pool")
 		return nil, err
 	}
-	shardHeadersNonces, err := dataPool.NewNonceToHashCacher(shardHeadersNoncesCacher, uint64ByteSliceConverter)
+	headersNonces, err := dataPool.NewNonceSyncMapCacher(headersNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
 		fmt.Println("error creating shard headers nonces pool")
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
-	metaBlockNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		fmt.Println("error creating metaBlockNoncesCacher")
-		return nil, err
-	}
-	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
-	if err != nil {
-		fmt.Println("error creating metaBlockNonces")
-		return nil, err
-	}
-
-	return dataPool.NewMetaDataPool(metaBlockBody, miniBlockHashes, shardHeaders, metaBlockNonces, shardHeadersNonces)
+	return dataPool.NewMetaDataPool(metaBlockBody, miniBlockHashes, shardHeaders, headersNonces)
 }
 
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {

@@ -50,8 +50,8 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.HeadersCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
-		return &mock.Uint64CacherStub{}
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+		return &mock.Uint64SyncMapCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
@@ -61,9 +61,6 @@ func createDataPools() dataRetriever.PoolsHolder {
 	}
 	pools.MetaBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
-	}
-	pools.MetaHeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
-		return &mock.Uint64CacherStub{}
 	}
 	pools.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}

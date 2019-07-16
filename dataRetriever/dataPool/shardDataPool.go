@@ -10,8 +10,7 @@ type shardedDataPool struct {
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
 	headers              storage.Cacher
 	metaBlocks           storage.Cacher
-	hdrNonces            dataRetriever.Uint64Cacher
-	metaHdrNonces        dataRetriever.Uint64Cacher
+	headersNonces        dataRetriever.Uint64SyncMapCacher
 	miniBlocks           storage.Cacher
 	peerChangesBlocks    storage.Cacher
 }
@@ -21,11 +20,10 @@ func NewShardedDataPool(
 	transactions dataRetriever.ShardedDataCacherNotifier,
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier,
 	headers storage.Cacher,
-	hdrNonces dataRetriever.Uint64Cacher,
+	headersNonces dataRetriever.Uint64SyncMapCacher,
 	miniBlocks storage.Cacher,
 	peerChangesBlocks storage.Cacher,
 	metaBlocks storage.Cacher,
-	metaHdrNonces dataRetriever.Uint64Cacher,
 ) (*shardedDataPool, error) {
 
 	if transactions == nil {
@@ -37,11 +35,8 @@ func NewShardedDataPool(
 	if headers == nil {
 		return nil, dataRetriever.ErrNilHeadersDataPool
 	}
-	if hdrNonces == nil {
+	if headersNonces == nil {
 		return nil, dataRetriever.ErrNilHeadersNoncesDataPool
-	}
-	if metaHdrNonces == nil {
-		return nil, dataRetriever.ErrNilMetaBlockNoncesPool
 	}
 	if miniBlocks == nil {
 		return nil, dataRetriever.ErrNilTxBlockDataPool
@@ -57,8 +52,7 @@ func NewShardedDataPool(
 		transactions:         transactions,
 		unsignedTransactions: unsignedTransactions,
 		headers:              headers,
-		hdrNonces:            hdrNonces,
-		metaHdrNonces:        metaHdrNonces,
+		headersNonces:        headersNonces,
 		miniBlocks:           miniBlocks,
 		peerChangesBlocks:    peerChangesBlocks,
 		metaBlocks:           metaBlocks,
@@ -70,7 +64,7 @@ func (tdp *shardedDataPool) Transactions() dataRetriever.ShardedDataCacherNotifi
 	return tdp.transactions
 }
 
-// SmartContractResults returns the holder for transactions
+// UnsignedTransactions returns the holder for unsigned transactions (cross shard result entities)
 func (tdp *shardedDataPool) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
 	return tdp.unsignedTransactions
 }
@@ -80,9 +74,10 @@ func (tdp *shardedDataPool) Headers() storage.Cacher {
 	return tdp.headers
 }
 
-// HeadersNonces returns the holder for (nonce, header hash) pairs
-func (tdp *shardedDataPool) HeadersNonces() dataRetriever.Uint64Cacher {
-	return tdp.hdrNonces
+// HeadersNonces returns the holder nonce-block hash pairs. It will hold both shard headers nonce-hash pairs
+// also metachain header nonce-hash pairs
+func (tdp *shardedDataPool) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
+	return tdp.headersNonces
 }
 
 // MiniBlocks returns the holder for miniblocks
@@ -98,9 +93,4 @@ func (tdp *shardedDataPool) PeerChangesBlocks() storage.Cacher {
 // MetaBlocks returns the holder for meta blocks
 func (tdp *shardedDataPool) MetaBlocks() storage.Cacher {
 	return tdp.metaBlocks
-}
-
-// MetaHeadersNonces returns the holder for (nonce, meta header hash) pairs
-func (tdp *shardedDataPool) MetaHeadersNonces() dataRetriever.Uint64Cacher {
-	return tdp.metaHdrNonces
 }

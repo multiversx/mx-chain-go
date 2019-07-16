@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -441,7 +442,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][][]b
 		return process.ErrNilMetaBlockPool
 	}
 
-	metaHeaderNoncesPool := sp.dataPool.MetaHeadersNonces()
+	metaHeaderNoncesPool := sp.dataPool.HeadersNonces()
 	if metaHeaderNoncesPool == nil {
 		return process.ErrNilMetaHeadersNoncesDataPool
 	}
@@ -460,7 +461,9 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][][]b
 		}
 
 		metaBlockPool.Put(metaBlockHash, &metaBlock)
-		metaHeaderNoncesPool.Put(metaBlock.Nonce, &metaBlock)
+		syncMap := &dataPool.ShardIdHashSyncMap{}
+		syncMap.Store(metaBlock.GetShardID(), metaBlockHash)
+		metaHeaderNoncesPool.Merge(metaBlock.Nonce, syncMap)
 
 		err = sp.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
 		if err != nil {
@@ -571,7 +574,9 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
-	_ = headerNoncePool.Put(headerHandler.GetNonce(), headerHash)
+	syncMap := &dataPool.ShardIdHashSyncMap{}
+	syncMap.Store(headerHandler.GetShardID(), headerHash)
+	headerNoncePool.Merge(headerHandler.GetNonce(), syncMap)
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
@@ -772,7 +777,7 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 		}
 
 		sp.dataPool.MetaBlocks().Remove(headerHash)
-		sp.dataPool.MetaHeadersNonces().Remove(hdr.GetNonce())
+		sp.dataPool.HeadersNonces().RemoveNonce(hdr.GetNonce())
 
 		log.Debug(fmt.Sprintf("metaBlock with nonce %d has been processed completely and removed from pool\n",
 			hdr.GetNonce()))
@@ -801,7 +806,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		return
 	}
 
-	metaHdrsNoncesCache := sp.dataPool.MetaHeadersNonces()
+	metaHdrsNoncesCache := sp.dataPool.HeadersNonces()
 	if metaHdrsNoncesCache == nil && sp.metaBlockFinality > 0 {
 		return
 	}
@@ -876,7 +881,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 func (sp *shardProcessor) requestFinalMissingHeaders() uint32 {
 	requestedBlockHeaders := uint32(0)
 	for i := sp.currHighestMetaHdrNonce + 1; i <= sp.currHighestMetaHdrNonce+uint64(sp.metaBlockFinality); i++ {
-		if !sp.dataPool.MetaHeadersNonces().Has(i) {
+		if !sp.dataPool.HeadersNonces().Has(i) {
 			requestedBlockHeaders++
 			go sp.onRequestHeaderHandlerByNonce(sharding.MetachainShardId, i)
 		}
