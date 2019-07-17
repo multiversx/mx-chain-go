@@ -1112,7 +1112,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	bs.RequestHeader(2)
+	bs.RequestHeaderWithNonce(2)
 	r := bs.SyncBlock()
 	assert.Equal(t, process.ErrTimeIsOut, r)
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-func (boot *ShardBootstrap) RequestHeader(nonce uint64) {
+func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
 	boot.requestHeaderWithNonce(nonce)
 }
 
