@@ -298,10 +298,9 @@ func checkResults(
 	bitmap := make([]bool, noOfTxs+int(startingNonce))
 	//set for each nonce from found tx a true flag in bitmap
 	for i := 0; i < noOfTxs; i++ {
-		val, _ := cache.ShardDataStore(
-			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
-		).Get(txHashes[i])
-
+		selfId := shardCoordinator.SelfId()
+		shardDataStore := cache.ShardDataStore(process.ShardCacherIdentifier(selfId, selfId))
+		val, _ := shardDataStore.Get(txHashes[i])
 		if val == nil {
 			continue
 		}

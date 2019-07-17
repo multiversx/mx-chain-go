@@ -31,14 +31,10 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 	}
 
 	dPool := createTestDataPool()
-
 	startingNonce := uint64(6)
-
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	accntAdapter := createAccountsDB()
-
 	shardCoordinator := &sharding.OneShardCoordinator{}
-
 	n, mes, sk, _ := createNetNode(dPool, accntAdapter, shardCoordinator)
 
 	_ = n.Start()
@@ -68,7 +64,6 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 
 	go func() {
 		wg.Wait()
-
 		chanDone <- true
 	}()
 
@@ -87,7 +82,6 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
 		)
 		val, _ := dataStore.Get(key)
-
 		if val == nil {
 			assert.Fail(t, fmt.Sprintf("key %s not in store?", base64.StdEncoding.EncodeToString(key)))
 			return

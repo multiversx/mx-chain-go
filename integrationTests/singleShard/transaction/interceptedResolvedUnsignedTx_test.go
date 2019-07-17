@@ -21,7 +21,6 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 
 	dPoolRequester := createTestDataPool()
 	dPoolResolver := createTestDataPool()
-
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
 	fmt.Println("Requester:")
@@ -63,17 +62,15 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 	}
 
 	scrBuff, _ := testMarshalizer.Marshal(scr)
-
 	fmt.Printf("Unsigned transaction: %v\n%v\n", scr, string(scrBuff))
-
 	chanDone := make(chan bool)
-
 	scrHash := testHasher.Compute(string(scrBuff))
 
 	//step 2. wire up a received handler for requester
 	dPoolRequester.UnsignedTransactions().RegisterHandler(func(key []byte) {
+		selfId := shardCoordinator.SelfId()
 		scrStored, _ := dPoolRequester.UnsignedTransactions().ShardDataStore(
-			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+			process.ShardCacherIdentifier(selfId, selfId),
 		).Get(key)
 
 		if reflect.DeepEqual(scrStored, scr) {
