@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -116,8 +117,12 @@ func (inTx *InterceptedTransaction) processFields(txBuffWithSig []byte) ([]byte,
 	inTx.rcvShard = inTx.coordinator.ComputeId(rcvAddr)
 	inTx.sndShard = inTx.coordinator.ComputeId(sndAddr)
 
+	emptyAddr := make([]byte, len(rcvAddr.Bytes()))
+
+	isSCdeployInOtherShard := bytes.Equal(emptyAddr, rcvAddr.Bytes()) && inTx.sndShard != inTx.coordinator.SelfId()
 	inTx.isAddressedToOtherShards = inTx.rcvShard != inTx.coordinator.SelfId() &&
 		inTx.sndShard != inTx.coordinator.SelfId()
+	inTx.isAddressedToOtherShards = inTx.isAddressedToOtherShards || isSCdeployInOtherShard
 
 	return buffCopiedTx, nil
 }

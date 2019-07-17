@@ -132,7 +132,7 @@ func (tc *transactionCoordinator) RequestBlockTransactions(body block.Body) {
 	wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
-		go func() {
+		go func(key block.Type, value block.Body) {
 			preproc := tc.getPreprocessor(key)
 			if preproc == nil {
 				wg.Done()
@@ -145,7 +145,7 @@ func (tc *transactionCoordinator) RequestBlockTransactions(body block.Body) {
 			tc.mutRequestedTxs.Unlock()
 
 			wg.Done()
-		}()
+		}(key, value)
 	}
 
 	wg.Wait()
@@ -162,7 +162,7 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 	wg.Add(len(tc.requestedTxs))
 
 	for key, value := range tc.requestedTxs {
-		go func() {
+		go func(key block.Type, value int) {
 			preproc := tc.getPreprocessor(key)
 			if preproc == nil {
 				wg.Done()
@@ -179,7 +179,7 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 				errMutex.Unlock()
 			}
 			wg.Done()
-		}()
+		}(key, value)
 	}
 
 	tc.mutRequestedTxs.RUnlock()
@@ -200,7 +200,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 	wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
-		go func() {
+		go func(key block.Type, value block.Body) {
 			preproc := tc.getPreprocessor(key)
 			if preproc == nil {
 				wg.Done()
@@ -217,7 +217,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 			}
 
 			wg.Done()
-		}()
+		}(key, value)
 	}
 
 	wg.Wait()
@@ -252,7 +252,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 	wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
-		go func() {
+		go func(key block.Type, value block.Body) {
 			restoredMbs := make(map[int][]byte)
 
 			preproc := tc.getPreprocessor(key)
@@ -280,7 +280,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 			localMutex.Unlock()
 
 			wg.Done()
-		}()
+		}(key, value)
 	}
 
 	wg.Wait()
@@ -299,7 +299,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 	wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
-		go func() {
+		go func(key block.Type, value block.Body) {
 			preproc := tc.getPreprocessor(key)
 			if preproc == nil {
 				wg.Done()
@@ -315,7 +315,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 				errMutex.Unlock()
 			}
 			wg.Done()
-		}()
+		}(key, value)
 	}
 
 	wg.Wait()
@@ -335,7 +335,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round
 	wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
-		go func() {
+		go func(key block.Type, value block.Body) {
 			preproc := tc.getPreprocessor(key)
 			if preproc == nil {
 				wg.Done()
@@ -351,7 +351,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round
 				errMutex.Unlock()
 			}
 			wg.Done()
-		}()
+		}(key, value)
 	}
 
 	wg.Wait()
@@ -473,7 +473,7 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 	wg.Add(len(tc.interimProcessors))
 
 	for _, interimProc := range tc.interimProcessors {
-		go func() {
+		go func(interimProc process.IntermediateTransactionHandler) {
 			currMbs := interimProc.CreateAllInterMiniBlocks()
 			resMutex.Lock()
 			for _, value := range currMbs {
@@ -481,7 +481,7 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 			}
 			resMutex.Unlock()
 			wg.Done()
-		}()
+		}(interimProc)
 	}
 
 	wg.Wait()
@@ -497,6 +497,12 @@ func (tc *transactionCoordinator) CreateBlockStarted() {
 		value.CreateBlockStarted()
 	}
 	tc.mutPreprocessor.RUnlock()
+
+	tc.mutInterimProcessors.RLock()
+	for _, value := range tc.interimProcessors {
+		value.CreateBlockStarted()
+	}
+	tc.mutInterimProcessors.RUnlock()
 }
 
 func (tc *transactionCoordinator) getPreprocessor(blockType block.Type) process.PreProcessor {
@@ -637,7 +643,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 	wg.Add(len(tc.interimProcessors))
 
 	for _, interimProc := range tc.interimProcessors {
-		go func() {
+		go func(interimProc process.IntermediateTransactionHandler) {
 			err := interimProc.VerifyInterMiniBlocks(body)
 			if err != nil {
 				errMutex.Lock()
@@ -645,7 +651,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 				errMutex.Unlock()
 			}
 			wg.Done()
-		}()
+		}(interimProc)
 	}
 
 	wg.Wait()

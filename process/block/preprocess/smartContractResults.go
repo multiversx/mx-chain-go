@@ -220,7 +220,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round
 func (scr *smartContractResults) SaveTxBlockToStorage(body block.Body) error {
 	for i := 0; i < len(body); i++ {
 		miniBlock := (body)[i]
-		if miniBlock.Type != block.SmartContractResultBlock {
+		if miniBlock.Type != block.SmartContractResultBlock || miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
 			continue
 		}
 
@@ -250,7 +250,7 @@ func (scr *smartContractResults) CreateBlockStarted() {
 	scr.scrForBlock.mutTxsForBlock.Unlock()
 }
 
-// RequestBlockSmartContractResults request for smartContractResults if missing from a block.Body
+// RequestBlockTransactions request for smartContractResults if missing from a block.Body
 func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
 	requestedScrs := 0
 	missingScrsForShards := scr.computeMissingAndExistingScrsForShards(body)
@@ -301,7 +301,7 @@ func (scr *smartContractResults) processSmartContractResult(
 	return nil
 }
 
-// RequestUnsignedTransactionsForMiniBlock requests missing smartContractResults for a certain miniblock
+// RequestTransactionsForMiniBlock requests missing smartContractResults for a certain miniblock
 func (scr *smartContractResults) RequestTransactionsForMiniBlock(mb block.MiniBlock) int {
 	missingScrsForMiniBlock := scr.computeMissingScrsForMiniBlock(mb)
 	scr.onRequestSmartContractResult(mb.SenderShardID, missingScrsForMiniBlock)
@@ -412,7 +412,7 @@ func (scr *smartContractResults) CreateMarshalizedData(txHashes [][]byte) ([][]b
 	return mrsScrs, nil
 }
 
-// GetAllCurrentUsedScrs returns all the smartContractResults used at current creation / processing
+// GetAllCurrentUsedTxs returns all the smartContractResults used at current creation / processing
 func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
 	scrPool := make(map[string]data.TransactionHandler)
 
