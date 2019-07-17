@@ -1,8 +1,10 @@
-package unsignedTransaction
+package transaction
 
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
@@ -71,7 +74,7 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 
 	mut := sync.Mutex{}
 	unsignedtxHashes := make([][]byte, 0)
-	unsignedTransactions := make([]*smartContractResult.SmartContractResult, 0)
+	unsignedTransactions := make([]data.TransactionHandler, 0)
 
 	//wire up handler
 	dPool.UnsignedTransactions().RegisterHandler(func(key []byte) {
@@ -94,7 +97,7 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 		wg.Done()
 	})
 
-	err := gnerateAndSendBulkSmartContractResults(
+	err := generateAndSendBulkSmartContractResults(
 		startingNonce,
 		noOfUnsignedTx,
 		testMarshalizer,
@@ -111,58 +114,10 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 		return
 	}
 
-	if noOfUnsignedTx != len(unsignedtxHashes) {
-
-		for i := startingNonce; i < startingNonce+uint64(noOfUnsignedTx); i++ {
-			found := false
-
-			for _, tx := range unsignedTransactions {
-				if tx.Nonce == i {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				fmt.Printf("unsigned tx with nonce %d is missing\n", i)
-			}
-
-		}
-
-		assert.Fail(t, fmt.Sprintf("should have been %d, got %d", noOfUnsignedTx, len(unsignedtxHashes)))
-
-		return
-	}
-
-	bitmap := make([]bool, noOfUnsignedTx+int(startingNonce))
-	//set for each nonce from found tx a true flag in bitmap
-	for i := 0; i < noOfUnsignedTx; i++ {
-		val, _ := dPool.UnsignedTransactions().ShardDataStore(
-			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
-		).Get(unsignedtxHashes[i])
-
-		if val == nil {
-			continue
-		}
-
-		uTx := val.(*smartContractResult.SmartContractResult)
-
-		bitmap[uTx.Nonce] = true
-	}
-
-	//for the first startingNonce values, the bitmap should be false
-	//for the rest, true
-	for i := 0; i < noOfUnsignedTx+int(startingNonce); i++ {
-		if i < int(startingNonce) {
-			assert.False(t, bitmap[i])
-			continue
-		}
-
-		assert.True(t, bitmap[i])
-	}
+	checkResults(t, startingNonce, noOfUnsignedTx, unsignedtxHashes, unsignedTransactions, dPool.UnsignedTransactions(), shardCoordinator)
 }
 
-func gnerateAndSendBulkSmartContractResults(
+func generateAndSendBulkSmartContractResults(
 	startingNonce uint64,
 	noOfUnsignedTx int,
 	marshalizer marshal.Marshalizer,
@@ -190,6 +145,10 @@ func gnerateAndSendBulkSmartContractResults(
 			RcvAddr: dest,
 			Value:   big.NewInt(0),
 		}
+		buff := make([]byte, 8)
+		binary.BigEndian.PutUint64(buff, nonce)
+		uTx.Data = hex.EncodeToString(buff)
+
 		uTxBytes, _ := marshalizer.Marshal(uTx)
 		unsigedTxs = append(unsigedTxs, uTxBytes)
 	}

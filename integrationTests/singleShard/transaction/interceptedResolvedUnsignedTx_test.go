@@ -1,4 +1,4 @@
-package unsignedTransaction
+package transaction
 
 import (
 	"fmt"
@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -20,9 +18,6 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
 
 	dPoolRequester := createTestDataPool()
 	dPoolResolver := createTestDataPool()
@@ -61,19 +56,19 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:   0,
 		Value:   big.NewInt(0),
-		RcvAddr: hasher.Compute("receiver"),
+		RcvAddr: testHasher.Compute("receiver"),
 		SndAddr: buffPk1,
 		Data:    "tx notarized data",
 		TxHash:  []byte("tx hash"),
 	}
 
-	scrBuff, _ := marshalizer.Marshal(scr)
+	scrBuff, _ := testMarshalizer.Marshal(scr)
 
 	fmt.Printf("Unsigned transaction: %v\n%v\n", scr, string(scrBuff))
 
 	chanDone := make(chan bool)
 
-	scrHash := hasher.Compute(string(scrBuff))
+	scrHash := testHasher.Compute(string(scrBuff))
 
 	//step 2. wire up a received handler for requester
 	dPoolRequester.UnsignedTransactions().RegisterHandler(func(key []byte) {
