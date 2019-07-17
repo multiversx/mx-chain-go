@@ -654,7 +654,7 @@ func (boot *ShardBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.H
 
 // requestMiniBlocks method requests a block body from network when it is not found in the pool
 func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
-	buff, err := boot.marshalizer.Marshal(hashes)
+	_, err := boot.marshalizer.Marshal(hashes)
 	if err != nil {
 		log.Error("could not marshal MiniBlock hashes: ", err.Error())
 		return
@@ -663,7 +663,10 @@ func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 	boot.setRequestedMiniBlocks(hashes)
 	err = boot.miniBlockResolver.RequestDataFromHashArray(hashes)
 
-	log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", core.ToB64(buff)))
+	for i := 0; i < len(hashes); i++ {
+		log.Info(fmt.Sprintf("requested miniblock with hash %s from network\n", core.ToB64(hashes[i])))
+	}
+
 	if err != nil {
 		log.Error(err.Error())
 	}
