@@ -61,9 +61,11 @@ type baseBootstrap struct {
 	accounts            state.AccountsAdapter
 	storageBootstrapper storageBootstrapper
 
-	mutHeader   sync.RWMutex
-	headerNonce *uint64
-	chRcvHdr    chan bool
+	mutHeader     sync.RWMutex
+	headerNonce   *uint64
+	headerhash    []byte
+	chRcvHdrNonce chan bool
+	chRcvHdrHash  chan bool
 
 	requestedHashes process.RequiredDataPool
 
@@ -76,6 +78,7 @@ type baseBootstrap struct {
 
 	isForkDetected bool
 	forkNonce      uint64
+	forkHash       []byte
 
 	mutRcvHdrInfo         sync.RWMutex
 	syncStateListeners    []func(bool)
@@ -317,6 +320,13 @@ func (boot *baseBootstrap) setRequestedHeaderNonce(nonce *uint64) {
 	boot.mutHeader.Unlock()
 }
 
+// setRequestedHeaderHash method sets the header hash requested by the sync mechanism
+func (boot *baseBootstrap) setRequestedHeaderHash(hash []byte) {
+	boot.mutHeader.Lock()
+	boot.headerhash = hash
+	boot.mutHeader.Unlock()
+}
+
 // requestedHeaderNonce method gets the header nonce requested by the sync mechanism
 func (boot *baseBootstrap) requestedHeaderNonce() *uint64 {
 	boot.mutHeader.RLock()
@@ -324,14 +334,34 @@ func (boot *baseBootstrap) requestedHeaderNonce() *uint64 {
 	return boot.headerNonce
 }
 
+// requestedHeaderHash method gets the header hash requested by the sync mechanism
+func (boot *baseBootstrap) requestedHeaderHash() []byte {
+	boot.mutHeader.RLock()
+	defer boot.mutHeader.RUnlock()
+	return boot.headerhash
+}
+
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n",
-		headerHandler.GetNonce(),
-		core.ToB64(headerHash)))
+	log.Debug(fmt.Sprintf("receivedHeaders: received header with hash %s and nonce %d from network\n",
+		core.ToB64(headerHash),
+		headerHandler.GetNonce()))
 
 	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived)
 	if err != nil {
 		log.Info(err.Error())
+	}
+
+	hash := boot.requestedHeaderHash()
+	if hash == nil {
+		return
+	}
+
+	if bytes.Equal(hash, headerHash) {
+		log.Info(fmt.Sprintf("received requested header with hash %s and nonce %d from network\n",
+			core.ToB64(hash),
+			headerHandler.GetNonce()))
+		boot.setRequestedHeaderHash(nil)
+		boot.chRcvHdrHash <- true
 	}
 }
 
@@ -352,7 +382,7 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, has
 			nonce,
 			boot.forkDetector.ProbableHighestNonce()))
 		boot.setRequestedHeaderNonce(nil)
-		boot.chRcvHdr <- true
+		boot.chRcvHdrNonce <- true
 	}
 }
 
@@ -383,7 +413,17 @@ func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
 // waitForHeaderNonce method wait for header with the requested nonce to be received
 func (boot *baseBootstrap) waitForHeaderNonce() error {
 	select {
-	case <-boot.chRcvHdr:
+	case <-boot.chRcvHdrNonce:
+		return nil
+	case <-time.After(boot.waitTime):
+		return process.ErrTimeIsOut
+	}
+}
+
+// waitForHeaderHash method wait for header with the requested hash to be received
+func (boot *baseBootstrap) waitForHeaderHash() error {
+	select {
+	case <-boot.chRcvHdrHash:
 		return nil
 	case <-time.After(boot.waitTime):
 		return process.ErrTimeIsOut
@@ -399,7 +439,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 		return false
 	}
 
-	boot.isForkDetected, boot.forkNonce = boot.forkDetector.CheckFork()
+	boot.isForkDetected, boot.forkNonce, boot.forkHash = boot.forkDetector.CheckFork()
 
 	if boot.blkc.GetCurrentBlockHeader() == nil {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= 0

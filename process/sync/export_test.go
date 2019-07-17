@@ -8,7 +8,7 @@ import (
 )
 
 func (boot *ShardBootstrap) RequestHeader(nonce uint64) {
-	boot.requestHeader(nonce)
+	boot.requestHeaderWithNonce(nonce)
 }
 
 func (boot *ShardBootstrap) GetHeaderFromPoolWithNonce(nonce uint64) (*block.Header, error) {

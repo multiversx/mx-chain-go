@@ -657,8 +657,8 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() (bool, uint64) {
-		return true, math.MaxUint64
+	forkDetector.CheckForkCalled = func() (bool, uint64, []byte) {
+		return true, math.MaxUint64, nil
 	}
 	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}
@@ -667,6 +667,8 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 100
+	}
+	forkDetector.ResetProbableHighestNonceIfNeededCalled = func() {
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -694,7 +696,7 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 
 	r := bs.SyncBlock()
 
-	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, r)
+	assert.Equal(t, process.ErrTimeIsOut, r)
 }
 
 func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
@@ -711,8 +713,8 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() (bool, uint64) {
-		return false, math.MaxUint64
+	forkDetector.CheckForkCalled = func() (bool, uint64, []byte) {
+		return false, math.MaxUint64, nil
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 100
@@ -767,8 +769,8 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() (bool, uint64) {
-		return false, math.MaxUint64
+	forkDetector.CheckForkCalled = func() (bool, uint64, []byte) {
+		return false, math.MaxUint64, nil
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
@@ -862,8 +864,8 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() (bool, uint64) {
-		return false, math.MaxUint64
+	forkDetector.CheckForkCalled = func() (bool, uint64, []byte) {
+		return false, math.MaxUint64, nil
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
@@ -961,8 +963,8 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() (bool, uint64) {
-		return false, math.MaxUint64
+	forkDetector.CheckForkCalled = func() (bool, uint64, []byte) {
+		return false, math.MaxUint64, nil
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
@@ -1052,8 +1054,8 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() (bool, uint64) {
-		return false, math.MaxUint64
+	forkDetector.CheckForkCalled = func() (bool, uint64, []byte) {
+		return false, math.MaxUint64, nil
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
@@ -1103,8 +1105,8 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundI
 
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	forkDetector := &mock.ForkDetectorMock{CheckForkCalled: func() (bool, uint64) {
-		return false, math.MaxUint64
+	forkDetector := &mock.ForkDetectorMock{CheckForkCalled: func() (bool, uint64, []byte) {
+		return false, math.MaxUint64, nil
 	}}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 0
@@ -1143,8 +1145,8 @@ func TestMetaBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreat
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() (bool, uint64) {
-		return false, math.MaxUint64
+	forkDetector.CheckForkCalled = func() (bool, uint64, []byte) {
+		return false, math.MaxUint64, nil
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 1
@@ -1187,8 +1189,8 @@ func TestMetaBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() (bool, uint64) {
-		return false, math.MaxUint64
+	forkDetector.CheckForkCalled = func() (bool, uint64, []byte) {
+		return false, math.MaxUint64, nil
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 0
@@ -1231,8 +1233,8 @@ func TestMetaBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() (bool, uint64) {
-		return false, math.MaxUint64
+	forkDetector.CheckForkCalled = func() (bool, uint64, []byte) {
+		return false, math.MaxUint64, nil
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 1
@@ -1269,8 +1271,8 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() (bool, uint64) {
-		return false, math.MaxUint64
+	forkDetector.CheckForkCalled = func() (bool, uint64, []byte) {
+		return false, math.MaxUint64, nil
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
