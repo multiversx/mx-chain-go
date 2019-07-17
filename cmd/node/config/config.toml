@@ -4,6 +4,9 @@
    # value will be given as string. For example: "0", "1", "15", "metachain"
    DestinationShardAsObserver = "0"
 
+   # NetworkID will be used for network versions
+   NetworkID = "undefined"
+
 [Explorer]
     Enabled = false
     IndexerURL = "http://localhost:9200"
@@ -78,12 +81,12 @@
         BatchDelaySeconds = 15
         MaxBatchSize = 30000
 
-[SmartContractResultStorage]
-    [SmartContractResultStorage.Cache]
+[UnsignedTransactionStorage]
+    [UnsignedTransactionStorage.Cache]
         Size = 100000
         Type = "LRU"
-    [SmartContractResultStorage.DB]
-        FilePath = "SmartContractResult"
+    [UnsignedTransactionStorage.DB]
+        FilePath = "UnsignedTransactions"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 15
         MaxBatchSize = 30000
@@ -151,7 +154,7 @@
     Type = "FIFOSharded"
     Shards = 32
 
-[SmartContractDataPool]
+[UnsignedTransactionDataPool]
     Size = 100000
     Type = "LRU"
 

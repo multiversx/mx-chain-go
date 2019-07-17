@@ -1,11 +1,12 @@
 package smartContract
 
 import (
-	"github.com/ElrondNetwork/elrond-vm-common"
+	"encoding/hex"
 	"math/big"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type atArgumentParser struct {
@@ -16,6 +17,7 @@ type atArgumentParser struct {
 const atSep = "@"
 const base = 16
 
+// NewAtArgumentParser creates a new argument parser implementation that splits arguments by @ character
 func NewAtArgumentParser() (process.ArgumentsParser, error) {
 	return &atArgumentParser{}, nil
 }
@@ -24,8 +26,8 @@ func NewAtArgumentParser() (process.ArgumentsParser, error) {
 // format: code@arg1@arg2@arg3...
 // Until the first @ all the bytes are for the code / function
 // after that every argument start with an @
-func (at *atArgumentParser) ParseData(data []byte) error {
-	splitString := strings.Split(string(data), atSep)
+func (at *atArgumentParser) ParseData(data string) error {
+	splitString := strings.Split(data, atSep)
 	if len(splitString) == 0 || len(splitString[0]) == 0 {
 		return process.ErrStringSplitFailed
 	}
@@ -63,7 +65,7 @@ func (at *atArgumentParser) GetCode() ([]byte, error) {
 	return at.code, nil
 }
 
-// GetFunctons returns the function from the parsed data
+// GetFunction returns the function from the parsed data
 func (at *atArgumentParser) GetFunction() (string, error) {
 	if at.code == nil {
 		return "", process.ErrNilFunction
@@ -77,8 +79,8 @@ func (at *atArgumentParser) GetSeparator() string {
 }
 
 // GetStorageUpdates parse data into storage updates
-func (at *atArgumentParser) GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error) {
-	splitString := strings.Split(string(data), atSep)
+func (at *atArgumentParser) GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error) {
+	splitString := strings.Split(data, atSep)
 	if len(splitString) == 0 || len(splitString[0]) == 0 {
 		return nil, process.ErrStringSplitFailed
 	}
@@ -89,7 +91,17 @@ func (at *atArgumentParser) GetStorageUpdates(data []byte) ([]*vmcommon.StorageU
 
 	storageUpdates := make([]*vmcommon.StorageUpdate, 0)
 	for i := 0; i < len(splitString); i += 2 {
-		storageUpdate := &vmcommon.StorageUpdate{Offset: []byte(splitString[i]), Data: []byte(splitString[i+1])}
+		offset, err := hex.DecodeString(splitString[i])
+		if err != nil {
+			return nil, err
+		}
+
+		value, err := hex.DecodeString(splitString[i+1])
+		if err != nil {
+			return nil, err
+		}
+
+		storageUpdate := &vmcommon.StorageUpdate{Offset: offset, Data: value}
 		storageUpdates = append(storageUpdates, storageUpdate)
 	}
 
@@ -97,16 +109,16 @@ func (at *atArgumentParser) GetStorageUpdates(data []byte) ([]*vmcommon.StorageU
 }
 
 // CreateDataFromStorageUpdate creates storage update from data
-func (at *atArgumentParser) CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) []byte {
-	data := []byte{}
+func (at *atArgumentParser) CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string {
+	data := ""
 	for i := 0; i < len(storageUpdates); i++ {
 		storageUpdate := storageUpdates[i]
-		data = append(data, storageUpdate.Offset...)
-		data = append(data, []byte(at.GetSeparator())...)
-		data = append(data, storageUpdate.Data...)
+		data = data + hex.EncodeToString(storageUpdate.Offset)
+		data = data + at.GetSeparator()
+		data = data + hex.EncodeToString(storageUpdate.Data)
 
 		if i < len(storageUpdates)-1 {
-			data = append(data, []byte(at.GetSeparator())...)
+			data = data + at.GetSeparator()
 		}
 	}
 	return data

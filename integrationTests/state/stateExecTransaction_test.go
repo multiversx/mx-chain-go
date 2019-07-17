@@ -40,8 +40,8 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	//Step 1. create account with a nonce and a balance
 	address, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 	account, _ := accnts.GetAccountWithJournal(address)
-	account.(*state.Account).SetNonceWithJournal(nonce)
-	account.(*state.Account).SetBalanceWithJournal(balance)
+	_ = account.(*state.Account).SetNonceWithJournal(nonce)
+	_ = account.(*state.Account).SetBalanceWithJournal(balance)
 
 	hashCreated, _ := accnts.Commit()
 
@@ -53,7 +53,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 		RcvAddr: address.Bytes(),
 	}
 
-	_, err := txProcessor.ProcessTransaction(tx, 0)
+	err := txProcessor.ProcessTransaction(tx, 0)
 	assert.Nil(t, err)
 
 	hashAfterExec, _ := accnts.Commit()
@@ -84,10 +84,10 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	//Step 1. create account with a nonce and a balance
 	address, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 	account, _ := accnts.GetAccountWithJournal(address)
-	account.(*state.Account).SetNonceWithJournal(nonce)
-	account.(*state.Account).SetBalanceWithJournal(balance)
+	_ = account.(*state.Account).SetNonceWithJournal(nonce)
+	_ = account.(*state.Account).SetBalanceWithJournal(balance)
 
-	accnts.Commit()
+	_, _ = accnts.Commit()
 
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
 	tx := &transaction2.Transaction{
@@ -97,7 +97,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 		RcvAddr: address.Bytes(),
 	}
 
-	_, err := txProcessor.ProcessTransaction(tx, 0)
+	err := txProcessor.ProcessTransaction(tx, 0)
 	assert.Nil(t, err)
 
 	_ = accnts.RevertToSnapshot(0)
@@ -124,8 +124,8 @@ func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 	receiver, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
 	account, _ := accnts.GetAccountWithJournal(sender)
-	account.(*state.Account).SetNonceWithJournal(nonce)
-	account.(*state.Account).SetBalanceWithJournal(balance)
+	_ = account.(*state.Account).SetNonceWithJournal(nonce)
+	_ = account.(*state.Account).SetBalanceWithJournal(balance)
 
 	initialHash, _ := accnts.Commit()
 	fmt.Printf("Initial hash: %s\n", base64.StdEncoding.EncodeToString(initialHash))
@@ -160,7 +160,7 @@ func testExecTransactionsMoreTxWithRevert(
 			RcvAddr: receiver.Bytes(),
 		}
 
-		_, err := txProcessor.ProcessTransaction(tx, 0)
+		err := txProcessor.ProcessTransaction(tx, 0)
 		assert.Nil(t, err)
 	}
 
@@ -218,8 +218,8 @@ func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *t
 	receiver, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
 	account, _ := accnts.GetAccountWithJournal(sender)
-	account.(*state.Account).SetNonceWithJournal(nonce)
-	account.(*state.Account).SetBalanceWithJournal(balance)
+	_ = account.(*state.Account).SetNonceWithJournal(nonce)
+	_ = account.(*state.Account).SetBalanceWithJournal(balance)
 
 	initialHash, _ := accnts.Commit()
 	fmt.Printf("Initial hash: %s\n", base64.StdEncoding.EncodeToString(initialHash))

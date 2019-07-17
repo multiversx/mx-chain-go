@@ -478,7 +478,8 @@ func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
 	isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
 	if isForkDetected {
 		boot.requestsWithTimeout = 0
-		boot.removeHeaderFromPools(hdr)
+		hash := boot.removeHeaderFromPools(hdr)
+		boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
 		errNotCritical := boot.forkChoice()
 		if errNotCritical != nil {
 			log.Info(errNotCritical.Error())
@@ -519,12 +520,6 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		}
 	}()
 
-	//TODO remove after all types of block bodies are implemented
-	if hdr.BlockBodyType != block.TxBlock {
-		err = process.ErrNotImplementedBlockProcessingType
-		return err
-	}
-
 	miniBlockHashes := make([][]byte, 0)
 	for i := 0; i < len(hdr.MiniBlockHeaders); i++ {
 		miniBlockHashes = append(miniBlockHashes, hdr.MiniBlockHeaders[i].Hash)
@@ -558,9 +553,9 @@ func (boot *ShardBootstrap) SyncBlock() error {
 	}
 	timeAfter := time.Now()
 	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
-
 	log.Info(fmt.Sprintf("block with nonce %d has been synced successfully\n", hdr.Nonce))
 	boot.requestsWithTimeout = 0
+
 	return nil
 }
 
@@ -583,8 +578,12 @@ func (boot *ShardBootstrap) getHeaderWithNonce(nonce uint64) (*block.Header, err
 
 // getHeaderFromPoolWithNonce method returns the block header from a given nonce
 func (boot *ShardBootstrap) getHeaderFromPoolWithNonce(nonce uint64) (*block.Header, error) {
-	value, _ := boot.headersNonces.Get(nonce)
-	hash, ok := value.([]byte)
+	syncMap, ok := boot.headersNonces.Get(nonce)
+	if !ok {
+		return nil, process.ErrMissingHashForHeaderNonce
+	}
+
+	hash, ok := syncMap.Load(boot.shardCoordinator.SelfId())
 
 	if hash == nil || !ok {
 		return nil, process.ErrMissingHashForHeaderNonce
@@ -632,7 +631,7 @@ func (boot *ShardBootstrap) requestHeader(nonce uint64) {
 	}
 }
 
-// getHeaderWithNonce method gets the header with given nonce from pool, if it exist there,
+// getHeaderRequestingIfMissing method gets the header with given nonce from pool, if it exist there,
 // and if not it will be requested from network
 func (boot *ShardBootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Header, error) {
 	hdr, err := boot.getHeaderFromPoolWithNonce(nonce)

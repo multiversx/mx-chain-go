@@ -9,8 +9,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 	"github.com/whyrusleeping/go-logging"
 )
@@ -27,7 +29,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 	}
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	numMetaNodes := 10
 	senderShard := uint32(0)
@@ -40,9 +42,9 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 	displayAndStartNodes(nodes)
 
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -71,7 +73,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 
 	fmt.Println("Generating metaheader from metachain to any other shards...")
 	metaHdr := generateMetaHeader()
-	nodes[1].broadcastMessenger.BroadcastBlock(nil, metaHdr)
+	_ = nodes[1].broadcastMessenger.BroadcastBlock(nil, metaHdr)
 
 	for i := 0; i < 5; i++ {
 		fmt.Println(makeDisplayTable(nodes))
@@ -92,7 +94,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	}
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	numMetaNodes := 2
 	senderShard := uint32(0)
@@ -105,9 +107,9 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	displayAndStartNodes(nodes)
 
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -127,7 +129,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		for j := 0; j < numMetaNodes; j++ {
 			resolver, err := nodes[j+1].resolvers.CrossShardResolver(factory.ShardHeadersForMetachainTopic, senderShard)
 			assert.Nil(t, err)
-			resolver.RequestDataFromHash(shardHeaderHash)
+			_ = resolver.RequestDataFromHash(shardHeaderHash)
 		}
 
 		fmt.Println(makeDisplayTable(nodes))
@@ -152,7 +154,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		//continuously request
 		resolver, err := nodes[0].resolvers.MetaChainResolver(factory.MetachainBlocksTopic)
 		assert.Nil(t, err)
-		resolver.RequestDataFromHash(metaHeaderHash)
+		_ = resolver.RequestDataFromHash(metaHeaderHash)
 
 		fmt.Println(makeDisplayTable(nodes))
 
@@ -171,14 +173,17 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	metaHeaderHash2 := testHasher.Compute(string(metaHeaderBytes2))
 	for i := 0; i < numMetaNodes; i++ {
 		nodes[i+1].metaDataPool.MetaChainBlocks().HasOrAdd(metaHeaderHash2, metaHdr2)
-		nodes[i+1].metaDataPool.MetaBlockNonces().HasOrAdd(metaHdr2.GetNonce(), metaHeaderHash2)
+
+		syncMap := &dataPool.ShardIdHashSyncMap{}
+		syncMap.Store(sharding.MetachainShardId, metaHeaderHash2)
+		nodes[i+1].metaDataPool.HeadersNonces().Merge(metaHdr2.GetNonce(), syncMap)
 	}
 
 	for i := 0; i < 5; i++ {
 		//continuously request
 		resolver, err := nodes[0].resolvers.MetaChainResolver(factory.MetachainBlocksTopic)
 		assert.Nil(t, err)
-		resolver.(*resolvers.HeaderResolver).RequestDataFromNonce(metaHdr2.GetNonce())
+		_ = resolver.(*resolvers.HeaderResolver).RequestDataFromNonce(metaHdr2.GetNonce())
 
 		fmt.Println(makeDisplayTable(nodes))
 
