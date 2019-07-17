@@ -214,3 +214,28 @@ func TestPlainAddressConverter_PrepareAddressBytesOkValsShouldWork(t *testing.T)
 	assert.Nil(t, err)
 	assert.Equal(t, buff, checked)
 }
+
+func TestPlainAddressConverter_FromBech32AddressValidDataWithPrefixShouldWork(t *testing.T) {
+	t.Parallel()
+
+	ac, err := addressConverters.NewPlainAddressConverter(32, "0x")
+	assert.Nil(t, err)
+
+	//generating a random byte slice
+	buff := make([]byte, 32)
+	_, err = rand.Read(buff)
+	assert.Nil(t, err)
+
+	str := "0x" + hex.EncodeToString(buff)
+
+	adr, err := ac.CreateAddressFromHex(str)
+
+	bech32, err := ac.ConvertToBech32(adr)
+	assert.Nil(t, err)
+
+	adr2, err := ac.CreateAddressFromBech32(bech32)
+	assert.Nil(t, err)
+
+	//check that we got back the same bytes
+	assert.Equal(t, buff, adr2.Bytes())
+}
