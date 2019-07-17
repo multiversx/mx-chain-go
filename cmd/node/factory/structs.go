@@ -1262,7 +1262,7 @@ func newShardBlockProcessorAndTracker(
 
 	//TODO replace this with a vm factory
 	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.ElrondDefault)
+	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.Danse)
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		ieleVM,
