@@ -4,11 +4,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/urfave/cli"
 )
 
@@ -63,6 +65,17 @@ func main() {
 	}
 }
 
+func backupFileIfExists(filename string) {
+	if _, err := os.Stat(filename); err != nil {
+		if os.IsNotExist(err) {
+			return
+		}
+	}
+	//if we reached here the file probably exists, make a timestamped backup
+	os.Rename(filename, filename+"."+fmt.Sprintf("%d", time.Now().Unix()))
+
+}
+
 func generateFiles(ctx *cli.Context) error {
 	var initialBalancesSkFile, initialNodesSkFile *os.File
 
@@ -82,6 +95,7 @@ func generateFiles(ctx *cli.Context) error {
 		}
 	}()
 
+	backupFileIfExists(initialBalancesSkFileName)
 	err := os.Remove(initialBalancesSkFileName)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -92,6 +106,7 @@ func generateFiles(ctx *cli.Context) error {
 		return err
 	}
 
+	backupFileIfExists(initialNodesSkFileName)
 	err = os.Remove(initialNodesSkFileName)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -127,8 +142,29 @@ func generateFiles(ctx *cli.Context) error {
 	}
 
 	fmt.Println("Files generated successfully.")
-	fmt.Printf("   pk for balance: %s\n", pkHexBalance)
-	fmt.Printf("   pk for block signing: %s\n", pkHexBlockSigning)
+	fmt.Printf("\tpublic key for balance:\t%s\n", pkHexBalance)
+
+	ac, err := addressConverters.NewPlainAddressConverter(32, "")
+	if err != nil {
+		fmt.Println("For some peculiar reason I could not generate an addressConverter because ", err)
+		return nil
+	}
+
+	adr, err := ac.CreateAddressFromHex(pkHexBalance)
+	if err != nil {
+		fmt.Println("The plot thickens: I could not covert the hex representation to an address because ", err)
+	}
+
+	bech32, err := ac.ConvertToBech32(adr)
+	if err != nil {
+		fmt.Println("Could not display address in Bech32 format because ", err)
+	} else {
+		fmt.Printf("\tpublic key for balance - in bech32 format:\t%s\n", bech32)
+	}
+	fmt.Printf("\tpublic key for block signing:\t%s\n", pkHexBlockSigning)
+	//the block signing PK would result in a bech32 string greater than the standard imposed 90
+	//char limit so we can't bech32 encode it, but signing key is anyway longer (128bytes vs 32bytes)
+	//and can't be mistaken for a txid as it is the case with the balance one
 
 	return nil
 }
