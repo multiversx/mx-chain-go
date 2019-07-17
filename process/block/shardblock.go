@@ -20,8 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const maxTransactionsInBlock = 15000
-
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
@@ -129,6 +127,7 @@ func NewShardProcessor(
 
 	sp.metaBlockFinality = process.MetaBlockFinality
 	sp.allNeededMetaHdrsFound = true
+	sp.maxRecordsInBlock = process.MaxRecordsInBlock
 
 	return &sp, nil
 }
@@ -520,7 +519,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][][]b
 func (sp *shardProcessor) CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error) {
 	sp.txCoordinator.CreateBlockStarted()
 
-	miniBlocks, err := sp.createMiniBlocks(sp.shardCoordinator.NumberOfShards(), maxTransactionsInBlock, round, haveTime)
+	miniBlocks, err := sp.createMiniBlocks(sp.shardCoordinator.NumberOfShards(), round, haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -1090,7 +1089,6 @@ func (sp *shardProcessor) isMetaHeaderFinal(currHdr data.HeaderHandler, sortedHd
 // full verification through metachain header
 func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	noShards uint32,
-	maxTxInBlock int,
 	round uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, error) {
@@ -1133,8 +1131,8 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			break
 		}
 
-		if len(usedMetaHdrsHashes) > process.MaxMetaHeadersAllowedInShardHeader {
-			log.Info(fmt.Sprintf("max meta headers allowed in shard header exceeded\n"))
+		if uint32(len(usedMetaHdrsHashes)+len(miniBlocks)) >= sp.maxRecordsInBlock {
+			log.Info(fmt.Sprintf("max records allowed to be added in shard header has been reached\n"))
 			break
 		}
 
@@ -1159,7 +1157,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			continue
 		}
 
-		maxTxRemaining := uint32(maxTxInBlock) - nrTxAdded
+		maxTxRemaining := sp.maxRecordsInBlock - nrTxAdded
 		currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(hdr, maxTxRemaining, round, haveTime)
 
 		// all txs processed, add to processed miniblocks
@@ -1186,7 +1184,6 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 func (sp *shardProcessor) createMiniBlocks(
 	noShards uint32,
-	maxTxInBlock int,
 	round uint32,
 	haveTime func() bool,
 ) (block.Body, error) {
@@ -1207,7 +1204,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		return nil, process.ErrNilTransactionPool
 	}
 
-	destMeMiniBlocks, txs, err := sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxTxInBlock, round, haveTime)
+	destMeMiniBlocks, txs, err := sp.createAndProcessCrossMiniBlocksDstMe(noShards, round, haveTime)
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -1223,7 +1220,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		return miniBlocks, nil
 	}
 
-	remainingSpace := uint32(maxTxInBlock) - txs
+	remainingSpace := sp.maxRecordsInBlock - txs
 	mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(remainingSpace, round, haveTime)
 
 	if len(mbFromMe) > 0 {

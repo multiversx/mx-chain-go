@@ -3078,7 +3078,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
-	miniBlockSlice, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, 2, haveTimeReturnsBool)
+	miniBlockSlice, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, haveTimeReturnsBool)
 	assert.Equal(t, err == nil, true)
 	assert.Equal(t, len(miniBlockSlice) == 0, true)
 	assert.Equal(t, noOfTxs, uint32(0))
@@ -3193,7 +3193,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
-	blockBody, err := bp.CreateMiniBlocks(1, 15000, 0, func() bool { return true })
+	blockBody, err := bp.CreateMiniBlocks(1, 0, func() bool { return true })
 
 	assert.Nil(t, err)
 	//testing execution

@@ -37,8 +37,8 @@ func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
 	sp.receivedMetaBlock(metaBlockHash)
 }
 
-func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, round uint32, haveTime func() bool) (block.Body, error) {
-	return sp.createMiniBlocks(noShards, maxTxInBlock, round, haveTime)
+func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, round uint32, haveTime func() bool) (block.Body, error) {
+	return sp.createMiniBlocks(noShards, round, haveTime)
 }
 
 func (sp *shardProcessor) GetProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
@@ -230,9 +230,8 @@ func (sp *shardProcessor) GetOrderedMetaBlocks(round uint32) ([]*hashAndHdr, err
 
 func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
 	noShards uint32,
-	maxTxInBlock int,
 	round uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, error) {
-	return sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxTxInBlock, round, haveTime)
+	return sp.createAndProcessCrossMiniBlocksDstMe(noShards, round, haveTime)
 }

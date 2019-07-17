@@ -44,6 +44,8 @@ type baseProcessor struct {
 
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
+
+	maxRecordsInBlock uint32
 }
 
 func checkForNils(

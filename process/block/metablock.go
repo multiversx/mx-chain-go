@@ -113,6 +113,7 @@ func NewMetaProcessor(
 	//TODO: This should be injected when BlockProcessor will be refactored
 	mp.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 	mp.allNeededShardHdrsFound = true
+	mp.maxRecordsInBlock = process.MaxRecordsInBlock
 
 	return &mp, nil
 }

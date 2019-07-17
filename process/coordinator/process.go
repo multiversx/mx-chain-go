@@ -364,6 +364,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	hdr data.HeaderHandler,
 	maxTxRemaining uint32,
+	//	maxMbRemaining uint32,
 	round uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, bool) {
@@ -407,6 +408,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		if txOverFlow {
 			return miniBlocks, nrTxAdded, false
 		}
+
+		//mbOverFlow := uint32(len(miniBlocks)) >= maxMbRemaining
+		//if mbOverFlow {
+		//	return miniBlocks, nrTxAdded, false
+		//}
 
 		requestedTxs := preproc.RequestTransactionsForMiniBlock(*miniBlock)
 		if requestedTxs > 0 {
