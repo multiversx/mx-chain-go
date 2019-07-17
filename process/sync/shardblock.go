@@ -663,9 +663,7 @@ func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 	boot.setRequestedMiniBlocks(hashes)
 	err = boot.miniBlockResolver.RequestDataFromHashArray(hashes)
 
-	for i := 0; i < len(hashes); i++ {
-		log.Info(fmt.Sprintf("requested miniblock with hash %s from network\n", core.ToB64(hashes[i])))
-	}
+	log.Info(fmt.Sprintf("requested %v miniblocks from network\n", len(hashes)))
 
 	if err != nil {
 		log.Error(err.Error())
