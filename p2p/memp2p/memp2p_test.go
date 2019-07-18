@@ -10,17 +10,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Initializing_MemP2PNetwork_with_4_Peers(t *testing.T) {
-	network, err := memp2p.NewMemP2PNetwork()
+func TestInitializingNetworkwith4Peers(t *testing.T) {
+	network, err := memp2p.NewNetwork()
 	assert.Nil(t, err)
 
-	peer1, err := memp2p.NewMemP2PMessenger(network)
+	peer1, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
-	peer2, err := memp2p.NewMemP2PMessenger(network)
+	peer2, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
-	peer3, err := memp2p.NewMemP2PMessenger(network)
+	peer3, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
-	peer4, err := memp2p.NewMemP2PMessenger(network)
+	peer4, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
 
 	assert.Equal(t, 4, len(network.Peers()))
@@ -69,7 +69,8 @@ func Test_Initializing_MemP2PNetwork_with_4_Peers(t *testing.T) {
 	assert.True(t, messenger.HasTopic("rocket"))
 	assert.Nil(t, messenger.Topics["rocket"])
 
-	peer1.Close()
+	err = peer1.Close()
+	assert.Nil(t, err)
 	peerIDs := network.PeerIDs()
 	peersMap := network.Peers()
 	assert.Equal(t, 3, len(peerIDs))
@@ -80,29 +81,37 @@ func Test_Initializing_MemP2PNetwork_with_4_Peers(t *testing.T) {
 	assert.NotContains(t, peersMap, "Peer1")
 }
 
-func Test_Broadcasting_Messages(t *testing.T) {
-	network, err := memp2p.NewMemP2PNetwork()
+func TestBroadcastingMessages(t *testing.T) {
+	network, err := memp2p.NewNetwork()
 	assert.Nil(t, err)
 	network.LogMessages = true
 
-	peer1, err := memp2p.NewMemP2PMessenger(network)
+	peer1, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
-	peer2, err := memp2p.NewMemP2PMessenger(network)
+	peer2, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
-	peer3, err := memp2p.NewMemP2PMessenger(network)
+	peer3, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
-	peer4, err := memp2p.NewMemP2PMessenger(network)
+	peer4, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
 
 	// All peers listen to the topic "rocket"
-	peer1.CreateTopic("rocket", false)
-	peer1.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer1.ID()))
-	peer2.CreateTopic("rocket", false)
-	peer2.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer2.ID()))
-	peer3.CreateTopic("rocket", false)
-	peer3.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer3.ID()))
-	peer4.CreateTopic("rocket", false)
-	peer4.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer4.ID()))
+	err = peer1.CreateTopic("rocket", false)
+	assert.Nil(t, err)
+	err = peer1.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer1.ID()))
+	assert.Nil(t, err)
+	err = peer2.CreateTopic("rocket", false)
+	assert.Nil(t, err)
+	err = peer2.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer2.ID()))
+	assert.Nil(t, err)
+	err = peer3.CreateTopic("rocket", false)
+	assert.Nil(t, err)
+	err = peer3.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer3.ID()))
+	assert.Nil(t, err)
+	err = peer4.CreateTopic("rocket", false)
+	assert.Nil(t, err)
+	err = peer4.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer4.ID()))
+	assert.Nil(t, err)
 
 	// Send a message to everybody.
 	peer1.BroadcastOnChannelBlocking("rocket", "rocket", []byte("launch the rocket"))
@@ -110,7 +119,8 @@ func Test_Broadcasting_Messages(t *testing.T) {
 	assert.Equal(t, 4, len(network.Messages))
 
 	// Send a message after disconnecting. No new messages should appear in the log.
-	peer1.Close()
+	err = peer1.Close()
+	assert.Nil(t, err)
 	peer1.BroadcastOnChannelBlocking("rocket", "rocket", []byte("launch the rocket again"))
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 4, len(network.Messages))
@@ -124,35 +134,47 @@ func Test_Broadcasting_Messages(t *testing.T) {
 	assert.Equal(t, 7, len(network.Messages))
 }
 
-func Test_Connectivity_And_Topics(t *testing.T) {
-	network, err := memp2p.NewMemP2PNetwork()
+func TestConnectivityAndTopics(t *testing.T) {
+	network, err := memp2p.NewNetwork()
 	assert.Nil(t, err)
 	network.LogMessages = true
 
-	peer1, err := memp2p.NewMemP2PMessenger(network)
+	peer1, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
-	peer2, err := memp2p.NewMemP2PMessenger(network)
+	peer2, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
-	peer3, err := memp2p.NewMemP2PMessenger(network)
+	peer3, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
-	peer4, err := memp2p.NewMemP2PMessenger(network)
+	peer4, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
 
 	// All peers listen to the topic "rocket"
-	peer1.CreateTopic("rocket", false)
-	peer1.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer1.ID()))
-	peer2.CreateTopic("rocket", false)
-	peer2.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer2.ID()))
-	peer3.CreateTopic("rocket", false)
-	peer3.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer3.ID()))
-	peer4.CreateTopic("rocket", false)
-	peer4.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer4.ID()))
+	err = peer1.CreateTopic("rocket", false)
+	assert.Nil(t, err)
+	err = peer1.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer1.ID()))
+	assert.Nil(t, err)
+	err = peer2.CreateTopic("rocket", false)
+	assert.Nil(t, err)
+	err = peer2.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer2.ID()))
+	assert.Nil(t, err)
+	err = peer3.CreateTopic("rocket", false)
+	assert.Nil(t, err)
+	err = peer3.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer3.ID()))
+	assert.Nil(t, err)
+	err = peer4.CreateTopic("rocket", false)
+	assert.Nil(t, err)
+	err = peer4.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer4.ID()))
+	assert.Nil(t, err)
 
 	// Peers 2 and 3 also listen on the topic "carbohydrate"
-	peer2.CreateTopic("carbohydrate", false)
-	peer2.RegisterMessageProcessor("carbohydrate", mock.NewMockMessageProcessor(peer2.ID()))
-	peer3.CreateTopic("carbohydrate", false)
-	peer3.RegisterMessageProcessor("carbohydrate", mock.NewMockMessageProcessor(peer3.ID()))
+	err = peer2.CreateTopic("carbohydrate", false)
+	assert.Nil(t, err)
+	err = peer2.RegisterMessageProcessor("carbohydrate", mock.NewMockMessageProcessor(peer2.ID()))
+	assert.Nil(t, err)
+	err = peer3.CreateTopic("carbohydrate", false)
+	assert.Nil(t, err)
+	err = peer3.RegisterMessageProcessor("carbohydrate", mock.NewMockMessageProcessor(peer3.ID()))
+	assert.Nil(t, err)
 
 	peers1234 := []p2p.PeerID{peer1.ID(), peer2.ID(), peer3.ID(), peer4.ID()}
 	peers234 := []p2p.PeerID{peer2.ID(), peer3.ID(), peer4.ID()}
@@ -164,26 +186,29 @@ func Test_Connectivity_And_Topics(t *testing.T) {
 	assert.Equal(t, peers23, peer1.ConnectedPeersOnTopic("carbohydrate"))
 }
 
-func Test_Sending_Direct_Messages(t *testing.T) {
-	network, err := memp2p.NewMemP2PNetwork()
+func TestSendingDirectMessages(t *testing.T) {
+	network, err := memp2p.NewNetwork()
 	assert.Nil(t, err)
 	network.LogMessages = true
 
-	peer1, err := memp2p.NewMemP2PMessenger(network)
+	peer1, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
-	peer2, err := memp2p.NewMemP2PMessenger(network)
+	peer2, err := memp2p.NewMessenger(network)
 	assert.Nil(t, err)
 
 	assert.NotNil(t, peer1.SendToConnectedPeer("rocket", []byte("try to launch this rocket"), "Peer2"))
 	assert.NotNil(t, peer2.SendToConnectedPeer("rocket", []byte("try to launch this rocket"), "Peer1"))
 	assert.Equal(t, 0, len(network.Messages))
 
-	peer1.CreateTopic("nitrous_oxide", false)
+	err = peer1.CreateTopic("nitrous_oxide", false)
+	assert.Nil(t, err)
 	assert.NotNil(t, peer2.SendToConnectedPeer("rocket", []byte("try to launch this rocket"), "Peer1"))
 	assert.Equal(t, 0, len(network.Messages))
 
-	peer1.CreateTopic("rocket", false)
-	peer1.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer1.ID()))
+	err = peer1.CreateTopic("rocket", false)
+	assert.Nil(t, err)
+	err = peer1.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer1.ID()))
+	assert.Nil(t, err)
 	assert.Nil(t, peer2.SendToConnectedPeer("rocket", []byte("try to launch this rocket"), "Peer1"))
 	assert.Equal(t, 1, len(network.Messages))
 }

@@ -7,30 +7,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-// MemP2PNetwork provides in-memory connectivity for the MemP2PMessenger
+// Network provides in-memory connectivity for the Messenger
 // struct. It simulates a network where each peer is connected to all the other
 // peers. The peers are connected to the network if they are in the internal
 // `peers` map; otherwise, they are disconnected.
-type MemP2PNetwork struct {
+type Network struct {
 	mutex           sync.RWMutex
 	messageLogMutex sync.RWMutex
 	peerIDs         []p2p.PeerID
-	peers           map[p2p.PeerID]*MemP2PMessenger
+	peers           map[p2p.PeerID]*Messenger
 	LogMessages     bool
 	Messages        []p2p.MessageP2P
 }
 
-// NewMemP2PNetwork constructs a new MemP2PNetwork instance with an empty
+// NewNetwork constructs a new Network instance with an empty
 // internal map of peers.
-func NewMemP2PNetwork() (*MemP2PNetwork, error) {
+func NewNetwork() (*Network, error) {
 	var peerIDs []p2p.PeerID
 	var messages []p2p.MessageP2P
 
-	network := MemP2PNetwork{
+	network := Network{
 		mutex:           sync.RWMutex{},
 		messageLogMutex: sync.RWMutex{},
 		peerIDs:         peerIDs,
-		peers:           make(map[p2p.PeerID]*MemP2PMessenger),
+		peers:           make(map[p2p.PeerID]*Messenger),
 		LogMessages:     false,
 		Messages:        messages,
 	}
@@ -39,7 +39,7 @@ func NewMemP2PNetwork() (*MemP2PNetwork, error) {
 }
 
 // ListAddresses provides the addresses of the known peers.
-func (network *MemP2PNetwork) ListAddresses() []string {
+func (network *Network) ListAddresses() []string {
 	network.mutex.RLock()
 	addresses := make([]string, len(network.peerIDs))
 	i := 0
@@ -52,7 +52,7 @@ func (network *MemP2PNetwork) ListAddresses() []string {
 }
 
 // ListAddressesExceptOne provides the addresses of the known peers, except a specified one.
-func (network *MemP2PNetwork) ListAddressesExceptOne(peerIDToExclude p2p.PeerID) []string {
+func (network *Network) ListAddressesExceptOne(peerIDToExclude p2p.PeerID) []string {
 	network.mutex.RLock()
 	resultingLength := len(network.peerIDs) - 1
 	if resultingLength <= 0 {
@@ -73,9 +73,9 @@ func (network *MemP2PNetwork) ListAddressesExceptOne(peerIDToExclude p2p.PeerID)
 }
 
 // Peers provides a copy of its internal map of peers
-func (network *MemP2PNetwork) Peers() map[p2p.PeerID]*MemP2PMessenger {
+func (network *Network) Peers() map[p2p.PeerID]*Messenger {
 	network.mutex.RLock()
-	peersCopy := make(map[p2p.PeerID]*MemP2PMessenger)
+	peersCopy := make(map[p2p.PeerID]*Messenger)
 	for peerID, peer := range network.peers {
 		peersCopy[peerID] = peer
 	}
@@ -84,9 +84,9 @@ func (network *MemP2PNetwork) Peers() map[p2p.PeerID]*MemP2PMessenger {
 }
 
 // PeersExceptOne provides a copy of its internal map of peers, excluding a specific peer.
-func (network *MemP2PNetwork) PeersExceptOne(peerIDToExclude p2p.PeerID) map[p2p.PeerID]*MemP2PMessenger {
+func (network *Network) PeersExceptOne(peerIDToExclude p2p.PeerID) map[p2p.PeerID]*Messenger {
 	network.mutex.RLock()
-	peersCopy := make(map[p2p.PeerID]*MemP2PMessenger)
+	peersCopy := make(map[p2p.PeerID]*Messenger)
 	for peerID, peer := range network.peers {
 		if peerID == peerIDToExclude {
 			continue
@@ -98,18 +98,16 @@ func (network *MemP2PNetwork) PeersExceptOne(peerIDToExclude p2p.PeerID) map[p2p
 }
 
 // PeerIDs provides a copy of its internal slice of peerIDs
-func (network *MemP2PNetwork) PeerIDs() []p2p.PeerID {
+func (network *Network) PeerIDs() []p2p.PeerID {
 	network.mutex.RLock()
 	peerIDsCopy := make([]p2p.PeerID, len(network.peerIDs))
-	for i, peer := range network.peerIDs {
-		peerIDsCopy[i] = peer
-	}
+	_ = copy(peerIDsCopy, network.peerIDs)
 	network.mutex.RUnlock()
 	return peerIDsCopy
 }
 
 //PeerIDsExceptOne provides a copy of its internal slice of peerIDs, excluding a specific peer.
-func (network *MemP2PNetwork) PeerIDsExceptOne(peerIDToExclude p2p.PeerID) []p2p.PeerID {
+func (network *Network) PeerIDsExceptOne(peerIDToExclude p2p.PeerID) []p2p.PeerID {
 	network.mutex.RLock()
 	resultingLength := len(network.peerIDs) - 1
 	if resultingLength <= 0 {
@@ -132,7 +130,7 @@ func (network *MemP2PNetwork) PeerIDsExceptOne(peerIDToExclude p2p.PeerID) []p2p
 
 // RegisterPeer adds a messenger to the Peers map and its PeerID to the peerIDs
 // slice.
-func (network *MemP2PNetwork) RegisterPeer(messenger *MemP2PMessenger) {
+func (network *Network) RegisterPeer(messenger *Messenger) {
 	network.mutex.Lock()
 	network.peerIDs = append(network.peerIDs, messenger.ID())
 	network.peers[messenger.ID()] = messenger
@@ -141,7 +139,7 @@ func (network *MemP2PNetwork) RegisterPeer(messenger *MemP2PMessenger) {
 
 // UnregisterPeer removes a messenger from the Peers map and its PeerID from
 // the peerIDs slice.
-func (network *MemP2PNetwork) UnregisterPeer(peerID p2p.PeerID) {
+func (network *Network) UnregisterPeer(peerID p2p.PeerID) {
 	network.mutex.Lock()
 	// Delete from the Peers map.
 	delete(network.peers, peerID)
@@ -157,16 +155,16 @@ func (network *MemP2PNetwork) UnregisterPeer(peerID p2p.PeerID) {
 }
 
 // LogMessage adds a message to its internal log of messages.
-func (network *MemP2PNetwork) LogMessage(message p2p.MessageP2P) {
+func (network *Network) LogMessage(message p2p.MessageP2P) {
 	network.messageLogMutex.Lock()
 	network.Messages = append(network.Messages, message)
 	network.messageLogMutex.Unlock()
 }
 
 // IsPeerConnected returns true if the peer represented by the provided ID is
-// found in the inner `peers` map of the MemP2PNetwork instance, which
+// found in the inner `peers` map of the Network instance, which
 // determines whether it is connected to the network or not.
-func (network *MemP2PNetwork) IsPeerConnected(peerID p2p.PeerID) bool {
+func (network *Network) IsPeerConnected(peerID p2p.PeerID) bool {
 	network.mutex.RLock()
 	_, found := network.peers[peerID]
 	network.mutex.RUnlock()
