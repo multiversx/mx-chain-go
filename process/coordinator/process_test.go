@@ -501,10 +501,11 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 	assert.NotNil(t, tc)
 
 	maxTxRemaining := uint32(15000)
+	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, maxTxRemaining, 10, haveTime)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -548,10 +549,11 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 	assert.NotNil(t, tc)
 
 	maxTxRemaining := uint32(15000)
+	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), maxTxRemaining, 10, haveTime)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -573,10 +575,11 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 	assert.NotNil(t, tc)
 
 	maxTxRemaining := uint32(15000)
+	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), maxTxRemaining, 10, haveTime)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -625,6 +628,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 	assert.NotNil(t, tc)
 
 	maxTxRemaining := uint32(15000)
+	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -638,7 +642,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		}
 	}
 
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, maxTxRemaining, 10, haveTime)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, 1, len(mbs))
 	assert.Equal(t, uint32(1), txs)

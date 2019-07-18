@@ -127,7 +127,7 @@ func NewShardProcessor(
 
 	sp.metaBlockFinality = process.MetaBlockFinality
 	sp.allNeededMetaHdrsFound = true
-	sp.maxRecordsInBlock = process.MaxRecordsInBlock
+	sp.maxItemsInBlock = process.MaxItemsInBlock
 
 	return &sp, nil
 }
@@ -1131,7 +1131,8 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			break
 		}
 
-		if uint32(len(usedMetaHdrsHashes)+len(miniBlocks)) >= sp.maxRecordsInBlock {
+		recordsAddedInHeader := uint32(len(usedMetaHdrsHashes) + len(miniBlocks))
+		if recordsAddedInHeader >= sp.maxItemsInBlock {
 			log.Info(fmt.Sprintf("max records allowed to be added in shard header has been reached\n"))
 			break
 		}
@@ -1157,22 +1158,35 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			continue
 		}
 
-		maxTxRemaining := sp.maxRecordsInBlock - nrTxAdded
-		currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(hdr, maxTxRemaining, round, haveTime)
-
-		// all txs processed, add to processed miniblocks
-		miniBlocks = append(miniBlocks, currMBProcessed...)
-		nrTxAdded = nrTxAdded + currTxsAdded
-
-		if currTxsAdded > 0 {
-			usedMetaHdrsHashes = append(usedMetaHdrsHashes, orderedMetaBlocks[i].hash)
+		recordsAddedInBody := nrTxAdded
+		if recordsAddedInBody >= sp.maxItemsInBlock {
+			continue
 		}
 
-		if !hdrProcessFinished {
-			break
-		}
+		maxTxRemaining := sp.maxItemsInBlock - recordsAddedInBody
+		maxMbRemaining := sp.maxItemsInBlock - recordsAddedInHeader - 1
+		if maxMbRemaining > 0 && maxTxRemaining > 0 {
+			currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+				hdr,
+				maxTxRemaining,
+				maxMbRemaining,
+				round,
+				haveTime)
 
-		lastMetaHdr = hdr
+			// all txs processed, add to processed miniblocks
+			miniBlocks = append(miniBlocks, currMBProcessed...)
+			nrTxAdded = nrTxAdded + currTxsAdded
+
+			if currTxsAdded > 0 {
+				usedMetaHdrsHashes = append(usedMetaHdrsHashes, orderedMetaBlocks[i].hash)
+			}
+
+			if !hdrProcessFinished {
+				break
+			}
+
+			lastMetaHdr = hdr
+		}
 	}
 
 	sp.mutUsedMetaHdrsHashes.Lock()
@@ -1220,7 +1234,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		return miniBlocks, nil
 	}
 
-	remainingSpace := sp.maxRecordsInBlock - txs
+	remainingSpace := sp.maxItemsInBlock - txs
 	mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(remainingSpace, round, haveTime)
 
 	if len(mbFromMe) > 0 {
