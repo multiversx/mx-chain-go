@@ -1,7 +1,6 @@
 package memp2p
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
@@ -36,7 +35,7 @@ type Messenger struct {
 // Network instance provided as argument.
 func NewMessenger(network *Network) (*Messenger, error) {
 	if network == nil {
-		return nil, errors.New("cannot create a Messenger for a nil network")
+		return nil, ErrNilNetwork
 	}
 
 	ID := fmt.Sprintf("Peer%d", len(network.PeerIDs())+1)
@@ -88,7 +87,7 @@ func (messenger *Messenger) Addresses() []string {
 // an error if the Messenger is not connected to the network, though.
 func (messenger *Messenger) ConnectToPeer(address string) error {
 	if !messenger.IsConnectedToNetwork() {
-		return errors.New("peer not connected to network, can't connect to any other peer")
+		return ErrNotConnectedToNetwork
 	}
 	// Do nothing, all peers are connected to each other already.
 	return nil
@@ -302,7 +301,7 @@ func (messenger *Messenger) parametricBroadcast(topic string, data []byte, async
 			}
 		}
 	} else {
-		err = errors.New("peer not connected to network, cannot send anything")
+		err = ErrNotConnectedToNetwork
 	}
 	return err
 }
@@ -311,19 +310,19 @@ func (messenger *Messenger) parametricBroadcast(topic string, data []byte, async
 func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {
 	if messenger.IsConnectedToNetwork() {
 		if peerID == messenger.ID() {
-			return errors.New("peer cannot send a direct message to itself")
+			return ErrCannotSendToSelf
 		}
 		message, _ := NewMessage(topic, buff, messenger.ID())
-		destinationPeer, peerFound := messenger.Network.PeersExceptOne(messenger.ID())[peerID]
+		receivingPeer, peerFound := messenger.Network.PeersExceptOne(messenger.ID())[peerID]
 
-		if peerFound {
-			return errors.New("destination peer is not connected to the network")
+		if !peerFound {
+			return ErrReceivingPeerNotConnected
 		}
 
-		return destinationPeer.ReceiveMessage(topic, message)
+		return receivingPeer.ReceiveMessage(topic, message)
 	}
 
-	return errors.New("peer not connected to network, cannot send anything")
+	return ErrNotConnectedToNetwork
 }
 
 // ReceiveMessage handles the received message by passing it to the message
