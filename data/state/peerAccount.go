@@ -11,11 +11,23 @@ type PeerAccount struct {
 	BLSPublicKey     []byte
 	SchnorrPublicKey []byte
 	Address          []byte
-	JailStartTime    uint64
-	JailEndTime      uint64
-	CurrentShardId   uint32
-	NextShardId      uint32
 	Stake            *big.Int
+
+	JailTime      uint64
+	PastJailTimes uint64
+
+	CurrentShardId    uint32
+	NextShardId       uint32
+	NodeInWaitingList bool
+
+	Uptime            uint64
+	NrSignedBlocks    uint32
+	NrMissedBlocks    uint32
+	LeaderSuccessRate uint32
+
+	Rating   uint32
+	RootHash []byte
+	Nonce    uint64
 
 	addressContainer AddressContainer
 	accountTracker   AccountTracker
@@ -23,16 +35,38 @@ type PeerAccount struct {
 }
 
 // NewPeerAccount creates new simple account wrapper for an PeerAccountContainer (that has just been initialized)
-func NewPeerAccount(addressContainer AddressContainer, tracker AccountTracker) (*PeerAccount, error) {
+func NewPeerAccount(
+	addressContainer AddressContainer,
+	tracker AccountTracker,
+	stake *big.Int,
+	address []byte,
+	schnorr []byte,
+	bls []byte,
+) (*PeerAccount, error) {
 	if addressContainer == nil {
 		return nil, ErrNilAddressContainer
 	}
 	if tracker == nil {
 		return nil, ErrNilAccountTracker
 	}
+	if stake == nil {
+		return nil, ErrNilStake
+	}
+	if address == nil {
+		return nil, ErrNilAddress
+	}
+	if schnorr == nil {
+		return nil, ErrNilSchnorrPublicKey
+	}
+	if bls == nil {
+		return nil, ErrNilBLSPublicKey
+	}
 
 	return &PeerAccount{
-		Balance:          big.NewInt(0),
+		Stake:            big.NewInt(0).Set(stake),
+		Address:          address,
+		SchnorrPublicKey: schnorr,
+		BLSPublicKey:     bls,
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
 		dataTrieTracker:  NewTrackableDataTrie(nil),
@@ -62,7 +96,7 @@ func (a *PeerAccount) SetNonceWithJournal(nonce uint64) error {
 	a.accountTracker.Journalize(entry)
 	a.Nonce = nonce
 
-	return a.accountTracker.SavePeerAccount(a)
+	return a.accountTracker.SaveAccount(a)
 }
 
 //SetNonce saves the nonce to the account
@@ -85,7 +119,7 @@ func (a *PeerAccount) SetBalanceWithJournal(balance *big.Int) error {
 	a.accountTracker.Journalize(entry)
 	a.Balance = balance
 
-	return a.accountTracker.SavePeerAccount(a)
+	return a.accountTracker.SaveAccount(a)
 }
 
 //------- code / code hash
@@ -110,7 +144,7 @@ func (a *PeerAccount) SetCodeHashWithJournal(codeHash []byte) error {
 	a.accountTracker.Journalize(entry)
 	a.CodeHash = codeHash
 
-	return a.accountTracker.SavePeerAccount(a)
+	return a.accountTracker.SaveAccount(a)
 }
 
 // GetCode gets the actual code that needs to be run in the VM
@@ -145,7 +179,7 @@ func (a *PeerAccount) SetRootHashWithJournal(rootHash []byte) error {
 	a.accountTracker.Journalize(entry)
 	a.RootHash = rootHash
 
-	return a.accountTracker.SavePeerAccount(a)
+	return a.accountTracker.SaveAccount(a)
 }
 
 // DataTrie returns the trie that holds the current account's data
