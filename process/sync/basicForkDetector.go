@@ -283,7 +283,7 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64, []byte) {
 	var lowestForkNonce uint64
 	var hashOfLowestForkNonce []byte
 	var lowestRoundInForkNonce uint32
-	var hashOfForkNonceWithLowestRound []byte
+	var forkHeaderHash []byte
 	var selfHdrInfo *headerInfo
 	lowestForkNonce = math.MaxUint64
 	hashOfLowestForkNonce = nil
@@ -297,7 +297,7 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64, []byte) {
 
 		selfHdrInfo = nil
 		lowestRoundInForkNonce = math.MaxUint32
-		hashOfForkNonceWithLowestRound = nil
+		forkHeaderHash = nil
 
 		for i := 0; i < len(hdrInfos); i++ {
 			// Proposed blocks received do not count for fork choice, as they are not valid until the consensus
@@ -312,7 +312,7 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64, []byte) {
 
 			if hdrInfos[i].round < lowestRoundInForkNonce {
 				lowestRoundInForkNonce = hdrInfos[i].round
-				hashOfForkNonceWithLowestRound = hdrInfos[i].hash
+				forkHeaderHash = hdrInfos[i].hash
 			}
 		}
 
@@ -331,7 +331,7 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64, []byte) {
 		forkDetected = true
 		if nonce < lowestForkNonce {
 			lowestForkNonce = nonce
-			hashOfLowestForkNonce = hashOfForkNonceWithLowestRound
+			hashOfLowestForkNonce = forkHeaderHash
 		}
 	}
 	bfd.mutHeaders.Unlock()

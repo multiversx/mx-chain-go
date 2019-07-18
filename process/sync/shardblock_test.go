@@ -1694,20 +1694,7 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 
 	pools := createMockPools()
 	pools.HeadersCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{
-			RegisterHandlerCalled: func(func(key []byte)) {},
-			PeekCalled: func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal(key, hash1) {
-					return &hdr1, true
-				}
-				if bytes.Equal(key, hash2) {
-					return &hdr2, true
-				}
-
-				return nil, false
-			},
-		}
-		return sds
+		return GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
 	}
 
 	hasher := &mock.HasherMock{}
@@ -1768,20 +1755,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 
 	pools := createMockPools()
 	pools.HeadersCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{
-			RegisterHandlerCalled: func(func(key []byte)) {},
-			PeekCalled: func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal(key, hash1) {
-					return &hdr1, true
-				}
-				if bytes.Equal(key, hash2) {
-					return &hdr2, true
-				}
-
-				return nil, false
-			},
-		}
-		return sds
+		return GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
 	}
 
 	hasher := &mock.HasherMock{}
