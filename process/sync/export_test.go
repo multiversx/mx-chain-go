@@ -131,6 +131,14 @@ func (boot *MetaBootstrap) SetForkNonce(nonce uint64) {
 	boot.forkNonce = nonce
 }
 
+func (boot *ShardBootstrap) IsForkDetected() bool {
+	return boot.isForkDetected
+}
+
+func (boot *MetaBootstrap) IsForkDetected() bool {
+	return boot.isForkDetected
+}
+
 func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	boot.processReceivedHeader(headerHandler, headerHash)
 }

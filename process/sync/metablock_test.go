@@ -1264,6 +1264,154 @@ func TestMetaBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	assert.True(t, bs.ShouldSync())
 }
 
+func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
+	t.Parallel()
+
+	hdr1 := block.MetaBlock{Nonce: 1, Round: 2, PubKeysBitmap: []byte("A")}
+	hash1 := []byte("hash1")
+
+	hdr2 := block.MetaBlock{Nonce: 1, Round: 1, PubKeysBitmap: []byte("B")}
+	hash2 := []byte("hash2")
+
+	blkc := mock.BlockChainMock{}
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return &hdr1
+	}
+
+	pools := createMockMetaPools()
+	pools.MetaChainBlocksCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{
+			RegisterHandlerCalled: func(func(key []byte)) {},
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal(key, hash1) {
+					return &hdr1, true
+				}
+				if bytes.Equal(key, hash2) {
+					return &hdr2, true
+				}
+
+				return nil, false
+			},
+		}
+		return sds
+	}
+
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	rounder := &mock.RounderMock{}
+	rounder.RoundIndex = 2
+	forkDetector, _ := sync.NewBasicForkDetector(rounder)
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	bs, _ := sync.NewMetaBootstrap(
+		pools,
+		createStore(),
+		&blkc,
+		rounder,
+		&mock.BlockProcessorMock{},
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinderMeta(),
+		shardCoordinator,
+		account,
+		math.MaxUint32,
+	)
+
+	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed)
+	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived)
+
+	shouldSync := bs.ShouldSync()
+	assert.True(t, shouldSync)
+	assert.True(t, bs.IsForkDetected())
+
+	if shouldSync && bs.IsForkDetected() {
+		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
+		bs.ReceivedHeaders(hash1)
+		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed)
+	}
+
+	shouldSync = bs.ShouldSync()
+	assert.True(t, shouldSync)
+	assert.True(t, bs.IsForkDetected())
+}
+
+func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesTheGoodHeader(t *testing.T) {
+	t.Parallel()
+
+	hdr1 := block.MetaBlock{Nonce: 1, Round: 2, PubKeysBitmap: []byte("A")}
+	hash1 := []byte("hash1")
+
+	hdr2 := block.MetaBlock{Nonce: 1, Round: 1, PubKeysBitmap: []byte("B")}
+	hash2 := []byte("hash2")
+
+	blkc := mock.BlockChainMock{}
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return &hdr2
+	}
+
+	pools := createMockMetaPools()
+	pools.MetaChainBlocksCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{
+			RegisterHandlerCalled: func(func(key []byte)) {},
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal(key, hash1) {
+					return &hdr1, true
+				}
+				if bytes.Equal(key, hash2) {
+					return &hdr2, true
+				}
+
+				return nil, false
+			},
+		}
+		return sds
+	}
+
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	rounder := &mock.RounderMock{}
+	rounder.RoundIndex = 2
+	forkDetector, _ := sync.NewBasicForkDetector(rounder)
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	bs, _ := sync.NewMetaBootstrap(
+		pools,
+		createStore(),
+		&blkc,
+		rounder,
+		&mock.BlockProcessorMock{},
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinderMeta(),
+		shardCoordinator,
+		account,
+		math.MaxUint32,
+	)
+
+	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed)
+	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived)
+
+	shouldSync := bs.ShouldSync()
+	assert.True(t, shouldSync)
+	assert.True(t, bs.IsForkDetected())
+
+	if shouldSync && bs.IsForkDetected() {
+		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
+		bs.ReceivedHeaders(hash2)
+		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed)
+	}
+
+	shouldSync = bs.ShouldSync()
+	assert.False(t, shouldSync)
+	assert.False(t, bs.IsForkDetected())
+}
+
 func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
