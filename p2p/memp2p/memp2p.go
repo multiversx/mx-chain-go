@@ -312,7 +312,10 @@ func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerI
 		if peerID == messenger.ID() {
 			return ErrCannotSendToSelf
 		}
-		message, _ := NewMessage(topic, buff, messenger.ID())
+		message, err := NewMessage(topic, buff, messenger.ID())
+		if err != nil {
+			return err
+		}
 		receivingPeer, peerFound := messenger.Network.PeersExceptOne(messenger.ID())[peerID]
 
 		if !peerFound {
