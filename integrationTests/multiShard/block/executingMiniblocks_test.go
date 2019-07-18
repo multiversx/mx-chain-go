@@ -49,7 +49,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		_ = advertiser.Close()
 		for _, nodeList := range nodes {
 			for _, n := range nodeList {
-				_ =n.node.Stop()
+				_ = n.node.Stop()
 			}
 		}
 	}()
@@ -86,7 +86,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	time.Sleep(time.Second * 5)
 
 	fmt.Println("Step 4. Minting sender addresses...")
-	createMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
+	createMintingForSenders(nodes[senderShard], senderShard, sendersPrivateKeys, valMinting)
 
 	fmt.Println("Step 5. Proposer creates block body and header with all available transactions...")
 	blockBody, blockHeader := proposeBlock(t, proposerNode, uint32(1))

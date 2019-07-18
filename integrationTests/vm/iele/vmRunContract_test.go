@@ -61,7 +61,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(0).SetUint64(99973491)
+	expectedBalance := big.NewInt(0).SetUint64(99895339)
 	vm.TestAccount(
 		t,
 		accnts,
@@ -130,7 +130,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(0).SetUint64(99978598)
+	expectedBalance := big.NewInt(0).SetUint64(99921994)
 	//following operations happened: deploy and call, deploy succeed, call failed, transfer has been reverted, gas consumed
 	vm.TestAccount(
 		t,

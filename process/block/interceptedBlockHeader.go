@@ -3,7 +3,7 @@ package block
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-        "github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -130,10 +130,6 @@ func (inHdr *InterceptedHeader) VerifySig() error {
 	consensusPubKeys, err := inHdr.nodesCoordinator.GetValidatorsPublicKeys(randSeed)
 	if err != nil {
 		return err
-	}
-
-	for i, pubKey := range consensusPubKeys {
-		log.Info(fmt.Sprintf("[%d]: %s\n", i, core.ToHex([]byte(pubKey))))
 	}
 
 	verifier, err := inHdr.multiSigVerifier.Create(consensusPubKeys, 0)

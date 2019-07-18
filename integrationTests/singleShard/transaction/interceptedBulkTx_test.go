@@ -11,10 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 )
 
 func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {

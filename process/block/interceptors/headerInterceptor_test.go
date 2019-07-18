@@ -3,21 +3,21 @@ package interceptors_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"math/big"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/stretchr/testify/assert"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"math/big"
-	"fmt"
+	"github.com/stretchr/testify/assert"
 )
 
 var durTimeout = time.Duration(time.Second)

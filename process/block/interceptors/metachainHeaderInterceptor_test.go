@@ -170,7 +170,7 @@ func TestNewMetachainHeaderInterceptor_NilNodesCoordinatorShouldErr(t *testing.T
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},

@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
-	"github.com/ElrondNetwork/elrond-go/core/mock"
 )
 
 func TestInterceptedTxFromFrontendGeneratedParamsWithoutData(t *testing.T) {
