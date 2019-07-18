@@ -69,6 +69,9 @@ func TestInitializingNetworkwith4Peers(t *testing.T) {
 	assert.True(t, messenger.HasTopic("rocket"))
 	assert.Nil(t, messenger.Topics["rocket"])
 
+	expectedAddresses := []string{"/memp2p/Peer1", "/memp2p/Peer2", "/memp2p/Peer3", "/memp2p/Peer4"}
+	assert.Equal(t, expectedAddresses, network.ListAddresses())
+
 	err = peer1.Close()
 	assert.Nil(t, err)
 	peerIDs := network.PeerIDs()
@@ -79,6 +82,9 @@ func TestInitializingNetworkwith4Peers(t *testing.T) {
 	assert.Equal(t, p2p.PeerID("Peer3"), peerIDs[1])
 	assert.Equal(t, p2p.PeerID("Peer4"), peerIDs[2])
 	assert.NotContains(t, peersMap, "Peer1")
+
+	expectedAddresses = []string{"/memp2p/Peer2", "/memp2p/Peer3", "/memp2p/Peer4"}
+	assert.Equal(t, expectedAddresses, network.ListAddresses())
 }
 
 func TestBroadcastingMessages(t *testing.T) {
