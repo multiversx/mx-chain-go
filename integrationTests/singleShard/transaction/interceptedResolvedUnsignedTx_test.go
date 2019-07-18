@@ -7,22 +7,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
+func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
 	dPoolRequester := createTestDataPool()
 	dPoolResolver := createTestDataPool()
-
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
 	fmt.Println("Requester:")
@@ -53,52 +51,46 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	buffPk1, _ := sk1.GeneratePublic().ToByteArray()
 
-	//Step 1. Generate a signed transaction
-	tx := transaction.Transaction{
+	//Step 1. Generate an unsigned transaction
+	scr := &smartContractResult.SmartContractResult{
 		Nonce:   0,
 		Value:   big.NewInt(0),
 		RcvAddr: testHasher.Compute("receiver"),
 		SndAddr: buffPk1,
 		Data:    "tx notarized data",
+		TxHash:  []byte("tx hash"),
 	}
 
-	txBuff, _ := testMarshalizer.Marshal(&tx)
-	signer := &singlesig.SchnorrSigner{}
-
-	tx.Signature, _ = signer.Sign(sk1, txBuff)
-
-	signedTxBuff, _ := testMarshalizer.Marshal(&tx)
-
-	fmt.Printf("Transaction: %v\n%v\n", tx, string(signedTxBuff))
-
+	scrBuff, _ := testMarshalizer.Marshal(scr)
+	fmt.Printf("Unsigned transaction: %v\n%v\n", scr, string(scrBuff))
 	chanDone := make(chan bool)
-
-	txHash := testHasher.Compute(string(signedTxBuff))
+	scrHash := testHasher.Compute(string(scrBuff))
 
 	//step 2. wire up a received handler for requester
-	dPoolRequester.Transactions().RegisterHandler(func(key []byte) {
-		txStored, _ := dPoolRequester.Transactions().ShardDataStore(
-			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+	dPoolRequester.UnsignedTransactions().RegisterHandler(func(key []byte) {
+		selfId := shardCoordinator.SelfId()
+		scrStored, _ := dPoolRequester.UnsignedTransactions().ShardDataStore(
+			process.ShardCacherIdentifier(selfId, selfId),
 		).Get(key)
 
-		if reflect.DeepEqual(txStored, &tx) && tx.Signature != nil {
+		if reflect.DeepEqual(scrStored, scr) {
 			chanDone <- true
 		}
 
-		assert.Equal(t, txStored, &tx)
-		assert.Equal(t, txHash, key)
+		assert.Equal(t, scrStored, scr)
+		assert.Equal(t, scrHash, key)
 	})
 
-	//Step 3. add the transaction in resolver pool
-	dPoolResolver.Transactions().AddData(
-		txHash,
-		&tx,
+	//Step 3. add the unsigned transaction in resolver pool
+	dPoolResolver.UnsignedTransactions().AddData(
+		scrHash,
+		scr,
 		process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
 	)
 
-	//Step 4. request tx
-	txResolver, _ := resolversFinder.IntraShardResolver(factory.TransactionTopic)
-	err = txResolver.RequestDataFromHash(txHash)
+	//Step 4. request unsigned tx
+	scrResolver, _ := resolversFinder.IntraShardResolver(factory.UnsignedTransactionTopic)
+	err = scrResolver.RequestDataFromHash(scrHash)
 	assert.Nil(t, err)
 
 	select {
