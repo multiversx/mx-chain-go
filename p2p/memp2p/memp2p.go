@@ -301,14 +301,17 @@ func (messenger *MemP2PMessenger) parametricBroadcast(topic string, data []byte,
 		if err != nil {
 			return err
 		}
+		//fmt.Printf("Broadcasting on topic %v the message: %v\n", topic, data)
 		for _, peer := range messenger.Network.Peers() {
 			if async == true {
-				go peer.ReceiveMessage(topic, message)
+				chErr := make(chan error)
+				go peer.ReceiveMessage(topic, message, chErr)
+				err = <-chErr
 			} else {
-				err = peer.ReceiveMessage(topic, message)
-				if err != nil {
-					break
-				}
+				err = peer.ReceiveMessage(topic, message, nil)
+			}
+			if err != nil {
+				break
 			}
 		}
 	} else {
@@ -331,7 +334,7 @@ func (messenger *MemP2PMessenger) SendToConnectedPeer(topic string, buff []byte,
 			return errors.New("Destination peer is not connected to the network")
 		}
 
-		return destinationPeer.ReceiveMessage(topic, message)
+		return destinationPeer.ReceiveMessage(topic, message, nil)
 	}
 
 	return errors.New("Peer not connected to network, cannot send anything")
@@ -340,25 +343,34 @@ func (messenger *MemP2PMessenger) SendToConnectedPeer(topic string, buff []byte,
 // ReceiveMessage handles the received message by passing it to the message
 // processor of the corresponding topic, given that this Messenger has
 // previously registered a message processor for that topic.
-func (messenger *MemP2PMessenger) ReceiveMessage(topic string, message p2p.MessageP2P) error {
-	fmt.Printf("memp2p:ReceiveMessage\n")
+func (messenger *MemP2PMessenger) ReceiveMessage(topic string, message p2p.MessageP2P, chErr chan error) error {
+	fmt.Printf("memp2p:ReceiveMessage by %v\n", messenger.ID())
 	messenger.TopicsMutex.Lock()
 	validator, found := messenger.Topics[topic]
 	messenger.TopicsMutex.Unlock()
 
+	var err error
+
 	if !found {
-		return p2p.ErrNilTopic
+		err = p2p.ErrNilTopic
 	}
 
 	if validator == nil {
-		return p2p.ErrNilValidator
+		err = p2p.ErrNilValidator
 	}
 
-	err := validator.ProcessReceivedMessage(message)
+	if err == nil {
+		err = validator.ProcessReceivedMessage(message)
 
-	if messenger.Network.LogMessages {
-		messenger.Network.LogMessage(message)
+		if messenger.Network.LogMessages {
+			messenger.Network.LogMessage(message)
+		}
 	}
+
+	if chErr != nil {
+		chErr <- err
+	}
+
 	return err
 }
 
