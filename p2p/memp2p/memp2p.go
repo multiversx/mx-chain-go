@@ -36,7 +36,7 @@ type Messenger struct {
 // Network instance provided as argument.
 func NewMessenger(network *Network) (*Messenger, error) {
 	if network == nil {
-		return nil, errors.New("Cannot create a Messenger for a nil network")
+		return nil, errors.New("cannot create a Messenger for a nil network")
 	}
 
 	ID := fmt.Sprintf("Peer%d", len(network.PeerIDs())+1)
@@ -65,7 +65,6 @@ func (messenger *Messenger) ID() p2p.PeerID {
 // connected graph, this function returns the list of the P2P IDs of all the
 // peers in the network (assuming this Messenger is connected).
 func (messenger *Messenger) Peers() []p2p.PeerID {
-	fmt.Printf("memp2p:Peers\n")
 	// If the messenger is connected to the network, it has knowledge of all
 	// other peers.
 	if !messenger.IsConnectedToNetwork() {
@@ -88,7 +87,6 @@ func (messenger *Messenger) Addresses() []string {
 // network are already all connected to each other. This function will return
 // an error if the Messenger is not connected to the network, though.
 func (messenger *Messenger) ConnectToPeer(address string) error {
-	fmt.Printf("memp2p:ConnectToPeer\n")
 	if !messenger.IsConnectedToNetwork() {
 		return errors.New("peer not connected to network, can't connect to any other peer")
 	}
@@ -99,7 +97,6 @@ func (messenger *Messenger) ConnectToPeer(address string) error {
 // IsConnectedToNetwork returns true if this messenger is connected to the
 // in-memory network, false otherwise.
 func (messenger *Messenger) IsConnectedToNetwork() bool {
-	fmt.Printf("memp2p:IsConnectedToNetwork\n")
 	return messenger.Network.IsPeerConnected(messenger.ID())
 }
 
@@ -107,7 +104,6 @@ func (messenger *Messenger) IsConnectedToNetwork() bool {
 // specified ID. It always returns true if the Messenger is connected to the
 // network and false otherwise, regardless of the provided peer ID.
 func (messenger *Messenger) IsConnected(peerID p2p.PeerID) bool {
-	fmt.Printf("memp2p:IsConnected\n")
 	return messenger.IsConnectedToNetwork()
 }
 
@@ -117,7 +113,6 @@ func (messenger *Messenger) IsConnected(peerID p2p.PeerID) bool {
 // other peers connected to the network. Returns false if the Messenger is
 // not connected.
 func (messenger *Messenger) ConnectedPeers() []p2p.PeerID {
-	fmt.Printf("memp2p:ConnectedPeers\n")
 	if !messenger.IsConnectedToNetwork() {
 		return []p2p.PeerID{}
 	}
@@ -128,7 +123,6 @@ func (messenger *Messenger) ConnectedPeers() []p2p.PeerID {
 // is connected. If this Messenger is connected to the network, then the
 // addresses of all the other peers in the network are returned.
 func (messenger *Messenger) ConnectedAddresses() []string {
-	fmt.Printf("memp2p:ConnectedAddresses\n")
 	if !messenger.IsConnectedToNetwork() {
 		return []string{}
 	}
@@ -144,7 +138,6 @@ func (messenger *Messenger) PeerAddress(pid p2p.PeerID) string {
 // network that have declared their interest in the given topic and are
 // listening to messages on that topic.
 func (messenger *Messenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
-	fmt.Printf("memp2p:ConnectedPeersOnTopic\n")
 	var filteredPeers []p2p.PeerID
 	if !messenger.IsConnectedToNetwork() {
 		return filteredPeers
@@ -176,7 +169,6 @@ func (messenger *Messenger) Bootstrap() error {
 // interest for this Messenger. It also registers a nil message validator to
 // handle the messages received on this topic.
 func (messenger *Messenger) CreateTopic(name string, createChannelForTopic bool) error {
-	fmt.Printf("memp2p:CreateTopic\n")
 	messenger.TopicsMutex.Lock()
 
 	_, found := messenger.Topics[name]
@@ -193,7 +185,6 @@ func (messenger *Messenger) CreateTopic(name string, createChannelForTopic bool)
 // HasTopic returns true if this Messenger has declared interest in the given
 // topic; returns false otherwise.
 func (messenger *Messenger) HasTopic(name string) bool {
-	fmt.Printf("memp2p:HasTopic\n")
 	messenger.TopicsMutex.RLock()
 	_, found := messenger.Topics[name]
 	messenger.TopicsMutex.RUnlock()
@@ -205,7 +196,6 @@ func (messenger *Messenger) HasTopic(name string) bool {
 // the given topic and has registered a non-nil validator on that topic.
 // Returns false otherwise.
 func (messenger *Messenger) HasTopicValidator(name string) bool {
-	fmt.Printf("memp2p:HasTopicValidator\n")
 	messenger.TopicsMutex.RLock()
 	validator, found := messenger.Topics[name]
 	messenger.TopicsMutex.RUnlock()
@@ -216,7 +206,6 @@ func (messenger *Messenger) HasTopicValidator(name string) bool {
 // RegisterMessageProcessor sets the provided message processor to be the
 // processor of received messages for the given topic.
 func (messenger *Messenger) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
-	fmt.Printf("memp2p:RegisterMessageProcessor\n")
 	if handler == nil {
 		return p2p.ErrNilValidator
 	}
@@ -240,7 +229,6 @@ func (messenger *Messenger) RegisterMessageProcessor(topic string, handler p2p.M
 // UnregisterMessageProcessor unsets the message processor for the given topic
 // (sets it to nil).
 func (messenger *Messenger) UnregisterMessageProcessor(topic string) error {
-	fmt.Printf("memp2p:UnregisterMessageProcessor\n")
 	messenger.TopicsMutex.Lock()
 	defer messenger.TopicsMutex.Unlock()
 	validator, found := messenger.Topics[topic]
@@ -268,7 +256,6 @@ func (messenger *Messenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadBalance
 // to parametricBroadcast() is done synchronously as well. This function should
 // be called as a go-routine.
 func (messenger *Messenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
-	fmt.Printf("memp2p:BroadcastOnChannelBlocking\n")
 	err := messenger.parametricBroadcast(topic, buff, false)
 	log.LogIfError(err)
 }
@@ -280,7 +267,6 @@ func (messenger *Messenger) BroadcastOnChannelBlocking(channel string, topic str
 // in fact, non-blocking, but it is identical with BroadcastOnChannelBlocking()
 // in all other regards.
 func (messenger *Messenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
-	fmt.Printf("memp2p:BroadcastOnChannel\n")
 	err := messenger.parametricBroadcast(topic, buff, false)
 	log.LogIfError(err)
 }
@@ -289,7 +275,6 @@ func (messenger *Messenger) BroadcastOnChannel(channel string, topic string, buf
 // calls parametricBroadcast() with async=true, which means that peers will
 // have their ReceiveMessage() function independently called as go-routines.
 func (messenger *Messenger) Broadcast(topic string, buff []byte) {
-	fmt.Printf("memp2p:Broadcast\n")
 	err := messenger.parametricBroadcast(topic, buff, true)
 	log.LogIfError(err)
 }
@@ -303,7 +288,6 @@ func (messenger *Messenger) parametricBroadcast(topic string, data []byte, async
 		if err != nil {
 			return err
 		}
-		//fmt.Printf("Broadcasting on topic %v the message: %v\n", topic, data)
 		for _, peer := range messenger.Network.Peers() {
 			if async {
 				go func() {
@@ -318,36 +302,34 @@ func (messenger *Messenger) parametricBroadcast(topic string, data []byte, async
 			}
 		}
 	} else {
-		err = errors.New("Peer not connected to network, cannot send anything")
+		err = errors.New("peer not connected to network, cannot send anything")
 	}
 	return err
 }
 
 // SendToConnectedPeer sends a message directly to the peer specified by the ID.
 func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {
-	fmt.Printf("memp2p:SendToConnectedPeer\n")
 	if messenger.IsConnectedToNetwork() {
 		if peerID == messenger.ID() {
-			return errors.New("Peer cannot send a direct message to itself")
+			return errors.New("peer cannot send a direct message to itself")
 		}
 		message, _ := NewMessage(topic, buff, messenger.ID())
 		destinationPeer, peerFound := messenger.Network.PeersExceptOne(messenger.ID())[peerID]
 
 		if peerFound {
-			return errors.New("Destination peer is not connected to the network")
+			return errors.New("destination peer is not connected to the network")
 		}
 
 		return destinationPeer.ReceiveMessage(topic, message)
 	}
 
-	return errors.New("Peer not connected to network, cannot send anything")
+	return errors.New("peer not connected to network, cannot send anything")
 }
 
 // ReceiveMessage handles the received message by passing it to the message
 // processor of the corresponding topic, given that this Messenger has
 // previously registered a message processor for that topic.
 func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P) error {
-	fmt.Printf("memp2p:ReceiveMessage by %v\n", messenger.ID())
 	messenger.TopicsMutex.Lock()
 	validator, found := messenger.Topics[topic]
 	messenger.TopicsMutex.Unlock()
@@ -375,7 +357,6 @@ func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P)
 
 // Close disconnects this Messenger from the network it was connected to.
 func (messenger *Messenger) Close() error {
-	fmt.Printf("memp2p:Close\n")
 	messenger.Network.UnregisterPeer(messenger.ID())
 	return nil
 }
