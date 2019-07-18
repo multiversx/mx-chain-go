@@ -267,7 +267,7 @@ func (messenger *MemP2PMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadB
 func (messenger *MemP2PMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
 	fmt.Printf("memp2p:BroadcastOnChannelBlocking\n")
 	err := messenger.parametricBroadcast(topic, buff, false)
-	fmt.Errorf("%v", err)
+	fmt.Print(fmt.Errorf("%v\n", err))
 }
 
 // BroadcastOnChannel sends the message to all peers in the network. It calls
@@ -279,7 +279,7 @@ func (messenger *MemP2PMessenger) BroadcastOnChannelBlocking(channel string, top
 func (messenger *MemP2PMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
 	fmt.Printf("memp2p:BroadcastOnChannel\n")
 	err := messenger.parametricBroadcast(topic, buff, false)
-	fmt.Errorf("%v", err)
+	fmt.Print(fmt.Errorf("%v\n", err))
 }
 
 // Broadcast asynchronously sends the message to all peers in the network. It
@@ -288,7 +288,7 @@ func (messenger *MemP2PMessenger) BroadcastOnChannel(channel string, topic strin
 func (messenger *MemP2PMessenger) Broadcast(topic string, buff []byte) {
 	fmt.Printf("memp2p:Broadcast\n")
 	err := messenger.parametricBroadcast(topic, buff, true)
-	fmt.Errorf("%v", err)
+	fmt.Print(fmt.Errorf("%v\n", err))
 }
 
 // parametricBroadcast sends a message to all peers in the network, with the
