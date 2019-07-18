@@ -137,7 +137,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
 
-func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
+func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
@@ -152,7 +152,7 @@ func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, spos.ErrNilBlootstraper, err)
+	assert.Equal(t, spos.ErrNilBootstrapper, err)
 }
 
 func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 type TopicResolverSenderStub struct {
 	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData) error
 	SendCalled               func(buff []byte, peer p2p.PeerID) error
+	TargetShardIDCalled      func() uint32
 }
 
 func (trss *TopicResolverSenderStub) TopicRequestSuffix() string {
@@ -20,4 +21,8 @@ func (trss *TopicResolverSenderStub) SendOnRequestTopic(rd *dataRetriever.Reques
 
 func (trss *TopicResolverSenderStub) Send(buff []byte, peer p2p.PeerID) error {
 	return trss.SendCalled(buff, peer)
+}
+
+func (trss *TopicResolverSenderStub) TargetShardID() uint32 {
+	return trss.TargetShardIDCalled()
 }

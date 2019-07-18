@@ -3,9 +3,7 @@ package block_test
 import (
 	"bytes"
 	"errors"
-	"math/rand"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 
@@ -24,13 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
-
-var r *rand.Rand
-var mutex sync.Mutex
-
-func init() {
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
-}
 
 func haveTime() time.Duration {
 	return time.Duration(2000 * time.Millisecond)
@@ -88,9 +79,40 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				},
 			}
 		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
-			return &mock.Uint64CacherStub{
-				PutCalled: func(u uint64, i interface{}) bool {
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &mock.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if reflect.DeepEqual(key, testHash) {
+								return &transaction.Transaction{Nonce: 10}, true
+							}
+							return nil, false
+						},
+						KeysCalled: func() [][]byte {
+							return [][]byte{[]byte("key1"), []byte("key2")}
+						},
+						LenCalled: func() int {
+							return 0
+						},
+					}
+				},
+				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+				},
+			}
+		},
+		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
+			return &mock.Uint64SyncMapCacherStub{
+				MergeCalled: func(u uint64, syncMap dataRetriever.ShardIdHashMap) {},
+				HasCalled: func(nonce uint64) bool {
 					return true
 				},
 			}
@@ -146,26 +168,12 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			return cs
 		},
-		MetaHeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
-			cs := &mock.Uint64CacherStub{}
-			cs.HasCalled = func(u uint64) bool {
-				return true
-			}
-			return cs
-		},
 	}
 	return sdp
 }
 
 func initMetaDataPool() *mock.MetaPoolsHolderStub {
 	mdp := &mock.MetaPoolsHolderStub{
-		MetaBlockNoncesCalled: func() dataRetriever.Uint64Cacher {
-			return &mock.Uint64CacherStub{
-				PutCalled: func(u uint64, i interface{}) bool {
-					return true
-				},
-			}
-		},
 		MetaChainBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -201,9 +209,7 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 				return nil, false
 			}
 			sdc.RegisterHandlerCalled = func(i func(key []byte)) {}
-			sdc.RemoveDataCalled = func(key []byte, cacheId string) {
-
-			}
+			sdc.RemoveDataCalled = func(key []byte, cacheId string) {}
 			return sdc
 		},
 		ShardHeadersCalled: func() storage.Cacher {
@@ -219,18 +225,17 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 			cs.LenCalled = func() int {
 				return 0
 			}
-			cs.RemoveCalled = func(key []byte) {
-			}
+			cs.RemoveCalled = func(key []byte) {}
 			cs.KeysCalled = func() [][]byte {
 				return nil
 			}
 			return cs
 		},
-		ShardHeadersNoncesCalled: func() dataRetriever.Uint64Cacher {
-			cs := &mock.Uint64CacherStub{}
-			cs.RemoveCalled = func(u uint64) {
-
-			}
+		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
+			cs := &mock.Uint64SyncMapCacherStub{}
+			cs.RemoveNonceCalled = func(u uint64) {}
+			cs.MergeCalled = func(u uint64, syncMap dataRetriever.ShardIdHashMap) {}
+			cs.RemoveShardIdCalled = func(nonce uint64, shardId uint32) {}
 			return cs
 		},
 	}
@@ -311,7 +316,6 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 		initStore(),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
@@ -319,6 +323,8 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		true,
 		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	blkc := createTestBlockchain()
 	body := &block.Body{}
@@ -384,7 +390,6 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 		store,
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
 		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
@@ -392,6 +397,8 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		true,
 		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	assert.True(t, bp.VerifyStateRoot(rootHash))
 }
@@ -408,7 +415,6 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 		initStore(),
 		&mock.HasherStub{},
 		marshalizer,
-		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
@@ -416,6 +422,8 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		true,
 		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	expectedError := errors.New("marshalizer fail")
@@ -444,7 +452,6 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		initStore(),
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
@@ -452,6 +459,8 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		true,
 		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {

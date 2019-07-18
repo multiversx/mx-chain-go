@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sync"
 
@@ -225,4 +226,18 @@ func (ln *leafNode) isEmptyOrNil() error {
 		return ErrEmptyNode
 	}
 	return nil
+}
+
+func (ln *leafNode) print(writer io.Writer, index int) {
+	key := ""
+	for _, k := range ln.Key {
+		key += fmt.Sprintf("%d", k)
+	}
+
+	val := ""
+	for _, v := range ln.Value {
+		val += fmt.Sprintf("%d", v)
+	}
+
+	_, _ = fmt.Fprintf(writer, "L:(%s - %s)\n", key, val)
 }

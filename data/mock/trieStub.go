@@ -82,3 +82,7 @@ func (ts *TrieStub) Recreate(root []byte) (data.Trie, error) {
 
 	return nil, errNotImplemented
 }
+
+func (ts *TrieStub) String() string {
+	return "stub trie"
+}

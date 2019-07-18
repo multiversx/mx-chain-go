@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -263,18 +264,8 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, err := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, err := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	assert.Nil(t, err)
 	assert.NotNil(t, mp)
 }
@@ -285,19 +276,10 @@ func TestMetaProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	blk := &block.MetaBlockBody{}
+
 	err := mp.ProcessBlock(nil, &block.MetaBlock{}, blk, haveTime)
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
@@ -306,19 +288,10 @@ func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	blk := &block.MetaBlockBody{}
+
 	err := mp.ProcessBlock(&blockchain.MetaChain{}, nil, blk, haveTime)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
@@ -327,18 +300,9 @@ func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
+
 	err := mp.ProcessBlock(&blockchain.MetaChain{}, &block.MetaBlock{}, nil, haveTime)
 	assert.Equal(t, process.ErrNilBlockBody, err)
 }
@@ -347,19 +311,10 @@ func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	blk := &block.MetaBlockBody{}
+
 	err := mp.ProcessBlock(&blockchain.MetaChain{}, &block.MetaBlock{}, blk, nil)
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
 }
@@ -405,18 +360,8 @@ func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 
 	blkc := &blockchain.MetaChain{}
 	hdr := &block.MetaBlock{
@@ -431,18 +376,8 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
 			Nonce: 1,
@@ -460,18 +395,8 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 	t.Parallel()
 
 	mdp := initMetaDataPool()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-	)
+	genesisBlocks := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
 			Nonce: 1,
@@ -536,6 +461,100 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 
 	assert.Equal(t, process.ErrRootStateMissmatch, err)
 	assert.True(t, wasCalled)
+}
+
+//------- processBlockHeader
+
+func TestMetaProcessor_ProcessBlockHeaderShouldPass(t *testing.T) {
+	t.Parallel()
+
+	mdp := initMetaDataPool()
+	accounts := &mock.AccountsStub{}
+	accounts.RevertToSnapshotCalled = func(snapshot int) error {
+		return nil
+	}
+	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
+		accounts,
+		mdp,
+		&mock.ForkDetectorMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.ChainStorerMock{},
+		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+		&mock.RequestHandlerMock{},
+	)
+
+	txHash := []byte("txhash")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock1 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+	}
+	miniblock2 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   2,
+		TxHashes:        txHashes,
+	}
+
+	miniBlocks := make([]block.MiniBlock, 0)
+	miniBlocks = append(miniBlocks, miniblock1, miniblock2)
+
+	metaBlock := &block.MetaBlock{
+		Round:     10,
+		Nonce:     45,
+		RootHash:  []byte("prevRootHash"),
+		ShardInfo: createShardData(mock.HasherMock{}, &mock.MarshalizerMock{}, miniBlocks),
+	}
+
+	err := mp.ProcessBlockHeaders(metaBlock, 1, haveTime)
+	assert.Nil(t, err)
+}
+
+//------- requestFinalMissingHeader
+func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("aaa")
+	shardId := sharding.MetachainShardId
+
+	mdp := initMetaDataPool()
+	accounts := &mock.AccountsStub{}
+	accounts.RevertToSnapshotCalled = func(snapshot int) error {
+		return nil
+	}
+	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
+		accounts,
+		mdp,
+		&mock.ForkDetectorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.ChainStorerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		&mock.RequestHandlerMock{},
+	)
+	mdp.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+		cs := &mock.Uint64SyncMapCacherStub{}
+		cs.GetCalled = func(key uint64) (dataRetriever.ShardIdHashMap, bool) {
+			syncMap := &dataPool.ShardIdHashSyncMap{}
+			syncMap.Store(shardId, hash)
+
+			return syncMap, true
+		}
+		cs.RemoveNonceCalled = func(u uint64) {}
+		return cs
+	}
+	mp.AddHdrHashToRequestedList([]byte("header_hash"))
+	mp.SetCurrHighestShardHdrsNonces(0, 1)
+	mp.SetCurrHighestShardHdrsNonces(1, 2)
+	mp.SetCurrHighestShardHdrsNonces(2, 3)
+	res := mp.RequestFinalMissingHeaders()
+	assert.Equal(t, res, uint32(3))
 }
 
 //------- CommitBlock
@@ -676,7 +695,7 @@ func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 	)
 
-	mdp.MetaBlockNoncesCalled = func() dataRetriever.Uint64Cacher {
+	mdp.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		return nil
 	}
 	blkc := createTestBlockchain()
@@ -1017,12 +1036,12 @@ func TestMetaProcessor_ReceivedHeaderShouldEraseRequested(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
 		hasher,
@@ -1043,7 +1062,7 @@ func TestMetaProcessor_ReceivedHeaderShouldEraseRequested(t *testing.T) {
 
 	//received txHash2
 	hdr := &block.Header{Nonce: 1}
-	dataPool.ShardHeaders().Put(hdrHash2, hdr)
+	pool.ShardHeaders().Put(hdrHash2, hdr)
 	mp.ReceivedHeader(hdrHash2)
 
 	assert.True(t, mp.IsHdrHashRequested(hdrHash1))
@@ -1058,7 +1077,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 
 	//we will have a 3 hdrs in pool
 
@@ -1087,17 +1106,17 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	miniBlockHeaders3 = append(miniBlockHeaders3, miniBlockHeader1)
 
 	//put the existing headers inside datapool
-	dataPool.ShardHeaders().Put(hdrHash1, &block.Header{
+	pool.ShardHeaders().Put(hdrHash1, &block.Header{
 		Round:            1,
 		Nonce:            45,
 		ShardId:          0,
 		MiniBlockHeaders: miniBlockHeaders1})
-	dataPool.ShardHeaders().Put(hdrHash2, &block.Header{
+	pool.ShardHeaders().Put(hdrHash2, &block.Header{
 		Round:            2,
 		Nonce:            45,
 		ShardId:          1,
 		MiniBlockHeaders: miniBlockHeaders2})
-	dataPool.ShardHeaders().Put(hdrHash3, &block.Header{
+	pool.ShardHeaders().Put(hdrHash3, &block.Header{
 		Round:            3,
 		Nonce:            45,
 		ShardId:          2,
@@ -1114,7 +1133,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 				return 0
 			},
 		},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		hasher,
@@ -1152,7 +1171,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 
 	//we will have a 3 hdrs in pool
 
@@ -1192,7 +1211,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 				return 0
 			},
 		},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		hasher,
@@ -1217,7 +1236,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 
 	//put the existing headers inside datapool
 	prevHash, _ := mp.ComputeHeaderHash(lastNodesHdrs[0].(*block.Header))
-	dataPool.ShardHeaders().Put(hdrHash1, &block.Header{
+	pool.ShardHeaders().Put(hdrHash1, &block.Header{
 		Round:            10,
 		Nonce:            45,
 		ShardId:          0,
@@ -1226,7 +1245,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		MiniBlockHeaders: miniBlockHeaders1})
 
 	prevHash, _ = mp.ComputeHeaderHash(lastNodesHdrs[1].(*block.Header))
-	dataPool.ShardHeaders().Put(hdrHash2, &block.Header{
+	pool.ShardHeaders().Put(hdrHash2, &block.Header{
 		Round:            20,
 		Nonce:            45,
 		ShardId:          1,
@@ -1235,7 +1254,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		MiniBlockHeaders: miniBlockHeaders2})
 
 	prevHash, _ = mp.ComputeHeaderHash(lastNodesHdrs[2].(*block.Header))
-	dataPool.ShardHeaders().Put(hdrHash3, &block.Header{
+	pool.ShardHeaders().Put(hdrHash3, &block.Header{
 		Round:            30,
 		Nonce:            45,
 		ShardId:          2,
@@ -1271,7 +1290,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 
 	//we will have a 3 hdrs in pool
 
@@ -1315,7 +1334,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 				return 0
 			},
 		},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		hasher,
@@ -1363,8 +1382,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders1})
 
-	dataPool.ShardHeaders().Put(hdrHash1, headers[0])
-	dataPool.ShardHeaders().Put(hdrHash11, headers[1])
+	pool.ShardHeaders().Put(hdrHash1, headers[0])
+	pool.ShardHeaders().Put(hdrHash11, headers[1])
 
 	// header shard 1
 	prevHash, _ = mp.ComputeHeaderHash(lastNodesHdrs[1].(*block.Header))
@@ -1387,8 +1406,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders2})
 
-	dataPool.ShardHeaders().Put(hdrHash2, headers[2])
-	dataPool.ShardHeaders().Put(hdrHash22, headers[3])
+	pool.ShardHeaders().Put(hdrHash2, headers[2])
+	pool.ShardHeaders().Put(hdrHash22, headers[3])
 
 	// header shard 2
 	prevHash, _ = mp.ComputeHeaderHash(lastNodesHdrs[2].(*block.Header))
@@ -1411,8 +1430,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders3})
 
-	dataPool.ShardHeaders().Put(hdrHash3, headers[4])
-	dataPool.ShardHeaders().Put(hdrHash33, headers[5])
+	pool.ShardHeaders().Put(hdrHash3, headers[4])
+	pool.ShardHeaders().Put(hdrHash33, headers[5])
 
 	mp.SetNextKValidity(1)
 	round := uint32(15)
@@ -1442,7 +1461,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 
 	//we will have a 3 hdrs in pool
 
@@ -1486,7 +1505,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 				return 0
 			},
 		},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		hasher,
@@ -1534,8 +1553,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders1})
 
-	dataPool.ShardHeaders().Put(hdrHash1, headers[0])
-	dataPool.ShardHeaders().Put(hdrHash11, headers[1])
+	pool.ShardHeaders().Put(hdrHash1, headers[0])
+	pool.ShardHeaders().Put(hdrHash11, headers[1])
 
 	// header shard 1
 	prevHash, _ = mp.ComputeHeaderHash(lastNodesHdrs[1].(*block.Header))
@@ -1558,8 +1577,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders2})
 
-	dataPool.ShardHeaders().Put(hdrHash2, headers[2])
-	dataPool.ShardHeaders().Put(hdrHash22, headers[3])
+	pool.ShardHeaders().Put(hdrHash2, headers[2])
+	pool.ShardHeaders().Put(hdrHash22, headers[3])
 
 	// header shard 2
 	prevHash, _ = mp.ComputeHeaderHash(lastNodesHdrs[2].(*block.Header))
@@ -1582,8 +1601,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		PrevHash:         prevHash,
 		MiniBlockHeaders: miniBlockHeaders3})
 
-	dataPool.ShardHeaders().Put(hdrHash3, headers[4])
-	dataPool.ShardHeaders().Put(hdrHash33, headers[5])
+	pool.ShardHeaders().Put(hdrHash3, headers[4])
+	pool.ShardHeaders().Put(hdrHash33, headers[5])
 
 	mp.SetNextKValidity(1)
 	round := uint32(20)
@@ -1632,7 +1651,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldErrNilMetaBlockHeader(t *testi
 func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 	marshalizerMock := &mock.MarshalizerMock{}
 	hasherMock := &mock.HasherStub{}
 
@@ -1657,7 +1676,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
 		hasherMock,
@@ -1671,7 +1690,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	err := mp.RestoreBlockIntoPools(mhdr, body)
 
-	hdrFromPool, _ := dataPool.ShardHeaders().Get(hdrHash)
+	hdrFromPool, _ := pool.ShardHeaders().Get(hdrHash)
 	assert.Nil(t, err)
 	assert.Equal(t, &hdr, hdrFromPool)
 }
@@ -1681,7 +1700,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
@@ -1695,7 +1714,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 				return 0
 			},
 		},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		hasher,
@@ -1756,8 +1775,8 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	assert.Equal(t, firstNonce, lastNodesHdrs[currHdr.ShardId].GetNonce())
 
 	// wrong header type in pool and defer called
-	dataPool.ShardHeaders().Put(currHash, metaHdr)
-	dataPool.ShardHeaders().Put(prevHash, prevHdr)
+	pool.ShardHeaders().Put(currHash, metaHdr)
+	pool.ShardHeaders().Put(prevHash, prevHdr)
 
 	err = mp.CreateLastNotarizedHdrs(metaHdr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
@@ -1765,8 +1784,8 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	assert.Equal(t, firstNonce, lastNodesHdrs[currHdr.ShardId].GetNonce())
 
 	// put headers in pool
-	dataPool.ShardHeaders().Put(currHash, currHdr)
-	dataPool.ShardHeaders().Put(prevHash, prevHdr)
+	pool.ShardHeaders().Put(currHash, currHdr)
+	pool.ShardHeaders().Put(prevHash, prevHdr)
 
 	err = mp.CreateLastNotarizedHdrs(metaHdr)
 	assert.Nil(t, err)
@@ -1779,7 +1798,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
@@ -1793,7 +1812,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 				return 0
 			},
 		},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		hasher,
@@ -1837,9 +1856,9 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		PrevHash:     prevHash,
 		RootHash:     []byte("currRootHash")}
 	currHash, _ := mp.ComputeHeaderHash(currHdr)
-	dataPool.ShardHeaders().Put(currHash, currHdr)
+	pool.ShardHeaders().Put(currHash, currHdr)
 	prevHash, _ = mp.ComputeHeaderHash(prevHdr)
-	dataPool.ShardHeaders().Put(prevHash, prevHdr)
+	pool.ShardHeaders().Put(prevHash, prevHdr)
 	wrongCurrHdr := &block.Header{
 		Round:        11,
 		Nonce:        48,
@@ -1849,7 +1868,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		PrevHash:     prevHash,
 		RootHash:     []byte("currRootHash")}
 	wrongCurrHash, _ := mp.ComputeHeaderHash(wrongCurrHdr)
-	dataPool.ShardHeaders().Put(wrongCurrHash, wrongCurrHdr)
+	pool.ShardHeaders().Put(wrongCurrHash, wrongCurrHdr)
 
 	metaHdr := &block.MetaBlock{Round: 20}
 	shDataCurr := block.ShardData{ShardId: 0, HeaderHash: wrongCurrHash}
@@ -1878,7 +1897,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
@@ -1892,7 +1911,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 				return 0
 			},
 		},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		hasher,
@@ -1923,7 +1942,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 		PrevHash:     []byte("prevhash"),
 		RootHash:     []byte("currRootHash")}
 	currHash, _ := mp.ComputeHeaderHash(currHdr)
-	dataPool.ShardHeaders().Put(currHash, currHdr)
+	pool.ShardHeaders().Put(currHash, currHdr)
 	metaHdr := &block.MetaBlock{Round: 20}
 
 	shDataCurr := block.ShardData{ShardId: 0, HeaderHash: currHash}
@@ -1940,7 +1959,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
@@ -1954,7 +1973,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 				return 0
 			},
 		},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		hasher,
@@ -1996,7 +2015,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	assert.Nil(t, highestNonceHdrs)
 	assert.Equal(t, process.ErrMissingHeader, err)
 
-	dataPool.ShardHeaders().Put(currHash, currHdr)
+	pool.ShardHeaders().Put(currHash, currHdr)
 	highestNonceHdrs, err = mp.CheckShardHeadersValidity(metaHdr)
 	assert.NotNil(t, highestNonceHdrs)
 	assert.Nil(t, err)
@@ -2008,7 +2027,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
@@ -2022,7 +2041,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 				return 0
 			},
 		},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		hasher,
@@ -2075,7 +2094,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 		PrevHash:     prevHash,
 		RootHash:     []byte("currRootHash")}
 	prevHash, _ = mp.ComputeHeaderHash(nextWrongHdr)
-	dataPool.ShardHeaders().Put(prevHash, nextWrongHdr)
+	pool.ShardHeaders().Put(prevHash, nextWrongHdr)
 
 	mp.SetNextKValidity(0)
 	metaHdr := &block.MetaBlock{Round: 1}
@@ -2108,7 +2127,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 		RootHash:     []byte("currRootHash")}
 
 	prevHash, _ = mp.ComputeHeaderHash(nextHdr)
-	dataPool.ShardHeaders().Put(prevHash, nextHdr)
+	pool.ShardHeaders().Put(prevHash, nextHdr)
 
 	metaHdr.Round = 20
 	err = mp.CheckShardHeadersFinality(metaHdr, highestNonceHdrs)
@@ -2120,7 +2139,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
@@ -2134,7 +2153,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 				return 0
 			},
 		},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		hasher,
@@ -2231,7 +2250,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewMetaPoolsHolderFake()
+	pool := mock.NewMetaPoolsHolderFake()
 
 	shardNr := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
@@ -2245,7 +2264,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 				return 0
 			},
 		},
-		dataPool,
+		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(shardNr),
 		hasher,
