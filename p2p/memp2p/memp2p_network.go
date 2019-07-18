@@ -42,10 +42,8 @@ func NewNetwork() (*Network, error) {
 func (network *Network) ListAddresses() []string {
 	network.mutex.RLock()
 	addresses := make([]string, len(network.peerIDs))
-	i := 0
-	for _, peerID := range network.peerIDs {
+	for i, peerID := range network.peerIDs {
 		addresses[i] = fmt.Sprintf("/memp2p/%s", peerID)
-		i++
 	}
 	network.mutex.RUnlock()
 	return addresses
