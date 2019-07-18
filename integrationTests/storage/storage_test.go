@@ -261,14 +261,14 @@ func readMultiple(
 
 func TestWriteContinously(t *testing.T) {
 	t.Skip("this is not a short test")
-	rand.Reader.Read(rcvAddr)
-	rand.Reader.Read(sndAddr)
-	rand.Reader.Read(sig)
+	_, _ = rand.Reader.Read(rcvAddr)
+	_, _ = rand.Reader.Read(sndAddr)
+	_, _ = rand.Reader.Read(sig)
 	nbTxsWrite := 1000000
 	store := createStorageLevelDB()
 
 	defer func() {
-		store.DestroyUnit()
+		_ = store.DestroyUnit()
 	}()
 
 	startTime := time.Now()
@@ -292,16 +292,16 @@ func TestWriteReadDeleteLevelDB(t *testing.T) {
 	t.Skip("this is not a short test")
 	wg := &sync.WaitGroup{}
 	errors := int32(0)
-	rand.Reader.Read(rcvAddr)
-	rand.Reader.Read(sndAddr)
-	rand.Reader.Read(sig)
+	_, _ = rand.Reader.Read(rcvAddr)
+	_, _ = rand.Reader.Read(sndAddr)
+	_, _ = rand.Reader.Read(sig)
 	store := createStorageLevelDB()
 	nbTxsWrite := 1000000
 	wg.Add(3)
 	chWriteDone := make(chan struct{})
 
 	defer func() {
-		store.DestroyUnit()
+		_ = store.DestroyUnit()
 	}()
 
 	go writeMultipleWithNotif(nbTxsWrite, store, wg, chWriteDone, 2, &errors)
@@ -316,16 +316,16 @@ func TestWriteReadDeleteLevelDBSerial(t *testing.T) {
 	t.Skip("this is not a short test")
 	wg := &sync.WaitGroup{}
 	errors := int32(0)
-	rand.Reader.Read(rcvAddr)
-	rand.Reader.Read(sndAddr)
-	rand.Reader.Read(sig)
+	_, _ = rand.Reader.Read(rcvAddr)
+	_, _ = rand.Reader.Read(sndAddr)
+	_, _ = rand.Reader.Read(sig)
 	store := createStorageLevelDBSerial()
 	nbTxsWrite := 1000000
 	wg.Add(3)
 	chWriteDone := make(chan struct{})
 
 	defer func() {
-		store.DestroyUnit()
+		_ = store.DestroyUnit()
 	}()
 
 	go writeMultipleWithNotif(nbTxsWrite, store, wg, chWriteDone, 2, &errors)
