@@ -11,28 +11,28 @@ import (
 
 type PoolsHolderFake struct {
 	transactions         dataRetriever.ShardedDataCacherNotifier
-	smartcontractresults dataRetriever.ShardedDataCacherNotifier
+	unsignedtransactions dataRetriever.ShardedDataCacherNotifier
 	headers              storage.Cacher
 	metaBlocks           storage.Cacher
-	hdrNonces            dataRetriever.Uint64Cacher
+	hdrNonces            dataRetriever.Uint64SyncMapCacher
 	miniBlocks           storage.Cacher
 	peerChangesBlocks    storage.Cacher
-	metaHdrNonces        dataRetriever.Uint64Cacher
+	metaHdrNonces        dataRetriever.Uint64SyncMapCacher
 }
 
 func NewPoolsHolderFake() *PoolsHolderFake {
 	phf := &PoolsHolderFake{}
 	phf.transactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
-	phf.smartcontractresults, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
+	phf.unsignedtransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
 	phf.headers, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	phf.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	cacheHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	phf.hdrNonces, _ = dataPool.NewNonceToHashCacher(
+	phf.hdrNonces, _ = dataPool.NewNonceSyncMapCacher(
 		cacheHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
 	cacheMetaHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
-	phf.metaHdrNonces, _ = dataPool.NewNonceToHashCacher(
+	phf.metaHdrNonces, _ = dataPool.NewNonceSyncMapCacher(
 		cacheMetaHdrNonces,
 		uint64ByteSlice.NewBigEndianConverter(),
 	)
@@ -45,15 +45,15 @@ func (phf *PoolsHolderFake) Transactions() dataRetriever.ShardedDataCacherNotifi
 	return phf.transactions
 }
 
-func (phf *PoolsHolderFake) SmartContractResults() dataRetriever.ShardedDataCacherNotifier {
-	return phf.smartcontractresults
+func (phf *PoolsHolderFake) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return phf.unsignedtransactions
 }
 
 func (phf *PoolsHolderFake) Headers() storage.Cacher {
 	return phf.headers
 }
 
-func (phf *PoolsHolderFake) HeadersNonces() dataRetriever.Uint64Cacher {
+func (phf *PoolsHolderFake) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
 	return phf.hdrNonces
 }
 
@@ -69,10 +69,14 @@ func (phf *PoolsHolderFake) MetaBlocks() storage.Cacher {
 	return phf.metaBlocks
 }
 
-func (phf *PoolsHolderFake) MetaHeadersNonces() dataRetriever.Uint64Cacher {
+func (phf *PoolsHolderFake) MetaHeadersNonces() dataRetriever.Uint64SyncMapCacher {
 	return phf.metaHdrNonces
 }
 
 func (phf *PoolsHolderFake) SetTransactions(transactions dataRetriever.ShardedDataCacherNotifier) {
 	phf.transactions = transactions
+}
+
+func (phf *PoolsHolderFake) SetUnsignedTransactions(scrs dataRetriever.ShardedDataCacherNotifier) {
+	phf.unsignedtransactions = scrs
 }

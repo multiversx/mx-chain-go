@@ -123,7 +123,7 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.MetaChainBlocks(),
-		icf.dataPool.MetaBlockNonces(),
+		icf.dataPool.HeadersNonces(),
 		metachainHeaderStorer,
 		icf.multiSigner,
 		icf.hasher,
@@ -170,7 +170,7 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identif
 	interceptor, err := metablock.NewShardHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.ShardHeaders(),
-		icf.dataPool.ShardHeadersNonces(),
+		icf.dataPool.HeadersNonces(),
 		hdrStorer,
 		icf.multiSigner,
 		icf.hasher,

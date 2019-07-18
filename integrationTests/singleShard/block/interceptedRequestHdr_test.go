@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -146,7 +147,10 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	//Step 2. resolver has the headers
 	_, _ = dPoolResolver.Headers().HasOrAdd(hdrHash1, &hdr1)
-	_, _ = dPoolResolver.HeadersNonces().HasOrAdd(0, hdrHash1)
+
+	syncMap := &dataPool.ShardIdHashSyncMap{}
+	syncMap.Store(0, hdrHash1)
+	dPoolResolver.HeadersNonces().Merge(0, syncMap)
 	_ = storeResolver.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
 	_ = storeResolver.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
 

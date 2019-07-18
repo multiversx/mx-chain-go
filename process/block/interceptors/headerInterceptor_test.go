@@ -8,6 +8,7 @@ import (
 	"time"
 
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptors"
@@ -52,7 +53,7 @@ func TestNewHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	headersNonces := &mock.Uint64CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
 	storer := &mock.StorerStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
@@ -73,7 +74,7 @@ func TestNewHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headersNonces := &mock.Uint64CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
 	storer := &mock.StorerStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
@@ -116,7 +117,7 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	headersNonces := &mock.Uint64CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
 	storer := &mock.StorerStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
@@ -140,7 +141,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	headersNonces := &mock.Uint64CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
 	storer := &mock.StorerStub{}
 
 	hi, _ := interceptors.NewHeaderInterceptor(
@@ -169,17 +170,16 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 
 	hasher := mock.HasherMock{}
 	multisigner := mock.NewMultiSigner()
-	headersNonces := &mock.Uint64CacherStub{}
-	headersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
-		if u == testedNonce {
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
+	headersNonces.MergeCalled = func(nonce uint64, src dataRetriever.ShardIdHashMap) {
+		if nonce == testedNonce {
 			wg.Done()
 		}
-
-		return
 	}
+
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) error {
-		return errors.New("Key not found")
+		return errors.New("key not found")
 	}
 
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
@@ -246,13 +246,11 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 
 	hasher := mock.HasherMock{}
 	multisigner := mock.NewMultiSigner()
-	headersNonces := &mock.Uint64CacherStub{}
-	headersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
-		if u == testedNonce {
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
+	headersNonces.MergeCalled = func(nonce uint64, src dataRetriever.ShardIdHashMap) {
+		if nonce == testedNonce {
 			chanDone <- struct{}{}
 		}
-
-		return
 	}
 
 	storer := &mock.StorerStub{}
@@ -319,17 +317,16 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 
 	hasher := mock.HasherMock{}
 	multisigner := mock.NewMultiSigner()
-	headersNonces := &mock.Uint64CacherStub{}
-	headersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
-		if u == testedNonce {
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
+	headersNonces.MergeCalled = func(nonce uint64, src dataRetriever.ShardIdHashMap) {
+		if nonce == testedNonce {
 			chanDone <- struct{}{}
 		}
-
-		return
 	}
+
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) error {
-		return errors.New("Key not found")
+		return errors.New("key not found")
 	}
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinator.CurrentShard = 2

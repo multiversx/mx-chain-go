@@ -1,11 +1,10 @@
 package metablock
 
 import (
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -22,7 +21,7 @@ var log = logger.DefaultLogger()
 type ShardHeaderInterceptor struct {
 	hdrInterceptorBase *interceptors.HeaderInterceptorBase
 	headers            storage.Cacher
-	hdrsNonces         dataRetriever.Uint64Cacher
+	hdrsNonces         dataRetriever.Uint64SyncMapCacher
 	storer             storage.Storer
 }
 
@@ -31,7 +30,7 @@ type ShardHeaderInterceptor struct {
 func NewShardHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	headers storage.Cacher,
-	hdrsNonces dataRetriever.Uint64Cacher,
+	hdrsNonces dataRetriever.Uint64SyncMapCacher,
 	storer storage.Storer,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
@@ -95,14 +94,7 @@ func (shi *ShardHeaderInterceptor) processHeader(hdrIntercepted *block.Intercept
 
 	nonce := hdrIntercepted.GetHeader().GetNonce()
 
-	value, okPeek := shi.hdrsNonces.Peek(nonce)
-	mapOfHashes, okTypeAssertion := value.(*sync.Map)
-
-	if !okPeek || !okTypeAssertion {
-		// repair saved data
-		mapOfHashes = &sync.Map{}
-	}
-
-	mapOfHashes.Store(hdrIntercepted.GetHeader().GetShardID(), hdrIntercepted.Hash())
-	shi.hdrsNonces.Put(nonce, mapOfHashes)
+	syncMap := &dataPool.ShardIdHashSyncMap{}
+	syncMap.Store(hdrIntercepted.GetHeader().GetShardID(), hdrIntercepted.Hash())
+	shi.hdrsNonces.Merge(nonce, syncMap)
 }

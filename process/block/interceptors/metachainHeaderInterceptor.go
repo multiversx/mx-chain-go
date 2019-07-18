@@ -3,6 +3,7 @@ package interceptors
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -17,7 +18,7 @@ type MetachainHeaderInterceptor struct {
 	*messageChecker
 	marshalizer            marshal.Marshalizer
 	metachainHeaders       storage.Cacher
-	metachainHeadersNonces dataRetriever.Uint64Cacher
+	metachainHeadersNonces dataRetriever.Uint64SyncMapCacher
 	storer                 storage.Storer
 	multiSigVerifier       crypto.MultiSigVerifier
 	hasher                 hashing.Hasher
@@ -30,7 +31,7 @@ type MetachainHeaderInterceptor struct {
 func NewMetachainHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	metachainHeaders storage.Cacher,
-	metachainHeadersNonces dataRetriever.Uint64Cacher,
+	metachainHeadersNonces dataRetriever.Uint64SyncMapCacher,
 	storer storage.Storer,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
@@ -117,5 +118,8 @@ func (mhi *MetachainHeaderInterceptor) processMetaHeader(metaHdrIntercepted *blo
 	}
 
 	mhi.metachainHeaders.HasOrAdd(metaHdrIntercepted.Hash(), metaHdrIntercepted.GetMetaHeader())
-	mhi.metachainHeadersNonces.HasOrAdd(metaHdrIntercepted.Nonce, metaHdrIntercepted.Hash())
+
+	syncMap := &dataPool.ShardIdHashSyncMap{}
+	syncMap.Store(sharding.MetachainShardId, metaHdrIntercepted.Hash())
+	mhi.metachainHeadersNonces.Merge(metaHdrIntercepted.Nonce, syncMap)
 }

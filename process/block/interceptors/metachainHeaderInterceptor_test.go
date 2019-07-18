@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptors"
@@ -25,7 +26,7 @@ func TestNewMetachainHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		nil,
 		metachainHeaders,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -45,7 +46,7 @@ func TestNewMetachainHeaderInterceptor_NilMetachainHeadersShouldErr(t *testing.T
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		nil,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -85,7 +86,7 @@ func TestNewMetachainHeaderInterceptor_NilMetachainStorerShouldErr(t *testing.T)
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		nil,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -106,7 +107,7 @@ func TestNewMetachainHeaderInterceptor_NilMultiSignerShouldErr(t *testing.T) {
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		metachainStorer,
 		nil,
 		mock.HasherMock{},
@@ -127,7 +128,7 @@ func TestNewMetachainHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		metachainStorer,
 		mock.NewMultiSigner(),
 		nil,
@@ -148,7 +149,7 @@ func TestNewMetachainHeaderInterceptor_NilShardCoordinatorShouldErr(t *testing.T
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -190,7 +191,7 @@ func TestNewMetachainHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -213,7 +214,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t 
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -233,7 +234,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilDataToProcessShould
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -260,7 +261,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnm
 			},
 		},
 		metachainHeaders,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -287,7 +288,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShoul
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		marshalizer,
 		metachainHeaders,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		metachainStorer,
 		multisigner,
 		mock.HasherMock{},
@@ -311,10 +312,10 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 	chanDone := make(chan struct{}, 1)
 	testedNonce := uint64(67)
 	metachainHeaders := &mock.CacherStub{}
-	metachainHeadersNonces := &mock.Uint64CacherStub{}
+	metachainHeadersNonces := &mock.Uint64SyncMapCacherStub{}
 	metachainStorer := &mock.StorerStub{
 		HasCalled: func(key []byte) error {
-			return errors.New("Key not found")
+			return errors.New("key not found")
 		},
 	}
 	multisigner := mock.NewMultiSigner()
@@ -356,13 +357,21 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 		}
 		return
 	}
-	metachainHeadersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
-		aaaHash := mock.HasherMock{}.Compute(string(buff))
-		hash, _ := i.([]byte)
-		if bytes.Equal(aaaHash, hash) && u == testedNonce {
-			wg.Done()
+	metachainHeadersNonces.MergeCalled = func(nonce uint64, src dataRetriever.ShardIdHashMap) {
+		if nonce != testedNonce {
+			return
 		}
-		return
+
+		aaaHash := mock.HasherMock{}.Compute(string(buff))
+		src.Range(func(sharId uint32, hash []byte) bool {
+			if bytes.Equal(aaaHash, hash) {
+				wg.Done()
+
+				return false
+			}
+
+			return true
+		})
 	}
 
 	go func() {
@@ -386,7 +395,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 	testedNonce := uint64(67)
 	multisigner := mock.NewMultiSigner()
 	metachainHeaders := &mock.CacherStub{}
-	metachainHeadersNonces := &mock.Uint64CacherStub{}
+	metachainHeadersNonces := &mock.Uint64SyncMapCacherStub{}
 	metachainStorer := &mock.StorerStub{
 		HasCalled: func(key []byte) error {
 			return nil
@@ -428,13 +437,21 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 		}
 		return
 	}
-	metachainHeadersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
-		aaaHash := mock.HasherMock{}.Compute(string(buff))
-		hash, _ := i.([]byte)
-		if bytes.Equal(aaaHash, hash) && u == testedNonce {
-			chanDone <- struct{}{}
+	metachainHeadersNonces.MergeCalled = func(nonce uint64, src dataRetriever.ShardIdHashMap) {
+		if nonce != testedNonce {
+			return
 		}
-		return
+
+		aaaHash := mock.HasherMock{}.Compute(string(buff))
+		src.Range(func(shardId uint32, hash []byte) bool {
+			if bytes.Equal(aaaHash, hash) {
+				chanDone <- struct{}{}
+
+				return false
+			}
+
+			return true
+		})
 	}
 
 	assert.Nil(t, mhi.ProcessReceivedMessage(msg))

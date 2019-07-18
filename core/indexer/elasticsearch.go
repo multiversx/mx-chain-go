@@ -187,7 +187,7 @@ func (ei *elasticIndexer) createIndex(index string, body io.Reader) error {
 func (ei *elasticIndexer) SaveBlock(
 	bodyHandler data.BodyHandler,
 	headerhandler data.HeaderHandler,
-	txPool map[string]*transaction.Transaction) {
+	txPool map[string]data.TransactionHandler) {
 
 	if headerhandler == nil || headerhandler.IsInterfaceNil() {
 		ei.logger.Warn(ErrNoHeader.Error())
@@ -293,7 +293,7 @@ func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
 func (ei *elasticIndexer) saveTransactions(
 	body block.Body,
 	header data.HeaderHandler,
-	txPool map[string]*transaction.Transaction) {
+	txPool map[string]data.TransactionHandler) {
 	bulks := ei.buildTransactionBulks(body, header, txPool)
 
 	for _, bulk := range bulks {
@@ -316,7 +316,7 @@ func (ei *elasticIndexer) saveTransactions(
 func (ei *elasticIndexer) buildTransactionBulks(
 	body block.Body,
 	header data.HeaderHandler,
-	txPool map[string]*transaction.Transaction,
+	txPool map[string]data.TransactionHandler,
 ) [][]*Transaction {
 	processedTxCount := 0
 	bulks := make([][]*Transaction, (header.GetTxCount()/txBulkSize)+1)
@@ -340,9 +340,15 @@ func (ei *elasticIndexer) buildTransactionBulks(
 			processedTxCount++
 
 			currentBulk := processedTxCount / txBulkSize
-			currentTx, ok := txPool[string(txHash)]
+			currentTxHandler, ok := txPool[string(txHash)]
 			if !ok {
 				ei.logger.Warn("elasticsearch could not find tx hash in pool")
+				continue
+			}
+
+			currentTx, ok := currentTxHandler.(*transaction.Transaction)
+			if !ok {
+				ei.logger.Warn("elasticsearch found tx in pool but of wrong type")
 				continue
 			}
 
@@ -358,7 +364,7 @@ func (ei *elasticIndexer) buildTransactionBulks(
 				SenderShard:   mb.SenderShardID,
 				GasPrice:      currentTx.GasPrice,
 				GasLimit:      currentTx.GasLimit,
-				Data:          hex.EncodeToString(currentTx.Data),
+				Data:          currentTx.Data,
 				Signature:     hex.EncodeToString(currentTx.Signature),
 				Timestamp:     time.Duration(header.GetTimeStamp()),
 				Status:        mbTxStatus,

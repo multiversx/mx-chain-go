@@ -266,7 +266,7 @@ func TestHeaderInterceptorBase_ParseReceivedMessageValsOkShouldWork(t *testing.T
 	multisigner := mock.NewMultiSigner()
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) error {
-		return errors.New("Key not found")
+		return errors.New("key not found")
 	}
 
 	nodesCoordinator := createNodesCoordinator()

@@ -61,7 +61,7 @@ type Config struct {
 	PeerBlockBodyStorage       StorageConfig
 	BlockHeaderStorage         StorageConfig
 	TxStorage                  StorageConfig
-	SmartContractResultStorage StorageConfig
+	UnsignedTransactionStorage StorageConfig
 	ShardHdrNonceHashStorage   StorageConfig
 	MetaHdrNonceHashStorage    StorageConfig
 
@@ -72,14 +72,14 @@ type Config struct {
 	AccountsTrieStorage StorageConfig
 	BadBlocksCache      CacheConfig
 
-	TxBlockBodyDataPool       CacheConfig
-	StateBlockBodyDataPool    CacheConfig
-	PeerBlockBodyDataPool     CacheConfig
-	BlockHeaderDataPool       CacheConfig
-	BlockHeaderNoncesDataPool CacheConfig
-	TxDataPool                CacheConfig
-	SmartContractDataPool     CacheConfig
-	MetaBlockBodyDataPool     CacheConfig
+	TxBlockBodyDataPool         CacheConfig
+	StateBlockBodyDataPool      CacheConfig
+	PeerBlockBodyDataPool       CacheConfig
+	BlockHeaderDataPool         CacheConfig
+	BlockHeaderNoncesDataPool   CacheConfig
+	TxDataPool                  CacheConfig
+	UnsignedTransactionDataPool CacheConfig
+	MetaBlockBodyDataPool       CacheConfig
 
 	MiniBlockHeaderHashesDataPool CacheConfig
 	ShardHeadersDataPool          CacheConfig
@@ -145,6 +145,7 @@ type HeartbeatConfig struct {
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
+	NetworkID                  string
 }
 
 // ExplorerConfig will hold the configuration for the explorer indexer

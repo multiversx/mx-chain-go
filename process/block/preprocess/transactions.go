@@ -3,10 +3,10 @@ package preprocess
 import (
 	"fmt"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -20,34 +20,16 @@ import (
 
 var log = logger.DefaultLogger()
 
-type txShardInfo struct {
-	senderShardID   uint32
-	receiverShardID uint32
-}
-
-type txInfo struct {
-	tx *transaction.Transaction
-	*txShardInfo
-	has bool
-}
-
-type txsHashesInfo struct {
-	txHashes        [][]byte
-	receiverShardID uint32
-}
+// TODO: increase code coverage with unit tests
 
 type transactions struct {
+	*basePreProcess
 	chRcvAllTxs          chan bool
 	onRequestTransaction func(shardID uint32, txHashes [][]byte)
-	missingTxs           int
-	mutTxsForBlock       sync.RWMutex
-	txsForBlock          map[string]*txInfo
+	txsForCurrBlock      txsForBlock
 	txPool               dataRetriever.ShardedDataCacherNotifier
 	storage              dataRetriever.StorageService
-	hasher               hashing.Hasher
-	marshalizer          marshal.Marshalizer
 	txProcessor          process.TransactionProcessor
-	shardCoordinator     sharding.Coordinator
 	accounts             state.AccountsAdapter
 }
 
@@ -88,10 +70,14 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilRequestHandler
 	}
 
-	txs := &transactions{
-		hasher:               hasher,
-		marshalizer:          marshalizer,
-		shardCoordinator:     shardCoordinator,
+	bpp := basePreProcess{
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		shardCoordinator: shardCoordinator,
+	}
+
+	txs := transactions{
+		basePreProcess:       &bpp,
 		storage:              store,
 		txPool:               txDataPool,
 		onRequestTransaction: onRequestTransaction,
@@ -101,9 +87,10 @@ func NewTransactionPreprocessor(
 
 	txs.chRcvAllTxs = make(chan bool)
 	txs.txPool.RegisterHandler(txs.receivedTransaction)
-	txs.txsForBlock = make(map[string]*txInfo)
 
-	return txs, nil
+	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
+
+	return &txs, nil
 }
 
 // waitForTxHashes waits for a call whether all the requested transactions appeared
@@ -121,10 +108,10 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 	if requestedTxs > 0 {
 		log.Info(fmt.Sprintf("requested %d missing txs\n", requestedTxs))
 		err := txs.waitForTxHashes(haveTime())
-		txs.mutTxsForBlock.Lock()
-		missingTxs := txs.missingTxs
-		txs.missingTxs = 0
-		txs.mutTxsForBlock.Unlock()
+		txs.txsForCurrBlock.mutTxsForBlock.Lock()
+		missingTxs := txs.txsForCurrBlock.missingTxs
+		txs.txsForCurrBlock.missingTxs = 0
+		txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 		log.Info(fmt.Sprintf("received %d missing txs\n", requestedTxs-missingTxs))
 		if err != nil {
 			return err
@@ -143,21 +130,9 @@ func (txs *transactions) RemoveTxBlockFromPools(body block.Body, miniBlockPool s
 		return process.ErrNilMiniBlockPool
 	}
 
-	for i := 0; i < len(body); i++ {
-		currentMiniBlock := body[i]
-		strCache := process.ShardCacherIdentifier(currentMiniBlock.SenderShardID, currentMiniBlock.ReceiverShardID)
-		txs.txPool.RemoveSetOfDataFromPool(currentMiniBlock.TxHashes, strCache)
+	err := txs.removeDataFromPools(body, miniBlockPool, txs.txPool, block.TxBlock)
 
-		buff, err := txs.marshalizer.Marshal(currentMiniBlock)
-		if err != nil {
-			return err
-		}
-
-		miniBlockHash := txs.hasher.Compute(string(buff))
-		miniBlockPool.Remove(miniBlockHash)
-	}
-
-	return nil
+	return err
 }
 
 // RestoreTxBlockIntoPools restores the transactions and miniblocks to associated pools
@@ -165,7 +140,12 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 	body block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, map[int][]byte, error) {
-	miniBlockHashes := make(map[int][]byte, 0)
+	if miniBlockPool == nil {
+		return 0, nil, process.ErrNilMiniBlockPool
+	}
+
+	miniBlockHashes := make(map[int][]byte)
+
 	txsRestored := 0
 
 	if miniBlockPool == nil {
@@ -195,23 +175,12 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 			}
 		}
 
-		buff, err := txs.marshalizer.Marshal(miniBlock)
+		restoredHash, err := txs.restoreMiniBlock(miniBlock, miniBlockPool)
 		if err != nil {
 			return txsRestored, miniBlockHashes, err
 		}
 
-		miniBlockHash := txs.hasher.Compute(string(buff))
-		miniBlockPool.Put(miniBlockHash, miniBlock)
-
-		err = txs.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
-		if err != nil {
-			return txsRestored, miniBlockHashes, err
-		}
-
-		if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
-			miniBlockHashes[i] = miniBlockHash
-		}
-
+		miniBlockHashes[i] = restoredHash
 		txsRestored += len(miniBlock.TxHashes)
 	}
 
@@ -223,22 +192,32 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32,
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
+		if miniBlock.Type != block.TxBlock {
+			continue
+		}
+
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if haveTime() < 0 {
 				return process.ErrTimeIsOut
 			}
 
 			txHash := miniBlock.TxHashes[j]
-			txs.mutTxsForBlock.RLock()
-			txInfo := txs.txsForBlock[string(txHash)]
-			txs.mutTxsForBlock.RUnlock()
+			txs.txsForCurrBlock.mutTxsForBlock.RLock()
+			txInfo := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
+
 			if txInfo == nil || txInfo.tx == nil {
 				return process.ErrMissingTransaction
 			}
 
+			currTx, ok := txInfo.tx.(*transaction.Transaction)
+			if !ok {
+				return process.ErrWrongTypeAssertion
+			}
+
 			err := txs.processAndRemoveBadTransaction(
 				txHash,
-				txInfo.tx,
+				currTx,
 				round,
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
@@ -256,108 +235,49 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32,
 func (txs *transactions) SaveTxBlockToStorage(body block.Body) error {
 	for i := 0; i < len(body); i++ {
 		miniBlock := (body)[i]
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			txHash := miniBlock.TxHashes[j]
+		if miniBlock.Type != block.TxBlock {
+			continue
+		}
 
-			txs.mutTxsForBlock.RLock()
-			txInfo := txs.txsForBlock[string(txHash)]
-			txs.mutTxsForBlock.RUnlock()
-
-			if txInfo == nil || txInfo.tx == nil {
-				return process.ErrMissingTransaction
-			}
-
-			buff, err := txs.marshalizer.Marshal(txInfo.tx)
-			if err != nil {
-				return err
-			}
-
-			errNotCritical := txs.storage.Put(dataRetriever.TransactionUnit, txHash, buff)
-			log.LogIfError(errNotCritical)
+		err := txs.saveTxsToStorage(miniBlock.TxHashes, &txs.txsForCurrBlock, txs.storage, dataRetriever.TransactionUnit)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-// getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
-func (txs *transactions) getTransactionFromPool(
-	senderShardID uint32,
-	destShardID uint32,
-	txHash []byte,
-) *transaction.Transaction {
-	strCache := process.ShardCacherIdentifier(senderShardID, destShardID)
-	txStore := txs.txPool.ShardDataStore(strCache)
-	if txStore == nil {
-		log.Error(process.ErrNilStorage.Error())
-		return nil
-	}
-
-	val, ok := txStore.Peek(txHash)
-	if !ok {
-		log.Debug(process.ErrTxNotFound.Error())
-		return nil
-	}
-
-	tx, ok := val.(*transaction.Transaction)
-	if !ok {
-		log.Error(process.ErrInvalidTxInPool.Error())
-		return nil
-	}
-
-	return tx
-}
-
 // receivedTransaction is a call back function which is called when a new transaction
 // is added in the transaction pool
 func (txs *transactions) receivedTransaction(txHash []byte) {
-	txs.mutTxsForBlock.Lock()
-	if txs.missingTxs > 0 {
-		txInfoForHash := txs.txsForBlock[string(txHash)]
-		if txInfoForHash != nil &&
-			txInfoForHash.txShardInfo != nil &&
-			!txInfoForHash.has {
-			tx := txs.getTransactionFromPool(txInfoForHash.senderShardID, txInfoForHash.receiverShardID, txHash)
-			if tx != nil {
-				txs.txsForBlock[string(txHash)].tx = tx
-				txs.txsForBlock[string(txHash)].has = true
-				txs.missingTxs--
-			}
-		}
+	receivedAllMissing := txs.baseReceivedTransaction(txHash, &txs.txsForCurrBlock, txs.txPool)
 
-		missingTxs := txs.missingTxs
-		txs.mutTxsForBlock.Unlock()
-
-		if missingTxs == 0 {
-			txs.chRcvAllTxs <- true
-		}
-	} else {
-		txs.mutTxsForBlock.Unlock()
+	if receivedAllMissing {
+		txs.chRcvAllTxs <- true
 	}
 }
 
 // CreateBlockStarted cleans the local cache map for processed/created transactions at this round
 func (txs *transactions) CreateBlockStarted() {
-	txs.mutTxsForBlock.Lock()
-	txs.txsForBlock = make(map[string]*txInfo)
-	txs.mutTxsForBlock.Unlock()
+	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
+	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 }
 
 // RequestBlockTransactions request for transactions if missing from a block.Body
 func (txs *transactions) RequestBlockTransactions(body block.Body) int {
-	txs.CreateBlockStarted()
-
 	requestedTxs := 0
 	missingTxsForShards := txs.computeMissingAndExistingTxsForShards(body)
 
-	txs.mutTxsForBlock.Lock()
+	txs.txsForCurrBlock.mutTxsForBlock.Lock()
 	for senderShardID, txsHashesInfo := range missingTxsForShards {
 		txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: txsHashesInfo.receiverShardID}
 		for _, txHash := range txsHashesInfo.txHashes {
-			txs.txsForBlock[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo, has: false}
+			txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
 		}
 	}
-	txs.mutTxsForBlock.Unlock()
+	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	for senderShardID, txsHashesInfo := range missingTxsForShards {
 		requestedTxs += len(txsHashesInfo.txHashes)
@@ -369,41 +289,7 @@ func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 
 // computeMissingAndExistingTxsForShards calculates what transactions are available and what are missing from block.Body
 func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) map[uint32]*txsHashesInfo {
-	missingTxsForShard := make(map[uint32]*txsHashesInfo)
-
-	txs.mutTxsForBlock.Lock()
-
-	txs.missingTxs = 0
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
-		txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
-		txHashes := make([][]byte, 0)
-
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			txHash := miniBlock.TxHashes[j]
-			tx := txs.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
-
-			if tx == nil {
-				txHashes = append(txHashes, txHash)
-				txs.missingTxs++
-			} else {
-				txs.txsForBlock[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo, has: true}
-			}
-		}
-
-		if len(txHashes) > 0 {
-			missingTxsForShard[miniBlock.SenderShardID] = &txsHashesInfo{
-				txHashes:        txHashes,
-				receiverShardID: miniBlock.ReceiverShardID,
-			}
-		}
-	}
-
-	if txs.missingTxs > 0 {
-		process.EmptyChannel(txs.chRcvAllTxs)
-	}
-
-	txs.mutTxsForBlock.Unlock()
+	missingTxsForShard := txs.computeExistingAndMissing(body, &txs.txsForCurrBlock, txs.chRcvAllTxs, block.TxBlock, txs.txPool)
 
 	return missingTxsForShard
 }
@@ -417,7 +303,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	dstShardId uint32,
 ) error {
 
-	_, err := txs.txProcessor.ProcessTransaction(transaction, round)
+	err := txs.txProcessor.ProcessTransaction(transaction, round)
 	if err == process.ErrLowerNonceInTransaction ||
 		err == process.ErrInsufficientFunds {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
@@ -429,9 +315,9 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	}
 
 	txShardInfo := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
-	txs.mutTxsForBlock.Lock()
-	txs.txsForBlock[string(transactionHash)] = &txInfo{tx: transaction, txShardInfo: txShardInfo, has: true}
-	txs.mutTxsForBlock.Unlock()
+	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	txs.txsForCurrBlock.txHashAndInfo[string(transactionHash)] = &txInfo{tx: transaction, txShardInfo: txShardInfo}
+	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return nil
 }
@@ -446,9 +332,13 @@ func (txs *transactions) RequestTransactionsForMiniBlock(mb block.MiniBlock) int
 
 // computeMissingTxsForMiniBlock computes missing transactions for a certain miniblock
 func (txs *transactions) computeMissingTxsForMiniBlock(mb block.MiniBlock) [][]byte {
+	if mb.Type != block.TxBlock {
+		return nil
+	}
+
 	missingTransactions := make([][]byte, 0)
 	for _, txHash := range mb.TxHashes {
-		tx := txs.getTransactionFromPool(mb.SenderShardID, mb.ReceiverShardID, txHash)
+		tx := txs.getTransactionFromPool(mb.SenderShardID, mb.ReceiverShardID, txHash, txs.txPool)
 		if tx == nil {
 			missingTransactions = append(missingTransactions, txHash)
 		}
@@ -518,6 +408,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	miniBlock.SenderShardID = sndShardId
 	miniBlock.ReceiverShardID = dstShardId
 	miniBlock.TxHashes = make([][]byte, 0)
+	miniBlock.Type = block.TxBlock
 	log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ReceiverShardID))
 
 	addedTxs := 0
@@ -560,6 +451,10 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
 func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error {
+	if miniBlock.Type != block.TxBlock {
+		return process.ErrWrongTypeInMiniBlock
+	}
+
 	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return err
@@ -571,7 +466,7 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 			return err
 		}
 
-		_, err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
+		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
 		if err != nil {
 			return err
 		}
@@ -579,11 +474,11 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 
 	txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
 
-	txs.mutTxsForBlock.Lock()
+	txs.txsForCurrBlock.mutTxsForBlock.Lock()
 	for index, txHash := range miniBlockTxHashes {
-		txs.txsForBlock[string(txHash)] = &txInfo{tx: miniBlockTxs[index], txShardInfo: txShardInfo, has: true}
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockTxs[index], txShardInfo: txShardInfo}
 	}
-	txs.mutTxsForBlock.Unlock()
+	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return nil
 }
@@ -641,25 +536,12 @@ func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 
 // CreateMarshalizedData marshalizes transactions and creates and saves them into a new structure
 func (txs *transactions) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
-	mrsTxs := make([][]byte, 0)
-	for _, txHash := range txHashes {
-		txs.mutTxsForBlock.RLock()
-		txInfo := txs.txsForBlock[string(txHash)]
-		txs.mutTxsForBlock.RUnlock()
-
-		if txInfo == nil || txInfo.tx == nil {
-			continue
-		}
-
-		txMrs, err := txs.marshalizer.Marshal(txInfo.tx)
-		if err != nil {
-			log.Debug(process.ErrMarshalWithoutSuccess.Error())
-			continue
-		}
-		mrsTxs = append(mrsTxs, txMrs)
+	mrsScrs, err := txs.createMarshalizedData(txHashes, &txs.txsForCurrBlock)
+	if err != nil {
+		return nil, err
 	}
 
-	return mrsTxs, nil
+	return mrsScrs, nil
 }
 
 // getTxs gets all the available transactions from the pool
@@ -690,14 +572,14 @@ func (txs *transactions) getTxs(txShardStore storage.Cacher) ([]*transaction.Tra
 }
 
 // GetAllCurrentUsedTxs returns all the transactions used at current creation / processing
-func (txs *transactions) GetAllCurrentUsedTxs() map[string]*transaction.Transaction {
-	txPool := make(map[string]*transaction.Transaction)
+func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
+	txPool := make(map[string]data.TransactionHandler)
 
-	txs.mutTxsForBlock.RLock()
-	for txHash, txInfo := range txs.txsForBlock {
+	txs.txsForCurrBlock.mutTxsForBlock.RLock()
+	for txHash, txInfo := range txs.txsForCurrBlock.txHashAndInfo {
 		txPool[txHash] = txInfo.tx
 	}
-	txs.mutTxsForBlock.RUnlock()
+	txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 
 	return txPool
 }

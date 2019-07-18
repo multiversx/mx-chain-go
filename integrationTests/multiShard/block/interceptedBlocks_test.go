@@ -32,7 +32,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	recvShards := []uint32{1, 2}
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	nodes := createNodes(
 		numOfShards,
@@ -42,10 +42,10 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	displayAndStartNodes(nodes)
 
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, nodeList := range nodes {
 			for _, n := range nodeList {
-				n.node.Stop()
+				_ = n.node.Stop()
 			}
 		}
 	}()

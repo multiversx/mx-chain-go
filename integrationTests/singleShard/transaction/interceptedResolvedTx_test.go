@@ -69,7 +69,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 		Value:   big.NewInt(0),
 		RcvAddr: hasher.Compute("receiver"),
 		SndAddr: buffPk1,
-		Data:    []byte("tx notarized data"),
+		Data:    "tx notarized data",
 	}
 
 	txBuff, _ := marshalizer.Marshal(&tx)

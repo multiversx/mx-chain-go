@@ -16,8 +16,8 @@ var ErrShardIdOutOfRange = errors.New("shard id out of range")
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
 
-// ErrNoValidPublicKey signals an error when the public key is not in genesis file
-var ErrNoValidPublicKey = errors.New("public key is not valid, it is missing from genesis file")
+// ErrPublicKeyNotFoundInGenesis signals an error when the public key is not in genesis file
+var ErrPublicKeyNotFoundInGenesis = errors.New("public key is not valid, it is missing from genesis file")
 
 // ErrNilShardCoordinator signals that a nil shard coordinator has been provided
 var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")
