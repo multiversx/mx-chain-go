@@ -15,6 +15,7 @@ type Sender struct {
 	privKey       crypto.PrivateKey
 	marshalizer   marshal.Marshalizer
 	topic         string
+	shardID       uint32
 }
 
 // NewSender will create a new sender instance
@@ -24,6 +25,7 @@ func NewSender(
 	privKey crypto.PrivateKey,
 	marshalizer marshal.Marshalizer,
 	topic string,
+	shardID uint32,
 ) (*Sender, error) {
 
 	if peerMessenger == nil {
@@ -45,6 +47,7 @@ func NewSender(
 		privKey:       privKey,
 		marshalizer:   marshalizer,
 		topic:         topic,
+		shardID:       shardID,
 	}
 
 	return sender, nil

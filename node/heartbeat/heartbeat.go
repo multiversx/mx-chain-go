@@ -11,16 +11,11 @@ type Heartbeat struct {
 	Signature []byte
 }
 
-// PeerHeartbeat represents the status of a received message from a p2p address
-type PeerHeartbeat struct {
-	P2PAddress      string
+// PubKeyHeartbeat returns the heartbeat status for the public key
+type PubKeyHeartbeat struct {
+	HexPublicKey    string
 	TimeStamp       time.Time
 	MaxInactiveTime Duration
 	IsActive        bool
-}
-
-// PubKeyHeartbeat returns the heartbeat status for the public key
-type PubKeyHeartbeat struct {
-	HexPublicKey   string
-	PeerHeartBeats []PeerHeartbeat
+	ShardID         uint32
 }

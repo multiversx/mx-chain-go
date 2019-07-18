@@ -681,6 +681,7 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 		n.privKey,
 		n.marshalizer,
 		HeartbeatTopic,
+		n.shardCoordinator.SelfId(),
 	)
 	if err != nil {
 		return err
@@ -698,6 +699,7 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 		n.marshalizer,
 		time.Duration(time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive)),
 		allPubKeys,
+		n.shardCoordinator.SelfId(),
 	)
 	if err != nil {
 		return err

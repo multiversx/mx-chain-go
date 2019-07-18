@@ -24,6 +24,7 @@ type Monitor struct {
 	marshalizer                 marshal.Marshalizer
 	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutHeartbeatMessages        sync.RWMutex
+	shardID                     uint32
 }
 
 // NewMonitor returns a new monitor instance
@@ -34,6 +35,7 @@ func NewMonitor(
 	marshalizer marshal.Marshalizer,
 	maxDurationPeerUnresponsive time.Duration,
 	pubKeyList []string,
+	shardID uint32,
 ) (*Monitor, error) {
 
 	if peerMessenger == nil {
@@ -59,6 +61,7 @@ func NewMonitor(
 		marshalizer:                 marshalizer,
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
+		shardID:                     shardID,
 	}
 
 	var err error
@@ -120,7 +123,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			m.heartbeatMessages[string(hb.Pubkey)] = pe
 		}
 
-		pe.HeartbeatReceived(addr)
+		pe.HeartbeatReceived(m.shardID)
 	}(message, hbRecv)
 
 	return nil
@@ -134,10 +137,14 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	idx := 0
 	for k, v := range m.heartbeatMessages {
 		status[idx] = PubKeyHeartbeat{
-			HexPublicKey:   hex.EncodeToString([]byte(k)),
-			PeerHeartBeats: v.GetPeerHeartbeats(),
+			HexPublicKey:    hex.EncodeToString([]byte(k)),
+			TimeStamp:       v.timeStamp,
+			MaxInactiveTime: v.maxInactiveTime,
+			IsActive:        v.isActive,
+			ShardID:         v.shardID,
 		}
 		idx++
+
 	}
 	m.mutHeartbeatMessages.RUnlock()
 

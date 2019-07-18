@@ -25,6 +25,7 @@ func TestNewMonitor_NilMessengerShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		0,
 		[]string{""},
+		uint32(0),
 	)
 
 	assert.Nil(t, mon)
@@ -41,6 +42,7 @@ func TestNewMonitor_NilSingleSignerShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		0,
 		[]string{""},
+		uint32(0),
 	)
 
 	assert.Nil(t, mon)
@@ -57,6 +59,7 @@ func TestNewMonitor_NilKeygenShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		0,
 		[]string{""},
+		uint32(0),
 	)
 
 	assert.Nil(t, mon)
@@ -73,6 +76,7 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 		nil,
 		0,
 		[]string{""},
+		uint32(0),
 	)
 
 	assert.Nil(t, mon)
@@ -89,6 +93,7 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		0,
 		make([]string, 0),
+		uint32(0),
 	)
 
 	assert.Nil(t, mon)
@@ -105,6 +110,7 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 		&mock.MarshalizerMock{},
 		1,
 		[]string{"pk1", "pk2"},
+		uint32(0),
 	)
 
 	assert.NotNil(t, mon)
@@ -125,6 +131,7 @@ func TestMonitor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		1,
 		[]string{"pk1"},
+		uint32(0),
 	)
 
 	err := mon.ProcessReceivedMessage(nil)
@@ -142,6 +149,7 @@ func TestMonitor_ProcessReceivedMessageNilDataShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		0,
 		[]string{"pk1"},
+		uint32(0),
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{})
@@ -165,6 +173,7 @@ func TestMonitor_ProcessReceivedMessageMarshalFailsShouldErr(t *testing.T) {
 		},
 		1,
 		[]string{"pk1"},
+		uint32(0),
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -192,6 +201,7 @@ func TestMonitor_ProcessReceivedMessageWrongPubkeyShouldErr(t *testing.T) {
 		},
 		1,
 		[]string{"pk1"},
+		uint32(0),
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -223,6 +233,7 @@ func TestMonitor_ProcessReceivedMessageVerifyFailsShouldErr(t *testing.T) {
 		},
 		1,
 		[]string{"pk1"},
+		uint32(0),
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -260,6 +271,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		},
 		time.Second*1000,
 		[]string{pubKey},
+		uint32(0),
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -271,7 +283,4 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 1, len(hbStatus))
 	assert.Equal(t, hex.EncodeToString([]byte(pubKey)), hbStatus[0].HexPublicKey)
-	assert.Equal(t, 1, len(hbStatus[0].PeerHeartBeats))
-	assert.True(t, hbStatus[0].PeerHeartBeats[0].IsActive)
-	assert.Equal(t, peerAddress, hbStatus[0].PeerHeartBeats[0].P2PAddress)
 }
