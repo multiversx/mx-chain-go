@@ -1,28 +1,12 @@
-package memp2p
+package memp2p_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
-
-type MockMessageProcessor struct {
-	Peer p2p.PeerID
-}
-
-func NewMockMessageProcessor(peer p2p.PeerID) MockMessageProcessor {
-	processor := MockMessageProcessor{}
-	processor.Peer = peer
-	return processor
-}
-
-func (processor MockMessageProcessor) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	fmt.Printf("Message received by %s from %s: %s\n", string(processor.Peer), string(message.Peer()), string(message.Data()))
-	return nil
-}
 
 func Test_Initializing_MemP2PNetwork_with_4_Peers(t *testing.T) {
 	network, err := NewMemP2PNetwork()
