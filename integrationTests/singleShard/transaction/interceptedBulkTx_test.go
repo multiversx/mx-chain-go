@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -65,7 +66,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	mut := sync.Mutex{}
 	txHashes := make([][]byte, 0)
-	transactions := make([]*transaction.Transaction, 0)
+	transactions := make([]data.TransactionHandler, 0)
 
 	//wire up handler
 	dPool.Transactions().RegisterHandler(func(key []byte) {
@@ -99,53 +100,5 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		return
 	}
 
-	if noOfTx != len(txHashes) {
-
-		for i := startingNonce; i < startingNonce+uint64(noOfTx); i++ {
-			found := false
-
-			for _, tx := range transactions {
-				if tx.Nonce == i {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				fmt.Printf("tx with nonce %d is missing\n", i)
-			}
-
-		}
-
-		assert.Fail(t, fmt.Sprintf("should have been %d, got %d", noOfTx, len(txHashes)))
-
-		return
-	}
-
-	bitmap := make([]bool, noOfTx+int(startingNonce))
-	//set for each nonce from found tx a true flag in bitmap
-	for i := 0; i < noOfTx; i++ {
-		val, _ := dPool.Transactions().ShardDataStore(
-			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
-		).Get(txHashes[i])
-
-		if val == nil {
-			continue
-		}
-
-		tx := val.(*transaction.Transaction)
-
-		bitmap[tx.Nonce] = true
-	}
-
-	//for the first startingNonce values, the bitmap should be false
-	//for the rest, true
-	for i := 0; i < noOfTx+int(startingNonce); i++ {
-		if i < int(startingNonce) {
-			assert.False(t, bitmap[i])
-			continue
-		}
-
-		assert.True(t, bitmap[i])
-	}
+	checkResults(t, startingNonce, noOfTx, txHashes, transactions, dPool.Transactions(), shardCoordinator)
 }

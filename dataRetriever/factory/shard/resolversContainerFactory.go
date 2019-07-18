@@ -74,7 +74,7 @@ func NewResolversContainerFactory(
 func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer, error) {
 	container := containers.NewResolversContainer()
 
-	keys, resolverSlice, err := rcf.generateTxResolvers(factory.TransactionTopic, dataRetriever.TransactionUnit)
+	keys, resolverSlice, err := rcf.generateTxResolvers(factory.TransactionTopic, dataRetriever.TransactionUnit, rcf.dataPools.Transactions())
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,11 @@ func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer
 		return nil, err
 	}
 
-	keys, resolverSlice, err = rcf.generateTxResolvers(factory.UnsignedTransactionTopic, dataRetriever.UnsignedTransactionUnit)
+	keys, resolverSlice, err = rcf.generateTxResolvers(
+		factory.UnsignedTransactionTopic,
+		dataRetriever.UnsignedTransactionUnit,
+		rcf.dataPools.UnsignedTransactions(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +160,12 @@ func (rcf *resolversContainerFactory) createTopicAndAssignHandler(
 
 //------- Tx resolvers
 
-func (rcf *resolversContainerFactory) generateTxResolvers(topic string, unit dataRetriever.UnitType) ([]string, []dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) generateTxResolvers(
+	topic string,
+	unit dataRetriever.UnitType,
+	dataPool dataRetriever.ShardedDataCacherNotifier,
+) ([]string, []dataRetriever.Resolver, error) {
+
 	shardC := rcf.shardCoordinator
 
 	noOfShards := shardC.NumberOfShards()
@@ -168,7 +177,7 @@ func (rcf *resolversContainerFactory) generateTxResolvers(topic string, unit dat
 		identifierTx := topic + shardC.CommunicationIdentifier(idx)
 		excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-		resolver, err := rcf.createTxResolver(identifierTx, excludePeersFromTopic, unit)
+		resolver, err := rcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -180,7 +189,13 @@ func (rcf *resolversContainerFactory) generateTxResolvers(topic string, unit dat
 	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createTxResolver(topic string, excludedTopic string, unit dataRetriever.UnitType) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createTxResolver(
+	topic string,
+	excludedTopic string,
+	unit dataRetriever.UnitType,
+	dataPool dataRetriever.ShardedDataCacherNotifier,
+) (dataRetriever.Resolver, error) {
+
 	txStorer := rcf.store.GetStorer(unit)
 
 	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
@@ -199,7 +214,7 @@ func (rcf *resolversContainerFactory) createTxResolver(topic string, excludedTop
 
 	resolver, err := resolvers.NewTxResolver(
 		resolverSender,
-		rcf.dataPools.Transactions(),
+		dataPool,
 		txStorer,
 		rcf.marshalizer,
 		rcf.dataPacker,
