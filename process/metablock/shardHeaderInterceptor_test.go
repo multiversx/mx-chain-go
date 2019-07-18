@@ -131,7 +131,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, mock.HasherMock{})
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
@@ -191,7 +191,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T
 		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, mock.HasherMock{})
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
@@ -257,7 +257,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t 
 		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, mock.HasherMock{})
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)

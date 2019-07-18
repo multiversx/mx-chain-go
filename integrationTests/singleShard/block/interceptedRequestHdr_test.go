@@ -128,9 +128,10 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	}
 
 	hdrBuff, _ := marshalizer.Marshal(&hdr1)
+	hdrHash := hasher.Compute(string(hdrBuff))
 	msig, _ := multiSigner.Create(pubKeyMap[0], 0)
 	bitmap := []byte{1, 0, 0}
-	_, _ = msig.CreateSignatureShare(hdrBuff, bitmap)
+	_, _ = msig.CreateSignatureShare(hdrHash, bitmap)
 	aggSig, _ := msig.AggregateSigs(bitmap)
 
 	hdr1.PubKeysBitmap = bitmap

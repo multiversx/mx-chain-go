@@ -3,6 +3,7 @@ package block
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+        "github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -16,6 +17,7 @@ type InterceptedHeader struct {
 	hash             []byte
 	nodesCoordinator sharding.NodesCoordinator
 	marshalizer      marshal.Marshalizer
+	hasher           hashing.Hasher
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -23,6 +25,7 @@ func NewInterceptedHeader(
 	multiSigVerifier crypto.MultiSigVerifier,
 	nodesCoordinator sharding.NodesCoordinator,
 	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
 ) *InterceptedHeader {
 
 	return &InterceptedHeader{
@@ -30,6 +33,7 @@ func NewInterceptedHeader(
 		multiSigVerifier: multiSigVerifier,
 		nodesCoordinator: nodesCoordinator,
 		marshalizer:      marshalizer,
+		hasher:           hasher,
 	}
 }
 
@@ -128,6 +132,10 @@ func (inHdr *InterceptedHeader) VerifySig() error {
 		return err
 	}
 
+	for i, pubKey := range consensusPubKeys {
+		log.Info(fmt.Sprintf("[%d]: %s\n", i, core.ToHex([]byte(pubKey))))
+	}
+
 	verifier, err := inHdr.multiSigVerifier.Create(consensusPubKeys, 0)
 	if err != nil {
 		return err
@@ -149,7 +157,8 @@ func (inHdr *InterceptedHeader) VerifySig() error {
 		return err
 	}
 
-	err = verifier.Verify(headerBytes, bitmap)
+	hash := inHdr.hasher.Compute(string(headerBytes))
+	err = verifier.Verify(hash, bitmap)
 
 	return err
 }

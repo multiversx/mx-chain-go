@@ -88,6 +88,7 @@ type Node struct {
 	metaDataPool     dataRetriever.MetaPoolsHolder
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
+	nodesCoordinator sharding.NodesCoordinator
 
 	consensusTopic string
 	consensusType  string

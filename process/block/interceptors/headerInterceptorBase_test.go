@@ -209,6 +209,7 @@ func TestHeaderInterceptorBase_ParseReceivedMessageSanityCheckFailedShouldErr(t 
 	t.Parallel()
 
 	storer := &mock.StorerStub{}
+	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	multisigner := mock.NewMultiSigner()
 
@@ -222,7 +223,7 @@ func TestHeaderInterceptorBase_ParseReceivedMessageSanityCheckFailedShouldErr(t 
 		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, hasher)
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
@@ -279,7 +280,7 @@ func TestHeaderInterceptorBase_ParseReceivedMessageValsOkShouldWork(t *testing.T
 		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, mock.HasherMock{})
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)

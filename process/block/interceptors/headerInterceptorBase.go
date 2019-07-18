@@ -13,12 +13,12 @@ import (
 
 // HeaderInterceptorBase is the "abstract class" extended in HeaderInterceptor and ShardHeaderInterceptor
 type HeaderInterceptorBase struct {
-	marshalizer         marshal.Marshalizer
-	storer              storage.Storer
-	multiSigVerifier    crypto.MultiSigVerifier
-	hasher              hashing.Hasher
-	shardCoordinator    sharding.Coordinator
-	nodesCoordinator    sharding.NodesCoordinator
+	marshalizer      marshal.Marshalizer
+	storer           storage.Storer
+	multiSigVerifier crypto.MultiSigVerifier
+	hasher           hashing.Hasher
+	shardCoordinator sharding.Coordinator
+	nodesCoordinator sharding.NodesCoordinator
 }
 
 // NewHeaderInterceptorBase creates a new HeaderIncterceptorBase instance
@@ -50,12 +50,12 @@ func NewHeaderInterceptorBase(
 	}
 
 	hdrIntercept := &HeaderInterceptorBase{
-		marshalizer:         marshalizer,
-		storer:              storer,
-		multiSigVerifier:    multiSigVerifier,
-		hasher:              hasher,
-		shardCoordinator:    shardCoordinator,
-		nodesCoordinator:    nodesCoordinator,
+		marshalizer:      marshalizer,
+		storer:           storer,
+		multiSigVerifier: multiSigVerifier,
+		hasher:           hasher,
+		shardCoordinator: shardCoordinator,
+		nodesCoordinator: nodesCoordinator,
 	}
 
 	return hdrIntercept, nil
@@ -75,6 +75,7 @@ func (hib *HeaderInterceptorBase) ParseReceivedMessage(message p2p.MessageP2P) (
 		hib.multiSigVerifier,
 		hib.nodesCoordinator,
 		hib.marshalizer,
+		hib.hasher,
 	)
 	err := hib.marshalizer.Unmarshal(hdrIntercepted, message.Data())
 	if err != nil {

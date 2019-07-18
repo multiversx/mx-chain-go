@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -425,6 +427,15 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	nodesCoordinator, err := createNodesCoordinator(
+		nodesConfig,
+		generalConfig.GeneralSettings,
+		pubKey,
+		coreComponents.Hasher)
+	if err != nil {
+		return err
+	}
+
 	stateArgs := factory.NewStateComponentsFactoryArgs(generalConfig, genesisConfig, shardCoordinator, coreComponents)
 	stateComponents, err := factory.StateComponentsFactory(stateArgs)
 	if err != nil {
@@ -442,8 +453,18 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(ctx, generalConfig, nodesConfig, shardCoordinator, keyGen,
-		privKey, log, initialBalancesSkPemFile.Name, txSignSk.Name, txSignSkIndex.Name)
+	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
+		ctx,
+		generalConfig,
+		nodesConfig,
+		shardCoordinator,
+		keyGen,
+		privKey,
+		log,
+		initialBalancesSkPemFile.Name,
+		txSignSk.Name,
+		txSignSkIndex.Name,
+	)
 	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
 	if err != nil {
 		return err
@@ -478,8 +499,19 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
-	processArgs := factory.NewProcessComponentsFactoryArgs(genesisConfig, nodesConfig, syncer, shardCoordinator,
-		dataComponents, coreComponents, cryptoComponents, stateComponents, networkComponents, coreServiceContainer)
+	processArgs := factory.NewProcessComponentsFactoryArgs(
+		genesisConfig,
+		nodesConfig,
+		syncer,
+		shardCoordinator,
+		nodesCoordinator,
+		dataComponents,
+		coreComponents,
+		cryptoComponents,
+		stateComponents,
+		networkComponents,
+		coreServiceContainer,
+	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
 		return err
@@ -604,23 +636,31 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 	return cfg, nil
 }
 
+func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig *sharding.NodesSetup) (uint32, error) {
+	if pubKey == nil {
+		return 0, errors.New("nil public key")
+	}
+
+	publicKey, err := pubKey.ToByteArray()
+	if err != nil {
+		return 0, err
+	}
+
+	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return selfShardId, err
+}
+
 func createShardCoordinator(
 	nodesConfig *sharding.NodesSetup,
 	pubKey crypto.PublicKey,
 	settingsConfig config.GeneralSettingsConfig,
 	log *logger.Logger,
-) (shardCoordinator sharding.Coordinator,
-	err error) {
-	if pubKey == nil {
-		return nil, errors.New("nil public key, could not create shard coordinator")
-	}
-
-	publicKey, err := pubKey.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
-	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
+) (shardCoordinator sharding.Coordinator, err error) {
+	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	if err == sharding.ErrNoValidPublicKey {
 		log.Info("Starting as observer node...")
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
@@ -643,6 +683,65 @@ func createShardCoordinator(
 	}
 
 	return shardCoordinator, nil
+}
+
+func createNodesCoordinator(
+	nodesConfig *sharding.NodesSetup,
+	settingsConfig config.GeneralSettingsConfig,
+	pubKey crypto.PublicKey,
+	hasher hashing.Hasher,
+) (sharding.NodesCoordinator, error) {
+
+	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
+	if err == sharding.ErrNoValidPublicKey {
+		shardId, err = processDestinationShardAsObserver(settingsConfig)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var consensusGroupSize int
+	nbShards := nodesConfig.NumberOfShards()
+
+	if shardId == sharding.MetachainShardId {
+		consensusGroupSize = int(nodesConfig.MetaChainConsensusGroupSize)
+	} else {
+		consensusGroupSize = int(nodesConfig.ConsensusGroupSize)
+	}
+
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
+		consensusGroupSize,
+		hasher,
+		shardId,
+		nbShards,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	initNodesPubKeys := nodesConfig.InitialNodesPubKeys()
+	initValidators := make(map[uint32][]sharding.Validator)
+
+	for shardId, pubKeyList := range initNodesPubKeys {
+		validators := make([]sharding.Validator, 0)
+		for _, pubKey := range pubKeyList {
+			// TODO: the stake needs to be associated to the staking account
+			validator, err := consensus.NewValidator(big.NewInt(0), 0, []byte(pubKey))
+			if err != nil {
+				return nil, err
+			}
+
+			validators = append(validators, validator)
+		}
+		initValidators[shardId] = validators
+	}
+
+	err = nodesCoordinator.LoadNodesPerShards(initValidators)
+	if err != nil {
+		return nil, err
+	}
+
+	return nodesCoordinator, nil
 }
 
 func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {

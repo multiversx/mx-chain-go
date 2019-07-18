@@ -167,6 +167,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	marshalizer := &mock.MarshalizerMock{}
 	headers := &mock.CacherStub{}
 
+	hasher := mock.HasherMock{}
 	multisigner := mock.NewMultiSigner()
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
@@ -196,7 +197,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, hasher)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
@@ -243,6 +244,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 	marshalizer := &mock.MarshalizerMock{}
 	headers := &mock.CacherStub{}
 
+	hasher := mock.HasherMock{}
 	multisigner := mock.NewMultiSigner()
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
@@ -273,7 +275,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, hasher)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
@@ -315,6 +317,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 	marshalizer := &mock.MarshalizerMock{}
 	headers := &mock.CacherStub{}
 
+	hasher := mock.HasherMock{}
 	multisigner := mock.NewMultiSigner()
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i interface{}) (b bool, b2 bool) {
@@ -352,7 +355,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, hasher)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
