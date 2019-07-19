@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -372,13 +373,11 @@ func TestHeartbeatstatus(t *testing.T) {
 
 	hbStatus := []heartbeat.PubKeyHeartbeat{
 		{
-			HexPublicKey: "pk1",
-			PeerHeartBeats: []heartbeat.PeerHeartbeat{
-				{
-					P2PAddress: "addr",
-					IsActive:   true,
-				},
-			},
+			HexPublicKey:    "pk1",
+			TimeStamp:       time.Now(),
+			MaxInactiveTime: heartbeat.Duration{Duration: 0},
+			IsActive:        true,
+			ShardID:         uint32(0),
 		},
 	}
 	facade := mock.Facade{
