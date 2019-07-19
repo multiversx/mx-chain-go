@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"reflect"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -1455,7 +1455,7 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrNoncesRequestCalled := 0
+	hdrNoncesRequestCalled := int32(0)
 	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, _, mbHash := initBasicTestData()
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
@@ -1530,9 +1530,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 		true,
 		&mock.RequestHandlerMock{
 			RequestHeaderHandlerByNonceCalled: func(destShardID uint32, nonce uint64) {
-				mutex.Lock()
-				hdrNoncesRequestCalled++
-				mutex.Unlock()
+				atomic.AddInt32(&hdrNoncesRequestCalled, 1)
 			},
 		},
 		&mock.TransactionCoordinatorMock{},
@@ -1543,9 +1541,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 
 	sp.CheckAndRequestIfMetaHeadersMissing(2)
 	time.Sleep(100 * time.Millisecond)
-	mutex.Lock()
-	assert.Equal(t, 1, hdrNoncesRequestCalled)
-	mutex.Unlock()
+	assert.Equal(t, int32(1), atomic.LoadInt32(&hdrNoncesRequestCalled))
 	assert.Equal(t, err, process.ErrTimeIsOut)
 }
 
@@ -2066,7 +2062,7 @@ func TestShardProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
-	tdp.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
+	tdp.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		return nil
 	}
 	blkc := createTestBlockchain()

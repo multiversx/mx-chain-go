@@ -17,7 +17,7 @@ var log = logger.DefaultLogger()
 type HeaderResolver struct {
 	dataRetriever.TopicResolverSender
 	headers          storage.Cacher
-	hdrNonces        dataRetriever.Uint64Cacher
+	hdrNonces        dataRetriever.Uint64SyncMapCacher
 	hdrStorage       storage.Storer
 	hdrNoncesStorage storage.Storer
 	marshalizer      marshal.Marshalizer
@@ -28,7 +28,7 @@ type HeaderResolver struct {
 func NewHeaderResolver(
 	senderResolver dataRetriever.TopicResolverSender,
 	headers storage.Cacher,
-	headersNonces dataRetriever.Uint64Cacher,
+	headersNonces dataRetriever.Uint64SyncMapCacher,
 	hdrStorage storage.Storer,
 	headersNoncesStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
@@ -54,7 +54,7 @@ func NewHeaderResolver(
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
 	if nonceConverter == nil {
-		return nil, dataRetriever.ErrNilNonceConverter
+		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
 
 	hdrResolver := &HeaderResolver{
@@ -108,9 +108,20 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 	}
 
 	//Step 2. search the nonce-key pair first in datapool, second in storage
-	value, _ := hdrRes.hdrNonces.Get(nonce)
-	hash, ok := value.([]byte)
-	if hash == nil || !ok {
+	value, ok := hdrRes.hdrNonces.Get(nonce)
+	var hash []byte
+	if ok {
+		value.Range(func(shardId uint32, existingHash []byte) bool {
+			if shardId == hdrRes.TargetShardID() {
+				hash = existingHash
+				return false
+			}
+
+			return true
+		})
+	}
+
+	if hash == nil {
 		hash, err = hdrRes.hdrNoncesStorage.Get(key)
 		if err != nil {
 			log.Debug(err.Error())
@@ -121,19 +132,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 		}
 	}
 
-	//Step 3. search header by key (hash)
-	value, ok = hdrRes.headers.Peek(hash)
-	if !ok {
-		return hdrRes.hdrStorage.Get(hash)
-	}
-
-	//since there might be multiple entries, it shall return the first one that it finds
-	buff, err := hdrRes.marshalizer.Marshal(value)
-	if err != nil {
-		return nil, err
-	}
-
-	return buff, nil
+	return hdrRes.resolveHeaderFromHash(hash)
 }
 
 // resolveHeaderFromHash resolves a header using its key (header hash)

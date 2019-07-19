@@ -124,3 +124,9 @@ var ErrUnknownShardId = errors.New("shard id is not valid")
 
 // ErrNilAddressConverter signals that a nil address converter has been provided
 var ErrNilAddressConverter = errors.New("nil address converter")
+
+//ErrBech32ConvertError signals that conversion the 5bit alphabet to 8bit failed
+var ErrBech32ConvertError = errors.New("can't convert bech32 string")
+
+// ErrBech32WrongAddr signals that the string provided might not be in bech32 format
+var ErrBech32WrongAddr = errors.New("wrong bech32 string")

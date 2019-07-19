@@ -23,6 +23,7 @@ func TestNewTopicResolverSender_NilMessengerShouldErr(t *testing.T) {
 		"",
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
+		0,
 	)
 
 	assert.Nil(t, trs)
@@ -38,6 +39,7 @@ func TestNewTopicResolverSender_NilMarshalizerShouldErr(t *testing.T) {
 		"",
 		nil,
 		&mock.IntRandomizerMock{},
+		0,
 	)
 
 	assert.Nil(t, trs)
@@ -53,6 +55,7 @@ func TestNewTopicResolverSender_NilRandomizerShouldErr(t *testing.T) {
 		"",
 		&mock.MarshalizerMock{},
 		nil,
+		0,
 	)
 
 	assert.Nil(t, trs)
@@ -68,6 +71,7 @@ func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
 		"",
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
+		0,
 	)
 
 	assert.NotNil(t, trs)
@@ -91,6 +95,7 @@ func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *test
 			},
 		},
 		&mock.IntRandomizerMock{},
+		0,
 	)
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
@@ -111,6 +116,7 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 		"",
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
+		0,
 	)
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
@@ -141,6 +147,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 		"",
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
+		0,
 	)
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
@@ -173,6 +180,7 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 		"",
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
+		0,
 	)
 
 	err := trs.Send(buffToSend, pID1)

@@ -22,11 +22,9 @@ func NewMemoryMessenger(
 	if ctx == nil {
 		return nil, p2p.ErrNilContext
 	}
-
 	if mockNet == nil {
 		return nil, p2p.ErrNilMockNet
 	}
-
 	if peerDiscoverer == nil {
 		return nil, p2p.ErrNilPeerDiscoverer
 	}
@@ -57,7 +55,8 @@ func NewMemoryMessenger(
 
 // NewNetworkMessengerOnFreePort tries to create a new NetworkMessenger on a free port found in the system
 // Should be used only in testing!
-func NewNetworkMessengerOnFreePort(ctx context.Context,
+func NewNetworkMessengerOnFreePort(
+	ctx context.Context,
 	p2pPrivKey libp2pCrypto.PrivKey,
 	conMgr connmgr.ConnManager,
 	outgoingPLB p2p.ChannelLoadBalancer,
