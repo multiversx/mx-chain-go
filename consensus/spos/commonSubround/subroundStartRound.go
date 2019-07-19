@@ -164,6 +164,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	if leader == sr.SelfPubKey() {
 		//TODO: Should be analyzed if call of sr.broadcastUnnotarisedBlocks() is still necessary
+		sr.BlockSizeThrottler().ComputeMaxItems()
 	}
 
 	// execute stored messages which were received in this new round but before this initialisation

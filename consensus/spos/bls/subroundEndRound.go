@@ -97,6 +97,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	}
 
 	sr.BlocksTracker().SetBlockBroadcastRound(sr.Header.GetNonce(), sr.RoundIndex)
+	sr.BlockSizeThrottler().Succeed(uint64(sr.RoundIndex))
 
 	log.Info(fmt.Sprintf("%sStep 3: BlockBody and Header has been committed and broadcast\n", sr.SyncTimer().FormattedCurrentTime()))
 

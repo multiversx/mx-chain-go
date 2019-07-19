@@ -14,6 +14,7 @@ import (
 type ConsensusCoreMock struct {
 	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
+	blockSizeThrottler     process.BlockSizeThrottler
 	blocksTracker          process.BlocksTracker
 	bootstrapper           process.Bootstrapper
 	broadcastMessenger     consensus.BroadcastMessenger
@@ -35,6 +36,10 @@ func (cdc *ConsensusCoreMock) Blockchain() data.ChainHandler {
 
 func (cdc *ConsensusCoreMock) BlockProcessor() process.BlockProcessor {
 	return cdc.blockProcessor
+}
+
+func (cdc *ConsensusCoreMock) BlockSizeThrottler() process.BlockSizeThrottler {
+	return cdc.blockSizeThrottler
 }
 
 func (cdc *ConsensusCoreMock) BlocksTracker() process.BlocksTracker {

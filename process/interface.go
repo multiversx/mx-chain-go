@@ -282,5 +282,7 @@ type TemporaryAccountsHandler interface {
 // block to its peers which should be received in a limited time frame
 type BlockSizeThrottler interface {
 	MaxItemsToAdd() uint32
-	Update(succeeded bool, round uint64, items uint32)
+	Add(round uint64, items uint32)
+	Succeed(round uint64)
+	ComputeMaxItems()
 }

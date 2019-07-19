@@ -1,8 +1,10 @@
 package mock
 
 type BlockSizeThrottlerStub struct {
-	MaxItemsToAddCalled func() uint32
-	UpdateCalled        func(succeeded bool, round uint64, items uint32)
+	MaxItemsToAddCalled   func() uint32
+	AddCalled             func(round uint64, items uint32)
+	SucceedCalled         func(round uint64)
+	ComputeMaxItemsCalled func()
 }
 
 func (bsts *BlockSizeThrottlerStub) MaxItemsToAdd() uint32 {
@@ -13,8 +15,23 @@ func (bsts *BlockSizeThrottlerStub) MaxItemsToAdd() uint32 {
 	return 15000
 }
 
-func (bsts *BlockSizeThrottlerStub) Update(succeeded bool, round uint64, items uint32) {
-	if bsts.UpdateCalled != nil {
-		bsts.UpdateCalled(succeeded, round, items)
+func (bsts *BlockSizeThrottlerStub) Add(round uint64, items uint32) {
+	if bsts.AddCalled != nil {
+		bsts.AddCalled(round, items)
+		return
+	}
+}
+
+func (bsts *BlockSizeThrottlerStub) Succeed(round uint64) {
+	if bsts.SucceedCalled != nil {
+		bsts.SucceedCalled(round)
+		return
+	}
+}
+
+func (bsts *BlockSizeThrottlerStub) ComputeMaxItems() {
+	if bsts.ComputeMaxItemsCalled != nil {
+		bsts.ComputeMaxItemsCalled()
+		return
 	}
 }
