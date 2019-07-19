@@ -6,6 +6,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+type TimeStamp struct {
+	Epoch uint64
+	Round uint64
+}
+
+type TimePeriod struct {
+	StartTime TimeStamp
+	EndTime   TimeStamp
+}
+
+type SignRate struct {
+	NrSuccess uint32
+	NrFailure uint32
+}
+
 // PeerAccount is the struct used in serialization/deserialization
 type PeerAccount struct {
 	BLSPublicKey     []byte
@@ -13,17 +28,15 @@ type PeerAccount struct {
 	Address          []byte
 	Stake            *big.Int
 
-	JailTime      uint64
-	PastJailTimes uint64
+	JailTime      TimePeriod
+	PastJailTimes []TimePeriod
 
 	CurrentShardId    uint32
 	NextShardId       uint32
 	NodeInWaitingList bool
 
-	Uptime            uint64
-	NrSignedBlocks    uint32
-	NrMissedBlocks    uint32
-	LeaderSuccessRate uint32
+	ValidatorSuccessRate SignRate
+	LeaderSuccessRate    SignRate
 
 	Rating   uint32
 	RootHash []byte
@@ -109,52 +122,27 @@ func (a *PeerAccount) GetNonce() uint64 {
 	return a.Nonce
 }
 
-// SetBalanceWithJournal sets the account's balance, saving the old balance before changing
-func (a *PeerAccount) SetBalanceWithJournal(balance *big.Int) error {
-	entry, err := NewJournalEntryBalance(a, a.Balance)
-	if err != nil {
-		return err
-	}
-
-	a.accountTracker.Journalize(entry)
-	a.Balance = balance
-
-	return a.accountTracker.SaveAccount(a)
-}
-
-//------- code / code hash
-
 // GetCodeHash returns the code hash associated with this account
 func (a *PeerAccount) GetCodeHash() []byte {
-	return a.CodeHash
+	return nil
 }
 
 // SetCodeHash sets the code hash associated with the account
 func (a *PeerAccount) SetCodeHash(codeHash []byte) {
-	a.CodeHash = codeHash
 }
 
 // SetCodeHashWithJournal sets the account's code hash, saving the old code hash before changing
 func (a *PeerAccount) SetCodeHashWithJournal(codeHash []byte) error {
-	entry, err := NewBaseJournalEntryCodeHash(a, a.CodeHash)
-	if err != nil {
-		return err
-	}
-
-	a.accountTracker.Journalize(entry)
-	a.CodeHash = codeHash
-
-	return a.accountTracker.SaveAccount(a)
+	return nil
 }
 
 // GetCode gets the actual code that needs to be run in the VM
 func (a *PeerAccount) GetCode() []byte {
-	return a.code
+	return nil
 }
 
 // SetCode sets the actual code that needs to be run in the VM
 func (a *PeerAccount) SetCode(code []byte) {
-	a.code = code
 }
 
 //------- data trie / root hash
@@ -197,4 +185,175 @@ func (a *PeerAccount) DataTrieTracker() DataTrieTracker {
 	return a.dataTrieTracker
 }
 
-//TODO add Cap'N'Proto converter funcs
+// SetAddressWithJournal sets the account's address, saving the old address before changing
+func (a *PeerAccount) SetAddressWithJournal(address []byte) error {
+	entry, err := NewJournalEntryAddress(a, a.Address)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.Address = address
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// SetSchnorrPublicKeyWithJournal sets the account's address, saving the old address before changing
+func (a *PeerAccount) SetSchnorrPublicKeyWithJournal(pubKey []byte) error {
+	entry, err := NewJournalEntrySchnorrPublicKey(a, a.SchnorrPublicKey)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.SchnorrPublicKey = pubKey
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// SetSchnorrPublicKeyWithJournal sets the account's address, saving the old address before changing
+func (a *PeerAccount) SetBLSPublicKeyWithJournal(pubKey []byte) error {
+	entry, err := NewJournalEntryBLSPublicKey(a, a.BLSPublicKey)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.BLSPublicKey = pubKey
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// SetStakeWithJournal sets the account's stake, saving the old stake before changing
+func (a *PeerAccount) SetStakeWithJournal(stake *big.Int) error {
+	entry, err := NewJournalEntryStake(a, a.Stake)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.Stake = stake
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// SetJailTimeWithJournal sets the account's jail time, saving the old state before changing
+func (a *PeerAccount) SetJailTimeWithJournal(jailTime TimePeriod) error {
+	entry, err := NewJournalEntryJailTime(a, a.JailTime)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.JailTime = jailTime
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// SetCurrentShardIdWithJournal sets the account's shard id, saving the old state before changing
+func (a *PeerAccount) SetCurrentShardIdWithJournal(shId uint32) error {
+	entry, err := NewJournalEntryCurrentShardId(a, a.CurrentShardId)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.CurrentShardId = shId
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// SetNextShardIdWithJournal sets the account's shard id, saving the old state before changing
+func (a *PeerAccount) SetNextShardIdWithJournal(shId uint32) error {
+	entry, err := NewJournalEntryNexttShardId(a, a.NextShardId)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.NextShardId = shId
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// SetNodeInWaitingListWithJournal sets the account's nodes status whether in waiting list, saving the old state before
+func (a *PeerAccount) SetNodeInWaitingListWithJournal(nodeInWaitingList bool) error {
+	entry, err := NewJournalEntryNodeInWaitingList(a, a.NodeInWaitingList)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.NodeInWaitingList = nodeInWaitingList
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// IncreaseValidatorSuccessRateWithJournal increases the account's number of successful signing,
+// saving the old state before changing
+func (a *PeerAccount) IncreaseValidatorSuccessRateWithJournal() error {
+	entry, err := NewJournalEntryValidatorSuccessRate(a, a.ValidatorSuccessRate)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.ValidatorSuccessRate.NrSuccess++
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// DecreaseValidatorSuccessRateWithJournal increases the account's number of missed signing,
+// saving the old state before changing
+func (a *PeerAccount) DecreaseValidatorSuccessRateWithJournal() error {
+	entry, err := NewJournalEntryValidatorSuccessRate(a, a.ValidatorSuccessRate)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.ValidatorSuccessRate.NrFailure--
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// IncreaseLeaderSuccessRateWithJournal increases the account's number of successful signing,
+// saving the old state before changing
+func (a *PeerAccount) IncreaseLeaderSuccessRateWithJournal() error {
+	entry, err := NewJournalEntryValidatorSuccessRate(a, a.LeaderSuccessRate)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.LeaderSuccessRate.NrSuccess++
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// DecreaseLeaderSuccessRateWithJournal increases the account's number of missing signing,
+// saving the old state before changing
+func (a *PeerAccount) DecreaseLeaderSuccessRateWithJournal() error {
+	entry, err := NewJournalEntryValidatorSuccessRate(a, a.LeaderSuccessRate)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.LeaderSuccessRate.NrFailure++
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// SetRatingWithJournal sets the account's rating id, saving the old state before changing
+func (a *PeerAccount) SetRatingWithJournal(rating uint32) error {
+	entry, err := NewJournalEntryRating(a, a.Rating)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.Rating = rating
+
+	return a.accountTracker.SaveAccount(a)
+}
