@@ -1,12 +1,12 @@
 package commonSubround
 
 import (
-	"encoding/base64"
 	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -86,6 +86,10 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		!sr.sendBlockHeader() {
 		return false
 	}
+
+	sr.BlockSizeThrottler().Add(
+		uint64(sr.RoundIndex),
+		core.Max(sr.Header.ItemsInBody(), sr.Header.ItemsInHeader()))
 
 	err := sr.SetSelfJobDone(sr.Current(), true)
 	if err != nil {
@@ -174,7 +178,7 @@ func (sr *SubroundBlock) sendBlockHeader() bool {
 	}
 
 	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been sent\n",
-		sr.SyncTimer().FormattedCurrentTime(), hdr.GetNonce(), toB64(hdrHash)))
+		sr.SyncTimer().FormattedCurrentTime(), hdr.GetNonce(), core.ToB64(hdrHash)))
 
 	sr.Data = hdrHash
 	sr.Header = hdr
@@ -285,7 +289,7 @@ func (sr *SubroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 	}
 
 	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been received\n",
-		sr.SyncTimer().FormattedCurrentTime(), sr.Header.GetNonce(), toB64(cnsDta.BlockHeaderHash)))
+		sr.SyncTimer().FormattedCurrentTime(), sr.Header.GetNonce(), core.ToB64(cnsDta.BlockHeaderHash)))
 
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 
@@ -384,13 +388,4 @@ func (sr *SubroundBlock) isBlockReceived(threshold int) bool {
 	}
 
 	return n >= threshold
-}
-
-// toB64 convert a byte array to a base64 string
-func toB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-
-	return base64.StdEncoding.EncodeToString(buff)
 }

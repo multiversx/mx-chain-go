@@ -36,6 +36,8 @@ type HeaderHandler interface {
 	SetMiniBlockProcessed(hash []byte, processed bool)
 
 	IsInterfaceNil() bool
+	ItemsInBody() uint32
+	ItemsInHeader() uint32
 }
 
 // BodyHandler interface for a block body

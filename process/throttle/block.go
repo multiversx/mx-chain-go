@@ -1,13 +1,20 @@
 package throttle
 
 import (
+	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 var log = logger.DefaultLogger()
+
+const jumpAbovePercent = 90
+const jumpBelowPercent = 90
+const jumpAboveFactor = 0.5
+const jumpBelowFactor = 0.5
 
 type blockInfo struct {
 	succeed  bool
@@ -64,5 +71,71 @@ func (bst *blockSizeThrottle) Succeed(round uint64) {
 // ComputeMaxItems computes the max items which could be added in one block, taking into consideration the previous
 // results
 func (bst *blockSizeThrottle) ComputeMaxItems() {
-	log.Info("maximum number of items which could be added in one block is %d", bst.maxItems)
+	//TODO: This algorithm is now something basic and could be improved
+	bst.mutThrottler.Lock()
+	defer func() {
+		log.Info(fmt.Sprintf("max number of items which could be added in one block is %d\n", bst.maxItems))
+		bst.mutThrottler.Unlock()
+	}()
+
+	if len(bst.statistics) == 0 {
+		return
+	}
+
+	lastActionSucceed := bst.statistics[len(bst.statistics)-1].succeed
+	lastActionMaxItems := bst.statistics[len(bst.statistics)-1].maxItems
+
+	if lastActionSucceed {
+		bst.maxItems = bst.getMaxItemsWhenSucceed(lastActionMaxItems)
+	} else {
+		bst.maxItems = bst.getMaxItemsWhenNotSucceed(lastActionMaxItems)
+	}
+}
+
+func (bst *blockSizeThrottle) getMaxItemsWhenSucceed(lastActionMaxItems uint32) uint32 {
+	if lastActionMaxItems == process.MaxItemsInBlock {
+		return lastActionMaxItems
+	}
+
+	noOfItemsUsedWhichNotSucceed := bst.getCloserAboveUsedMaxItemsWithoutSucceed(lastActionMaxItems)
+	if lastActionMaxItems*100/noOfItemsUsedWhichNotSucceed > jumpAbovePercent {
+		return noOfItemsUsedWhichNotSucceed
+	}
+
+	increasedNoOfItems := core.Max(1, uint32(float32(noOfItemsUsedWhichNotSucceed-lastActionMaxItems)*jumpAboveFactor))
+	return lastActionMaxItems + increasedNoOfItems
+}
+
+func (bst *blockSizeThrottle) getCloserAboveUsedMaxItemsWithoutSucceed(currentMaxItems uint32) uint32 {
+	for i := len(bst.statistics) - 1; i > 0; i-- {
+		if !bst.statistics[i].succeed && bst.statistics[i].maxItems > currentMaxItems {
+			return bst.statistics[i].maxItems
+		}
+	}
+
+	return process.MaxItemsInBlock
+}
+
+func (bst *blockSizeThrottle) getMaxItemsWhenNotSucceed(lastActionMaxItems uint32) uint32 {
+	if lastActionMaxItems == 0 {
+		return lastActionMaxItems
+	}
+
+	noOfItemsUsedWhichSucceed := bst.getCloserBelowUsedMaxItemsWithSucceed(lastActionMaxItems)
+	if noOfItemsUsedWhichSucceed*100/lastActionMaxItems > jumpBelowPercent {
+		return noOfItemsUsedWhichSucceed
+	}
+
+	decreasedNoOfItems := core.Max(1, uint32(float32(lastActionMaxItems-noOfItemsUsedWhichSucceed)*jumpBelowFactor))
+	return lastActionMaxItems - decreasedNoOfItems
+}
+
+func (bst *blockSizeThrottle) getCloserBelowUsedMaxItemsWithSucceed(currentMaxItems uint32) uint32 {
+	for i := len(bst.statistics) - 1; i > 0; i-- {
+		if bst.statistics[i].succeed && bst.statistics[i].maxItems < currentMaxItems {
+			return bst.statistics[i].maxItems
+		}
+	}
+
+	return 0
 }

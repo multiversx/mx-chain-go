@@ -466,3 +466,18 @@ func (mb *MetaBlock) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+func (h *MetaBlock) ItemsInHeader() uint32 {
+	itemsInHeader := len(h.ShardInfo)
+	for i := 0; i < len(h.ShardInfo); i++ {
+		itemsInHeader += len(h.ShardInfo[i].ShardMiniBlockHeaders)
+	}
+
+	itemsInHeader += len(h.PeerInfo)
+
+	return uint32(itemsInHeader)
+}
+
+func (h *MetaBlock) ItemsInBody() uint32 {
+	return 0
+}

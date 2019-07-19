@@ -1131,8 +1131,8 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			break
 		}
 
-		recordsAddedInHeader := uint32(len(usedMetaHdrsHashes) + len(miniBlocks))
-		if recordsAddedInHeader >= sp.blockSizeThrottler.MaxItemsToAdd() {
+		itemsAddedInHeader := uint32(len(usedMetaHdrsHashes) + len(miniBlocks))
+		if itemsAddedInHeader >= sp.blockSizeThrottler.MaxItemsToAdd() {
 			log.Info(fmt.Sprintf("max records allowed to be added in shard header has been reached\n"))
 			break
 		}
@@ -1158,13 +1158,13 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			continue
 		}
 
-		recordsAddedInBody := nrTxAdded
-		if recordsAddedInBody >= sp.blockSizeThrottler.MaxItemsToAdd() {
+		itemsAddedInBody := nrTxAdded
+		if itemsAddedInBody >= sp.blockSizeThrottler.MaxItemsToAdd() {
 			continue
 		}
 
-		maxTxSpaceRemained := int32(sp.blockSizeThrottler.MaxItemsToAdd()) - int32(recordsAddedInBody)
-		maxMbSpaceRemained := int32(sp.blockSizeThrottler.MaxItemsToAdd()) - int32(recordsAddedInHeader) - 1
+		maxTxSpaceRemained := int32(sp.blockSizeThrottler.MaxItemsToAdd()) - int32(itemsAddedInBody)
+		maxMbSpaceRemained := int32(sp.blockSizeThrottler.MaxItemsToAdd()) - int32(itemsAddedInHeader) - 1
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 			currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(

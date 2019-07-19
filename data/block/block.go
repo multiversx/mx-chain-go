@@ -519,3 +519,12 @@ func (h *Header) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+func (h *Header) ItemsInHeader() uint32 {
+	itemsInHeader := len(h.MiniBlockHeaders) + len(h.PeerChanges) + len(h.MetaBlockHashes)
+	return uint32(itemsInHeader)
+}
+
+func (h *Header) ItemsInBody() uint32 {
+	return h.TxCount
+}
