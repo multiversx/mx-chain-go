@@ -7,17 +7,25 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1023,6 +1031,80 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 
 	adbPrintAccount(acntSrc.(*state.Account), "Source")
 	adbPrintAccount(acntDest.(*state.Account), "Destination")
+}
+
+func TestAccountsDB_CreateOneMillionAccounts(t *testing.T) {
+	t.Parallel()
+
+	nrOfAccounts := 1000000
+	nrTxs := 15000
+	txVal := 100
+
+	var rtm runtime.MemStats
+	marsh := &marshal.JsonMarshalizer{}
+	hasher := sha256.Sha256{}
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+	persist := mock2.NewCountingDB()
+	store, _ := storageUnit.NewStorageUnit(cache, persist)
+
+	tr, _ := trie.NewTrie(store, marsh, hasher)
+	adb, _ := state.NewAccountsDB(tr, hasher, marsh, &accountFactory{})
+
+	shardCoordinator := mock2.NewMultiShardsCoordinatorMock(1)
+	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
+	txProcessor, _ := transaction.NewTxProcessor(adb, hasher, addrConv, marsh, shardCoordinator, &mock2.SCProcessorMock{})
+
+	addr := make([]state.AddressContainer, nrOfAccounts)
+	for i := 0; i < nrOfAccounts; i++ {
+		addr[i] = createDummyAddress()
+	}
+
+	for i := 0; i < nrOfAccounts; i++ {
+		account, err := adb.GetAccountWithJournal(addr[i])
+		assert.Nil(t, err)
+
+		err = account.(*state.Account).SetBalanceWithJournal(big.NewInt(int64(nrTxs * txVal)))
+		assert.Nil(t, err)
+	}
+
+	runtime.ReadMemStats(&rtm)
+	fmt.Printf("Before commit: go mem - %s, sys mem - %s \n",
+		core.ConvertBytes(rtm.Alloc),
+		core.ConvertBytes(rtm.Sys),
+	)
+
+	adb.Commit()
+	fmt.Println("Total nr. of nodes in trie: ", persist.GetCounter())
+	persist.Reset()
+
+	runtime.GC()
+
+	runtime.ReadMemStats(&rtm)
+	fmt.Printf("After commit: go mem - %s, sys mem - %s \n",
+		core.ConvertBytes(rtm.Alloc),
+		core.ConvertBytes(rtm.Sys),
+	)
+
+	for i := 0; i < nrTxs; i++ {
+		sender := rand.Intn(nrOfAccounts)
+		receiver := rand.Intn(nrOfAccounts)
+		for sender == receiver {
+			receiver = rand.Intn(nrOfAccounts)
+		}
+
+		tx := &transaction2.Transaction{
+			Nonce:   1,
+			Value:   big.NewInt(int64(txVal)),
+			SndAddr: addr[sender].Bytes(),
+			RcvAddr: addr[receiver].Bytes(),
+		}
+
+		err := txProcessor.ProcessTransaction(tx, 0)
+		assert.Nil(t, err)
+	}
+
+	adb.Commit()
+	fmt.Printf("Nr. of modified nodes after %v txs: %v \n", nrTxs, persist.GetCounter())
 }
 
 func BenchmarkTxExecution(b *testing.B) {
