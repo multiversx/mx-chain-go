@@ -279,11 +279,14 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 }
 
 // CheckFork method checks if the node could be on the fork
-func (bfd *basicForkDetector) CheckFork() (bool, uint64) {
+func (bfd *basicForkDetector) CheckFork() (bool, uint64, []byte) {
 	var lowestForkNonce uint64
+	var hashOfLowestForkNonce []byte
 	var lowestRoundInForkNonce uint32
+	var forkHeaderHash []byte
 	var selfHdrInfo *headerInfo
 	lowestForkNonce = math.MaxUint64
+	hashOfLowestForkNonce = nil
 	forkDetected := false
 
 	bfd.mutHeaders.Lock()
@@ -294,6 +297,7 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64) {
 
 		selfHdrInfo = nil
 		lowestRoundInForkNonce = math.MaxUint32
+		forkHeaderHash = nil
 
 		for i := 0; i < len(hdrInfos); i++ {
 			// Proposed blocks received do not count for fork choice, as they are not valid until the consensus
@@ -308,6 +312,7 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64) {
 
 			if hdrInfos[i].round < lowestRoundInForkNonce {
 				lowestRoundInForkNonce = hdrInfos[i].round
+				forkHeaderHash = hdrInfos[i].hash
 			}
 		}
 
@@ -326,11 +331,12 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64) {
 		forkDetected = true
 		if nonce < lowestForkNonce {
 			lowestForkNonce = nonce
+			hashOfLowestForkNonce = forkHeaderHash
 		}
 	}
 	bfd.mutHeaders.Unlock()
 
-	return forkDetected, lowestForkNonce
+	return forkDetected, lowestForkNonce, hashOfLowestForkNonce
 }
 
 // GetHighestFinalBlockNonce gets the highest nonce of the block which is final and it can not be reverted anymore
