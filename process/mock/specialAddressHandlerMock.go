@@ -2,8 +2,23 @@ package mock
 
 type SpecialAddressHandlerMock struct {
 	ElrondCommunityAddressCalled func() []byte
-	OwnAddressCalled             func() []byte
+	LeaderAddressCalled          func() []byte
+	BurnAddressCalled            func() []byte
 	ShardIdForAddressCalled      func([]byte) uint32
+}
+
+func (sh *SpecialAddressHandlerMock) SetElrondCommunityAddress(elrond []byte) {
+}
+
+func (sh *SpecialAddressHandlerMock) SetLeaderAddress(leader []byte) {
+}
+
+func (sh *SpecialAddressHandlerMock) BurnAddress() []byte {
+	if sh.BurnAddressCalled == nil {
+		return []byte("burn")
+	}
+
+	return sh.BurnAddressCalled()
 }
 
 func (sh *SpecialAddressHandlerMock) ElrondCommunityAddress() []byte {
@@ -15,11 +30,11 @@ func (sh *SpecialAddressHandlerMock) ElrondCommunityAddress() []byte {
 }
 
 func (sh *SpecialAddressHandlerMock) LeaderAddress() []byte {
-	if sh.OwnAddressCalled == nil {
+	if sh.LeaderAddressCalled == nil {
 		return []byte("leader")
 	}
 
-	return sh.OwnAddressCalled()
+	return sh.LeaderAddressCalled()
 }
 
 func (sh *SpecialAddressHandlerMock) ShardIdForAddress(addr []byte) uint32 {

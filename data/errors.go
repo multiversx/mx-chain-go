@@ -31,8 +31,8 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 // ErrNilElrondAddress signals that nil elrond address was provided
 var ErrNilElrondAddress = errors.New("nil elrond address")
 
-// ErrNilOwnAddress signals that nil own address was provided
-var ErrNilOwnAddress = errors.New("nil own address")
+// ErrNilBurnAddress signals that nil burn address was provided
+var ErrNilBurnAddress = errors.New("nil burn address")
 
 // ErrNilAddressConverter signals that nil address converter was provided
 var ErrNilAddressConverter = errors.New("nil address converter")

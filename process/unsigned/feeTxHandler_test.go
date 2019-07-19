@@ -163,12 +163,13 @@ func TestFeeTxHandler_CreateAllUTxs(t *testing.T) {
 	th.AddProcessedUTx(&feeTx.FeeTx{Value: currTxFee})
 
 	txs = th.CreateAllUTxs()
-	assert.Equal(t, 2, len(txs))
+	assert.Equal(t, 3, len(txs))
 
 	totalSum := txs[0].GetValue().Uint64()
 	totalSum += txs[1].GetValue().Uint64()
+	totalSum += txs[2].GetValue().Uint64()
 
-	assert.Equal(t, currTxFee.Uint64()/2, totalSum)
+	assert.Equal(t, currTxFee.Uint64(), totalSum)
 }
 
 func TestFeeTxHandler_VerifyCreatedUTxs(t *testing.T) {
@@ -215,6 +216,7 @@ func TestFeeTxHandler_VerifyCreatedUTxs(t *testing.T) {
 	th.AddProcessedUTx(&feeTx.FeeTx{Value: currTxFee})
 	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()})
 	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: big.NewInt(20), RcvAddr: addr.LeaderAddress()})
+	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: big.NewInt(25), RcvAddr: addr.BurnAddress()})
 
 	err = th.VerifyCreatedUTxs()
 	assert.Nil(t, err)

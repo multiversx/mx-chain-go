@@ -8,7 +8,8 @@ import (
 
 type specialAddresses struct {
 	elrond           []byte
-	ownAddress       []byte
+	leaderAddress    []byte
+	burnAddress      []byte
 	adrConv          state.AddressConverter
 	shardCoordinator sharding.Coordinator
 }
@@ -16,15 +17,15 @@ type specialAddresses struct {
 // NewSpecialAddressHolder creates a special address holder
 func NewSpecialAddressHolder(
 	elrond []byte,
-	ownAddress []byte,
+	burnAddress []byte,
 	adrConv state.AddressConverter,
 	shardCoordinator sharding.Coordinator,
 ) (*specialAddresses, error) {
 	if elrond == nil {
 		return nil, data.ErrNilElrondAddress
 	}
-	if ownAddress == nil {
-		return nil, data.ErrNilOwnAddress
+	if burnAddress == nil {
+		return nil, data.ErrNilBurnAddress
 	}
 	if adrConv == nil {
 		return nil, data.ErrNilAddressConverter
@@ -35,7 +36,7 @@ func NewSpecialAddressHolder(
 
 	sp := &specialAddresses{
 		elrond:           elrond,
-		ownAddress:       ownAddress,
+		burnAddress:      burnAddress,
 		adrConv:          adrConv,
 		shardCoordinator: shardCoordinator,
 	}
@@ -43,14 +44,29 @@ func NewSpecialAddressHolder(
 	return sp, nil
 }
 
+// SetElrondCommunityAddress sets elrond address
+func (sp *specialAddresses) SetElrondCommunityAddress(elrond []byte) {
+	sp.elrond = elrond
+}
+
 // ElrondCommunityAddress provides elrond address
 func (sp *specialAddresses) ElrondCommunityAddress() []byte {
 	return sp.elrond
 }
 
-// OwnAddress provides own address
+// BurnAddress provides burn address
+func (sp *specialAddresses) BurnAddress() []byte {
+	return sp.burnAddress
+}
+
+// SetLeaderAddress provides leaders address
+func (sp *specialAddresses) SetLeaderAddress(leader []byte) {
+	sp.leaderAddress = leader
+}
+
+// LeaderAddress provides leader address
 func (sp *specialAddresses) LeaderAddress() []byte {
-	return sp.ownAddress
+	return sp.leaderAddress
 }
 
 // ShardIdForAddress calculates shard id for address

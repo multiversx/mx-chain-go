@@ -12,8 +12,9 @@ import (
 	"sync"
 )
 
-const communityPercentage = 0.1 // 10 = 100%, 0 = 0%
-const leaderPercentage = 0.4    // 10 = 100%, 0 = 0%
+const communityPercentage = 0.1 // 1 = 100%, 0 = 0%
+const leaderPercentage = 0.4    // 1 = 100%, 0 = 0%
+const burnPercentage = 0.5      // 1 = 100%, 0 = 0%
 
 type feeTxHandler struct {
 	address     process.SpecialAddressHandler
@@ -154,6 +155,15 @@ func (ftxh *feeTxHandler) createLeaderTx(totalGathered *big.Int) *feeTx.FeeTx {
 	return currTx
 }
 
+func (ftxh *feeTxHandler) createBurnTx(totalGathered *big.Int) *feeTx.FeeTx {
+	currTx := &feeTx.FeeTx{}
+
+	currTx.Value = getPercentageOfValue(totalGathered, burnPercentage)
+	currTx.RcvAddr = ftxh.address.BurnAddress()
+
+	return currTx
+}
+
 func (ftxh *feeTxHandler) createCommunityTx(totalGathered *big.Int) *feeTx.FeeTx {
 	currTx := &feeTx.FeeTx{}
 
@@ -181,10 +191,12 @@ func (ftxh *feeTxHandler) CreateAllUTxs() []data.TransactionHandler {
 
 	leaderTx := ftxh.createLeaderTx(totalFee)
 	communityTx := ftxh.createCommunityTx(totalFee)
+	burnTx := ftxh.createBurnTx(totalFee)
 
 	currFeeTxs := make([]data.TransactionHandler, 0)
 	currFeeTxs = append(currFeeTxs, leaderTx)
 	currFeeTxs = append(currFeeTxs, communityTx)
+	currFeeTxs = append(currFeeTxs, burnTx)
 
 	ftxh.feeTxs = make([]*feeTx.FeeTx, 0)
 
@@ -207,11 +219,11 @@ func (ftxh *feeTxHandler) VerifyCreatedUTxs() error {
 	for _, value := range calculatedFeeTxs {
 		totalCalculatedFees = totalCalculatedFees.Add(totalCalculatedFees, value.GetValue())
 
-		commTxFromBlock, ok := ftxh.feeTxsFromBlock[string(value.GetRecvAddress())]
+		txFromBlock, ok := ftxh.feeTxsFromBlock[string(value.GetRecvAddress())]
 		if !ok {
 			return process.ErrTxsFeesDoesNotMatch
 		}
-		if commTxFromBlock.Value.Cmp(value.GetValue()) != 0 {
+		if txFromBlock.Value.Cmp(value.GetValue()) != 0 {
 			return process.ErrTxsFeesDoesNotMatch
 		}
 	}
