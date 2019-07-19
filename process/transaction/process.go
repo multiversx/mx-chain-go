@@ -87,11 +87,6 @@ func (txProc *txProcessor) ProcessTransaction(tx data.TransactionHandler, roundI
 		return process.ErrNilTransaction
 	}
 
-	currTxFee, ok := tx.(*feeTx.FeeTx)
-	if ok {
-		txProc.txFeeHandler.AddTxFeeFromBlock(currTxFee)
-	}
-
 	adrSrc, adrDst, err := txProc.getAddresses(tx)
 	if err != nil {
 		return err
@@ -104,16 +99,28 @@ func (txProc *txProcessor) ProcessTransaction(tx data.TransactionHandler, roundI
 
 	switch txType {
 	case process.MoveBalance:
-		currTx := tx.(*transaction.Transaction)
+		currTx, ok := tx.(*transaction.Transaction)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
 		return txProc.processMoveBalance(currTx, adrSrc, adrDst)
 	case process.SCDeployment:
-		currTx := tx.(*transaction.Transaction)
+		currTx, ok := tx.(*transaction.Transaction)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
 		return txProc.processSCDeployment(currTx, adrSrc, roundIndex)
 	case process.SCInvoking:
-		currTx := tx.(*transaction.Transaction)
+		currTx, ok := tx.(*transaction.Transaction)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
 		return txProc.processSCInvoking(currTx, adrSrc, adrDst, roundIndex)
 	case process.TxFee:
-		currTxFee := tx.(*feeTx.FeeTx)
+		currTxFee, ok := tx.(*feeTx.FeeTx)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
 		return txProc.processAccumulatedTxFees(currTxFee, adrSrc)
 	}
 
