@@ -187,7 +187,7 @@ func (a *PeerAccount) DataTrieTracker() DataTrieTracker {
 
 // SetAddressWithJournal sets the account's address, saving the old address before changing
 func (a *PeerAccount) SetAddressWithJournal(address []byte) error {
-	entry, err := NewJournalEntryAddress(a, a.Address)
+	entry, err := NewPeerJournalEntryAddress(a, a.Address)
 	if err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ func (a *PeerAccount) SetAddressWithJournal(address []byte) error {
 
 // SetSchnorrPublicKeyWithJournal sets the account's address, saving the old address before changing
 func (a *PeerAccount) SetSchnorrPublicKeyWithJournal(pubKey []byte) error {
-	entry, err := NewJournalEntrySchnorrPublicKey(a, a.SchnorrPublicKey)
+	entry, err := NewPeerJournalEntrySchnorrPublicKey(a, a.SchnorrPublicKey)
 	if err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func (a *PeerAccount) SetSchnorrPublicKeyWithJournal(pubKey []byte) error {
 
 // SetSchnorrPublicKeyWithJournal sets the account's address, saving the old address before changing
 func (a *PeerAccount) SetBLSPublicKeyWithJournal(pubKey []byte) error {
-	entry, err := NewJournalEntryBLSPublicKey(a, a.BLSPublicKey)
+	entry, err := NewPeerJournalEntryBLSPublicKey(a, a.BLSPublicKey)
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func (a *PeerAccount) SetBLSPublicKeyWithJournal(pubKey []byte) error {
 
 // SetStakeWithJournal sets the account's stake, saving the old stake before changing
 func (a *PeerAccount) SetStakeWithJournal(stake *big.Int) error {
-	entry, err := NewJournalEntryStake(a, a.Stake)
+	entry, err := NewPeerJournalEntryStake(a, a.Stake)
 	if err != nil {
 		return err
 	}
@@ -239,7 +239,7 @@ func (a *PeerAccount) SetStakeWithJournal(stake *big.Int) error {
 
 // SetJailTimeWithJournal sets the account's jail time, saving the old state before changing
 func (a *PeerAccount) SetJailTimeWithJournal(jailTime TimePeriod) error {
-	entry, err := NewJournalEntryJailTime(a, a.JailTime)
+	entry, err := NewPeerJournalEntryJailTime(a, a.JailTime)
 	if err != nil {
 		return err
 	}
@@ -252,7 +252,7 @@ func (a *PeerAccount) SetJailTimeWithJournal(jailTime TimePeriod) error {
 
 // SetCurrentShardIdWithJournal sets the account's shard id, saving the old state before changing
 func (a *PeerAccount) SetCurrentShardIdWithJournal(shId uint32) error {
-	entry, err := NewJournalEntryCurrentShardId(a, a.CurrentShardId)
+	entry, err := NewPeerJournalEntryCurrentShardId(a, a.CurrentShardId)
 	if err != nil {
 		return err
 	}
@@ -265,7 +265,7 @@ func (a *PeerAccount) SetCurrentShardIdWithJournal(shId uint32) error {
 
 // SetNextShardIdWithJournal sets the account's shard id, saving the old state before changing
 func (a *PeerAccount) SetNextShardIdWithJournal(shId uint32) error {
-	entry, err := NewJournalEntryNexttShardId(a, a.NextShardId)
+	entry, err := NewPeerJournalEntryNextShardId(a, a.NextShardId)
 	if err != nil {
 		return err
 	}
@@ -278,7 +278,7 @@ func (a *PeerAccount) SetNextShardIdWithJournal(shId uint32) error {
 
 // SetNodeInWaitingListWithJournal sets the account's nodes status whether in waiting list, saving the old state before
 func (a *PeerAccount) SetNodeInWaitingListWithJournal(nodeInWaitingList bool) error {
-	entry, err := NewJournalEntryNodeInWaitingList(a, a.NodeInWaitingList)
+	entry, err := NewPeerJournalEntryInWaitingList(a, a.NodeInWaitingList)
 	if err != nil {
 		return err
 	}
@@ -292,7 +292,7 @@ func (a *PeerAccount) SetNodeInWaitingListWithJournal(nodeInWaitingList bool) er
 // IncreaseValidatorSuccessRateWithJournal increases the account's number of successful signing,
 // saving the old state before changing
 func (a *PeerAccount) IncreaseValidatorSuccessRateWithJournal() error {
-	entry, err := NewJournalEntryValidatorSuccessRate(a, a.ValidatorSuccessRate)
+	entry, err := NewPeerJournalEntryValidatorSuccessRate(a, a.ValidatorSuccessRate)
 	if err != nil {
 		return err
 	}
@@ -306,7 +306,7 @@ func (a *PeerAccount) IncreaseValidatorSuccessRateWithJournal() error {
 // DecreaseValidatorSuccessRateWithJournal increases the account's number of missed signing,
 // saving the old state before changing
 func (a *PeerAccount) DecreaseValidatorSuccessRateWithJournal() error {
-	entry, err := NewJournalEntryValidatorSuccessRate(a, a.ValidatorSuccessRate)
+	entry, err := NewPeerJournalEntryValidatorSuccessRate(a, a.ValidatorSuccessRate)
 	if err != nil {
 		return err
 	}
@@ -320,7 +320,7 @@ func (a *PeerAccount) DecreaseValidatorSuccessRateWithJournal() error {
 // IncreaseLeaderSuccessRateWithJournal increases the account's number of successful signing,
 // saving the old state before changing
 func (a *PeerAccount) IncreaseLeaderSuccessRateWithJournal() error {
-	entry, err := NewJournalEntryValidatorSuccessRate(a, a.LeaderSuccessRate)
+	entry, err := NewPeerJournalEntryLeaderSuccessRate(a, a.LeaderSuccessRate)
 	if err != nil {
 		return err
 	}
@@ -334,7 +334,7 @@ func (a *PeerAccount) IncreaseLeaderSuccessRateWithJournal() error {
 // DecreaseLeaderSuccessRateWithJournal increases the account's number of missing signing,
 // saving the old state before changing
 func (a *PeerAccount) DecreaseLeaderSuccessRateWithJournal() error {
-	entry, err := NewJournalEntryValidatorSuccessRate(a, a.LeaderSuccessRate)
+	entry, err := NewPeerJournalEntryLeaderSuccessRate(a, a.LeaderSuccessRate)
 	if err != nil {
 		return err
 	}
@@ -347,7 +347,7 @@ func (a *PeerAccount) DecreaseLeaderSuccessRateWithJournal() error {
 
 // SetRatingWithJournal sets the account's rating id, saving the old state before changing
 func (a *PeerAccount) SetRatingWithJournal(rating uint32) error {
-	entry, err := NewJournalEntryRating(a, a.Rating)
+	entry, err := NewPeerJournalEntryRating(a, a.Rating)
 	if err != nil {
 		return err
 	}
