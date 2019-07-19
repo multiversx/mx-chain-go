@@ -38,11 +38,14 @@ type PeerAccount struct {
 	ValidatorSuccessRate SignRate
 	LeaderSuccessRate    SignRate
 
+	CodeHash []byte
+
 	Rating   uint32
 	RootHash []byte
 	Nonce    uint64
 
 	addressContainer AddressContainer
+	code             []byte
 	accountTracker   AccountTracker
 	dataTrieTracker  DataTrieTracker
 }
@@ -51,10 +54,6 @@ type PeerAccount struct {
 func NewPeerAccount(
 	addressContainer AddressContainer,
 	tracker AccountTracker,
-	stake *big.Int,
-	address []byte,
-	schnorr []byte,
-	bls []byte,
 ) (*PeerAccount, error) {
 	if addressContainer == nil {
 		return nil, ErrNilAddressContainer
@@ -62,24 +61,8 @@ func NewPeerAccount(
 	if tracker == nil {
 		return nil, ErrNilAccountTracker
 	}
-	if stake == nil {
-		return nil, ErrNilStake
-	}
-	if address == nil {
-		return nil, ErrNilAddress
-	}
-	if schnorr == nil {
-		return nil, ErrNilSchnorrPublicKey
-	}
-	if bls == nil {
-		return nil, ErrNilBLSPublicKey
-	}
 
 	return &PeerAccount{
-		Stake:            big.NewInt(0).Set(stake),
-		Address:          address,
-		SchnorrPublicKey: schnorr,
-		BLSPublicKey:     bls,
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
 		dataTrieTracker:  NewTrackableDataTrie(nil),
@@ -124,28 +107,36 @@ func (a *PeerAccount) GetNonce() uint64 {
 
 // GetCodeHash returns the code hash associated with this account
 func (a *PeerAccount) GetCodeHash() []byte {
-	return nil
+	return a.CodeHash
 }
 
 // SetCodeHash sets the code hash associated with the account
 func (a *PeerAccount) SetCodeHash(codeHash []byte) {
+	a.CodeHash = codeHash
 }
 
 // SetCodeHashWithJournal sets the account's code hash, saving the old code hash before changing
 func (a *PeerAccount) SetCodeHashWithJournal(codeHash []byte) error {
-	return nil
+	entry, err := NewBaseJournalEntryCodeHash(a, a.CodeHash)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.CodeHash = codeHash
+
+	return a.accountTracker.SaveAccount(a)
 }
 
 // GetCode gets the actual code that needs to be run in the VM
 func (a *PeerAccount) GetCode() []byte {
-	return nil
+	return a.code
 }
 
 // SetCode sets the actual code that needs to be run in the VM
 func (a *PeerAccount) SetCode(code []byte) {
+	a.code = code
 }
-
-//------- data trie / root hash
 
 // GetRootHash returns the root hash associated with this account
 func (a *PeerAccount) GetRootHash() []byte {
