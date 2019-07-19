@@ -385,3 +385,14 @@ func WithBootstrapRoundIndex(bootstrapRoundIndex uint32) Option {
 		return nil
 	}
 }
+
+// WithBlockSizeThrottler sets up a blockSizeThrottler option for the Node
+func WithBlockSizeThrottler(blockSizeThrottler process.BlockSizeThrottler) Option {
+	return func(n *Node) error {
+		if blockSizeThrottler == nil {
+			return ErrNilBlockSizeThrottler
+		}
+		n.blockSizeThrottler = blockSizeThrottler
+		return nil
+	}
+}

@@ -73,6 +73,9 @@ var ErrNilMultiSig = errors.New("trying to set nil multiSigner")
 // ErrNilForkDetector signals that a nil forkdetector object has been provided
 var ErrNilForkDetector = errors.New("nil fork detector")
 
+// ErrNilBlockSizeThrottler signals that a nil blockSizeThrottler object has been provided
+var ErrNilBlockSizeThrottler = errors.New("nil block size throttler")
+
 // ErrValidatorAlreadySet signals that a topic validator has already been set
 var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
 
@@ -87,9 +90,6 @@ var ErrNilBlockHeader = errors.New("block header is nil")
 
 // ErrNilTxBlockBody is raised when a valid tx block body is expected but nil was used
 var ErrNilTxBlockBody = errors.New("tx block body is nil")
-
-// ErrNilMetaBlockHeader is raised when a valid metablock is expected but nil was provided
-var ErrNilMetaBlockHeader = errors.New("meta block header is nil")
 
 // ErrWrongTypeAssertion is raised when a type assertion occurs
 var ErrWrongTypeAssertion = errors.New("wrong type assertion: expected *block.Header")

@@ -399,6 +399,7 @@ type processComponentsFactoryArgs struct {
 	state                *State
 	network              *Network
 	coreServiceContainer serviceContainer.Core
+	blockSizeThrottler   process.BlockSizeThrottler
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -413,6 +414,7 @@ func NewProcessComponentsFactoryArgs(
 	state *State,
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
+	blockSizeThrottler process.BlockSizeThrottler,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		genesisConfig:        genesisConfig,
@@ -425,6 +427,7 @@ func NewProcessComponentsFactoryArgs(
 		state:                state,
 		network:              network,
 		coreServiceContainer: coreServiceContainer,
+		blockSizeThrottler:   blockSizeThrottler,
 	}
 }
 
@@ -479,7 +482,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	blockProcessor, blockTracker, err := newBlockProcessorAndTracker(resolversFinder, args.shardCoordinator,
-		args.data, args.core, args.state, forkDetector, shardsGenesisBlocks, args.nodesConfig, args.coreServiceContainer)
+		args.data, args.core, args.state, forkDetector, shardsGenesisBlocks, args.nodesConfig, args.coreServiceContainer,
+		args.blockSizeThrottler)
 	if err != nil {
 		return nil, err
 	}
@@ -1208,12 +1212,13 @@ func newBlockProcessorAndTracker(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
+	blockSizeThrottler process.BlockSizeThrottler,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return newShardBlockProcessorAndTracker(resolversFinder, shardCoordinator, data, core, state, forkDetector, shardsGenesisBlocks, nodesConfig, coreServiceContainer)
+		return newShardBlockProcessorAndTracker(resolversFinder, shardCoordinator, data, core, state, forkDetector, shardsGenesisBlocks, nodesConfig, coreServiceContainer, blockSizeThrottler)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return newMetaBlockProcessorAndTracker(resolversFinder, shardCoordinator, data, core, state, forkDetector, shardsGenesisBlocks, coreServiceContainer)
+		return newMetaBlockProcessorAndTracker(resolversFinder, shardCoordinator, data, core, state, forkDetector, shardsGenesisBlocks, coreServiceContainer, blockSizeThrottler)
 	}
 
 	return nil, nil, errors.New("could not create block processor and tracker")
@@ -1229,6 +1234,7 @@ func newShardBlockProcessorAndTracker(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
+	blockSizeThrottler process.BlockSizeThrottler,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1363,6 +1369,7 @@ func newShardBlockProcessorAndTracker(
 		requestHandler,
 		txCoordinator,
 		core.Uint64ByteSliceConverter,
+		blockSizeThrottler,
 	)
 	if err != nil {
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
@@ -1380,6 +1387,7 @@ func newMetaBlockProcessorAndTracker(
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
+	blockSizeThrottler process.BlockSizeThrottler,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic)
 	if err != nil {
@@ -1402,6 +1410,8 @@ func newMetaBlockProcessorAndTracker(
 		data.Store,
 		shardsGenesisBlocks,
 		requestHandler,
+		core.Uint64ByteSliceConverter,
+		blockSizeThrottler,
 	)
 	if err != nil {
 		return nil, nil, errors.New("could not create block processor: " + err.Error())

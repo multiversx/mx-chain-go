@@ -30,13 +30,14 @@ type hashAndHdr struct {
 type mapShardLastHeaders map[uint32]data.HeaderHandler
 
 type baseProcessor struct {
-	shardCoordinator sharding.Coordinator
-	accounts         state.AccountsAdapter
-	forkDetector     process.ForkDetector
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	store            dataRetriever.StorageService
-	uint64Converter  typeConverters.Uint64ByteSliceConverter
+	shardCoordinator   sharding.Coordinator
+	accounts           state.AccountsAdapter
+	forkDetector       process.ForkDetector
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	store              dataRetriever.StorageService
+	uint64Converter    typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler process.BlockSizeThrottler
 
 	mutNotarizedHdrs   sync.RWMutex
 	lastNotarizedHdrs  mapShardLastHeaders
@@ -44,8 +45,6 @@ type baseProcessor struct {
 
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
-
-	maxItemsInBlock uint32
 }
 
 func checkForNils(
@@ -454,15 +453,20 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 // checkProcessorNilParameters will check the imput parameters for nil values
 func checkProcessorNilParameters(
 	accounts state.AccountsAdapter,
+	blockSizeThrottler process.BlockSizeThrottler,
 	forkDetector process.ForkDetector,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
 	shardCoordinator sharding.Coordinator,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
 ) error {
 
 	if accounts == nil {
 		return process.ErrNilAccountsAdapter
+	}
+	if blockSizeThrottler == nil {
+		return process.ErrNilBlockSizeThrottler
 	}
 	if forkDetector == nil {
 		return process.ErrNilForkDetector
@@ -478,6 +482,9 @@ func checkProcessorNilParameters(
 	}
 	if shardCoordinator == nil {
 		return process.ErrNilShardCoordinator
+	}
+	if uint64Converter == nil {
+		return process.ErrNilUint64Converter
 	}
 
 	return nil

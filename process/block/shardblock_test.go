@@ -96,6 +96,7 @@ func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
 	assert.Nil(t, sp)
@@ -119,6 +120,7 @@ func TestNewShardProcessor_NilStoreShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Equal(t, process.ErrNilStorage, err)
 	assert.Nil(t, sp)
@@ -142,6 +144,7 @@ func TestNewShardProcessor_NilHasherShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Equal(t, process.ErrNilHasher, err)
 	assert.Nil(t, sp)
@@ -165,6 +168,7 @@ func TestNewShardProcessor_NilMarshalizerShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, sp)
@@ -188,6 +192,7 @@ func TestNewShardProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 	assert.Nil(t, sp)
@@ -211,6 +216,7 @@ func TestNewShardProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 	assert.Nil(t, sp)
@@ -234,6 +240,7 @@ func TestNewShardProcessor_NilForkDetectorShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Equal(t, process.ErrNilForkDetector, err)
 	assert.Nil(t, sp)
@@ -257,6 +264,7 @@ func TestNewShardProcessor_NilBlocksTrackerShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Equal(t, process.ErrNilBlocksTracker, err)
 	assert.Nil(t, sp)
@@ -280,6 +288,7 @@ func TestNewShardProcessor_NilRequestTransactionHandlerShouldErr(t *testing.T) {
 		nil,
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 	assert.Nil(t, sp)
@@ -306,6 +315,7 @@ func TestNewShardProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Equal(t, process.ErrNilTransactionPool, err)
 	assert.Nil(t, sp)
@@ -329,6 +339,7 @@ func TestNewShardProcessor_NilTxCoordinator(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		nil,
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Equal(t, process.ErrNilTransactionCoordinator, err)
 	assert.Nil(t, sp)
@@ -352,6 +363,7 @@ func TestNewShardProcessor_NilUint64Converter(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		nil,
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Equal(t, process.ErrNilUint64Converter, err)
 	assert.Nil(t, sp)
@@ -375,6 +387,7 @@ func TestNewShardProcessor_OkValsShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, sp)
@@ -400,6 +413,7 @@ func TestShardProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	blk := make(block.Body, 0)
 	err := sp.ProcessBlock(nil, &block.Header{}, blk, haveTime)
@@ -424,6 +438,7 @@ func TestShardProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	body := make(block.Body, 0)
 	err := sp.ProcessBlock(&blockchain.BlockChain{}, nil, body, haveTime)
@@ -448,6 +463,7 @@ func TestShardProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	err := sp.ProcessBlock(&blockchain.BlockChain{}, &block.Header{}, nil, haveTime)
 	assert.Equal(t, process.ErrNilBlockBody, err)
@@ -471,6 +487,7 @@ func TestShardProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	blk := make(block.Body, 0)
 	err := sp.ProcessBlock(&blockchain.BlockChain{}, &block.Header{}, blk, nil)
@@ -510,6 +527,7 @@ func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -571,6 +589,7 @@ func TestShardProcessor_ProcessBlockHeaderBodyMismatchShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	// should return err
@@ -675,6 +694,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.RequestHandlerMock{},
 		tc,
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	// should return err
@@ -700,6 +720,7 @@ func TestShardProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	hdr := &block.Header{
 		Nonce:         0,
@@ -733,6 +754,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	hdr := &block.Header{
 		Nonce:         0,
@@ -773,6 +795,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	hdr := &block.Header{
 		Nonce:         1,
@@ -904,6 +927,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.RequestHandlerMock{},
 		tc,
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	// should return err
@@ -990,6 +1014,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	// should return err
@@ -1069,6 +1094,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	// should return err
@@ -1152,6 +1178,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	// should return err
@@ -1237,6 +1264,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	// should return err
@@ -1378,6 +1406,7 @@ func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	// should return err
@@ -1444,6 +1473,7 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	// should return err
@@ -1535,6 +1565,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 		},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -1661,6 +1692,7 @@ func TestShardProcessor_RequestFinalMissingHeaders(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	res := sp.RequestFinalMissingHeaders()
@@ -1758,6 +1790,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	hdr.Round = 4
 
@@ -1812,6 +1845,7 @@ func TestShardProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	blk := make(block.Body, 0)
 
@@ -1865,6 +1899,7 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	blkc := createTestBlockchain()
 
@@ -1935,6 +1970,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	blkc, _ := blockchain.NewBlockChain(
@@ -2009,6 +2045,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -2061,6 +2098,7 @@ func TestShardProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	tdp.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		return nil
@@ -2178,6 +2216,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		tc,
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	blkc := createTestBlockchain()
@@ -2270,6 +2309,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	blkc := createTestBlockchain()
@@ -2312,6 +2352,7 @@ func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	bl, err := sp.CreateBlockBody(0, func() bool { return true })
 	// nil block
@@ -2347,6 +2388,7 @@ func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	haveTime := func() bool {
 		return false
@@ -2386,6 +2428,7 @@ func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	blk, err := sp.CreateBlockBody(0, haveTime)
 	assert.NotNil(t, blk)
@@ -2414,6 +2457,7 @@ func TestNode_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
@@ -2507,6 +2551,7 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.NotNil(t, sp)
 	hdr.PrevHash = hasher.Compute("prev hash")
@@ -2530,6 +2575,7 @@ func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	mbHeaders, err := bp.CreateBlockHeader(nil, 0, func() bool {
 		return true
@@ -2556,6 +2602,7 @@ func TestShardProcessor_CreateBlockHeaderShouldErrWhenMarshalizerErrors(t *testi
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	body := block.Body{
 		{
@@ -2598,6 +2645,7 @@ func TestShardProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	body := block.Body{
 		{
@@ -2648,6 +2696,7 @@ func TestShardProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T)
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	err := bp.CommitBlock(nil, nil, nil)
 	assert.NotNil(t, err)
@@ -2717,6 +2766,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		tc,
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, body)
 	assert.Nil(t, err)
@@ -2754,6 +2804,7 @@ func TestShardProcessor_MarshalizedDataWrongType(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	wr := wrongBody{}
 	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, wr)
@@ -2783,6 +2834,7 @@ func TestShardProcessor_MarshalizedDataNilInput(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	msh, mstx, err := sp.MarshalizedDataToBroadcast(nil, nil)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
@@ -2848,6 +2900,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		tc,
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, body)
@@ -2930,6 +2983,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		requestHandler,
 		tc,
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	bp.ReceivedMetaBlock(metaBlockHash)
 
@@ -2999,6 +3053,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		requestHandler,
 		tc,
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	sp.ReceivedMetaBlock(metaBlockHash)
 	assert.Equal(t, int32(0), atomic.LoadInt32(&noOfMissingMiniBlocks))
@@ -3077,10 +3132,12 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
-	miniBlockSlice, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, haveTimeReturnsBool)
+	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, haveTimeReturnsBool)
 	assert.Equal(t, err == nil, true)
 	assert.Equal(t, len(miniBlockSlice) == 0, true)
+	assert.Equal(t, len(usedMetaHdrsHashes) == 0, true)
 	assert.Equal(t, noOfTxs, uint32(0))
 }
 
@@ -3191,6 +3248,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.RequestHandlerMock{},
 		tc,
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	blockBody, err := bp.CreateMiniBlocks(1, 0, func() bool { return true })
@@ -3277,6 +3335,7 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	//create block body with first 3 miniblocks from miniblocks var
@@ -3320,6 +3379,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockHeader(t *testing.
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	err := be.RestoreBlockIntoPools(nil, nil)
 	assert.NotNil(t, err)
@@ -3344,6 +3404,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	err := sp.RestoreBlockIntoPools(&block.Header{}, nil)
@@ -3418,6 +3479,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		tc,
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	txHashes := make([][]byte, 0)
@@ -3473,6 +3535,7 @@ func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	body := make(block.Body, 0)
 	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
@@ -3506,6 +3569,7 @@ func TestShardProcessor_DecodeBlockHeader(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	hdr := &block.Header{}
 	hdr.Nonce = 1
@@ -3548,6 +3612,7 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -3670,6 +3735,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -3835,6 +3901,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -3965,6 +4032,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -4117,6 +4185,7 @@ func TestShardProcessor_CheckHeaderBodyCorrelationReceiverMissmatch(t *testing.T
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	hdr.MiniBlockHeaders[0].ReceiverShardID = body[0].ReceiverShardID + 1
@@ -4143,6 +4212,7 @@ func TestShardProcessor_CheckHeaderBodyCorrelationSenderMissmatch(t *testing.T) 
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	hdr.MiniBlockHeaders[0].SenderShardID = body[0].SenderShardID + 1
@@ -4169,6 +4239,7 @@ func TestShardProcessor_CheckHeaderBodyCorrelationTxCountMissmatch(t *testing.T)
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	hdr.MiniBlockHeaders[0].TxCount = uint32(len(body[0].TxHashes) + 1)
@@ -4195,6 +4266,7 @@ func TestShardProcessor_CheckHeaderBodyCorrelationHashMissmatch(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	hdr.MiniBlockHeaders[0].Hash = []byte("wrongHash")
@@ -4221,6 +4293,7 @@ func TestShardProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 
 	err := sp.CheckHeaderBodyCorrelation(hdr, body)

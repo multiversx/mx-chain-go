@@ -43,8 +43,8 @@ type TransactionCoordinator interface {
 	ProcessBlockTransaction(body block.Body, round uint32, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, maxTxRemaining uint32, maxMbRemaining uint32, round uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
-	CreateMbsAndProcessTransactionsFromMe(maxTxRemaining uint32, round uint32, haveTime func() bool) block.MiniBlockSlice
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
+	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint32, haveTime func() bool) block.MiniBlockSlice
 
 	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte)
 
@@ -275,4 +275,11 @@ type TemporaryAccountsHandler interface {
 	AddTempAccount(address []byte, balance *big.Int, nonce uint64)
 	CleanTempAccounts()
 	TempAccount(address []byte) state.AccountHandler
+}
+
+// BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
+// block to its peers which should be received in a limited time frame
+type BlockSizeThrottler interface {
+	MaxItemsToAdd() uint32
+	Update(succeeded bool, round uint64, items uint32)
 }

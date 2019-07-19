@@ -56,15 +56,18 @@ func NewShardProcessor(
 	requestHandler process.RequestHandler,
 	txCoordinator process.TransactionCoordinator,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	blockSizeThrottler process.BlockSizeThrottler,
 ) (*shardProcessor, error) {
 
 	err := checkProcessorNilParameters(
 		accounts,
+		blockSizeThrottler,
 		forkDetector,
 		hasher,
 		marshalizer,
 		store,
-		shardCoordinator)
+		shardCoordinator,
+		uint64Converter)
 	if err != nil {
 		return nil, err
 	}
@@ -81,19 +84,17 @@ func NewShardProcessor(
 	if txCoordinator == nil {
 		return nil, process.ErrNilTransactionCoordinator
 	}
-	if uint64Converter == nil {
-		return nil, process.ErrNilUint64Converter
-	}
 
 	base := &baseProcessor{
 		accounts:                      accounts,
+		blockSizeThrottler:            blockSizeThrottler,
 		forkDetector:                  forkDetector,
 		hasher:                        hasher,
 		marshalizer:                   marshalizer,
 		store:                         store,
 		shardCoordinator:              shardCoordinator,
-		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
 		uint64Converter:               uint64Converter,
+		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
 	}
 	err = base.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
 	if err != nil {
@@ -127,7 +128,6 @@ func NewShardProcessor(
 
 	sp.metaBlockFinality = process.MetaBlockFinality
 	sp.allNeededMetaHdrsFound = true
-	sp.maxItemsInBlock = process.MaxItemsInBlock
 
 	return &sp, nil
 }
@@ -1091,21 +1091,21 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	noShards uint32,
 	round uint32,
 	haveTime func() bool,
-) (block.MiniBlockSlice, uint32, error) {
+) (block.MiniBlockSlice, [][]byte, uint32, error) {
 
 	metaBlockCache := sp.dataPool.MetaBlocks()
 	if metaBlockCache == nil {
-		return nil, 0, process.ErrNilMetaBlockPool
+		return nil, nil, 0, process.ErrNilMetaBlockPool
 	}
 
 	miniBlockCache := sp.dataPool.MiniBlocks()
 	if miniBlockCache == nil {
-		return nil, 0, process.ErrNilMiniBlockPool
+		return nil, nil, 0, process.ErrNilMiniBlockPool
 	}
 
 	txPool := sp.dataPool.Transactions()
 	if txPool == nil {
-		return nil, 0, process.ErrNilTransactionPool
+		return nil, nil, 0, process.ErrNilTransactionPool
 	}
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
@@ -1113,14 +1113,14 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
 
 	log.Info(fmt.Sprintf("meta blocks ordered: %d\n", len(orderedMetaBlocks)))
 
 	lastMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
 
 	// do processing in order
@@ -1132,7 +1132,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		recordsAddedInHeader := uint32(len(usedMetaHdrsHashes) + len(miniBlocks))
-		if recordsAddedInHeader >= sp.maxItemsInBlock {
+		if recordsAddedInHeader >= sp.blockSizeThrottler.MaxItemsToAdd() {
 			log.Info(fmt.Sprintf("max records allowed to be added in shard header has been reached\n"))
 			break
 		}
@@ -1159,17 +1159,18 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		recordsAddedInBody := nrTxAdded
-		if recordsAddedInBody >= sp.maxItemsInBlock {
+		if recordsAddedInBody >= sp.blockSizeThrottler.MaxItemsToAdd() {
 			continue
 		}
 
-		maxTxRemaining := sp.maxItemsInBlock - recordsAddedInBody
-		maxMbRemaining := sp.maxItemsInBlock - recordsAddedInHeader - 1
-		if maxMbRemaining > 0 && maxTxRemaining > 0 {
+		maxTxSpaceRemained := int32(sp.blockSizeThrottler.MaxItemsToAdd()) - int32(recordsAddedInBody)
+		maxMbSpaceRemained := int32(sp.blockSizeThrottler.MaxItemsToAdd()) - int32(recordsAddedInHeader) - 1
+
+		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 			currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 				hdr,
-				maxTxRemaining,
-				maxMbRemaining,
+				uint32(maxTxSpaceRemained),
+				uint32(maxMbSpaceRemained),
 				round,
 				haveTime)
 
@@ -1189,11 +1190,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 	}
 
-	sp.mutUsedMetaHdrsHashes.Lock()
-	sp.usedMetaHdrsHashes[round] = usedMetaHdrsHashes
-	sp.mutUsedMetaHdrsHashes.Unlock()
-
-	return miniBlocks, nrTxAdded, nil
+	return miniBlocks, usedMetaHdrsHashes, nrTxAdded, nil
 }
 
 func (sp *shardProcessor) createMiniBlocks(
@@ -1218,10 +1215,14 @@ func (sp *shardProcessor) createMiniBlocks(
 		return nil, process.ErrNilTransactionPool
 	}
 
-	destMeMiniBlocks, txs, err := sp.createAndProcessCrossMiniBlocksDstMe(noShards, round, haveTime)
+	destMeMiniBlocks, usedMetaHdrsHashes, txs, err := sp.createAndProcessCrossMiniBlocksDstMe(noShards, round, haveTime)
 	if err != nil {
 		log.Info(err.Error())
 	}
+
+	sp.mutUsedMetaHdrsHashes.Lock()
+	sp.usedMetaHdrsHashes[round] = usedMetaHdrsHashes
+	sp.mutUsedMetaHdrsHashes.Unlock()
 
 	log.Debug(fmt.Sprintf("processed %d miniblocks and %d txs with destination in self shard\n", len(destMeMiniBlocks), txs))
 
@@ -1234,11 +1235,19 @@ func (sp *shardProcessor) createMiniBlocks(
 		return miniBlocks, nil
 	}
 
-	remainingSpace := sp.maxItemsInBlock - txs
-	mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(remainingSpace, round, haveTime)
+	maxTxSpaceRemained := int32(sp.blockSizeThrottler.MaxItemsToAdd()) - int32(txs)
+	maxMbSpaceRemained := int32(sp.blockSizeThrottler.MaxItemsToAdd()) - int32(len(destMeMiniBlocks)) - int32(len(usedMetaHdrsHashes))
 
-	if len(mbFromMe) > 0 {
-		miniBlocks = append(miniBlocks, mbFromMe...)
+	if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
+		mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
+			uint32(maxTxSpaceRemained),
+			uint32(maxMbSpaceRemained),
+			round,
+			haveTime)
+
+		if len(mbFromMe) > 0 {
+			miniBlocks = append(miniBlocks, mbFromMe...)
+		}
 	}
 
 	log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))

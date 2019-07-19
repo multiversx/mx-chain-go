@@ -33,8 +33,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	ielecommon "github.com/ElrondNetwork/elrond-vm/iele/common"
@@ -511,8 +513,14 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
+	if err != nil {
+		return err
+	}
+
 	processArgs := factory.NewProcessComponentsFactoryArgs(genesisConfig, nodesConfig, syncer, shardCoordinator,
-		dataComponents, coreComponents, cryptoComponents, stateComponents, networkComponents, coreServiceContainer)
+		dataComponents, coreComponents, cryptoComponents, stateComponents, networkComponents, coreServiceContainer,
+		blockSizeThrottler)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
 		return err
@@ -533,6 +541,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		processComponents,
 		networkComponents,
 		uint32(ctx.GlobalUint(bootstrapRoundIndex.Name)),
+		blockSizeThrottler,
 	)
 	if err != nil {
 		return err
@@ -750,6 +759,7 @@ func createNode(
 	process *factory.Process,
 	network *factory.Network,
 	bootstrapRoundIndex uint32,
+	blockSizeThrottler process.BlockSizeThrottler,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -788,6 +798,7 @@ func createNode(
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
+		node.WithBlockSizeThrottler(blockSizeThrottler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

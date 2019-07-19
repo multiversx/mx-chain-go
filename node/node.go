@@ -75,15 +75,16 @@ type Node struct {
 	heartbeatMonitor         *heartbeat.Monitor
 	heartbeatSender          *heartbeat.Sender
 
-	txSignPrivKey  crypto.PrivateKey
-	txSignPubKey   crypto.PublicKey
-	pubKey         crypto.PublicKey
-	privKey        crypto.PrivateKey
-	keyGen         crypto.KeyGenerator
-	singleSigner   crypto.SingleSigner
-	txSingleSigner crypto.SingleSigner
-	multiSigner    crypto.MultiSigner
-	forkDetector   process.ForkDetector
+	txSignPrivKey      crypto.PrivateKey
+	txSignPubKey       crypto.PublicKey
+	pubKey             crypto.PublicKey
+	privKey            crypto.PrivateKey
+	keyGen             crypto.KeyGenerator
+	singleSigner       crypto.SingleSigner
+	txSingleSigner     crypto.SingleSigner
+	multiSigner        crypto.MultiSigner
+	forkDetector       process.ForkDetector
+	blockSizeThrottler process.BlockSizeThrottler
 
 	blkc             data.ChainHandler
 	dataPool         dataRetriever.PoolsHolder

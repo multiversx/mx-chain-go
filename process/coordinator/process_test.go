@@ -713,10 +713,11 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 	assert.NotNil(t, tc)
 
 	maxTxRemaining := uint32(15000)
+	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, 10, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -736,10 +737,11 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 	assert.NotNil(t, tc)
 
 	maxTxRemaining := uint32(15000)
+	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return false
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, 10, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -759,10 +761,11 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 	assert.NotNil(t, tc)
 
 	maxTxRemaining := uint32(0)
+	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, 10, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -783,12 +786,13 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	assert.NotNil(t, tc)
 
 	maxTxRemaining := uint32(15000)
+	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, 10, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, int(nrShards), len(mbs))
 }
@@ -814,10 +818,11 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 
 	// create block to have some txs
 	maxTxRemaining := uint32(15000)
+	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, 10, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
 	assert.Equal(t, int(nrShards), len(mbs))
 
 	usedTxs = tc.GetAllCurrentUsedTxs(block.TxBlock)

@@ -65,6 +65,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	return shardProcessor, err
 }
@@ -81,6 +82,8 @@ func NewMetaProcessorBasicSingleShard(mdp dataRetriever.MetaPoolsHolder, genesis
 		&mock.ChainStorerMock{},
 		genesisBlocks,
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+		&mock.BlockSizeThrottlerStub{},
 	)
 	return mp, err
 }
@@ -134,8 +137,8 @@ func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
 	return found
 }
 
-func (mp *metaProcessor) CreateShardInfo(maxMiniBlocksInBlock uint32, round uint32, haveTime func() bool) ([]block.ShardData, error) {
-	return mp.createShardInfo(maxMiniBlocksInBlock, round, haveTime)
+func (mp *metaProcessor) CreateShardInfo(round uint32, haveTime func() bool) ([]block.ShardData, error) {
+	return mp.createShardInfo(round, haveTime)
 }
 
 func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint32, haveTime func() time.Duration) error {
@@ -232,6 +235,6 @@ func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
 	noShards uint32,
 	round uint32,
 	haveTime func() bool,
-) (block.MiniBlockSlice, uint32, error) {
+) (block.MiniBlockSlice, [][]byte, uint32, error) {
 	return sp.createAndProcessCrossMiniBlocksDstMe(noShards, round, haveTime)
 }

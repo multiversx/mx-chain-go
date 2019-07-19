@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/display"
@@ -26,8 +26,6 @@ import (
 var shardMBHeaderCounterMutex = sync.RWMutex{}
 var shardMBHeadersCurrentBlockProcessed = 0
 var shardMBHeadersTotalProcessed = 0
-
-const maxHeadersInBlock = 256
 
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
@@ -57,15 +55,19 @@ func NewMetaProcessor(
 	store dataRetriever.StorageService,
 	startHeaders map[uint32]data.HeaderHandler,
 	requestHandler process.RequestHandler,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	blockSizeThrottler process.BlockSizeThrottler,
 ) (*metaProcessor, error) {
 
 	err := checkProcessorNilParameters(
 		accounts,
+		blockSizeThrottler,
 		forkDetector,
 		hasher,
 		marshalizer,
 		store,
-		shardCoordinator)
+		shardCoordinator,
+		uint64Converter)
 	if err != nil {
 		return nil, err
 	}
@@ -82,11 +84,13 @@ func NewMetaProcessor(
 
 	base := &baseProcessor{
 		accounts:                      accounts,
+		blockSizeThrottler:            blockSizeThrottler,
 		forkDetector:                  forkDetector,
 		hasher:                        hasher,
 		marshalizer:                   marshalizer,
 		store:                         store,
 		shardCoordinator:              shardCoordinator,
+		uint64Converter:               uint64Converter,
 		onRequestHeaderHandler:        requestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
 	}
@@ -110,10 +114,7 @@ func NewMetaProcessor(
 	mp.chRcvAllHdrs = make(chan bool)
 
 	mp.nextKValidity = process.ShardBlockFinality
-	//TODO: This should be injected when BlockProcessor will be refactored
-	mp.uint64Converter = uint64ByteSlice.NewBigEndianConverter()
 	mp.allNeededShardHdrsFound = true
-	mp.maxItemsInBlock = process.MaxItemsInBlock
 
 	return &mp, nil
 }
@@ -882,7 +883,6 @@ func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
 }
 
 func (mp *metaProcessor) createShardInfo(
-	maxMiniBlockHdrsInBlock uint32,
 	round uint32,
 	haveTime func() bool,
 ) ([]block.ShardData, error) {
@@ -989,7 +989,10 @@ func (mp *metaProcessor) createShardInfo(
 			shardData.ShardMiniBlockHeaders = append(shardData.ShardMiniBlockHeaders, shardMiniBlockHeader)
 			mbHdrs++
 
-			if mbHdrs >= maxMiniBlockHdrsInBlock { // max mini block headers count in one block was reached
+			recordsAddedInHeader := mbHdrs + uint32(len(shardInfo))
+			spaceRemained := int32(mp.blockSizeThrottler.MaxItemsToAdd()) - int32(recordsAddedInHeader) - 1
+
+			if spaceRemained <= 0 {
 				log.Info(fmt.Sprintf("max hdrs accepted in one block is reached: added %d hdrs from %d hdrs\n", mbHdrs, len(orderedHdrs)))
 
 				if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
@@ -1041,7 +1044,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		go mp.checkAndRequestIfShardHeadersMissing(round)
 	}()
 
-	shardInfo, err := mp.createShardInfo(maxHeadersInBlock, round, haveTime)
+	shardInfo, err := mp.createShardInfo(round, haveTime)
 	if err != nil {
 		return nil, err
 	}
