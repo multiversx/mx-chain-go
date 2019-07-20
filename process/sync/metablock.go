@@ -367,17 +367,6 @@ func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error)
 		boot.requestsWithTimeout++
 	}
 
-	if err == process.ErrInvalidBlockHash {
-		prevHdr, errNotCritical := boot.getHeaderWithHashRequestingIfMissing(hdr.GetPrevHash())
-		if errNotCritical != nil {
-			log.Info(errNotCritical.Error())
-		} else {
-			syncMap := &dataPool.ShardIdHashSyncMap{}
-			syncMap.Store(prevHdr.GetShardID(), hdr.GetPrevHash())
-			boot.headersNonces.Merge(prevHdr.GetNonce(), syncMap)
-		}
-	}
-
 	isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
 	if isForkDetected {
 		boot.requestsWithTimeout = 0
@@ -386,6 +375,17 @@ func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error)
 		errNotCritical := boot.forkChoice()
 		if errNotCritical != nil {
 			log.Info(errNotCritical.Error())
+		}
+	}
+
+	if err == process.ErrInvalidBlockHash {
+		prevHdr, errNotCritical := boot.getHeaderWithHashRequestingIfMissing(hdr.GetPrevHash())
+		if errNotCritical != nil {
+			log.Info(errNotCritical.Error())
+		} else {
+			syncMap := &dataPool.ShardIdHashSyncMap{}
+			syncMap.Store(prevHdr.GetShardID(), hdr.GetPrevHash())
+			boot.headersNonces.Merge(prevHdr.GetNonce(), syncMap)
 		}
 	}
 }
