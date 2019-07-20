@@ -42,8 +42,10 @@ func NewBlockSizeThrottle() (*blockSizeThrottle, error) {
 // previous results
 func (bst *blockSizeThrottle) MaxItemsToAdd() uint32 {
 	bst.mutThrottler.RLock()
-	defer bst.mutThrottler.RUnlock()
-	return bst.maxItems
+	maxItems := bst.maxItems
+	bst.mutThrottler.RUnlock()
+
+	return maxItems
 }
 
 // Add adds the new state for last block which has been sent and updates the max items which could be added
