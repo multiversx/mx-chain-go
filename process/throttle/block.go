@@ -60,9 +60,10 @@ func (bst *blockSizeThrottle) Add(round uint64, items uint32) {
 // Succeed sets the state of the last block which has been sent at the given round
 func (bst *blockSizeThrottle) Succeed(round uint64) {
 	bst.mutThrottler.Lock()
-	for index := range bst.statistics {
-		if bst.statistics[index].round == round {
-			bst.statistics[index].succeed = true
+	for i := len(bst.statistics) - 1; i > 0; i-- {
+		if bst.statistics[i].round == round {
+			bst.statistics[i].succeed = true
+			break
 		}
 	}
 	bst.mutThrottler.Unlock()
@@ -97,16 +98,16 @@ func (bst *blockSizeThrottle) getMaxItemsWhenSucceed(lastActionMaxItems uint32) 
 		return lastActionMaxItems
 	}
 
-	noOfItemsUsedWhichNotSucceed := bst.getCloserAboveUsedMaxItemsWithoutSucceed(lastActionMaxItems)
-	if lastActionMaxItems*100/noOfItemsUsedWhichNotSucceed > jumpAbovePercent {
-		return noOfItemsUsedWhichNotSucceed
+	noOfMaxItemsUsedWithoutSucceed := bst.getCloserAboveMaxItemsUsedWithoutSucceed(lastActionMaxItems)
+	if lastActionMaxItems*100/noOfMaxItemsUsedWithoutSucceed > jumpAbovePercent {
+		return noOfMaxItemsUsedWithoutSucceed
 	}
 
-	increasedNoOfItems := core.Max(1, uint32(float32(noOfItemsUsedWhichNotSucceed-lastActionMaxItems)*jumpAboveFactor))
+	increasedNoOfItems := core.Max(1, uint32(float32(noOfMaxItemsUsedWithoutSucceed-lastActionMaxItems)*jumpAboveFactor))
 	return lastActionMaxItems + increasedNoOfItems
 }
 
-func (bst *blockSizeThrottle) getCloserAboveUsedMaxItemsWithoutSucceed(currentMaxItems uint32) uint32 {
+func (bst *blockSizeThrottle) getCloserAboveMaxItemsUsedWithoutSucceed(currentMaxItems uint32) uint32 {
 	for i := len(bst.statistics) - 1; i > 0; i-- {
 		if !bst.statistics[i].succeed && bst.statistics[i].maxItems > currentMaxItems {
 			return bst.statistics[i].maxItems
@@ -121,16 +122,16 @@ func (bst *blockSizeThrottle) getMaxItemsWhenNotSucceed(lastActionMaxItems uint3
 		return lastActionMaxItems
 	}
 
-	noOfItemsUsedWhichSucceed := bst.getCloserBelowUsedMaxItemsWithSucceed(lastActionMaxItems)
-	if noOfItemsUsedWhichSucceed*100/lastActionMaxItems > jumpBelowPercent {
-		return noOfItemsUsedWhichSucceed
+	noOfMaxItemsUsedWithSucceed := bst.getCloserBelowMaxItemsUsedWithSucceed(lastActionMaxItems)
+	if noOfMaxItemsUsedWithSucceed*100/lastActionMaxItems > jumpBelowPercent {
+		return noOfMaxItemsUsedWithSucceed
 	}
 
-	decreasedNoOfItems := core.Max(1, uint32(float32(lastActionMaxItems-noOfItemsUsedWhichSucceed)*jumpBelowFactor))
+	decreasedNoOfItems := core.Max(1, uint32(float32(lastActionMaxItems-noOfMaxItemsUsedWithSucceed)*jumpBelowFactor))
 	return lastActionMaxItems - decreasedNoOfItems
 }
 
-func (bst *blockSizeThrottle) getCloserBelowUsedMaxItemsWithSucceed(currentMaxItems uint32) uint32 {
+func (bst *blockSizeThrottle) getCloserBelowMaxItemsUsedWithSucceed(currentMaxItems uint32) uint32 {
 	for i := len(bst.statistics) - 1; i > 0; i-- {
 		if bst.statistics[i].succeed && bst.statistics[i].maxItems < currentMaxItems {
 			return bst.statistics[i].maxItems
