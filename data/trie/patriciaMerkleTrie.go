@@ -242,6 +242,25 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	return newTr, nil
 }
 
+// DeepClone returns a new trie with all nodes deeply copied
+func (tr *patriciaMerkleTrie) DeepClone() (data.Trie, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	clonedTrie, err := NewTrie(tr.db, tr.marshalizer, tr.hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	if tr.root == nil {
+		return clonedTrie, nil
+	}
+
+	clonedTrie.root = tr.root.deepClone()
+
+	return clonedTrie, nil
+}
+
 // String outputs a graphical view of the trie. Mainly used in tests/debugging
 func (tr *patriciaMerkleTrie) String() string {
 	writer := bytes.NewBuffer(make([]byte, 0))

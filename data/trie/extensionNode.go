@@ -378,3 +378,30 @@ func (en *extensionNode) print(writer io.Writer, index int) {
 	_, _ = fmt.Fprint(writer, str)
 	en.child.print(writer, index+len(str))
 }
+
+func (en *extensionNode) deepClone() node {
+	clonedNode := &extensionNode{}
+
+	if en.Key != nil {
+		clonedNode.Key = make([]byte, len(en.Key))
+		copy(clonedNode.Key, en.Key)
+	}
+
+	if en.EncodedChild != nil {
+		clonedNode.EncodedChild = make([]byte, len(en.EncodedChild))
+		copy(clonedNode.EncodedChild, en.EncodedChild)
+	}
+
+	if en.hash != nil {
+		clonedNode.hash = make([]byte, len(en.hash))
+		copy(clonedNode.hash, en.hash)
+	}
+
+	clonedNode.dirty = en.dirty
+
+	if en.child != nil {
+		clonedNode.child = en.child.deepClone()
+	}
+
+	return clonedNode
+}
