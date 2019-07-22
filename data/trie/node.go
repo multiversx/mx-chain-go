@@ -36,6 +36,7 @@ type node interface {
 	reduceNode(pos int) node
 	isEmptyOrNil() error
 	print(writer io.Writer, index int)
+	deepClone() node
 }
 
 type branchNode struct {
