@@ -876,10 +876,10 @@ func getBranchNodeContents(bn *branchNode) string {
 	}
 
 	str := fmt.Sprintf(`extension node:
-   encoded child: %s
-   hash: %s
-   child: %s,	
-   dirty: %v
+   		encoded child: %s
+   		hash: %s
+  		child: %s,	
+   		dirty: %v
 `,
 		encodedChildsString,
 		hex.EncodeToString(bn.hash),

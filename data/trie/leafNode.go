@@ -229,6 +229,10 @@ func (ln *leafNode) isEmptyOrNil() error {
 }
 
 func (ln *leafNode) print(writer io.Writer, index int) {
+	if ln == nil {
+		return
+	}
+
 	key := ""
 	for _, k := range ln.Key {
 		key += fmt.Sprintf("%d", k)
@@ -243,6 +247,10 @@ func (ln *leafNode) print(writer io.Writer, index int) {
 }
 
 func (ln *leafNode) deepClone() node {
+	if ln == nil {
+		return nil
+	}
+
 	clonedNode := &leafNode{}
 
 	if ln.Key != nil {
