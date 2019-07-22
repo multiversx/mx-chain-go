@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-func (boot *ShardBootstrap) RequestHeader(nonce uint64) {
-	boot.requestHeader(nonce)
+func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
+	boot.requestHeaderWithNonce(nonce)
 }
 
 func (boot *ShardBootstrap) GetHeaderFromPoolWithNonce(nonce uint64) (*block.Header, error) {
@@ -129,6 +129,14 @@ func (boot *ShardBootstrap) SetForkNonce(nonce uint64) {
 
 func (boot *MetaBootstrap) SetForkNonce(nonce uint64) {
 	boot.forkNonce = nonce
+}
+
+func (boot *ShardBootstrap) IsForkDetected() bool {
+	return boot.isForkDetected
+}
+
+func (boot *MetaBootstrap) IsForkDetected() bool {
+	return boot.isForkDetected
 }
 
 func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
