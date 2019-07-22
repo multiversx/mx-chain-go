@@ -342,7 +342,7 @@ func TestPatriciaMerkleTrie_DeepCloneShouldWork(t *testing.T) {
 	assert.False(t, tr == trie2)
 	assert.Equal(t, tr.String(), trie2.String())
 	originalRoot, _ := tr.Root()
-	clonedTrie, _ := tr.Root()
+	clonedTrie, _ := trie2.Root()
 	assert.Equal(t, originalRoot, clonedTrie)
 }
 
