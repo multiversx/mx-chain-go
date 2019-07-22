@@ -479,7 +479,7 @@ func (sc *scProcessor) refundGasToSender(
 		scTx.Value = refundErd
 		scTx.RcvAddr = tx.SndAddr
 		scTx.SndAddr = tx.RcvAddr
-		scTx.Nonce = tx.Nonce
+		scTx.Nonce = tx.Nonce + 1
 		scTx.TxHash = txHash
 		return scTx, nil
 	}
