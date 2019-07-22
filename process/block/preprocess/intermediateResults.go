@@ -99,8 +99,6 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 		}
 	}
 
-	irp.interResultsForBlock = make(map[string]*txInfo, 0)
-
 	irp.mutInterResultsForBlock.Unlock()
 
 	return finalMBs
@@ -193,6 +191,13 @@ func (irp *intermediateResultsProcessor) SaveCurrentIntermediateTxToStorage() er
 	}
 
 	return nil
+}
+
+// CreateBlockStarted cleans the local cache map for processed/created intermediate transactions at this round
+func (irp *intermediateResultsProcessor) CreateBlockStarted() {
+	irp.mutInterResultsForBlock.Lock()
+	defer irp.mutInterResultsForBlock.Unlock()
+	irp.interResultsForBlock = make(map[string]*txInfo, 0)
 }
 
 func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte, rcvAddr []byte) (uint32, uint32, error) {
