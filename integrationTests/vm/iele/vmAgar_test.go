@@ -320,6 +320,61 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	assert.Equal(t, computedBalance, balanceOfSC)
 }
 
+func BenchmarkAgarioJoinGame(b *testing.B) {
+	scCode, err := ioutil.ReadFile(agarioFile)
+	assert.Nil(b, err)
+
+	senderAddressBytes := []byte("12345678901234567890123456789012")
+	senderNonce := uint64(11)
+	senderBalance := big.NewInt(100000000)
+	round := uint32(444)
+	gasPrice := uint64(0)
+	gasLimit := uint64(1000000)
+
+	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(b, senderNonce, senderAddressBytes, senderBalance)
+	deployContract(
+		b,
+		senderAddressBytes,
+		senderNonce,
+		big.NewInt(0),
+		gasPrice,
+		gasLimit,
+		string(scCode),
+		round,
+		txProc,
+		accnts,
+	)
+	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+
+	defaultUserNonce := uint64(10)
+	defaultUserBalance := big.NewInt(10000000000)
+	transfer := big.NewInt(100)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		userAddress := make([]byte, 32)
+		_, _ = rand.Reader.Read(userAddress)
+		_ = vm.CreateAccount(accnts, userAddress, defaultUserNonce, defaultUserBalance)
+		_, _ = accnts.Commit()
+
+		data := "joinGame@aaaa"
+
+		txRun := vm.CreateTx(
+			b,
+			userAddress,
+			scAddressBytes,
+			defaultUserNonce,
+			transfer,
+			gasPrice,
+			gasLimit,
+			data,
+		)
+
+		b.StartTimer()
+		_ = txProc.ProcessTransaction(txRun, round)
+	}
+}
+
 func getIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	ieleVM, _ := vm.CreateVMAndBlockchainHook(accnts)
 	scgd, _ := smartContract.NewSCDataGetter(ieleVM)

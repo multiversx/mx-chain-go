@@ -151,7 +151,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 }
 
 func deployContract(
-	t *testing.T,
+	tb testing.TB,
 	senderAddressBytes []byte,
 	senderNonce uint64,
 	transferOnCalls *big.Int,
@@ -165,7 +165,7 @@ func deployContract(
 
 	//contract creation tx
 	tx := vm.CreateTx(
-		t,
+		tb,
 		senderAddressBytes,
 		vm.CreateEmptyAddress().Bytes(),
 		senderNonce,
@@ -176,8 +176,8 @@ func deployContract(
 	)
 
 	err := txProc.ProcessTransaction(tx, round)
-	assert.Nil(t, err)
+	assert.Nil(tb, err)
 
 	_, err = accnts.Commit()
-	assert.Nil(t, err)
+	assert.Nil(tb, err)
 }

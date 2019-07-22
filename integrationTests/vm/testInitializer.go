@@ -174,7 +174,7 @@ func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 }
 
 func CreatePreparedTxProcessorAndAccountsWithIeleVM(
-	t *testing.T,
+	tb testing.TB,
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
@@ -184,7 +184,7 @@ func CreatePreparedTxProcessorAndAccountsWithIeleVM(
 	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
 	txProcessor, blockchainHook := CreateTxProcessorWithOneSCExecutorIeleVM(accnts)
-	assert.NotNil(t, txProcessor)
+	assert.NotNil(tb, txProcessor)
 
 	return txProcessor, accnts, blockchainHook
 }
@@ -207,7 +207,7 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 }
 
 func CreateTx(
-	t *testing.T,
+	tb testing.TB,
 	senderAddressBytes []byte,
 	receiverAddressBytes []byte,
 	senderNonce uint64,
@@ -227,7 +227,7 @@ func CreateTx(
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 	}
-	assert.NotNil(t, tx)
+	assert.NotNil(tb, tx)
 
 	return tx
 }
