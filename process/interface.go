@@ -66,6 +66,7 @@ type IntermediateTransactionHandler interface {
 	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
 	VerifyInterMiniBlocks(body block.Body) error
 	SaveCurrentIntermediateTxToStorage() error
+	CreateBlockStarted()
 }
 
 // PreProcessor is an interface used to prepare and process transaction data
@@ -149,7 +150,7 @@ type Bootstrapper interface {
 type ForkDetector interface {
 	AddHeader(header data.HeaderHandler, hash []byte, state BlockHeaderState) error
 	RemoveHeaders(nonce uint64, hash []byte)
-	CheckFork() (bool, uint64)
+	CheckFork() (forkDetected bool, nonce uint64, hash []byte)
 	GetHighestFinalBlockNonce() uint64
 	ProbableHighestNonce() uint64
 	ResetProbableHighestNonceIfNeeded()
