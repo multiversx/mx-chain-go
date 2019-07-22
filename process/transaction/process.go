@@ -5,11 +5,14 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/feeTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -22,7 +25,9 @@ type txProcessor struct {
 	hasher           hashing.Hasher
 	scProcessor      process.SmartContractProcessor
 	marshalizer      marshal.Marshalizer
+	txFeeHandler     process.UnsignedTxHandler
 	shardCoordinator sharding.Coordinator
+	txTypeHandler    process.TxTypeHandler
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -33,6 +38,8 @@ func NewTxProcessor(
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
+	txFeeHandler process.UnsignedTxHandler,
+	txTypeHandler process.TxTypeHandler,
 ) (*txProcessor, error) {
 
 	if accounts == nil {
@@ -53,6 +60,12 @@ func NewTxProcessor(
 	if scProcessor == nil {
 		return nil, process.ErrNilSmartContractProcessor
 	}
+	if txFeeHandler == nil {
+		return nil, process.ErrNilUnsignedTxHandler
+	}
+	if txTypeHandler == nil {
+		return nil, process.ErrNilTxTypeHandler
+	}
 
 	return &txProcessor{
 		accounts:         accounts,
@@ -61,12 +74,14 @@ func NewTxProcessor(
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
 		scProcessor:      scProcessor,
+		txFeeHandler:     txFeeHandler,
+		txTypeHandler:    txTypeHandler,
 	}, nil
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex uint32) error {
-	if tx == nil {
+func (txProc *txProcessor) ProcessTransaction(tx data.TransactionHandler, roundIndex uint32) error {
+	if tx == nil || tx.IsInterfaceNil() {
 		return process.ErrNilTransaction
 	}
 
@@ -75,7 +90,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return err
 	}
 
-	txType, err := txProc.scProcessor.ComputeTransactionType(tx)
+	txType, err := txProc.txTypeHandler.ComputeTransactionType(tx)
 	if err != nil {
 		return err
 	}
@@ -87,16 +102,86 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return txProc.processSCDeployment(tx, adrSrc, roundIndex)
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, adrSrc, adrDst, roundIndex)
+	case process.TxFee:
+		return txProc.processAccumulatedTxFees(tx, adrSrc)
 	}
 
 	return process.ErrWrongTransaction
 }
 
+func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *state.Account) (*feeTx.FeeTx, error) {
+	if acntSnd == nil {
+		return nil, nil
+	}
+
+	cost := big.NewInt(0)
+	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+
+	txDataLen := int64(len(tx.Data))
+	minFee := big.NewInt(0)
+	minFee = minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(unsigned.MinGasPrice))
+	minFee = minFee.Add(minFee, big.NewInt(0).SetUint64(unsigned.MinTxFee))
+
+	if minFee.Cmp(cost) > 0 {
+		return nil, process.ErrNotEnoughFeeInTransactions
+	}
+
+	if acntSnd.Balance.Cmp(cost) < 0 {
+		return nil, process.ErrInsufficientFunds
+	}
+
+	operation := big.NewInt(0)
+	err := acntSnd.SetBalanceWithJournal(operation.Sub(acntSnd.Balance, cost))
+	if err != nil {
+		return nil, err
+	}
+
+	currFeeTx := &feeTx.FeeTx{
+		Nonce: tx.Nonce,
+		Value: cost,
+	}
+
+	return currFeeTx, nil
+}
+
+func (txProc *txProcessor) processAccumulatedTxFees(
+	tx data.TransactionHandler,
+	adrSrc state.AddressContainer,
+) error {
+	currTxFee, ok := tx.(*feeTx.FeeTx)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	acntSrc, _, err := txProc.getAccounts(adrSrc, adrSrc)
+	if err != nil {
+		return err
+	}
+
+	// is sender address in node shard
+	if acntSrc != nil {
+		op := big.NewInt(0)
+		err := acntSrc.SetBalanceWithJournal(op.Add(acntSrc.Balance, currTxFee.Value))
+		if err != nil {
+			return err
+		}
+	}
+
+	if currTxFee.ShardId == txProc.shardCoordinator.SelfId() {
+		txProc.txFeeHandler.AddTxFeeFromBlock(currTxFee)
+	}
+
+	return nil
+}
+
 func (txProc *txProcessor) processMoveBalance(
-	tx *transaction.Transaction,
+	tx data.TransactionHandler,
 	adrSrc, adrDst state.AddressContainer,
 ) error {
-
+	currTx, ok := tx.(*transaction.Transaction)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
@@ -104,10 +189,15 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	value := tx.Value
+	currFeeTx, err := txProc.processTxFee(currTx, acntSrc)
+	if err != nil {
+		return err
+	}
+
+	value := currTx.Value
 	// is sender address in node shard
 	if acntSrc != nil {
-		err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
+		err = txProc.checkTxValues(acntSrc, value, currTx.Nonce)
 		if err != nil {
 			return err
 		}
@@ -126,14 +216,21 @@ func (txProc *txProcessor) processMoveBalance(
 		}
 	}
 
+	txProc.txFeeHandler.AddProcessedUTx(currFeeTx)
+
 	return nil
 }
 
 func (txProc *txProcessor) processSCDeployment(
-	tx *transaction.Transaction,
+	tx data.TransactionHandler,
 	adrSrc state.AddressContainer,
 	roundIndex uint32,
 ) error {
+	currTx, ok := tx.(*transaction.Transaction)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, err := txProc.getAccountFromAddress(adrSrc)
@@ -141,15 +238,19 @@ func (txProc *txProcessor) processSCDeployment(
 		return err
 	}
 
-	err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
+	err = txProc.scProcessor.DeploySmartContract(currTx, acntSrc, roundIndex)
 	return err
 }
 
 func (txProc *txProcessor) processSCInvoking(
-	tx *transaction.Transaction,
+	tx data.TransactionHandler,
 	adrSrc, adrDst state.AddressContainer,
 	roundIndex uint32,
 ) error {
+	currTx, ok := tx.(*transaction.Transaction)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
@@ -157,17 +258,17 @@ func (txProc *txProcessor) processSCInvoking(
 		return err
 	}
 
-	err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
+	err = txProc.scProcessor.ExecuteSmartContractTransaction(currTx, acntSrc, acntDst, roundIndex)
 	return err
 }
 
-func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
+func (txProc *txProcessor) getAddresses(tx data.TransactionHandler) (adrSrc, adrDst state.AddressContainer, err error) {
 	//for now we assume that the address = public key
-	adrSrc, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
+	adrSrc, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.GetSndAddress())
 	if err != nil {
 		return
 	}
-	adrDst, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
+	adrDst, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.GetRecvAddress())
 	return
 }
 

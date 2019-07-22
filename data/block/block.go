@@ -34,8 +34,10 @@ const (
 	PeerBlock Type = 2
 	// SmartContractResultBlock identifies a miniblock holding smartcontractresults
 	SmartContractResultBlock Type = 3
+	// TxFeeBlock identifies a miniblock holding accumulated transaction fees
+	TxFeeBlock Type = 4
 	// InvalidBlock identifies identifies an invalid miniblock
-	InvalidBlock Type = 4
+	InvalidBlock Type = 5
 )
 
 // String returns the string representation of the Type

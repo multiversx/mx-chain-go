@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -85,8 +86,24 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		addrConv,
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.UnsignedTxHandlerMock{},
 	)
-	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
+
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(
+		addrConv,
+		oneShardCoordinator,
+		accnts)
+
+	txProcessor, _ := transaction.NewTxProcessor(
+		accnts,
+		testHasher,
+		addrConv,
+		testMarshalizer,
+		oneShardCoordinator,
+		scProcessor,
+		&mock.UnsignedTxHandlerMock{},
+		txTypeHandler,
+	)
 
 	return txProcessor
 }
@@ -121,8 +138,24 @@ func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) proc
 		addrConv,
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.UnsignedTxHandlerMock{},
 	)
-	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
+
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(
+		addrConv,
+		oneShardCoordinator,
+		accnts)
+
+	txProcessor, _ := transaction.NewTxProcessor(
+		accnts,
+		testHasher,
+		addrConv,
+		testMarshalizer,
+		oneShardCoordinator,
+		scProcessor,
+		&mock.UnsignedTxHandlerMock{},
+		txTypeHandler,
+	)
 
 	return txProcessor
 }

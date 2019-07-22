@@ -27,3 +27,15 @@ var ErrMiniBlockEmpty = errors.New("mini block is empty")
 
 // ErrWrongTypeAssertion signals that wrong type was provided
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilElrondAddress signals that nil elrond address was provided
+var ErrNilElrondAddress = errors.New("nil elrond address")
+
+// ErrNilBurnAddress signals that nil burn address was provided
+var ErrNilBurnAddress = errors.New("nil burn address")
+
+// ErrNilAddressConverter signals that nil address converter was provided
+var ErrNilAddressConverter = errors.New("nil address converter")
+
+// ErrNilShardCoordinator signals that nil shard coordinator was provided
+var ErrNilShardCoordinator = errors.New("nil shard coordinator")

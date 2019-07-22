@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/address"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -1239,11 +1240,22 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
+	// TODO: construct this correctly on the PR
+	specialAddressHolder, err := address.NewSpecialAddressHolder(
+		[]byte("elrond"),
+		[]byte("own"),
+		state.AddressConverter,
+		shardCoordinator)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		core.Marshalizer,
 		core.Hasher,
 		state.AddressConverter,
+		specialAddressHolder,
 		data.Store,
 	)
 	if err != nil {
@@ -1255,9 +1267,19 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	scResults, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	feeTxInterim, err := interimProcContainer.Get(dataBlock.TxFeeBlock)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	feeTxHandler, ok := feeTxInterim.(process.UnsignedTxHandler)
+	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	//TODO replace this with a vm factory
@@ -1273,7 +1295,8 @@ func newShardBlockProcessorAndTracker(
 		vmAccountsDB,
 		state.AddressConverter,
 		shardCoordinator,
-		scForwarder,
+		scResults,
+		feeTxHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1291,6 +1314,11 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
+	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	transactionProcessor, err := transaction.NewTxProcessor(
 		state.AccountsAdapter,
 		core.Hasher,
@@ -1298,6 +1326,8 @@ func newShardBlockProcessorAndTracker(
 		core.Marshalizer,
 		shardCoordinator,
 		scProcessor,
+		feeTxHandler,
+		txTypeHandler,
 	)
 	if err != nil {
 		return nil, nil, errors.New("could not create transaction processor: " + err.Error())

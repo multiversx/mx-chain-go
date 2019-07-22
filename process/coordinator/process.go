@@ -330,7 +330,6 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round
 	var errFound error
 	errMutex := sync.Mutex{}
 
-	// TODO: think if it is good in parallel or it is needed in sequences
 	wg := sync.WaitGroup{}
 	wg.Add(len(separatedBodies))
 
@@ -459,20 +458,58 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRem
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
+	tc.addTxFeeToMatchingMiniBlocks(&miniBlocks)
+
 	return miniBlocks
+}
+
+func (tc *transactionCoordinator) addTxFeeToMatchingMiniBlocks(miniBlocks *block.MiniBlockSlice) {
+	// add txfee transactions to matching blocks
+	interimProc := tc.getInterimProcessor(block.TxFeeBlock)
+	if interimProc == nil {
+		return
+	}
+
+	txFeeMbs := interimProc.CreateAllInterMiniBlocks()
+	for key, mb := range txFeeMbs {
+		var matchingMBFound bool
+		for i := 0; i < len(*miniBlocks); i++ {
+			currMb := (*miniBlocks)[i]
+			if currMb.ReceiverShardID == key &&
+				currMb.SenderShardID == tc.shardCoordinator.SelfId() &&
+				currMb.Type == block.TxBlock {
+				currMb.TxHashes = append(currMb.TxHashes, mb.TxHashes...)
+				matchingMBFound = true
+				break
+			}
+		}
+
+		if !matchingMBFound {
+			mb.ReceiverShardID = key
+			mb.SenderShardID = tc.shardCoordinator.SelfId()
+			mb.Type = block.TxBlock
+
+			*miniBlocks = append(*miniBlocks, mb)
+		}
+	}
 }
 
 func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
-	tc.mutInterimProcessors.RLock()
+	tc.mutInterimProcessors.Lock()
 
 	resMutex := sync.Mutex{}
-	// TODO: think if it is good in parallel or it is needed in sequences
 	wg := sync.WaitGroup{}
 	wg.Add(len(tc.interimProcessors))
 
-	for _, interimProc := range tc.interimProcessors {
+	for key, interimProc := range tc.interimProcessors {
+		if key == block.TxFeeBlock {
+			// this has to be processed last
+			wg.Done()
+			continue
+		}
+
 		go func(intermediateProcessor process.IntermediateTransactionHandler) {
 			currMbs := intermediateProcessor.CreateAllInterMiniBlocks()
 			resMutex.Lock()
@@ -484,8 +521,7 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 		}(interimProc)
 	}
 
-	wg.Wait()
-	tc.mutInterimProcessors.RUnlock()
+	tc.mutInterimProcessors.Unlock()
 
 	return miniBlocks
 }
@@ -634,15 +670,20 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 }
 
 func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body) error {
-	tc.mutInterimProcessors.RLock()
+	tc.mutInterimProcessors.Lock()
 
-	errMutex := sync.Mutex{}
 	var errFound error
-	// TODO: think if it is good in parallel or it is needed in sequences
+	errMutex := sync.Mutex{}
 	wg := sync.WaitGroup{}
 	wg.Add(len(tc.interimProcessors))
 
-	for _, interimProc := range tc.interimProcessors {
+	for key, interimProc := range tc.interimProcessors {
+		if key == block.TxFeeBlock {
+			// this has to be processed last
+			wg.Done()
+			continue
+		}
+
 		go func(intermediateProcessor process.IntermediateTransactionHandler) {
 			err := intermediateProcessor.VerifyInterMiniBlocks(body)
 			if err != nil {
@@ -655,7 +696,16 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 	}
 
 	wg.Wait()
-	tc.mutInterimProcessors.RUnlock()
+	tc.mutInterimProcessors.Unlock()
 
-	return errFound
+	if errFound != nil {
+		return errFound
+	}
+
+	interimProc := tc.getInterimProcessor(block.TxFeeBlock)
+	if interimProc == nil {
+		return nil
+	}
+
+	return interimProc.VerifyInterMiniBlocks(body)
 }
