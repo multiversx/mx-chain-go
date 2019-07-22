@@ -103,7 +103,7 @@ func (adb *AccountsDB) RemoveCode(codeHash []byte) error {
 
 // LoadDataTrie retrieves and saves the SC data inside accountHandler object.
 // Errors if something went wrong
-func (adb *AccountsDB) LoadDataTrie(accountHandler AccountHandler) error {
+func (adb *AccountsDB) loadDataTrie(accountHandler AccountHandler) error {
 	if accountHandler.GetRootHash() == nil {
 		//do nothing, the account is either SC library or transfer account
 		return nil
@@ -112,7 +112,18 @@ func (adb *AccountsDB) LoadDataTrie(accountHandler AccountHandler) error {
 		return NewErrorTrieNotNormalized(HashLength, len(accountHandler.GetRootHash()))
 	}
 
-	dataTrie, err := adb.mainTrie.Recreate(accountHandler.GetRootHash())
+	dataTrie, err := adb.searchDataTrieInJournal(accountHandler.GetRootHash())
+	if err == nil {
+		accountHandler.SetDataTrie(dataTrie)
+		return nil
+	}
+
+	_, isErrMissingTrie := err.(*ErrMissingTrie)
+	if !isErrMissingTrie {
+		return err
+	}
+
+	dataTrie, err = adb.mainTrie.Recreate(accountHandler.GetRootHash())
 	if err != nil {
 		//error as there is an inconsistent state:
 		//account has data root hash but does not contain the actual trie
@@ -123,18 +134,48 @@ func (adb *AccountsDB) LoadDataTrie(accountHandler AccountHandler) error {
 	return nil
 }
 
+// searches a data entry in journal from the most recent entries towards the first
+// and if it finds a matching data trie, returns a deep copy of that trie
+func (adb *AccountsDB) searchDataTrieInJournal(rootHash []byte) (data.Trie, error) {
+	adb.mutEntries.RLock()
+	defer adb.mutEntries.RUnlock()
+
+	for i := len(adb.entries) - 1; i >= 0; i-- {
+		dataTrieEntry, ok := adb.entries[i].(*BaseJournalEntryData)
+		if !ok {
+			continue
+		}
+
+		dataRootHash, err := dataTrieEntry.trie.Root()
+		if err != nil {
+			return nil, errors.New("corrupted trie found in journal while computing root hash: " + err.Error())
+		}
+
+		if bytes.Equal(dataRootHash, rootHash) {
+			return dataTrieEntry.trie.DeepClone()
+		}
+	}
+
+	return nil, NewErrMissingTrie(rootHash)
+}
+
 // SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
 func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 	flagHasDirtyData := false
 
+	var newDataTrie data.Trie
+	var err error
 	if accountHandler.DataTrie() == nil {
-		dataTrie, err := adb.mainTrie.Recreate(make([]byte, 0))
+		newDataTrie, err = adb.mainTrie.Recreate(make([]byte, 0))
 		if err != nil {
 			return err
 		}
-
-		accountHandler.SetDataTrie(dataTrie)
+	} else {
+		newDataTrie, err = accountHandler.DataTrie().DeepClone()
+		if err != nil {
+			return err
+		}
 	}
 
 	trackableDataTrie := accountHandler.DataTrieTracker()
@@ -147,7 +188,7 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 		if !bytes.Equal(v, originalValue) {
 			flagHasDirtyData = true
 
-			err := accountHandler.DataTrie().Update([]byte(k), v)
+			err := newDataTrie.Update([]byte(k), v)
 			if err != nil {
 				return err
 			}
@@ -159,14 +200,7 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 		return nil
 	}
 
-	//append a journal entry as the data needs to be updated in its trie
-	entry, err := NewBaseJournalEntryData(accountHandler, accountHandler.DataTrie())
-	if err != nil {
-		return err
-	}
-
-	adb.Journalize(entry)
-	root, err := accountHandler.DataTrie().Root()
+	root, err := newDataTrie.Root()
 	if err != nil {
 		return err
 	}
@@ -177,6 +211,15 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 	}
 
 	trackableDataTrie.ClearDataCaches()
+
+	//append a journal entry as the data needs to be updated in its trie
+	entry, err := NewBaseJournalEntryData(accountHandler, newDataTrie)
+	if err != nil {
+		return err
+	}
+
+	adb.Journalize(entry)
+	accountHandler.SetDataTrie(newDataTrie)
 
 	return adb.SaveAccount(accountHandler)
 }
@@ -283,7 +326,7 @@ func (adb *AccountsDB) loadCodeAndDataIntoAccountHandler(accountHandler AccountH
 		return err
 	}
 
-	err = adb.LoadDataTrie(accountHandler)
+	err = adb.loadDataTrie(accountHandler)
 	if err != nil {
 		return err
 	}
@@ -330,13 +373,6 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 			return err
 		}
 
-		_, ok := adb.entries[i].(*BaseJournalEntryRootHash)
-		if ok {
-			err := adb.LoadDataTrie(account)
-			if err != nil {
-				return err
-			}
-		}
 		if account != nil {
 			err = adb.SaveAccount(account)
 		}

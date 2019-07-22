@@ -1,6 +1,7 @@
 package mockVM
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -26,7 +27,7 @@ func TestDeployAgarioContract(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -61,7 +62,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -119,7 +120,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -189,6 +190,134 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	newValue := big.NewInt(0).Set(transfer)
 	newValue.Sub(newValue, withdraw)
 	assert.Equal(t, newValue, getIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
+}
+
+func TestAgarioContractJoinGameReward(t *testing.T) {
+	scCode, err := ioutil.ReadFile(agarioFile)
+	assert.Nil(t, err)
+
+	senderAddressBytes := []byte("12345678901234567890123456789012")
+	senderNonce := uint64(11)
+	senderBalance := big.NewInt(100000000)
+	round := uint32(444)
+	gasPrice := uint64(1)
+	gasLimit := uint64(1000000)
+
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	deployContract(
+		t,
+		senderAddressBytes,
+		senderNonce,
+		big.NewInt(0),
+		gasPrice,
+		gasLimit,
+		string(scCode),
+		round,
+		txProc,
+		accnts,
+	)
+	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+
+	defaultUserNonce := uint64(10)
+	defaultUserBalance := big.NewInt(100000000)
+
+	noOfUsers := 10
+	usersAddresses := make([][]byte, noOfUsers)
+	transfer := big.NewInt(100)
+
+	afterJoinUsersBalances := make([]*big.Int, noOfUsers)
+
+	for i := 0; i < noOfUsers; i++ {
+		userAddress := make([]byte, 32)
+		_, _ = rand.Reader.Read(userAddress)
+		fmt.Printf("Generated user account: %v\n", hex.EncodeToString(userAddress))
+
+		_ = vm.CreateAccount(accnts, userAddress, defaultUserNonce, defaultUserBalance)
+		_, _ = accnts.Commit()
+
+		usersAddresses[i] = userAddress
+	}
+
+	for i := 0; i < noOfUsers; i++ {
+		//balanceOf should return 0 for userAddress
+		balanceOfUser := getIntValueFromSC(accnts, scAddressBytes, "balanceOf", usersAddresses[i])
+		fmt.Printf("balance of user %s: %v\n", hex.EncodeToString(usersAddresses[i]), balanceOfUser)
+		assert.Equal(t, big.NewInt(0), balanceOfUser)
+	}
+
+	for i := 0; i < noOfUsers; i++ {
+		data := "joinGame@aaaa"
+
+		fmt.Printf("==== Balance before: %d\n", vm.GetAccountsBalance(usersAddresses[i], accnts))
+
+		//contract call tx
+		txRun := vm.CreateTx(
+			t,
+			usersAddresses[i],
+			scAddressBytes,
+			defaultUserNonce,
+			transfer,
+			gasPrice,
+			gasLimit,
+			data,
+		)
+
+		err = txProc.ProcessTransaction(txRun, round)
+		assert.Nil(t, err)
+
+		newUserBalance := vm.GetAccountsBalance(usersAddresses[i], accnts)
+		fmt.Printf("==== Balance after: %d\n", newUserBalance)
+		afterJoinUsersBalances[i] = newUserBalance
+	}
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
+
+	balanceOfSC, _ := blockchainHook.GetBalance(scAddressBytes)
+	fmt.Printf("balance of SC: %v\n", balanceOfSC)
+	computedBalance := big.NewInt(0).Set(transfer)
+	computedBalance.Mul(computedBalance, big.NewInt(int64(noOfUsers)))
+	assert.Equal(t, computedBalance, balanceOfSC)
+
+	//reward
+	prize := big.NewInt(10)
+	for i := 0; i < noOfUsers; i++ {
+		data := fmt.Sprintf("rewardAndSendToWallet@aaaa@%s@%X", hex.EncodeToString(usersAddresses[i]), prize)
+		//contract call tx
+		txRun := vm.CreateTx(
+			t,
+			senderAddressBytes,
+			scAddressBytes,
+			defaultUserNonce,
+			big.NewInt(0),
+			gasPrice,
+			gasLimit,
+			data,
+		)
+
+		err = txProc.ProcessTransaction(txRun, round)
+		assert.Nil(t, err)
+	}
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
+
+	for i := 0; i < noOfUsers; i++ {
+		existingUserBalance := vm.GetAccountsBalance(usersAddresses[i], accnts)
+		computedBalance := big.NewInt(0).Set(afterJoinUsersBalances[i])
+		computedBalance.Add(computedBalance, prize)
+
+		assert.Equal(t, computedBalance, existingUserBalance)
+	}
+
+	transferredBack := big.NewInt(0).Set(prize)
+	transferredBack.Mul(transferredBack, big.NewInt(int64(noOfUsers)))
+	computedBalance = big.NewInt(0).Set(transfer)
+	computedBalance.Mul(computedBalance, big.NewInt(int64(noOfUsers)))
+	computedBalance.Sub(computedBalance, transferredBack)
+	balanceOfSC, _ = blockchainHook.GetBalance(scAddressBytes)
+	fmt.Printf("balance of SC: %v\n", balanceOfSC)
+	assert.Equal(t, computedBalance, balanceOfSC)
 }
 
 func getIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
