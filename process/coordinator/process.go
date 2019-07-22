@@ -458,20 +458,27 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRem
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
+	tc.addTxFeeToMatchingMiniBlocks(&miniBlocks)
+
+	return miniBlocks
+}
+
+func (tc *transactionCoordinator) addTxFeeToMatchingMiniBlocks(miniBlocks *block.MiniBlockSlice) {
 	// add txfee transactions to matching blocks
 	interimProc := tc.getInterimProcessor(block.TxFeeBlock)
 	if interimProc == nil {
-		return miniBlocks
+		return
 	}
 
 	txFeeMbs := interimProc.CreateAllInterMiniBlocks()
 	for key, mb := range txFeeMbs {
 		var matchingMBFound bool
-		for i := 0; i < len(miniBlocks); i++ {
-			if miniBlocks[i].ReceiverShardID == key &&
-				miniBlocks[i].SenderShardID == tc.shardCoordinator.SelfId() &&
-				miniBlocks[i].Type == block.TxBlock {
-				miniBlocks[i].TxHashes = append(miniBlocks[i].TxHashes, mb.TxHashes...)
+		for i := 0; i < len(*miniBlocks); i++ {
+			currMb := (*miniBlocks)[i]
+			if currMb.ReceiverShardID == key &&
+				currMb.SenderShardID == tc.shardCoordinator.SelfId() &&
+				currMb.Type == block.TxBlock {
+				currMb.TxHashes = append(currMb.TxHashes, mb.TxHashes...)
 				matchingMBFound = true
 				break
 			}
@@ -482,11 +489,9 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRem
 			mb.SenderShardID = tc.shardCoordinator.SelfId()
 			mb.Type = block.TxBlock
 
-			miniBlocks = append(miniBlocks, mb)
+			*miniBlocks = append(*miniBlocks, mb)
 		}
 	}
-
-	return miniBlocks
 }
 
 func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
