@@ -90,6 +90,7 @@ type Trie interface {
 	Commit() error
 	Recreate(root []byte) (Trie, error)
 	String() string
+	DeepClone() (Trie, error)
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
