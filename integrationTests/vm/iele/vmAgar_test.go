@@ -200,7 +200,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	round := uint32(444)
-	gasPrice := uint64(1)
+	gasPrice := uint64(0)
 	gasLimit := uint64(1000000)
 
 	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
