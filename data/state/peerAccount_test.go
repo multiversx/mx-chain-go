@@ -502,7 +502,7 @@ func TestPeerAccount_IncreaseLeaderSuccessRateWithJournal(t *testing.T) {
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
-	assert.Equal(t, 11, acc.LeaderSuccessRate.NrSuccess)
+	assert.Equal(t, uint32(11), acc.LeaderSuccessRate.NrSuccess)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }
@@ -530,7 +530,7 @@ func TestPeerAccount_IncreaseValidatorSuccessRateWithJournal(t *testing.T) {
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
-	assert.Equal(t, 11, acc.ValidatorSuccessRate.NrSuccess)
+	assert.Equal(t, uint32(11), acc.ValidatorSuccessRate.NrSuccess)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }
@@ -558,7 +558,7 @@ func TestPeerAccount_DecreaseLeaderSuccessRateWithJournal(t *testing.T) {
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
-	assert.Equal(t, 11, acc.LeaderSuccessRate.NrFailure)
+	assert.Equal(t, uint32(11), acc.LeaderSuccessRate.NrFailure)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }
@@ -586,7 +586,7 @@ func TestPeerAccount_DecreaseValidatorSuccessRateWithJournal(t *testing.T) {
 
 	assert.NotNil(t, acc)
 	assert.Nil(t, err)
-	assert.Equal(t, 11, acc.ValidatorSuccessRate.NrFailure)
+	assert.Equal(t, uint32(11), acc.ValidatorSuccessRate.NrFailure)
 	assert.Equal(t, 1, journalizeCalled)
 	assert.Equal(t, 1, saveAccountCalled)
 }

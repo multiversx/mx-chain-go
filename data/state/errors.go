@@ -142,3 +142,5 @@ var ErrNilSchnorrPublicKey = errors.New("schnorr public key is nil")
 
 // ErrNilBLSPublicKey signals that the provided BLS public key is nil
 var ErrNilBLSPublicKey = errors.New("bls public key is nil")
+
+var ErrUnknownAccountType = errors.New("account type is unknown")

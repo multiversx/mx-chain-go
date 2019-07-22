@@ -66,7 +66,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-vm/iele/common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -204,7 +203,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("could not create address converter: " + err.Error())
 	}
 
-	accountFactory, err := factoryState.NewAccountFactoryCreator(args.shardCoordinator)
+	accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.UserAccount)
 	if err != nil {
 		return nil, errors.New("could not create account factory: " + err.Error())
 	}
@@ -1161,7 +1160,7 @@ func generateGenesisHeadersForInit(
 			return nil, err
 		}
 
-		accountFactory, err := factoryState.NewAccountFactoryCreator(newShardCoordinator)
+		accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.UserAccount)
 		if err != nil {
 			return nil, err
 		}
@@ -1263,7 +1262,7 @@ func newShardBlockProcessorAndTracker(
 
 	//TODO replace this with a vm factory
 	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, ielecommon.Danse)
+	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.Danse)
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		ieleVM,

@@ -178,6 +178,10 @@ func (a *PeerAccount) DataTrieTracker() DataTrieTracker {
 
 // SetAddressWithJournal sets the account's address, saving the old address before changing
 func (a *PeerAccount) SetAddressWithJournal(address []byte) error {
+	if len(address) < 1 {
+		return ErrNilAddress
+	}
+
 	entry, err := NewPeerJournalEntryAddress(a, a.Address)
 	if err != nil {
 		return err
@@ -191,6 +195,10 @@ func (a *PeerAccount) SetAddressWithJournal(address []byte) error {
 
 // SetSchnorrPublicKeyWithJournal sets the account's address, saving the old address before changing
 func (a *PeerAccount) SetSchnorrPublicKeyWithJournal(pubKey []byte) error {
+	if len(pubKey) < 1 {
+		return ErrNilSchnorrPublicKey
+	}
+
 	entry, err := NewPeerJournalEntrySchnorrPublicKey(a, a.SchnorrPublicKey)
 	if err != nil {
 		return err
@@ -204,6 +212,10 @@ func (a *PeerAccount) SetSchnorrPublicKeyWithJournal(pubKey []byte) error {
 
 // SetSchnorrPublicKeyWithJournal sets the account's address, saving the old address before changing
 func (a *PeerAccount) SetBLSPublicKeyWithJournal(pubKey []byte) error {
+	if len(pubKey) < 1 {
+		return ErrNilBLSPublicKey
+	}
+
 	entry, err := NewPeerJournalEntryBLSPublicKey(a, a.BLSPublicKey)
 	if err != nil {
 		return err
@@ -217,6 +229,10 @@ func (a *PeerAccount) SetBLSPublicKeyWithJournal(pubKey []byte) error {
 
 // SetStakeWithJournal sets the account's stake, saving the old stake before changing
 func (a *PeerAccount) SetStakeWithJournal(stake *big.Int) error {
+	if stake == nil {
+		return ErrNilStake
+	}
+
 	entry, err := NewPeerJournalEntryStake(a, a.Stake)
 	if err != nil {
 		return err
@@ -303,7 +319,7 @@ func (a *PeerAccount) DecreaseValidatorSuccessRateWithJournal() error {
 	}
 
 	a.accountTracker.Journalize(entry)
-	a.ValidatorSuccessRate.NrFailure--
+	a.ValidatorSuccessRate.NrFailure++
 
 	return a.accountTracker.SaveAccount(a)
 }
