@@ -1,6 +1,10 @@
 package trie
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
@@ -128,7 +132,7 @@ func TestLeafNode_commit(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 
 	hash, _ := encodeNodeAndGetHash(ln, marsh, hasher)
-	ln.setHash(marsh, hasher)
+	_ = ln.setHash(marsh, hasher)
 
 	err := ln.commit(0, db, marsh, hasher)
 	assert.Nil(t, err)
@@ -377,4 +381,97 @@ func TestLeafNode_isEmptyOrNil(t *testing.T) {
 
 	ln = nil
 	assert.Equal(t, ErrNilNode, ln.isEmptyOrNil())
+}
+
+//------- deepClone
+
+func TestLeafNode_deepCloneWithNilHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	ln := &leafNode{}
+	ln.dirty = true
+	ln.hash = nil
+	ln.Value = getRandomByteSlice()
+	ln.Key = getRandomByteSlice()
+
+	cloned := ln.deepClone().(*leafNode)
+
+	testSameLeafNodeContent(t, ln, cloned)
+}
+
+func TestLeafNode_deepCloneWithNilValueShouldWork(t *testing.T) {
+	t.Parallel()
+
+	ln := &leafNode{}
+	ln.dirty = true
+	ln.hash = getRandomByteSlice()
+	ln.Value = nil
+	ln.Key = getRandomByteSlice()
+
+	cloned := ln.deepClone().(*leafNode)
+
+	testSameLeafNodeContent(t, ln, cloned)
+}
+
+func TestLeafNode_deepCloneWithNilKeyShouldWork(t *testing.T) {
+	t.Parallel()
+
+	ln := &leafNode{}
+	ln.dirty = true
+	ln.hash = getRandomByteSlice()
+	ln.Value = getRandomByteSlice()
+	ln.Key = nil
+
+	cloned := ln.deepClone().(*leafNode)
+
+	testSameLeafNodeContent(t, ln, cloned)
+}
+
+func TestLeafNode_deepCloneShouldWork(t *testing.T) {
+	t.Parallel()
+
+	ln := &leafNode{}
+	ln.dirty = true
+	ln.hash = getRandomByteSlice()
+	ln.Value = getRandomByteSlice()
+	ln.Key = getRandomByteSlice()
+
+	cloned := ln.deepClone().(*leafNode)
+
+	testSameLeafNodeContent(t, ln, cloned)
+}
+
+func testSameLeafNodeContent(t *testing.T, expected *leafNode, actual *leafNode) {
+	if !reflect.DeepEqual(expected, actual) {
+		assert.Fail(t, "not equal content")
+		fmt.Printf(
+			"expected:\n %s, got: \n%s",
+			getLeafNodeContents(expected),
+			getLeafNodeContents(actual),
+		)
+	}
+	assert.False(t, expected == actual)
+}
+
+func getRandomByteSlice() []byte {
+	maxChars := 32
+	buff := make([]byte, maxChars)
+	_, _ = rand.Reader.Read(buff)
+
+	return buff
+}
+
+func getLeafNodeContents(lf *leafNode) string {
+	str := fmt.Sprintf(`leaf node:
+   key: %s
+   value: %s
+   hash: %s
+   dirty: %v
+`,
+		hex.EncodeToString(lf.Key),
+		hex.EncodeToString(lf.Value),
+		hex.EncodeToString(lf.hash),
+		lf.dirty)
+
+	return str
 }

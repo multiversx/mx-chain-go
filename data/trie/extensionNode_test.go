@@ -1,6 +1,9 @@
 package trie
 
 import (
+	"encoding/hex"
+	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
@@ -216,7 +219,7 @@ func TestExtensionNode_commit(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 
 	hash, _ := encodeNodeAndGetHash(collapsedEn, marsh, hasher)
-	en.setHash(marsh, hasher)
+	_ = en.setHash(marsh, hasher)
 
 	err := en.commit(0, db, marsh, hasher)
 	assert.Nil(t, err)
@@ -256,7 +259,7 @@ func TestExtensionNode_commitCollapsedNode(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 
 	hash, _ := encodeNodeAndGetHash(collapsedEn, marsh, hasher)
-	collapsedEn.setHash(marsh, hasher)
+	_ = collapsedEn.setHash(marsh, hasher)
 
 	collapsedEn.dirty = true
 	err := collapsedEn.commit(0, db, marsh, hasher)
@@ -310,8 +313,8 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 	en, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
 
-	en.setHash(marsh, hasher)
-	en.commit(0, db, marsh, hasher)
+	_ = en.setHash(marsh, hasher)
+	_ = en.commit(0, db, marsh, hasher)
 	_, resolved := getBnAndCollapsedBn()
 
 	err := collapsedEn.resolveCollapsed(0, db, marsh)
@@ -394,8 +397,8 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	db, _ := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
-	en.setHash(marsh, hasher)
-	en.commit(0, db, marsh, hasher)
+	_ = en.setHash(marsh, hasher)
+	_ = en.commit(0, db, marsh, hasher)
 
 	key := []byte{100, 2, 100, 111, 103}
 	val, err := collapsedEn.tryGet(key, db, marsh)
@@ -474,8 +477,8 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	en, collapsedEn := getEnAndCollapsedEn()
 	node := newLeafNode([]byte{100, 15, 5, 6}, []byte("dogs"))
 	marsh, hasher := getTestMarshAndHasher()
-	en.setHash(marsh, hasher)
-	en.commit(0, db, marsh, hasher)
+	_ = en.setHash(marsh, hasher)
+	_ = en.commit(0, db, marsh, hasher)
 
 	dirty, newNode, err := collapsedEn.insert(node, db, marsh)
 	assert.True(t, dirty)
@@ -554,8 +557,8 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	db, _ := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
-	en.setHash(marsh, hasher)
-	en.commit(0, db, marsh, hasher)
+	_ = en.setHash(marsh, hasher)
+	_ = en.commit(0, db, marsh, hasher)
 
 	val, _ := en.tryGet([]byte{100, 2, 100, 111, 103}, db, marsh)
 	assert.Equal(t, []byte("dog"), val)
@@ -590,4 +593,110 @@ func TestExtensionNode_isEmptyOrNil(t *testing.T) {
 
 	en = nil
 	assert.Equal(t, ErrNilNode, en.isEmptyOrNil())
+}
+
+//------- deepClone
+
+func TestExtensionNode_deepCloneNilHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	en := &extensionNode{}
+	en.dirty = true
+	en.hash = nil
+	en.EncodedChild = getRandomByteSlice()
+	en.Key = getRandomByteSlice()
+	en.child = &leafNode{}
+
+	cloned := en.deepClone().(*extensionNode)
+
+	testSameExtensionNodeContent(t, en, cloned)
+}
+
+func TestExtensionNode_deepCloneNilEncodedChildShouldWork(t *testing.T) {
+	t.Parallel()
+
+	en := &extensionNode{}
+	en.dirty = true
+	en.hash = getRandomByteSlice()
+	en.EncodedChild = nil
+	en.Key = getRandomByteSlice()
+	en.child = &leafNode{}
+
+	cloned := en.deepClone().(*extensionNode)
+
+	testSameExtensionNodeContent(t, en, cloned)
+}
+
+func TestExtensionNode_deepCloneNilKeyShouldWork(t *testing.T) {
+	t.Parallel()
+
+	en := &extensionNode{}
+	en.dirty = true
+	en.hash = getRandomByteSlice()
+	en.EncodedChild = getRandomByteSlice()
+	en.Key = nil
+	en.child = &leafNode{}
+
+	cloned := en.deepClone().(*extensionNode)
+
+	testSameExtensionNodeContent(t, en, cloned)
+}
+
+func TestExtensionNode_deepCloneNilChildShouldWork(t *testing.T) {
+	t.Parallel()
+
+	en := &extensionNode{}
+	en.dirty = true
+	en.hash = getRandomByteSlice()
+	en.EncodedChild = getRandomByteSlice()
+	en.Key = getRandomByteSlice()
+	en.child = nil
+
+	cloned := en.deepClone().(*extensionNode)
+
+	testSameExtensionNodeContent(t, en, cloned)
+}
+
+func TestExtensionNode_deepCloneShouldWork(t *testing.T) {
+	t.Parallel()
+
+	en := &extensionNode{}
+	en.dirty = true
+	en.hash = getRandomByteSlice()
+	en.EncodedChild = getRandomByteSlice()
+	en.Key = getRandomByteSlice()
+	en.child = &leafNode{}
+
+	cloned := en.deepClone().(*extensionNode)
+
+	testSameExtensionNodeContent(t, en, cloned)
+}
+
+func testSameExtensionNodeContent(t *testing.T, expected *extensionNode, actual *extensionNode) {
+	if !reflect.DeepEqual(expected, actual) {
+		assert.Fail(t, "not equal content")
+		fmt.Printf(
+			"expected:\n %s, got: \n%s",
+			getExtensionNodeContents(expected),
+			getExtensionNodeContents(actual),
+		)
+	}
+	assert.False(t, expected == actual)
+}
+
+func getExtensionNodeContents(en *extensionNode) string {
+	str := fmt.Sprintf(`extension node:
+   		key: %s
+   		encoded child: %s
+		hash: %s
+   		child: %p,	
+   		dirty: %v
+`,
+		hex.EncodeToString(en.Key),
+		hex.EncodeToString(en.EncodedChild),
+		hex.EncodeToString(en.hash),
+		en.child,
+		en.dirty)
+
+	return str
 }

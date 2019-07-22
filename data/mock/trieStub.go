@@ -17,6 +17,7 @@ type TrieStub struct {
 	VerifyProofCalled func(proofs [][]byte, key []byte) (bool, error)
 	CommitCalled      func() error
 	RecreateCalled    func(root []byte) (data.Trie, error)
+	DeepCloneCalled   func() (data.Trie, error)
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
@@ -85,4 +86,8 @@ func (ts *TrieStub) Recreate(root []byte) (data.Trie, error) {
 
 func (ts *TrieStub) String() string {
 	return "stub trie"
+}
+
+func (ts *TrieStub) DeepClone() (data.Trie, error) {
+	return ts.DeepCloneCalled()
 }
