@@ -65,6 +65,7 @@ type IntermediateTransactionHandler interface {
 	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
 	VerifyInterMiniBlocks(body block.Body) error
 	SaveCurrentIntermediateTxToStorage() error
+	CreateBlockStarted()
 }
 
 // TransactionVerifier interface validates if the transaction is good and if it should be processed

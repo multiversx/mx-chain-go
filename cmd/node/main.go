@@ -36,8 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	ielecommon "github.com/ElrondNetwork/elrond-vm/iele/common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/pkg/profile"
@@ -560,6 +559,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		RestApiPort:       ctx.GlobalString(restApiPort.Name),
 		Prometheus:        ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable,
 		PrometheusJoinURL: prometheusJoinUrl,
+		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
 
 	ef.SetLogger(log)
@@ -903,7 +903,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 func createApiResolver(vmAccountsDB vmcommon.BlockchainHook) (facade.ApiResolver, error) {
 	//TODO replace this with a vm factory
 	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, ielecommon.Danse)
+	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.ElrondTestnet)
 
 	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
 	if err != nil {
