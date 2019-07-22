@@ -62,7 +62,7 @@ func (bst *blockSizeThrottle) Add(round uint64, items uint32) {
 // Succeed sets the state of the last block which has been sent at the given round
 func (bst *blockSizeThrottle) Succeed(round uint64) {
 	bst.mutThrottler.Lock()
-	for i := len(bst.statistics) - 1; i > 0; i-- {
+	for i := len(bst.statistics) - 1; i >= 0; i-- {
 		if bst.statistics[i].round == round {
 			bst.statistics[i].succeed = true
 			break
@@ -74,7 +74,12 @@ func (bst *blockSizeThrottle) Succeed(round uint64) {
 // ComputeMaxItems computes the max items which could be added in one block, taking into consideration the previous
 // results
 func (bst *blockSizeThrottle) ComputeMaxItems() {
-	//TODO: This algorithm is now something basic and could be improved
+	//TODO: This is the first basic implementation, which will adapt the max items which could be added in one block,
+	//based on the last recent history. It will always choose the next value of max items, as a middle distance between
+	//the last succeeded and the last not succeeded actions, or vice-versa, depending of the last action state.
+	//This algorithm is good when the network speed/latency is changing during the time, and the node will adapt
+	//based on the last recent history and not on some minimum/maximum values recorded in its whole history.
+
 	bst.mutThrottler.Lock()
 	defer func() {
 		log.Info(fmt.Sprintf("max number of items which could be added in one block is %d\n", bst.maxItems))
@@ -110,7 +115,7 @@ func (bst *blockSizeThrottle) getMaxItemsWhenSucceed(lastActionMaxItems uint32) 
 }
 
 func (bst *blockSizeThrottle) getCloserAboveMaxItemsUsedWithoutSucceed(currentMaxItems uint32) uint32 {
-	for i := len(bst.statistics) - 1; i > 0; i-- {
+	for i := len(bst.statistics) - 1; i >= 0; i-- {
 		if !bst.statistics[i].succeed && bst.statistics[i].maxItems > currentMaxItems {
 			return bst.statistics[i].maxItems
 		}
@@ -134,7 +139,7 @@ func (bst *blockSizeThrottle) getMaxItemsWhenNotSucceed(lastActionMaxItems uint3
 }
 
 func (bst *blockSizeThrottle) getCloserBelowMaxItemsUsedWithSucceed(currentMaxItems uint32) uint32 {
-	for i := len(bst.statistics) - 1; i > 0; i-- {
+	for i := len(bst.statistics) - 1; i >= 0; i-- {
 		if bst.statistics[i].succeed && bst.statistics[i].maxItems < currentMaxItems {
 			return bst.statistics[i].maxItems
 		}
