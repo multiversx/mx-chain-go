@@ -477,6 +477,7 @@ func createTestBodyAndTxs(hasher hashing.Hasher, marshalizer marshal.Marshalizer
 	miniblock := &block.MiniBlock{}
 
 	for i := 0; i < noOfScrs; i++ {
+		g
 		scr, hash := createScResultAndHash(uint64(i), hasher, marshalizer)
 
 		scrs[i] = scr
