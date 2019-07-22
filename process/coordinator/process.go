@@ -330,7 +330,6 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round
 	var errFound error
 	errMutex := sync.Mutex{}
 
-	// TODO: think if it is good in parallel or it is needed in sequences
 	wg := sync.WaitGroup{}
 	wg.Add(len(separatedBodies))
 
@@ -496,13 +495,13 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 	tc.mutInterimProcessors.Lock()
 
 	resMutex := sync.Mutex{}
-	// TODO: think if it is good in parallel or it is needed in sequences
 	wg := sync.WaitGroup{}
 	wg.Add(len(tc.interimProcessors))
 
 	for key, interimProc := range tc.interimProcessors {
 		if key == block.TxFeeBlock {
 			// this has to be processed last
+			wg.Done()
 			continue
 		}
 
@@ -669,10 +668,14 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 	tc.mutInterimProcessors.Lock()
 
 	var errFound error
+	errMutex := sync.Mutex{}
+	wg := sync.WaitGroup{}
+	wg.Add(len(tc.interimProcessors))
 
 	for key, interimProc := range tc.interimProcessors {
 		if key == block.TxFeeBlock {
 			// this has to be processed last
+			wg.Done()
 			continue
 		}
 
@@ -687,6 +690,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 		}(interimProc)
 	}
 
+	wg.Wait()
 	tc.mutInterimProcessors.Unlock()
 
 	if errFound != nil {

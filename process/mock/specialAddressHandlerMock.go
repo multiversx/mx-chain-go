@@ -4,7 +4,7 @@ type SpecialAddressHandlerMock struct {
 	ElrondCommunityAddressCalled func() []byte
 	LeaderAddressCalled          func() []byte
 	BurnAddressCalled            func() []byte
-	ShardIdForAddressCalled      func([]byte) uint32
+	ShardIdForAddressCalled      func([]byte) (uint32, error)
 }
 
 func (sh *SpecialAddressHandlerMock) SetElrondCommunityAddress(elrond []byte) {
@@ -37,9 +37,9 @@ func (sh *SpecialAddressHandlerMock) LeaderAddress() []byte {
 	return sh.LeaderAddressCalled()
 }
 
-func (sh *SpecialAddressHandlerMock) ShardIdForAddress(addr []byte) uint32 {
+func (sh *SpecialAddressHandlerMock) ShardIdForAddress(addr []byte) (uint32, error) {
 	if sh.ShardIdForAddressCalled == nil {
-		return 0
+		return 0, nil
 	}
 
 	return sh.ShardIdForAddressCalled(addr)

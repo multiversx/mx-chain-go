@@ -12,6 +12,12 @@ import (
 	"sync"
 )
 
+// MinGasPrice is the minimal gas price to be paid for any transaction
+var MinGasPrice = uint64(1)
+
+// MinTxFee is the minimal fee to be paid for any transaction
+var MinTxFee = uint64(1)
+
 const communityPercentage = 0.1 // 1 = 100%, 0 = 0%
 const leaderPercentage = 0.4    // 1 = 100%, 0 = 0%
 const burnPercentage = 0.5      // 1 = 100%, 0 = 0%
@@ -70,7 +76,11 @@ func (ftxh *feeTxHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
 
 	miniBlocks := make(map[uint32]*block.MiniBlock)
 	for _, value := range calculatedFeeTxs {
-		dstShId := ftxh.address.ShardIdForAddress(value.GetRecvAddress())
+		dstShId, err := ftxh.address.ShardIdForAddress(value.GetRecvAddress())
+		if err != nil {
+			log.Debug(err.Error())
+			continue
+		}
 
 		txHash, err := core.CalculateHash(ftxh.marshalizer, ftxh.hasher, value)
 		if err != nil {
@@ -101,6 +111,10 @@ func (ftxh *feeTxHandler) VerifyInterMiniBlocks(body block.Body) error {
 	return err
 }
 
+func (ftxh *feeTxHandler) CreateBlockStarted() {
+	ftxh.CleanProcessedUTxs()
+}
+
 // CleanProcessedUTxs deletes the cached data
 func (ftxh *feeTxHandler) CleanProcessedUTxs() {
 	ftxh.mutTxs.Lock()
@@ -109,6 +123,7 @@ func (ftxh *feeTxHandler) CleanProcessedUTxs() {
 	ftxh.mutTxs.Unlock()
 }
 
+// AddTxFeeFromBlock adds an existing txfee from block into local cache
 func (ftxh *feeTxHandler) AddTxFeeFromBlock(tx data.TransactionHandler) {
 	currFeeTx, ok := tx.(*feeTx.FeeTx)
 	if !ok {
@@ -173,7 +188,7 @@ func (ftxh *feeTxHandler) createCommunityTx(totalGathered *big.Int) *feeTx.FeeTx
 	return currTx
 }
 
-// CreateAllUtxs creates all the needed fee transactions
+// CreateAllUTxs creates all the needed fee transactions
 // According to economic paper 50% burn, 40% to the leader, 10% to Elrond community fund
 func (ftxh *feeTxHandler) CreateAllUTxs() []data.TransactionHandler {
 	ftxh.mutTxs.Lock()
@@ -194,9 +209,7 @@ func (ftxh *feeTxHandler) CreateAllUTxs() []data.TransactionHandler {
 	burnTx := ftxh.createBurnTx(totalFee)
 
 	currFeeTxs := make([]data.TransactionHandler, 0)
-	currFeeTxs = append(currFeeTxs, leaderTx)
-	currFeeTxs = append(currFeeTxs, communityTx)
-	currFeeTxs = append(currFeeTxs, burnTx)
+	currFeeTxs = append(currFeeTxs, leaderTx, communityTx, burnTx)
 
 	ftxh.feeTxs = make([]*feeTx.FeeTx, 0)
 

@@ -210,10 +210,9 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32,
 				return process.ErrMissingTransaction
 			}
 
-			currTx := txInfo.tx
 			err := txs.processAndRemoveBadTransaction(
 				txHash,
-				currTx,
+				txInfo.tx,
 				round,
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,

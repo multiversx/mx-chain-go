@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 )
 
 type TxProcessor *txProcessor
@@ -33,14 +34,14 @@ func (txProc *txProcessor) IncreaseNonce(acntSrc *state.Account) error {
 	return txProc.increaseNonce(acntSrc)
 }
 
-func (txProc *txProcessor) SetMinTxFee(minTxFee int64) {
+func (txProc *txProcessor) SetMinTxFee(minTxFee uint64) {
 	mutex.Lock()
-	MinTxFee = minTxFee
+	unsigned.MinTxFee = minTxFee
 	mutex.Unlock()
 }
 
-func (txProc *txProcessor) SetMinGasPrice(minGasPrice int64) {
+func (txProc *txProcessor) SetMinGasPrice(minGasPrice uint64) {
 	mutex.Lock()
-	MinGasPrice = minGasPrice
+	unsigned.MinGasPrice = minGasPrice
 	mutex.Unlock()
 }

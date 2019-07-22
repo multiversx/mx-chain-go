@@ -70,11 +70,11 @@ func (sp *specialAddresses) LeaderAddress() []byte {
 }
 
 // ShardIdForAddress calculates shard id for address
-func (sp *specialAddresses) ShardIdForAddress(pubKey []byte) uint32 {
+func (sp *specialAddresses) ShardIdForAddress(pubKey []byte) (uint32, error) {
 	convAdr, err := sp.adrConv.CreateAddressFromPublicKeyBytes(pubKey)
 	if err != nil {
-		return sp.shardCoordinator.NumberOfShards()
+		return 0, err
 	}
 
-	return sp.shardCoordinator.ComputeId(convAdr)
+	return sp.shardCoordinator.ComputeId(convAdr), nil
 }

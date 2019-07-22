@@ -89,7 +89,7 @@ type SpecialAddressHandler interface {
 	SetLeaderAddress(leader []byte)
 	LeaderAddress() []byte
 	BurnAddress() []byte
-	ShardIdForAddress([]byte) uint32
+	ShardIdForAddress([]byte) (uint32, error)
 }
 
 // PreProcessor is an interface used to prepare and process transaction data

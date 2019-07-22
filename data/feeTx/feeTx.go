@@ -13,7 +13,7 @@ type FeeTx struct {
 	Nonce   uint64   `capid:"0" json:"nonce"`
 	Value   *big.Int `capid:"1" json:"value"`
 	RcvAddr []byte   `capid:"2" json:"receiver"`
-	ShardId uint32   `capid:"3" json:"ShardId"`
+	ShardId uint32   `capid:"3" json:"shardId"`
 }
 
 // Save saves the serialized data of a FeeTx into a stream through Capnp protocol
