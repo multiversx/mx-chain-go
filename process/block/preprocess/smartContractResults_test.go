@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
@@ -646,4 +647,52 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 	err := scr.ProcessMiniBlock(&miniblock, func() bool { return true }, 1)
 	assert.Nil(t, err)
 
+}
+
+func TestScrs_Preprocess_RestoreTxBlockIntoPools(t *testing.T) {
+	t.Parallel()
+	txHash := []byte("txHash")
+	scrstorage := mock.ChainStorerMock{}
+	scrstorage.AddStorer(1, &mock.StorerStub{})
+	scrstorage.Put(1, txHash, txHash)
+	scrstorage.GetAllCalled = func(unitType dataRetriever.UnitType, keys [][]byte) (bytes map[string][]byte, e error) {
+		par := make(map[string][]byte)
+		tx := smartContractResult.SmartContractResult{}
+		par["txHash"], _ = json.Marshal(tx)
+		return par, nil
+	}
+	dataPool := mock.NewPoolsHolderFake()
+	shardedDataStub := &mock.ShardedDataStub{
+		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+			return
+		},
+		RegisterHandlerCalled: func(i func(key []byte)) {
+		},
+	}
+	dataPool.SetUnsignedTransactions(shardedDataStub)
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	scr, _ := NewSmartContractResultPreprocessor(
+		dataPool.UnsignedTransactions(),
+		&scrstorage,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+	body := make(block.Body, 0)
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        txHashes,
+		Type:            block.SmartContractResultBlock,
+	}
+	body = append(body, &miniblock)
+	miniblockPool := mock.NewCacherMock()
+	scrRestored, _, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
+	assert.Equal(t, scrRestored, 1)
+	assert.Nil(t, err)
 }
