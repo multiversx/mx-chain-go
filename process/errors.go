@@ -385,9 +385,6 @@ var ErrNilTransactionCoordinator = errors.New("transaction coordinator is nil")
 // ErrNilUint64Converter signals that uint64converter is nil
 var ErrNilUint64Converter = errors.New("unit64converter is nil")
 
-// ErrNilBlockSizeThrottler signals that blockSizeThrottler is nil
-var ErrNilBlockSizeThrottler = errors.New("blockSizeThrottler is nil")
-
 // ErrNilSmartContractResultProcessor signals that smart contract result processor is nil
 var ErrNilSmartContractResultProcessor = errors.New("nil smart contract result processor")
 

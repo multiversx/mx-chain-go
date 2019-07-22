@@ -73,9 +73,6 @@ var ErrNilMultiSig = errors.New("trying to set nil multiSigner")
 // ErrNilForkDetector signals that a nil forkdetector object has been provided
 var ErrNilForkDetector = errors.New("nil fork detector")
 
-// ErrNilBlockSizeThrottler signals that a nil blockSizeThrottler object has been provided
-var ErrNilBlockSizeThrottler = errors.New("nil block size throttler")
-
 // ErrValidatorAlreadySet signals that a topic validator has already been set
 var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
 
