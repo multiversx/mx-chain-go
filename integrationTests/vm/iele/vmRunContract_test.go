@@ -61,7 +61,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(0).SetUint64(99973491)
+	expectedBalance := big.NewInt(0).SetUint64(99999791)
 	vm.TestAccount(
 		t,
 		accnts,
@@ -112,7 +112,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	addValue := uint64(128)
 	data := fmt.Sprintf("add@%X", addValue)
 	//contract call tx that will fail with out of gas
-	gasLimitFail := uint64(100)
+	gasLimitFail := uint64(10)
 	txRun := vm.CreateTx(
 		t,
 		senderAddressBytes,
@@ -130,7 +130,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(0).SetUint64(99978598)
+	expectedBalance := big.NewInt(0).SetUint64(99999851)
 	//following operations happened: deploy and call, deploy succeed, call failed, transfer has been reverted, gas consumed
 	vm.TestAccount(
 		t,
