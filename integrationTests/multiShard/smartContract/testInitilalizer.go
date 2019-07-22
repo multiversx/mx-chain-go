@@ -351,7 +351,6 @@ func createNetNode(
 		requestHandler,
 		tc,
 		uint64Converter,
-		&mock.BlockSizeThrottlerStub{},
 	)
 
 	_ = blkc.SetGenesisHeader(genesisBlocks[shardCoordinator.SelfId()])
@@ -639,7 +638,6 @@ func createMetaNetNode(
 		genesisBlocks,
 		requestHandler,
 		uint64Converter,
-		&mock.BlockSizeThrottlerStub{},
 	)
 
 	_ = tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])

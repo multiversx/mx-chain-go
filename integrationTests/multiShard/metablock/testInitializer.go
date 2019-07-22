@@ -362,7 +362,6 @@ func createShardNetNode(
 		requestHandler,
 		tc,
 		uint64Converter,
-		&mock.BlockSizeThrottlerStub{},
 	)
 
 	tn.broadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
@@ -529,7 +528,6 @@ func createMetaNetNode(
 		createGenesisBlocks(shardCoordinator),
 		requestHandler,
 		uint64Converter,
-		&mock.BlockSizeThrottlerStub{},
 	)
 
 	tn.broadcastMessenger, _ = sposFactory.GetBroadcastMessenger(

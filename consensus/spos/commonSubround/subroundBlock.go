@@ -87,10 +87,6 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	sr.BlockSizeThrottler().Add(
-		uint64(sr.RoundIndex),
-		core.Max(sr.Header.ItemsInBody(), sr.Header.ItemsInHeader()))
-
 	err := sr.SetSelfJobDone(sr.Current(), true)
 	if err != nil {
 		log.Error(err.Error())

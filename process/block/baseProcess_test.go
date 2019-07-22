@@ -325,7 +325,6 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
-		&mock.BlockSizeThrottlerStub{},
 	)
 	blkc := createTestBlockchain()
 	body := &block.Body{}
@@ -400,7 +399,6 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
-		&mock.BlockSizeThrottlerStub{},
 	)
 	assert.True(t, bp.VerifyStateRoot(rootHash))
 }
@@ -426,7 +424,6 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
-		&mock.BlockSizeThrottlerStub{},
 	)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	expectedError := errors.New("marshalizer fail")
@@ -464,7 +461,6 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
-		&mock.BlockSizeThrottlerStub{},
 	)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {

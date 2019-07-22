@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -56,12 +57,10 @@ func NewShardProcessor(
 	requestHandler process.RequestHandler,
 	txCoordinator process.TransactionCoordinator,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	blockSizeThrottler process.BlockSizeThrottler,
 ) (*shardProcessor, error) {
 
 	err := checkProcessorNilParameters(
 		accounts,
-		blockSizeThrottler,
 		forkDetector,
 		hasher,
 		marshalizer,
@@ -83,6 +82,11 @@ func NewShardProcessor(
 	}
 	if txCoordinator == nil {
 		return nil, process.ErrNilTransactionCoordinator
+	}
+
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
+	if err != nil {
+		return nil, err
 	}
 
 	base := &baseProcessor{
@@ -518,8 +522,9 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][][]b
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error) {
 	sp.txCoordinator.CreateBlockStarted()
+	sp.blockSizeThrottler.ComputeMaxItems()
 
-	miniBlocks, err := sp.createMiniBlocks(sp.shardCoordinator.NumberOfShards(), round, haveTime)
+	miniBlocks, err := sp.createMiniBlocks(sp.shardCoordinator.NumberOfShards(), sp.blockSizeThrottler.MaxItemsToAdd(), round, haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -658,6 +663,8 @@ func (sp *shardProcessor) CommitBlock(
 
 	// write data to log
 	go DisplayLogInfo(header, body, headerHash, sp.shardCoordinator.NumberOfShards(), sp.shardCoordinator.SelfId(), sp.dataPool)
+
+	sp.blockSizeThrottler.Succeed(uint64(header.Round))
 
 	return nil
 }
@@ -1089,6 +1096,7 @@ func (sp *shardProcessor) isMetaHeaderFinal(currHdr data.HeaderHandler, sortedHd
 // full verification through metachain header
 func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	noShards uint32,
+	maxItemsInBlock uint32,
 	round uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, [][]byte, uint32, error) {
@@ -1132,7 +1140,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		itemsAddedInHeader := uint32(len(usedMetaHdrsHashes) + len(miniBlocks))
-		if itemsAddedInHeader >= sp.blockSizeThrottler.MaxItemsToAdd() {
+		if itemsAddedInHeader >= maxItemsInBlock {
 			log.Info(fmt.Sprintf("max records allowed to be added in shard header has been reached\n"))
 			break
 		}
@@ -1159,12 +1167,12 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		itemsAddedInBody := nrTxAdded
-		if itemsAddedInBody >= sp.blockSizeThrottler.MaxItemsToAdd() {
+		if itemsAddedInBody >= maxItemsInBlock {
 			continue
 		}
 
-		maxTxSpaceRemained := int32(sp.blockSizeThrottler.MaxItemsToAdd()) - int32(itemsAddedInBody)
-		maxMbSpaceRemained := int32(sp.blockSizeThrottler.MaxItemsToAdd()) - int32(itemsAddedInHeader) - 1
+		maxTxSpaceRemained := int32(maxItemsInBlock) - int32(itemsAddedInBody)
+		maxMbSpaceRemained := int32(maxItemsInBlock) - int32(itemsAddedInHeader) - 1
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 			currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
@@ -1190,11 +1198,16 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 	}
 
+	sp.mutUsedMetaHdrsHashes.Lock()
+	sp.usedMetaHdrsHashes[round] = usedMetaHdrsHashes
+	sp.mutUsedMetaHdrsHashes.Unlock()
+
 	return miniBlocks, usedMetaHdrsHashes, nrTxAdded, nil
 }
 
 func (sp *shardProcessor) createMiniBlocks(
 	noShards uint32,
+	maxItemsInBlock uint32,
 	round uint32,
 	haveTime func() bool,
 ) (block.Body, error) {
@@ -1215,14 +1228,10 @@ func (sp *shardProcessor) createMiniBlocks(
 		return nil, process.ErrNilTransactionPool
 	}
 
-	destMeMiniBlocks, usedMetaHdrsHashes, txs, err := sp.createAndProcessCrossMiniBlocksDstMe(noShards, round, haveTime)
+	destMeMiniBlocks, usedMetaHdrsHashes, txs, err := sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxItemsInBlock, round, haveTime)
 	if err != nil {
 		log.Info(err.Error())
 	}
-
-	sp.mutUsedMetaHdrsHashes.Lock()
-	sp.usedMetaHdrsHashes[round] = usedMetaHdrsHashes
-	sp.mutUsedMetaHdrsHashes.Unlock()
 
 	log.Debug(fmt.Sprintf("processed %d miniblocks and %d txs with destination in self shard\n", len(destMeMiniBlocks), txs))
 
@@ -1235,8 +1244,8 @@ func (sp *shardProcessor) createMiniBlocks(
 		return miniBlocks, nil
 	}
 
-	maxTxSpaceRemained := int32(sp.blockSizeThrottler.MaxItemsToAdd()) - int32(txs)
-	maxMbSpaceRemained := int32(sp.blockSizeThrottler.MaxItemsToAdd()) - int32(len(destMeMiniBlocks)) - int32(len(usedMetaHdrsHashes))
+	maxTxSpaceRemained := int32(maxItemsInBlock) - int32(txs)
+	maxMbSpaceRemained := int32(maxItemsInBlock) - int32(len(destMeMiniBlocks)) - int32(len(usedMetaHdrsHashes))
 
 	if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 		mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
@@ -1309,6 +1318,10 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 	}
 
 	sp.mutUsedMetaHdrsHashes.Unlock()
+
+	sp.blockSizeThrottler.Add(
+		uint64(round),
+		core.Max(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
 }

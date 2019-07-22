@@ -453,7 +453,6 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 // checkProcessorNilParameters will check the imput parameters for nil values
 func checkProcessorNilParameters(
 	accounts state.AccountsAdapter,
-	blockSizeThrottler process.BlockSizeThrottler,
 	forkDetector process.ForkDetector,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
@@ -464,9 +463,6 @@ func checkProcessorNilParameters(
 
 	if accounts == nil {
 		return process.ErrNilAccountsAdapter
-	}
-	if blockSizeThrottler == nil {
-		return process.ErrNilBlockSizeThrottler
 	}
 	if forkDetector == nil {
 		return process.ErrNilForkDetector

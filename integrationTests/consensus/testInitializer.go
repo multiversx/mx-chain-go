@@ -267,7 +267,6 @@ func createConsensusOnlyNode(
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
-	blockSizeThrottler := &mock.BlockSizeThrottlerStub{}
 	blockTracker := &mock.BlocksTrackerMock{
 		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
 			return make([]data.HeaderHandler, 0)
@@ -360,7 +359,6 @@ func createConsensusOnlyNode(
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
 		node.WithBlockTracker(blockTracker),
-		node.WithBlockSizeThrottler(blockSizeThrottler),
 	)
 
 	if err != nil {

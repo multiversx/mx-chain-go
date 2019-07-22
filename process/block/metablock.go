@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -56,12 +57,10 @@ func NewMetaProcessor(
 	startHeaders map[uint32]data.HeaderHandler,
 	requestHandler process.RequestHandler,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	blockSizeThrottler process.BlockSizeThrottler,
 ) (*metaProcessor, error) {
 
 	err := checkProcessorNilParameters(
 		accounts,
-		blockSizeThrottler,
 		forkDetector,
 		hasher,
 		marshalizer,
@@ -80,6 +79,11 @@ func NewMetaProcessor(
 	}
 	if requestHandler == nil {
 		return nil, process.ErrNilRequestHandler
+	}
+
+	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
+	if err != nil {
+		return nil, err
 	}
 
 	base := &baseProcessor{
@@ -340,6 +344,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 
 // CreateBlockBody creates block body of metachain
 func (mp *metaProcessor) CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error) {
+	mp.blockSizeThrottler.ComputeMaxItems()
 	return &block.MetaBlockBody{}, nil
 }
 
@@ -502,6 +507,8 @@ func (mp *metaProcessor) CommitBlock(
 	mp.indexBlock(header, tempHeaderPool)
 
 	go mp.displayMetaBlock(header)
+
+	mp.blockSizeThrottler.Succeed(uint64(header.Round))
 
 	return nil
 }
@@ -883,6 +890,7 @@ func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
 }
 
 func (mp *metaProcessor) createShardInfo(
+	maxItemsInBlock uint32,
 	round uint32,
 	haveTime func() bool,
 ) ([]block.ShardData, error) {
@@ -990,7 +998,7 @@ func (mp *metaProcessor) createShardInfo(
 			mbHdrs++
 
 			recordsAddedInHeader := mbHdrs + uint32(len(shardInfo))
-			spaceRemained := int32(mp.blockSizeThrottler.MaxItemsToAdd()) - int32(recordsAddedInHeader) - 1
+			spaceRemained := int32(maxItemsInBlock) - int32(recordsAddedInHeader) - 1
 
 			if spaceRemained <= 0 {
 				log.Info(fmt.Sprintf("max hdrs accepted in one block is reached: added %d hdrs from %d hdrs\n", mbHdrs, len(orderedHdrs)))
@@ -1044,7 +1052,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		go mp.checkAndRequestIfShardHeadersMissing(round)
 	}()
 
-	shardInfo, err := mp.createShardInfo(round, haveTime)
+	shardInfo, err := mp.createShardInfo(mp.blockSizeThrottler.MaxItemsToAdd(), round, haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -1058,6 +1066,10 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	header.PeerInfo = peerInfo
 	header.RootHash = mp.getRootHash()
 	header.TxCount = getTxCount(shardInfo)
+
+	mp.blockSizeThrottler.Add(
+		uint64(round),
+		core.Max(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
 }

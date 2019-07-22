@@ -18,8 +18,6 @@ type ConsensusCoreHandler interface {
 	Blockchain() data.ChainHandler
 	// BlockProcessor gets the BlockProcessor stored in the ConsensusCore
 	BlockProcessor() process.BlockProcessor
-	// BlockSizeThrottler gets the BlockSizeThrottler stored in the ConsensusCore
-	BlockSizeThrottler() process.BlockSizeThrottler
 	// BlocksTracker gets the BlockTracker stored in the ConsensusCore
 	BlocksTracker() process.BlocksTracker
 	// BootStrapper gets the Bootstrapper stored in the ConsensusCore

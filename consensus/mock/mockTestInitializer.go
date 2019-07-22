@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 )
 
 func InitChronologyHandlerMock() consensus.ChronologyHandler {
@@ -99,7 +98,6 @@ func InitConsensusCore() *ConsensusCoreMock {
 		},
 	}
 	blockProcessorMock := InitBlockProcessorMock()
-	blockSizeThrottlerMock := &mock.BlockSizeThrottlerStub{}
 	blockTrackerMock := &BlocksTrackerMock{
 		SetBlockBroadcastRoundCalled: func(nonce uint64, round int32) {
 		},
@@ -129,7 +127,6 @@ func InitConsensusCore() *ConsensusCoreMock {
 	container := &ConsensusCoreMock{
 		blockChain,
 		blockProcessorMock,
-		blockSizeThrottlerMock,
 		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,

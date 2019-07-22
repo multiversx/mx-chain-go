@@ -16,7 +16,6 @@ import (
 type ConsensusCore struct {
 	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
-	blockSizeThrottler     process.BlockSizeThrottler
 	blocksTracker          process.BlocksTracker
 	bootstrapper           process.Bootstrapper
 	broadcastMessenger     consensus.BroadcastMessenger
@@ -36,7 +35,6 @@ type ConsensusCore struct {
 func NewConsensusCore(
 	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
-	blockSizeThrottler process.BlockSizeThrottler,
 	blocksTracker process.BlocksTracker,
 	bootstrapper process.Bootstrapper,
 	broadcastMessenger consensus.BroadcastMessenger,
@@ -54,7 +52,6 @@ func NewConsensusCore(
 	consensusCore := &ConsensusCore{
 		blockChain,
 		blockProcessor,
-		blockSizeThrottler,
 		blocksTracker,
 		bootstrapper,
 		broadcastMessenger,
@@ -86,11 +83,6 @@ func (cc *ConsensusCore) Blockchain() data.ChainHandler {
 // BlockProcessor gets the BlockProcessor stored in the ConsensusCore
 func (cc *ConsensusCore) BlockProcessor() process.BlockProcessor {
 	return cc.blockProcessor
-}
-
-// BlockSizeThrottler gets the BlockSizeThrottler stored in the ConsensusCore
-func (cc *ConsensusCore) BlockSizeThrottler() process.BlockSizeThrottler {
-	return cc.blockSizeThrottler
 }
 
 // BlocksTracker gets the BlocksTracker stored in the ConsensusCore
