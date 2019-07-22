@@ -369,6 +369,10 @@ func (en *extensionNode) isEmptyOrNil() error {
 }
 
 func (en *extensionNode) print(writer io.Writer, index int) {
+	if en == nil {
+		return
+	}
+
 	key := ""
 	for _, k := range en.Key {
 		key += fmt.Sprintf("%d", k)
@@ -380,6 +384,10 @@ func (en *extensionNode) print(writer io.Writer, index int) {
 }
 
 func (en *extensionNode) deepClone() node {
+	if en == nil {
+		return nil
+	}
+
 	clonedNode := &extensionNode{}
 
 	if en.Key != nil {

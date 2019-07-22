@@ -686,11 +686,11 @@ func testSameExtensionNodeContent(t *testing.T, expected *extensionNode, actual 
 
 func getExtensionNodeContents(en *extensionNode) string {
 	str := fmt.Sprintf(`extension node:
-   key: %s
-   encoded child: %s
-   hash: %s
-   child: %p,	
-   dirty: %v
+   		key: %s
+   		encoded child: %s
+		hash: %s
+   		child: %p,	
+   		dirty: %v
 `,
 		hex.EncodeToString(en.Key),
 		hex.EncodeToString(en.EncodedChild),

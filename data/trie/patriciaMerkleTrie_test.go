@@ -328,18 +328,22 @@ func emptyTrie() data.Trie {
 }
 
 func TestPatriciaMerkleTrie_DeepCloneShouldWork(t *testing.T) {
+	t.Parallel()
+
 	tr := initTrie()
 
 	_ = tr.Update([]byte("doee"), []byte("value of doee"))
 	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
 
 	trie2, err := tr.DeepClone()
-
 	assert.Nil(t, err)
 
 	assert.Equal(t, tr, trie2)
 	assert.False(t, tr == trie2)
 	assert.Equal(t, tr.String(), trie2.String())
+	originalRoot, _ := tr.Root()
+	clonedTrie, _ := trie2.Root()
+	assert.Equal(t, originalRoot, clonedTrie)
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
@@ -574,14 +578,11 @@ func BenchmarkPatriciaMerkleTrie_Cloning10000ValuesTrie(b *testing.B) {
 	hsh := keccak.Keccak{}
 
 	nrValuesInTrie := 10000
-	values := make([][]byte, nrValuesInTrie)
-
 	for i := 0; i < nrValuesInTrie; i++ {
 		key := hsh.Compute(strconv.Itoa(i))
 		value := append(key, []byte(strconv.Itoa(i))...)
 
 		_ = tr.Update(key, value)
-		values[i] = key
 	}
 
 	b.ResetTimer()

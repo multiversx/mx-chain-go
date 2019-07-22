@@ -480,6 +480,10 @@ func (bn *branchNode) isEmptyOrNil() error {
 }
 
 func (bn *branchNode) print(writer io.Writer, index int) {
+	if bn == nil {
+		return
+	}
+
 	str := fmt.Sprintf("B:")
 	_, _ = fmt.Fprintln(writer, str)
 	for i := 0; i < len(bn.children); i++ {
@@ -498,6 +502,10 @@ func (bn *branchNode) print(writer io.Writer, index int) {
 }
 
 func (bn *branchNode) deepClone() node {
+	if bn == nil {
+		return nil
+	}
+
 	clonedNode := &branchNode{}
 
 	if bn.hash != nil {
