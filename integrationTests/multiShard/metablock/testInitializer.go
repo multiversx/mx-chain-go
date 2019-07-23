@@ -527,6 +527,7 @@ func createMetaNetNode(
 		store,
 		createGenesisBlocks(shardCoordinator),
 		requestHandler,
+		uint64Converter,
 	)
 
 	tn.broadcastMessenger, _ = sposFactory.GetBroadcastMessenger(

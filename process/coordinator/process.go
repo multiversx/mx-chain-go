@@ -364,6 +364,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	hdr data.HeaderHandler,
 	maxTxRemaining uint32,
+	maxMbRemaining uint32,
 	round uint32,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, bool) {
@@ -422,6 +423,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		miniBlocks = append(miniBlocks, miniBlock)
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
 		nrMBprocessed++
+
+		mbOverFlow := uint32(len(miniBlocks)) >= maxMbRemaining
+		if mbOverFlow {
+			return miniBlocks, nrTxAdded, false
+		}
 	}
 
 	allMBsProcessed := nrMBprocessed == len(crossMiniBlockHashes)
@@ -429,7 +435,13 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 }
 
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
-func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRemaining uint32, round uint32, haveTime func() bool) block.MiniBlockSlice {
+func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
+	maxTxSpaceRemained uint32,
+	maxMbSpaceRemained uint32,
+	round uint32,
+	haveTime func() bool,
+) block.MiniBlockSlice {
+
 	txPreProc := tc.getPreprocessor(block.TxBlock)
 	if txPreProc == nil {
 		return nil
@@ -438,12 +450,23 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(maxTxRem
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	addedTxs := 0
 	for i := 0; i < int(tc.shardCoordinator.NumberOfShards()); i++ {
-		remainingSpace := int(maxTxRemaining) - addedTxs
-		if remainingSpace <= 0 {
+		txSpaceRemained := int(maxTxSpaceRemained) - addedTxs
+		if txSpaceRemained <= 0 {
 			break
 		}
 
-		miniBlock, err := txPreProc.CreateAndProcessMiniBlock(tc.shardCoordinator.SelfId(), uint32(i), remainingSpace, haveTime, round)
+		mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
+		if mbSpaceRemained <= 0 {
+			break
+		}
+
+		miniBlock, err := txPreProc.CreateAndProcessMiniBlock(
+			tc.shardCoordinator.SelfId(),
+			uint32(i),
+			txSpaceRemained,
+			haveTime,
+			round)
+
 		if err != nil {
 			break
 		}

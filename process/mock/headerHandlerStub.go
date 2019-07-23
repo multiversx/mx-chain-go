@@ -115,3 +115,11 @@ func (hhs *HeaderHandlerStub) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+func (hhs *HeaderHandlerStub) ItemsInHeader() uint32 {
+	panic("implement me")
+}
+
+func (hhs *HeaderHandlerStub) ItemsInBody() uint32 {
+	panic("implement me")
+}
