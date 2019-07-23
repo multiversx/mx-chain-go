@@ -9,6 +9,7 @@ type Heartbeat struct {
 	Payload   []byte
 	Pubkey    []byte
 	Signature []byte
+	ShardID   uint32
 }
 
 // PubKeyHeartbeat returns the heartbeat status for the public key

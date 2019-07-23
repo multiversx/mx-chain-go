@@ -38,13 +38,17 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 		}
 		return time.Unix(0, incrementalTime)
 	}
-	shardID := uint32(0)
+	emptyTimestamp := time.Time{}
 
-	assert.Equal(t, false, hbmi.alreadyAccessed)
-	hbmi.HeartbeatReceived(shardID)
-	assert.Equal(t, true, hbmi.alreadyAccessed)
-	hbmi.HeartbeatReceived(shardID)
-	assert.Equal(t, true, hbmi.alreadyAccessed)
+	assert.Equal(t, emptyTimestamp, hbmi.timeStamp)
+
+	hbmi.HeartbeatReceived(uint32(0))
+	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
+	assert.Equal(t, uint32(0), hbmi.shardID)
+
+	hbmi.HeartbeatReceived(uint32(1))
+	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
+	assert.Equal(t, uint32(1), hbmi.shardID)
 }
 
 func TestHeartbeatMessageInfo_HeartbeatSweepShouldUpdate(t *testing.T) {
@@ -59,9 +63,9 @@ func TestHeartbeatMessageInfo_HeartbeatSweepShouldUpdate(t *testing.T) {
 		return tReturned
 	}
 	shardID := uint32(3)
+	emptyTimestamp := time.Time{}
+	assert.Equal(t, emptyTimestamp, hbmi.timeStamp)
 
 	hbmi.HeartbeatReceived(shardID)
-
-	assert.Equal(t, true, hbmi.alreadyAccessed)
-	assert.Equal(t, uint32(3), hbmi.shardID)
+	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
 }

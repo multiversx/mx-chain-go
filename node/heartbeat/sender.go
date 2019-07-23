@@ -6,16 +6,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // Sender periodically sends heartbeat messages on a pubsub topic
 type Sender struct {
-	peerMessenger PeerMessenger
-	singleSigner  crypto.SingleSigner
-	privKey       crypto.PrivateKey
-	marshalizer   marshal.Marshalizer
-	topic         string
-	shardID       uint32
+	peerMessenger    PeerMessenger
+	singleSigner     crypto.SingleSigner
+	privKey          crypto.PrivateKey
+	marshalizer      marshal.Marshalizer
+	topic            string
+	shardCoordinator *sharding.Coordinator
 }
 
 // NewSender will create a new sender instance
@@ -25,7 +26,7 @@ func NewSender(
 	privKey crypto.PrivateKey,
 	marshalizer marshal.Marshalizer,
 	topic string,
-	shardID uint32,
+	shardCoordinator *sharding.Coordinator,
 ) (*Sender, error) {
 
 	if peerMessenger == nil {
@@ -42,12 +43,12 @@ func NewSender(
 	}
 
 	sender := &Sender{
-		peerMessenger: peerMessenger,
-		singleSigner:  singleSigner,
-		privKey:       privKey,
-		marshalizer:   marshalizer,
-		topic:         topic,
-		shardID:       shardID,
+		peerMessenger:    peerMessenger,
+		singleSigner:     singleSigner,
+		privKey:          privKey,
+		marshalizer:      marshalizer,
+		topic:            topic,
+		shardCoordinator: shardCoordinator,
 	}
 
 	return sender, nil
@@ -58,6 +59,7 @@ func (s *Sender) SendHeartbeat() error {
 
 	hb := &Heartbeat{
 		Payload: []byte(fmt.Sprintf("%v", time.Now())),
+		ShardID: (*s.shardCoordinator).SelfId(),
 	}
 
 	var err error

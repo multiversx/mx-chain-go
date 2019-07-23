@@ -17,30 +17,23 @@ var log = logger.DefaultLogger()
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
 type Monitor struct {
-	peerMessenger               PeerMessenger
 	singleSigner                crypto.SingleSigner
 	maxDurationPeerUnresponsive time.Duration
 	keygen                      crypto.KeyGenerator
 	marshalizer                 marshal.Marshalizer
 	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutHeartbeatMessages        sync.RWMutex
-	shardID                     uint32
 }
 
 // NewMonitor returns a new monitor instance
 func NewMonitor(
-	peerMessenger PeerMessenger,
 	singleSigner crypto.SingleSigner,
 	keygen crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 	maxDurationPeerUnresponsive time.Duration,
 	pubKeyList []string,
-	shardID uint32,
 ) (*Monitor, error) {
 
-	if peerMessenger == nil {
-		return nil, ErrNilMessenger
-	}
 	if singleSigner == nil {
 		return nil, ErrNilSingleSigner
 	}
@@ -55,13 +48,11 @@ func NewMonitor(
 	}
 
 	mon := &Monitor{
-		peerMessenger:               peerMessenger,
 		singleSigner:                singleSigner,
 		keygen:                      keygen,
 		marshalizer:                 marshalizer,
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
-		shardID:                     shardID,
 	}
 
 	var err error
@@ -107,12 +98,6 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		m.mutHeartbeatMessages.Lock()
 		defer m.mutHeartbeatMessages.Unlock()
 
-		addr := m.peerMessenger.PeerAddress(msg.Peer())
-		if addr == "" {
-			//address is not known for the peer that emitted the message
-			addr = msg.Peer().Pretty()
-		}
-
 		pe := m.heartbeatMessages[string(hb.Pubkey)]
 		if pe == nil {
 			pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive)
@@ -123,7 +108,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			m.heartbeatMessages[string(hb.Pubkey)] = pe
 		}
 
-		pe.HeartbeatReceived(m.shardID)
+		pe.HeartbeatReceived(hb.ShardID)
 	}(message, hbRecv)
 
 	return nil
