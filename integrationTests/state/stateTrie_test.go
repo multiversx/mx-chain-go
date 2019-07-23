@@ -12,19 +12,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
-	"github.com/ElrondNetwork/elrond-go/process/transaction"
-
 	"github.com/ElrondNetwork/elrond-go/core"
-
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
