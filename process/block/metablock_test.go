@@ -116,6 +116,7 @@ func TestNewMetaProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 	assert.Nil(t, be)
@@ -135,6 +136,7 @@ func TestNewMetaProcessor_NilDataPoolShouldErr(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
 	assert.Nil(t, be)
@@ -155,6 +157,7 @@ func TestNewMetaProcessor_NilForkDetectorShouldErr(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	assert.Equal(t, process.ErrNilForkDetector, err)
 	assert.Nil(t, be)
@@ -175,6 +178,7 @@ func TestNewMetaProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 	assert.Nil(t, be)
@@ -195,6 +199,7 @@ func TestNewMetaProcessor_NilHasherShouldErr(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	assert.Equal(t, process.ErrNilHasher, err)
 	assert.Nil(t, be)
@@ -215,6 +220,7 @@ func TestNewMetaProcessor_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, be)
@@ -235,6 +241,7 @@ func TestNewMetaProcessor_NilChainStorerShouldErr(t *testing.T) {
 		nil,
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	assert.Equal(t, process.ErrNilStorage, err)
 	assert.Nil(t, be)
@@ -255,6 +262,7 @@ func TestNewMetaProcessor_NilRequestHeaderHandlerShouldErr(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		nil,
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 	assert.Nil(t, be)
@@ -349,6 +357,7 @@ func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	// should return err
 	err := mp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -448,6 +457,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	go func() {
@@ -484,6 +494,7 @@ func TestMetaProcessor_ProcessBlockHeaderShouldPass(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	txHash := []byte("txhash")
@@ -537,6 +548,7 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	mdp.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		cs := &mock.Uint64SyncMapCacherStub{}
@@ -578,6 +590,7 @@ func TestMetaProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	blk := &block.MetaBlockBody{}
 	err := mp.CommitBlock(nil, &block.MetaBlock{}, blk)
@@ -616,6 +629,7 @@ func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	blkc := createTestBlockchain()
 	err := mp.CommitBlock(blkc, hdr, body)
@@ -659,6 +673,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 		store,
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	blkc, _ := blockchain.NewMetaChain(
@@ -693,6 +708,7 @@ func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		store,
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	mdp.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
@@ -730,6 +746,7 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		store,
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	mdp.ShardHeadersCalled = func() storage.Cacher {
@@ -791,6 +808,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		store,
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	removeHdrWasCalled := false
@@ -837,6 +855,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	mdp.ShardHeadersCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
@@ -873,6 +892,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *tes
 		initStore(),
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	err := mp.RemoveBlockInfoFromPool(nil)
 	assert.NotNil(t, err)
@@ -894,6 +914,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 		initStore(),
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	header := createMetaBlockHeader()
 	err := mp.RemoveBlockInfoFromPool(header)
@@ -919,6 +940,7 @@ func TestMetaProcessor_DisplayLogInfo(t *testing.T) {
 		initStore(),
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	hdr.PrevHash = hasher.Compute("prev hash")
 	mp.DisplayMetaBlock(hdr)
@@ -942,6 +964,7 @@ func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFai
 		initStore(),
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	haveTime := func() bool { return true }
 	hdr, err := mp.CreateBlockHeader(nil, 0, haveTime)
@@ -970,6 +993,7 @@ func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
 		initStore(),
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	haveTime := func() bool { return true }
@@ -1000,6 +1024,7 @@ func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) 
 		initStore(),
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	err := mp.CommitBlock(nil, nil, nil)
 	assert.NotNil(t, err)
@@ -1021,6 +1046,7 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		initStore(),
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	msh, mstx, err := mp.MarshalizedDataToBroadcast(&block.MetaBlock{}, &block.MetaBlockBody{})
@@ -1049,6 +1075,7 @@ func TestMetaProcessor_ReceivedHeaderShouldEraseRequested(t *testing.T) {
 		initStore(),
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	//add 3 tx hashes on requested list
@@ -1141,6 +1168,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 		initStore(),
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(5)),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	haveTime := func() bool { return true }
@@ -1219,6 +1247,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		initStore(),
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(5)),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	haveTime := func() bool { return true }
@@ -1264,13 +1293,9 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 
 	mp.SetNextKValidity(0)
 	round := uint32(40)
-	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
+	shardInfo, err := mp.CreateShardInfo(3, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
-
-	shardInfo, err = mp.CreateShardInfo(3, round, haveTime)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(shardInfo))
 
 	shardInfo, err = mp.CreateShardInfo(4, round, haveTime)
 	assert.Nil(t, err)
@@ -1278,9 +1303,13 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 
 	shardInfo, err = mp.CreateShardInfo(5, round, haveTime)
 	assert.Nil(t, err)
+	assert.Equal(t, 1, len(shardInfo))
+
+	shardInfo, err = mp.CreateShardInfo(7, round, haveTime)
+	assert.Nil(t, err)
 	assert.Equal(t, 2, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(6, round, haveTime)
+	shardInfo, err = mp.CreateShardInfo(8, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }
@@ -1342,6 +1371,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		initStore(),
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	haveTime := func() bool { return true }
@@ -1435,13 +1465,9 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 
 	mp.SetNextKValidity(1)
 	round := uint32(15)
-	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
+	shardInfo, err := mp.CreateShardInfo(3, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
-
-	shardInfo, err = mp.CreateShardInfo(3, round, haveTime)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(shardInfo))
 
 	shardInfo, err = mp.CreateShardInfo(4, round, haveTime)
 	assert.Nil(t, err)
@@ -1449,9 +1475,13 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 
 	shardInfo, err = mp.CreateShardInfo(5, round, haveTime)
 	assert.Nil(t, err)
+	assert.Equal(t, 1, len(shardInfo))
+
+	shardInfo, err = mp.CreateShardInfo(7, round, haveTime)
+	assert.Nil(t, err)
 	assert.Equal(t, 2, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(6, round, haveTime)
+	shardInfo, err = mp.CreateShardInfo(8, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }
@@ -1513,6 +1543,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		initStore(),
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	haveTime := func() bool { return true }
@@ -1606,13 +1637,9 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 
 	mp.SetNextKValidity(1)
 	round := uint32(20)
-	shardInfo, err := mp.CreateShardInfo(2, round, haveTime)
+	shardInfo, err := mp.CreateShardInfo(3, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
-
-	shardInfo, err = mp.CreateShardInfo(3, round, haveTime)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(shardInfo))
 
 	shardInfo, err = mp.CreateShardInfo(4, round, haveTime)
 	assert.Nil(t, err)
@@ -1620,9 +1647,13 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 
 	shardInfo, err = mp.CreateShardInfo(5, round, haveTime)
 	assert.Nil(t, err)
+	assert.Equal(t, 1, len(shardInfo))
+
+	shardInfo, err = mp.CreateShardInfo(7, round, haveTime)
+	assert.Nil(t, err)
 	assert.Equal(t, 2, len(shardInfo))
 
-	shardInfo, err = mp.CreateShardInfo(6, round, haveTime)
+	shardInfo, err = mp.CreateShardInfo(8, round, haveTime)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }
@@ -1642,6 +1673,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldErrNilMetaBlockHeader(t *testi
 		initStore(),
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	err := mp.RestoreBlockIntoPools(nil, nil)
 	assert.NotNil(t, err)
@@ -1684,6 +1716,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		store,
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	mhdr := createMetaBlockHeader()
@@ -1722,6 +1755,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 		initStore(),
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -1820,6 +1854,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		initStore(),
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -1919,6 +1954,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 		initStore(),
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -1981,6 +2017,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 		initStore(),
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -2049,6 +2086,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 		initStore(),
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -2161,6 +2199,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 		initStore(),
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -2272,6 +2311,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 		initStore(),
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 
 	prevRandSeed := []byte("prevrand")
@@ -2386,6 +2426,7 @@ func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	body := &block.MetaBlockBody{}
 	message, err := marshalizerMock.Marshal(body)
@@ -2413,6 +2454,7 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 		&mock.ChainStorerMock{},
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	hdr := &block.MetaBlock{}
 	hdr.Nonce = 1

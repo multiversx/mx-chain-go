@@ -34,6 +34,7 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.1.0
 	github.com/libp2p/go-libp2p-peerstore v0.1.0
 	github.com/libp2p/go-libp2p-pubsub v0.1.0
+	github.com/magiconair/properties v1.8.1
 	github.com/mr-tron/base58 v1.1.2
 	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/pelletier/go-toml v1.2.0
