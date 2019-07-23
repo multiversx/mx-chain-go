@@ -1032,6 +1032,36 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	adbPrintAccount(acntDest.(*state.Account), "Destination")
 }
 
+func TestCreateOneMillionAccountsWithMockDB(t *testing.T) {
+	//t.Skip() //skip this test because TeamCity does not have enough memory to run it
+
+	nrOfAccounts := 1000000
+	nrTxs := 15000
+	txVal := 100
+	balance := nrTxs * txVal
+	persist := mock2.MockDB{}
+
+	adb, _ := createAccounts(t, nrOfAccounts, balance, persist)
+	var rtm runtime.MemStats
+	runtime.GC()
+
+	runtime.ReadMemStats(&rtm)
+	fmt.Printf("Mem before committing %v accounts with mockDB: go mem - %s, sys mem - %s \n",
+		nrOfAccounts,
+		core.ConvertBytes(rtm.Alloc),
+		core.ConvertBytes(rtm.Sys),
+	)
+
+	_, _ = adb.Commit()
+
+	runtime.ReadMemStats(&rtm)
+	fmt.Printf("Mem after committing %v accounts with mockDB: go mem - %s, sys mem - %s \n",
+		nrOfAccounts,
+		core.ConvertBytes(rtm.Alloc),
+		core.ConvertBytes(rtm.Sys),
+	)
+}
+
 func BenchmarkCreateOneMillionAccounts(b *testing.B) {
 	nrOfAccounts := 1000000
 	nrTxs := 15000
@@ -1049,7 +1079,7 @@ func BenchmarkCreateOneMillionAccounts(b *testing.B) {
 		core.ConvertBytes(rtm.Sys),
 	)
 
-	adb.Commit()
+	_, _ = adb.Commit()
 	runtime.GC()
 
 	runtime.ReadMemStats(&rtm)
@@ -1071,19 +1101,19 @@ func BenchmarkCreateOneMillionAccounts(b *testing.B) {
 
 	fmt.Println("Total nr. of nodes in trie: ", persist.GetCounter())
 	persist.Reset()
-	adb.Commit()
+	_, _ = adb.Commit()
 	fmt.Printf("Nr. of modified nodes after %v txs: %v \n", nrTxs, persist.GetCounter())
 
 	rootHash, err := adb.RootHash()
 	assert.Nil(b, err)
 
-	adb.RecreateTrie(rootHash)
+	_ = adb.RecreateTrie(rootHash)
 	fmt.Printf("Completely collapsed trie - ")
 	createAndExecTxs(b, addr, nrTxs, nrOfAccounts, txVal, adb)
 }
 
 func createAccounts(
-	b *testing.B,
+	tb testing.TB,
 	nrOfAccounts int,
 	balance int,
 	persist storage.Persister,
@@ -1102,10 +1132,10 @@ func createAccounts(
 
 	for i := 0; i < nrOfAccounts; i++ {
 		account, err := adb.GetAccountWithJournal(addr[i])
-		assert.Nil(b, err)
+		assert.Nil(tb, err)
 
 		err = account.(*state.Account).SetBalanceWithJournal(big.NewInt(int64(balance)))
-		assert.Nil(b, err)
+		assert.Nil(tb, err)
 	}
 
 	return adb, addr
