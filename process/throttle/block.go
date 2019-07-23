@@ -11,10 +11,12 @@ import (
 
 var log = logger.DefaultLogger()
 
-const jumpAbovePercent = 90
-const jumpBelowPercent = 90
-const jumpAboveFactor = 0.5
-const jumpBelowFactor = 0.5
+const (
+	jumpAbovePercent = 90
+	jumpBelowPercent = 90
+	jumpAboveFactor  = 0.5
+	jumpBelowFactor  = 0.5
+)
 
 type blockInfo struct {
 	succeed  bool

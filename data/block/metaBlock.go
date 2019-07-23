@@ -303,7 +303,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	return dest
 }
 
-// GetShardId returns the metachain shard id
+// GetShardID returns the metachain shard id
 func (m *MetaBlock) GetShardID() uint32 {
 	return sharding.MetachainShardId
 }
@@ -455,29 +455,31 @@ func (m *MetaBlock) SetMiniBlockProcessed(hash []byte, processed bool) {
 }
 
 // IntegrityAndValidity return true as block is nil for metablock.
-func (mb *MetaBlockBody) IntegrityAndValidity() error {
+func (m *MetaBlockBody) IntegrityAndValidity() error {
 	return nil
 }
 
 // IsInterfaceNil return if there is no value under the interface
-func (mb *MetaBlock) IsInterfaceNil() bool {
-	if mb == nil {
+func (m *MetaBlock) IsInterfaceNil() bool {
+	if m == nil {
 		return true
 	}
 	return false
 }
 
-func (h *MetaBlock) ItemsInHeader() uint32 {
-	itemsInHeader := len(h.ShardInfo)
-	for i := 0; i < len(h.ShardInfo); i++ {
-		itemsInHeader += len(h.ShardInfo[i].ShardMiniBlockHeaders)
+// ItemsInHeader gets the number of items(hashes) added in block header
+func (m *MetaBlock) ItemsInHeader() uint32 {
+	itemsInHeader := len(m.ShardInfo)
+	for i := 0; i < len(m.ShardInfo); i++ {
+		itemsInHeader += len(m.ShardInfo[i].ShardMiniBlockHeaders)
 	}
 
-	itemsInHeader += len(h.PeerInfo)
+	itemsInHeader += len(m.PeerInfo)
 
 	return uint32(itemsInHeader)
 }
 
-func (h *MetaBlock) ItemsInBody() uint32 {
+// ItemsInBody gets the number of items(hashes) added in block body
+func (m *MetaBlock) ItemsInBody() uint32 {
 	return 0
 }
