@@ -355,7 +355,7 @@ func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.Mini
 	return dest
 }
 
-// GetShardId returns header shard id
+// GetShardID returns header shard id
 func (h *Header) GetShardID() uint32 {
 	return h.ShardId
 }
@@ -518,4 +518,15 @@ func (h *Header) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// ItemsInHeader gets the number of items(hashes) added in block header
+func (h *Header) ItemsInHeader() uint32 {
+	itemsInHeader := len(h.MiniBlockHeaders) + len(h.PeerChanges) + len(h.MetaBlockHashes)
+	return uint32(itemsInHeader)
+}
+
+// ItemsInBody gets the number of items(hashes) added in block body
+func (h *Header) ItemsInBody() uint32 {
+	return h.TxCount
 }
