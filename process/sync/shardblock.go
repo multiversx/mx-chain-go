@@ -478,8 +478,8 @@ func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
 		boot.requestsWithTimeout++
 	}
 
-	isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
-	if isForkDetected {
+	shouldRollBack := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	if shouldRollBack {
 		boot.requestsWithTimeout = 0
 		hash := boot.removeHeaderFromPools(hdr)
 		boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
@@ -489,7 +489,7 @@ func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
 		}
 	}
 
-	// The below section of code fixed a situation when all peers would been replaced in their headerNonceHash pool a
+	// The below section of code fixed a situation when all peers would have replaced in their headerNonceHash pool a
 	// good/used header in their blockchain construction, with a wrong/unused header on which they didn't construct,
 	// but which came after a late broadcast from a valid proposer.
 	if err == process.ErrInvalidBlockHash {
