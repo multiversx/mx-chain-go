@@ -1032,16 +1032,14 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	adbPrintAccount(acntDest.(*state.Account), "Destination")
 }
 
-func TestCreateOneMillionAccountsWithMockDB(t *testing.T) {
-	t.Skip() //skip this test because TeamCity does not have enough memory to run it
-
+func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
 	nrOfAccounts := 1000000
 	nrTxs := 15000
 	txVal := 100
 	balance := nrTxs * txVal
 	persist := mock2.MockDB{}
 
-	adb, _ := createAccounts(t, nrOfAccounts, balance, persist)
+	adb, _ := createAccounts(b, nrOfAccounts, balance, persist)
 	var rtm runtime.MemStats
 	runtime.GC()
 
