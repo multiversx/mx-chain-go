@@ -30,13 +30,14 @@ type hashAndHdr struct {
 type mapShardLastHeaders map[uint32]data.HeaderHandler
 
 type baseProcessor struct {
-	shardCoordinator sharding.Coordinator
-	accounts         state.AccountsAdapter
-	forkDetector     process.ForkDetector
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	store            dataRetriever.StorageService
-	uint64Converter  typeConverters.Uint64ByteSliceConverter
+	shardCoordinator   sharding.Coordinator
+	accounts           state.AccountsAdapter
+	forkDetector       process.ForkDetector
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	store              dataRetriever.StorageService
+	uint64Converter    typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler process.BlockSizeThrottler
 
 	mutNotarizedHdrs   sync.RWMutex
 	lastNotarizedHdrs  mapShardLastHeaders
@@ -457,6 +458,7 @@ func checkProcessorNilParameters(
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
 	shardCoordinator sharding.Coordinator,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
 ) error {
 
 	if accounts == nil {
@@ -476,6 +478,9 @@ func checkProcessorNilParameters(
 	}
 	if shardCoordinator == nil {
 		return process.ErrNilShardCoordinator
+	}
+	if uint64Converter == nil {
+		return process.ErrNilUint64Converter
 	}
 
 	return nil
