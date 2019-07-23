@@ -43,12 +43,23 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// TestHasher represents a Sha256 hasher
 var TestHasher = sha256.Sha256{}
+
+// TestMarshalizer represents a JSON marshalizer
 var TestMarshalizer = &marshal.JsonMarshalizer{}
+
+// TestAddressConverter represents a plain address converter
 var TestAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x")
+
+// TestMultiSig represents a mock multisig
 var TestMultiSig = mock.NewMultiSigner(1)
+
+// TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
+// TestProcessorNode represents a container type of class used in integration tests
+// with all its fields exported
 type TestProcessorNode struct {
 	ShardCoordinator sharding.Coordinator
 	Messenger        p2p.Messenger
@@ -96,6 +107,7 @@ type TestProcessorNode struct {
 	CounterMetaRcv int32
 }
 
+// NewTestProcessorNode returns a new TestProcessorNode instance
 func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
@@ -364,6 +376,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.Storage,
 			tpn.GenesisBlocks,
 			tpn.RequestHandler,
+			TestUint64Converter,
 		)
 	} else {
 		tpn.BlockProcessor, err = block.NewShardProcessor(
@@ -447,6 +460,7 @@ func (tpn *TestProcessorNode) initNode() {
 	}
 }
 
+// SendTransaction can send a transaction (it does the dispatching)
 func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) {
 	_, _ = tpn.Node.SendTransaction(
 		tx.Nonce,
@@ -488,6 +502,7 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 
 }
 
+// LoadTxSignSkBytes alters the already generated sk/pk pair
 func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 	newSk, _ := tpn.KeygenTxSign.PrivateKeyFromByteArray(skBytes)
 	newPk := newSk.GeneratePublic()
@@ -497,11 +512,20 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 	tpn.PkTxSignBytes, _ = newPk.ToByteArray()
 }
 
+// ProposeBlockOnlyWithSelf proposes a new block
 func (tpn *TestProcessorNode) ProposeBlockOnlyWithSelf(round uint32) (data.BodyHandler, data.HeaderHandler) {
 	haveTime := func() bool { return true }
 
-	blockBody, _ := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
-	blockHeader, _ := tpn.BlockProcessor.CreateBlockHeader(blockBody, round, haveTime)
+	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, nil
+	}
+	blockHeader, err := tpn.BlockProcessor.CreateBlockHeader(blockBody, round, haveTime)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, nil
+	}
 
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(uint64(round))
@@ -520,6 +544,7 @@ func (tpn *TestProcessorNode) ProposeBlockOnlyWithSelf(round uint32) (data.BodyH
 	return blockBody, blockHeader
 }
 
+// BroadcastAndCommit broadcasts and commits the block and body
 func (tpn *TestProcessorNode) BroadcastAndCommit(body data.BodyHandler, header data.HeaderHandler) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
 	_ = tpn.BroadcastMessenger.BroadcastHeader(header)

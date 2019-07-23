@@ -33,10 +33,10 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsTopUpAndWithdraw(t 
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodeShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-	hardCodedSk, _ := hex.DecodeString("cad6df09f1e958a38e7d41edcca4421072075c53011b48de58d5ffaf06ed0b06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("00000000000000000000dac025f619852c170e981e9902fb1352d31e724a54a0")
-	nodeShard0.LoadTxSignSkBytes(hardCodedSk)
 	nodeShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
+	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	nodeShard1.LoadTxSignSkBytes(hardCodedSk)
 	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
 
 	nodes := []*integrationTests.TestProcessorNode{nodeShard0, nodeShard1, nodeMeta}
@@ -64,12 +64,12 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsTopUpAndWithdraw(t 
 	withdrawValue := big.NewInt(10)
 	stepMintAllNodes(nodes, initialVal)
 
-	stepDeployScTx(nodes, idxNodeShard0, string(scCode))
+	stepDeployScTx(nodes, idxNodeShard1, string(scCode))
 	stepProposeBlock(nodes, round)
 	round++
 	stepProposeBlock(nodes, round)
 	round++
-	stepNodeSh1DoesTopUp(nodes, idxNodeShard1, topUpValue, hardCodedScResultingAddress)
+	stepNodeDoesTopUp(nodes, idxNodeShard0, topUpValue, hardCodedScResultingAddress)
 	stepProposeBlock(nodes, round)
 	round++
 	stepProposeBlock(nodes, round)
@@ -84,14 +84,14 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsTopUpAndWithdraw(t 
 	stepCheckTopUpIsDoneCorrectly(
 		t,
 		nodes,
-		idxNodeShard0,
 		idxNodeShard1,
+		idxNodeShard0,
 		initialVal,
 		topUpValue,
 		hardCodedScResultingAddress,
 	)
 
-	stepNodeSh1DoesWithdraw(nodes, idxNodeShard1, withdrawValue, hardCodedScResultingAddress)
+	stepNodeDoesWithdraw(nodes, idxNodeShard0, withdrawValue, hardCodedScResultingAddress)
 	stepProposeBlock(nodes, round)
 	round++
 	stepProposeBlock(nodes, round)
@@ -116,8 +116,8 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsTopUpAndWithdraw(t 
 	stepCheckWithdrawIsDoneCorrectly(
 		t,
 		nodes,
-		idxNodeShard0,
 		idxNodeShard1,
+		idxNodeShard0,
 		initialVal,
 		topUpValue,
 		withdrawValue,
@@ -139,10 +139,10 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndReward(t *te
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodeShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-	hardCodedSk, _ := hex.DecodeString("cad6df09f1e958a38e7d41edcca4421072075c53011b48de58d5ffaf06ed0b06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("00000000000000000000dac025f619852c170e981e9902fb1352d31e724a54a0")
-	nodeShard0.LoadTxSignSkBytes(hardCodedSk)
 	nodeShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
+	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	nodeShard1.LoadTxSignSkBytes(hardCodedSk)
 	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
 
 	nodes := []*integrationTests.TestProcessorNode{nodeShard0, nodeShard1, nodeMeta}
@@ -170,12 +170,12 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndReward(t *te
 	withdrawValue := big.NewInt(10)
 	stepMintAllNodes(nodes, initialVal)
 
-	stepDeployScTx(nodes, idxNodeShard0, string(scCode))
+	stepDeployScTx(nodes, idxNodeShard1, string(scCode))
 	stepProposeBlock(nodes, round)
 	round++
 	stepProposeBlock(nodes, round)
 	round++
-	stepNodeSh1DoesJoinGame(nodes, idxNodeShard1, topUpValue, hardCodedScResultingAddress)
+	stepNodeDoesJoinGame(nodes, idxNodeShard0, topUpValue, hardCodedScResultingAddress)
 	stepProposeBlock(nodes, round)
 	round++
 	stepProposeBlock(nodes, round)
@@ -190,14 +190,14 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndReward(t *te
 	stepCheckJoinGameIsDoneCorrectly(
 		t,
 		nodes,
-		idxNodeShard0,
 		idxNodeShard1,
+		idxNodeShard0,
 		initialVal,
 		topUpValue,
 		hardCodedScResultingAddress,
 	)
 
-	stepNodeSh0CallsRewardAndSend(nodes, idxNodeShard0, idxNodeShard1, withdrawValue, hardCodedScResultingAddress)
+	stepNodeCallsRewardAndSend(nodes, idxNodeShard1, idxNodeShard0, withdrawValue, hardCodedScResultingAddress)
 	stepProposeBlock(nodes, round)
 	round++
 	stepProposeBlock(nodes, round)
@@ -222,8 +222,8 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndReward(t *te
 	stepCheckRewardIsDoneCorrectly(
 		t,
 		nodes,
-		idxNodeShard0,
 		idxNodeShard1,
+		idxNodeShard0,
 		initialVal,
 		topUpValue,
 		withdrawValue,
@@ -263,7 +263,7 @@ func stepProposeBlock(nodes []*integrationTests.TestProcessorNode, round uint32)
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepNodeSh1DoesTopUp(
+func stepNodeDoesTopUp(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	topUpValue *big.Int,
@@ -278,7 +278,7 @@ func stepNodeSh1DoesTopUp(
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepNodeSh1DoesJoinGame(
+func stepNodeDoesJoinGame(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	joinGameVal *big.Int,
@@ -308,6 +308,7 @@ func stepCheckTopUpIsDoneCorrectly(
 
 	fmt.Println("Checking SC account received topUp val...")
 	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	assert.NotNil(t, accnt)
 	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
 
 	fmt.Println("Checking SC.balanceOf...")
@@ -324,6 +325,7 @@ func stepCheckTopUpIsDoneCorrectly(
 	expectedVal := big.NewInt(0).Set(initialVal)
 	expectedVal.Sub(expectedVal, topUpVal)
 	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
 }
 
@@ -342,16 +344,18 @@ func stepCheckJoinGameIsDoneCorrectly(
 
 	fmt.Println("Checking SC account received topUp val...")
 	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	assert.NotNil(t, accnt)
 	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
 
 	fmt.Println("Checking sender has initial-topUp val...")
 	expectedVal := big.NewInt(0).Set(initialVal)
 	expectedVal.Sub(expectedVal, topUpVal)
 	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
 }
 
-func stepNodeSh1DoesWithdraw(
+func stepNodeDoesWithdraw(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	withdrawValue *big.Int,
@@ -366,7 +370,7 @@ func stepNodeSh1DoesWithdraw(
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepNodeSh0CallsRewardAndSend(
+func stepNodeCallsRewardAndSend(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNodeOwner int,
 	idxNodeUser int,
@@ -398,6 +402,7 @@ func stepCheckWithdrawIsDoneCorrectly(
 
 	fmt.Println("Checking SC account has topUp-withdraw val...")
 	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	assert.NotNil(t, accnt)
 	expectedSC := big.NewInt(0).Set(topUpVal)
 	expectedSC.Sub(expectedSC, withdraw)
 	assert.Equal(t, expectedSC, accnt.(*state.Account).Balance)
@@ -417,6 +422,7 @@ func stepCheckWithdrawIsDoneCorrectly(
 	expectedSender.Sub(expectedSender, topUpVal)
 	expectedSender.Add(expectedSender, withdraw)
 	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }
 
@@ -436,6 +442,7 @@ func stepCheckRewardIsDoneCorrectly(
 
 	fmt.Println("Checking SC account has topUp-withdraw val...")
 	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	assert.NotNil(t, accnt)
 	expectedSC := big.NewInt(0).Set(topUpVal)
 	expectedSC.Sub(expectedSC, withdraw)
 	assert.Equal(t, expectedSC, accnt.(*state.Account).Balance)
@@ -445,6 +452,7 @@ func stepCheckRewardIsDoneCorrectly(
 	expectedSender.Sub(expectedSender, topUpVal)
 	expectedSender.Add(expectedSender, withdraw)
 	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }
 
