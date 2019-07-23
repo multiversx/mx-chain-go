@@ -1,6 +1,10 @@
 package preprocess
 
 import (
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -9,10 +13,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
-	"reflect"
-	"testing"
-	"time"
 )
+
+func haveTime() time.Duration {
+	return time.Duration(2000 * time.Millisecond)
+}
+
+func haveTimeBool() bool {
+	return true
+}
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T) {
 	t.Parallel()
@@ -349,7 +358,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		Type:            block.SmartContractResultBlock,
 	}
 
-	txsRetrieved, txHashesRetrieved, err := txs.getAllScrsFromMiniBlock(mb, func() bool { return true })
+	txsRetrieved, txHashesRetrieved, err := txs.getAllScrsFromMiniBlock(mb, haveTimeBool)
 
 	assert.Nil(t, err)
 	assert.Equal(t, len(transactions), len(txsRetrieved))
@@ -429,7 +438,7 @@ func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 	)
-	err := txs.IsDataPrepared(1, func() time.Duration { return 1000 })
+	err := txs.IsDataPrepared(1, haveTime)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, process.ErrTimeIsOut, err)
@@ -454,7 +463,7 @@ func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		txs.chRcvAllScrs <- true
 	}()
-	err := txs.IsDataPrepared(1, func() time.Duration { return time.Second })
+	err := txs.IsDataPrepared(1, haveTime)
 
 	assert.Nil(t, err)
 }
@@ -558,7 +567,7 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		Data:  "tx",
 	}
 	scr.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&smartcr, &txshardInfo}
-	err := scr.ProcessBlockTransactions(body, 1, func() time.Duration { return time.Second })
+	err := scr.ProcessBlockTransactions(body, 1, haveTime)
 
 	assert.Nil(t, err)
 
@@ -609,7 +618,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		Type:            block.SmartContractResultBlock,
 	}
 	body = append(body, &miniblock)
-	err := scr.ProcessMiniBlock(&miniblock, func() bool { return true }, 1)
+	err := scr.ProcessMiniBlock(&miniblock, haveTimeBool, 1)
 
 	assert.Nil(t, err)
 
@@ -639,7 +648,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		SenderShardID:   0,
 	}
 	body = append(body, &miniblock)
-	err := scr.ProcessMiniBlock(&miniblock, func() bool { return true }, 1)
+	err := scr.ProcessMiniBlock(&miniblock, haveTimeBool, 1)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrWrongTypeInMiniBlock)
