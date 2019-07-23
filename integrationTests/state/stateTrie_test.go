@@ -1033,7 +1033,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 }
 
 func TestCreateOneMillionAccountsWithMockDB(t *testing.T) {
-	//t.Skip() //skip this test because TeamCity does not have enough memory to run it
+	t.Skip() //skip this test because TeamCity does not have enough memory to run it
 
 	nrOfAccounts := 1000000
 	nrTxs := 15000
