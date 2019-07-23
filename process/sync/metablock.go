@@ -367,8 +367,8 @@ func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error)
 		boot.requestsWithTimeout++
 	}
 
-	isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
-	if isForkDetected {
+	shouldRollBack := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	if shouldRollBack {
 		boot.requestsWithTimeout = 0
 		hash := boot.removeHeaderFromPools(hdr)
 		boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
