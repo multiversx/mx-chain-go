@@ -90,7 +90,10 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 			return &mock.Uint64SyncMapCacherStub{
 				MergeCalled: func(u uint64, hashMap dataRetriever.ShardIdHashMap) {},
-				HasCalled: func(nonce uint64) bool {
+				HasNonceCalled: func(nonce uint64) bool {
+					return true
+				},
+				HasShardIdCalled: func(nonce uint64, shardId uint32) bool {
 					return true
 				},
 			}

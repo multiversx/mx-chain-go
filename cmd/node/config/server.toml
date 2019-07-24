@@ -1,7 +1,7 @@
 [ElasticSearch]
-    Username = "basic_auth_username"
-    Password = "basic_auth_password"
+    Username = "chupacabra"
+    Password = "k8X@NWN8"
 [Prometheus]
-    PrometheusBaseURL = ""
+    PrometheusBaseURL = "http://18.197.128.66:2113"
     JoinRoute = "/join"
     StatusRoute = "/status"

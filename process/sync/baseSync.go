@@ -484,6 +484,23 @@ func (boot *baseBootstrap) cleanCachesOnRollback(
 	_ = headerNonceHashStore.Remove(nonceToByteSlice)
 }
 
+func (boot *baseBootstrap) shouldRollBack(err error) bool {
+	if boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed {
+		return true
+	}
+	if err == process.ErrInvalidBlockHash {
+		return true
+	}
+	if err == process.ErrHeaderBodyMismatch {
+		return true
+	}
+	if err == process.ErrRootStateMissmatch {
+		return true
+	}
+
+	return false
+}
+
 // checkBootstrapNilParameters will check the imput parameters for nil values
 func checkBootstrapNilParameters(
 	blkc data.ChainHandler,

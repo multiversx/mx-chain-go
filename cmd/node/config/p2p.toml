@@ -56,4 +56,4 @@
     #
     #If the initial peers list is left empty, the node will not try to connect to other peers during initial bootstrap
     #phase but will accept connections and will do the network discovery if another peer connects to it
-    InitialPeerList = ["/ip4/127.0.0.1/tcp/10000/p2p/16Uiu2HAmAzokH1ozUF52Vy3RKqRfCMr9ZdNDkUQFEkXRs9DqvmKf"]
+    InitialPeerList = ["/ip4/108.129.20.194/tcp/10000/p2p/16Uiu2HAkuZ7BZ4qKb8to3TJ6PVJNdZqmd7iXg8TNJyR7w8BtvUeh"]

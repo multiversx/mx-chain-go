@@ -452,7 +452,7 @@ func TestNonceSyncMapCacher_MergeInConcurrentialSettingShouldWork(t *testing.T) 
 	}
 }
 
-//------- Has
+//------- HasNonce
 
 func TestNonceSyncMapCacher_HasNotFoundShouldRetFalse(t *testing.T) {
 	t.Parallel()
@@ -462,7 +462,7 @@ func TestNonceSyncMapCacher_HasNotFoundShouldRetFalse(t *testing.T) {
 	nsmc, _ := dataPool.NewNonceSyncMapCacher(cacher, nonceConverter)
 
 	inexistentNonce := uint64(67)
-	has := nsmc.Has(inexistentNonce)
+	has := nsmc.HasNonce(inexistentNonce)
 
 	assert.False(t, has)
 }
@@ -476,7 +476,7 @@ func TestNonceSyncMapCacher_HasFoundShouldRetTrue(t *testing.T) {
 
 	nonce := uint64(67)
 	nsmc.Merge(nonce, &dataPool.ShardIdHashSyncMap{})
-	has := nsmc.Has(nonce)
+	has := nsmc.HasNonce(nonce)
 
 	assert.True(t, has)
 }
