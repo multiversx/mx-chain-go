@@ -30,4 +30,5 @@ const ShardBlockFinality = 1
 const MetaBlockFinality = 1
 const ForkBlockFinality = 1
 const MaxHeaderRequestsAllowed = 10
+const MaxItemsInBlock = 15000
 const MaxRequestsWithTimeoutAllowed = 5
