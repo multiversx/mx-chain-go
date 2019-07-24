@@ -51,7 +51,7 @@ func benchMarshal(b *testing.B, m marshal.Marshalizer, obj dataGenerator) {
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		m.Marshal(dArray[i%l])
+		_, _ = m.Marshal(dArray[i%l])
 	}
 }
 
@@ -272,7 +272,7 @@ func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
 				SndAddr:   []byte(RandomStr(32)),
 				GasPrice:  uint64(rand.Int63n(10000)),
 				GasLimit:  uint64(rand.Int63n(10000)),
-				Data:      []byte(RandomStr(32)),
+				Data:      RandomStr(32),
 				Signature: []byte(RandomStr(32)),
 				Challenge: []byte(RandomStr(32)),
 			},

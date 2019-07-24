@@ -136,17 +136,17 @@ var ErrNilMessenger = errors.New("nil Messenger")
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
-// ErrNilHeadersDataPool signals that a nil header pool has been provided
+// ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
-// ErrNilMetachainHeadersDataPool signals that a nil metachain header pool has been provided
-var ErrNilMetachainHeadersDataPool = errors.New("nil metachain headers data pool")
+// ErrNilMetaHeadersDataPool signals that a nil metachain header pool has been provided
+var ErrNilMetaHeadersDataPool = errors.New("nil meta headers data pool")
 
 // ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
 var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
 
-//ErrNilMetachainHeadersNoncesDataPool signals a nil metachain header - nonce cache
-var ErrNilMetachainHeadersNoncesDataPool = errors.New("nil metachain headers nonces cache")
+//ErrNilMetaHeadersNoncesDataPool signals a nil metachain header - nonce cache
+var ErrNilMetaHeadersNoncesDataPool = errors.New("nil meta headers nonces cache")
 
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
@@ -181,9 +181,6 @@ var ErrNilMultiSigVerifier = errors.New("nil multi-signature verifier")
 // ErrInvalidBlockBodyType signals that an operation has been attempted with an invalid block body type
 var ErrInvalidBlockBodyType = errors.New("invalid block body type")
 
-// ErrNotImplementedBlockProcessingType signals that a not supported block body type was found in header
-var ErrNotImplementedBlockProcessingType = errors.New("not implemented block processing type")
-
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
 
@@ -211,8 +208,8 @@ var ErrNilHeadersStorage = errors.New("nil headers storage")
 // ErrNilHeadersNonceHashStorage signals that a nil header nonce hash storage has been provided
 var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 
-// ErrNilMetachainHeadersStorage signals that a nil metachain header storage has been provided
-var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")
+// ErrNilMetaHeadersStorage signals that a nil metachain header storage has been provided
+var ErrNilMetaHeadersStorage = errors.New("nil meta headers storage")
 
 // ErrNilBlockBodyStorage signals that a nil block body storage has been provided
 var ErrNilBlockBodyStorage = errors.New("nil block body storage")
@@ -307,9 +304,6 @@ var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to c
 // ErrNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
 var ErrNotarizedHdrsSliceIsNil = errors.New("notarized shard headers slice is nil")
 
-// ErrNoNewMetablocks signals that no new metablocks are in the pool
-var ErrNoNewMetablocks = errors.New("there is no new metablocks")
-
 // ErrNoSortedHdrsForShard signals that there are no sorted hdrs in pool
 var ErrNoSortedHdrsForShard = errors.New("no sorted headers in pool")
 
@@ -318,9 +312,6 @@ var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblo
 
 // ErrHeaderBodyMismatch signals that the header does not attest all data from the block
 var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header data")
-
-// ErrMetaBlockNotFinal signals that metablock is not final
-var ErrMetaBlockNotFinal = errors.New("cannot attest meta blocks finality")
 
 // ErrNilSmartContractProcessor signals that smart contract call executor is nil
 var ErrNilSmartContractProcessor = errors.New("smart contract processor is nil")
@@ -355,7 +346,7 @@ var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
 // ErrNilTemporaryAccountsHandler signals that temporary accounts handler is nil
 var ErrNilTemporaryAccountsHandler = errors.New("temporary accounts handler is nil")
 
-// ErrNotEnoughValidBlocksInStorage signals that boostrap from storage failed due to not enough valid blocks stored
+// ErrNotEnoughValidBlocksInStorage signals that bootstrap from storage failed due to not enough valid blocks stored
 var ErrNotEnoughValidBlocksInStorage = errors.New("not enough valid blocks in storage")
 
 // ErrNilSmartContractResult signals that the smart contract result is nil
@@ -364,11 +355,41 @@ var ErrNilSmartContractResult = errors.New("smart contract result is nil")
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
 
-// ErrNoSmartContractResultInMessage signals that message does not contain required data
-var ErrNoSmartContractResultInMessage = errors.New("no smart contract result in message")
+// ErrNoUnsignedTransactionInMessage signals that message does not contain required data
+var ErrNoUnsignedTransactionInMessage = errors.New("no unsigned transactions in message")
 
-// ErrNilScrDataPool signals that smart contract pool is nil
-var ErrNilScrDataPool = errors.New("smart contract result pool is nil")
+// ErrNilUTxDataPool signals that unsigned transaction pool is nil
+var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 
-// ErrNilScrStorage signals that smart contract storage is nil
-var ErrNilScrStorage = errors.New("smart contract result storage is nil")
+// ErrNilUTxStorage signals that unsigned transaction storage is nil
+var ErrNilUTxStorage = errors.New("unsigned transactions storage is nil")
+
+// ErrNilScAddress signals that a nil smart contract address has been provided
+var ErrNilScAddress = errors.New("nil SC address")
+
+// ErrEmptyFunctionName signals that an empty function name has been provided
+var ErrEmptyFunctionName = errors.New("empty function name")
+
+// ErrMiniBlockHashMismatch signals that miniblock hashes does not match
+var ErrMiniBlockHashMismatch = errors.New("miniblocks does not match")
+
+// ErrNilIntermediateTransactionHandler signals that nil intermediate transaction handler was provided
+var ErrNilIntermediateTransactionHandler = errors.New("intermediate transaction handler is nil")
+
+// ErrWrongTypeInMiniBlock signals that type is not correct for processing
+var ErrWrongTypeInMiniBlock = errors.New("type in miniblock is not correct for processing")
+
+// ErrNilTransactionCoordinator signals that transaction coordinator is nil
+var ErrNilTransactionCoordinator = errors.New("transaction coordinator is nil")
+
+// ErrNilUint64Converter signals that uint64converter is nil
+var ErrNilUint64Converter = errors.New("unit64converter is nil")
+
+// ErrNilSmartContractResultProcessor signals that smart contract result processor is nil
+var ErrNilSmartContractResultProcessor = errors.New("nil smart contract result processor")
+
+// ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
+var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")
+
+// ErrNilPreProcessorsContainer signals that preprocessors container is nil
+var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")

@@ -30,13 +30,14 @@ type hashAndHdr struct {
 type mapShardLastHeaders map[uint32]data.HeaderHandler
 
 type baseProcessor struct {
-	shardCoordinator sharding.Coordinator
-	accounts         state.AccountsAdapter
-	forkDetector     process.ForkDetector
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	store            dataRetriever.StorageService
-	uint64Converter  typeConverters.Uint64ByteSliceConverter
+	shardCoordinator   sharding.Coordinator
+	accounts           state.AccountsAdapter
+	forkDetector       process.ForkDetector
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	store              dataRetriever.StorageService
+	uint64Converter    typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler process.BlockSizeThrottler
 
 	mutNotarizedHdrs   sync.RWMutex
 	lastNotarizedHdrs  mapShardLastHeaders
@@ -99,7 +100,8 @@ func (bp *baseProcessor) checkBlockValidity(
 				return nil
 			}
 
-			log.Info(fmt.Sprintf("hash not match: local block hash is empty and node received block with previous hash %s\n",
+			log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
+				core.ToB64(chainHandler.GetGenesisHeaderHash()),
 				core.ToB64(headerHandler.GetPrevHash())))
 
 			return process.ErrInvalidBlockHash
@@ -240,8 +242,8 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 
 func (bp *baseProcessor) restoreLastNotarized() {
 	bp.mutNotarizedHdrs.Lock()
-	for i := uint32(0); i < bp.shardCoordinator.NumberOfShards(); i++ {
-		bp.lastNotarizedHdrs[i] = bp.finalNotarizedHdrs[i]
+	for shardId := range bp.lastNotarizedHdrs {
+		bp.lastNotarizedHdrs[shardId] = bp.finalNotarizedHdrs[shardId]
 	}
 	bp.mutNotarizedHdrs.Unlock()
 }
@@ -263,21 +265,35 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 		return processedHdrs[i].GetNonce() < processedHdrs[j].GetNonce()
 	})
 
+	if len(processedHdrs) > 0 {
+		log.Debug(fmt.Sprintf("full processed metachain nonces for current header are between %d and %d\n",
+			processedHdrs[0].GetNonce(),
+			processedHdrs[len(processedHdrs)-1].GetNonce()))
+	}
+
+	tmpLastNotarized := bp.lastNotarizedHdrs[shardId]
+
+	defer func() {
+		if err != nil {
+			bp.lastNotarizedHdrs[shardId] = tmpLastNotarized
+		}
+	}()
+
 	for i := 0; i < len(processedHdrs); i++ {
-		errNotCritical := bp.checkHeaderTypeCorrect(shardId, processedHdrs[i])
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-			continue
+		err = bp.checkHeaderTypeCorrect(shardId, processedHdrs[i])
+		if err != nil {
+			return err
 		}
 
-		errNotCritical = bp.isHdrConstructionValid(processedHdrs[i], bp.lastNotarizedHdrs[shardId])
-		if errNotCritical != nil {
-			continue
+		err = bp.isHdrConstructionValid(processedHdrs[i], bp.lastNotarizedHdrs[shardId])
+		if err != nil {
+			return err
 		}
 
-		bp.finalNotarizedHdrs[shardId] = bp.lastNotarizedHdrs[shardId]
 		bp.lastNotarizedHdrs[shardId] = processedHdrs[i]
 	}
+
+	bp.finalNotarizedHdrs[shardId] = tmpLastNotarized
 
 	return nil
 }
@@ -442,6 +458,7 @@ func checkProcessorNilParameters(
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
 	shardCoordinator sharding.Coordinator,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
 ) error {
 
 	if accounts == nil {
@@ -461,6 +478,9 @@ func checkProcessorNilParameters(
 	}
 	if shardCoordinator == nil {
 		return process.ErrNilShardCoordinator
+	}
+	if uint64Converter == nil {
+		return process.ErrNilUint64Converter
 	}
 
 	return nil

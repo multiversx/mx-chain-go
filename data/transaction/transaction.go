@@ -16,7 +16,7 @@ type Transaction struct {
 	SndAddr   []byte   `capid:"3" json:"sender"`
 	GasPrice  uint64   `capid:"4" json:"gasPrice,omitempty"`
 	GasLimit  uint64   `capid:"5" json:"gasLimit,omitempty"`
-	Data      []byte   `capid:"6" json:"data,omitempty"`
+	Data      string   `capid:"6" json:"data,omitempty"`
 	Signature []byte   `capid:"7" json:"signature,omitempty"`
 	Challenge []byte   `capid:"8" json:"challenge,omitempty"`
 }
@@ -106,7 +106,7 @@ func (tx *Transaction) GetValue() *big.Int {
 }
 
 // GetData returns the data of the transaction
-func (tx *Transaction) GetData() []byte {
+func (tx *Transaction) GetData() string {
 	return tx.Data
 }
 
@@ -126,7 +126,7 @@ func (tx *Transaction) SetValue(value *big.Int) {
 }
 
 // SetData sets the data of the transaction
-func (tx *Transaction) SetData(data []byte) {
+func (tx *Transaction) SetData(data string) {
 	tx.Data = data
 }
 

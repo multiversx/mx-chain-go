@@ -7,6 +7,7 @@ import (
 	"time"
 
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/metablock"
@@ -26,7 +27,7 @@ func TestNewShardHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	hi, err := metablock.NewShardHeaderInterceptor(
 		nil,
 		headers,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -45,7 +46,7 @@ func TestNewShardHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 	hi, err := metablock.NewShardHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		nil,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -65,7 +66,7 @@ func TestNewShardHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	hi, err := metablock.NewShardHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -87,7 +88,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *tes
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		storer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
@@ -113,14 +114,10 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 	}
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) error {
-		return errors.New("Key not found")
+		return errors.New("key not found")
 	}
-	hdrsNonces := &mock.Uint64CacherStub{}
-	hdrsNonces.PeekCalled = func(u uint64) (i interface{}, b bool) {
-		return nil, false
-	}
-	hdrsNonces.PutCalled = func(u uint64, i interface{}) bool {
-		return true
+	hdrsNonces := &mock.Uint64SyncMapCacherStub{
+		MergeCalled: func(nonce uint64, src dataRetriever.ShardIdHashMap) {},
 	}
 
 	hi, _ := metablock.NewShardHeaderInterceptor(
@@ -183,9 +180,9 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T
 	}
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) error {
-		return errors.New("Key not found")
+		return errors.New("key not found")
 	}
-	hdrsNonces := &mock.Uint64CacherStub{}
+	hdrsNonces := &mock.Uint64SyncMapCacherStub{}
 
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		marshalizer,
@@ -220,14 +217,10 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T
 		return false, false
 	}
 
-	hdrsNonces.PeekCalled = func(u uint64) (i interface{}, b bool) {
-		return nil, false
-	}
-	hdrsNonces.PutCalled = func(u uint64, i interface{}) bool {
-		if testedNonce == u {
+	hdrsNonces.MergeCalled = func(nonce uint64, src dataRetriever.ShardIdHashMap) {
+		if testedNonce == nonce {
 			chanDone <- struct{}{}
 		}
-		return true
 	}
 
 	assert.Nil(t, hi.ProcessReceivedMessage(msg))
@@ -258,7 +251,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t 
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		marshalizer,
 		headers,
-		&mock.Uint64CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
 		storer,
 		multisigner,
 		mock.HasherMock{},

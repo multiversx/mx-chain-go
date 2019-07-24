@@ -21,7 +21,7 @@ type TxBlockBodyInterceptor struct {
 	shardCoordinator sharding.Coordinator
 }
 
-// NewMiniBlocksInterceptor creates a new instance of a TxBlockBodyInterceptor
+// NewTxBlockBodyInterceptor creates a new instance of a TxBlockBodyInterceptor
 func NewTxBlockBodyInterceptor(
 	marshalizer marshal.Marshalizer,
 	cache storage.Cacher,

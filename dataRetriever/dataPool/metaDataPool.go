@@ -6,11 +6,10 @@ import (
 )
 
 type metaDataPool struct {
-	metaBlocks         storage.Cacher
-	miniBlockHashes    dataRetriever.ShardedDataCacherNotifier
-	shardHeaders       storage.Cacher
-	shardHeadersNonces dataRetriever.Uint64Cacher
-	metaBlockNonces    dataRetriever.Uint64Cacher
+	metaBlocks      storage.Cacher
+	miniBlockHashes dataRetriever.ShardedDataCacherNotifier
+	shardHeaders    storage.Cacher
+	headersNonces   dataRetriever.Uint64SyncMapCacher
 }
 
 // NewMetaDataPool creates a data pools holder object
@@ -18,8 +17,7 @@ func NewMetaDataPool(
 	metaBlocks storage.Cacher,
 	miniBlockHashes dataRetriever.ShardedDataCacherNotifier,
 	shardHeaders storage.Cacher,
-	metaBlockNonces dataRetriever.Uint64Cacher,
-	shardHeadersNonces dataRetriever.Uint64Cacher,
+	headersNonces dataRetriever.Uint64SyncMapCacher,
 ) (*metaDataPool, error) {
 
 	if metaBlocks == nil {
@@ -31,19 +29,15 @@ func NewMetaDataPool(
 	if shardHeaders == nil {
 		return nil, dataRetriever.ErrNilShardHeaderPool
 	}
-	if metaBlockNonces == nil {
+	if headersNonces == nil {
 		return nil, dataRetriever.ErrNilMetaBlockNoncesPool
-	}
-	if shardHeadersNonces == nil {
-		return nil, dataRetriever.ErrNilHeadersNoncesDataPool
 	}
 
 	return &metaDataPool{
-		metaBlocks:         metaBlocks,
-		miniBlockHashes:    miniBlockHashes,
-		shardHeaders:       shardHeaders,
-		metaBlockNonces:    metaBlockNonces,
-		shardHeadersNonces: shardHeadersNonces,
+		metaBlocks:      metaBlocks,
+		miniBlockHashes: miniBlockHashes,
+		shardHeaders:    shardHeaders,
+		headersNonces:   headersNonces,
 	}, nil
 }
 
@@ -62,12 +56,8 @@ func (mdp *metaDataPool) ShardHeaders() storage.Cacher {
 	return mdp.shardHeaders
 }
 
-// MetaBlockNonces returns the holder for meta block nonces
-func (mdp *metaDataPool) MetaBlockNonces() dataRetriever.Uint64Cacher {
-	return mdp.metaBlockNonces
-}
-
-// ShardHeadersNonces returns the holder for shard headers nonces
-func (mdp *metaDataPool) ShardHeadersNonces() dataRetriever.Uint64Cacher {
-	return mdp.shardHeadersNonces
+// HeadersNonces returns the holder nonce-block hash pairs. It will hold both shard headers nonce-hash pairs
+// also metachain header nonce-hash pairs
+func (mdp *metaDataPool) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
+	return mdp.headersNonces
 }

@@ -119,7 +119,7 @@ func TestPeerBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testi
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{
 		HasCalled: func(key []byte) error {
-			return errors.New("Key not found")
+			return errors.New("key not found")
 		},
 	}
 

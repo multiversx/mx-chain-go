@@ -175,7 +175,7 @@ func TestStop_MessengerCloseErrors(t *testing.T) {
 		node.WithHasher(mock.HasherMock{}),
 	)
 
-	n.Start()
+	_ = n.Start()
 
 	err := n.Stop()
 	assert.NotNil(t, err)
@@ -594,7 +594,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 		Value:     value,
 		SndAddr:   senderBuff.Bytes(),
 		RcvAddr:   receiverBuff.Bytes(),
-		Data:      []byte(txData),
+		Data:      txData,
 		Signature: signature,
 	})
 	txHexHashExpected := hex.EncodeToString(hasher.Compute(string(marshalizedTx)))

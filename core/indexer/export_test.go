@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -49,7 +48,7 @@ func (ei *ElasticIndexer) GetSerializedElasticBlockAndHeaderHash(header data.Hea
 func (ei *ElasticIndexer) BuildTransactionBulks(
 	body block.Body,
 	header data.HeaderHandler,
-	txPool map[string]*transaction.Transaction,
+	txPool map[string]data.TransactionHandler,
 ) [][]*Transaction {
 	return ei.buildTransactionBulks(body, header, txPool)
 }

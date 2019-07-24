@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -65,7 +63,8 @@ func TestNewSmartContractProcessorNilVM(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.Nil(t, sc)
 	assert.Equal(t, process.ErrNoVM, err)
@@ -82,7 +81,8 @@ func TestNewSmartContractProcessorNilArgsParser(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.Nil(t, sc)
 	assert.Equal(t, process.ErrNilArgumentParser, err)
@@ -99,7 +99,8 @@ func TestNewSmartContractProcessorNilHasher(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.Nil(t, sc)
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -116,7 +117,8 @@ func TestNewSmartContractProcessorNilMarshalizer(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.Nil(t, sc)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -133,7 +135,8 @@ func TestNewSmartContractProcessorNilAccountsDB(t *testing.T) {
 		nil,
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.Nil(t, sc)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -150,7 +153,8 @@ func TestNewSmartContractProcessorNilAdrConv(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		nil,
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.Nil(t, sc)
 	assert.Equal(t, process.ErrNilAddressConverter, err)
@@ -167,7 +171,8 @@ func TestNewSmartContractProcessorNilShardCoordinator(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		nil)
+		nil,
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.Nil(t, sc)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -184,10 +189,29 @@ func TestNewSmartContractProcessorNilFakeAccountsHandler(t *testing.T) {
 		&mock.AccountsStub{},
 		nil,
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.Nil(t, sc)
 	assert.Equal(t, process.ErrNilTemporaryAccountsHandler, err)
+}
+
+func TestNewSmartContractProcessor_NilIntermediateMock(t *testing.T) {
+	t.Parallel()
+
+	sc, err := NewSmartContractProcessor(
+		&mock.VMExecutionHandlerStub{},
+		&mock.ArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		&mock.TemporaryAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		nil)
+
+	assert.Nil(t, sc)
+	assert.Equal(t, process.ErrNilIntermediateTransactionHandler, err)
 }
 
 func TestNewSmartContractProcessor(t *testing.T) {
@@ -201,7 +225,8 @@ func TestNewSmartContractProcessor(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -218,7 +243,8 @@ func TestScProcessor_ComputeTransactionTypeNil(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -238,7 +264,8 @@ func TestScProcessor_ComputeTransactionTypeNilTx(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -265,7 +292,8 @@ func TestScProcessor_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -292,7 +320,8 @@ func TestScProcessor_ComputeTransactionTypeScDeployment(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		addressConverter,
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -301,7 +330,7 @@ func TestScProcessor_ComputeTransactionTypeScDeployment(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = make([]byte, addressConverter.AddressLen())
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	txType, err := sc.ComputeTransactionType(tx)
@@ -317,7 +346,7 @@ func TestScProcessor_ComputeTransactionTypeScInvoking(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	_, acntDst := createAccounts(tx)
@@ -333,7 +362,8 @@ func TestScProcessor_ComputeTransactionTypeScInvoking(t *testing.T) {
 		}},
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConverter,
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -351,7 +381,7 @@ func TestScProcessor_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	_, acntDst := createAccounts(tx)
@@ -366,7 +396,8 @@ func TestScProcessor_ComputeTransactionTypeMoveBalance(t *testing.T) {
 		}},
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConverter,
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -390,7 +421,8 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConverter,
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -398,15 +430,15 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
 	tmpError := errors.New("error")
-	argParser.ParseDataCalled = func(data []byte) error {
+	argParser.ParseDataCalled = func(data string) error {
 		return tmpError
 	}
-	_, err = sc.DeploySmartContract(tx, acntSrc, 10)
+	err = sc.DeploySmartContract(tx, acntSrc, 10)
 	assert.Equal(t, tmpError, err)
 }
 
@@ -424,7 +456,8 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConverter,
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -432,7 +465,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
@@ -440,7 +473,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	vm.RunSmartContractCreateCalled = func(input *vmcommon.ContractCreateInput) (output *vmcommon.VMOutput, e error) {
 		return nil, tmpError
 	}
-	_, err = sc.DeploySmartContract(tx, acntSrc, 10)
+	err = sc.DeploySmartContract(tx, acntSrc, 10)
 	assert.Equal(t, tmpError, err)
 }
 
@@ -457,7 +490,8 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -465,11 +499,11 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
-	_, err = sc.DeploySmartContract(tx, acntSrc, 10)
+	err = sc.DeploySmartContract(tx, acntSrc, 10)
 	assert.Equal(t, process.ErrWrongTransaction, err)
 }
 
@@ -487,7 +521,8 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConverter,
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -495,11 +530,11 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
-	_, err = sc.DeploySmartContract(tx, acntSrc, 10)
+	err = sc.DeploySmartContract(tx, acntSrc, 10)
 	assert.Equal(t, nil, err)
 }
 
@@ -516,7 +551,8 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -524,11 +560,11 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
-	_, err = sc.ExecuteSmartContractTransaction(nil, acntSrc, acntDst, 10)
+	err = sc.ExecuteSmartContractTransaction(nil, acntSrc, acntDst, 10)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -545,7 +581,8 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -553,19 +590,19 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
-	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil, 10)
+	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil, 10)
 	assert.Equal(t, process.ErrNilSCDestAccount, err)
 
 	acntDst.SetCode(nil)
-	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
+	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, process.ErrNilSCDestAccount, err)
 
 	acntDst = nil
-	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
+	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, process.ErrNilSCDestAccount, err)
 }
 
@@ -582,7 +619,8 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -590,16 +628,16 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
 	acntDst.SetCode([]byte("code"))
 	tmpError := errors.New("error")
-	argParser.ParseDataCalled = func(data []byte) error {
+	argParser.ParseDataCalled = func(data string) error {
 		return tmpError
 	}
-	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
+	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, tmpError, err)
 }
 
@@ -616,7 +654,8 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -624,7 +663,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
@@ -633,7 +672,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	vm.RunSmartContractCallCalled = func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
 		return nil, tmpError
 	}
-	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
+	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, tmpError, err)
 }
 
@@ -650,7 +689,8 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -658,12 +698,12 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
 	acntDst.SetCode([]byte("code"))
-	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
+	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Nil(t, err)
 }
 
@@ -680,7 +720,8 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -688,7 +729,7 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
@@ -713,7 +754,8 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -721,7 +763,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	vmInput, err := sc.CreateVMCallInput(tx)
@@ -742,7 +784,8 @@ func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -750,7 +793,7 @@ func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
@@ -776,7 +819,8 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -784,7 +828,7 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	vmInput, err := sc.CreateVMDeployInput(tx)
@@ -805,7 +849,8 @@ func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -813,7 +858,7 @@ func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
@@ -838,7 +883,8 @@ func TestScProcessor_CreateVMInput(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -846,7 +892,7 @@ func TestScProcessor_CreateVMInput(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	vmInput, err := sc.CreateVMInput(tx)
@@ -859,7 +905,7 @@ func createAccountsAndTransaction() (*state.Account, *state.Account, *transactio
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = []byte("data")
+	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
 	acntSrc, acntDst := createAccounts(tx)
@@ -880,7 +926,8 @@ func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -903,7 +950,8 @@ func TestScProcessor_processVMOutputNilTx(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -927,7 +975,8 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -954,7 +1003,8 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -992,7 +1042,8 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 		accountsDB,
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConv,
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1029,7 +1080,8 @@ func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
 		accountsDB,
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConv,
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1066,7 +1118,8 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 		accountsDB,
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConv,
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1103,7 +1156,8 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 		accountsDB,
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConv,
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1141,7 +1195,8 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 		accountsDB,
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConv,
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1180,7 +1235,8 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 		accountsDB,
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConv,
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1219,7 +1275,8 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 		accountsDB,
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConv,
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1263,7 +1320,8 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 		accountsDB,
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConv,
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1286,7 +1344,8 @@ func TestScProcessor_ProcessSCPaymentAccNotInShardShouldNotReturnError(t *testin
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -1315,7 +1374,8 @@ func TestScProcessor_ProcessSCPaymentWrongTypeAssertion(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -1346,7 +1406,8 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -1382,7 +1443,8 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -1416,7 +1478,8 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -1455,7 +1518,8 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -1497,7 +1561,8 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -1536,7 +1601,8 @@ func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1559,7 +1625,8 @@ func TestScProcessor_processVMOutputNilTransaction(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1583,7 +1650,8 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1610,7 +1678,8 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 		accountsDB,
 		fakeAccountsHandler,
 		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(5))
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1691,7 +1760,8 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 		accountsDB,
 		fakeAccountsHandler,
 		&mock.AddressConverterMock{},
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1730,7 +1800,8 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 		accountsDB,
 		fakeAccountsHandler,
 		&mock.AddressConverterMock{},
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1772,7 +1843,8 @@ func TestScProcessor_ProcessSmartContractResultNilScr(t *testing.T) {
 		accountsDB,
 		fakeAccountsHandler,
 		&mock.AddressConverterMock{},
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1797,7 +1869,8 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 		accountsDB,
 		fakeAccountsHandler,
 		&mock.AddressConverterMock{},
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1820,7 +1893,8 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 		accountsDB,
 		fakeAccountsHandler,
 		&mock.AddressConverterMock{},
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1848,7 +1922,8 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 		accountsDB,
 		fakeAccountsHandler,
 		&mock.AddressConverterMock{},
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1879,7 +1954,8 @@ func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 		accountsDB,
 		fakeAccountsHandler,
 		&mock.AddressConverterMock{},
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1916,7 +1992,8 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 		accountsDB,
 		fakeAccountsHandler,
 		&mock.AddressConverterMock{},
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
@@ -1957,24 +2034,25 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 		accountsDB,
 		fakeAccountsHandler,
 		&mock.AddressConverterMock{},
-		shardCoordinator)
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{})
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
 
-	test := []byte("test")
-	result := []byte("")
-	sep := []byte("@")
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
-	result = append(result, sep...)
-	result = append(result, test...)
+	test := "test"
+	result := ""
+	sep := "@"
+	result = result + test
+	result = result + sep
+	result = result + test
+	result = result + sep
+	result = result + test
+	result = result + sep
+	result = result + test
+	result = result + sep
+	result = result + test
+	result = result + sep
+	result = result + test
 
 	scr := smartContractResult.SmartContractResult{
 		RcvAddr: []byte("recv address"),

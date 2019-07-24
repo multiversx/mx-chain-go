@@ -17,24 +17,65 @@ import (
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
-	ProcessTransaction(transaction *transaction.Transaction, round uint64) ([]*smartContractResult.SmartContractResult, error)
+	ProcessTransaction(transaction *transaction.Transaction, round uint64) error
+}
+
+// SmartContractResultProcessor is the main interface for smart contract result execution engine
+type SmartContractResultProcessor interface {
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
+}
+
+// TxTypeHandler is an interface to calculate the transaction type
+type TxTypeHandler interface {
+	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
+}
+
+// TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
+type TransactionCoordinator interface {
+	RequestMiniBlocks(header data.HeaderHandler)
+	RequestBlockTransactions(body block.Body)
+	IsDataPreparedForProcessing(haveTime func() time.Duration) error
+
+	SaveBlockDataToStorage(body block.Body) error
+	RestoreBlockDataFromStorage(body block.Body) (int, map[int][][]byte, error)
+	RemoveBlockDataFromPool(body block.Body) error
+
+	ProcessBlockTransaction(body block.Body, round uint32, haveTime func() time.Duration) error
+
+	CreateBlockStarted()
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
+	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint32, haveTime func() bool) block.MiniBlockSlice
+
+	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte)
+
+	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
+
+	VerifyCreatedBlockTransactions(body block.Body) error
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
-	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) ([]*smartContractResult.SmartContractResult, error)
-	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint64) ([]*smartContractResult.SmartContractResult, error)
-	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
+	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error
+	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint64) error
 }
 
+// IntermediateTransactionHandler handles transactions which are not resolved in only one step
+type IntermediateTransactionHandler interface {
+	AddIntermediateTransactions(txs []data.TransactionHandler) error
+	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
+	VerifyInterMiniBlocks(body block.Body) error
+	SaveCurrentIntermediateTxToStorage() error
+	CreateBlockStarted()
+}
+
+// PreProcessor is an interface used to prepare and process transaction data
 type PreProcessor interface {
 	CreateBlockStarted()
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
 
 	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
-	RestoreTxBlockIntoPools(body block.Body, miniBlockHashes map[int][]byte, miniBlockPool storage.Cacher) (int, error)
+	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, map[int][]byte, error)
 	SaveTxBlockToStorage(body block.Body) error
 
 	ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error
@@ -46,7 +87,7 @@ type PreProcessor interface {
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error
 	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
 
-	GetAllCurrentUsedTxs() map[string]*transaction.Transaction
+	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 }
 
 // BlockProcessor is the main interface for block execution engine
@@ -109,9 +150,10 @@ type Bootstrapper interface {
 type ForkDetector interface {
 	AddHeader(header data.HeaderHandler, hash []byte, state BlockHeaderState) error
 	RemoveHeaders(nonce uint64, hash []byte)
-	CheckFork() (bool, uint64)
+	CheckFork() (forkDetected bool, nonce uint64, hash []byte)
 	GetHighestFinalBlockNonce() uint64
 	ProbableHighestNonce() uint64
+	ResetProbableHighestNonceIfNeeded()
 }
 
 // InterceptorsContainer defines an interceptors holder data type with basic functionality
@@ -127,6 +169,38 @@ type InterceptorsContainer interface {
 // InterceptorsContainerFactory defines the functionality to create an interceptors container
 type InterceptorsContainerFactory interface {
 	Create() (InterceptorsContainer, error)
+}
+
+// PreProcessorsContainer defines an PreProcessors holder data type with basic functionality
+type PreProcessorsContainer interface {
+	Get(key block.Type) (PreProcessor, error)
+	Add(key block.Type, val PreProcessor) error
+	AddMultiple(keys []block.Type, preprocessors []PreProcessor) error
+	Replace(key block.Type, val PreProcessor) error
+	Remove(key block.Type)
+	Len() int
+	Keys() []block.Type
+}
+
+// PreProcessorsContainerFactory defines the functionality to create an PreProcessors container
+type PreProcessorsContainerFactory interface {
+	Create() (PreProcessorsContainer, error)
+}
+
+// IntermediateProcessorContainer defines an IntermediateProcessor holder data type with basic functionality
+type IntermediateProcessorContainer interface {
+	Get(key block.Type) (IntermediateTransactionHandler, error)
+	Add(key block.Type, val IntermediateTransactionHandler) error
+	AddMultiple(keys []block.Type, preprocessors []IntermediateTransactionHandler) error
+	Replace(key block.Type, val IntermediateTransactionHandler) error
+	Remove(key block.Type)
+	Len() int
+	Keys() []block.Type
+}
+
+// IntermediateProcessorsContainerFactory defines the functionality to create an IntermediateProcessors container
+type IntermediateProcessorsContainerFactory interface {
+	Create() (IntermediateProcessorContainer, error)
 }
 
 // Interceptor defines what a data interceptor should do
@@ -179,7 +253,7 @@ type BlocksTracker interface {
 type RequestHandler interface {
 	RequestHeaderByNonce(shardId uint32, nonce uint64)
 	RequestTransaction(shardId uint32, txHashes [][]byte)
-	RequestSmartContractResults(destShardID uint32, scrHashes [][]byte)
+	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
 	RequestMiniBlock(shardId uint32, miniblockHash []byte)
 	RequestHeader(shardId uint32, hash []byte)
 }
@@ -189,10 +263,10 @@ type ArgumentsParser interface {
 	GetArguments() ([]*big.Int, error)
 	GetCode() ([]byte, error)
 	GetFunction() (string, error)
-	ParseData(data []byte) error
+	ParseData(data string) error
 
-	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) []byte
-	GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error)
+	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
+	GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error)
 }
 
 // TemporaryAccountsHandler defines the functionality to create temporary accounts and pass to VM.
@@ -202,4 +276,13 @@ type TemporaryAccountsHandler interface {
 	AddTempAccount(address []byte, balance *big.Int, nonce uint64)
 	CleanTempAccounts()
 	TempAccount(address []byte) state.AccountHandler
+}
+
+// BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
+// block to its peers which should be received in a limited time frame
+type BlockSizeThrottler interface {
+	MaxItemsToAdd() uint32
+	Add(round uint64, items uint32)
+	Succeed(round uint64)
+	ComputeMaxItems()
 }

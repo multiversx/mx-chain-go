@@ -98,7 +98,7 @@ type Node struct {
 	isMetachainActive        bool
 	txStorageSize            uint32
 	currentSendingGoRoutines int32
-	boostrapRoundIndex       uint64
+	bootstrapRoundIndex      uint64
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -426,7 +426,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.resolversFinder,
 		n.shardCoordinator,
 		n.accounts,
-		n.boostrapRoundIndex,
+		n.bootstrapRoundIndex,
 	)
 	if err != nil {
 		return nil, err
@@ -449,7 +449,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.resolversFinder,
 		n.shardCoordinator,
 		n.accounts,
-		n.boostrapRoundIndex,
+		n.bootstrapRoundIndex,
 	)
 
 	if err != nil {
@@ -576,7 +576,7 @@ func (n *Node) SendTransaction(
 		SndAddr:   sender.Bytes(),
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      []byte(transactionData),
+		Data:      transactionData,
 		Signature: signature,
 	}
 

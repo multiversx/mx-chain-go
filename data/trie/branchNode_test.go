@@ -1,6 +1,9 @@
 package trie
 
 import (
+	"encoding/hex"
+	"fmt"
+	"reflect"
 	"strconv"
 	"testing"
 
@@ -115,12 +118,12 @@ func TestBranchNode_setRootHash(t *testing.T) {
 
 	for i := 0; i < 100000; i++ {
 		val := hsh.Compute(string(i))
-		tr1.Update(val, val)
-		tr2.Update(val, val)
+		_ = tr1.Update(val, val)
+		_ = tr2.Update(val, val)
 	}
 
 	err := tr1.root.setRootHash(marsh, hsh)
-	tr2.root.setHash(marsh, hsh)
+	_ = tr2.root.setHash(marsh, hsh)
 	assert.Nil(t, err)
 	assert.Equal(t, tr1.root.getHash(), tr2.root.getHash())
 }
@@ -259,7 +262,7 @@ func TestBranchNode_commit(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 
 	hash, _ := encodeNodeAndGetHash(collapsedBn, marsh, hasher)
-	bn.setHash(marsh, hasher)
+	_ = bn.setHash(marsh, hasher)
 
 	err := bn.commit(0, db, marsh, hasher)
 	assert.Nil(t, err)
@@ -330,8 +333,8 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
-	bn.setHash(marsh, hasher)
-	bn.commit(0, db, marsh, hasher)
+	_ = bn.setHash(marsh, hasher)
+	_ = bn.commit(0, db, marsh, hasher)
 	resolved := newLeafNode([]byte("dog"), []byte("dog"))
 	resolved.dirty = false
 
@@ -434,8 +437,8 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	db, _ := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
-	bn.setHash(marsh, hasher)
-	bn.commit(0, db, marsh, hasher)
+	_ = bn.setHash(marsh, hasher)
+	_ = bn.commit(0, db, marsh, hasher)
 
 	key := []byte{2, 100, 111, 103}
 	val, err := collapsedBn.tryGet(key, db, marsh)
@@ -557,8 +560,8 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn()
 	node := newLeafNode([]byte{2, 100, 111, 103}, []byte("dogs"))
 	marsh, hasher := getTestMarshAndHasher()
-	bn.setHash(marsh, hasher)
-	bn.commit(0, db, marsh, hasher)
+	_ = bn.setHash(marsh, hasher)
+	_ = bn.commit(0, db, marsh, hasher)
 
 	dirty, newBn, err := collapsedBn.insert(node, db, marsh)
 	assert.True(t, dirty)
@@ -596,8 +599,8 @@ func TestBranchNode_delete(t *testing.T) {
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
-	expectedBn.setHash(marsh, hasher)
-	newBn.setHash(marsh, hasher)
+	_ = expectedBn.setHash(marsh, hasher)
+	_ = newBn.setHash(marsh, hasher)
 	assert.Equal(t, expectedBn.getHash(), newBn.getHash())
 }
 
@@ -642,8 +645,8 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	db, _ := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
-	bn.setHash(marsh, hasher)
-	bn.commit(0, db, marsh, hasher)
+	_ = bn.setHash(marsh, hasher)
+	_ = bn.commit(0, db, marsh, hasher)
 
 	dirty, newBn, err := collapsedBn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.True(t, dirty)
@@ -679,7 +682,7 @@ func TestBranchNode_reduceNode(t *testing.T) {
 	bn := newBranchNode()
 	bn.children = children
 	ln := newLeafNode([]byte{2, 100, 111, 103}, []byte("dog"))
-	node := bn.reduceNode(2)
+	node := bn.children[2].reduceNode(2)
 	assert.Equal(t, ln, node)
 }
 
@@ -708,11 +711,182 @@ func TestBranchNode_isEmptyOrNil(t *testing.T) {
 	assert.Equal(t, ErrNilNode, bn.isEmptyOrNil())
 }
 
+func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
+	t.Parallel()
+	tr := newEmptyTrie()
+	expectedTr := newEmptyTrie()
+
+	_ = expectedTr.Update([]byte("dog"), []byte("dog"))
+	_ = expectedTr.Update([]byte("doll"), []byte("doll"))
+
+	_ = tr.Update([]byte("dog"), []byte("dog"))
+	_ = tr.Update([]byte("doll"), []byte("doll"))
+	_ = tr.Update([]byte("wolf"), []byte("wolf"))
+	_ = tr.Delete([]byte("wolf"))
+
+	expectedHash, _ := expectedTr.Root()
+	hash, _ := tr.Root()
+
+	assert.Equal(t, expectedHash, hash)
+}
+
+func TestReduceBranchNodeWithBranchNodeChildShouldWork(t *testing.T) {
+	t.Parallel()
+	tr := newEmptyTrie()
+	expectedTr := newEmptyTrie()
+
+	_ = expectedTr.Update([]byte("dog"), []byte("puppy"))
+	_ = expectedTr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Delete([]byte("doe"))
+
+	expectedHash, _ := expectedTr.Root()
+	hash, _ := tr.Root()
+
+	assert.Equal(t, expectedHash, hash)
+}
+
+func TestReduceBranchNodeWithLeafNodeChildShouldWork(t *testing.T) {
+	t.Parallel()
+	tr := newEmptyTrie()
+	expectedTr := newEmptyTrie()
+
+	_ = expectedTr.Update([]byte("doe"), []byte("reindeer"))
+	_ = expectedTr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Delete([]byte("dog"))
+
+	expectedHash, _ := expectedTr.Root()
+	hash, _ := tr.Root()
+
+	assert.Equal(t, expectedHash, hash)
+}
+
+func TestReduceBranchNodeWithLeafNodeValueShouldWork(t *testing.T) {
+	t.Parallel()
+	tr := newEmptyTrie()
+	expectedTr := newEmptyTrie()
+
+	_ = expectedTr.Update([]byte("doe"), []byte("reindeer"))
+	_ = expectedTr.Update([]byte("dog"), []byte("puppy"))
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Delete([]byte("dogglesworth"))
+
+	expectedHash, _ := expectedTr.Root()
+	hash, _ := tr.Root()
+
+	assert.Equal(t, expectedHash, hash)
+}
+
 func newEmptyTrie() data.Trie {
 	db, _ := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
 	tr, _ := NewTrie(db, marsh, hsh)
 	return tr
+}
+
+//------- deepClone
+
+func TestBranchNode_deepCloneWithNilHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	bn := &branchNode{}
+	bn.dirty = true
+	bn.hash = nil
+	bn.EncodedChildren = make([][]byte, len(bn.children))
+	bn.EncodedChildren[4] = getRandomByteSlice()
+	bn.EncodedChildren[5] = getRandomByteSlice()
+	bn.EncodedChildren[12] = getRandomByteSlice()
+	bn.children[4] = &leafNode{}
+	bn.children[5] = &leafNode{}
+	bn.children[12] = &leafNode{}
+
+	cloned := bn.deepClone().(*branchNode)
+
+	testSameBranchNodeContent(t, bn, cloned)
+}
+
+func TestBranchNode_deepCloneShouldWork(t *testing.T) {
+	t.Parallel()
+
+	bn := &branchNode{}
+	bn.dirty = true
+	bn.hash = getRandomByteSlice()
+	bn.EncodedChildren = make([][]byte, len(bn.children))
+	bn.EncodedChildren[4] = getRandomByteSlice()
+	bn.EncodedChildren[5] = getRandomByteSlice()
+	bn.EncodedChildren[12] = getRandomByteSlice()
+	bn.children[4] = &leafNode{}
+	bn.children[5] = &leafNode{}
+	bn.children[12] = &leafNode{}
+
+	cloned := bn.deepClone().(*branchNode)
+
+	testSameBranchNodeContent(t, bn, cloned)
+}
+
+func testSameBranchNodeContent(t *testing.T, expected *branchNode, actual *branchNode) {
+	if !reflect.DeepEqual(expected, actual) {
+		assert.Fail(t, "not equal content")
+		fmt.Printf(
+			"expected:\n %s, got: \n%s",
+			getBranchNodeContents(expected),
+			getBranchNodeContents(actual),
+		)
+	}
+	assert.False(t, expected == actual)
+}
+
+func getBranchNodeContents(bn *branchNode) string {
+	encodedChildsString := ""
+	for i := 0; i < len(bn.EncodedChildren); i++ {
+		if i > 0 {
+			encodedChildsString += ", "
+		}
+
+		if bn.EncodedChildren[i] == nil {
+			encodedChildsString += "<nil>"
+			continue
+		}
+
+		encodedChildsString += hex.EncodeToString(bn.EncodedChildren[i])
+	}
+
+	childsString := ""
+	for i := 0; i < len(bn.children); i++ {
+		if i > 0 {
+			childsString += ", "
+		}
+
+		if bn.children[i] == nil {
+			childsString += "<nil>"
+			continue
+		}
+
+		childsString += fmt.Sprintf("%p", bn.children[i])
+	}
+
+	str := fmt.Sprintf(`extension node:
+   		encoded child: %s
+   		hash: %s
+  		child: %s,	
+   		dirty: %v
+`,
+		encodedChildsString,
+		hex.EncodeToString(bn.hash),
+		childsString,
+		bn.dirty)
+
+	return str
 }
 
 func BenchmarkDecodeBranchNode(b *testing.B) {
@@ -724,14 +898,14 @@ func BenchmarkDecodeBranchNode(b *testing.B) {
 
 	for i := 0; i < nrValuesInTrie; i++ {
 		values[i] = hsh.Compute(strconv.Itoa(i))
-		tr.Update(values[i], values[i])
+		_ = tr.Update(values[i], values[i])
 	}
 
 	proof, _ := tr.Prove(values[0])
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		decodeNode(proof[0], marsh)
+		_, _ = decodeNode(proof[0], marsh)
 	}
 }
 
@@ -740,7 +914,7 @@ func BenchmarkMarshallNodeCapnp(b *testing.B) {
 	marsh := &marshal.CapnpMarshalizer{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		marsh.Marshal(bn)
+		_, _ = marsh.Marshal(bn)
 	}
 }
 
@@ -749,6 +923,6 @@ func BenchmarkMarshallNodeJson(b *testing.B) {
 	marsh := marshal.JsonMarshalizer{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		marsh.Marshal(bn)
+		_, _ = marsh.Marshal(bn)
 	}
 }

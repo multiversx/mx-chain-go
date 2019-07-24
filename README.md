@@ -39,7 +39,13 @@ $ go build
 $ ./keygenerator
 ```
 
-### Step 4: copying credentials and starting the node:
+### Start the node 
+#### Step 4a: Join Elrond testnet:
+Follow the steps outlined [here](https://docs.elrond.com/start-a-validator-node/start-the-network). This is because in order to join the testnet you need a specific node configuration.
+______
+OR
+______
+#### Step 4b: copying credentials and starting a node in a separate network:
 The previous generated .pem files needs to be copied in the same directory where the node binary resides in order to start the node.
 
 ```

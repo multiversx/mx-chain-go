@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sync"
 
@@ -436,26 +437,19 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher, marshalizer mars
 		if err != nil {
 			return false, nil, err
 		}
-		if childPos != 16 {
-			newNode := bn.reduceNode(pos)
-			return true, newNode, nil
-		}
-		child := bn.children[pos]
-		if child, ok := child.(*leafNode); ok {
-			return true, newLeafNode([]byte{byte(pos)}, child.Value), nil
-		}
 
+		newNode := bn.children[pos].reduceNode(pos)
+
+		return true, newNode, nil
 	}
 
 	bn.dirty = dirty
+
 	return true, bn, nil
 }
 
 func (bn *branchNode) reduceNode(pos int) node {
-	if child, ok := bn.children[pos].(*leafNode); ok {
-		return newLeafNode(concat([]byte{byte(pos)}, child.Key...), child.Value)
-	}
-	return newExtensionNode([]byte{byte(pos)}, bn.children[pos])
+	return newExtensionNode([]byte{byte(pos)}, bn)
 }
 
 func getChildPosition(n *branchNode) (nrOfChildren int, childPos int) {
@@ -483,4 +477,63 @@ func (bn *branchNode) isEmptyOrNil() error {
 		}
 	}
 	return ErrEmptyNode
+}
+
+func (bn *branchNode) print(writer io.Writer, index int) {
+	if bn == nil {
+		return
+	}
+
+	str := fmt.Sprintf("B:")
+	_, _ = fmt.Fprintln(writer, str)
+	for i := 0; i < len(bn.children); i++ {
+		child := bn.children[i]
+		if child == nil {
+			continue
+		}
+
+		for j := 0; j < index+len(str)-1; j++ {
+			_, _ = fmt.Fprint(writer, " ")
+		}
+		str2 := fmt.Sprintf("+ %d: ", i)
+		_, _ = fmt.Fprint(writer, str2)
+		child.print(writer, index+len(str)-1+len(str2))
+	}
+}
+
+func (bn *branchNode) deepClone() node {
+	if bn == nil {
+		return nil
+	}
+
+	clonedNode := &branchNode{}
+
+	if bn.hash != nil {
+		clonedNode.hash = make([]byte, len(bn.hash))
+		copy(clonedNode.hash, bn.hash)
+	}
+
+	clonedNode.EncodedChildren = make([][]byte, len(bn.EncodedChildren))
+	for idx, encChild := range bn.EncodedChildren {
+		if encChild == nil {
+			continue
+		}
+
+		clonedEncChild := make([]byte, len(encChild))
+		copy(clonedEncChild, encChild)
+
+		clonedNode.EncodedChildren[idx] = clonedEncChild
+	}
+
+	for idx, child := range bn.children {
+		if child == nil {
+			continue
+		}
+
+		clonedNode.children[idx] = child.deepClone()
+	}
+
+	clonedNode.dirty = bn.dirty
+
+	return clonedNode
 }

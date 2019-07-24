@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"io"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -34,6 +35,8 @@ type node interface {
 	delete(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
 	reduceNode(pos int) node
 	isEmptyOrNil() error
+	print(writer io.Writer, index int)
+	deepClone() node
 }
 
 type branchNode struct {

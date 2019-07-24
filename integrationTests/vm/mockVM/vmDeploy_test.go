@@ -2,6 +2,7 @@ package mockVM
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -19,8 +20,8 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(0)
 
-	scCode := "mocked code, not taken into account"
 	initialValueForInternalVariable := uint64(45)
+	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -31,12 +32,11 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 		gasPrice,
 		gasLimit,
 		scCode,
-		initialValueForInternalVariable,
 	)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 
-	_, err := txProc.ProcessTransaction(tx, round)
+	err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -69,8 +69,8 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(50)
 
-	scCode := "mocked code, not taken into account"
 	initialValueForInternalVariable := uint64(45)
+	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -81,12 +81,11 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 		gasPrice,
 		gasLimit,
 		scCode,
-		initialValueForInternalVariable,
 	)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 
-	_, err := txProc.ProcessTransaction(tx, round)
+	err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -119,8 +118,8 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(50)
 
-	scCode := "mocked code, not taken into account"
 	initialValueForInternalVariable := uint64(45)
+	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -131,12 +130,11 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		gasPrice,
 		gasLimit,
 		scCode,
-		initialValueForInternalVariable,
 	)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 
-	_, err := txProc.ProcessTransaction(tx, round)
+	err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -171,8 +169,8 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	gasLimit := vmOpGas - 1
 	transferOnCalls := big.NewInt(50)
 
-	scCode := "mocked code, not taken into account"
 	initialValueForInternalVariable := uint64(45)
+	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -183,12 +181,11 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		gasPrice,
 		gasLimit,
 		scCode,
-		initialValueForInternalVariable,
 	)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 
-	_, err := txProc.ProcessTransaction(tx, round)
+	err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
