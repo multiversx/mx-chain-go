@@ -681,7 +681,7 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 		n.privKey,
 		n.marshalizer,
 		HeartbeatTopic,
-		&n.shardCoordinator,
+		n.shardCoordinator,
 	)
 	if err != nil {
 		return err

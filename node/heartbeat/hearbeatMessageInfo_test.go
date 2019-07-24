@@ -8,7 +8,6 @@ import (
 )
 
 //------ newHeartbeatMessageInfo
-
 func TestNewHeartbeatMessageInfo_InvalidDurationShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -38,7 +37,6 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 		}
 		return time.Unix(0, incrementalTime)
 	}
-	emptyTimestamp := time.Time{}
 
 	assert.Equal(t, emptyTimestamp, hbmi.timeStamp)
 
@@ -62,10 +60,9 @@ func TestHeartbeatMessageInfo_HeartbeatSweepShouldUpdate(t *testing.T) {
 
 		return tReturned
 	}
-	shardID := uint32(3)
-	emptyTimestamp := time.Time{}
+
 	assert.Equal(t, emptyTimestamp, hbmi.timeStamp)
 
-	hbmi.HeartbeatReceived(shardID)
+	hbmi.HeartbeatReceived(uint32(3))
 	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
 }

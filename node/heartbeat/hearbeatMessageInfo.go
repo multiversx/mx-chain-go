@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+var emptyTimestamp = time.Time{}
+
 // heartbeatMessageInfo retain the message info received from another node (identified by a public key)
 type heartbeatMessageInfo struct {
 	maxDurationPeerUnresponsive time.Duration
@@ -22,12 +24,12 @@ func newHeartbeatMessageInfo(maxDurationPeerUnresponsive time.Duration) (*heartb
 
 	hbmi := &heartbeatMessageInfo{
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
-		maxInactiveTime:             Duration{Duration: 0},
+		maxInactiveTime:             Duration{0},
 		isActive:                    false,
 	}
 
 	hbmi.getTimeHandler = hbmi.clockTime
-	hbmi.timeStamp = time.Time{}
+	hbmi.timeStamp = emptyTimestamp
 
 	return hbmi, nil
 }
@@ -55,7 +57,7 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(shardID uint32) {
 
 func (hbmi *heartbeatMessageInfo) updateMaxInactiveTimeDuration() {
 	crtDuration := hbmi.getTimeHandler().Sub(hbmi.timeStamp)
-	if hbmi.maxInactiveTime.Duration < crtDuration && hbmi.timeStamp != (time.Time{}) {
+	if hbmi.maxInactiveTime.Duration < crtDuration && hbmi.timeStamp != emptyTimestamp {
 		hbmi.maxInactiveTime.Duration = crtDuration
 	}
 }

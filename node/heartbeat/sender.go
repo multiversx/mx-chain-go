@@ -16,7 +16,7 @@ type Sender struct {
 	privKey          crypto.PrivateKey
 	marshalizer      marshal.Marshalizer
 	topic            string
-	shardCoordinator *sharding.Coordinator
+	shardCoordinator sharding.Coordinator
 }
 
 // NewSender will create a new sender instance
@@ -26,7 +26,7 @@ func NewSender(
 	privKey crypto.PrivateKey,
 	marshalizer marshal.Marshalizer,
 	topic string,
-	shardCoordinator *sharding.Coordinator,
+	shardCoordinator sharding.Coordinator,
 ) (*Sender, error) {
 
 	if peerMessenger == nil {
@@ -59,7 +59,7 @@ func (s *Sender) SendHeartbeat() error {
 
 	hb := &Heartbeat{
 		Payload: []byte(fmt.Sprintf("%v", time.Now())),
-		ShardID: (*s.shardCoordinator).SelfId(),
+		ShardID: s.shardCoordinator.SelfId(),
 	}
 
 	var err error

@@ -8,14 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
-
-func getShardCoordinatorMock() *sharding.Coordinator {
-	shardCoord := (sharding.Coordinator)(mock.ShardCoordinatorMock{})
-	return &shardCoord
-}
 
 //------- NewSender
 
@@ -28,7 +22,7 @@ func TestNewSender_NilP2pMessengerShouldErr(t *testing.T) {
 		&mock.PrivateKeyStub{},
 		&mock.MarshalizerMock{},
 		"",
-		getShardCoordinatorMock(),
+		&mock.ShardCoordinatorMock{},
 	)
 
 	assert.Nil(t, sender)
@@ -44,7 +38,7 @@ func TestNewSender_NilSingleSignerShouldErr(t *testing.T) {
 		&mock.PrivateKeyStub{},
 		&mock.MarshalizerMock{},
 		"",
-		getShardCoordinatorMock(),
+		&mock.ShardCoordinatorMock{},
 	)
 
 	assert.Nil(t, sender)
@@ -60,7 +54,7 @@ func TestNewSender_NilPrivateKeyShouldErr(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		"",
-		getShardCoordinatorMock(),
+		&mock.ShardCoordinatorMock{},
 	)
 
 	assert.Nil(t, sender)
@@ -76,7 +70,7 @@ func TestNewSender_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.PrivateKeyStub{},
 		nil,
 		"",
-		getShardCoordinatorMock(),
+		&mock.ShardCoordinatorMock{},
 	)
 
 	assert.Nil(t, sender)
@@ -92,7 +86,7 @@ func TestNewSender_ShouldWork(t *testing.T) {
 		&mock.PrivateKeyStub{},
 		&mock.MarshalizerMock{},
 		"",
-		getShardCoordinatorMock(),
+		&mock.ShardCoordinatorMock{},
 	)
 
 	assert.NotNil(t, sender)
@@ -132,7 +126,7 @@ func TestSender_SendHeartbeatGeneratePublicKeyErrShouldErr(t *testing.T) {
 			},
 		},
 		"",
-		getShardCoordinatorMock(),
+		&mock.ShardCoordinatorMock{},
 	)
 
 	err := sender.SendHeartbeat()
@@ -171,7 +165,7 @@ func TestSender_SendHeartbeatSignErrShouldErr(t *testing.T) {
 			},
 		},
 		"",
-		getShardCoordinatorMock(),
+		&mock.ShardCoordinatorMock{},
 	)
 
 	err := sender.SendHeartbeat()
@@ -210,7 +204,7 @@ func TestSender_SendHeartbeatMarshalizerErrShouldErr(t *testing.T) {
 			},
 		},
 		"",
-		getShardCoordinatorMock(),
+		&mock.ShardCoordinatorMock{},
 	)
 
 	err := sender.SendHeartbeat()
@@ -271,7 +265,7 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 			},
 		},
 		testTopic,
-		getShardCoordinatorMock(),
+		&mock.ShardCoordinatorMock{},
 	)
 
 	err := sender.SendHeartbeat()
