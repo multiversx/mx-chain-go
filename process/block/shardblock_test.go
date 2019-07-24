@@ -3085,6 +3085,147 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	assert.Equal(t, noOfTxs, uint32(0))
 }
 
+func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeShouldErr(t *testing.T) {
+	t.Parallel()
+	haveTimeReturnsBool := func() bool {
+		return true
+	}
+	tdp := mock.NewPoolsHolderFake()
+	txHash := []byte(nil)
+	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
+
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		false,
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+	_, _, _, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, 2, haveTimeReturnsBool)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeShouldErr2(t *testing.T) {
+	t.Parallel()
+
+	haveTimeReturnsBool := func() bool {
+		return true
+	}
+	tdp := mock.NewPoolsHolderFake()
+	destShardId := uint32(2)
+
+	hasher := &mock.HasherStub{}
+	marshalizer := &mock.MarshalizerMock{}
+	miniblocks := make([]*block.MiniBlock, 6)
+	miniblockHashes := make([][]byte, 6)
+
+	shardBlock := make(block.Body, 0)
+	txHash := []byte("txhash")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+
+	miniblock1 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+	}
+	miniblock2 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   2,
+		TxHashes:        txHashes,
+	}
+	miniblock3 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   3,
+		TxHashes:        txHashes,
+	}
+
+	shardBlock = append(shardBlock, &miniblock1, &miniblock2, &miniblock3)
+
+	miniBlocks := make([]block.MiniBlock, 0)
+	miniBlocks = append(miniBlocks, miniblock1, miniblock2)
+
+	destShards := []uint32{1, 3, 4}
+	for i := 0; i < 6; i++ {
+		mb, hash := createDummyMiniBlock(fmt.Sprintf("tx hash %d", i), marshalizer, hasher, destShardId, destShards[i/2])
+		miniblocks[i] = mb
+		miniblockHashes[i] = hash
+	}
+
+	//put 3 metablocks in pool
+	meta := &block.MetaBlock{
+		Nonce:        1,
+		ShardInfo:    createShardData(hasher, marshalizer, miniBlocks),
+		Round:        1,
+		PrevRandSeed: []byte("roothash"),
+	}
+
+	randSeed := meta.RandSeed
+
+	mb1Hash := []byte("meta block 1")
+	tdp.MetaBlocks().Put(
+		mb1Hash,
+		meta,
+	)
+
+	meta = &block.MetaBlock{
+		Nonce:        2,
+		ShardInfo:    createShardData(hasher, marshalizer, miniBlocks),
+		Round:        2,
+		PrevRandSeed: randSeed,
+	}
+
+	mb2Hash := []byte("meta block 2")
+	tdp.MetaBlocks().Put(
+		mb2Hash,
+		meta,
+	)
+
+	meta = &block.MetaBlock{
+		Nonce:        3,
+		ShardInfo:    make([]block.ShardData, 0),
+		Round:        3,
+		PrevRandSeed: []byte("roothash"),
+	}
+
+	mb3Hash := []byte("meta block 3")
+	tdp.MetaBlocks().Put(
+		mb3Hash,
+		meta,
+	)
+
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		true,
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+	_, _, _, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, 2, haveTimeReturnsBool)
+
+	assert.Nil(t, err)
+}
+
 //------- createMiniBlocks
 
 func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T) {
