@@ -487,11 +487,11 @@ func (bn *branchNode) print(writer io.Writer, index int) {
 	str := fmt.Sprintf("B:")
 	_, _ = fmt.Fprintln(writer, str)
 	for i := 0; i < len(bn.children); i++ {
-		child := bn.children[i]
-		if child == nil {
+		if bn.children[i] == nil {
 			continue
 		}
 
+		child := bn.children[i]
 		for j := 0; j < index+len(str)-1; j++ {
 			_, _ = fmt.Fprint(writer, " ")
 		}

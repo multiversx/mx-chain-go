@@ -1034,12 +1034,10 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 
 func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
 	nrOfAccounts := 1000000
-	nrTxs := 15000
-	txVal := 100
-	balance := nrTxs * txVal
+	balance := 1500000
 	persist := mock2.MockDB{}
 
-	adb, _ := createAccounts(b, nrOfAccounts, balance, persist)
+	adb, _, tr := createAccounts(b, nrOfAccounts, balance, persist)
 	var rtm runtime.MemStats
 	runtime.GC()
 
@@ -1058,6 +1056,16 @@ func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
 		core.ConvertBytes(rtm.Alloc),
 		core.ConvertBytes(rtm.Sys),
 	)
+
+	runtime.GC()
+	runtime.ReadMemStats(&rtm)
+	fmt.Printf("Mem after committing %v accounts with mockDB and garbage collection : go mem - %s, sys mem - %s \n",
+		nrOfAccounts,
+		core.ConvertBytes(rtm.Alloc),
+		core.ConvertBytes(rtm.Sys),
+	)
+
+	_ = tr.String()
 }
 
 func BenchmarkCreateOneMillionAccounts(b *testing.B) {
@@ -1067,34 +1075,24 @@ func BenchmarkCreateOneMillionAccounts(b *testing.B) {
 	balance := nrTxs * txVal
 	persist := mock2.NewCountingDB()
 
-	adb, addr := createAccounts(b, nrOfAccounts, balance, persist)
+	adb, addr, _ := createAccounts(b, nrOfAccounts, balance, persist)
 	var rtm runtime.MemStats
-
-	runtime.ReadMemStats(&rtm)
-	fmt.Printf("Mem before committing %v accounts: go mem - %s, sys mem - %s \n",
-		nrOfAccounts,
-		core.ConvertBytes(rtm.Alloc),
-		core.ConvertBytes(rtm.Sys),
-	)
 
 	_, _ = adb.Commit()
 	runtime.GC()
 
 	runtime.ReadMemStats(&rtm)
-	fmt.Printf("Mem after committing %v accounts: go mem - %s, sys mem - %s \n",
-		nrOfAccounts,
-		core.ConvertBytes(rtm.Alloc),
-		core.ConvertBytes(rtm.Sys),
-	)
+	goMemCollapsedTrie := rtm.Alloc
 
 	fmt.Printf("Partially collapsed trie - ")
 	createAndExecTxs(b, addr, nrTxs, nrOfAccounts, txVal, adb)
 
 	runtime.ReadMemStats(&rtm)
-	fmt.Printf("Mem after exec of %v txs: go mem - %s, sys mem - %s \n",
+	goMemAfterTxExec := rtm.Alloc
+
+	fmt.Printf("Extra memory after the exec of %v txs: %s \n",
 		nrTxs,
-		core.ConvertBytes(rtm.Alloc),
-		core.ConvertBytes(rtm.Sys),
+		core.ConvertBytes(goMemAfterTxExec-goMemCollapsedTrie),
 	)
 
 	fmt.Println("Total nr. of nodes in trie: ", persist.GetCounter())
@@ -1115,7 +1113,7 @@ func createAccounts(
 	nrOfAccounts int,
 	balance int,
 	persist storage.Persister,
-) (*state.AccountsDB, []state.AddressContainer) {
+) (*state.AccountsDB, []state.AddressContainer, data.Trie) {
 	marsh := &marshal.JsonMarshalizer{}
 	hasher := sha256.Sha256{}
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
@@ -1136,7 +1134,7 @@ func createAccounts(
 		assert.Nil(tb, err)
 	}
 
-	return adb, addr
+	return adb, addr, tr
 }
 
 func createAndExecTxs(
