@@ -1,0 +1,59 @@
+#P2P config file
+
+#NodeConfig holds the P2P settings
+[Node]
+    #Port is the port that will be opened by the node on all interfaces so other peers can connect to it
+    #If the port = 0, the node will search for a free port on the machine and use it
+    Port = 0
+
+    #Seed represents the seed string generator for p2p identity (used during authentication and message passing).
+    #An empty Seed value will mean that the identity will be generated randomly in a secure cryptographically manner.
+    #The seed provided in this string can be of any length.
+    #########################################################################################
+    # WARNING! For security reasons, one might use a generated string as long as possible!  #
+    # It is recommended that the seed field should remain empty (no characters between "")  #
+    #########################################################################################
+    #The seed provided will be hashed using SHA256 and the resulting 32 byte length byte array will be used in
+    #p2p identity generation
+    Seed = ""
+
+# P2P peer discovery section
+
+#The following sections correspond to the way new peers will be discovered
+#If all config types are disabled then the peer will run in single mode (will not try to find other peers)
+#If more than one peer discovery mechanism is enabled, the application will output an error and will not start
+
+#MdnsPeerDiscovery can be used on LAN networks for discovering the new peers
+[MdnsPeerDiscovery]
+    #Enabled: true/false to enable/disable this discovery mechanism
+    Enabled = false
+
+    #RefreshIntervalInSec represents the time in seconds between querying for new peers
+    RefreshIntervalInSec = 1
+
+    #ServiceTag represents the subnetwork on which this node will respond to queries
+    #To connect to other nodes, those nodes should have the same ServiceTag string
+    ServiceTag = "elrond"
+
+[KadDhtPeerDiscovery]
+    #Enabled: true/false to enable/disable this discovery mechanism
+    Enabled = true
+
+    #RefreshIntervalInSec represents the time in seconds between querying for new peers
+    RefreshIntervalInSec = 10
+
+    #RandezVous represents the meeting point that this node will advertize itself
+    #To connect to other nodes, those nodes should have the same RandezVous string
+    RandezVous = "elrond"
+
+    #InitialPeerList represents the list of strings of some known nodes that will bootstrap this node
+    #The address will be in a self-describing addressing format.
+    #More can be found here: https://github.com/libp2p/specs/blob/master/3-requirements.md#34-transport-agnostic
+    #Example:
+    #   /ip6/fe80::8823:6dff:fee7:f172/tcp/4001/p2p/QmYJyUMAcXEw1b5bFfbBbzYu5wyyjLMRHXGUkCXpag74Fu
+    #   /ip4/162.246.145.218/udp/4001/utp/ipfs/QmYJyUMAcXEw1b5bFfbBbzYu5wyyjLMRHXGUkCXpag74Fu
+    #   /ether/ac:fd:ec:0b:7c:fe/ipfs/QmYJyUMAcXEw1b5bFfbBbzYu5wyyjLMRHXGUkCXpag74Fu
+    #
+    #If the initial peers list is left empty, the node will not try to connect to other peers during initial bootstrap
+    #phase but will accept connections and will do the network discovery if another peer connects to it
+    InitialPeerList = ["/ip4/127.0.0.1/tcp/10000/p2p/16Uiu2HAmAzokH1ozUF52Vy3RKqRfCMr9ZdNDkUQFEkXRs9DqvmKf"]
