@@ -462,7 +462,7 @@ func TestNonceSyncMapCacher_HasNotFoundShouldRetFalse(t *testing.T) {
 	nsmc, _ := dataPool.NewNonceSyncMapCacher(cacher, nonceConverter)
 
 	inexistentNonce := uint64(67)
-	has := nsmc.HasNonce(inexistentNonce)
+	has := nsmc.Has(inexistentNonce, 0)
 
 	assert.False(t, has)
 }
@@ -475,8 +475,10 @@ func TestNonceSyncMapCacher_HasFoundShouldRetTrue(t *testing.T) {
 	nsmc, _ := dataPool.NewNonceSyncMapCacher(cacher, nonceConverter)
 
 	nonce := uint64(67)
-	nsmc.Merge(nonce, &dataPool.ShardIdHashSyncMap{})
-	has := nsmc.HasNonce(nonce)
+	syncMap := &dataPool.ShardIdHashSyncMap{}
+	syncMap.Store(0, []byte("X"))
+	nsmc.Merge(nonce, syncMap)
+	has := nsmc.Has(nonce, 0)
 
 	assert.True(t, has)
 }

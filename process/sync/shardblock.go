@@ -478,7 +478,8 @@ func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
 		boot.requestsWithTimeout++
 	}
 
-	if boot.shouldRollBack(err) {
+	shouldRollBack := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	if shouldRollBack {
 		boot.requestsWithTimeout = 0
 		hash := boot.removeHeaderFromPools(hdr)
 		boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)

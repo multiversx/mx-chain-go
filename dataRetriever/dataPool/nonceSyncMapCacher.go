@@ -127,23 +127,6 @@ func (nspc *nonceSyncMapCacher) RemoveShardId(nonce uint64, shardId uint32) {
 	syncMap.Delete(shardId)
 }
 
-// HasShardId returns true if a map is found for provided nonce ans shardId
-func (nspc *nonceSyncMapCacher) HasShardId(nonce uint64, shardId uint32) bool {
-	val, ok := nspc.cacher.Peek(nspc.nonceConverter.ToByteSlice(nonce))
-	if !ok {
-		return false
-	}
-
-	syncMap, ok := val.(*ShardIdHashSyncMap)
-	if !ok {
-		return false
-	}
-
-	_, exists := syncMap.Load(shardId)
-
-	return exists
-}
-
 // RegisterHandler registers a new handler to be called when a new data is added
 func (nspc *nonceSyncMapCacher) RegisterHandler(handler func(nonce uint64, shardId uint32, value []byte)) {
 	if handler == nil {
@@ -164,9 +147,19 @@ func (nspc *nonceSyncMapCacher) callAddedDataHandlers(nonce uint64, shardId uint
 	nspc.mutAddedDataHandlers.RUnlock()
 }
 
-// HasNonce returns true if a map is found for provided nonce
-func (nspc *nonceSyncMapCacher) HasNonce(nonce uint64) bool {
-	_, ok := nspc.cacher.Peek(nspc.nonceConverter.ToByteSlice(nonce))
+// Has returns true if a map is found for provided nonce ans shardId
+func (nspc *nonceSyncMapCacher) Has(nonce uint64, shardId uint32) bool {
+	val, ok := nspc.cacher.Peek(nspc.nonceConverter.ToByteSlice(nonce))
+	if !ok {
+		return false
+	}
 
-	return ok
+	syncMap, ok := val.(*ShardIdHashSyncMap)
+	if !ok {
+		return false
+	}
+
+	_, exists := syncMap.Load(shardId)
+
+	return exists
 }
