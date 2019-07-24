@@ -94,6 +94,9 @@ var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 // ErrInvalidBlockHash signals the hash of the block is not matching with the previous one
 var ErrInvalidBlockHash = errors.New("invalid block hash")
 
+// ErrInvalidNotarizedBlockHash signals the hash of the notarized block is not matching with the previous one
+var ErrInvalidNotarizedBlockHash = errors.New("invalid notarized block hash")
+
 // ErrMissingTransaction signals that one transaction is missing
 var ErrMissingTransaction = errors.New("missing transaction")
 
