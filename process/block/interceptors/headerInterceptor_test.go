@@ -182,7 +182,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	nodes := generateValidatorsMap(3, 3, 1)
-	nodesCoordinator.LoadNodesPerShards(nodes)
+	nodesCoordinator.SetNodesPerShards(nodes)
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
@@ -258,7 +258,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	nodes := generateValidatorsMap(3, 3, 1)
-	nodesCoordinator.LoadNodesPerShards(nodes)
+	nodesCoordinator.SetNodesPerShards(nodes)
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
@@ -337,7 +337,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 	}
 
 	nodes := generateValidatorsMap(3, 3, 5)
-	nodesCoordinator.LoadNodesPerShards(nodes)
+	nodesCoordinator.SetNodesPerShards(nodes)
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,

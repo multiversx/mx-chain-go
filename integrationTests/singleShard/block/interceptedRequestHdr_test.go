@@ -50,8 +50,20 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	storeResolver := createTestStore()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
-	nodesCoordinator1, _ := sharding.NewIndexHashedNodesCoordinator(1, hasher, 0, 1)
-	nodesCoordinator2, _ := sharding.NewIndexHashedNodesCoordinator(1, hasher, 0, 1)
+	nodesCoordinator1, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		hasher,
+		0,
+		1,
+		make(map[uint32][]sharding.Validator),
+	)
+	nodesCoordinator2, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		hasher,
+		0,
+		1,
+		make(map[uint32][]sharding.Validator),
+	)
 
 	fmt.Println("Requester:")
 	nRequester, mesRequester, _, pk1, multiSigner, resolversFinder := createNetNode(
@@ -77,8 +89,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	pubKeyMap[0] = []string{string(pk1Bytes), string(pk2Bytes)}
 	validatorsMap := genValidatorsFromPubKeys(pubKeyMap)
-	nodesCoordinator1.LoadNodesPerShards(validatorsMap)
-	nodesCoordinator2.LoadNodesPerShards(validatorsMap)
+	nodesCoordinator1.SetNodesPerShards(validatorsMap)
+	nodesCoordinator2.SetNodesPerShards(validatorsMap)
 
 	_ = nRequester.Start()
 	_ = nResolver.Start()

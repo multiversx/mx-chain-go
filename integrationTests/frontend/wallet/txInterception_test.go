@@ -108,7 +108,13 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	accntAdapter := createAccountsDB()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
-	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(1, mock.HasherMock{}, 0, 1)
+	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		mock.HasherMock{},
+		0,
+		1,
+		make(map[uint32][]sharding.Validator),
+	)
 
 	n, _, sk, _ := createNetNode(dPool, accntAdapter, shardCoordinator, nodesCoordinator)
 

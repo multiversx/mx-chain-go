@@ -54,7 +54,7 @@ func (ncm NodesCoordinatorMock) ConsensusGroupSize() int {
 	panic("implement me")
 }
 
-func (ncm NodesCoordinatorMock) LoadNodesPerShards(map[uint32][]sharding.Validator) error {
+func (ncm NodesCoordinatorMock) SetNodesPerShards(map[uint32][]sharding.Validator) error {
 	return nil
 }
 

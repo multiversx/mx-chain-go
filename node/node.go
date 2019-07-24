@@ -488,15 +488,7 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 
 // createNodesCoordinator creates a index hashed group selector object
 func (n *Node) createNodesCoordinator() (sharding.NodesCoordinator, error) {
-	nCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
-		n.consensusGroupSize,
-		n.hasher,
-		n.shardCoordinator.SelfId(),
-		n.shardCoordinator.NumberOfShards(),
-	)
-	if err != nil {
-		return nil, err
-	}
+	var err error
 
 	nodesMap := make(map[uint32][]sharding.Validator)
 	nbShards := n.shardCoordinator.NumberOfShards()
@@ -513,7 +505,13 @@ func (n *Node) createNodesCoordinator() (sharding.NodesCoordinator, error) {
 		return nil, err
 	}
 
-	err = nCoordinator.LoadNodesPerShards(nodesMap)
+	nCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
+		n.consensusGroupSize,
+		n.hasher,
+		n.shardCoordinator.SelfId(),
+		n.shardCoordinator.NumberOfShards(),
+		nodesMap,
+	)
 	if err != nil {
 		return nil, err
 	}

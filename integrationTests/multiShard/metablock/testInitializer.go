@@ -196,7 +196,13 @@ func createNodes(
 	nodes := make([]*testNode, nodesInMetachain+1)
 	//first node is a shard node
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(1, senderShard)
-	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(1, hasher, senderShard, 1)
+	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		hasher,
+		senderShard,
+		1,
+		make(map[uint32][]sharding.Validator),
+	)
 
 	nodes[0] = createShardNetNode(
 		createTestShardDataPool(),
@@ -214,7 +220,13 @@ func createNodes(
 	metaPubKeys := make([]string, 0)
 	for i := 0; i < nodesInMetachain; i++ {
 		shardCoordinator, _ = sharding.NewMultiShardCoordinator(1, sharding.MetachainShardId)
-		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(1, hasher, sharding.MetachainShardId, 1)
+		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
+			1,
+			hasher,
+			sharding.MetachainShardId,
+			1,
+			make(map[uint32][]sharding.Validator),
+		)
 		nodes[i+1] = createMetaNetNode(
 			createTestMetaDataPool(),
 			createAccountsDB(),
@@ -233,7 +245,7 @@ func createNodes(
 
 	for _, nodeCoordList := range nodesCoordMap {
 		for _, nodeCoord := range nodeCoordList {
-			nodeCoord.LoadNodesPerShards(valMap)
+			nodeCoord.SetNodesPerShards(valMap)
 		}
 	}
 

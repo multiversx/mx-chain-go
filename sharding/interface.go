@@ -29,7 +29,7 @@ type Validator interface {
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinator interface {
 	PublicKeysSelector
-	LoadNodesPerShards(nodes map[uint32][]Validator) error
+	SetNodesPerShards(nodes map[uint32][]Validator) error
 	ComputeValidatorsGroup(randomness []byte) (validatorsGroup []Validator, err error)
 	ConsensusGroupSize() int
 	SetConsensusGroupSize(int) error

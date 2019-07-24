@@ -37,7 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/pkg/profile"
@@ -689,7 +689,7 @@ func createShardCoordinator(
 	pubKey crypto.PublicKey,
 	settingsConfig config.GeneralSettingsConfig,
 	log *logger.Logger,
-) (shardCoordinator sharding.Coordinator, err error) {
+) (sharding.Coordinator, error) {
 	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
 		log.Info("Starting as observer node...")
@@ -708,7 +708,7 @@ func createShardCoordinator(
 	}
 	log.Info(fmt.Sprintf("Starting in shard: %s", shardName))
 
-	shardCoordinator, err = sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -740,16 +740,6 @@ func createNodesCoordinator(
 		consensusGroupSize = int(nodesConfig.ConsensusGroupSize)
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
-		consensusGroupSize,
-		hasher,
-		shardId,
-		nbShards,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	initNodesPubKeys := nodesConfig.InitialNodesPubKeys()
 	initValidators := make(map[uint32][]sharding.Validator)
 
@@ -767,7 +757,13 @@ func createNodesCoordinator(
 		initValidators[shardId] = validators
 	}
 
-	err = nodesCoordinator.LoadNodesPerShards(initValidators)
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
+		consensusGroupSize,
+		hasher,
+		shardId,
+		nbShards,
+		initValidators,
+	)
 	if err != nil {
 		return nil, err
 	}

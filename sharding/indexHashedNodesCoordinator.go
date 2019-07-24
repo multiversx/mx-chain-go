@@ -23,6 +23,7 @@ func NewIndexHashedNodesCoordinator(
 	hasher hashing.Hasher,
 	shardId uint32,
 	nbShards uint32,
+	nodes map[uint32][]Validator,
 ) (*indexHashedNodesCoordinator, error) {
 	if consensusGroupSize < 1 {
 		return nil, ErrInvalidConsensusGroupSize
@@ -53,11 +54,16 @@ func NewIndexHashedNodesCoordinator(
 		return nil, err
 	}
 
+	err = ihgs.SetNodesPerShards(nodes)
+	if err != nil {
+		return nil, err
+	}
+
 	return ihgs, nil
 }
 
-// LoadNodesPerShards loads the distribution of nodes per shard into the nodes management component
-func (ihgs *indexHashedNodesCoordinator) LoadNodesPerShards(nodes map[uint32][]Validator) error {
+// SetNodesPerShards loads the distribution of nodes per shard into the nodes management component
+func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(nodes map[uint32][]Validator) error {
 	if nodes == nil {
 		return ErrNilInputNodesMap
 	}

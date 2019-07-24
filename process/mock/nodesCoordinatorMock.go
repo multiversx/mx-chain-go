@@ -68,7 +68,7 @@ func (ncm *NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte) ([]s
 	return valGrStr, nil
 }
 
-func (ncm *NodesCoordinatorMock) LoadNodesPerShards(nodes map[uint32][]sharding.Validator) error {
+func (ncm *NodesCoordinatorMock) SetNodesPerShards(nodes map[uint32][]sharding.Validator) error {
 	if ncm.LoadNodesPerShardsCalled != nil {
 		return ncm.LoadNodesPerShardsCalled(nodes)
 	}

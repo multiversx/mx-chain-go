@@ -483,6 +483,7 @@ func createNodes(
 				testHasher,
 				uint32(shardId),
 				uint32(numOfShards),
+				make(map[uint32][]sharding.Validator),
 			)
 			shardNodesCoordinators = append(shardNodesCoordinators, nodesCoordinator)
 
@@ -561,6 +562,7 @@ func createNodes(
 			testHasher,
 			sharding.MetachainShardId,
 			uint32(numOfShards),
+			make(map[uint32][]sharding.Validator),
 		)
 
 		metaNodes[i] = createMetaNetNode(
@@ -583,7 +585,7 @@ func createNodes(
 
 	for _, shardCoord := range nodesCoordinators {
 		for j := 0; j < len(shardCoord); j++ {
-			shardCoord[j].LoadNodesPerShards(mapValidators)
+			shardCoord[j].SetNodesPerShards(mapValidators)
 		}
 	}
 

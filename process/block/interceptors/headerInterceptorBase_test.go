@@ -252,7 +252,7 @@ func createNodesCoordinator() sharding.NodesCoordinator {
 	validators[sharding.MetachainShardId] = []sharding.Validator{v}
 
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
-	nodesCoordinator.LoadNodesPerShards(validators)
+	nodesCoordinator.SetNodesPerShards(validators)
 
 	return nodesCoordinator
 }

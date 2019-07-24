@@ -369,7 +369,13 @@ func createNode(
 	}
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
-	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(3, hasher, uint32(shardId), uint32(numOfShards))
+	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
+		3,
+		hasher,
+		uint32(shardId),
+		uint32(numOfShards),
+		make(map[uint32][]sharding.Validator),
+	)
 	accntAdapter := createAccountsDB()
 	var n *node.Node
 	var mes p2p.Messenger
