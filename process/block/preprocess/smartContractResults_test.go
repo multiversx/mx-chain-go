@@ -689,6 +689,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 		RegisterHandlerCalled: func(i func(key []byte)) {
 		},
 	}
+
 	dataPool.SetUnsignedTransactions(shardedDataStub)
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	scr, _ := NewSmartContractResultPreprocessor(
@@ -711,6 +712,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 		TxHashes:        txHashes,
 		Type:            block.SmartContractResultBlock,
 	}
+
 	body = append(body, &miniblock)
 	miniblockPool := mock.NewCacherMock()
 	scrRestored, miniBlockHashes, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
