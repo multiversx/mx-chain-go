@@ -212,7 +212,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		return process.ErrInvalidBlockHash
+		return process.ErrInvalidNotarizedBlockHash
 	}
 
 	return nil
