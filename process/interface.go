@@ -43,8 +43,8 @@ type TransactionCoordinator interface {
 	ProcessBlockTransaction(body block.Body, round uint32, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, maxTxRemaining uint32, round uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
-	CreateMbsAndProcessTransactionsFromMe(maxTxRemaining uint32, round uint32, haveTime func() bool) block.MiniBlockSlice
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
+	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint32, haveTime func() bool) block.MiniBlockSlice
 
 	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte)
 
@@ -66,6 +66,7 @@ type IntermediateTransactionHandler interface {
 	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
 	VerifyInterMiniBlocks(body block.Body) error
 	SaveCurrentIntermediateTxToStorage() error
+	CreateBlockStarted()
 }
 
 // PreProcessor is an interface used to prepare and process transaction data
@@ -149,7 +150,7 @@ type Bootstrapper interface {
 type ForkDetector interface {
 	AddHeader(header data.HeaderHandler, hash []byte, state BlockHeaderState) error
 	RemoveHeaders(nonce uint64, hash []byte)
-	CheckFork() (bool, uint64)
+	CheckFork() (forkDetected bool, nonce uint64, hash []byte)
 	GetHighestFinalBlockNonce() uint64
 	ProbableHighestNonce() uint64
 	ResetProbableHighestNonceIfNeeded()
@@ -275,4 +276,13 @@ type TemporaryAccountsHandler interface {
 	AddTempAccount(address []byte, balance *big.Int, nonce uint64)
 	CleanTempAccounts()
 	TempAccount(address []byte) state.AccountHandler
+}
+
+// BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
+// block to its peers which should be received in a limited time frame
+type BlockSizeThrottler interface {
+	MaxItemsToAdd() uint32
+	Add(round uint64, items uint32)
+	Succeed(round uint64)
+	ComputeMaxItems()
 }

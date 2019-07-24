@@ -217,9 +217,10 @@ func TestBasicForkDetector_CheckForkOnlyOneHeaderOnANonceShouldReturnFalse(t *te
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
 	_ = bfd.AddHeader(&block.Header{Nonce: 0, PubKeysBitmap: []byte("X")}, []byte("hash1"), process.BHProcessed)
 	_ = bfd.AddHeader(&block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}, []byte("hash2"), process.BHProcessed)
-	forkDetected, lowestForkNonce := bfd.CheckFork()
+	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
 	assert.False(t, forkDetected)
 	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
+	assert.Nil(t, forkHash)
 }
 
 func TestBasicForkDetector_CheckForkHeaderNotProcessedYetShouldReturnFalse(t *testing.T) {
@@ -228,9 +229,10 @@ func TestBasicForkDetector_CheckForkHeaderNotProcessedYetShouldReturnFalse(t *te
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
 	_ = bfd.AddHeader(&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")}, []byte("hash1"), process.BHReceived)
 	_ = bfd.AddHeader(&block.Header{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")}, []byte("hash2"), process.BHReceived)
-	forkDetected, lowestForkNonce := bfd.CheckFork()
+	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
 	assert.False(t, forkDetected)
 	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
+	assert.Nil(t, forkHash)
 }
 
 func TestBasicForkDetector_CheckForkHeaderProcessedShouldReturnFalseWhenLowestRound(t *testing.T) {
@@ -247,9 +249,10 @@ func TestBasicForkDetector_CheckForkHeaderProcessedShouldReturnFalseWhenLowestRo
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
 
-	forkDetected, lowestForkNonce := bfd.CheckFork()
+	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
 	assert.False(t, forkDetected)
 	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
+	assert.Nil(t, forkHash)
 
 	hInfos = bfd.GetHeaders(1)
 	assert.Equal(t, 1, len(hInfos))
@@ -267,9 +270,10 @@ func TestBasicForkDetector_CheckForkShouldNotConsiderProposedBlocks(t *testing.T
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 2, len(hInfos))
 
-	forkDetected, lowestForkNonce := bfd.CheckFork()
+	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
 	assert.False(t, forkDetected)
 	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
+	assert.Nil(t, forkHash)
 }
 
 func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
@@ -286,9 +290,10 @@ func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
 
-	forkDetected, lowestForkNonce := bfd.CheckFork()
+	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
 	assert.True(t, forkDetected)
 	assert.Equal(t, uint64(1), lowestForkNonce)
+	assert.Equal(t, []byte("hash2"), forkHash)
 
 	hInfos = bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
