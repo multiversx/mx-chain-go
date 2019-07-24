@@ -206,7 +206,7 @@ func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]da
 	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
 }
 
-func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint32) {
+func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint64) {
 	sp.checkAndRequestIfMetaHeadersMissing(round)
 }
 
@@ -226,14 +226,14 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality(hdr *block.Header)
 	return sp.checkMetaHeadersValidityAndFinality(hdr)
 }
 
-func (sp *shardProcessor) GetOrderedMetaBlocks(round uint32) ([]*hashAndHdr, error) {
+func (sp *shardProcessor) GetOrderedMetaBlocks(round uint64) ([]*hashAndHdr, error) {
 	return sp.getOrderedMetaBlocks(round)
 }
 
 func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
 	noShards uint32,
-	maxItemsInBlock,
-	round uint32,
+	maxItemsInBlock uint32,
+	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, [][]byte, uint32, error) {
 	return sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxItemsInBlock, round, haveTime)

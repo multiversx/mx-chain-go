@@ -75,7 +75,7 @@ func (bfd *basicForkDetector) SetLastCheckpointRound(round int64) {
 	bfd.fork.lastCheckpointRound = round
 }
 
-func (bfd *basicForkDetector) SetCheckpointRound(round int32) {
+func (bfd *basicForkDetector) SetCheckpointRound(round int64) {
 	bfd.fork.checkpointRound = round
 }
 

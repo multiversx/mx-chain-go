@@ -290,7 +290,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(header *block.Head
 }
 
 // check if shard headers are final by checking if newer headers were constructed upon them
-func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler, round uint32) error {
+func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler, round uint64) error {
 	if header == nil {
 		return process.ErrNilBlockHeader
 	}
