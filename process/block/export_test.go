@@ -242,3 +242,9 @@ func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
 func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockSizeThrottler) {
 	bp.blockSizeThrottler = blockSizeThrottler
 }
+
+func (sp *shardProcessor) RestoreMetaBlockIntoPool(
+	miniBlockHashes map[int][][]byte,
+	metaBlockHashes [][]byte) error {
+	return sp.restoreMetaBlockIntoPool(miniBlockHashes, metaBlockHashes)
+}
