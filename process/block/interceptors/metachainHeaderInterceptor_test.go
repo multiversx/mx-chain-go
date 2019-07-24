@@ -282,6 +282,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShoul
 	metachainHeaders := &mock.CacherStub{}
 	metachainStorer := &mock.StorerStub{}
 	marshalizer := &mock.MarshalizerMock{}
+	hasher := mock.HasherMock{}
 	multisigner := mock.NewMultiSigner()
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 
@@ -291,12 +292,12 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShoul
 		&mock.Uint64SyncMapCacherStub{},
 		metachainStorer,
 		multisigner,
-		mock.HasherMock{},
+		hasher,
 		mock.NewOneShardCoordinatorMock(),
 		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedMetaHeader(multisigner, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedMetaHeader(multisigner, nodesCoordinator, marshalizer, hasher)
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
@@ -309,6 +310,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
+	hasher := mock.HasherMock{}
 	chanDone := make(chan struct{}, 1)
 	testedNonce := uint64(67)
 	metachainHeaders := &mock.CacherStub{}
@@ -327,12 +329,12 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 		metachainHeadersNonces,
 		metachainStorer,
 		multisigner,
-		mock.HasherMock{},
+		hasher,
 		mock.NewOneShardCoordinatorMock(),
 		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedMetaHeader(multisigner, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedMetaHeader(multisigner, nodesCoordinator, marshalizer, hasher)
 	hdr.Nonce = testedNonce
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = []byte{1, 0, 0}
@@ -391,6 +393,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
+	hasher := mock.HasherMock{}
 	chanDone := make(chan struct{}, 1)
 	testedNonce := uint64(67)
 	multisigner := mock.NewMultiSigner()
@@ -410,12 +413,12 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 		metachainHeadersNonces,
 		metachainStorer,
 		multisigner,
-		mock.HasherMock{},
+		hasher,
 		mock.NewOneShardCoordinatorMock(),
 		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedMetaHeader(multisigner, nodesCoordinator, marshalizer)
+	hdr := block.NewInterceptedMetaHeader(multisigner, nodesCoordinator, marshalizer, hasher)
 	hdr.Nonce = testedNonce
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = []byte{1, 0, 0}

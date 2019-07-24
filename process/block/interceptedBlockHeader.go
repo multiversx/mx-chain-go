@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -114,7 +115,7 @@ func (inHdr *InterceptedHeader) Integrity(coordinator sharding.Coordinator) erro
 	}
 }
 
-// VerifySig verifies a signature
+// VerifySig verifies the intercepted Header block signature
 func (inHdr *InterceptedHeader) VerifySig() error {
 	randSeed := inHdr.GetPrevRandSeed()
 	bitmap := inHdr.GetPubKeysBitmap()
@@ -127,6 +128,7 @@ func (inHdr *InterceptedHeader) VerifySig() error {
 		return process.ErrBlockProposerSignatureMissing
 
 	}
+
 	consensusPubKeys, err := inHdr.nodesCoordinator.GetValidatorsPublicKeys(randSeed)
 	if err != nil {
 		return err
@@ -148,12 +150,11 @@ func (inHdr *InterceptedHeader) VerifySig() error {
 	headerCopy.Signature = nil
 	headerCopy.PubKeysBitmap = nil
 
-	headerBytes, err := inHdr.marshalizer.Marshal(headerCopy)
+	hash, err := core.CalculateHash(inHdr.marshalizer, inHdr.hasher, headerCopy)
 	if err != nil {
 		return err
 	}
 
-	hash := inHdr.hasher.Compute(string(headerBytes))
 	err = verifier.Verify(hash, bitmap)
 
 	return err

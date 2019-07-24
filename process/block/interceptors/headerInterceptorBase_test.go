@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
@@ -241,13 +240,13 @@ func createNodesCoordinator() sharding.NodesCoordinator {
 	shardValidators := make([]sharding.Validator, 0)
 	for i := 0; i < 16; i++ {
 		pubKeyStr := fmt.Sprintf("pk_shard0_%d", i)
-		v, _ := consensus.NewValidator(big.NewInt(0), 1, []byte(pubKeyStr))
+		v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(pubKeyStr))
 		shardValidators = append(shardValidators, v)
 	}
 
 	//metachain
 	pubKeyBytes := []byte("pk_meta")
-	v, _ := consensus.NewValidator(big.NewInt(0), 1, pubKeyBytes)
+	v, _ := sharding.NewValidator(big.NewInt(0), 1, pubKeyBytes)
 
 	validators[0] = shardValidators
 	validators[sharding.MetachainShardId] = []sharding.Validator{v}

@@ -13,6 +13,9 @@ var ErrInvalidShardId = errors.New("shard id must be smaller than the total numb
 // ErrShardIdOutOfRange signals an error when shard id is out of range
 var ErrShardIdOutOfRange = errors.New("shard id out of range")
 
+// ErrNilPubKey signals that the public key is nil
+var ErrNilPubKey = errors.New("nil public key")
+
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
 
@@ -60,3 +63,9 @@ var ErrNilRandomness = errors.New("nil randomness source")
 
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
+
+// ErrNilStake signals that a nil stake structure has been provided
+var ErrNilStake = errors.New("nil stake")
+
+// ErrNegativeStake signals that the stake is negative
+var ErrNegativeStake = errors.New("negative stake")

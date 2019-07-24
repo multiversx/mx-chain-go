@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -25,12 +24,11 @@ var durTimeout = time.Duration(time.Second)
 func generateValidatorsMap(shardSize, metachainSize, nbShards uint32) map[uint32][]sharding.Validator {
 	nodes := make(map[uint32][]sharding.Validator)
 
-	// shards
 	for shard := uint32(0); shard < nbShards; shard++ {
 		shardNodes := make([]sharding.Validator, 0)
 		for valIdx := uint32(0); valIdx < shardSize; valIdx++ {
 			pk := fmt.Sprintf("pubKey_sh%d_node%d", shard, valIdx)
-			v, _ := consensus.NewValidator(big.NewInt(0), 1, []byte(pk))
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(pk))
 			shardNodes = append(shardNodes, v)
 		}
 		nodes[shard] = shardNodes
@@ -39,7 +37,7 @@ func generateValidatorsMap(shardSize, metachainSize, nbShards uint32) map[uint32
 	metaNodes := make([]sharding.Validator, 0)
 	for mValIdx := uint32(0); mValIdx < metachainSize; mValIdx++ {
 		pk := fmt.Sprintf("pubKey_meta_node%d", mValIdx)
-		v, _ := consensus.NewValidator(big.NewInt(0), 1, []byte(pk))
+		v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(pk))
 		metaNodes = append(metaNodes, v)
 	}
 	nodes[sharding.MetachainShardId] = metaNodes

@@ -88,7 +88,6 @@ type Node struct {
 	metaDataPool     dataRetriever.MetaPoolsHolder
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
-	nodesCoordinator sharding.NodesCoordinator
 
 	consensusTopic string
 	consensusType  string
@@ -290,7 +289,6 @@ func (n *Node) StartConsensus() error {
 		n.syncTimer,
 		nCoordinator,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -528,7 +526,7 @@ func (n *Node) createValidatorsForShard(nodesMap map[uint32][]sharding.Validator
 	nodesMap[shId] = make([]sharding.Validator, nodesInShard)
 
 	for i := 0; i < nodesInShard; i++ {
-		validator, err := consensus.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shId][i]))
+		validator, err := sharding.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shId][i]))
 		if err != nil {
 			return err
 		}

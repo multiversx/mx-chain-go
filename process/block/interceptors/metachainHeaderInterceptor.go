@@ -85,7 +85,12 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 		return err
 	}
 
-	metaHdrIntercepted := block.NewInterceptedMetaHeader(mhi.multiSigVerifier, mhi.nodesCoordinator, mhi.marshalizer)
+	metaHdrIntercepted := block.NewInterceptedMetaHeader(
+		mhi.multiSigVerifier,
+		mhi.nodesCoordinator,
+		mhi.marshalizer,
+		mhi.hasher,
+	)
 	err = mhi.marshalizer.Unmarshal(metaHdrIntercepted, message.Data())
 	if err != nil {
 		return err

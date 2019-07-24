@@ -1,8 +1,10 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -16,6 +18,7 @@ type InterceptedMetaHeader struct {
 	hash             []byte
 	nodesCoordinator sharding.NodesCoordinator
 	marshalizer      marshal.Marshalizer
+	hasher           hashing.Hasher
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -23,6 +26,7 @@ func NewInterceptedMetaHeader(
 	multiSigVerifier crypto.MultiSigVerifier,
 	nodesCoordinator sharding.NodesCoordinator,
 	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
 ) *InterceptedMetaHeader {
 
 	return &InterceptedMetaHeader{
@@ -30,6 +34,7 @@ func NewInterceptedMetaHeader(
 		multiSigVerifier: multiSigVerifier,
 		nodesCoordinator: nodesCoordinator,
 		marshalizer:      marshalizer,
+		hasher:           hasher,
 	}
 }
 
@@ -115,6 +120,7 @@ func (imh *InterceptedMetaHeader) VerifySig() error {
 		return process.ErrBlockProposerSignatureMissing
 
 	}
+
 	consensusPubKeys, err := imh.nodesCoordinator.GetValidatorsPublicKeys(randSeed)
 	if err != nil {
 		return err
@@ -136,12 +142,12 @@ func (imh *InterceptedMetaHeader) VerifySig() error {
 	headerCopy.Signature = nil
 	headerCopy.PubKeysBitmap = nil
 
-	headerBytes, err := imh.marshalizer.Marshal(headerCopy)
+	hash, err := core.CalculateHash(imh.marshalizer, imh.hasher, headerCopy)
 	if err != nil {
 		return err
 	}
 
-	err = verifier.Verify(headerBytes, bitmap)
+	err = verifier.Verify(hash, bitmap)
 
 	return err
 }

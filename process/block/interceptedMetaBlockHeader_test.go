@@ -15,6 +15,7 @@ func createTestInterceptedMetaHeader() *block.InterceptedMetaHeader {
 		mock.NewMultiSigner(),
 		&mock.NodesCoordinatorMock{},
 		&mock.MarshalizerMock{Fail: false},
+		mock.HasherMock{},
 	)
 }
 

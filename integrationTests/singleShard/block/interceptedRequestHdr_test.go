@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -28,7 +27,7 @@ func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 	for shardId, shardNodesPks := range pubKeysMap {
 		shardValidators := make([]sharding.Validator, 0)
 		for i := 0; i < len(shardNodesPks); i++ {
-			v, _ := consensus.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]))
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]))
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators
@@ -98,8 +97,6 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	//Step 1. Generate 2 headers, one will be stored in datapool, the other one in storage
 	hdr1 := block.Header{
 		Nonce:            0,
-		PubKeysBitmap:    nil,
-		Signature:        nil,
 		PrevHash:         []byte("prev hash"),
 		TimeStamp:        uint64(time.Now().Unix()),
 		Round:            1,
@@ -114,8 +111,6 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	hdr2 := block.Header{
 		Nonce:            0,
-		PubKeysBitmap:    nil,
-		Signature:        nil,
 		PrevHash:         []byte("prev hash"),
 		TimeStamp:        uint64(time.Now().Unix()),
 		Round:            1,

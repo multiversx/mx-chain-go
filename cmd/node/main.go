@@ -20,7 +20,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -758,7 +757,7 @@ func createNodesCoordinator(
 		validators := make([]sharding.Validator, 0)
 		for _, pubKey := range pubKeyList {
 			// TODO: the stake needs to be associated to the staking account
-			validator, err := consensus.NewValidator(big.NewInt(0), 0, []byte(pubKey))
+			validator, err := sharding.NewValidator(big.NewInt(0), 0, []byte(pubKey))
 			if err != nil {
 				return nil, err
 			}

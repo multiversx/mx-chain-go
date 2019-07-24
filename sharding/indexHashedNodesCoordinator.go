@@ -24,6 +24,18 @@ func NewIndexHashedNodesCoordinator(
 	shardId uint32,
 	nbShards uint32,
 ) (*indexHashedNodesCoordinator, error) {
+	if consensusGroupSize < 1 {
+		return nil, ErrInvalidConsensusGroupSize
+	}
+
+	if nbShards < 1 {
+		return nil, ErrInvalidNumberOfShards
+	}
+
+	if shardId >= nbShards && shardId != MetachainShardId {
+		return nil, ErrInvalidShardId
+	}
+
 	if hasher == nil {
 		return nil, ErrNilHasher
 	}
@@ -51,6 +63,7 @@ func (ihgs *indexHashedNodesCoordinator) LoadNodesPerShards(nodes map[uint32][]V
 	}
 
 	ihgs.nodesMap = nodes
+	ihgs.expandedEligibleList = ihgs.expandEligibleList()
 
 	return nil
 }
@@ -72,8 +85,6 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(randomness []byt
 	if randomness == nil {
 		return nil, ErrNilRandomness
 	}
-
-	ihgs.expandedEligibleList = ihgs.expandEligibleList()
 
 	tempList := make([]Validator, 0)
 
