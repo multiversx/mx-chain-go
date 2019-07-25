@@ -5,11 +5,11 @@
    DestinationShardAsObserver = "0"
 
    # NetworkID will be used for network versions
-   NetworkID = "IrelandTestNET"
+   NetworkID = "undefined"
 
 [Explorer]
     Enabled = false
-    IndexerURL = "https://elastic-ir-aws.elrond.com"
+    IndexerURL = "http://localhost:9200"
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
