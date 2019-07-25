@@ -670,6 +670,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 		}
 
 		if nextBlocksVerified < mp.nextKValidity {
+			go mp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
 			return process.ErrHeaderNotFinal
 		}
 	}

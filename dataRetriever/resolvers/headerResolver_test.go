@@ -329,7 +329,11 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.StorerStub{},
-		&mock.StorerStub{},
+		&mock.StorerStub{
+			GetCalled: func(key []byte) (i []byte, e error) {
+				return nil, errors.New("key not found")
+			},
+		},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
 	)
@@ -359,12 +363,20 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 				return nil
 			},
 		},
-		&mock.CacherStub{},
+		&mock.CacherStub{
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, false
+			},
+		},
 		headersNonces,
-		&mock.StorerStub{},
 		&mock.StorerStub{
 			GetCalled: func(key []byte) (i []byte, e error) {
 				return make([]byte, 0), nil
+			},
+		},
+		&mock.StorerStub{
+			GetCalled: func(key []byte) (i []byte, e error) {
+				return nil, errors.New("key not found")
 			},
 		},
 		&mock.MarshalizerMock{},
@@ -425,7 +437,11 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		headers,
 		headersNonces,
 		&mock.StorerStub{},
-		&mock.StorerStub{},
+		&mock.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return nil, errors.New("key not found")
+			},
+		},
 		marshalizer,
 		nonceConverter,
 	)
@@ -491,7 +507,11 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		headers,
 		headersNonces,
 		store,
-		&mock.StorerStub{},
+		&mock.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return nil, errors.New("key not found")
+			},
+		},
 		marshalizer,
 		nonceConverter,
 	)
@@ -554,7 +574,11 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		headers,
 		headersNonces,
 		store,
-		&mock.StorerStub{},
+		&mock.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return nil, errors.New("key not found")
+			},
+		},
 		marshalizer,
 		nonceConverter,
 	)
