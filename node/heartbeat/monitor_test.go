@@ -308,7 +308,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 		[]string{"pk1"},
 	)
 
-	// First send from pk1 from shad 0
+	// First send from pk1 from shard 0
 	hb := &heartbeat.Heartbeat{
 		Pubkey:  pubKey,
 		ShardID: uint32(0),
