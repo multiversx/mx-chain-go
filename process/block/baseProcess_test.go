@@ -333,7 +333,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	hdr.TimeStamp = 0
 	hdr.PrevHash = []byte("X")
 	err := bp.CheckBlockValidity(blkc, hdr, body)
-	assert.Equal(t, process.ErrInvalidBlockHash, err)
+	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 
 	hdr.PrevHash = []byte("")
 	err = bp.CheckBlockValidity(blkc, hdr, body)
@@ -356,7 +356,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	hdr.Nonce = 2
 	hdr.PrevHash = []byte("X")
 	err = bp.CheckBlockValidity(blkc, hdr, body)
-	assert.Equal(t, process.ErrInvalidBlockHash, err)
+	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 
 	hdr.Nonce = 3
 	hdr.PrevHash = []byte("")
