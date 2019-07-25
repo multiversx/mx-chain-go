@@ -248,3 +248,9 @@ func (sp *shardProcessor) RestoreMetaBlockIntoPool(
 	metaBlockHashes [][]byte) error {
 	return sp.restoreMetaBlockIntoPool(miniBlockHashes, metaBlockHashes)
 }
+
+func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
+	round uint32,
+	metaHashes [][]byte) (map[string][]byte, error) {
+	return sp.getAllMiniBlockDstMeFromMeta(round, metaHashes)
+}

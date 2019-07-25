@@ -4369,7 +4369,7 @@ func TestShardProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestShardProcessor_restoreMetaBlockIntoPool(t *testing.T) {
+func TestShardProcessor_restoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -4447,5 +4447,73 @@ func TestShardProcessor_restoreMetaBlockIntoPool(t *testing.T) {
 	metablockHashes = append(metablockHashes, metaHash)
 
 	err := sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes)
+	assert.Nil(t, err)
+}
+
+func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaShouldPass(t *testing.T) {
+	t.Parallel()
+
+	idp := initDataPool([]byte("tx_hash1"))
+	idp.MetaBlocksCalled = func() storage.Cacher {
+		return &mock.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				if reflect.DeepEqual(key, []byte("tx1_hash")) {
+					return &transaction.Transaction{Nonce: 10}, true
+				}
+				return nil, false
+			},
+			KeysCalled: func() [][]byte {
+				return nil
+			},
+			LenCalled: func() int {
+				return 0
+			},
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				return &block.MetaBlock{
+					Nonce:     0,
+					ShardInfo: make([]block.ShardData, 0),
+				}, true
+			},
+			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+				return true
+			},
+			RegisterHandlerCalled: func(i func(key []byte)) {},
+		}
+	}
+
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		idp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		true,
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+
+	marshalizer := &mock.MarshalizerMock{}
+	meta := block.MetaBlock{
+		Nonce:     0,
+		ShardInfo: make([]block.ShardData, 0),
+	}
+	hasher := &mock.HasherStub{}
+
+	metaBytes, _ := marshalizer.Marshal(meta)
+	hasher.ComputeCalled = func(s string) []byte {
+		return []byte("cool")
+	}
+	metaHash := hasher.Compute(string(metaBytes))
+	metablockHashes := make([][]byte, 0)
+	metablockHashes = append(metablockHashes, metaHash)
+
+	orderedMetaBlocks, err := sp.GetAllMiniBlockDstMeFromMeta(1, metablockHashes)
+	assert.Equal(t, 0, len(orderedMetaBlocks))
 	assert.Nil(t, err)
 }
