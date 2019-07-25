@@ -242,3 +242,7 @@ func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
 func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockSizeThrottler) {
 	bp.blockSizeThrottler = blockSizeThrottler
 }
+
+func (sp *shardProcessor) SetCurrHighestMetaHdrNonce(value uint64) {
+	sp.currHighestMetaHdrNonce = value
+}

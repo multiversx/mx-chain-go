@@ -3,6 +3,7 @@ package process
 import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -18,11 +19,15 @@ func EmptyChannel(ch chan bool) {
 func GetShardHeader(
 	hash []byte,
 	cacher storage.Cacher,
+	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 ) (*block.Header, error) {
 	if cacher == nil {
 		return nil, ErrNilCacher
+	}
+	if uint64SyncMapCacher == nil {
+		return nil, ErrNilUint64SyncMapCacher
 	}
 	if marshalizer == nil {
 		return nil, ErrNilMarshalizer
@@ -37,6 +42,11 @@ func GetShardHeader(
 		if err != nil {
 			return nil, err
 		}
+
+		cacher.Put(hash, hdr)
+		syncMap := &dataPool.ShardIdHashSyncMap{}
+		syncMap.Store(hdr.GetShardID(), hash)
+		uint64SyncMapCacher.Merge(hdr.GetNonce(), syncMap)
 	}
 
 	return hdr, nil
@@ -46,11 +56,15 @@ func GetShardHeader(
 func GetMetaHeader(
 	hash []byte,
 	cacher storage.Cacher,
+	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 ) (*block.MetaBlock, error) {
 	if cacher == nil {
 		return nil, ErrNilCacher
+	}
+	if uint64SyncMapCacher == nil {
+		return nil, ErrNilUint64SyncMapCacher
 	}
 	if marshalizer == nil {
 		return nil, ErrNilMarshalizer
@@ -65,6 +79,11 @@ func GetMetaHeader(
 		if err != nil {
 			return nil, err
 		}
+
+		cacher.Put(hash, hdr)
+		syncMap := &dataPool.ShardIdHashSyncMap{}
+		syncMap.Store(hdr.GetShardID(), hash)
+		uint64SyncMapCacher.Merge(hdr.GetNonce(), syncMap)
 	}
 
 	return hdr, nil

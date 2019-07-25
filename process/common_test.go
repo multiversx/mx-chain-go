@@ -30,19 +30,33 @@ func TestGetShardHeaderShouldErrNilCacher(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &mock.ChainStorerMock{}
+	uint64SyncMapCacherStub := &mock.Uint64SyncMapCacherStub{}
 
-	header, err := process.GetShardHeader(hash, nil, marshalizer, storageService)
+	header, err := process.GetShardHeader(hash, nil, uint64SyncMapCacherStub, marshalizer, storageService)
 	assert.Nil(t, header)
 	assert.Equal(t, process.ErrNilCacher, err)
+}
+
+func TestGetShardHeaderShouldErrNilUint64SyncMapCacher(t *testing.T) {
+	hash := []byte("X")
+
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{}
+	cacher := &mock.CacherStub{}
+
+	header, err := process.GetShardHeader(hash, cacher, nil, marshalizer, storageService)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrNilUint64SyncMapCacher, err)
 }
 
 func TestGetShardHeaderShouldErrNilMarshalizer(t *testing.T) {
 	hash := []byte("X")
 
 	cacher := &mock.CacherStub{}
+	uint64SyncMapCacherStub := &mock.Uint64SyncMapCacherStub{}
 	storageService := &mock.ChainStorerMock{}
 
-	header, err := process.GetShardHeader(hash, cacher, nil, storageService)
+	header, err := process.GetShardHeader(hash, cacher, uint64SyncMapCacherStub, nil, storageService)
 	assert.Nil(t, header)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
@@ -51,9 +65,10 @@ func TestGetShardHeaderShouldErrNilStorage(t *testing.T) {
 	hash := []byte("X")
 
 	cacher := &mock.CacherStub{}
+	uint64SyncMapCacherStub := &mock.Uint64SyncMapCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	header, err := process.GetShardHeader(hash, cacher, marshalizer, nil)
+	header, err := process.GetShardHeader(hash, cacher, uint64SyncMapCacherStub, marshalizer, nil)
 	assert.Nil(t, header)
 	assert.Equal(t, process.ErrNilStorage, err)
 }
@@ -67,10 +82,11 @@ func TestGetShardHeaderShouldGetHeaderFromPool(t *testing.T) {
 			return hdr, true
 		},
 	}
+	uint64SyncMapCacherStub := &mock.Uint64SyncMapCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &mock.ChainStorerMock{}
 
-	header, _ := process.GetShardHeader(hash, cacher, marshalizer, storageService)
+	header, _ := process.GetShardHeader(hash, cacher, uint64SyncMapCacherStub, marshalizer, storageService)
 	assert.Equal(t, hdr, header)
 }
 
@@ -81,6 +97,13 @@ func TestGetShardHeaderShouldGetHeaderFromStorage(t *testing.T) {
 	cacher := &mock.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
+		},
+		PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			return true
+		},
+	}
+	uint64SyncMapCacherStub := &mock.Uint64SyncMapCacherStub{
+		MergeCalled: func(nonce uint64, src dataRetriever.ShardIdHashMap) {
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -97,28 +120,42 @@ func TestGetShardHeaderShouldGetHeaderFromStorage(t *testing.T) {
 		},
 	}
 
-	header, _ := process.GetShardHeader(hash, cacher, marshalizer, storageService)
+	header, _ := process.GetShardHeader(hash, cacher, uint64SyncMapCacherStub, marshalizer, storageService)
 	assert.Equal(t, hdr, header)
 }
 
 func TestGetMetaHeaderShouldErrNilCacher(t *testing.T) {
 	hash := []byte("X")
 
+	uint64SyncMapCacherStub := &mock.Uint64SyncMapCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &mock.ChainStorerMock{}
 
-	header, err := process.GetMetaHeader(hash, nil, marshalizer, storageService)
+	header, err := process.GetMetaHeader(hash, nil, uint64SyncMapCacherStub, marshalizer, storageService)
 	assert.Nil(t, header)
 	assert.Equal(t, process.ErrNilCacher, err)
+}
+
+func TestGetMetaHeaderShouldErrNilUint64SyncMapCacher(t *testing.T) {
+	hash := []byte("X")
+
+	cacher := &mock.CacherStub{}
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{}
+
+	header, err := process.GetMetaHeader(hash, cacher, nil, marshalizer, storageService)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrNilUint64SyncMapCacher, err)
 }
 
 func TestGetMetaHeaderShouldErrNilMarshalizer(t *testing.T) {
 	hash := []byte("X")
 
 	cacher := &mock.CacherStub{}
+	uint64SyncMapCacherStub := &mock.Uint64SyncMapCacherStub{}
 	storageService := &mock.ChainStorerMock{}
 
-	header, err := process.GetMetaHeader(hash, cacher, nil, storageService)
+	header, err := process.GetMetaHeader(hash, cacher, uint64SyncMapCacherStub, nil, storageService)
 	assert.Nil(t, header)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
@@ -127,9 +164,10 @@ func TestGetMetaHeaderShouldErrNilStorage(t *testing.T) {
 	hash := []byte("X")
 
 	cacher := &mock.CacherStub{}
+	uint64SyncMapCacherStub := &mock.Uint64SyncMapCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	header, err := process.GetMetaHeader(hash, cacher, marshalizer, nil)
+	header, err := process.GetMetaHeader(hash, cacher, uint64SyncMapCacherStub, marshalizer, nil)
 	assert.Nil(t, header)
 	assert.Equal(t, process.ErrNilStorage, err)
 }
@@ -143,10 +181,11 @@ func TestGetMetaHeaderShouldGetHeaderFromPool(t *testing.T) {
 			return hdr, true
 		},
 	}
+	uint64SyncMapCacherStub := &mock.Uint64SyncMapCacherStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &mock.ChainStorerMock{}
 
-	header, _ := process.GetMetaHeader(hash, cacher, marshalizer, storageService)
+	header, _ := process.GetMetaHeader(hash, cacher, uint64SyncMapCacherStub, marshalizer, storageService)
 	assert.Equal(t, hdr, header)
 }
 
@@ -157,6 +196,13 @@ func TestGetMetaHeaderShouldGetHeaderFromStorage(t *testing.T) {
 	cacher := &mock.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
+		},
+		PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			return true
+		},
+	}
+	uint64SyncMapCacherStub := &mock.Uint64SyncMapCacherStub{
+		MergeCalled: func(nonce uint64, src dataRetriever.ShardIdHashMap) {
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -173,7 +219,7 @@ func TestGetMetaHeaderShouldGetHeaderFromStorage(t *testing.T) {
 		},
 	}
 
-	header, _ := process.GetMetaHeader(hash, cacher, marshalizer, storageService)
+	header, _ := process.GetMetaHeader(hash, cacher, uint64SyncMapCacherStub, marshalizer, storageService)
 	assert.Equal(t, hdr, header)
 }
 

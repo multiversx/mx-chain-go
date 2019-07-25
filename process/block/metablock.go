@@ -793,14 +793,8 @@ func (mp *metaProcessor) requestFinalMissingHeaders() uint32 {
 				continue
 			}
 
-			mapOfHashes, okPeek := mp.dataPool.HeadersNonces().Get(i)
-			var okLoad bool
-			if okPeek {
-				_, okLoad = mapOfHashes.Load(shardId)
-			}
-
-			finalAttestingHeaderForShardNotFound := !okPeek || !okLoad
-			if finalAttestingHeaderForShardNotFound {
+			_, _, err := mp.getShardHeaderWithNonce(i)
+			if err != nil {
 				requestedBlockHeaders++
 				go mp.onRequestHeaderHandlerByNonce(shardId, i)
 			}
@@ -808,6 +802,71 @@ func (mp *metaProcessor) requestFinalMissingHeaders() uint32 {
 	}
 
 	return requestedBlockHeaders
+}
+
+// getShardHeaderWithNonce method returns a shard block header with a given nonce
+func (mp *metaProcessor) getShardHeaderWithNonce(nonce uint64) (*block.Header, []byte, error) {
+	hdr, hash, err := mp.getShardHeaderFromPoolWithNonce(nonce)
+	if err != nil {
+		hdr, hash, err = mp.getShardHeaderFromStorageWithNonce(nonce)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		mp.dataPool.ShardHeaders().Put(hash, hdr)
+		syncMap := &dataPool.ShardIdHashSyncMap{}
+		syncMap.Store(hdr.GetShardID(), hash)
+		mp.dataPool.HeadersNonces().Merge(hdr.GetNonce(), syncMap)
+	}
+
+	return hdr, hash, nil
+}
+
+// getShardHeaderFromPoolWithNonce method returns a shard block header from pool with a given nonce
+func (mp *metaProcessor) getShardHeaderFromPoolWithNonce(nonce uint64) (*block.Header, []byte, error) {
+	syncMap, ok := mp.dataPool.HeadersNonces().Get(nonce)
+	if !ok {
+		return nil, nil, process.ErrMissingHashForHeaderNonce
+	}
+
+	hash, ok := syncMap.Load(mp.shardCoordinator.SelfId())
+	if hash == nil || !ok {
+		return nil, nil, process.ErrMissingHashForHeaderNonce
+	}
+
+	obj, ok := mp.dataPool.ShardHeaders().Peek(hash)
+	if !ok {
+		return nil, nil, process.ErrMissingHeader
+	}
+
+	hdr, ok := obj.(*block.Header)
+	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	return hdr, hash, nil
+}
+
+// getShardHeaderFromStorageWithNonce method returns a shard block header from storage with a given nonce
+func (mp *metaProcessor) getShardHeaderFromStorageWithNonce(nonce uint64) (*block.Header, []byte, error) {
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(mp.shardCoordinator.SelfId())
+	headerStore := mp.store.GetStorer(hdrNonceHashDataUnit)
+	if headerStore == nil {
+		return nil, nil, process.ErrNilHeadersStorage
+	}
+
+	nonceToByteSlice := mp.uint64Converter.ToByteSlice(nonce)
+	hash, err := headerStore.Get(nonceToByteSlice)
+	if err != nil {
+		return nil, nil, process.ErrMissingHashForHeaderNonce
+	}
+
+	hdr, err := process.GetShardHeaderFromStorage(hash, mp.marshalizer, mp.store)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return hdr, hash, nil
 }
 
 func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
@@ -860,7 +919,12 @@ func (mp *metaProcessor) computeMissingHeaders(metaBlock *block.MetaBlock) map[u
 
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		shardData := metaBlock.ShardInfo[i]
-		hdr, err := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
+		hdr, err := process.GetShardHeader(
+			shardData.HeaderHash,
+			mp.dataPool.ShardHeaders(),
+			mp.dataPool.HeadersNonces(),
+			mp.marshalizer,
+			mp.store)
 		if err != nil {
 			missingHeaders[shardData.ShardId] = append(missingHeaders[shardData.ShardId], shardData.HeaderHash)
 			continue

@@ -74,6 +74,7 @@ func NewTransactionPreprocessor(
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
+		store:            store,
 	}
 
 	txs := transactions{
@@ -338,7 +339,7 @@ func (txs *transactions) computeMissingTxsForMiniBlock(mb block.MiniBlock) [][]b
 
 	missingTransactions := make([][]byte, 0)
 	for _, txHash := range mb.TxHashes {
-		tx := txs.getTransactionFromPool(mb.SenderShardID, mb.ReceiverShardID, txHash, txs.txPool)
+		tx := txs.getTransaction(mb.SenderShardID, mb.ReceiverShardID, txHash, txs.txPool)
 		if tx == nil {
 			missingTransactions = append(missingTransactions, txHash)
 		}

@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -41,6 +42,7 @@ type basePreProcess struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
+	store            dataRetriever.StorageService
 }
 
 func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
@@ -166,6 +168,26 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 	return false
 }
 
+func (bpp *basePreProcess) getTransaction(
+	senderShardID uint32,
+	destShardID uint32,
+	txHash []byte,
+	txPool dataRetriever.ShardedDataCacherNotifier,
+) data.TransactionHandler {
+	tx := bpp.getTransactionFromPool(senderShardID, destShardID, txHash, txPool)
+	if tx == nil {
+		tx = bpp.getTransactionFromStorage(txHash)
+		if tx == nil {
+			return nil
+		}
+
+		strCache := process.ShardCacherIdentifier(senderShardID, destShardID)
+		txPool.AddData([]byte(txHash), tx, strCache)
+	}
+
+	return tx
+}
+
 // getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
 func (bpp *basePreProcess) getTransactionFromPool(
 	senderShardID uint32,
@@ -195,6 +217,23 @@ func (bpp *basePreProcess) getTransactionFromPool(
 	return tx
 }
 
+func (bpp *basePreProcess) getTransactionFromStorage(txHash []byte) data.TransactionHandler {
+	txBuff, err := bpp.store.Get(dataRetriever.TransactionUnit, txHash)
+	if err != nil {
+		log.Debug(err.Error())
+		return nil
+	}
+
+	tx := transaction.Transaction{}
+	err = bpp.marshalizer.Unmarshal(&tx, txBuff)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
+	return &tx
+}
+
 func (bpp *basePreProcess) computeExistingAndMissing(
 	body block.Body,
 	forBlock *txsForBlock,
@@ -217,7 +256,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
-			tx := bpp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash, txPool)
+			tx := bpp.getTransaction(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash, txPool)
 
 			if tx == nil {
 				txHashes = append(txHashes, txHash)

@@ -40,6 +40,9 @@ func createMockMetaPools() *mock.MetaPoolsHolderStub {
 			RemoveCalled: func(key []byte) {
 				return
 			},
+			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+				return true
+			},
 		}
 		return sds
 	}
@@ -1418,7 +1421,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	hdr, _ := bs.GetHeaderFromPoolWithNonce(0)
+	hdr, _, _ := bs.GetMetaHeaderFromPoolWithNonce(0)
 	assert.Nil(t, hdr)
 }
 
@@ -1485,7 +1488,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	hdr2, _ := bs.GetHeaderFromPoolWithNonce(0)
+	hdr2, _, _ := bs.GetMetaHeaderFromPoolWithNonce(0)
 	assert.True(t, hdr == hdr2)
 }
 

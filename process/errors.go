@@ -154,6 +154,9 @@ var ErrNilMetaHeadersNoncesDataPool = errors.New("nil meta headers nonces cache"
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
+// ErrNilUint64SyncMapCacher signals that a nil Uint64SyncMapCache has been provided
+var ErrNilUint64SyncMapCacher = errors.New("nil Uint64SyncMapCacher")
+
 // ErrNilRcvAddr signals that an operation has been attempted to or with a nil receiver address
 var ErrNilRcvAddr = errors.New("nil receiver address")
 
