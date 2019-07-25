@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -347,28 +348,50 @@ func (ei *elasticIndexer) buildTransactionBulks(
 			}
 
 			currentTx, ok := currentTxHandler.(*transaction.Transaction)
-			if !ok {
-				ei.logger.Warn("elasticsearch found tx in pool but of wrong type")
+			if ok && currentTx != nil {
+				bulks[currentBulk] = append(bulks[currentBulk], &Transaction{
+					Hash:          hex.EncodeToString(txHash),
+					MBHash:        hex.EncodeToString(mbHash),
+					BlockHash:     hex.EncodeToString(blockHash),
+					Nonce:         currentTx.Nonce,
+					Value:         currentTx.Value,
+					Receiver:      hex.EncodeToString(currentTx.RcvAddr),
+					Sender:        hex.EncodeToString(currentTx.SndAddr),
+					ReceiverShard: mb.ReceiverShardID,
+					SenderShard:   mb.SenderShardID,
+					GasPrice:      currentTx.GasPrice,
+					GasLimit:      currentTx.GasLimit,
+					Data:          currentTx.Data,
+					Signature:     hex.EncodeToString(currentTx.Signature),
+					Timestamp:     time.Duration(header.GetTimeStamp()),
+					Status:        mbTxStatus,
+				})
 				continue
 			}
 
-			bulks[currentBulk] = append(bulks[currentBulk], &Transaction{
-				Hash:          hex.EncodeToString(txHash),
-				MBHash:        hex.EncodeToString(mbHash),
-				BlockHash:     hex.EncodeToString(blockHash),
-				Nonce:         currentTx.Nonce,
-				Value:         currentTx.Value,
-				Receiver:      hex.EncodeToString(currentTx.RcvAddr),
-				Sender:        hex.EncodeToString(currentTx.SndAddr),
-				ReceiverShard: mb.ReceiverShardID,
-				SenderShard:   mb.SenderShardID,
-				GasPrice:      currentTx.GasPrice,
-				GasLimit:      currentTx.GasLimit,
-				Data:          currentTx.Data,
-				Signature:     hex.EncodeToString(currentTx.Signature),
-				Timestamp:     time.Duration(header.GetTimeStamp()),
-				Status:        mbTxStatus,
-			})
+			currentSc, ok := currentTxHandler.(*smartContractResult.SmartContractResult)
+			if ok && currentSc != nil {
+				bulks[currentBulk] = append(bulks[currentBulk], &Transaction{
+					Hash:          hex.EncodeToString(txHash),
+					MBHash:        hex.EncodeToString(mbHash),
+					BlockHash:     hex.EncodeToString(blockHash),
+					Nonce:         currentSc.Nonce,
+					Value:         currentSc.Value,
+					Receiver:      hex.EncodeToString(currentSc.RcvAddr),
+					Sender:        hex.EncodeToString(currentSc.SndAddr),
+					ReceiverShard: mb.ReceiverShardID,
+					SenderShard:   mb.SenderShardID,
+					GasPrice:      0,
+					GasLimit:      0,
+					Data:          currentSc.Data,
+					Signature:     "",
+					Timestamp:     time.Duration(header.GetTimeStamp()),
+					Status:        "Success",
+				})
+				continue
+			}
+
+			ei.logger.Warn("elasticsearch found tx in pool but of wrong type")
 		}
 	}
 

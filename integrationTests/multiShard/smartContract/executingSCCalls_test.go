@@ -257,7 +257,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	storedVal, _ := scAccount.DataTrieTracker().RetrieveValue([]byte("a"))
 	storedValBI := big.NewInt(0).SetBytes(storedVal)
 
-	assert.Equal(t, big.NewInt(int64(initialValueForInternalVariable + addValue)), storedValBI)
+	assert.Equal(t, big.NewInt(int64(initialValueForInternalVariable+addValue)), storedValBI)
 }
 
 // Test within a network of two shards the following situation
@@ -392,7 +392,7 @@ func processAndTestSmartContractCallInSender(
 }
 
 func processAndTestSmartContractCallInDestination(t *testing.T, contractCallTx *transaction.Transaction,
-	proposerNodeShardSC *testNode, scDeploymentAdddress []byte, scShard, accShard uint32, scNonce uint64, ) {
+	proposerNodeShardSC *testNode, scDeploymentAdddress []byte, scShard, accShard uint32, scNonce uint64) {
 	txBytes, _ := testMarshalizer.Marshal(contractCallTx)
 	txHash := testHasher.Compute(string(txBytes))
 	blockBody := block.Body{
@@ -400,7 +400,7 @@ func processAndTestSmartContractCallInDestination(t *testing.T, contractCallTx *
 			TxHashes:        [][]byte{txHash},
 			ReceiverShardID: scShard,
 			SenderShardID:   accShard,
-			Type: block.TxBlock,
+			Type:            block.TxBlock,
 		},
 	}
 	// Before processing make sure to add the tx into the pool of the scShard
@@ -446,7 +446,7 @@ func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNo
 	//  - Initial balance + withdraw value - fees
 	// TODO: Fees and gas should be taken into consideration when the fees are implemented - now we have extra money
 	//  from the gas returned since the gas was not substracted in the first place
-	finalValue := big.NewInt(0).Add(mintingValue, big.NewInt(int64(withdrawValue + uint64(gasLimit - 1*gasPrice))))
+	finalValue := big.NewInt(0).Add(mintingValue, big.NewInt(int64(withdrawValue+uint64(gasLimit-1*gasPrice))))
 	acc, _ := proposerNodeShardAccount.node.GetAccount(hex.EncodeToString(accountShardAddressBytes))
 	assert.Equal(t, finalValue, acc.Balance)
 }
