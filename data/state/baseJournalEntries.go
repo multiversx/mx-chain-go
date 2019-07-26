@@ -60,43 +60,17 @@ func (bjech *BaseJournalEntryCodeHash) Revert() (AccountHandler, error) {
 	return bjech.account, nil
 }
 
-//------- BaseJournalEntryCode
-
-// BaseJournalEntryCode creates a code hash change in account
-type BaseJournalEntryCode struct {
-	account AccountHandler
-	oldCode []byte
-}
-
-// NewBaseJournalEntryCode outputs a new BaseJournalEntry implementation used to save and revert a code change
-func NewBaseJournalEntryCode(account AccountHandler, oldCode []byte) (*BaseJournalEntryCode, error) {
-	if account == nil {
-		return nil, ErrNilAccountHandler
-	}
-
-	return &BaseJournalEntryCode{
-		account: account,
-		oldCode: oldCode,
-	}, nil
-}
-
-// Revert applies undo operation
-func (bjech *BaseJournalEntryCode) Revert() (AccountHandler, error) {
-	bjech.account.SetCode(bjech.oldCode)
-
-	return bjech.account, nil
-}
-
 //------- BaseJournalEntryRoot
 
 // BaseJournalEntryRootHash creates an account's root hash change
 type BaseJournalEntryRootHash struct {
 	account     AccountHandler
 	oldRootHash []byte
+	oldTrie     data.Trie
 }
 
 // NewBaseJournalEntryRootHash outputs a new BaseJournalEntry used to save and revert an account's root hash change
-func NewBaseJournalEntryRootHash(account AccountHandler, oldRootHash []byte) (*BaseJournalEntryRootHash, error) {
+func NewBaseJournalEntryRootHash(account AccountHandler, oldRootHash []byte, oldTrie data.Trie) (*BaseJournalEntryRootHash, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
@@ -104,12 +78,14 @@ func NewBaseJournalEntryRootHash(account AccountHandler, oldRootHash []byte) (*B
 	return &BaseJournalEntryRootHash{
 		account:     account,
 		oldRootHash: oldRootHash,
+		oldTrie:     oldTrie,
 	}, nil
 }
 
 // Revert applies undo operation
 func (bjer *BaseJournalEntryRootHash) Revert() (AccountHandler, error) {
 	bjer.account.SetRootHash(bjer.oldRootHash)
+	bjer.account.SetDataTrie(bjer.oldTrie)
 
 	return bjer.account, nil
 }
@@ -150,29 +126,29 @@ func (bjed *BaseJournalEntryData) Trie() data.Trie {
 	return bjed.trie
 }
 
-//------- JournalEntryNonce
+//------- BaseJournalEntryNonce
 
-// JournalEntryNonce is used to revert a nonce change
-type JournalEntryNonce struct {
+// BaseJournalEntryNonce is used to revert a nonce change
+type BaseJournalEntryNonce struct {
 	account  AccountHandler
 	oldNonce uint64
 }
 
-// NewJournalEntryNonce outputs a new JournalEntry implementation used to revert a nonce change
-func NewJournalEntryNonce(account AccountHandler, oldNonce uint64) (*JournalEntryNonce, error) {
+// NewBaseJournalEntryNonce outputs a new JournalEntry implementation used to revert a nonce change
+func NewBaseJournalEntryNonce(account AccountHandler, oldNonce uint64) (*BaseJournalEntryNonce, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
 
-	return &JournalEntryNonce{
+	return &BaseJournalEntryNonce{
 		account:  account,
 		oldNonce: oldNonce,
 	}, nil
 }
 
 // Revert applies undo operation
-func (jen *JournalEntryNonce) Revert() (AccountHandler, error) {
-	jen.account.SetNonce(jen.oldNonce)
+func (bjen *BaseJournalEntryNonce) Revert() (AccountHandler, error) {
+	bjen.account.SetNonce(bjen.oldNonce)
 
-	return jen.account, nil
+	return bjen.account, nil
 }

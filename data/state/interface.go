@@ -86,7 +86,6 @@ type AccountsAdapter interface {
 	RecreateTrie(rootHash []byte) error
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error
-	LoadDataTrie(accountHandler AccountHandler) error
 	SaveDataTrie(accountHandler AccountHandler) error
 }
 
