@@ -480,14 +480,18 @@ func (bn *branchNode) isEmptyOrNil() error {
 }
 
 func (bn *branchNode) print(writer io.Writer, index int) {
+	if bn == nil {
+		return
+	}
+
 	str := fmt.Sprintf("B:")
 	_, _ = fmt.Fprintln(writer, str)
 	for i := 0; i < len(bn.children); i++ {
-		child := bn.children[i]
-		if child == nil {
+		if bn.children[i] == nil {
 			continue
 		}
 
+		child := bn.children[i]
 		for j := 0; j < index+len(str)-1; j++ {
 			_, _ = fmt.Fprint(writer, " ")
 		}
@@ -495,4 +499,41 @@ func (bn *branchNode) print(writer io.Writer, index int) {
 		_, _ = fmt.Fprint(writer, str2)
 		child.print(writer, index+len(str)-1+len(str2))
 	}
+}
+
+func (bn *branchNode) deepClone() node {
+	if bn == nil {
+		return nil
+	}
+
+	clonedNode := &branchNode{}
+
+	if bn.hash != nil {
+		clonedNode.hash = make([]byte, len(bn.hash))
+		copy(clonedNode.hash, bn.hash)
+	}
+
+	clonedNode.EncodedChildren = make([][]byte, len(bn.EncodedChildren))
+	for idx, encChild := range bn.EncodedChildren {
+		if encChild == nil {
+			continue
+		}
+
+		clonedEncChild := make([]byte, len(encChild))
+		copy(clonedEncChild, encChild)
+
+		clonedNode.EncodedChildren[idx] = clonedEncChild
+	}
+
+	for idx, child := range bn.children {
+		if child == nil {
+			continue
+		}
+
+		clonedNode.children[idx] = child.deepClone()
+	}
+
+	clonedNode.dirty = bn.dirty
+
+	return clonedNode
 }

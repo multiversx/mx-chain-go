@@ -70,10 +70,6 @@ func (awm *AccountWrapMock) SetCode(code []byte) {
 	awm.code = code
 }
 
-func (awm *AccountWrapMock) SetCodeWithJournal(code []byte) error {
-	return awm.SetCodeWithJournalCalled(code)
-}
-
 func (awm *AccountWrapMock) DataTrie() data.Trie {
 	return awm.dataTrie
 }

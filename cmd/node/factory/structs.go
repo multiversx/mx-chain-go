@@ -1401,6 +1401,7 @@ func newMetaBlockProcessorAndTracker(
 		data.Store,
 		shardsGenesisBlocks,
 		requestHandler,
+		core.Uint64ByteSliceConverter,
 	)
 	if err != nil {
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
