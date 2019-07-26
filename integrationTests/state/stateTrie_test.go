@@ -359,9 +359,6 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, newState2.(*state.Account).Balance, balance2)
 	assert.NotNil(t, newState2.(*state.Account).RootHash)
-	//get data
-	err = adb.LoadDataTrie(newState2)
-	assert.Nil(t, err)
 	valRecovered, err := newState2.DataTrieTracker().RetrieveValue(key)
 	assert.Nil(t, err)
 	assert.Equal(t, val, valRecovered)
@@ -446,9 +443,6 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	assert.Nil(t, err)
 	assert.Equal(t, newState2.(*state.Account).Balance, balance2)
 	assert.NotNil(t, newState2.(*state.Account).RootHash)
-	//get data
-	err = adb.LoadDataTrie(newState2)
-	assert.Nil(t, err)
 	valRecovered, err := newState2.DataTrieTracker().RetrieveValue(key)
 	assert.Nil(t, err)
 	assert.Equal(t, val, valRecovered)
