@@ -381,7 +381,7 @@ func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error)
 	// The below section of code fixed a situation when all peers would have replaced in their headerNonceHash pool a
 	// good/used header in their blockchain construction, with a wrong/unused header on which they didn't construct,
 	// but which came after a late broadcast from a valid proposer.
-	if err == process.ErrInvalidBlockHash {
+	if err == process.ErrBlockHashDoesNotMatch {
 		prevHdr, errNotCritical := boot.getHeaderWithHashRequestingIfMissing(hdr.GetPrevHash())
 		if errNotCritical != nil {
 			log.Info(errNotCritical.Error())

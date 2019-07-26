@@ -104,7 +104,7 @@ func (bp *baseProcessor) checkBlockValidity(
 				core.ToB64(chainHandler.GetGenesisHeaderHash()),
 				core.ToB64(headerHandler.GetPrevHash())))
 
-			return process.ErrInvalidBlockHash
+			return process.ErrBlockHashDoesNotMatch
 		}
 
 		log.Info(fmt.Sprintf("nonce not match: local block nonce is 0 and node received block with nonce %d\n",
@@ -129,7 +129,7 @@ func (bp *baseProcessor) checkBlockValidity(
 		log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
 			core.ToB64(prevHeaderHash), core.ToB64(headerHandler.GetPrevHash())))
 
-		return process.ErrInvalidBlockHash
+		return process.ErrBlockHashDoesNotMatch
 	}
 
 	if bodyHandler != nil {
@@ -212,7 +212,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		return process.ErrInvalidNotarizedBlockHash
+		return process.ErrNotarizedBlockHashDoesNotMatch
 	}
 
 	return nil

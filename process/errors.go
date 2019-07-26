@@ -91,8 +91,11 @@ var ErrNilRootHash = errors.New("root hash is nil")
 // ErrWrongNonceInBlock signals the nonce in block is different than expected nonce
 var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 
-// ErrInvalidBlockHash signals the hash of the block is not matching with the previous one
-var ErrInvalidBlockHash = errors.New("invalid block hash")
+// ErrBlockHashDoesNotMatch signals the hash of the block is not matching with the previous one
+var ErrBlockHashDoesNotMatch = errors.New("block hash does not match")
+
+// ErrNotarizedBlockHashDoesNotMatch signals the hash of the notarized block is not matching with the previous one
+var ErrNotarizedBlockHashDoesNotMatch = errors.New("notarized block hash does not match")
 
 // ErrInvalidNotarizedBlockHash signals the hash of the notarized block is not matching with the previous one
 var ErrInvalidNotarizedBlockHash = errors.New("invalid notarized block hash")
