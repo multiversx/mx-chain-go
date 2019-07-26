@@ -11,7 +11,7 @@ type Uint64SyncMapCacherStub struct {
 	RemoveNonceCalled     func(nonce uint64)
 	RemoveShardIdCalled   func(nonce uint64, shardId uint32)
 	RegisterHandlerCalled func(handler func(nonce uint64, shardId uint32, value []byte))
-	HasCalled             func(nonce uint64) bool
+	HasCalled             func(nonce uint64, shardId uint32) bool
 }
 
 func (usmcs *Uint64SyncMapCacherStub) Clear() {
@@ -34,8 +34,8 @@ func (usmcs *Uint64SyncMapCacherStub) RegisterHandler(handler func(nonce uint64,
 	usmcs.RegisterHandlerCalled(handler)
 }
 
-func (usmcs *Uint64SyncMapCacherStub) Has(nonce uint64) bool {
-	return usmcs.HasCalled(nonce)
+func (usmcs *Uint64SyncMapCacherStub) Has(nonce uint64, shardId uint32) bool {
+	return usmcs.HasCalled(nonce, shardId)
 }
 
 func (usmcs *Uint64SyncMapCacherStub) RemoveShardId(nonce uint64, shardId uint32) {
