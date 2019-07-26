@@ -403,6 +403,19 @@ func (sc *scProcessor) processVMOutput(
 		return nil, err
 	}
 
+	//we need to reload the sender account as in the case of refunding the exact account that was previously
+	//modified in saveSCOutputToCurrentState, the modifications done there should be visible here
+	//this should be applied only on sender accounts from current shard
+	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
+		isAccountFromCurrentShard := acntSnd.AddressContainer() != nil
+		if isAccountFromCurrentShard {
+			acntSnd, err = sc.getAccountFromAddress(acntSnd.AddressContainer().Bytes())
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	totalGasRefund := big.NewInt(0)
 	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
 	scrIfCrossShard, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
