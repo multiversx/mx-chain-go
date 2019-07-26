@@ -1836,7 +1836,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	hdr, _, _ := bs.GetShardHeaderFromPoolWithNonce(0)
+	hdr, _, _ := process.GetShardHeaderFromPoolWithNonce(0, 0, pools.Headers(), pools.HeadersNonces())
+	assert.NotNil(t, bs)
 	assert.Nil(t, hdr)
 }
 
@@ -1905,7 +1906,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	hdr2, _, _ := bs.GetShardHeaderFromPoolWithNonce(0)
+	hdr2, _, _ := process.GetShardHeaderFromPoolWithNonce(0, 0, pools.Headers(), pools.HeadersNonces())
+	assert.NotNil(t, bs)
 	assert.True(t, hdr == hdr2)
 }
 
