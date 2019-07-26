@@ -163,7 +163,7 @@ func (a *MetaAccount) SetRootHash(roothash []byte) {
 
 // SetRootHashWithJournal sets the account's root hash, saving the old root hash before changing
 func (a *MetaAccount) SetRootHashWithJournal(rootHash []byte) error {
-	entry, err := NewBaseJournalEntryRootHash(a, a.RootHash)
+	entry, err := NewBaseJournalEntryRootHash(a, a.RootHash, a.DataTrie())
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func (a *MetaAccount) SetRootHashWithJournal(rootHash []byte) error {
 
 // SetNonceWithJournal sets the account's nonce, saving the old nonce before changing
 func (a *MetaAccount) SetNonceWithJournal(nonce uint64) error {
-	entry, err := NewJournalEntryNonce(a, a.Nonce)
+	entry, err := NewBaseJournalEntryNonce(a, a.Nonce)
 	if err != nil {
 		return err
 	}

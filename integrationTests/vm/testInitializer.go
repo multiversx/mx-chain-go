@@ -108,7 +108,10 @@ func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecuti
 	return vm, blockChainHook
 }
 
-func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) process.TransactionProcessor {
+func CreateTxProcessorWithOneSCExecutorIeleVM(
+	accnts state.AccountsAdapter,
+) (process.TransactionProcessor, vmcommon.BlockchainHook) {
+
 	vm, blockChainHook := CreateVMAndBlockchainHook(accnts)
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
@@ -124,7 +127,7 @@ func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) proc
 	)
 	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
 
-	return txProcessor
+	return txProcessor, blockChainHook
 }
 
 func TestDeployedContractContents(
@@ -171,19 +174,19 @@ func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 }
 
 func CreatePreparedTxProcessorAndAccountsWithIeleVM(
-	t *testing.T,
+	tb testing.TB,
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
-) (process.TransactionProcessor, state.AccountsAdapter) {
+) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
 
 	accnts := CreateInMemoryShardAccountsDB()
 	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
-	txProcessor := CreateTxProcessorWithOneSCExecutorIeleVM(accnts)
-	assert.NotNil(t, txProcessor)
+	txProcessor, blockchainHook := CreateTxProcessorWithOneSCExecutorIeleVM(accnts)
+	assert.NotNil(tb, txProcessor)
 
-	return txProcessor, accnts
+	return txProcessor, accnts, blockchainHook
 }
 
 func CreatePreparedTxProcessorAndAccountsWithMockedVM(
@@ -204,7 +207,7 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 }
 
 func CreateTx(
-	t *testing.T,
+	tb testing.TB,
 	senderAddressBytes []byte,
 	receiverAddressBytes []byte,
 	senderNonce uint64,
@@ -224,7 +227,7 @@ func CreateTx(
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 	}
-	assert.NotNil(t, tx)
+	assert.NotNil(tb, tx)
 
 	return tx
 }
@@ -257,4 +260,12 @@ func ComputeExpectedBalance(
 	expectedSenderBalance.Sub(expectedSenderBalance, gasFunds)
 
 	return expectedSenderBalance
+}
+
+func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int {
+	address, _ := addrConv.CreateAddressFromPublicKeyBytes(addrBytes)
+	accnt, _ := accnts.GetExistingAccount(address)
+	shardAccnt, _ := accnt.(*state.Account)
+
+	return shardAccnt.Balance
 }
