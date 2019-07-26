@@ -51,7 +51,7 @@ func (a *Account) AddressContainer() AddressContainer {
 
 // SetNonceWithJournal sets the account's nonce, saving the old nonce before changing
 func (a *Account) SetNonceWithJournal(nonce uint64) error {
-	entry, err := NewJournalEntryNonce(a, a.Nonce)
+	entry, err := NewBaseJournalEntryNonce(a, a.Nonce)
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (a *Account) SetRootHash(roothash []byte) {
 
 // SetRootHashWithJournal sets the account's root hash, saving the old root hash before changing
 func (a *Account) SetRootHashWithJournal(rootHash []byte) error {
-	entry, err := NewBaseJournalEntryRootHash(a, a.RootHash)
+	entry, err := NewBaseJournalEntryRootHash(a, a.RootHash, a.DataTrie())
 	if err != nil {
 		return err
 	}
