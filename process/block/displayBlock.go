@@ -11,9 +11,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-var txCounterMutex = sync.RWMutex{}
-var txsCurrentBlockProcessed = 0
-var txsTotalProcessed = 0
+type transactionCounter struct {
+	mutex           sync.RWMutex
+	currentBlockTxs int
+	totalTxs        int
+}
+
+// NewTransactionCounter returns a new object that keeps track of how many transactions
+// were executed in total, and in the current block
+func NewTransactionCounter() *transactionCounter {
+	return &transactionCounter{
+		mutex:           sync.RWMutex{},
+		currentBlockTxs: 0,
+		totalTxs:        0,
+	}
+}
 
 // GetNumTxsWithDst returns the number of transactions for a certain destination shard
 func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
@@ -37,10 +49,10 @@ func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrS
 }
 
 // SubstractRestoredTxs updated the total processed txs in case of restore
-func SubstractRestoredTxs(txsNr int) {
-	txCounterMutex.Lock()
-	txsTotalProcessed = txsTotalProcessed - txsNr
-	txCounterMutex.Unlock()
+func (txc *transactionCounter) SubstractRestoredTxs(txsNr int) {
+	txc.mutex.Lock()
+	txc.totalTxs = txc.totalTxs - txsNr
+	txc.mutex.Unlock()
 }
 
 // DisplayLogInfo writes to the output information about the block and transactions
@@ -51,8 +63,9 @@ func DisplayLogInfo(
 	numShards uint32,
 	selfId uint32,
 	dataPool dataRetriever.PoolsHolder,
+	txCounter *transactionCounter,
 ) {
-	dispHeader, dispLines := createDisplayableShardHeaderAndBlockBody(header, body)
+	dispHeader, dispLines := createDisplayableShardHeaderAndBlockBody(header, body, txCounter)
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
@@ -60,23 +73,24 @@ func DisplayLogInfo(
 		return
 	}
 
-	txCounterMutex.RLock()
+	txCounter.mutex.RLock()
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\n"+
 		"Total txs processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n\n"+
 		"Total shards: %d. Current shard id: %d\n",
 		core.ToB64(headerHash),
-		txsTotalProcessed,
-		txsCurrentBlockProcessed,
+		txCounter.totalTxs,
+		txCounter.currentBlockTxs,
 		GetNumTxsWithDst(selfId, dataPool, numShards),
 		numShards,
 		selfId)
-	txCounterMutex.RUnlock()
+	txCounter.mutex.RUnlock()
 	log.Info(tblString)
 }
 
 func createDisplayableShardHeaderAndBlockBody(
 	header *block.Header,
 	body block.Body,
+	txCounter *transactionCounter,
 ) ([]string, []*display.LineData) {
 
 	tableHeader := []string{"Part", "Parameter", "Value"}
@@ -95,7 +109,7 @@ func createDisplayableShardHeaderAndBlockBody(
 	shardLines = append(shardLines, lines...)
 
 	if header.BlockBodyType == block.TxBlock {
-		shardLines = displayTxBlockBody(shardLines, body)
+		shardLines = displayTxBlockBody(shardLines, body, txCounter)
 
 		return tableHeader, shardLines
 	}
@@ -106,10 +120,10 @@ func createDisplayableShardHeaderAndBlockBody(
 	return tableHeader, shardLines
 }
 
-func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.LineData {
-	txCounterMutex.Lock()
-	txsCurrentBlockProcessed = 0
-	txCounterMutex.Unlock()
+func displayTxBlockBody(lines []*display.LineData, body block.Body, txCounter *transactionCounter) []*display.LineData {
+	txCounter.mutex.Lock()
+	txCounter.currentBlockTxs = 0
+	txCounter.mutex.Unlock()
 
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -121,10 +135,10 @@ func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.L
 				part, "", "<EMPTY>"}))
 		}
 
-		txCounterMutex.Lock()
-		txsCurrentBlockProcessed += len(miniBlock.TxHashes)
-		txsTotalProcessed += len(miniBlock.TxHashes)
-		txCounterMutex.Unlock()
+		txCounter.mutex.Lock()
+		txCounter.currentBlockTxs += len(miniBlock.TxHashes)
+		txCounter.totalTxs += len(miniBlock.TxHashes)
+		txCounter.mutex.Unlock()
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if j == 0 || j >= len(miniBlock.TxHashes)-1 {
