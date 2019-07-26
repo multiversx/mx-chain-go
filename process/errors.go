@@ -202,6 +202,9 @@ var ErrNilTxStorage = errors.New("nil transaction storage")
 // ErrNilStorage signals that a nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
 
+// ErrNilShardedDataCacherNotifier signals that a nil sharded data cacher notifier has been provided
+var ErrNilShardedDataCacherNotifier = errors.New("nil sharded data cacher notifier")
+
 // ErrNilBlocksTracker signals that a nil blocks tracker has been provided
 var ErrNilBlocksTracker = errors.New("nil blocks tracker")
 

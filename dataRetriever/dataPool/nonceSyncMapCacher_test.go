@@ -452,7 +452,7 @@ func TestNonceSyncMapCacher_MergeInConcurrentialSettingShouldWork(t *testing.T) 
 	}
 }
 
-//------- HasNonce
+//------- Has
 
 func TestNonceSyncMapCacher_HasNotFoundShouldRetFalse(t *testing.T) {
 	t.Parallel()

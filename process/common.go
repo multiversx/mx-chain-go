@@ -1,10 +1,11 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -21,16 +22,12 @@ func EmptyChannel(ch chan bool) {
 func GetShardHeader(
 	hash []byte,
 	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 ) (*block.Header, error) {
 
 	if cacher == nil {
 		return nil, ErrNilCacher
-	}
-	if uint64SyncMapCacher == nil {
-		return nil, ErrNilUint64SyncMapCacher
 	}
 	if marshalizer == nil {
 		return nil, ErrNilMarshalizer
@@ -45,11 +42,6 @@ func GetShardHeader(
 		if err != nil {
 			return nil, err
 		}
-
-		cacher.Put(hash, hdr)
-		syncMap := &dataPool.ShardIdHashSyncMap{}
-		syncMap.Store(hdr.GetShardID(), hash)
-		uint64SyncMapCacher.Merge(hdr.GetNonce(), syncMap)
 	}
 
 	return hdr, nil
@@ -59,16 +51,12 @@ func GetShardHeader(
 func GetMetaHeader(
 	hash []byte,
 	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 ) (*block.MetaBlock, error) {
 
 	if cacher == nil {
 		return nil, ErrNilCacher
-	}
-	if uint64SyncMapCacher == nil {
-		return nil, ErrNilUint64SyncMapCacher
 	}
 	if marshalizer == nil {
 		return nil, ErrNilMarshalizer
@@ -83,11 +71,6 @@ func GetMetaHeader(
 		if err != nil {
 			return nil, err
 		}
-
-		cacher.Put(hash, hdr)
-		syncMap := &dataPool.ShardIdHashSyncMap{}
-		syncMap.Store(hdr.GetShardID(), hash)
-		uint64SyncMapCacher.Merge(hdr.GetNonce(), syncMap)
 	}
 
 	return hdr, nil
@@ -255,11 +238,6 @@ func GetMetaHeaderWithNonce(
 		if err != nil {
 			return nil, nil, err
 		}
-
-		cacher.Put(hash, hdr)
-		syncMap := &dataPool.ShardIdHashSyncMap{}
-		syncMap.Store(hdr.GetShardID(), hash)
-		uint64SyncMapCacher.Merge(hdr.GetNonce(), syncMap)
 	}
 
 	return hdr, hash, nil
@@ -372,11 +350,6 @@ func GetShardHeaderWithNonce(
 		if err != nil {
 			return nil, nil, err
 		}
-
-		cacher.Put(hash, hdr)
-		syncMap := &dataPool.ShardIdHashSyncMap{}
-		syncMap.Store(hdr.GetShardID(), hash)
-		uint64SyncMapCacher.Merge(hdr.GetNonce(), syncMap)
 	}
 
 	return hdr, hash, nil
@@ -457,4 +430,94 @@ func GetShardHeaderFromStorageWithNonce(
 	}
 
 	return hdr, hash, nil
+}
+
+// GetTransaction gets the transaction with a given sender/receiver shardId and txHash
+func GetTransaction(
+	senderShardID uint32,
+	destShardID uint32,
+	txHash []byte,
+	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
+	storageService dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+) (data.TransactionHandler, error) {
+
+	if shardedDataCacherNotifier == nil {
+		return nil, ErrNilShardedDataCacherNotifier
+	}
+	if storageService == nil {
+		return nil, ErrNilStorage
+	}
+	if marshalizer == nil {
+		return nil, ErrNilMarshalizer
+	}
+
+	tx, err := GetTransactionFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier)
+	if err != nil {
+		tx, err = GetTransactionFromStorage(txHash, storageService, marshalizer)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return tx, nil
+}
+
+// GetTransactionFromPool gets the transaction from pool with a given sender/receiver shardId and txHash
+func GetTransactionFromPool(
+	senderShardID uint32,
+	destShardID uint32,
+	txHash []byte,
+	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
+) (data.TransactionHandler, error) {
+
+	if shardedDataCacherNotifier == nil {
+		return nil, ErrNilShardedDataCacherNotifier
+	}
+
+	strCache := ShardCacherIdentifier(senderShardID, destShardID)
+	txStore := shardedDataCacherNotifier.ShardDataStore(strCache)
+	if txStore == nil {
+		return nil, ErrNilStorage
+	}
+
+	val, ok := txStore.Peek(txHash)
+	if !ok {
+		return nil, ErrTxNotFound
+	}
+
+	tx, ok := val.(data.TransactionHandler)
+	if !ok {
+		return nil, ErrInvalidTxInPool
+	}
+
+	return tx, nil
+}
+
+// GetTransactionFromStorage gets the transaction from storage with a given sender/receiver shardId and txHash
+func GetTransactionFromStorage(
+	txHash []byte,
+	storageService dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+) (data.TransactionHandler, error) {
+
+	if storageService == nil {
+		return nil, ErrNilStorage
+	}
+	if marshalizer == nil {
+		return nil, ErrNilMarshalizer
+	}
+
+	txBuff, err := storageService.Get(dataRetriever.TransactionUnit, txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := transaction.Transaction{}
+	err = marshalizer.Unmarshal(&tx, txBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tx, nil
 }

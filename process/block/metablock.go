@@ -865,7 +865,6 @@ func (mp *metaProcessor) computeMissingHeaders(metaBlock *block.MetaBlock) map[u
 		hdr, err := process.GetShardHeader(
 			shardData.HeaderHash,
 			mp.dataPool.ShardHeaders(),
-			mp.dataPool.HeadersNonces(),
 			mp.marshalizer,
 			mp.store)
 		if err != nil {

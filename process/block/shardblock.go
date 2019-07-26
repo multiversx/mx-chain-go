@@ -955,7 +955,6 @@ func (sp *shardProcessor) computeMissingHeaders(header *block.Header) [][]byte {
 		hdr, err := process.GetMetaHeader(
 			header.MetaBlockHashes[i],
 			sp.dataPool.MetaBlocks(),
-			sp.dataPool.HeadersNonces(),
 			sp.marshalizer,
 			sp.store)
 		if err != nil {
