@@ -466,9 +466,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			txSpaceRemained,
 			haveTime,
 			round)
-
 		if err != nil {
-			break
+			continue
 		}
 
 		if len(miniBlock.TxHashes) > 0 {

@@ -450,3 +450,56 @@ func TestNewInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.True(t, txi.IsAddressedToOtherShards())
 	assert.Equal(t, tx, txi.Transaction())
 }
+
+func TestNewInterceptedTransaction_ScTxDeployShouldCorrectlyComputeShardIds(t *testing.T) {
+	t.Parallel()
+
+	senderAddressInShard1 := make([]byte, 32)
+	senderAddressInShard1[31] = 1
+
+	recvAddressDeploy := make([]byte, 32)
+
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      "data",
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddressDeploy,
+		SndAddr:   senderAddressInShard1,
+		Signature: sigOk,
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(tx)
+
+	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	shardCoordinator.CurrentShard = 1
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		if bytes.Equal(address.Bytes(), senderAddressInShard1) {
+			return 1
+		}
+		if bytes.Equal(address.Bytes(), recvAddressDeploy) {
+			return 0
+		}
+
+		return shardCoordinator.CurrentShard
+	}
+
+	txIntercepted, err := transaction.NewInterceptedTransaction(
+		txBuff,
+		marshalizer,
+		mock.HasherMock{},
+		createKeyGenMock(),
+		createDummySigner(),
+		&mock.AddressConverterStub{
+			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+				return mock.NewAddressMock(pubKey), nil
+			},
+		},
+		shardCoordinator,
+	)
+
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), txIntercepted.RcvShard())
+	assert.Equal(t, uint32(1), txIntercepted.SndShard())
+}
