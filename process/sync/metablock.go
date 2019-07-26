@@ -462,70 +462,6 @@ func (boot *MetaBootstrap) SyncBlock() error {
 	return nil
 }
 
-// getMetaHeaderWithNonce method returns a meta block header with a given nonce
-func (boot *MetaBootstrap) getMetaHeaderWithNonce(nonce uint64) (*block.MetaBlock, []byte, error) {
-	hdr, hash, err := boot.getMetaHeaderFromPoolWithNonce(nonce)
-	if err != nil {
-		hdr, hash, err = boot.getMetaHeaderFromStorageWithNonce(nonce)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		boot.headers.Put(hash, hdr)
-		syncMap := &dataPool.ShardIdHashSyncMap{}
-		syncMap.Store(hdr.GetShardID(), hash)
-		boot.headersNonces.Merge(hdr.GetNonce(), syncMap)
-	}
-
-	return hdr, hash, nil
-}
-
-// getMetaHeaderFromPoolWithNonce method returns a meta block header from pool with a given nonce
-func (boot *MetaBootstrap) getMetaHeaderFromPoolWithNonce(nonce uint64) (*block.MetaBlock, []byte, error) {
-	syncMap, ok := boot.headersNonces.Get(nonce)
-	if !ok {
-		return nil, nil, process.ErrMissingHashForHeaderNonce
-	}
-
-	hash, ok := syncMap.Load(sharding.MetachainShardId)
-	if hash == nil || !ok {
-		return nil, nil, process.ErrMissingHashForHeaderNonce
-	}
-
-	obj, ok := boot.headers.Peek(hash)
-	if !ok {
-		return nil, nil, process.ErrMissingHeader
-	}
-
-	hdr, ok := obj.(*block.MetaBlock)
-	if !ok {
-		return nil, nil, process.ErrWrongTypeAssertion
-	}
-
-	return hdr, hash, nil
-}
-
-// getMetaHeaderFromStorageWithNonce method returns a meta block header from storage with a given nonce
-func (boot *MetaBootstrap) getMetaHeaderFromStorageWithNonce(nonce uint64) (*block.MetaBlock, []byte, error) {
-	headerStore := boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
-	if headerStore == nil {
-		return nil, nil, process.ErrNilHeadersStorage
-	}
-
-	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-	hash, err := headerStore.Get(nonceToByteSlice)
-	if err != nil {
-		return nil, nil, process.ErrMissingHashForHeaderNonce
-	}
-
-	hdr, err := process.GetMetaHeaderFromStorage(hash, boot.marshalizer, boot.store)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return hdr, hash, nil
-}
-
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
@@ -553,7 +489,13 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
 // be requested from network
 func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (*block.MetaBlock, error) {
-	hdr, _, err := boot.getMetaHeaderWithNonce(nonce)
+	hdr, _, err := process.GetMetaHeaderWithNonce(
+		nonce,
+		boot.headers,
+		boot.headersNonces,
+		boot.marshalizer,
+		boot.store,
+		boot.uint64Converter)
 	if err != nil {
 		process.EmptyChannel(boot.chRcvHdrNonce)
 		boot.requestHeaderWithNonce(nonce)
@@ -562,7 +504,10 @@ func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 			return nil, err
 		}
 
-		hdr, _, err = boot.getMetaHeaderFromPoolWithNonce(nonce)
+		hdr, _, err = process.GetMetaHeaderFromPoolWithNonce(
+			nonce,
+			boot.headers,
+			boot.headersNonces)
 		if err != nil {
 			return nil, err
 		}

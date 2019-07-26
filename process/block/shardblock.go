@@ -892,7 +892,13 @@ func (sp *shardProcessor) requestFinalMissingHeaders() uint32 {
 			continue
 		}
 
-		_, _, err := sp.getMetaHeaderWithNonce(i)
+		_, _, err := process.GetMetaHeaderWithNonce(
+			i,
+			sp.dataPool.MetaBlocks(),
+			sp.dataPool.HeadersNonces(),
+			sp.marshalizer,
+			sp.store,
+			sp.uint64Converter)
 		if err != nil {
 			requestedBlockHeaders++
 			go sp.onRequestHeaderHandlerByNonce(sharding.MetachainShardId, i)
@@ -900,70 +906,6 @@ func (sp *shardProcessor) requestFinalMissingHeaders() uint32 {
 	}
 
 	return requestedBlockHeaders
-}
-
-// getMetaHeaderWithNonce method returns a meta block header with a given nonce
-func (sp *shardProcessor) getMetaHeaderWithNonce(nonce uint64) (*block.MetaBlock, []byte, error) {
-	hdr, hash, err := sp.getMetaHeaderFromPoolWithNonce(nonce)
-	if err != nil {
-		hdr, hash, err = sp.getMetaHeaderFromStorageWithNonce(nonce)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		sp.dataPool.MetaBlocks().Put(hash, hdr)
-		syncMap := &dataPool.ShardIdHashSyncMap{}
-		syncMap.Store(hdr.GetShardID(), hash)
-		sp.dataPool.HeadersNonces().Merge(hdr.GetNonce(), syncMap)
-	}
-
-	return hdr, hash, nil
-}
-
-// getMetaHeaderFromPoolWithNonce method returns a meta block header from pool with a given nonce
-func (sp *shardProcessor) getMetaHeaderFromPoolWithNonce(nonce uint64) (*block.MetaBlock, []byte, error) {
-	syncMap, ok := sp.dataPool.HeadersNonces().Get(nonce)
-	if !ok {
-		return nil, nil, process.ErrMissingHashForHeaderNonce
-	}
-
-	hash, ok := syncMap.Load(sharding.MetachainShardId)
-	if hash == nil || !ok {
-		return nil, nil, process.ErrMissingHashForHeaderNonce
-	}
-
-	obj, ok := sp.dataPool.MetaBlocks().Peek(hash)
-	if !ok {
-		return nil, nil, process.ErrMissingHeader
-	}
-
-	hdr, ok := obj.(*block.MetaBlock)
-	if !ok {
-		return nil, nil, process.ErrWrongTypeAssertion
-	}
-
-	return hdr, hash, nil
-}
-
-// getMetaHeaderFromStorageWithNonce method returns a meta block header from storage with a given nonce
-func (sp *shardProcessor) getMetaHeaderFromStorageWithNonce(nonce uint64) (*block.MetaBlock, []byte, error) {
-	headerStore := sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
-	if headerStore == nil {
-		return nil, nil, process.ErrNilHeadersStorage
-	}
-
-	nonceToByteSlice := sp.uint64Converter.ToByteSlice(nonce)
-	hash, err := headerStore.Get(nonceToByteSlice)
-	if err != nil {
-		return nil, nil, process.ErrMissingHashForHeaderNonce
-	}
-
-	hdr, err := process.GetMetaHeaderFromStorage(hash, sp.marshalizer, sp.store)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return hdr, hash, nil
 }
 
 func (sp *shardProcessor) requestMetaHeaders(header *block.Header) (uint32, uint32) {

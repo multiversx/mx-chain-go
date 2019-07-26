@@ -1421,7 +1421,8 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	hdr, _, _ := bs.GetMetaHeaderFromPoolWithNonce(0)
+	hdr, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.MetaChainBlocks(), pools.HeadersNonces())
+	assert.NotNil(t, bs)
 	assert.Nil(t, hdr)
 }
 
@@ -1488,7 +1489,8 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	hdr2, _, _ := bs.GetMetaHeaderFromPoolWithNonce(0)
+	hdr2, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.MetaChainBlocks(), pools.HeadersNonces())
+	assert.NotNil(t, bs)
 	assert.True(t, hdr == hdr2)
 }
 
