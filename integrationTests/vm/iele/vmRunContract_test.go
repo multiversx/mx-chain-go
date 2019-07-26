@@ -25,7 +25,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%X",
 		initialValueForInternalVariable)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 
 	deployContract(
 		t,
@@ -93,7 +93,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%X",
 		initialValueForInternalVariable)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	//deploy will transfer 0 and will succeed
 	deployContract(
 		t,
@@ -151,7 +151,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 }
 
 func deployContract(
-	t *testing.T,
+	tb testing.TB,
 	senderAddressBytes []byte,
 	senderNonce uint64,
 	transferOnCalls *big.Int,
@@ -165,7 +165,7 @@ func deployContract(
 
 	//contract creation tx
 	tx := vm.CreateTx(
-		t,
+		tb,
 		senderAddressBytes,
 		vm.CreateEmptyAddress().Bytes(),
 		senderNonce,
@@ -176,8 +176,8 @@ func deployContract(
 	)
 
 	err := txProc.ProcessTransaction(tx, round)
-	assert.Nil(t, err)
+	assert.Nil(tb, err)
 
 	_, err = accnts.Commit()
-	assert.Nil(t, err)
+	assert.Nil(tb, err)
 }

@@ -16,7 +16,6 @@ type AccountsStub struct {
 	PutCodeCalled               func(accountHandler state.AccountHandler, code []byte) error
 	RemoveAccountCalled         func(addressContainer state.AddressContainer) error
 	RemoveCodeCalled            func(codeHash []byte) error
-	LoadDataTrieCalled          func(acountWrapper state.AccountHandler) error
 	RevertToSnapshotCalled      func(snapshot int) error
 	SaveAccountStateCalled      func(acountWrapper state.AccountHandler) error
 	SaveDataTrieCalled          func(acountWrapper state.AccountHandler) error
@@ -95,14 +94,6 @@ func (aam *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) 
 func (aam *AccountsStub) RemoveCode(codeHash []byte) error {
 	if aam.RemoveCodeCalled != nil {
 		return aam.RemoveCodeCalled(codeHash)
-	}
-
-	return errNotImplemented
-}
-
-func (aam *AccountsStub) LoadDataTrie(accountHandler state.AccountHandler) error {
-	if aam.LoadDataTrieCalled != nil {
-		return aam.LoadDataTrieCalled(accountHandler)
 	}
 
 	return errNotImplemented
