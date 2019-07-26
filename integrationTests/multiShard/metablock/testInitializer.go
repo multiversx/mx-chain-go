@@ -245,7 +245,7 @@ func createNodes(
 
 	for _, nodeCoordList := range nodesCoordMap {
 		for _, nodeCoord := range nodeCoordList {
-			nodeCoord.SetNodesPerShards(valMap)
+			_ = nodeCoord.SetNodesPerShards(valMap)
 		}
 	}
 

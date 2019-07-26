@@ -104,7 +104,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(randomness []byt
 	return tempList, nil
 }
 
-// GetSelectedValidatorsPublicKeys calculates the validators group for a specific randomness,
+// GetValidatorsPublicKeys calculates the validators group for a specific randomness,
 // returning their public keys
 func (ihgs *indexHashedNodesCoordinator) GetValidatorsPublicKeys(randomness []byte) ([]string, error) {
 	consensusNodes, err := ihgs.ComputeValidatorsGroup(randomness)

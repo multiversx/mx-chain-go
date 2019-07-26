@@ -570,7 +570,7 @@ func createNodes(
 
 	for _, shardCoord := range nodesCoordinators {
 		for j := 0; j < len(shardCoord); j++ {
-			shardCoord[j].SetNodesPerShards(mapValidators)
+			_ = shardCoord[j].SetNodesPerShards(mapValidators)
 		}
 	}
 

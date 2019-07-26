@@ -89,8 +89,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	pubKeyMap[0] = []string{string(pk1Bytes), string(pk2Bytes)}
 	validatorsMap := genValidatorsFromPubKeys(pubKeyMap)
-	nodesCoordinator1.SetNodesPerShards(validatorsMap)
-	nodesCoordinator2.SetNodesPerShards(validatorsMap)
+	_ = nodesCoordinator1.SetNodesPerShards(validatorsMap)
+	_ = nodesCoordinator2.SetNodesPerShards(validatorsMap)
 
 	_ = nRequester.Start()
 	_ = nResolver.Start()

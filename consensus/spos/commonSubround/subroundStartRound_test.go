@@ -27,7 +27,8 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (*commonSubround.S
 
 func defaultSubround(
 	consensusState *spos.ConsensusState,
-	ch chan bool, container spos.ConsensusCoreHandler,
+	ch chan bool,
+	container spos.ConsensusCoreHandler,
 ) (*spos.Subround, error) {
 
 	return spos.NewSubround(

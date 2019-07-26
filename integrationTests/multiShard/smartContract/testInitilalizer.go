@@ -55,7 +55,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
@@ -423,7 +423,6 @@ func getConnectableAddress(mes p2p.Messenger) string {
 
 func displayAndStartNodes(nodes map[uint32][]*testNode) {
 	for _, nodeList := range nodes {
-
 		for _, n := range nodeList {
 			skBuff, _ := n.sk.ToByteArray()
 			pkBuff, _ := n.pk.ToByteArray()
@@ -585,7 +584,7 @@ func createNodes(
 
 	for _, shardCoord := range nodesCoordinators {
 		for j := 0; j < len(shardCoord); j++ {
-			shardCoord[j].SetNodesPerShards(mapValidators)
+			_ = shardCoord[j].SetNodesPerShards(mapValidators)
 		}
 	}
 
