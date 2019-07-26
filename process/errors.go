@@ -97,9 +97,6 @@ var ErrBlockHashDoesNotMatch = errors.New("block hash does not match")
 // ErrNotarizedBlockHashDoesNotMatch signals the hash of the notarized block is not matching with the previous one
 var ErrNotarizedBlockHashDoesNotMatch = errors.New("notarized block hash does not match")
 
-// ErrInvalidNotarizedBlockHash signals the hash of the notarized block is not matching with the previous one
-var ErrInvalidNotarizedBlockHash = errors.New("invalid notarized block hash")
-
 // ErrMissingTransaction signals that one transaction is missing
 var ErrMissingTransaction = errors.New("missing transaction")
 
