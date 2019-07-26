@@ -119,7 +119,11 @@ func (nspc *nonceSyncMapCacher) RemoveShardId(nonce uint64, shardId uint32) {
 		return
 	}
 
-	syncMap := val.(*ShardIdHashSyncMap)
+	syncMap, ok := val.(*ShardIdHashSyncMap)
+	if !ok {
+		return
+	}
+
 	syncMap.Delete(shardId)
 }
 
@@ -143,9 +147,19 @@ func (nspc *nonceSyncMapCacher) callAddedDataHandlers(nonce uint64, shardId uint
 	nspc.mutAddedDataHandlers.RUnlock()
 }
 
-// Has returns true if a map is found for provided nonce
-func (nspc *nonceSyncMapCacher) Has(nonce uint64) bool {
-	_, ok := nspc.cacher.Peek(nspc.nonceConverter.ToByteSlice(nonce))
+// Has returns true if a map is found for provided nonce ans shardId
+func (nspc *nonceSyncMapCacher) Has(nonce uint64, shardId uint32) bool {
+	val, ok := nspc.cacher.Peek(nspc.nonceConverter.ToByteSlice(nonce))
+	if !ok {
+		return false
+	}
 
-	return ok
+	syncMap, ok := val.(*ShardIdHashSyncMap)
+	if !ok {
+		return false
+	}
+
+	_, exists := syncMap.Load(shardId)
+
+	return exists
 }
