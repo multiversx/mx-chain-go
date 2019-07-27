@@ -564,12 +564,13 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	headerHash := sp.hasher.Compute(string(buff))
-	errNotCritical := sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
-	log.LogIfError(errNotCritical)
-
 	nonceToByteSlice := sp.uint64Converter.ToByteSlice(header.Nonce)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.ShardId)
-	errNotCritical = sp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+
+	errNotCritical := sp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	log.LogIfError(errNotCritical)
+
+	errNotCritical = sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
 	log.LogIfError(errNotCritical)
 
 	headerNoncePool := sp.dataPool.HeadersNonces()
@@ -770,14 +771,14 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 		}
 
 		headerHash := sp.hasher.Compute(string(buff))
-		err = sp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
+		nonceToByteSlice := sp.uint64Converter.ToByteSlice(hdr.GetNonce())
+		err = sp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 		if err != nil {
 			log.Error(err.Error())
 			continue
 		}
 
-		nonceToByteSlice := sp.uint64Converter.ToByteSlice(hdr.GetNonce())
-		err = sp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+		err = sp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
 		if err != nil {
 			log.Error(err.Error())
 			continue

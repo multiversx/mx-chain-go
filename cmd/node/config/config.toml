@@ -39,7 +39,7 @@
         FilePath = "BlockHeaders"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 6
+        MaxBatchSize = 1
 
 [ShardDataStorage]
     [ShardDataStorage.Cache]
@@ -69,7 +69,7 @@
         FilePath = "MetaBlock"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 6
+        MaxBatchSize = 1
 
 [TxStorage]
     [TxStorage.Cache]
@@ -99,7 +99,7 @@
         FilePath = "ShardHdrHashNonce"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 30
+        MaxBatchSize = 1
 
 [MetaHdrNonceHashStorage]
     [MetaHdrNonceHashStorage.Cache]
@@ -109,7 +109,7 @@
         FilePath = "MetaHdrHashNonce"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 6
+        MaxBatchSize = 1
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
