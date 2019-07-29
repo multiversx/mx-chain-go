@@ -713,7 +713,6 @@ func CreateElasticIndexer(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	log *logger.Logger,
-
 ) (indexer.Indexer, error) {
 	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
 	if err != nil {
