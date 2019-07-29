@@ -416,49 +416,38 @@ func (tpn *TestProcessorNode) setGenesisBlock() {
 func (tpn *TestProcessorNode) initNode() {
 	var err error
 
+	tpn.Node, err = node.NewNode(
+		node.WithMessenger(tpn.Messenger),
+		node.WithMarshalizer(TestMarshalizer),
+		node.WithHasher(TestHasher),
+		node.WithHasher(TestHasher),
+		node.WithAddressConverter(TestAddressConverter),
+		node.WithAccountsAdapter(tpn.AccntState),
+		node.WithKeyGen(tpn.KeygenTxSign),
+		node.WithShardCoordinator(tpn.ShardCoordinator),
+		node.WithBlockChain(tpn.BlockChain),
+		node.WithUint64ByteSliceConverter(TestUint64Converter),
+		node.WithMultiSigner(TestMultiSig),
+		node.WithSingleSigner(tpn.SingleSigner),
+		node.WithTxSignPrivKey(tpn.SkTxSign),
+		node.WithTxSignPubKey(tpn.PkTxSign),
+		node.WithInterceptorsContainer(tpn.InterceptorsContainer),
+		node.WithResolversFinder(tpn.ResolverFinder),
+		node.WithBlockProcessor(tpn.BlockProcessor),
+		node.WithDataStore(tpn.Storage),
+		node.WithSyncer(&mock.SyncTimerMock{}),
+	)
+	if err != nil {
+		fmt.Printf("Error creating node: %s\n", err.Error())
+	}
+
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		tpn.Node, err = node.NewNode(
-			node.WithMessenger(tpn.Messenger),
-			node.WithMarshalizer(TestMarshalizer),
-			node.WithHasher(TestHasher),
+		err = tpn.Node.ApplyOptions(
 			node.WithMetaDataPool(tpn.MetaDataPool),
-			node.WithAddressConverter(TestAddressConverter),
-			node.WithAccountsAdapter(tpn.AccntState),
-			node.WithKeyGen(tpn.KeygenTxSign),
-			node.WithShardCoordinator(tpn.ShardCoordinator),
-			node.WithBlockChain(tpn.BlockChain),
-			node.WithUint64ByteSliceConverter(TestUint64Converter),
-			node.WithMultiSigner(TestMultiSig),
-			node.WithSingleSigner(tpn.SingleSigner),
-			node.WithPrivKey(tpn.SkTxSign),
-			node.WithPubKey(tpn.PkTxSign),
-			node.WithInterceptorsContainer(tpn.InterceptorsContainer),
-			node.WithResolversFinder(tpn.ResolverFinder),
-			node.WithBlockProcessor(tpn.BlockProcessor),
-			node.WithDataStore(tpn.Storage),
-			node.WithSyncer(&mock.SyncTimerMock{}),
 		)
 	} else {
-		tpn.Node, err = node.NewNode(
-			node.WithMessenger(tpn.Messenger),
-			node.WithMarshalizer(TestMarshalizer),
-			node.WithHasher(TestHasher),
+		err = tpn.Node.ApplyOptions(
 			node.WithDataPool(tpn.ShardDataPool),
-			node.WithAddressConverter(TestAddressConverter),
-			node.WithAccountsAdapter(tpn.AccntState),
-			node.WithKeyGen(tpn.KeygenTxSign),
-			node.WithShardCoordinator(tpn.ShardCoordinator),
-			node.WithBlockChain(tpn.BlockChain),
-			node.WithUint64ByteSliceConverter(TestUint64Converter),
-			node.WithMultiSigner(TestMultiSig),
-			node.WithSingleSigner(tpn.SingleSigner),
-			node.WithTxSignPrivKey(tpn.SkTxSign),
-			node.WithTxSignPubKey(tpn.PkTxSign),
-			node.WithInterceptorsContainer(tpn.InterceptorsContainer),
-			node.WithResolversFinder(tpn.ResolverFinder),
-			node.WithBlockProcessor(tpn.BlockProcessor),
-			node.WithDataStore(tpn.Storage),
-			node.WithSyncer(&mock.SyncTimerMock{}),
 		)
 	}
 
@@ -520,7 +509,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 }
 
 // ProposeBlockOnlyWithSelf proposes a new block
-func (tpn *TestProcessorNode) ProposeBlockOnlyWithSelf(round uint32) (data.BodyHandler, data.HeaderHandler) {
+func (tpn *TestProcessorNode) ProposeBlock(round uint32) (data.BodyHandler, data.HeaderHandler) {
 	haveTime := func() bool { return true }
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
@@ -543,6 +532,7 @@ func (tpn *TestProcessorNode) ProposeBlockOnlyWithSelf(round uint32) (data.BodyH
 	if currHdr == nil {
 		currHdr = tpn.BlockChain.GetGenesisHeader()
 	}
+
 	buff, _ := TestMarshalizer.Marshal(currHdr)
 	blockHeader.SetPrevHash(TestHasher.Compute(string(buff)))
 	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())

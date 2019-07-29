@@ -25,7 +25,7 @@ var stepDelay = time.Second
 // Shard 0's proposer sends a topUp SC call tx and then there are another 6 blocks added to all blockchains.
 // After that there is a first check that the topUp was made. Shard 0's proposer sends a withdraw SC call tx and after
 // 12 more blocks the results are checked again
-func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
+func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -71,21 +71,22 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsTopUpAndWithdrawOnl
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
 	withdrawValue := big.NewInt(10)
-	stepMintAllNodes(nodes, initialVal)
+	mintAllNodes(nodes, initialVal)
 
-	stepDeployScTx(nodes, idxNodeShard1, string(scCode))
+	deployScTx(nodes, idxNodeShard1, string(scCode))
 
-	stepProposeBlock(nodes, round, idxProposers)
+	proposeBlockWithScTxs(nodes, round, idxProposers)
 	round = incrementAndPrintRound(round)
 
-	stepNodeDoesTopUp(nodes, idxNodeShard0, topUpValue, hardCodedScResultingAddress)
+	nodeDoesTopUp(nodes, idxNodeShard0, topUpValue, hardCodedScResultingAddress)
 
-	for i := 0; i < 6; i++ {
-		stepProposeBlock(nodes, round, idxProposers)
+	roundsToWait := 6
+	for i := 0; i < roundsToWait; i++ {
+		proposeBlockWithScTxs(nodes, round, idxProposers)
 		round = incrementAndPrintRound(round)
 	}
 
-	stepCheckTopUpIsDoneCorrectly(
+	checkTopUpIsDoneCorrectly(
 		t,
 		nodes,
 		idxNodeShard1,
@@ -95,14 +96,15 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsTopUpAndWithdrawOnl
 		hardCodedScResultingAddress,
 	)
 
-	stepNodeDoesWithdraw(nodes, idxNodeShard0, withdrawValue, hardCodedScResultingAddress)
+	nodeDoesWithdraw(nodes, idxNodeShard0, withdrawValue, hardCodedScResultingAddress)
 
-	for i := 0; i < 12; i++ {
-		stepProposeBlock(nodes, round, idxProposers)
+	roundsToWait = 12
+	for i := 0; i < roundsToWait; i++ {
+		proposeBlockWithScTxs(nodes, round, idxProposers)
 		round = incrementAndPrintRound(round)
 	}
 
-	stepCheckWithdrawIsDoneCorrectly(
+	checkWithdrawIsDoneCorrectly(
 		t,
 		nodes,
 		idxNodeShard1,
@@ -120,7 +122,7 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsTopUpAndWithdrawOnl
 // Shard 0's proposer sends a joinGame SC call tx and then there are another 6 blocks added to all blockchains.
 // After that there is a first check that the joinGame was made. Shard 1's proposer sends a rewardAndSendFunds SC call
 // tx and after 6 more blocks the results are checked again
-func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndRewardProposersAndValidators(t *testing.T) {
+func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -180,24 +182,25 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndRewardPropos
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
 	withdrawValue := big.NewInt(10)
-	stepMintAllNodes(nodes, initialVal)
+	mintAllNodes(nodes, initialVal)
 
-	stepDeployScTx(nodes, idxProposerShard1, string(scCode))
+	deployScTx(nodes, idxProposerShard1, string(scCode))
 
-	stepProposeBlock(nodes, round, idxProposers)
-	stepSyncBlock(t, nodes, idxProposers, round)
+	proposeBlockWithScTxs(nodes, round, idxProposers)
+	syncBlock(t, nodes, idxProposers, round)
 	round = incrementAndPrintRound(round)
 
-	stepNodeDoesJoinGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
+	nodeDoesJoinGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
 
-	for i := 0; i < 6; i++ {
-		stepProposeBlock(nodes, round, idxProposers)
-		stepSyncBlock(t, nodes, idxProposers, round)
+	roundsToWait := 6
+	for i := 0; i < roundsToWait; i++ {
+		proposeBlockWithScTxs(nodes, round, idxProposers)
+		syncBlock(t, nodes, idxProposers, round)
 		round = incrementAndPrintRound(round)
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
 
-	stepCheckJoinGameIsDoneCorrectly(
+	checkJoinGameIsDoneCorrectly(
 		t,
 		nodes,
 		idxProposerShard1,
@@ -207,17 +210,18 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndRewardPropos
 		hardCodedScResultingAddress,
 	)
 
-	stepNodeCallsRewardAndSend(nodes, idxProposerShard1, idxProposerShard0, withdrawValue, hardCodedScResultingAddress)
+	nodeCallsRewardAndSend(nodes, idxProposerShard1, idxProposerShard0, withdrawValue, hardCodedScResultingAddress)
 
 	//TODO investigate why do we need 7 rounds here
-	for i := 0; i < 7; i++ {
-		stepProposeBlock(nodes, round, idxProposers)
-		stepSyncBlock(t, nodes, idxProposers, round)
+	roundsToWait = 7
+	for i := 0; i < roundsToWait; i++ {
+		proposeBlockWithScTxs(nodes, round, idxProposers)
+		syncBlock(t, nodes, idxProposers, round)
 		round = incrementAndPrintRound(round)
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
 
-	stepCheckRewardIsDoneCorrectly(
+	checkRewardIsDoneCorrectly(
 		t,
 		nodes,
 		idxProposerShard1,
@@ -228,7 +232,7 @@ func TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndRewardPropos
 		hardCodedScResultingAddress,
 	)
 
-	stepCheckRootHashes(t, nodes, idxProposers)
+	checkRootHashes(t, nodes, idxProposers)
 }
 
 func incrementAndPrintRound(round uint32) uint32 {
@@ -239,7 +243,11 @@ func incrementAndPrintRound(round uint32) uint32 {
 	return round
 }
 
-func stepMintAllNodes(nodes []*integrationTests.TestProcessorNode, value *big.Int) {
+func mintAllNodes(
+	nodes []*integrationTests.TestProcessorNode,
+	value *big.Int,
+) {
+
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 			continue
@@ -256,9 +264,14 @@ func stepMintAllNodes(nodes []*integrationTests.TestProcessorNode, value *big.In
 	}
 }
 
-func stepDeployScTx(nodes []*integrationTests.TestProcessorNode, senderIdx int, scCode string) {
+func deployScTx(
+	nodes []*integrationTests.TestProcessorNode,
+	senderIdx int,
+	scCode string,
+) {
+
 	fmt.Println("Deploying SC...")
-	txDeploy := createTxDeploy(nodes[senderIdx], string(scCode))
+	txDeploy := createTxDeploy(nodes[senderIdx], scCode)
 	nodes[senderIdx].SendTransaction(txDeploy)
 	fmt.Println("Delaying for disseminating the deploy tx...")
 	time.Sleep(stepDelay)
@@ -266,14 +279,19 @@ func stepDeployScTx(nodes []*integrationTests.TestProcessorNode, senderIdx int, 
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepProposeBlock(nodes []*integrationTests.TestProcessorNode, round uint32, idxProposers []int) {
+func proposeBlockWithScTxs(
+	nodes []*integrationTests.TestProcessorNode,
+	round uint32,
+	idxProposers []int,
+) {
+
 	fmt.Println("All shards propose blocks...")
 	for idx, n := range nodes {
 		if !isIntInSlice(idx, idxProposers) {
 			continue
 		}
 
-		body, header := n.ProposeBlockOnlyWithSelf(round)
+		body, header := n.ProposeBlock(round)
 		n.BroadcastAndCommit(body, header)
 	}
 
@@ -282,7 +300,13 @@ func stepProposeBlock(nodes []*integrationTests.TestProcessorNode, round uint32,
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepSyncBlock(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int, round uint32) {
+func syncBlock(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	idxProposers []int,
+	round uint32,
+) {
+
 	fmt.Println("All other shard nodes sync the proposed block...")
 	for idx, n := range nodes {
 		if isIntInSlice(idx, idxProposers) {
@@ -310,11 +334,12 @@ func isIntInSlice(idx int, slice []int) bool {
 	return false
 }
 
-func stepNodeDoesTopUp(
+func nodeDoesTopUp(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	topUpValue *big.Int,
-	scAddress []byte) {
+	scAddress []byte,
+) {
 
 	fmt.Println("Calling SC.topUp...")
 	txDeploy := createTxTopUp(nodes[idxNode], topUpValue, scAddress)
@@ -325,11 +350,12 @@ func stepNodeDoesTopUp(
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepNodeDoesJoinGame(
+func nodeDoesJoinGame(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	joinGameVal *big.Int,
-	scAddress []byte) {
+	scAddress []byte,
+) {
 
 	fmt.Println("Calling SC.joinGame...")
 	txDeploy := createTxJoinGame(nodes[idxNode], joinGameVal, scAddress)
@@ -340,7 +366,7 @@ func stepNodeDoesJoinGame(
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepCheckTopUpIsDoneCorrectly(
+func checkTopUpIsDoneCorrectly(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	idxNodeScExists int,
@@ -376,7 +402,7 @@ func stepCheckTopUpIsDoneCorrectly(
 	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
 }
 
-func stepCheckJoinGameIsDoneCorrectly(
+func checkJoinGameIsDoneCorrectly(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	idxNodeScExists int,
@@ -402,11 +428,12 @@ func stepCheckJoinGameIsDoneCorrectly(
 	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
 }
 
-func stepNodeDoesWithdraw(
+func nodeDoesWithdraw(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	withdrawValue *big.Int,
-	scAddress []byte) {
+	scAddress []byte,
+) {
 
 	fmt.Println("Calling SC.withdraw...")
 	txDeploy := createTxWithdraw(nodes[idxNode], withdrawValue, scAddress)
@@ -417,12 +444,13 @@ func stepNodeDoesWithdraw(
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepNodeCallsRewardAndSend(
+func nodeCallsRewardAndSend(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNodeOwner int,
 	idxNodeUser int,
 	prize *big.Int,
-	scAddress []byte) {
+	scAddress []byte,
+) {
 
 	fmt.Println("Calling SC.rewardAndSendToWallet...")
 	txDeploy := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, scAddress)
@@ -433,7 +461,7 @@ func stepNodeCallsRewardAndSend(
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepCheckWithdrawIsDoneCorrectly(
+func checkWithdrawIsDoneCorrectly(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	idxNodeScExists int,
@@ -473,7 +501,7 @@ func stepCheckWithdrawIsDoneCorrectly(
 	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }
 
-func stepCheckRewardIsDoneCorrectly(
+func checkRewardIsDoneCorrectly(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	idxNodeScExists int,
@@ -503,13 +531,23 @@ func stepCheckRewardIsDoneCorrectly(
 	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }
 
-func stepCheckRootHashes(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int) {
+func checkRootHashes(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	idxProposers []int,
+) {
+
 	for _, idx := range idxProposers {
 		checkRootHashInShard(t, nodes, idx)
 	}
 }
 
-func checkRootHashInShard(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposer int) {
+func checkRootHashInShard(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	idxProposer int,
+) {
+
 	proposerNode := nodes[idxProposer]
 	proposerRootHash, _ := proposerNode.AccntState.RootHash()
 
@@ -526,7 +564,11 @@ func checkRootHashInShard(t *testing.T, nodes []*integrationTests.TestProcessorN
 	}
 }
 
-func createTxDeploy(tn *integrationTests.TestProcessorNode, scCode string) *transaction.Transaction {
+func createTxDeploy(
+	tn *integrationTests.TestProcessorNode,
+	scCode string,
+) *transaction.Transaction {
+
 	tx := &transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),
@@ -542,7 +584,12 @@ func createTxDeploy(tn *integrationTests.TestProcessorNode, scCode string) *tran
 	return tx
 }
 
-func createTxTopUp(tn *integrationTests.TestProcessorNode, topUpVal *big.Int, scAddress []byte) *transaction.Transaction {
+func createTxTopUp(
+	tn *integrationTests.TestProcessorNode,
+	topUpVal *big.Int,
+	scAddress []byte,
+) *transaction.Transaction {
+
 	tx := &transaction.Transaction{
 		Nonce:    0,
 		Value:    topUpVal,
@@ -558,7 +605,12 @@ func createTxTopUp(tn *integrationTests.TestProcessorNode, topUpVal *big.Int, sc
 	return tx
 }
 
-func createTxJoinGame(tn *integrationTests.TestProcessorNode, joinGameVal *big.Int, scAddress []byte) *transaction.Transaction {
+func createTxJoinGame(
+	tn *integrationTests.TestProcessorNode,
+	joinGameVal *big.Int,
+	scAddress []byte,
+) *transaction.Transaction {
+
 	tx := &transaction.Transaction{
 		Nonce:    0,
 		Value:    joinGameVal,
@@ -574,7 +626,12 @@ func createTxJoinGame(tn *integrationTests.TestProcessorNode, joinGameVal *big.I
 	return tx
 }
 
-func createTxWithdraw(tn *integrationTests.TestProcessorNode, withdrawVal *big.Int, scAddress []byte) *transaction.Transaction {
+func createTxWithdraw(
+	tn *integrationTests.TestProcessorNode,
+	withdrawVal *big.Int,
+	scAddress []byte,
+) *transaction.Transaction {
+
 	tx := &transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),
@@ -590,7 +647,13 @@ func createTxWithdraw(tn *integrationTests.TestProcessorNode, withdrawVal *big.I
 	return tx
 }
 
-func createTxRewardAndSendToWallet(tnOwner *integrationTests.TestProcessorNode, tnUser *integrationTests.TestProcessorNode, prizeVal *big.Int, scAddress []byte) *transaction.Transaction {
+func createTxRewardAndSendToWallet(
+	tnOwner *integrationTests.TestProcessorNode,
+	tnUser *integrationTests.TestProcessorNode,
+	prizeVal *big.Int,
+	scAddress []byte,
+) *transaction.Transaction {
+
 	tx := &transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),
