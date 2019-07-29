@@ -17,7 +17,6 @@ var log = logger.DefaultLogger()
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
 type Monitor struct {
-	peerMessenger               PeerMessenger
 	singleSigner                crypto.SingleSigner
 	maxDurationPeerUnresponsive time.Duration
 	keygen                      crypto.KeyGenerator
@@ -28,7 +27,6 @@ type Monitor struct {
 
 // NewMonitor returns a new monitor instance
 func NewMonitor(
-	peerMessenger PeerMessenger,
 	singleSigner crypto.SingleSigner,
 	keygen crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
@@ -36,9 +34,6 @@ func NewMonitor(
 	pubKeyList []string,
 ) (*Monitor, error) {
 
-	if peerMessenger == nil {
-		return nil, ErrNilMessenger
-	}
 	if singleSigner == nil {
 		return nil, ErrNilSingleSigner
 	}
@@ -53,7 +48,6 @@ func NewMonitor(
 	}
 
 	mon := &Monitor{
-		peerMessenger:               peerMessenger,
 		singleSigner:                singleSigner,
 		keygen:                      keygen,
 		marshalizer:                 marshalizer,
@@ -104,12 +98,6 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		m.mutHeartbeatMessages.Lock()
 		defer m.mutHeartbeatMessages.Unlock()
 
-		addr := m.peerMessenger.PeerAddress(msg.Peer())
-		if addr == "" {
-			//address is not known for the peer that emitted the message
-			addr = msg.Peer().Pretty()
-		}
-
 		pe := m.heartbeatMessages[string(hb.Pubkey)]
 		if pe == nil {
 			pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive)
@@ -120,7 +108,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			m.heartbeatMessages[string(hb.Pubkey)] = pe
 		}
 
-		pe.HeartbeatReceived(addr)
+		pe.HeartbeatReceived(hb.ShardID)
 	}(message, hbRecv)
 
 	return nil
@@ -134,10 +122,14 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	idx := 0
 	for k, v := range m.heartbeatMessages {
 		status[idx] = PubKeyHeartbeat{
-			HexPublicKey:   hex.EncodeToString([]byte(k)),
-			PeerHeartBeats: v.GetPeerHeartbeats(),
+			HexPublicKey:    hex.EncodeToString([]byte(k)),
+			TimeStamp:       v.timeStamp,
+			MaxInactiveTime: v.maxInactiveTime,
+			IsActive:        v.isActive,
+			ShardID:         v.shardID,
 		}
 		idx++
+
 	}
 	m.mutHeartbeatMessages.RUnlock()
 
