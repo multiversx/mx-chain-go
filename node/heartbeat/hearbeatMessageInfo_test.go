@@ -8,7 +8,6 @@ import (
 )
 
 //------ newHeartbeatMessageInfo
-
 func TestNewHeartbeatMessageInfo_InvalidDurationShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -27,29 +26,6 @@ func TestNewHeartbeatMessageInfo_OkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestHeartbeatMessageInfo_HeartbeatReceivedFirstTimeForAddressShouldWork(t *testing.T) {
-	t.Parallel()
-
-	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10))
-	hbmi.getTimeHandler = func() time.Time {
-		return time.Unix(0, 1)
-	}
-	p2pAddr := "p2p address"
-
-	hbmi.HeartbeatReceived(p2pAddr)
-	heartbeats := hbmi.GetPeerHeartbeats()
-
-	expectedHeartBeat := PeerHeartbeat{
-		P2PAddress:      p2pAddr,
-		TimeStamp:       time.Unix(0, 1),
-		MaxInactiveTime: Duration{Duration: 0},
-		IsActive:        true,
-	}
-
-	assert.Equal(t, 1, len(heartbeats))
-	assert.Equal(t, expectedHeartBeat, heartbeats[0])
-}
-
 func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 	t.Parallel()
 
@@ -61,21 +37,16 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 		}
 		return time.Unix(0, incrementalTime)
 	}
-	p2pAddr := "p2p address"
 
-	hbmi.HeartbeatReceived(p2pAddr)
-	hbmi.HeartbeatReceived(p2pAddr)
-	heartbeats := hbmi.GetPeerHeartbeats()
+	assert.Equal(t, emptyTimestamp, hbmi.timeStamp)
 
-	expectedHeartBeat := PeerHeartbeat{
-		P2PAddress:      p2pAddr,
-		TimeStamp:       time.Unix(0, 2),
-		MaxInactiveTime: Duration{Duration: 1},
-		IsActive:        true,
-	}
+	hbmi.HeartbeatReceived(uint32(0))
+	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
+	assert.Equal(t, uint32(0), hbmi.shardID)
 
-	assert.Equal(t, 1, len(heartbeats))
-	assert.Equal(t, expectedHeartBeat, heartbeats[0])
+	hbmi.HeartbeatReceived(uint32(1))
+	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
+	assert.Equal(t, uint32(1), hbmi.shardID)
 }
 
 func TestHeartbeatMessageInfo_HeartbeatSweepShouldUpdate(t *testing.T) {
@@ -89,18 +60,9 @@ func TestHeartbeatMessageInfo_HeartbeatSweepShouldUpdate(t *testing.T) {
 
 		return tReturned
 	}
-	p2pAddr := "p2p address"
 
-	hbmi.HeartbeatReceived(p2pAddr)
-	heartbeats := hbmi.GetPeerHeartbeats()
+	assert.Equal(t, emptyTimestamp, hbmi.timeStamp)
 
-	expectedHeartBeat := PeerHeartbeat{
-		P2PAddress:      p2pAddr,
-		TimeStamp:       time.Unix(0, 0),
-		MaxInactiveTime: Duration{Duration: 10},
-		IsActive:        false,
-	}
-
-	assert.Equal(t, 1, len(heartbeats))
-	assert.Equal(t, expectedHeartBeat, heartbeats[0])
+	hbmi.HeartbeatReceived(uint32(3))
+	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
 }
