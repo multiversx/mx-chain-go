@@ -2028,7 +2028,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	assert.True(t, wasAdded)
 }
 
-func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToForkDetector(t *testing.T) {
+func TestBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t *testing.T) {
 	t.Parallel()
 
 	addedHash := []byte("hash")
@@ -2098,7 +2098,7 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 
 	bs.ReceivedHeaders(addedHash)
 
-	assert.True(t, wasAdded)
+	assert.False(t, wasAdded)
 }
 
 //------- ForkChoice

@@ -102,7 +102,6 @@ func (sbt *shardBlockTracker) RemoveNotarisedBlocks(headerHandler data.HeaderHan
 			continue
 		}
 
-		//TODO: Shoud be called process.GetShardHeader?
 		header, err := process.GetShardHeaderFromPool(
 			shardData.HeaderHash,
 			sbt.dataPool.Headers())

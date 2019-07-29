@@ -194,7 +194,6 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
-			//TODO: Shoud be called process.GetTransaction?
 			tx, _ := process.GetTransactionFromPool(
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,

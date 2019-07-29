@@ -893,7 +893,6 @@ func (sp *shardProcessor) requestFinalMissingHeaders() uint32 {
 			continue
 		}
 
-		//TODO: Shoud be called process.GetMetaHeaderWithNonce?
 		_, _, err := process.GetMetaHeaderFromPoolWithNonce(
 			i,
 			sp.dataPool.MetaBlocks(),
@@ -951,7 +950,6 @@ func (sp *shardProcessor) computeMissingHeaders(header *block.Header) [][]byte {
 	sp.currHighestMetaHdrNonce = uint64(0)
 
 	for i := 0; i < len(header.MetaBlockHashes); i++ {
-		//TODO: Shoud be called process.GetMetaHeader?
 		hdr, err := process.GetMetaHeaderFromPool(
 			header.MetaBlockHashes[i],
 			sp.dataPool.MetaBlocks())

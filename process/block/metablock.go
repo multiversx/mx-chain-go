@@ -794,7 +794,6 @@ func (mp *metaProcessor) requestFinalMissingHeaders() uint32 {
 				continue
 			}
 
-			//TODO: Shoud be called process.GetShardHeaderWithNonce?
 			_, _, err := process.GetShardHeaderFromPoolWithNonce(
 				i,
 				shardId,
@@ -860,7 +859,6 @@ func (mp *metaProcessor) computeMissingHeaders(metaBlock *block.MetaBlock) map[u
 
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		shardData := metaBlock.ShardInfo[i]
-		//TODO: Shoud be called process.GetShardHeader?
 		hdr, err := process.GetShardHeaderFromPool(
 			shardData.HeaderHash,
 			mp.dataPool.ShardHeaders())
