@@ -74,7 +74,6 @@ func NewTransactionPreprocessor(
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
-		store:            store,
 	}
 
 	txs := transactions{

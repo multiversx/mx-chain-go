@@ -70,7 +70,6 @@ func NewSmartContractResultPreprocessor(
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
-		store:            store,
 	}
 
 	scr := &smartContractResults{
