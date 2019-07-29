@@ -32,7 +32,7 @@ func TestShouldProcessBlocksWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 	assert.Nil(t, err)
 
 	maxShards := uint32(1)
-	numOfNodes := 1
+	numOfNodes := 4
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
