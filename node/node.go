@@ -576,7 +576,7 @@ func (n *Node) SendTransaction(
 		SndAddr:   sender.Bytes(),
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      []byte(transactionData),
+		Data:      transactionData,
 		Signature: signature,
 	}
 

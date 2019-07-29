@@ -11,8 +11,10 @@ import (
 
 var errNilValue = errors.New("nil value provided")
 var errNoArgumentsProvided = errors.New("no arguments provided")
+var errInsuficientFunds = errors.New("insufucient funds")
 
 const addFunc = "add"
+const withdrawFunc = "withdraw"
 const getFunc = "get"
 
 var variableA = []byte("a")
@@ -142,14 +144,18 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCall(input *vmcommon.ContractCall
 	}
 
 	value := big.NewInt(0)
-	if input.Arguments[0] != nil {
-		value = input.Arguments[0]
+	if len(input.Arguments) > 0 {
+		if input.Arguments[0] != nil {
+			value = input.Arguments[0]
+		}
 	}
 
 	method := strings.ToLower(input.Function)
 	switch method {
 	case addFunc:
 		return vm.processAddFunc(input, value)
+	case withdrawFunc:
+		return vm.processWithdrawFunc(input, value)
 	case getFunc:
 		return vm.processGetFunc(input)
 	default:
@@ -201,6 +207,55 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 		Nonce: senderNonce,
 		//tx succeed, return 0 back to the sender
 		Balance: big.NewInt(0),
+	}
+
+	gasRemaining := big.NewInt(0).Sub(input.GasProvided, big.NewInt(0).SetUint64(vm.GasForOperation))
+	return &vmcommon.VMOutput{
+		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount, senderOutputAccount},
+		DeletedAccounts: make([][]byte, 0),
+		GasRefund:       big.NewInt(0),
+		GasRemaining:    gasRemaining,
+		Logs:            make([]*vmcommon.LogEntry, 0),
+		ReturnCode:      vmcommon.Ok,
+		ReturnData:      make([]*big.Int, 0),
+		TouchedAccounts: make([][]byte, 0),
+	}, nil
+}
+
+func (vm *OneSCExecutorMockVM) processWithdrawFunc(input *vmcommon.ContractCallInput, value *big.Int) (*vmcommon.VMOutput, error) {
+
+	destNonce, err := vm.blockchainHook.GetNonce(input.RecipientAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	destBalance, err := vm.blockchainHook.GetBalance(input.RecipientAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	if destBalance.Cmp(value) < 0 {
+		return nil, errInsuficientFunds
+	}
+
+	newSCBalance := big.NewInt(0).Sub(destBalance, value)
+	scOutputAccount := &vmcommon.OutputAccount{
+		Nonce:   destNonce,
+		Balance: newSCBalance,
+		Address: input.RecipientAddr,
+	}
+
+	senderNonce, err := vm.blockchainHook.GetNonce(input.CallerAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	senderOutputAccount := &vmcommon.OutputAccount{
+		Address: input.CallerAddr,
+		//VM does not increment sender's nonce
+		Nonce: senderNonce,
+		//tx succeed, return 0 back to the sender
+		Balance: value,
 	}
 
 	gasRemaining := big.NewInt(0).Sub(input.GasProvided, big.NewInt(0).SetUint64(vm.GasForOperation))

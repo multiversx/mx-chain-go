@@ -4,9 +4,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
+	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -23,13 +26,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
@@ -38,6 +46,9 @@ import (
 const (
 	defaultLogPath     = "logs"
 	defaultStatsPath   = "stats"
+	defaultDBPath      = "db"
+	defaultEpochString = "Epoch"
+	defaultShardString = "Shard"
 	metachainShardName = "metachain"
 )
 
@@ -98,7 +109,7 @@ VERSION:
 	serversConfigurationFile = cli.StringFlag{
 		Name:  "serversconfig",
 		Usage: "The configuration file for servers confidential data",
-		Value: "./config/servers.toml",
+		Value: "./config/server.toml",
 	}
 	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
 	withUI = cli.BoolTFlag{
@@ -153,17 +164,38 @@ VERSION:
 		Usage: "The port on which the rest API will start on",
 		Value: "8080",
 	}
+
+	// networkID defines the version of the network. If set, will override the same parameter from config.toml
+	networkID = cli.StringFlag{
+		Name:  "network-id",
+		Usage: "The network version, overriding the one from config.toml",
+		Value: "",
+	}
+
+	// usePrometheus joins the node for prometheus monitoring if set
+	usePrometheus = cli.BoolFlag{
+		Name:  "use-prometheus",
+		Usage: "Will make the node available for prometheus and grafana monitoring",
+	}
+
 	// initialBalancesSkPemFile defines a flag for the path to the ...
 	initialBalancesSkPemFile = cli.StringFlag{
 		Name:  "initialBalancesSkPemFile",
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialBalancesSk.pem",
 	}
+
 	// initialNodesSkPemFile defines a flag for the path to the ...
 	initialNodesSkPemFile = cli.StringFlag{
 		Name:  "initialNodesSkPemFile",
 		Usage: "The file containing the secret keys which ...",
 		Value: "./config/initialNodesSk.pem",
+	}
+	// logLevel defines the logger level
+	logLevel = cli.StringFlag{
+		Name:  "logLevel",
+		Usage: "This flag specifies the logger level",
+		Value: logger.LogInfo,
 	}
 	// bootstrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
 	bootstrapRoundIndex = cli.UintFlag{
@@ -178,20 +210,22 @@ VERSION:
 		Usage: "Enables transaction indexing. There can be cases when it's too expensive to index all transactions so we provide the command line option to disable this behaviour",
 	}
 
-	//TODO remove uniqueID
-	uniqueID = ""
+	// workingDirectory defines a flag for the path for the working directory.
+	workingDirectory = cli.StringFlag{
+		Name:  "working-directory",
+		Usage: "The node will store here DB, Logs and Stats",
+		Value: "",
+	}
+
+	// destinationShardAsObserver defines a flag for the prefered shard to be assigned to as an observer.
+	destinationShardAsObserver = cli.StringFlag{
+		Name:  "destination-shard-as-observer",
+		Usage: "The preferred shard as an observer",
+		Value: "",
+	}
 
 	rm *statistics.ResourceMonitor
 )
-
-// TODO - remove this mock and replace with a valid implementation
-type mockProposerResolver struct {
-}
-
-// ResolveProposer computes a block proposer. For now, this is mocked.
-func (mockProposerResolver) ResolveProposer(shardId uint32, roundIndex uint32, prevRandomSeed []byte) ([]byte, error) {
-	return []byte("mocked proposer"), nil
-}
 
 // dbIndexer will hold the database indexer. Defined globally so it can be initialised only in
 //  certain conditions. If those conditions will not be met, it will stay as nil
@@ -203,12 +237,11 @@ var coreServiceContainer serviceContainer.Core
 
 func main() {
 	log := logger.DefaultLogger()
-	log.SetLevel(logger.LogInfo)
 
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = "v1.0.7"
+	app.Version = "v1.0.11"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
@@ -227,9 +260,14 @@ func main() {
 		initialNodesSkPemFile,
 		gopsEn,
 		serversConfigurationFile,
+		networkID,
 		restApiPort,
+		logLevel,
+		usePrometheus,
 		bootstrapRoundIndex,
 		enableTxIndexing,
+		workingDirectory,
+		destinationShardAsObserver,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -242,10 +280,8 @@ func main() {
 	// set the maximum allowed OS threads (not go routines) which can run in the same time (the default is 10000)
 	debug.SetMaxThreads(100000)
 
-	log.Info(fmt.Sprintf("Starting node with version %s\n", app.Version))
-
 	app.Action = func(c *cli.Context) error {
-		return startNode(c, log)
+		return startNode(c, log, app.Version)
 	}
 
 	err := app.Run(os.Args)
@@ -266,7 +302,10 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 	return nil, errors.New("no consensus provided in config file")
 }
 
-func startNode(ctx *cli.Context, log *logger.Logger) error {
+func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
+	logLevel := ctx.GlobalString(logLevel.Name)
+	log.SetLevel(logLevel)
+
 	profileMode := ctx.GlobalString(profileMode.Name)
 	switch profileMode {
 	case "cpu":
@@ -288,6 +327,9 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	stop := make(chan bool, 1)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	log.Info(fmt.Sprintf("Starting node with version %s\n", version))
+	log.Info(fmt.Sprintf("Process ID: %d\n", os.Getpid()))
 
 	configurationFileName := ctx.GlobalString(configurationFile.Name)
 	generalConfig, err := loadMainConfig(configurationFileName, log)
@@ -354,27 +396,57 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info("Starting with public key: " + factory.GetPkEncoded(pubKey))
 
+	if ctx.IsSet(destinationShardAsObserver.Name) {
+		generalConfig.GeneralSettings.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
+	}
+
+	if ctx.IsSet(networkID.Name) {
+		generalConfig.GeneralSettings.NetworkID = ctx.GlobalString(networkID.Name)
+	}
+
 	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
 	}
 
-	publicKey, err := pubKey.ToByteArray()
-	if err != nil {
-		return err
+	var workingDir = ""
+	if ctx.IsSet(workingDirectory.Name) {
+		workingDir = ctx.GlobalString(workingDirectory.Name)
+	} else {
+		workingDir, err = os.Getwd()
+		if err != nil {
+			log.LogIfError(err)
+			workingDir = ""
+		}
 	}
 
-	uniqueID = core.GetTrimmedPk(hex.EncodeToString(publicKey))
+	var shardId = "metachain"
+	if shardCoordinator.SelfId() != sharding.MetachainShardId {
+		shardId = fmt.Sprintf("%d", shardCoordinator.SelfId())
+	}
+
+	uniqueDBFolder := filepath.Join(
+		workingDir,
+		defaultDBPath,
+		fmt.Sprintf("%s_%d", defaultEpochString, 0),
+		fmt.Sprintf("%s_%s", defaultShardString, shardId))
 
 	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
 	if storageCleanup {
-		err = os.RemoveAll(config.DefaultPath() + uniqueID)
+		err = os.RemoveAll(uniqueDBFolder)
 		if err != nil {
 			return err
 		}
 	}
 
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueID)
+	logDirectory := filepath.Join(workingDir, defaultLogPath)
+
+	err = os.MkdirAll(logDirectory, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, uniqueDBFolder)
 	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
@@ -386,12 +458,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log)
+	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log, workingDir)
 	if err != nil {
 		return err
 	}
 
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueID)
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
@@ -403,6 +475,18 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	if err != nil {
 		return err
 	}
+
+	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
+		"PkBlockSign", factory.GetPkEncoded(pubKey),
+		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
+		"ShardId", shardId,
+		"TotalShards", shardCoordinator.NumberOfShards(),
+		"AppVersion", version,
+		"OsVersion", "TestOs",
+	)
+
+	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
+	log.LogIfError(err)
 
 	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
 	if err != nil {
@@ -461,22 +545,31 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	externalResolver, err := external.NewExternalResolver(
-		shardCoordinator,
-		dataComponents.Blkc,
-		dataComponents.Store,
-		coreComponents.Marshalizer,
-		&mockProposerResolver{},
-	)
+	vmAccountsDB, err := hooks.NewVMAccountsDB(stateComponents.AccountsAdapter, stateComponents.AddressConverter)
 	if err != nil {
 		return err
 	}
 
-	ef := facade.NewElrondNodeFacade(currentNode, externalResolver)
+	apiResolver, err := createApiResolver(vmAccountsDB)
+	if err != nil {
+		return err
+	}
+
+	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
+
+	prometheusURLAvailable := true
+	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
+	if err != nil || prometheusJoinUrl == "" {
+		prometheusURLAvailable = false
+	}
 
 	efConfig := &config.FacadeConfig{
-		RestApiPort: ctx.GlobalString(restApiPort.Name),
+		RestApiPort:       ctx.GlobalString(restApiPort.Name),
+		Prometheus:        ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable,
+		PrometheusJoinURL: prometheusJoinUrl,
+		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
+
 	ef.SetLogger(log)
 	ef.SetSyncer(syncer)
 	ef.SetTpsBenchmark(tpsBenchmark)
@@ -509,6 +602,24 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
+	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
+	if err != nil {
+		return "", err
+	}
+	baseURL := serversConfig.Prometheus.PrometheusBaseURL
+	statusURL := baseURL + serversConfig.Prometheus.StatusRoute
+	resp, err := http.Get(statusURL)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return "", errors.New("prometheus URL not available")
+	}
+	joinURL := baseURL + serversConfig.Prometheus.JoinRoute
+	return joinURL, nil
 }
 
 func enableGopsIfNeeded(ctx *cli.Context, log *logger.Logger) {
@@ -550,8 +661,9 @@ func createShardCoordinator(
 	}
 
 	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
-	if err == sharding.ErrNoValidPublicKey {
+	if err == sharding.ErrPublicKeyNotFoundInGenesis {
 		log.Info("Starting as observer node...")
+
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
 	}
 	if err != nil {
@@ -624,6 +736,17 @@ func CreateElasticIndexer(
 	return dbIndexer, nil
 }
 
+func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return nodesConfig.MetaChainConsensusGroupSize, nil
+	}
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return nodesConfig.ConsensusGroupSize, nil
+	}
+
+	return 0, state.ErrUnknownShardId
+}
+
 func createNode(
 	config *config.Config,
 	nodesConfig *sharding.NodesSetup,
@@ -640,6 +763,11 @@ func createNode(
 	network *factory.Network,
 	bootstrapRoundIndex uint32,
 ) (*node.Node, error) {
+	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
@@ -650,7 +778,7 @@ func createNode(
 		node.WithBlockChain(data.Blkc),
 		node.WithDataStore(data.Store),
 		node.WithRoundDuration(nodesConfig.RoundDuration),
-		node.WithConsensusGroupSize(int(nodesConfig.ConsensusGroupSize)),
+		node.WithConsensusGroupSize(int(consensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(process.BlockProcessor),
 		node.WithBlockTracker(process.BlockTracker),
@@ -711,24 +839,23 @@ func createNode(
 	return nd, nil
 }
 
-func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger) error {
+func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger,
+	workingDir string) error {
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return err
 	}
 
 	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
-	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
+	err = log.ApplyOptions(
+		logger.WithFileRotation(hexPublicKey, filepath.Join(workingDir, defaultLogPath), "log"),
+		logger.WithStderrRedirect(),
+	)
 	if err != nil {
 		return err
 	}
 
-	err = log.ApplyOptions(logger.WithFile(logFile))
-	if err != nil {
-		return err
-	}
-
-	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
+	statsFile, err := core.CreateFile(hexPublicKey, filepath.Join(workingDir, defaultStatsPath), "txt")
 	if err != nil {
 		return err
 	}
@@ -783,4 +910,17 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	}()
 
 	return nil
+}
+
+func createApiResolver(vmAccountsDB vmcommon.BlockchainHook) (facade.ApiResolver, error) {
+	//TODO replace this with a vm factory
+	cryptoHook := hooks.NewVMCryptoHook()
+	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.ElrondTestnet)
+
+	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
+	if err != nil {
+		return nil, err
+	}
+
+	return external.NewNodeApiResolver(scDataGetter)
 }

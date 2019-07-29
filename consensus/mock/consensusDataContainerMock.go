@@ -15,7 +15,7 @@ type ConsensusCoreMock struct {
 	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
 	blocksTracker          process.BlocksTracker
-	bootstraper            process.Bootstrapper
+	bootstrapper           process.Bootstrapper
 	broadcastMessenger     consensus.BroadcastMessenger
 	chronologyHandler      consensus.ChronologyHandler
 	hasher                 hashing.Hasher
@@ -42,7 +42,7 @@ func (cdc *ConsensusCoreMock) BlocksTracker() process.BlocksTracker {
 }
 
 func (cdc *ConsensusCoreMock) BootStrapper() process.Bootstrapper {
-	return cdc.bootstraper
+	return cdc.bootstrapper
 }
 
 func (cdc *ConsensusCoreMock) BroadcastMessenger() consensus.BroadcastMessenger {
@@ -89,8 +89,8 @@ func (cdc *ConsensusCoreMock) SetBlockProcessor(blockProcessor process.BlockProc
 	cdc.blockProcessor = blockProcessor
 }
 
-func (cdc *ConsensusCoreMock) SetBootStrapper(bootstraper process.Bootstrapper) {
-	cdc.bootstraper = bootstraper
+func (cdc *ConsensusCoreMock) SetBootStrapper(bootstrapper process.Bootstrapper) {
+	cdc.bootstrapper = bootstrapper
 }
 
 func (cdc *ConsensusCoreMock) SetBroadcastMessenger(broadcastMessenger consensus.BroadcastMessenger) {

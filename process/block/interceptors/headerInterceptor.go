@@ -3,6 +3,7 @@ package interceptors
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -16,7 +17,7 @@ import (
 type HeaderInterceptor struct {
 	hdrInterceptorBase *HeaderInterceptorBase
 	headers            storage.Cacher
-	headersNonces      dataRetriever.Uint64Cacher
+	headersNonces      dataRetriever.Uint64SyncMapCacher
 	shardCoordinator   sharding.Coordinator
 }
 
@@ -25,7 +26,7 @@ type HeaderInterceptor struct {
 func NewHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	headers storage.Cacher,
-	headersNonces dataRetriever.Uint64Cacher,
+	headersNonces dataRetriever.Uint64SyncMapCacher,
 	storer storage.Storer,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
@@ -87,5 +88,8 @@ func (hi *HeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHead
 	}
 
 	hi.headers.HasOrAdd(hdrIntercepted.Hash(), hdrIntercepted.GetHeader())
-	hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hdrIntercepted.Hash())
+
+	syncMap := &dataPool.ShardIdHashSyncMap{}
+	syncMap.Store(hdrIntercepted.ShardId, hdrIntercepted.Hash())
+	hi.headersNonces.Merge(hdrIntercepted.Nonce, syncMap)
 }

@@ -1,6 +1,8 @@
 package data
 
-import "math/big"
+import (
+	"math/big"
+)
 
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
@@ -34,6 +36,8 @@ type HeaderHandler interface {
 	SetMiniBlockProcessed(hash []byte, processed bool)
 
 	IsInterfaceNil() bool
+	ItemsInBody() uint32
+	ItemsInHeader() uint32
 }
 
 // BodyHandler interface for a block body
@@ -62,16 +66,17 @@ type ChainHandler interface {
 	PutBadBlock(blockHash []byte)
 }
 
+// TransactionHandler defines the type of executable transaction
 type TransactionHandler interface {
 	IsInterfaceNil() bool
 
 	GetValue() *big.Int
-	GetData() []byte
+	GetData() string
 	GetRecvAddress() []byte
 	GetSndAddress() []byte
 
 	SetValue(*big.Int)
-	SetData([]byte)
+	SetData(string)
 	SetRecvAddress([]byte)
 	SetSndAddress([]byte)
 }
@@ -86,6 +91,8 @@ type Trie interface {
 	VerifyProof(proofs [][]byte, key []byte) (bool, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
+	String() string
+	DeepClone() (Trie, error)
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
