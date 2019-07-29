@@ -40,9 +40,6 @@ func createMockMetaPools() *mock.MetaPoolsHolderStub {
 			RemoveCalled: func(key []byte) {
 				return
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
-				return true
-			},
 		}
 		return sds
 	}

@@ -82,9 +82,6 @@ func TestGetShardHeaderShouldGetHeaderFromStorage(t *testing.T) {
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
-		PutCalled: func(key []byte, value interface{}) (evicted bool) {
-			return true
-		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &mock.ChainStorerMock{
@@ -160,9 +157,6 @@ func TestGetMetaHeaderShouldGetHeaderFromStorage(t *testing.T) {
 	cacher := &mock.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
-		},
-		PutCalled: func(key []byte, value interface{}) (evicted bool) {
-			return true
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}

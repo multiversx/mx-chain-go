@@ -330,7 +330,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{
-			GetCalled: func(key []byte) (i []byte, e error) {
+			GetCalled: func(key []byte) ([]byte, error) {
 				return nil, errors.New("key not found")
 			},
 		},
@@ -363,17 +363,9 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 				return nil
 			},
 		},
-		&mock.CacherStub{
-			PeekCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
-			},
-		},
+		&mock.CacherStub{},
 		headersNonces,
-		&mock.StorerStub{
-			GetCalled: func(key []byte) (i []byte, e error) {
-				return make([]byte, 0), nil
-			},
-		},
+		&mock.StorerStub{},
 		&mock.StorerStub{
 			GetCalled: func(key []byte) (i []byte, e error) {
 				return nil, errors.New("key not found")

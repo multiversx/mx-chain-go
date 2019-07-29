@@ -113,9 +113,6 @@ func createMockPools() *mock.PoolsHolderStub {
 			RemoveCalled: func(key []byte) {
 				return
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
-				return true
-			},
 		}
 		return sds
 	}
@@ -126,7 +123,6 @@ func createMockPools() *mock.PoolsHolderStub {
 			},
 			RegisterHandlerCalled: func(handler func(nonce uint64, shardId uint32, hash []byte)) {},
 			RemoveNonceCalled:     func(u uint64) {},
-			MergeCalled:           func(nonce uint64, src dataRetriever.ShardIdHashMap) {},
 		}
 		return hnc
 	}

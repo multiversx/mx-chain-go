@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/track"
@@ -160,9 +159,6 @@ func TestShardBlockTracker_RemoveNotarisedBlocksShouldNotRemoveIfGetShardHeaderE
 		HeadersCalled: func() storage.Cacher {
 			return nil
 		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			return nil
-		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -192,9 +188,6 @@ func TestShardBlockTracker_RemoveNotarisedBlocksShouldWork(t *testing.T) {
 					return header, true
 				},
 			}
-		},
-		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
-			return &mock.Uint64SyncMapCacherStub{}
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
