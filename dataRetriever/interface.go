@@ -173,7 +173,7 @@ type Uint64SyncMapCacher interface {
 	RemoveNonce(nonce uint64)
 	RemoveShardId(nonce uint64, shardId uint32)
 	RegisterHandler(handler func(nonce uint64, shardId uint32, value []byte))
-	Has(nonce uint64) bool
+	Has(nonce uint64, shardId uint32) bool
 }
 
 // PoolsHolder defines getters for data pools

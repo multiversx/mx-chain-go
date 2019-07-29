@@ -315,20 +315,17 @@ func TestTpsBenchmark_Concurrent(t *testing.T) {
 	roundDuration := uint64(6)
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(nrOfShards, roundDuration)
 	txCount := uint32(10)
+	nrGoroutines := 100000
 
 	wg := sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(nrGoroutines)
 
-	go func() {
-		updateTpsBenchmark(tpsBenchmark, txCount)
-		wg.Done()
-	}()
-
-	go func() {
-		updateTpsBenchmark(tpsBenchmark, txCount)
-		wg.Done()
-	}()
-
+	for i := 0; i < nrGoroutines; i++ {
+		go func() {
+			updateTpsBenchmark(tpsBenchmark, txCount)
+			wg.Done()
+		}()
+	}
 	wg.Wait()
 
 	bigTxCount := big.NewInt(int64(txCount))
