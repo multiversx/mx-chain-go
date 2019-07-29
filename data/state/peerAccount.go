@@ -6,16 +6,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+// TimeStamp is a moment defined by epoch and round
 type TimeStamp struct {
 	Epoch uint64
 	Round uint64
 }
 
+// TimePeriod holds start and end time
 type TimePeriod struct {
 	StartTime TimeStamp
 	EndTime   TimeStamp
 }
 
+// SignRate is used to keep the number of success and failed signings
 type SignRate struct {
 	NrSuccess uint32
 	NrFailure uint32
@@ -179,7 +182,7 @@ func (a *PeerAccount) DataTrieTracker() DataTrieTracker {
 // SetAddressWithJournal sets the account's address, saving the old address before changing
 func (a *PeerAccount) SetAddressWithJournal(address []byte) error {
 	if len(address) < 1 {
-		return ErrNilAddress
+		return ErrEmptyAddress
 	}
 
 	entry, err := NewPeerJournalEntryAddress(a, a.Address)
@@ -193,7 +196,7 @@ func (a *PeerAccount) SetAddressWithJournal(address []byte) error {
 	return a.accountTracker.SaveAccount(a)
 }
 
-// SetSchnorrPublicKeyWithJournal sets the account's address, saving the old address before changing
+// SetSchnorrPublicKeyWithJournal sets the account's public key, saving the old key before changing
 func (a *PeerAccount) SetSchnorrPublicKeyWithJournal(pubKey []byte) error {
 	if len(pubKey) < 1 {
 		return ErrNilSchnorrPublicKey
@@ -210,7 +213,7 @@ func (a *PeerAccount) SetSchnorrPublicKeyWithJournal(pubKey []byte) error {
 	return a.accountTracker.SaveAccount(a)
 }
 
-// SetSchnorrPublicKeyWithJournal sets the account's address, saving the old address before changing
+// SetBLSPublicKeyWithJournal sets the account's bls public key, saving the old key before changing
 func (a *PeerAccount) SetBLSPublicKeyWithJournal(pubKey []byte) error {
 	if len(pubKey) < 1 {
 		return ErrNilBLSPublicKey

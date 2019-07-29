@@ -4,13 +4,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+// Type defines account types
 type Type uint8
 
 const (
-	UserAccount      Type = 0
-	ShardStatistics  Type = 1
+	// UserAccount identifies an account holding balance, storage updates, code
+	UserAccount Type = 0
+	// ShardStatistics identifies a shard, keeps the statistics
+	ShardStatistics Type = 1
+	// ValidatorAccount identifies an account holding stake, crypto public keys, assigned shard, rating
 	ValidatorAccount Type = 2
-	InvalidType      Type = 3
 )
 
 // NewAccountFactoryCreator returns an account factory depending on shard coordinator self id
@@ -22,8 +25,6 @@ func NewAccountFactoryCreator(accountType Type) (state.AccountFactory, error) {
 		return NewMetaAccountCreator(), nil
 	case ValidatorAccount:
 		return NewPeerAccountCreator(), nil
-	case InvalidType:
-		return nil, state.ErrUnknownAccountType
 	default:
 		return nil, state.ErrUnknownAccountType
 	}

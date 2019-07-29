@@ -12,7 +12,7 @@ import (
 func TestNewAccountFactoryCreator_BadType(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.InvalidType)
+	accF, err := factory.NewAccountFactoryCreator(5)
 
 	assert.Equal(t, err, state.ErrUnknownAccountType)
 	assert.Nil(t, accF)

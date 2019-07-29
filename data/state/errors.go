@@ -134,13 +134,11 @@ var ErrBech32WrongAddr = errors.New("wrong bech32 string")
 // ErrNilStake signals that the provided stake is nil
 var ErrNilStake = errors.New("stake is nil")
 
-// ErrNilAddress signals that the provided addres is nil
-var ErrNilAddress = errors.New("address is nil")
-
 // ErrNilSchnorrPublicKey signals that the provided schnorr public is nil
 var ErrNilSchnorrPublicKey = errors.New("schnorr public key is nil")
 
 // ErrNilBLSPublicKey signals that the provided BLS public key is nil
 var ErrNilBLSPublicKey = errors.New("bls public key is nil")
 
+// ErrUnknownAccountType signals that the provided account type is unknown
 var ErrUnknownAccountType = errors.New("account type is unknown")

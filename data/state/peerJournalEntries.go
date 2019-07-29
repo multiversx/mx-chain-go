@@ -37,8 +37,11 @@ type PeerJournalEntrySchnorrPublicKey struct {
 	oldSchnorrPubKey []byte
 }
 
-// NewPeerJournalEntryAddress outputs a new PeerJournalEntry implementation used to revert a round change
-func NewPeerJournalEntrySchnorrPublicKey(account *PeerAccount, oldSchnorrPubKey []byte) (*PeerJournalEntrySchnorrPublicKey, error) {
+// NewPeerJournalEntrySchnorrPublicKey outputs a new PeerJournalEntrySchnorrPublicKey implementation used to revert a round change
+func NewPeerJournalEntrySchnorrPublicKey(
+	account *PeerAccount,
+	oldSchnorrPubKey []byte,
+) (*PeerJournalEntrySchnorrPublicKey, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
@@ -64,7 +67,7 @@ type PeerJournalEntryBLSPublicKey struct {
 	oldBLSPubKey []byte
 }
 
-// NewPeerJournalEntryBLSPublicKey outputs a new PeerJournalEntry implementation used to revert a round change
+// NewPeerJournalEntryBLSPublicKey outputs a new PeerJournalEntryBLSPublicKey implementation used to revert a round change
 func NewPeerJournalEntryBLSPublicKey(account *PeerAccount, oldPubKey []byte) (*PeerJournalEntryBLSPublicKey, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
@@ -91,7 +94,7 @@ type PeerJournalEntryStake struct {
 	oldStake *big.Int
 }
 
-// NewPeerJournalEntryStake outputs a new PeerJournalEntry implementation used to revert a stake change
+// NewPeerJournalEntryStake outputs a new PeerJournalEntryStake implementation used to revert a stake change
 func NewPeerJournalEntryStake(account *PeerAccount, oldStake *big.Int) (*PeerJournalEntryStake, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
@@ -116,7 +119,7 @@ type PeerJournalEntryJailTime struct {
 	oldPeriod TimePeriod
 }
 
-// NewPeerJournalEntryJailTime outputs a new PeerJournalEntry implementation used to revert a state change
+// NewPeerJournalEntryJailTime outputs a new PeerJournalEntryJailTime implementation used to revert a state change
 func NewPeerJournalEntryJailTime(account *PeerAccount, oldJailTime TimePeriod) (*PeerJournalEntryJailTime, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
@@ -141,7 +144,7 @@ type PeerJournalEntryCurrentShardId struct {
 	oldShardId uint32
 }
 
-// NewPeerJournalEntryCurrentShardId outputs a new PeerJournalEntry implementation used to revert a state change
+// NewPeerJournalEntryCurrentShardId outputs a new PeerJournalEntryCurrentShardId implementation used to revert a state change
 func NewPeerJournalEntryCurrentShardId(account *PeerAccount, oldShId uint32) (*PeerJournalEntryCurrentShardId, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
@@ -166,7 +169,7 @@ type PeerJournalEntryNextShardId struct {
 	oldShardId uint32
 }
 
-// NewPeerJournalEntryNextShardId outputs a new PeerJournalEntry implementation used to revert a state change
+// NewPeerJournalEntryNextShardId outputs a new PeerJournalEntryNextShardId implementation used to revert a state change
 func NewPeerJournalEntryNextShardId(account *PeerAccount, oldShId uint32) (*PeerJournalEntryNextShardId, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
@@ -191,8 +194,11 @@ type PeerJournalEntryInWaitingList struct {
 	oldInWaitingList bool
 }
 
-// NewPeerJournalEntryInWaitingList outputs a new PeerJournalEntry implementation used to revert a state change
-func NewPeerJournalEntryInWaitingList(account *PeerAccount, oldInWaitingList bool) (*PeerJournalEntryInWaitingList, error) {
+// NewPeerJournalEntryInWaitingList outputs a new PeerJournalEntryInWaitingList implementation used to revert a state change
+func NewPeerJournalEntryInWaitingList(
+	account *PeerAccount,
+	oldInWaitingList bool,
+) (*PeerJournalEntryInWaitingList, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
@@ -216,8 +222,11 @@ type PeerJournalEntryValidatorSuccessRate struct {
 	oldSuccessRate SignRate
 }
 
-// NewPeerJournalEntryInWaitingList outputs a new PeerJournalEntry implementation used to revert a state change
-func NewPeerJournalEntryValidatorSuccessRate(account *PeerAccount, oldSuccessRate SignRate) (*PeerJournalEntryValidatorSuccessRate, error) {
+// NewPeerJournalEntryInWaitingList outputs a new PeerJournalEntryValidatorSuccessRate implementation used to revert a state change
+func NewPeerJournalEntryValidatorSuccessRate(
+	account *PeerAccount,
+	oldSuccessRate SignRate,
+) (*PeerJournalEntryValidatorSuccessRate, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
@@ -241,8 +250,11 @@ type PeerJournalEntryLeaderSuccessRate struct {
 	oldSuccessRate SignRate
 }
 
-// NewPeerJournalEntryInWaitingList outputs a new PeerJournalEntry implementation used to revert a state change
-func NewPeerJournalEntryLeaderSuccessRate(account *PeerAccount, oldSuccessRate SignRate) (*PeerJournalEntryLeaderSuccessRate, error) {
+// NewPeerJournalEntryInWaitingList outputs a new PeerJournalEntryLeaderSuccessRate implementation used to revert a state change
+func NewPeerJournalEntryLeaderSuccessRate(
+	account *PeerAccount,
+	oldSuccessRate SignRate,
+) (*PeerJournalEntryLeaderSuccessRate, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
@@ -266,7 +278,7 @@ type PeerJournalEntryRating struct {
 	oldRating uint32
 }
 
-// NewPeerJournalEntryRating outputs a new PeerJournalEntry implementation used to revert a state change
+// NewPeerJournalEntryRating outputs a new PeerJournalEntryRating implementation used to revert a state change
 func NewPeerJournalEntryRating(account *PeerAccount, oldRating uint32) (*PeerJournalEntryRating, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler

@@ -2,11 +2,11 @@ package factory
 
 import "github.com/ElrondNetwork/elrond-go/data/state"
 
-// MetaAccountCreator has a method to create a new meta accound
+// PeerAccountCreator has a method to create a new peer account
 type PeerAccountCreator struct {
 }
 
-// NewPeerAccountCreator creates a meta account creator
+// NewPeerAccountCreator creates a peer account creator
 func NewPeerAccountCreator() state.AccountFactory {
 	return &PeerAccountCreator{}
 }
