@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
-// Type defines account types
+// Type defines account types to save in accounts trie
 type Type uint8
 
 const (
