@@ -49,7 +49,7 @@ func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint
 		for i := uint32(0); i < numInvalid; i++ {
 			nodes[i].blkProcessor.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 				fmt.Println("process block invalid ", header.GetRound(), header.GetNonce(), getPkEncoded(nodes[i].pk))
-				return process.ErrInvalidBlockHash
+				return process.ErrBlockHashDoesNotMatch
 			}
 			nodes[i].blkProcessor.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint32, haveTime func() bool) (handler data.HeaderHandler, e error) {
 				return nil, process.ErrAccountStateDirty
