@@ -638,7 +638,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		accounts,
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+			ProcessTransactionCalled: func(transaction data.TransactionHandler, round uint32) error {
 				return process.ErrHigherNonceInTransaction
 			},
 		},
@@ -846,7 +846,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	}
 
 	err := errors.New("process block transaction error")
-	txProcess := func(transaction *transaction.Transaction, round uint32) error {
+	txProcess := func(transaction data.TransactionHandler, round uint32) error {
 		return err
 	}
 
@@ -3126,7 +3126,8 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	tx3ExecutionResult := uint64(0)
 
 	txProcessorMock := &mock.TxProcessorMock{
-		ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+		ProcessTransactionCalled: func(trans data.TransactionHandler, round uint32) error {
+			transaction, _ := trans.(*transaction.Transaction)
 			//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 			if transaction.Data == string(txHash1) {
 				tx1ExecutionResult = transaction.Nonce

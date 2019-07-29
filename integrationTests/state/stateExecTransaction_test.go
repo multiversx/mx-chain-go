@@ -32,7 +32,16 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
-	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator, &mock.SCProcessorMock{})
+	txProcessor, _ := transaction.NewTxProcessor(
+		accnts,
+		hasher,
+		addrConv,
+		marshalizer,
+		shardCoordinator,
+		&mock.SCProcessorMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
+	)
 
 	nonce := uint64(6)
 	balance := big.NewInt(10000)
@@ -47,10 +56,12 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
 	tx := &transaction2.Transaction{
-		Nonce:   nonce,
-		Value:   big.NewInt(1),
-		SndAddr: address.Bytes(),
-		RcvAddr: address.Bytes(),
+		Nonce:    nonce,
+		Value:    big.NewInt(1),
+		GasLimit: 2,
+		GasPrice: 1,
+		SndAddr:  address.Bytes(),
+		RcvAddr:  address.Bytes(),
 	}
 
 	err := txProcessor.ProcessTransaction(tx, 0)
@@ -58,6 +69,8 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 
 	hashAfterExec, _ := accnts.Commit()
 	assert.NotEqual(t, hashCreated, hashAfterExec)
+
+	balance = balance.Sub(balance, big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit))
 
 	accountAfterExec, _ := accnts.GetAccountWithJournal(address)
 	assert.Equal(t, nonce+1, accountAfterExec.(*state.Account).Nonce)
@@ -76,7 +89,16 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
-	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator, &mock.SCProcessorMock{})
+	txProcessor, _ := transaction.NewTxProcessor(
+		accnts,
+		hasher,
+		addrConv,
+		marshalizer,
+		shardCoordinator,
+		&mock.SCProcessorMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
+	)
 
 	nonce := uint64(6)
 	balance := big.NewInt(10000)
@@ -91,10 +113,12 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
 	tx := &transaction2.Transaction{
-		Nonce:   nonce,
-		Value:   big.NewInt(1),
-		SndAddr: address.Bytes(),
-		RcvAddr: address.Bytes(),
+		Nonce:    nonce,
+		Value:    big.NewInt(1),
+		SndAddr:  address.Bytes(),
+		RcvAddr:  address.Bytes(),
+		GasLimit: 2,
+		GasPrice: 2,
 	}
 
 	err := txProcessor.ProcessTransaction(tx, 0)
@@ -147,17 +171,30 @@ func testExecTransactionsMoreTxWithRevert(
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
-	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator, &mock.SCProcessorMock{})
+	txProcessor, _ := transaction.NewTxProcessor(
+		accnts,
+		hasher,
+		addrConv,
+		marshalizer,
+		shardCoordinator,
+		&mock.SCProcessorMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
+	)
 
 	txToGenerate := 15000
-
+	gasPrice := uint64(2)
+	gasLimit := uint64(2)
+	value := uint64(1)
 	//Step 1. execute a lot moving transactions from pubKeyBuff to another pubKeyBuff
 	for i := 0; i < txToGenerate; i++ {
 		tx := &transaction2.Transaction{
-			Nonce:   initialNonce + uint64(i),
-			Value:   big.NewInt(1),
-			SndAddr: sender.Bytes(),
-			RcvAddr: receiver.Bytes(),
+			Nonce:    initialNonce + uint64(i),
+			Value:    big.NewInt(int64(value)),
+			GasPrice: gasPrice,
+			GasLimit: gasLimit,
+			SndAddr:  sender.Bytes(),
+			RcvAddr:  receiver.Bytes(),
 		}
 
 		err := txProcessor.ProcessTransaction(tx, 0)
@@ -172,7 +209,7 @@ func testExecTransactionsMoreTxWithRevert(
 	newAccount, _ := accnts.GetAccountWithJournal(receiver)
 	account, _ := accnts.GetAccountWithJournal(sender)
 
-	assert.Equal(t, account.(*state.Account).Balance, big.NewInt(initialBalance-int64(txToGenerate)))
+	assert.Equal(t, account.(*state.Account).Balance, big.NewInt(initialBalance-int64(uint64(txToGenerate)*(gasPrice*gasLimit+value))))
 	assert.Equal(t, account.(*state.Account).Nonce, uint64(txToGenerate)+initialNonce)
 
 	assert.Equal(t, newAccount.(*state.Account).Balance, big.NewInt(int64(txToGenerate)))

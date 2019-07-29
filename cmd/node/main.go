@@ -559,6 +559,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		RestApiPort:       ctx.GlobalString(restApiPort.Name),
 		Prometheus:        ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable,
 		PrometheusJoinURL: prometheusJoinUrl,
+		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
 
 	ef.SetLogger(log)

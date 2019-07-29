@@ -393,3 +393,18 @@ var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor co
 
 // ErrNilPreProcessorsContainer signals that preprocessors container is nil
 var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
+
+// ErrNotEnoughFeeInTransactions signals that the transaction does not enough fee
+var ErrNotEnoughFeeInTransactions = errors.New("transaction fee is not enough")
+
+// ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
+var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
+
+// ErrTxsFeesDoesNotMatch signals that txs fees do not match
+var ErrTxsFeesDoesNotMatch = errors.New("calculated tx fees with block tx fee does not match")
+
+// ErrNilTxTypeHandler signals that tx type handler is nil
+var ErrNilTxTypeHandler = errors.New("nil tx type handler")
+
+// ErrNilSpecialAddressHandler signals that special address handler is nil
+var ErrNilSpecialAddressHandler = errors.New("nil special address handler")

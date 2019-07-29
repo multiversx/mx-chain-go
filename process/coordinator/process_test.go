@@ -368,7 +368,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+			ProcessTransactionCalled: func(transaction data.TransactionHandler, round uint32) error {
 				return nil
 			},
 		},
@@ -391,7 +391,7 @@ func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder)
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+			ProcessTransactionCalled: func(transaction data.TransactionHandler, round uint32) error {
 				return nil
 			},
 		},
@@ -604,7 +604,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+			ProcessTransactionCalled: func(transaction data.TransactionHandler, round uint32) error {
 				return nil
 			},
 		},
@@ -688,7 +688,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+			ProcessTransactionCalled: func(transaction data.TransactionHandler, round uint32) error {
 				return nil
 			},
 		},
@@ -1112,7 +1112,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		accounts,
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+			ProcessTransactionCalled: func(transaction data.TransactionHandler, round uint32) error {
 				return process.ErrHigherNonceInTransaction
 			},
 		},
@@ -1230,7 +1230,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		accounts,
 		requestHandler,
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+			ProcessTransactionCalled: func(transaction data.TransactionHandler, round uint32) error {
 				return nil
 			},
 		},
@@ -1332,16 +1332,17 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		accounts,
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+			ProcessTransactionCalled: func(trans data.TransactionHandler, round uint32) error {
 				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
-				if transaction.Data == string(txHash1) {
-					tx1ExecutionResult = transaction.Nonce
+				tx, _ := trans.(*transaction.Transaction)
+				if tx.Data == string(txHash1) {
+					tx1ExecutionResult = tx.Nonce
 				}
-				if transaction.Data == string(txHash2) {
-					tx2ExecutionResult = transaction.Nonce
+				if tx.Data == string(txHash2) {
+					tx2ExecutionResult = tx.Nonce
 				}
-				if transaction.Data == string(txHash3) {
-					tx3ExecutionResult = transaction.Nonce
+				if tx.Data == string(txHash3) {
+					tx3ExecutionResult = tx.Nonce
 				}
 
 				return nil
@@ -1444,8 +1445,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		accounts,
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
-				if transaction.Data == string(txHash2) {
+			ProcessTransactionCalled: func(transaction data.TransactionHandler, round uint32) error {
+				if transaction.GetData() == string(txHash2) {
 					return process.ErrHigherNonceInTransaction
 				}
 				return nil
@@ -1489,6 +1490,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		adrConv,
+		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 	)
 	container, _ := factory.Create()
@@ -1532,6 +1534,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		adrConv,
+		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 	)
 	container, _ := factory.Create()
