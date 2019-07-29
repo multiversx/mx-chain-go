@@ -893,13 +893,11 @@ func (sp *shardProcessor) requestFinalMissingHeaders() uint32 {
 			continue
 		}
 
-		_, _, err := process.GetMetaHeaderWithNonce(
+		//TODO: Shoud be called process.GetMetaHeaderWithNonce?
+		_, _, err := process.GetMetaHeaderFromPoolWithNonce(
 			i,
 			sp.dataPool.MetaBlocks(),
-			sp.dataPool.HeadersNonces(),
-			sp.marshalizer,
-			sp.store,
-			sp.uint64Converter)
+			sp.dataPool.HeadersNonces())
 		if err != nil {
 			requestedBlockHeaders++
 			go sp.onRequestHeaderHandlerByNonce(sharding.MetachainShardId, i)
@@ -953,11 +951,10 @@ func (sp *shardProcessor) computeMissingHeaders(header *block.Header) [][]byte {
 	sp.currHighestMetaHdrNonce = uint64(0)
 
 	for i := 0; i < len(header.MetaBlockHashes); i++ {
-		hdr, err := process.GetMetaHeader(
+		//TODO: Shoud be called process.GetMetaHeader?
+		hdr, err := process.GetMetaHeaderFromPool(
 			header.MetaBlockHashes[i],
-			sp.dataPool.MetaBlocks(),
-			sp.marshalizer,
-			sp.store)
+			sp.dataPool.MetaBlocks())
 		if err != nil {
 			missingHeaders = append(missingHeaders, header.MetaBlockHashes[i])
 			continue

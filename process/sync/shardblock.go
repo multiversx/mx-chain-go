@@ -407,7 +407,8 @@ func (boot *ShardBootstrap) cleanupNotarizedStorage(lastNotarized map[uint32]uin
 }
 
 func (boot *ShardBootstrap) receivedHeaders(headerHash []byte) {
-	header, err := process.GetShardHeader(headerHash, boot.headers, boot.marshalizer, boot.store)
+	//TODO: Shoud be called process.GetShardHeader?
+	header, err := process.GetShardHeaderFromPool(headerHash, boot.headers)
 	if err != nil {
 		log.Debug(err.Error())
 		return
@@ -617,14 +618,12 @@ func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
 // be requested from network
 func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (*block.Header, error) {
-	hdr, _, err := process.GetShardHeaderWithNonce(
+	//TODO: Shoud be called process.GetShardHeaderWithNonce?
+	hdr, _, err := process.GetShardHeaderFromPoolWithNonce(
 		nonce,
 		boot.shardCoordinator.SelfId(),
 		boot.headers,
-		boot.headersNonces,
-		boot.marshalizer,
-		boot.store,
-		boot.uint64Converter)
+		boot.headersNonces)
 	if err != nil {
 		process.EmptyChannel(boot.chRcvHdrNonce)
 		boot.requestHeaderWithNonce(nonce)
@@ -649,7 +648,8 @@ func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) 
 // getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,
 // it will be requested from network
 func (boot *ShardBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (*block.Header, error) {
-	hdr, err := process.GetShardHeader(hash, boot.headers, boot.marshalizer, boot.store)
+	//TODO: Shoud be called process.GetShardHeader?
+	hdr, err := process.GetShardHeaderFromPool(hash, boot.headers)
 	if err != nil {
 		process.EmptyChannel(boot.chRcvHdrHash)
 		boot.requestHeaderWithHash(hash)

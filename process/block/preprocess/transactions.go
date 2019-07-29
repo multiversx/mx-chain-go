@@ -339,13 +339,12 @@ func (txs *transactions) computeMissingTxsForMiniBlock(mb block.MiniBlock) [][]b
 
 	missingTransactions := make([][]byte, 0)
 	for _, txHash := range mb.TxHashes {
-		tx, _ := process.GetTransaction(
+		//TODO: Shoud be called process.GetTransaction?
+		tx, _ := process.GetTransactionFromPool(
 			mb.SenderShardID,
 			mb.ReceiverShardID,
 			txHash,
-			txs.txPool,
-			txs.store,
-			txs.marshalizer)
+			txs.txPool)
 
 		if tx == nil {
 			missingTransactions = append(missingTransactions, txHash)

@@ -318,7 +318,8 @@ func (boot *MetaBootstrap) cleanupNotarizedStorage(lastNotarized map[uint32]uint
 }
 
 func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
-	header, err := process.GetMetaHeader(headerHash, boot.headers, boot.marshalizer, boot.store)
+	//TODO: Shoud be called process.GetMetaHeader?
+	header, err := process.GetMetaHeaderFromPool(headerHash, boot.headers)
 	if err != nil {
 		log.Debug(err.Error())
 		return
@@ -489,13 +490,11 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
 // be requested from network
 func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (*block.MetaBlock, error) {
-	hdr, _, err := process.GetMetaHeaderWithNonce(
+	//TODO: Shoud be called process.GetMetaHeaderWithNonce?
+	hdr, _, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
 		boot.headers,
-		boot.headersNonces,
-		boot.marshalizer,
-		boot.store,
-		boot.uint64Converter)
+		boot.headersNonces)
 	if err != nil {
 		process.EmptyChannel(boot.chRcvHdrNonce)
 		boot.requestHeaderWithNonce(nonce)
@@ -519,7 +518,8 @@ func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 // getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,
 // it will be requested from network
 func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (*block.MetaBlock, error) {
-	hdr, err := process.GetMetaHeader(hash, boot.headers, boot.marshalizer, boot.store)
+	//TODO: Shoud be called process.GetMetaHeader?
+	hdr, err := process.GetMetaHeaderFromPool(hash, boot.headers)
 	if err != nil {
 		process.EmptyChannel(boot.chRcvHdrHash)
 		boot.requestHeaderWithHash(hash)

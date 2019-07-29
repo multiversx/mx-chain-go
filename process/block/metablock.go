@@ -794,14 +794,12 @@ func (mp *metaProcessor) requestFinalMissingHeaders() uint32 {
 				continue
 			}
 
-			_, _, err := process.GetShardHeaderWithNonce(
+			//TODO: Shoud be called process.GetShardHeaderWithNonce?
+			_, _, err := process.GetShardHeaderFromPoolWithNonce(
 				i,
 				shardId,
 				mp.dataPool.ShardHeaders(),
-				mp.dataPool.HeadersNonces(),
-				mp.marshalizer,
-				mp.store,
-				mp.uint64Converter)
+				mp.dataPool.HeadersNonces())
 			if err != nil {
 				requestedBlockHeaders++
 				go mp.onRequestHeaderHandlerByNonce(shardId, i)
@@ -862,11 +860,10 @@ func (mp *metaProcessor) computeMissingHeaders(metaBlock *block.MetaBlock) map[u
 
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		shardData := metaBlock.ShardInfo[i]
-		hdr, err := process.GetShardHeader(
+		//TODO: Shoud be called process.GetShardHeader?
+		hdr, err := process.GetShardHeaderFromPool(
 			shardData.HeaderHash,
-			mp.dataPool.ShardHeaders(),
-			mp.marshalizer,
-			mp.store)
+			mp.dataPool.ShardHeaders())
 		if err != nil {
 			missingHeaders[shardData.ShardId] = append(missingHeaders[shardData.ShardId], shardData.HeaderHash)
 			continue
