@@ -143,8 +143,6 @@ func (s *TpsBenchmark) isMissingNonce(nonce uint64) bool {
 }
 
 func (s *TpsBenchmark) isMetaBlockRelevant(mb *block.MetaBlock) bool {
-	s.mut.RLock()
-	defer s.mut.RUnlock()
 	if mb == nil {
 		return false
 	}
@@ -169,11 +167,12 @@ func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
 		return
 	}
 
+	s.mut.RLock()
 	if !s.isMetaBlockRelevant(mb) {
+		s.mut.RUnlock()
 		return
 	}
 
-	s.mut.RLock()
 	if mb.Nonce > s.blockNumber {
 		for i := s.blockNumber + 1; i < mb.Nonce; i++ {
 			s.addMissingNonce(i)
