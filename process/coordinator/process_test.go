@@ -3,6 +3,7 @@ package coordinator
 import (
 	"bytes"
 	"errors"
+	"math/big"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -380,6 +381,19 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 	return container
 }
 
+func createInterimProcessorContainer() process.IntermediateProcessorContainer {
+	factory, _ := shard.NewIntermediateProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		initStore(),
+	)
+	container, _ := factory.Create()
+
+	return container
+}
+
 func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder) process.PreProcessorsContainer {
 	factory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
@@ -455,14 +469,13 @@ func createMiniBlockWithOneTx(sndId, dstId uint32, blockType block.Type, txHash 
 
 func createTestBody() block.Body {
 	body := block.Body{}
-	txHashes := make([][]byte, 0)
-	txHashes = append(txHashes, []byte("tx_hash1"))
+
 	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash1")))
 	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash2")))
 	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash3")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash1")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash2")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash3")))
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash4")))
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash5")))
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash6")))
 
 	return body
 }
@@ -483,6 +496,50 @@ func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
 
 	mrBody, mrTxs := tc.CreateMarshalizedData(createTestBody())
 	assert.Equal(t, 0, len(mrTxs))
+	assert.Equal(t, 1, len(mrBody))
+	assert.Equal(t, len(createTestBody()), len(mrBody[1]))
+}
+
+func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T) {
+	t.Parallel()
+
+	interimContainer := createInterimProcessorContainer()
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderFake(),
+		&mock.RequestHandlerMock{},
+		createPreProcessorContainer(),
+		interimContainer,
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	scrs := make([]data.TransactionHandler, 0)
+	body := block.Body{}
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash1")))
+
+	scr := &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(99)}
+	scrHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, scr)
+	scrs = append(scrs, scr)
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
+
+	scr = &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(199)}
+	scrHash, _ = core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, scr)
+	scrs = append(scrs, scr)
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
+
+	scr = &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(299)}
+	scrHash, _ = core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, scr)
+	scrs = append(scrs, scr)
+	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
+
+	scrInterimProc, _ := interimContainer.Get(block.SmartContractResultBlock)
+	_ = scrInterimProc.AddIntermediateTransactions(scrs)
+
+	mrBody, mrTxs := tc.CreateMarshalizedData(body)
+	assert.Equal(t, 1, len(mrTxs))
+	assert.Equal(t, len(scrs), len(mrTxs[1]))
 	assert.Equal(t, 1, len(mrBody))
 }
 

@@ -563,6 +563,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 		if receiverShardId == tc.shardCoordinator.SelfId() { // not taking into account miniblocks for current shard
 			continue
 		}
+
 		preproc := tc.getPreprocessor(miniblock.Type)
 		if preproc == nil {
 			continue
@@ -578,6 +579,22 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 		if len(currMrsTxs) > 0 {
 			mrsTxs[receiverShardId] = append(mrsTxs[receiverShardId], currMrsTxs...)
+		}
+
+		// search in interim processor's as well
+		interimProc := tc.getInterimProcessor(miniblock.Type)
+		if interimProc == nil {
+			continue
+		}
+
+		currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
+		if err != nil {
+			log.Debug(err.Error())
+			continue
+		}
+
+		if len(currMrsInterTxs) > 0 {
+			mrsTxs[receiverShardId] = append(mrsTxs[receiverShardId], currMrsInterTxs...)
 		}
 	}
 

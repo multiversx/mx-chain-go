@@ -582,3 +582,97 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 	assert.Nil(t, err)
 	assert.Equal(t, len(txs), putCounter)
 }
+
+func TestIntermediateResultsProcessor_CreateMarshalizedDataNothingToMarshal(t *testing.T) {
+	t.Parallel()
+
+	nrShards := 5
+	adrConv := &mock.AddressConverterMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	irp, err := NewIntermediateResultsProcessor(
+		hasher,
+		marshalizer,
+		shardCoordinator,
+		adrConv,
+		&mock.ChainStorerMock{},
+		block.SmartContractResultBlock,
+	)
+
+	assert.NotNil(t, irp)
+	assert.Nil(t, err)
+
+	// nothing to marshal
+	mrsTxs, err := irp.CreateMarshalizedData(nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(mrsTxs))
+
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, []byte("bad1"), []byte("bad2"), []byte("bad3"))
+
+	// nothing saved in local cacher to marshal
+	mrsTxs, err = irp.CreateMarshalizedData(nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(mrsTxs))
+}
+
+func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
+	t.Parallel()
+
+	nrShards := 5
+	adrConv := &mock.AddressConverterMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	irp, err := NewIntermediateResultsProcessor(
+		hasher,
+		marshalizer,
+		shardCoordinator,
+		adrConv,
+		&mock.ChainStorerMock{},
+		block.SmartContractResultBlock,
+	)
+
+	assert.NotNil(t, irp)
+	assert.Nil(t, err)
+
+	snd := []byte("snd")
+
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		if bytes.Equal(address.Bytes(), snd) {
+			return shardCoordinator.SelfId()
+		}
+		return shardCoordinator.SelfId() + 1
+	}
+
+	txHashes := make([][]byte, 0)
+	txs := make([]data.TransactionHandler, 0)
+
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1")})
+	currHash, _ := core.CalculateHash(marshalizer, hasher, txs[0])
+	txHashes = append(txHashes, currHash)
+
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2")})
+	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[1])
+	txHashes = append(txHashes, currHash)
+
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr3")})
+	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[2])
+	txHashes = append(txHashes, currHash)
+
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4")})
+	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[3])
+	txHashes = append(txHashes, currHash)
+
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5")})
+	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[4])
+	txHashes = append(txHashes, currHash)
+
+	err = irp.AddIntermediateTransactions(txs)
+	assert.Nil(t, err)
+
+	mrsTxs, err := irp.CreateMarshalizedData(txHashes)
+	assert.Nil(t, err)
+	assert.Equal(t, len(txs), len(mrsTxs))
+}
