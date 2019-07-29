@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -382,6 +383,14 @@ func WithTxStorageSize(txStorageSize uint32) Option {
 func WithBootstrapRoundIndex(bootstrapRoundIndex uint32) Option {
 	return func(n *Node) error {
 		n.bootstrapRoundIndex = bootstrapRoundIndex
+		return nil
+	}
+}
+
+// WithStatusHandlers sets up which handler will monitor the status of the node
+func WithAppStatusHandler(aph core.AppStatusHandler) Option {
+	return func(n *Node) error {
+		n.appStatusHandler = aph
 		return nil
 	}
 }

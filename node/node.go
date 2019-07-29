@@ -74,6 +74,7 @@ type Node struct {
 	resolversFinder          dataRetriever.ResolversFinder
 	heartbeatMonitor         *heartbeat.Monitor
 	heartbeatSender          *heartbeat.Sender
+	appStatusHandler         core.AppStatusHandler
 
 	txSignPrivKey  crypto.PrivateKey
 	txSignPubKey   crypto.PublicKey
@@ -130,6 +131,11 @@ func NewNode(opts ...Option) (*Node, error) {
 	}
 
 	return node, nil
+}
+
+// GetAppStatusHandler will return the current status handler
+func (n *Node) GetAppStatusHandler() core.AppStatusHandler {
+	return n.appStatusHandler
 }
 
 // IsRunning will return the current state of the node
@@ -220,6 +226,16 @@ func (n *Node) StartConsensus() error {
 	bootstrapper, err := n.createBootstrapper(n.rounder)
 	if err != nil {
 		return err
+	}
+
+	if n.appStatusHandler != nil {
+		bootstrapper.AddSyncStateListener(func(b bool) {
+			if b {
+				n.appStatusHandler.SetUInt64Value(core.MetricIsSyncing, uint64(0))
+			} else {
+				n.appStatusHandler.SetUInt64Value(core.MetricIsSyncing, uint64(1))
+			}
+		})
 	}
 
 	bootstrapper.StartSync()
@@ -391,7 +407,8 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 	chr, err := chronology.NewChronology(
 		n.genesisTime,
 		rounder,
-		n.syncTimer)
+		n.syncTimer,
+		n.appStatusHandler)
 
 	if err != nil {
 		return nil, err

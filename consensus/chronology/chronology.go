@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 )
@@ -27,6 +28,7 @@ type chronology struct {
 	subrounds        map[int]int
 	subroundHandlers []consensus.SubroundHandler
 	mutSubrounds     sync.RWMutex
+	ash              core.AppStatusHandler
 }
 
 // NewChronology creates a new chronology object
@@ -34,6 +36,7 @@ func NewChronology(
 	genesisTime time.Time,
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
+	ash core.AppStatusHandler,
 ) (*chronology, error) {
 
 	err := checkNewChronologyParams(
@@ -54,6 +57,8 @@ func NewChronology(
 
 	chr.subrounds = make(map[int]int)
 	chr.subroundHandlers = make([]consensus.SubroundHandler, 0)
+
+	chr.ash = ash
 
 	return &chr, nil
 }
@@ -125,7 +130,9 @@ func (chr *chronology) startRound() {
 		chr.subroundId = srBeforeStartRound
 		return
 	}
-
+	if chr.ash != nil {
+		chr.ash.SetInt64Value(core.MetricCurrentRound, int64(chr.rounder.Index()))
+	}
 	chr.subroundId = sr.Next()
 }
 

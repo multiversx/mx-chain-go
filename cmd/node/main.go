@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -36,7 +37,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/pkg/profile"
@@ -510,6 +512,17 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
+	prometheusURLAvailable := true
+	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
+	if err != nil || prometheusJoinUrl == "" {
+		prometheusURLAvailable = false
+	}
+	usePrometheusBool := ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable
+
+	if !usePrometheusBool {
+		coreComponents.AppStatusHandler = statusHandler.NewNillStatusHandler()
+	}
+
 	processArgs := factory.NewProcessComponentsFactoryArgs(genesisConfig, nodesConfig, syncer, shardCoordinator,
 		dataComponents, coreComponents, cryptoComponents, stateComponents, networkComponents, coreServiceContainer)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
@@ -547,17 +560,24 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
+	if currentNode.GetAppStatusHandler() != nil {
+		pollingInterval := time.Duration(generalConfig.GeneralSettings.StatusPollingIntervalSec) * time.Second
+		appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(currentNode.GetAppStatusHandler(),
+			pollingInterval)
 
-	prometheusURLAvailable := true
-	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
-	if err != nil || prometheusJoinUrl == "" {
-		prometheusURLAvailable = false
+		if err == nil {
+			err = appStatusPollingHandler.SetConnectedAddresses(networkComponents.NetMessenger)
+			if err == nil {
+				appStatusPollingHandler.Poll()
+			}
+		}
 	}
+
+	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
 
 	efConfig := &config.FacadeConfig{
 		RestApiPort:       ctx.GlobalString(restApiPort.Name),
-		Prometheus:        ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable,
+		Prometheus:        usePrometheusBool,
 		PrometheusJoinURL: prometheusJoinUrl,
 		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
@@ -788,6 +808,7 @@ func createNode(
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
+		node.WithAppStatusHandler(core.AppStatusHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

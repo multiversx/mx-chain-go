@@ -1939,6 +1939,9 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 
 	blkc, _ := blockchain.NewBlockChain(
 		generateTestCache(),
+		&mock.AppStatusHandlerStub{
+			SetUInt64ValueHandler: func(key string, value uint64) {},
+		},
 	)
 
 	err := sp.CommitBlock(blkc, hdr, body)
@@ -2015,6 +2018,9 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 
 	blkc, _ := blockchain.NewBlockChain(
 		generateTestCache(),
+		&mock.AppStatusHandlerStub{
+			SetUInt64ValueHandler: func(key string, value uint64) {},
+		},
 	)
 
 	err = sp.CommitBlock(blkc, hdr, body)

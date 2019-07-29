@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,6 +14,7 @@ func TestNewBlockChain_NilBadBlockCacheShouldError(t *testing.T) {
 
 	_, err := blockchain.NewBlockChain(
 		nil,
+		&statusHandler.NilStatusHandler{},
 	)
 
 	assert.Equal(t, err, blockchain.ErrBadBlocksCacheNil)
@@ -29,6 +31,7 @@ func TestBlockChain_IsBadBlock(t *testing.T) {
 
 	b, _ := blockchain.NewBlockChain(
 		badBlocksStub,
+		&statusHandler.NilStatusHandler{},
 	)
 
 	hasBadBlock := b.HasBadBlock([]byte("test"))
@@ -47,6 +50,7 @@ func TestBlockChain_PutBadBlock(t *testing.T) {
 
 	b, _ := blockchain.NewBlockChain(
 		badBlocksStub,
+		&statusHandler.NilStatusHandler{},
 	)
 
 	b.PutBadBlock([]byte("test"))

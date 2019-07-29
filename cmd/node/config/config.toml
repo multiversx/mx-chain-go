@@ -7,6 +7,9 @@
    # NetworkID will be used for network versions
    NetworkID = "undefined"
 
+   # StatusPollingIntervalSec represents the nr of seconds between multiple polling for  the status for AppStatusHandler
+   StatusPollingIntervalSec = 10
+
 [Explorer]
     Enabled = false
     IndexerURL = "http://localhost:9200"

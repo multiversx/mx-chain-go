@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -19,12 +20,14 @@ type BlockChain struct {
 	localHeight            int64          // Height of the local chain
 	networkHeight          int64          // Percieved height of the network chain
 	badBlocks              storage.Cacher // Bad blocks cache
+	appStatusHandler       core.AppStatusHandler
 }
 
 // NewBlockChain returns an initialized blockchain
 // It uses a config file to setup it's supported storage units map
 func NewBlockChain(
 	badBlocksCache storage.Cacher,
+	appStatusHandler core.AppStatusHandler,
 ) (*BlockChain, error) {
 
 	if badBlocksCache == nil {
@@ -37,6 +40,7 @@ func NewBlockChain(
 		localHeight:        -1,
 		networkHeight:      -1,
 		badBlocks:          badBlocksCache,
+		appStatusHandler:   appStatusHandler,
 	}
 
 	return blockChain, nil
@@ -93,6 +97,10 @@ func (bc *BlockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	h, ok := header.(*block.Header)
 	if !ok {
 		return data.ErrInvalidHeaderType
+	}
+	if bc.appStatusHandler != nil {
+		bc.appStatusHandler.SetUInt64Value(core.MetricNonce, h.Nonce)
+		bc.appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, uint64(h.Round))
 	}
 	bc.CurrentBlockHeader = h
 	return nil

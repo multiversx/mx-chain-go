@@ -52,6 +52,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -100,6 +101,7 @@ func createTestShardChain() *blockchain.BlockChain {
 	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
+		&statusHandler.NilStatusHandler{},
 	)
 	blockChain.GenesisHeader = &dataBlock.Header{}
 	genisisHeaderM, _ := testMarshalizer.Marshal(blockChain.GenesisHeader)
