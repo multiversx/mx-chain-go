@@ -849,6 +849,7 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithPrivKey(&mock.PrivateKeyStub{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -883,6 +884,7 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithPrivKey(&mock.PrivateKeyStub{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -909,6 +911,7 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -941,6 +944,7 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -976,6 +980,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithPrivKey(&mock.PrivateKeyStub{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1030,6 +1035,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				}
 			},
 		}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1080,6 +1086,7 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 				}
 			},
 		}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1134,6 +1141,7 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 				}
 			},
 		}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{

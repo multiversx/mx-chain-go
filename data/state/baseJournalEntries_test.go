@@ -94,7 +94,7 @@ func TestBaseJournalEntryCodeHash_RevertOkValsShouldWork(t *testing.T) {
 func TestNewBaseJournalEntryRootHash_NilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewBaseJournalEntryRootHash(nil, nil)
+	entry, err := state.NewBaseJournalEntryRootHash(nil, nil, &mock.TrieStub{})
 
 	assert.Nil(t, entry)
 	assert.Equal(t, state.ErrNilAccountHandler, err)
@@ -103,7 +103,11 @@ func TestNewBaseJournalEntryRootHash_NilAccountShouldErr(t *testing.T) {
 func TestNewBaseJournalEntryRootHash_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewBaseJournalEntryRootHash(mock.NewAccountWrapMock(nil, nil), nil)
+	entry, err := state.NewBaseJournalEntryRootHash(
+		mock.NewAccountWrapMock(nil, nil),
+		nil,
+		&mock.TrieStub{},
+	)
 
 	assert.NotNil(t, entry)
 	assert.Nil(t, err)
@@ -115,7 +119,11 @@ func TestBaseJournalEntryRootHash_RevertOkValsShouldWork(t *testing.T) {
 	testRootHash := []byte("root hash to revert")
 	accnt := mock.NewAccountWrapMock(nil, nil)
 
-	entry, _ := state.NewBaseJournalEntryRootHash(accnt, testRootHash)
+	entry, _ := state.NewBaseJournalEntryRootHash(
+		accnt,
+		testRootHash,
+		&mock.TrieStub{},
+	)
 	_, err := entry.Revert()
 
 	assert.Nil(t, err)
@@ -162,4 +170,37 @@ func TestBaseJournalEntryData_RevertOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, tr == entry.Trie())
 	assert.True(t, wasCalled)
+}
+
+//------- BaseJournalEntryNonce
+
+func TestNewBaseJournalEntryNonce_NilAccountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewBaseJournalEntryNonce(nil, 0)
+
+	assert.Nil(t, entry)
+	assert.Equal(t, state.ErrNilAccountHandler, err)
+}
+
+func TestNewBaseJournalEntryNonce_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, err := state.NewBaseJournalEntryNonce(accnt, 0)
+
+	assert.NotNil(t, entry)
+	assert.Nil(t, err)
+}
+
+func TestBaseJournalEntryNonce_RevertOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(445)
+	accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
+	entry, _ := state.NewBaseJournalEntryNonce(accnt, nonce)
+	_, err := entry.Revert()
+
+	assert.Nil(t, err)
+	assert.Equal(t, nonce, accnt.Nonce)
 }
