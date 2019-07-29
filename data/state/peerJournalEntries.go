@@ -68,14 +68,14 @@ type PeerJournalEntryBLSPublicKey struct {
 }
 
 // NewPeerJournalEntryBLSPublicKey outputs a new PeerJournalEntryBLSPublicKey implementation used to revert a round change
-func NewPeerJournalEntryBLSPublicKey(account *PeerAccount, oldPubKey []byte) (*PeerJournalEntryBLSPublicKey, error) {
+func NewPeerJournalEntryBLSPublicKey(account *PeerAccount, oldBLSPubKey []byte) (*PeerJournalEntryBLSPublicKey, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
 
 	return &PeerJournalEntryBLSPublicKey{
 		account:      account,
-		oldBLSPubKey: oldPubKey,
+		oldBLSPubKey: oldBLSPubKey,
 	}, nil
 }
 
@@ -115,8 +115,8 @@ func (jeb *PeerJournalEntryStake) Revert() (AccountHandler, error) {
 
 // PeerJournalEntryJailTime is used to revert a balance change
 type PeerJournalEntryJailTime struct {
-	account   *PeerAccount
-	oldPeriod TimePeriod
+	account     *PeerAccount
+	oldJailTime TimePeriod
 }
 
 // NewPeerJournalEntryJailTime outputs a new PeerJournalEntryJailTime implementation used to revert a state change
@@ -126,14 +126,14 @@ func NewPeerJournalEntryJailTime(account *PeerAccount, oldJailTime TimePeriod) (
 	}
 
 	return &PeerJournalEntryJailTime{
-		account:   account,
-		oldPeriod: oldJailTime,
+		account:     account,
+		oldJailTime: oldJailTime,
 	}, nil
 }
 
 // Revert applies undo operation
 func (jeb *PeerJournalEntryJailTime) Revert() (AccountHandler, error) {
-	jeb.account.JailTime = jeb.oldPeriod
+	jeb.account.JailTime = jeb.oldJailTime
 
 	return jeb.account, nil
 }
@@ -145,14 +145,14 @@ type PeerJournalEntryCurrentShardId struct {
 }
 
 // NewPeerJournalEntryCurrentShardId outputs a new PeerJournalEntryCurrentShardId implementation used to revert a state change
-func NewPeerJournalEntryCurrentShardId(account *PeerAccount, oldShId uint32) (*PeerJournalEntryCurrentShardId, error) {
+func NewPeerJournalEntryCurrentShardId(account *PeerAccount, oldShardId uint32) (*PeerJournalEntryCurrentShardId, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
 
 	return &PeerJournalEntryCurrentShardId{
 		account:    account,
-		oldShardId: oldShId,
+		oldShardId: oldShardId,
 	}, nil
 }
 
@@ -170,14 +170,14 @@ type PeerJournalEntryNextShardId struct {
 }
 
 // NewPeerJournalEntryNextShardId outputs a new PeerJournalEntryNextShardId implementation used to revert a state change
-func NewPeerJournalEntryNextShardId(account *PeerAccount, oldShId uint32) (*PeerJournalEntryNextShardId, error) {
+func NewPeerJournalEntryNextShardId(account *PeerAccount, oldShardId uint32) (*PeerJournalEntryNextShardId, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
 
 	return &PeerJournalEntryNextShardId{
 		account:    account,
-		oldShardId: oldShId,
+		oldShardId: oldShardId,
 	}, nil
 }
 
@@ -190,84 +190,84 @@ func (jeb *PeerJournalEntryNextShardId) Revert() (AccountHandler, error) {
 
 // PeerJournalEntryInWaitingList is used to revert a shardId change
 type PeerJournalEntryInWaitingList struct {
-	account          *PeerAccount
-	oldInWaitingList bool
+	account              *PeerAccount
+	oldNodeInWaitingList bool
 }
 
 // NewPeerJournalEntryInWaitingList outputs a new PeerJournalEntryInWaitingList implementation used to revert a state change
 func NewPeerJournalEntryInWaitingList(
 	account *PeerAccount,
-	oldInWaitingList bool,
+	oldNodeInWaitingList bool,
 ) (*PeerJournalEntryInWaitingList, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
 
 	return &PeerJournalEntryInWaitingList{
-		account:          account,
-		oldInWaitingList: oldInWaitingList,
+		account:              account,
+		oldNodeInWaitingList: oldNodeInWaitingList,
 	}, nil
 }
 
 // Revert applies undo operation
 func (jeb *PeerJournalEntryInWaitingList) Revert() (AccountHandler, error) {
-	jeb.account.NodeInWaitingList = jeb.oldInWaitingList
+	jeb.account.NodeInWaitingList = jeb.oldNodeInWaitingList
 
 	return jeb.account, nil
 }
 
 // PeerJournalEntryValidatorSuccessRate is used to revert a success rate change
 type PeerJournalEntryValidatorSuccessRate struct {
-	account        *PeerAccount
-	oldSuccessRate SignRate
+	account                 *PeerAccount
+	oldValidatorSuccessRate SignRate
 }
 
-// NewPeerJournalEntryInWaitingList outputs a new PeerJournalEntryValidatorSuccessRate implementation used to revert a state change
+// NewPeerJournalEntryValidatorSuccessRate outputs a new PeerJournalEntryValidatorSuccessRate implementation used to revert a state change
 func NewPeerJournalEntryValidatorSuccessRate(
 	account *PeerAccount,
-	oldSuccessRate SignRate,
+	oldValidatorSuccessRate SignRate,
 ) (*PeerJournalEntryValidatorSuccessRate, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
 
 	return &PeerJournalEntryValidatorSuccessRate{
-		account:        account,
-		oldSuccessRate: oldSuccessRate,
+		account:                 account,
+		oldValidatorSuccessRate: oldValidatorSuccessRate,
 	}, nil
 }
 
 // Revert applies undo operation
 func (jeb *PeerJournalEntryValidatorSuccessRate) Revert() (AccountHandler, error) {
-	jeb.account.ValidatorSuccessRate = jeb.oldSuccessRate
+	jeb.account.ValidatorSuccessRate = jeb.oldValidatorSuccessRate
 
 	return jeb.account, nil
 }
 
 // PeerJournalEntryLeaderSuccessRate is used to revert a success rate change
 type PeerJournalEntryLeaderSuccessRate struct {
-	account        *PeerAccount
-	oldSuccessRate SignRate
+	account              *PeerAccount
+	oldLeaderSuccessRate SignRate
 }
 
-// NewPeerJournalEntryInWaitingList outputs a new PeerJournalEntryLeaderSuccessRate implementation used to revert a state change
+// NewPeerJournalEntryLeaderSuccessRate outputs a new PeerJournalEntryLeaderSuccessRate implementation used to revert a state change
 func NewPeerJournalEntryLeaderSuccessRate(
 	account *PeerAccount,
-	oldSuccessRate SignRate,
+	oldLeaderSuccessRate SignRate,
 ) (*PeerJournalEntryLeaderSuccessRate, error) {
 	if account == nil {
 		return nil, ErrNilAccountHandler
 	}
 
 	return &PeerJournalEntryLeaderSuccessRate{
-		account:        account,
-		oldSuccessRate: oldSuccessRate,
+		account:              account,
+		oldLeaderSuccessRate: oldLeaderSuccessRate,
 	}, nil
 }
 
 // Revert applies undo operation
 func (jeb *PeerJournalEntryLeaderSuccessRate) Revert() (AccountHandler, error) {
-	jeb.account.LeaderSuccessRate = jeb.oldSuccessRate
+	jeb.account.LeaderSuccessRate = jeb.oldLeaderSuccessRate
 
 	return jeb.account, nil
 }
