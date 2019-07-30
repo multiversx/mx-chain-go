@@ -305,7 +305,7 @@ func TestElasticIndexer_buildTransactionBulks(t *testing.T) {
 }
 
 func TestElasticIndexer_buildTransactionBulksWithSCResults(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 	testSCKey := "utx1"
 	testSCResult := &smartContractResult.SmartContractResult{
 		Nonce:  1,
