@@ -3110,9 +3110,11 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeShouldErr(t *testing
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
-	_, _, _, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, 2, haveTimeReturnsBool)
+	miniBlocks, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, 2, haveTimeReturnsBool)
 
-	assert.NotNil(t, err)
+	assert.Equal(t, 0, len(miniBlocks))
+	assert.Equal(t, 0, len(usedMetaHdrsHashes))
+	assert.Equal(t, uint32(0), nrTxAdded)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
@@ -3221,8 +3223,11 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeShouldErr2(t *testin
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
-	_, _, _, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, 2, haveTimeReturnsBool)
+	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, 2, haveTimeReturnsBool)
 
+	assert.Equal(t, 0, len(miniBlocksReturned))
+	assert.Equal(t, 0, len(usedMetaHdrsHashes))
+	assert.Equal(t, uint32(0), nrTxAdded)
 	assert.Nil(t, err)
 }
 
