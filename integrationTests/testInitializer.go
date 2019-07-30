@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -38,6 +39,7 @@ import (
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
+// GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
 	for _, addr := range mes.Addresses() {
 		if strings.Contains(addr, "circuit") || strings.Contains(addr, "169.254") {
@@ -48,6 +50,7 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 	return ""
 }
 
+// CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
 func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
@@ -66,6 +69,7 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 	return libP2PMes
 }
 
+// CreateTestShardDataPool creates a test data pool for shard nodes
 func CreateTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
@@ -98,6 +102,7 @@ func CreateTestShardDataPool() dataRetriever.PoolsHolder {
 	return dPool
 }
 
+// CreateTestMetaDataPool creates a test data pool for meta nodes
 func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -121,14 +126,17 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	return dPool
 }
 
+// CreateMemUnit returns an in-memory storer implementation (the vast majority of tests do not require effective
+// disk I/O)
 func CreateMemUnit() storage.Storer {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
-
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
+
 	return unit
 }
 
+// CreateShardStore creates a storage service for shard nodes
 func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
@@ -147,6 +155,7 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	return store
 }
 
+// CreateMetaStore creates a storage service for meta nodes
 func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())
@@ -159,6 +168,7 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	return store
 }
 
+// CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
 func CreateAccountsDB(shardCoordinator sharding.Coordinator) *state.AccountsDB {
 	hasher := sha256.Sha256{}
 	store := CreateMemUnit()
@@ -170,6 +180,7 @@ func CreateAccountsDB(shardCoordinator sharding.Coordinator) *state.AccountsDB {
 	return adb
 }
 
+// CreateShardChain creates a blockchain implementation used by the shard nodes
 func CreateShardChain() *blockchain.BlockChain {
 	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
@@ -184,6 +195,7 @@ func CreateShardChain() *blockchain.BlockChain {
 	return blockChain
 }
 
+// CreateMetaChain creates a blockchain implementation used by the meta nodes
 func CreateMetaChain() data.ChainHandler {
 	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
@@ -195,6 +207,7 @@ func CreateMetaChain() data.ChainHandler {
 	return metaChain
 }
 
+// CreateGenesisBlocks creates empty genesis blocks for all known shards, including metachain
 func CreateGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
@@ -206,6 +219,7 @@ func CreateGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.
 	return genesisBlocks
 }
 
+// CreateGenesisBlock creates a new mock shard genesis block
 func CreateGenesisBlock(shardId uint32) *dataBlock.Header {
 	rootHash := []byte("root hash")
 
@@ -222,6 +236,7 @@ func CreateGenesisBlock(shardId uint32) *dataBlock.Header {
 	}
 }
 
+// CreateGenesisMetaBlock creates a new mock meta genesis block
 func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
 	rootHash := []byte("root hash")
 
@@ -237,6 +252,7 @@ func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
 	}
 }
 
+// CreateIeleVMAndBlockchainHook creates a new instance of a iele VM
 func CreateIeleVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, TestAddressConverter)
 	cryptoHook := hooks.NewVMCryptoHook()
@@ -245,21 +261,27 @@ func CreateIeleVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExe
 	return vm, blockChainHook
 }
 
+// CreateAddresFromAddrBytes creates a n address container object from address bytes provided
 func CreateAddresFromAddrBytes(addressBytes []byte) state.AddressContainer {
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(addressBytes)
 
 	return addr
 }
 
+// MintAddress will create an account (if it does not exists), updated the balance with required value,
+// saves the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
 	accnt, _ := accnts.GetAccountWithJournal(CreateAddresFromAddrBytes(addressBytes))
 	_ = accnt.(*state.Account).SetBalanceWithJournal(value)
 	_, _ = accnts.Commit()
 }
 
+// MakeDisplayTable will output a string containing counters for received transactions, headers, miniblocks and
+// meta headers for all provided test nodes
 func MakeDisplayTable(nodes []*TestProcessorNode) string {
 	header := []string{"pk", "shard ID", "txs", "miniblocks", "headers", "metachain headers"}
 	dataLines := make([]*display.LineData, len(nodes))
+
 	for idx, n := range nodes {
 		dataLines[idx] = display.NewLineData(
 			false,
@@ -274,5 +296,17 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 		)
 	}
 	table, _ := display.CreateTableString(header, dataLines)
+
 	return table
+}
+
+// PrintShardAccount outputs on console a shard account data contained
+func PrintShardAccount(accnt *state.Account) {
+	str := fmt.Sprintf("Address: %s\n", hex.EncodeToString(accnt.AddressContainer().Bytes()))
+	str += fmt.Sprintf("  Nonce: %d\n", accnt.Nonce)
+	str += fmt.Sprintf("  Balance: %d\n", accnt.Balance)
+	str += fmt.Sprintf("  Code hash: %s\n", base64.StdEncoding.EncodeToString(accnt.CodeHash))
+	str += fmt.Sprintf("  Root hash: %s\n", base64.StdEncoding.EncodeToString(accnt.RootHash))
+
+	fmt.Println(str)
 }

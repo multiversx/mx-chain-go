@@ -5,9 +5,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -41,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/pkg/errors"
 )
 
 // TestHasher represents a Sha256 hasher
@@ -98,6 +101,7 @@ type TestProcessorNode struct {
 	BlockProcessor     process.BlockProcessor
 	BroadcastMessenger consensus.BroadcastMessenger
 
+	//Node is used to call the functionality already implemented in it
 	Node         *node.Node
 	ScDataGetter external.ScDataGetter
 
@@ -403,55 +407,47 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 }
 
 func (tpn *TestProcessorNode) setGenesisBlock() {
-	_ = tpn.BlockChain.SetGenesisHeader(tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()])
+	genesisBlock := tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()]
+	_ = tpn.BlockChain.SetGenesisHeader(genesisBlock)
+	hash, _ := core.CalculateHash(TestMarshalizer, TestHasher, genesisBlock)
+	tpn.BlockChain.SetGenesisHeaderHash(hash)
 }
 
 func (tpn *TestProcessorNode) initNode() {
 	var err error
 
+	tpn.Node, err = node.NewNode(
+		node.WithMessenger(tpn.Messenger),
+		node.WithMarshalizer(TestMarshalizer),
+		node.WithHasher(TestHasher),
+		node.WithHasher(TestHasher),
+		node.WithAddressConverter(TestAddressConverter),
+		node.WithAccountsAdapter(tpn.AccntState),
+		node.WithKeyGen(tpn.KeygenTxSign),
+		node.WithShardCoordinator(tpn.ShardCoordinator),
+		node.WithBlockChain(tpn.BlockChain),
+		node.WithUint64ByteSliceConverter(TestUint64Converter),
+		node.WithMultiSigner(TestMultiSig),
+		node.WithSingleSigner(tpn.SingleSigner),
+		node.WithTxSignPrivKey(tpn.SkTxSign),
+		node.WithTxSignPubKey(tpn.PkTxSign),
+		node.WithInterceptorsContainer(tpn.InterceptorsContainer),
+		node.WithResolversFinder(tpn.ResolverFinder),
+		node.WithBlockProcessor(tpn.BlockProcessor),
+		node.WithDataStore(tpn.Storage),
+		node.WithSyncer(&mock.SyncTimerMock{}),
+	)
+	if err != nil {
+		fmt.Printf("Error creating node: %s\n", err.Error())
+	}
+
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		tpn.Node, err = node.NewNode(
-			node.WithMessenger(tpn.Messenger),
-			node.WithMarshalizer(TestMarshalizer),
-			node.WithHasher(TestHasher),
+		err = tpn.Node.ApplyOptions(
 			node.WithMetaDataPool(tpn.MetaDataPool),
-			node.WithAddressConverter(TestAddressConverter),
-			node.WithAccountsAdapter(tpn.AccntState),
-			node.WithKeyGen(tpn.KeygenTxSign),
-			node.WithShardCoordinator(tpn.ShardCoordinator),
-			node.WithBlockChain(tpn.BlockChain),
-			node.WithUint64ByteSliceConverter(TestUint64Converter),
-			node.WithMultiSigner(TestMultiSig),
-			node.WithSingleSigner(tpn.SingleSigner),
-			node.WithPrivKey(tpn.SkTxSign),
-			node.WithPubKey(tpn.PkTxSign),
-			node.WithInterceptorsContainer(tpn.InterceptorsContainer),
-			node.WithResolversFinder(tpn.ResolverFinder),
-			node.WithBlockProcessor(tpn.BlockProcessor),
-			node.WithDataStore(tpn.Storage),
-			node.WithSyncer(&mock.SyncTimerMock{}),
 		)
 	} else {
-		tpn.Node, err = node.NewNode(
-			node.WithMessenger(tpn.Messenger),
-			node.WithMarshalizer(TestMarshalizer),
-			node.WithHasher(TestHasher),
+		err = tpn.Node.ApplyOptions(
 			node.WithDataPool(tpn.ShardDataPool),
-			node.WithAddressConverter(TestAddressConverter),
-			node.WithAccountsAdapter(tpn.AccntState),
-			node.WithKeyGen(tpn.KeygenTxSign),
-			node.WithShardCoordinator(tpn.ShardCoordinator),
-			node.WithBlockChain(tpn.BlockChain),
-			node.WithUint64ByteSliceConverter(TestUint64Converter),
-			node.WithMultiSigner(TestMultiSig),
-			node.WithSingleSigner(tpn.SingleSigner),
-			node.WithTxSignPrivKey(tpn.SkTxSign),
-			node.WithTxSignPubKey(tpn.PkTxSign),
-			node.WithInterceptorsContainer(tpn.InterceptorsContainer),
-			node.WithResolversFinder(tpn.ResolverFinder),
-			node.WithBlockProcessor(tpn.BlockProcessor),
-			node.WithDataStore(tpn.Storage),
-			node.WithSyncer(&mock.SyncTimerMock{}),
 		)
 	}
 
@@ -512,8 +508,8 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 	tpn.PkTxSignBytes, _ = newPk.ToByteArray()
 }
 
-// ProposeBlockOnlyWithSelf proposes a new block
-func (tpn *TestProcessorNode) ProposeBlockOnlyWithSelf(round uint32) (data.BodyHandler, data.HeaderHandler) {
+// ProposeBlock proposes a new block
+func (tpn *TestProcessorNode) ProposeBlock(round uint32) (data.BodyHandler, data.HeaderHandler) {
 	haveTime := func() bool { return true }
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
@@ -536,6 +532,7 @@ func (tpn *TestProcessorNode) ProposeBlockOnlyWithSelf(round uint32) (data.BodyH
 	if currHdr == nil {
 		currHdr = tpn.BlockChain.GetGenesisHeader()
 	}
+
 	buff, _ := TestMarshalizer.Marshal(currHdr)
 	blockHeader.SetPrevHash(TestHasher.Compute(string(buff)))
 	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
@@ -552,4 +549,157 @@ func (tpn *TestProcessorNode) BroadcastAndCommit(body data.BodyHandler, header d
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)
 	_ = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, body)
+}
+
+// GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
+func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, error) {
+	invalidCachers := tpn.ShardDataPool == nil || tpn.ShardDataPool.Headers() == nil || tpn.ShardDataPool.HeadersNonces() == nil
+	if invalidCachers {
+		return nil, errors.New("invalid data pool")
+	}
+
+	syncMapHashNonce, ok := tpn.ShardDataPool.HeadersNonces().Get(nonce)
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("no hash-nonce link in HeadersNonces for nonce %d", nonce))
+	}
+
+	headerHash, ok := syncMapHashNonce.Load(tpn.ShardCoordinator.SelfId())
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("no hash-nonce hash in HeadersNonces for nonce %d", nonce))
+	}
+
+	headerObject, ok := tpn.ShardDataPool.Headers().Get(headerHash)
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("no header found for hash %s", hex.EncodeToString(headerHash)))
+	}
+
+	header, ok := headerObject.(*dataBlock.Header)
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("not a *dataBlock.Header stored in headers found for hash %s", hex.EncodeToString(headerHash)))
+	}
+
+	return header, nil
+}
+
+// GetBlockBody returns the body for provided header parameter
+func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (dataBlock.Body, error) {
+	invalidCachers := tpn.ShardDataPool == nil || tpn.ShardDataPool.MiniBlocks() == nil
+	if invalidCachers {
+		return nil, errors.New("invalid data pool")
+	}
+
+	body := dataBlock.Body{}
+	for _, miniBlockHeader := range header.MiniBlockHeaders {
+		miniBlockHash := miniBlockHeader.Hash
+
+		mbObject, ok := tpn.ShardDataPool.MiniBlocks().Get(miniBlockHash)
+		if !ok {
+			return nil, errors.New(fmt.Sprintf("no miniblock found for hash %s", hex.EncodeToString(miniBlockHash)))
+		}
+
+		mb, ok := mbObject.(*dataBlock.MiniBlock)
+		if !ok {
+			return nil, errors.New(fmt.Sprintf("not a *dataBlock.MiniBlock stored in miniblocks found for hash %s", hex.EncodeToString(miniBlockHash)))
+		}
+
+		body = append(body, mb)
+	}
+
+	return body, nil
+}
+
+// GetMetaHeader returns the first *dataBlock.MetaBlock stored in datapools having the nonce provided as parameter
+func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock, error) {
+	invalidCachers := tpn.MetaDataPool == nil || tpn.MetaDataPool.MetaChainBlocks() == nil || tpn.MetaDataPool.HeadersNonces() == nil
+	if invalidCachers {
+		return nil, errors.New("invalid data pool")
+	}
+
+	syncMapHashNonce, ok := tpn.MetaDataPool.HeadersNonces().Get(nonce)
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("no hash-nonce link in HeadersNonces for nonce %d", nonce))
+	}
+
+	headerHash, ok := syncMapHashNonce.Load(tpn.ShardCoordinator.SelfId())
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("no hash-nonce hash in HeadersNonces for nonce %d", nonce))
+	}
+
+	headerObject, ok := tpn.MetaDataPool.MetaChainBlocks().Get(headerHash)
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("no header found for hash %s", hex.EncodeToString(headerHash)))
+	}
+
+	header, ok := headerObject.(*dataBlock.MetaBlock)
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("not a *dataBlock.MetaBlock stored in headers found for hash %s", hex.EncodeToString(headerHash)))
+	}
+
+	return header, nil
+}
+
+// SyncNode tries to process and commit a block already stored in data pool with provided nonce
+func (tpn *TestProcessorNode) SyncNode(nonce uint64) error {
+	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		return tpn.syncMetaNode(nonce)
+	} else {
+		return tpn.syncShardNode(nonce)
+	}
+}
+
+func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
+	header, err := tpn.GetShardHeader(nonce)
+	if err != nil {
+		return err
+	}
+
+	body, err := tpn.GetBlockBody(header)
+	if err != nil {
+		return err
+	}
+
+	err = tpn.BlockProcessor.ProcessBlock(
+		tpn.BlockChain,
+		header,
+		body,
+		func() time.Duration {
+			return time.Second * 2
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
+	header, err := tpn.GetMetaHeader(nonce)
+	if err != nil {
+		return err
+	}
+
+	err = tpn.BlockProcessor.ProcessBlock(
+		tpn.BlockChain,
+		header,
+		&dataBlock.MetaBlockBody{},
+		func() time.Duration {
+			return time.Second * 2
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, &dataBlock.MetaBlockBody{})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

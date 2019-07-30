@@ -212,16 +212,25 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 
 	trackableDataTrie.ClearDataCaches()
 
+	err = adb.saveDataTrieWithJournal(accountHandler, newDataTrie)
+	if err != nil {
+		return err
+	}
+
+	return adb.SaveAccount(accountHandler)
+}
+
+func (adb *AccountsDB) saveDataTrieWithJournal(accountHandler AccountHandler, dataTrie data.Trie) error {
 	//append a journal entry as the data needs to be updated in its trie
-	entry, err := NewBaseJournalEntryData(accountHandler, newDataTrie)
+	entry, err := NewBaseJournalEntryData(accountHandler, dataTrie)
 	if err != nil {
 		return err
 	}
 
 	adb.Journalize(entry)
-	accountHandler.SetDataTrie(newDataTrie)
+	accountHandler.SetDataTrie(dataTrie)
 
-	return adb.SaveAccount(accountHandler)
+	return nil
 }
 
 // HasAccount searches for an account based on the address. Errors if something went wrong and

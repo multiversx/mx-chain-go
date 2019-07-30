@@ -380,6 +380,10 @@ func (en *extensionNode) print(writer io.Writer, index int) {
 
 	str := fmt.Sprintf("E:(%s) - ", key)
 	_, _ = fmt.Fprint(writer, str)
+
+	if en.child == nil {
+		return
+	}
 	en.child.print(writer, index+len(str))
 }
 
