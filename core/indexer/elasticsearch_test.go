@@ -116,35 +116,35 @@ func newTestTxPool() map[string]data.TransactionHandler {
 }
 
 func TestElasticIndexer_NewIndexerWithNilUrlShouldError(t *testing.T) {
-	ei, err := indexer.NewElasticIndexer("", username, password, shardCoordinator, marshalizer, hasher, log)
+	ei, err := indexer.NewElasticIndexer("", username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 
 	assert.Nil(t, ei)
 	assert.Equal(t, core.ErrNilUrl, err)
 }
 
 func TestElasticIndexer_NewIndexerWithNilShardCoordinatorShouldError(t *testing.T) {
-	ei, err := indexer.NewElasticIndexer("a", username, password, nil, marshalizer, hasher, log)
+	ei, err := indexer.NewElasticIndexer("a", username, password, nil, marshalizer, hasher, log, &indexer.Options{})
 
 	assert.Nil(t, ei)
 	assert.Equal(t, core.ErrNilCoordinator, err)
 }
 
 func TestElasticIndexer_NewIndexerWithNilMarsharlizerShouldError(t *testing.T) {
-	ei, err := indexer.NewElasticIndexer("a", username, password, shardCoordinator, nil, hasher, log)
+	ei, err := indexer.NewElasticIndexer("a", username, password, shardCoordinator, nil, hasher, log, &indexer.Options{})
 
 	assert.Nil(t, ei)
 	assert.Equal(t, core.ErrNilMarshalizer, err)
 }
 
 func TestElasticIndexer_NewIndexerWithNilHasherShouldError(t *testing.T) {
-	ei, err := indexer.NewElasticIndexer("a", username, password, shardCoordinator, marshalizer, nil, log)
+	ei, err := indexer.NewElasticIndexer("a", username, password, shardCoordinator, marshalizer, nil, log, &indexer.Options{})
 
 	assert.Nil(t, ei)
 	assert.Equal(t, core.ErrNilHasher, err)
 }
 
 func TestElasticIndexer_NewIndexerWithNilLoggerShouldError(t *testing.T) {
-	ei, err := indexer.NewElasticIndexer("a", username, password, shardCoordinator, marshalizer, hasher, nil)
+	ei, err := indexer.NewElasticIndexer("a", username, password, shardCoordinator, marshalizer, hasher, nil, &indexer.Options{})
 
 	assert.Nil(t, ei)
 	assert.Equal(t, core.ErrNilLogger, err)
@@ -163,7 +163,7 @@ func TestElasticIndexer_NewIndexerWithCorrectParamsShouldWork(t *testing.T) {
 		}
 	}))
 
-	ei, err := indexer.NewElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, log)
+	ei, err := indexer.NewElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 
 	assert.NotNil(t, ei)
 	assert.Nil(t, err)
@@ -178,7 +178,7 @@ func TestElasticIndexer_CheckAndCreateIndexShouldWorkIfIndexExists(t *testing.T)
 		}
 	}))
 
-	ei := indexer.NewTestElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 
 	err := ei.CheckAndCreateIndex("blocks", nil)
 
@@ -202,7 +202,7 @@ func TestElasticIndexer_CheckAndCreateIndexShouldCreateIndexIfItDoesNotExist(t *
 		}
 	}))
 
-	ei := indexer.NewTestElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 
 	err := ei.CheckAndCreateIndex("blocks", nil)
 
@@ -227,7 +227,7 @@ func TestElasticIndexer_CreateIndexShouldCreateIndexIfItDoesNotExist(t *testing.
 		}
 	}))
 
-	ei := indexer.NewTestElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 
 	err := ei.CreateIndex("blocks", nil)
 
@@ -239,13 +239,13 @@ func TestElasticIndexer_CreateIndexShouldCreateIndexIfItDoesNotExist(t *testing.
 func TestNewElasticIndexerIncorrectUrl(t *testing.T) {
 	url := string([]byte{1, 2, 3})
 
-	ind, err := indexer.NewElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
+	ind, err := indexer.NewElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 	assert.Nil(t, ind)
 	assert.NotNil(t, err)
 }
 
 func TestElasticIndexer_getSerializedElasticBlockAndHeaderHash(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 	header := newTestBlockHeader()
 
 	serializedBlock, headerHash := ei.GetSerializedElasticBlockAndHeaderHash(header)
@@ -271,7 +271,7 @@ func TestElasticIndexer_getSerializedElasticBlockAndHeaderHash(t *testing.T) {
 }
 
 func TestElasticIndexer_buildTransactionBulks(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 
 	header := newTestBlockHeader()
 	body := newTestBlockBody()
@@ -352,7 +352,7 @@ func TestElasticIndexer_buildTransactionBulks(t *testing.T) {
 //}
 
 func TestElasticIndexer_serializeBulkTx(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 
 	header := newTestBlockHeader()
 	body := newTestBlockBody()
@@ -378,7 +378,7 @@ func TestElasticIndexer_serializeBulkTx(t *testing.T) {
 func TestElasticIndexer_UpdateTPS(t *testing.T) {
 	var output bytes.Buffer
 	log.SetOutput(&output)
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 
 	tpsBench := mock.TpsBenchmarkMock{}
 	tpsBench.Update(newTestMetaBlock())
@@ -390,14 +390,14 @@ func TestElasticIndexer_UpdateTPS(t *testing.T) {
 func TestElasticIndexer_UpdateTPSNil(t *testing.T) {
 	var output bytes.Buffer
 	log.SetOutput(&output)
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 
 	ei.UpdateTPS(nil)
 	assert.NotEmpty(t, output.String())
 }
 
 func TestElasticIndexer_SerializeShardInfo(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log)
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 
 	tpsBench := mock.TpsBenchmarkMock{}
 	tpsBench.UpdateWithShardStats(newTestMetaBlock())
