@@ -6,7 +6,6 @@ type AppStatusHandler interface {
 	Decrement(key string)
 	SetInt64Value(key string, value int64)
 	SetUInt64Value(key string, value uint64)
-	GetValue(key string) float64
 	Close()
 }
 

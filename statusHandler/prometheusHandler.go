@@ -1,56 +1,57 @@
 package statusHandler
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/prometheus/client_golang/prometheus"
-	prometheusUtils "github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 // PrometheusStatusHandler will define the handler which will update prometheus metrics
 type PrometheusStatusHandler struct {
 }
 
-var prometheusGaugeMetrics map[string]prometheus.Gauge
+var prometheusGaugeMetrics sync.Map
 
 // InitMetrics will declare and init all the metrics which should be used for Prometheus
 func (psh *PrometheusStatusHandler) InitMetrics() {
-	prometheusGaugeMetrics = make(map[string]prometheus.Gauge)
+	prometheusGaugeMetrics = sync.Map{}
 
 	erdSynchronizedRound := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: core.MetricSynchronizedRound,
-		Help: "todo",
+		Help: "The round where the synchronized blockchain is",
 	})
+	prometheusGaugeMetrics.Store(core.MetricSynchronizedRound, erdSynchronizedRound)
 
 	erdNonce := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: core.MetricNonce,
-		Help: "todo",
+		Help: "The nonce for the node",
 	})
-	prometheusGaugeMetrics[core.MetricNonce] = erdNonce
-
-	prometheusGaugeMetrics[core.MetricSynchronizedRound] = erdSynchronizedRound
+	prometheusGaugeMetrics.Store(core.MetricNonce, erdNonce)
 
 	erdCurrentRound := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: core.MetricCurrentRound,
-		Help: "todo",
+		Help: "The current round where the node is",
 	})
-	prometheusGaugeMetrics[core.MetricCurrentRound] = erdCurrentRound
+	prometheusGaugeMetrics.Store(core.MetricCurrentRound, erdCurrentRound)
 
 	erdNumConnectedPeers := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: core.MetricNumConnectedPeers,
-		Help: "todo",
+		Help: "The current number of peers connected",
 	})
-	prometheusGaugeMetrics[core.MetricNumConnectedPeers] = erdNumConnectedPeers
+	prometheusGaugeMetrics.Store(core.MetricNumConnectedPeers, erdNumConnectedPeers)
 
 	erdIsSyncing := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: core.MetricIsSyncing,
-		Help: "todo",
+		Help: "The synchronization state. If it's in process of syncing will be 1 and if it's synchronized will be 0",
 	})
-	prometheusGaugeMetrics[core.MetricIsSyncing] = erdIsSyncing
+	prometheusGaugeMetrics.Store(core.MetricIsSyncing, erdIsSyncing)
 
-	for _, collector := range prometheusGaugeMetrics {
-		_ = prometheus.Register(collector)
-	}
-
+	prometheusGaugeMetrics.Range(func(key, value interface{}) bool {
+		gauge := value.(prometheus.Gauge)
+		_ = prometheus.Register(gauge)
+		return true
+	})
 }
 
 // NewPrometheusStatusHandler will return an instance of a PrometheusStatusHandler
@@ -62,44 +63,37 @@ func NewPrometheusStatusHandler() *PrometheusStatusHandler {
 
 // Increment will be used for incrementing the value for a key
 func (psh *PrometheusStatusHandler) Increment(key string) {
-	if metric, ok := prometheusGaugeMetrics[key]; ok {
-		metric.Inc()
+	if metric, ok := prometheusGaugeMetrics.Load(key); ok {
+		metric.(prometheus.Gauge).Inc()
 	}
 }
 
 // Decrement will be used for decrementing the value for a key
 func (psh *PrometheusStatusHandler) Decrement(key string) {
-	if metric, ok := prometheusGaugeMetrics[key]; ok {
-		metric.Dec()
+	if metric, ok := prometheusGaugeMetrics.Load(key); ok {
+		metric.(prometheus.Gauge).Dec()
 	}
 }
 
 // SetInt64Value method - will update the value for a key
 func (psh *PrometheusStatusHandler) SetInt64Value(key string, value int64) {
-	if metric, ok := prometheusGaugeMetrics[key]; ok {
-		metric.Set(float64(value))
+	if metric, ok := prometheusGaugeMetrics.Load(key); ok {
+		metric.(prometheus.Gauge).Set(float64(value))
 	}
 }
 
 // SetUInt64Value method - will update the value for a key
 func (psh *PrometheusStatusHandler) SetUInt64Value(key string, value uint64) {
-	if metric, ok := prometheusGaugeMetrics[key]; ok {
-		metric.Set(float64(value))
+	if metric, ok := prometheusGaugeMetrics.Load(key); ok {
+		metric.(prometheus.Gauge).Set(float64(value))
 	}
-}
-
-// GetValue method - will fetch the value for a key - TESTING ONLY
-func (psh *PrometheusStatusHandler) GetValue(key string) float64 {
-	if metric, ok := prometheusGaugeMetrics[key]; ok {
-		return prometheusUtils.ToFloat64(metric)
-	}
-	return float64(0)
 }
 
 // Close will unregister Prometheus metrics
 func (psh *PrometheusStatusHandler) Close() {
-	for _, collector := range prometheusGaugeMetrics {
-		prometheus.Unregister(collector)
-	}
-	prometheusGaugeMetrics = make(map[string]prometheus.Gauge, 0)
+	prometheusGaugeMetrics.Range(func(key, value interface{}) bool {
+		gauge := value.(prometheus.Gauge)
+		prometheus.Unregister(gauge)
+		return true
+	})
 }

@@ -7,7 +7,7 @@
    # NetworkID will be used for network versions
    NetworkID = "undefined"
 
-   # StatusPollingIntervalSec represents the nr of seconds between multiple polling for  the status for AppStatusHandler
+   # StatusPollingIntervalSec represents the no of seconds between multiple polling for the status for AppStatusHandler
    StatusPollingIntervalSec = 10
 
 [Explorer]

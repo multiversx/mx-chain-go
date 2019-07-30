@@ -218,7 +218,7 @@ func (n *Node) StartConsensus() error {
 		return ErrGenesisBlockNotInitialized
 	}
 
-	chronologyHandler, err := n.createChronologyHandler(n.rounder)
+	chronologyHandler, err := n.createChronologyHandler(n.rounder, n.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -230,11 +230,13 @@ func (n *Node) StartConsensus() error {
 
 	if n.appStatusHandler != nil {
 		bootstrapper.AddSyncStateListener(func(b bool) {
+			var result uint64
 			if b {
-				n.appStatusHandler.SetUInt64Value(core.MetricIsSyncing, uint64(0))
+				result = uint64(0)
 			} else {
-				n.appStatusHandler.SetUInt64Value(core.MetricIsSyncing, uint64(1))
+				result = uint64(1)
 			}
+			n.appStatusHandler.SetUInt64Value(core.MetricIsSyncing, result)
 		})
 	}
 
@@ -403,12 +405,17 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 }
 
 // createChronologyHandler method creates a chronology object
-func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.ChronologyHandler, error) {
+func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandler core.AppStatusHandler) (consensus.ChronologyHandler, error) {
 	chr, err := chronology.NewChronology(
 		n.genesisTime,
 		rounder,
-		n.syncTimer,
-		n.appStatusHandler)
+		n.syncTimer)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = chr.SetAppStatusHandler(appStatusHandler)
 
 	if err != nil {
 		return nil, err

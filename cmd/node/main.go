@@ -512,12 +512,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
-	prometheusURLAvailable := true
-	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
-	if err != nil || prometheusJoinUrl == "" {
-		prometheusURLAvailable = false
-	}
-	usePrometheusBool := ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable
+	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
 
 	if !usePrometheusBool {
 		coreComponents.AppStatusHandler = statusHandler.NewNillStatusHandler()
@@ -560,18 +555,9 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	if currentNode.GetAppStatusHandler() != nil {
-		pollingInterval := time.Duration(generalConfig.GeneralSettings.StatusPollingIntervalSec) * time.Second
-		appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(currentNode.GetAppStatusHandler(),
-			pollingInterval)
-
-		if err == nil {
-			err = appStatusPollingHandler.SetConnectedAddresses(networkComponents.NetMessenger)
-			if err == nil {
-				appStatusPollingHandler.Poll()
-			}
-		}
-	}
+	err = startStatusPolling(currentNode.GetAppStatusHandler(), generalConfig.GeneralSettings.StatusPollingIntervalSec,
+		networkComponents)
+	log.Info("Problem creating status polling: ", err)
 
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
 
@@ -614,6 +600,44 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func startStatusPolling(ash core.AppStatusHandler, pollingInterval int, networkComponents *factory.Network) error {
+	if ash != nil {
+		pollingInterval := time.Duration(pollingInterval) * time.Second
+		appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingInterval)
+
+		if err != nil {
+			return errors.New("cannot init AppStatusPolling")
+		} else {
+			numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
+				numOfConnectedPeers := int64(len(networkComponents.NetMessenger.ConnectedAddresses()))
+				appStatusHandler.SetInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
+			}
+
+			err = appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
+
+			if err != nil {
+				return errors.New("cannot register handler func for num of connected peers")
+			} else {
+				appStatusPollingHandler.Poll()
+			}
+		}
+	} else {
+		return errors.New("nil AppStatusHandler")
+	}
+	return nil
+}
+
+func getPrometheusJoinURLIfAvailable(ctx *cli.Context) (string, bool) {
+	prometheusURLAvailable := true
+	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
+	if err != nil || prometheusJoinUrl == "" {
+		prometheusURLAvailable = false
+	}
+	usePrometheusBool := ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable
+
+	return prometheusJoinUrl, usePrometheusBool
 }
 
 func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {

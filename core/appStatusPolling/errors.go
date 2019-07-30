@@ -1,12 +1,12 @@
 package appStatusPolling
 
-import "github.com/pkg/errors"
+import "errors"
 
-// NilAppStatusHandler will be returned when the AppStatusHandler is nil
-var NilAppStatusHandler = errors.New("AppStatusHandler is nil")
+// ErrNilAppStatusHandler will be returned when the AppStatusHandler is nil
+var ErrNilAppStatusHandler = errors.New("appStatusHandler is nil")
 
-// PollingDurationNegative will be returned when the polling duration is not a positive number
-var PollingDurationNegative = errors.New("Polling duration must be a positive number")
+// ErrPollingDurationNegative will be returned when the polling duration is not a positive number
+var ErrPollingDurationNegative = errors.New("polling duration must be a positive number")
 
-// NilConnectedAddressesHandler will be returned when ConnectedAddressesHandler is nil
-var NilConnectedAddressesHandler = errors.New("ConnectedAddressesHandler must not be nil")
+// ErrNilHandlerFunc will be returned when the handler function is nil
+var ErrNilHandlerFunc = errors.New("handler function is nil")

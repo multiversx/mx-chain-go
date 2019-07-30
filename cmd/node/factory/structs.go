@@ -595,10 +595,11 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 	}
 
 	if coordinator.SelfId() < coordinator.NumberOfShards() {
-		blockChain, err := blockchain.NewBlockChain(badBlockCache, ash)
+		blockChain, err := blockchain.NewBlockChain(badBlockCache)
 		if err != nil {
 			return nil, err
 		}
+		_ = blockChain.SetAppStatusHandler(ash)
 		return blockChain, nil
 	}
 	if coordinator.SelfId() == sharding.MetachainShardId {

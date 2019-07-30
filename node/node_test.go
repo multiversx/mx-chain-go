@@ -1366,17 +1366,15 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 func TestNode_AppStatusHandlerWithPrometheusIncrementAndDecrementMetric(t *testing.T) {
 	t.Parallel()
 
+	testValue := float64(0)
 	metricKey := core.MetricIsSyncing
-	prometheus := statusHandler.NewPrometheusStatusHandler()
+
 	ashMock := mock.AppStatusHandlerStub{
 		IncrementHandler: func(key string) {
-			prometheus.Increment(key)
+			testValue++
 		},
 		DecrementHandler: func(key string) {
-			prometheus.Decrement(key)
-		},
-		GetValueHandler: func(key string) float64 {
-			return prometheus.GetValue(key)
+			testValue--
 		},
 	}
 
@@ -1387,51 +1385,56 @@ func TestNode_AppStatusHandlerWithPrometheusIncrementAndDecrementMetric(t *testi
 
 	ash.Increment(metricKey)
 	ash.Increment(metricKey)
-	metricValue := ash.GetValue(metricKey)
-	assert.Equal(t, float64(2), metricValue)
+	assert.Equal(t, float64(2), testValue)
 
 	ash.Decrement(metricKey)
-	metricValue = ash.GetValue(metricKey)
-	assert.Equal(t, float64(1), metricValue)
+	assert.Equal(t, float64(1), testValue)
 }
 
 func TestNode_AppStatusHandlerWithPrometheusSetInt64AndUInt64ValueMetric(t *testing.T) {
 	t.Parallel()
 
 	metricKey := core.MetricNonce
-	//core.AppStatusHandler()
-	prometheus := statusHandler.NewPrometheusStatusHandler()
+	testValue := float64(0)
+
 	aphStub := mock.AppStatusHandlerStub{
 		SetInt64ValueHandler: func(key string, value int64) {
-			prometheus.SetInt64Value(key, value)
+			testValue = float64(value)
 		},
 		SetUInt64ValueHandler: func(key string, value uint64) {
-			prometheus.SetUInt64Value(key, value)
-		},
-		GetValueHandler: func(key string) float64 {
-			return prometheus.GetValue(key)
+			testValue = float64(value)
 		},
 	}
 
 	n, _ := node.NewNode(
 		node.WithAppStatusHandler(&aphStub))
 	aph := n.GetAppStatusHandler()
-	defer prometheus.Close()
 
 	aph.SetInt64Value(metricKey, int64(20))
-	metricValue := aph.GetValue(metricKey)
-	assert.Equal(t, float64(20), metricValue)
+	assert.Equal(t, float64(20), testValue)
 
 	aph.SetUInt64Value(metricKey, uint64(30))
-	metricValue = aph.GetValue(metricKey)
-	assert.Equal(t, float64(30), metricValue)
+	assert.Equal(t, float64(30), testValue)
 }
 
 func TestNode_AppStatusHandlerWithFacadeIncrementAndDecrementMetric(t *testing.T) {
 	t.Parallel()
 
 	metricKey := core.MetricCurrentRound
-	appStatusFacade := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewPrometheusStatusHandler())
+	testValue := float64(0)
+
+	// create a prometheus status handler which will be passed to the facade
+	prometheusStub := mock.AppStatusHandlerStub{
+		IncrementHandler: func(key string) {
+			testValue++
+		},
+		DecrementHandler: func(key string) {
+			testValue--
+		},
+	}
+	appStatusFacade, err := statusHandler.NewAppStatusFacadeWithHandlers(&prometheusStub)
+	assert.Nil(t, err)
+
 	asfStub := mock.AppStatusHandlerStub{
 		IncrementHandler: func(key string) {
 			appStatusFacade.Increment(key)
@@ -1439,22 +1442,15 @@ func TestNode_AppStatusHandlerWithFacadeIncrementAndDecrementMetric(t *testing.T
 		DecrementHandler: func(key string) {
 			appStatusFacade.Decrement(key)
 		},
-		GetValueHandler: func(key string) float64 {
-			return appStatusFacade.GetValue(key)
-		},
 	}
 	n, _ := node.NewNode(
 		node.WithAppStatusHandler(&asfStub))
 	asf := n.GetAppStatusHandler()
 
-	defer appStatusFacade.Close()
-
 	asf.Increment(metricKey)
 	asf.Increment(metricKey)
-	metricValue := asf.GetValue(metricKey)
-	assert.Equal(t, float64(2), metricValue)
+	assert.Equal(t, float64(2), testValue)
 
 	asf.Decrement(metricKey)
-	metricValue = asf.GetValue(metricKey)
-	assert.Equal(t, float64(1), metricValue)
+	assert.Equal(t, float64(1), testValue)
 }

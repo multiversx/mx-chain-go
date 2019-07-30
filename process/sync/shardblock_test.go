@@ -921,10 +921,11 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.AppStatusHandlerStub{
-			SetUInt64ValueHandler: func(key string, value uint64) {},
-		},
 	)
+
+	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {},
+	})
 
 	blkc.CurrentBlockHeader = &hdr
 
@@ -2077,10 +2078,11 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.AppStatusHandlerStub{
-			SetUInt64ValueHandler: func(key string, value uint64) {},
-		},
 	)
+
+	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {},
+	})
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
@@ -2588,10 +2590,10 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	}
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.AppStatusHandlerStub{
-			SetUInt64ValueHandler: func(key string, value uint64) {},
-		},
 	)
+	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {},
+	})
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -2637,10 +2639,11 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.AppStatusHandlerStub{
-			SetUInt64ValueHandler: func(key string, value uint64) {},
-		},
 	)
+
+	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {},
+	})
 
 	store := createFullStore()
 	store.AddStorer(dataRetriever.TransactionUnit, txBlockUnit)
@@ -2699,11 +2702,11 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.AppStatusHandlerStub{
-			SetUInt64ValueHandler: func(key string, value uint64) {},
-		},
 	)
 
+	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {},
+	})
 	store := createFullStore()
 	store.AddStorer(dataRetriever.TransactionUnit, txBlockUnit)
 

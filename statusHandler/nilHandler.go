@@ -29,11 +29,6 @@ func (psh *NilStatusHandler) SetUInt64Value(key string, value uint64) {
 	return
 }
 
-// GetValue method - will return 0
-func (psh *NilStatusHandler) GetValue(key string) float64 {
-	return float64(0)
-}
-
 // Close method - won't do anything
 func (psh *NilStatusHandler) Close() {
 }

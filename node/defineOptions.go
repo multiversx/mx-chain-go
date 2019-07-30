@@ -387,10 +387,13 @@ func WithBootstrapRoundIndex(bootstrapRoundIndex uint32) Option {
 	}
 }
 
-// WithStatusHandlers sets up which handler will monitor the status of the node
+// WithAppStatusHandler sets up which handler will monitor the status of the node
 func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 	return func(n *Node) error {
-		n.appStatusHandler = aph
-		return nil
+		if aph != nil {
+			n.appStatusHandler = aph
+			return nil
+		}
+		return ErrNilStatusHandler
 	}
 }
