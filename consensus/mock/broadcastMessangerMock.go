@@ -9,7 +9,7 @@ type BroadcastMessengerMock struct {
 	BroadcastBlockCalled            func(data.BodyHandler, data.HeaderHandler) error
 	BroadcastHeaderCalled           func(data.HeaderHandler) error
 	BroadcastMiniBlocksCalled       func(map[uint32][]byte) error
-	BroadcastTransactionsCalled     func(map[uint32][][]byte) error
+	BroadcastTransactionsCalled     func(map[string][][]byte) error
 	BroadcastConsensusMessageCalled func(*consensus.Message) error
 }
 
@@ -34,7 +34,7 @@ func (bmm *BroadcastMessengerMock) BroadcastMiniBlocks(miniBlocks map[uint32][]b
 	return nil
 }
 
-func (bmm *BroadcastMessengerMock) BroadcastTransactions(transactions map[uint32][][]byte) error {
+func (bmm *BroadcastMessengerMock) BroadcastTransactions(transactions map[string][][]byte) error {
 	if bmm.BroadcastTransactionsCalled != nil {
 		return bmm.BroadcastTransactionsCalled(transactions)
 	}

@@ -104,7 +104,7 @@ func (mcm *metaChainMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte)
 }
 
 // BroadcastTransactions will send on transaction topic the transactions
-func (mcm *metaChainMessenger) BroadcastTransactions(transactions map[uint32][][]byte) error {
+func (mcm *metaChainMessenger) BroadcastTransactions(transactions map[string][][]byte) error {
 	// meta chain does not need to broadcast transactions but this method is created to satisfy the BroadcastMessenger
 	// interface
 	return nil
