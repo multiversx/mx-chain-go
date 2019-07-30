@@ -36,6 +36,11 @@ const shardTpsDocIDPrefix = "shard"
 
 const badRequest = 400
 
+// Options structure holds the indexer's configuration options
+type Options struct {
+	TxIndexingEnabled bool
+}
+
 //TODO refactor this and split in 3: glue code, interface and logic code
 type elasticIndexer struct {
 	db               *elasticsearch.Client
@@ -43,6 +48,7 @@ type elasticIndexer struct {
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
 	logger           *logger.Logger
+	options          *Options
 }
 
 // NewElasticIndexer creates a new elasticIndexer where the server listens on the url, authentication for the server is
@@ -55,6 +61,7 @@ func NewElasticIndexer(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	logger *logger.Logger,
+	options *Options,
 ) (Indexer, error) {
 
 	err := checkElasticSearchParams(
@@ -83,7 +90,9 @@ func NewElasticIndexer(
 		shardCoordinator,
 		marshalizer,
 		hasher,
-		logger}
+		logger,
+		options,
+	}
 
 	err = indexer.checkAndCreateIndex(blockIndex, timestampMapping())
 	if err != nil {
@@ -208,7 +217,9 @@ func (ei *elasticIndexer) SaveBlock(
 		return
 	}
 
-	go ei.saveTransactions(body, headerhandler, txPool)
+	if ei.options.TxIndexingEnabled {
+		go ei.saveTransactions(body, headerhandler, txPool)
+	}
 }
 
 func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.HeaderHandler) ([]byte, []byte) {
