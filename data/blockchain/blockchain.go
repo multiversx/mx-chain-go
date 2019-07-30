@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -39,6 +40,7 @@ func NewBlockChain(
 		localHeight:        -1,
 		networkHeight:      -1,
 		badBlocks:          badBlocksCache,
+		appStatusHandler:   statusHandler.NewNillStatusHandler(),
 	}
 
 	return blockChain, nil

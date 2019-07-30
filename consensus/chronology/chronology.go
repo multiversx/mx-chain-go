@@ -51,14 +51,13 @@ func NewChronology(
 	chr := chronology{
 		genesisTime: genesisTime,
 		rounder:     rounder,
-		syncTimer:   syncTimer}
+		syncTimer:   syncTimer,
+		ash:         statusHandler.NewNillStatusHandler()}
 
 	chr.subroundId = srBeforeStartRound
 
 	chr.subrounds = make(map[int]int)
 	chr.subroundHandlers = make([]consensus.SubroundHandler, 0)
-
-	chr.ash = statusHandler.NewNillStatusHandler()
 
 	return &chr, nil
 }

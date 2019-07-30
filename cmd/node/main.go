@@ -458,6 +458,12 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
+
+	if usePrometheusBool {
+		coreComponents.StatusHandler = statusHandler.NewPrometheusStatusHandler()
+	}
+
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
@@ -510,12 +516,6 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
-
-	if !usePrometheusBool {
-		coreComponents.AppStatusHandler = statusHandler.NewNillStatusHandler()
 	}
 
 	processArgs := factory.NewProcessComponentsFactoryArgs(genesisConfig, nodesConfig, syncer, shardCoordinator,
@@ -832,7 +832,7 @@ func createNode(
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
-		node.WithAppStatusHandler(core.AppStatusHandler),
+		node.WithAppStatusHandler(core.StatusHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

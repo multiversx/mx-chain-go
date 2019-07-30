@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
@@ -122,6 +123,7 @@ func NewNode(opts ...Option) (*Node, error) {
 		ctx:                      context.Background(),
 		isMetachainActive:        true,
 		currentSendingGoRoutines: 0,
+		appStatusHandler:         statusHandler.NewNillStatusHandler(),
 	}
 	for _, opt := range opts {
 		err := opt(node)

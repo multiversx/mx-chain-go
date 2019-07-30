@@ -98,7 +98,7 @@ type Core struct {
 	Marshalizer              marshal.Marshalizer
 	Trie                     data.Trie
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	AppStatusHandler         core.AppStatusHandler
+	StatusHandler            core.AppStatusHandler
 }
 
 // State struct holds the state components of the Elrond protocol
@@ -175,7 +175,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		Marshalizer:              marshalizer,
 		Trie:                     merkleTrie,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
-		AppStatusHandler:         appStatusHandler,
+		StatusHandler:            appStatusHandler,
 	}, nil
 }
 
@@ -203,7 +203,7 @@ func NewStateComponentsFactoryArgs(
 
 // CreateAppStatusHandler will return the handler which will be used
 func CreateAppStatusHandler() core.AppStatusHandler {
-	return statusHandler.NewPrometheusStatusHandler()
+	return statusHandler.NewNillStatusHandler()
 }
 
 // StateComponentsFactory creates the state components
@@ -256,7 +256,7 @@ func NewDataComponentsFactoryArgs(config *config.Config, shardCoordinator shardi
 func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 	var datapool dataRetriever.PoolsHolder
 	var metaDatapool dataRetriever.MetaPoolsHolder
-	blkc, err := createBlockChainFromConfig(args.config, args.shardCoordinator, args.core.AppStatusHandler)
+	blkc, err := createBlockChainFromConfig(args.config, args.shardCoordinator, args.core.StatusHandler)
 	if err != nil {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
