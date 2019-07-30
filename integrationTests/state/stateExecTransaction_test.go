@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -23,9 +24,9 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	accnts, _ := adbCreateAccountsDBWithStorage()
+	accnts, _ := integrationTests.CreateAccountsDB(nil)
 
-	pubKeyBuff := createDummyHexAddress(64)
+	pubKeyBuff := integrationTests.CreateDummyHexAddress(64)
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -38,7 +39,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	balance := big.NewInt(10000)
 
 	//Step 1. create account with a nonce and a balance
-	address, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
+	address, _ := addrConv.CreateAddressFromHex(pubKeyBuff)
 	account, _ := accnts.GetAccountWithJournal(address)
 	_ = account.(*state.Account).SetNonceWithJournal(nonce)
 	_ = account.(*state.Account).SetBalanceWithJournal(balance)
@@ -67,9 +68,9 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts, _ := adbCreateAccountsDBWithStorage()
+	accnts, _ := integrationTests.CreateAccountsDB(nil)
 
-	pubKeyBuff := createDummyHexAddress(64)
+	pubKeyBuff := integrationTests.CreateDummyHexAddress(64)
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -82,7 +83,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	balance := big.NewInt(10000)
 
 	//Step 1. create account with a nonce and a balance
-	address, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
+	address, _ := addrConv.CreateAddressFromHex(pubKeyBuff)
 	account, _ := accnts.GetAccountWithJournal(address)
 	_ = account.(*state.Account).SetNonceWithJournal(nonce)
 	_ = account.(*state.Account).SetBalanceWithJournal(balance)
@@ -110,18 +111,18 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts, _ := adbCreateAccountsDBWithStorage()
+	accnts, _ := integrationTests.CreateAccountsDB(nil)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
 	balance := big.NewInt(initialBalance)
 
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	pubKeyBuff := createDummyHexAddress(64)
-	sender, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
+	pubKeyBuff := integrationTests.CreateDummyHexAddress(64)
+	sender, _ := addrConv.CreateAddressFromHex(pubKeyBuff)
 
-	pubKeyBuff = createDummyHexAddress(64)
-	receiver, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
+	pubKeyBuff = integrationTests.CreateDummyHexAddress(64)
+	receiver, _ := addrConv.CreateAddressFromHex(pubKeyBuff)
 
 	account, _ := accnts.GetAccountWithJournal(sender)
 	_ = account.(*state.Account).SetNonceWithJournal(nonce)
@@ -204,18 +205,18 @@ func testExecTransactionsMoreTxWithRevert(
 func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts, _ := adbCreateAccountsDBWithStorage()
+	accnts, _ := integrationTests.CreateAccountsDB(nil)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
 	balance := big.NewInt(initialBalance)
 
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	pubKeyBuff := createDummyHexAddress(64)
-	sender, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
+	pubKeyBuff := integrationTests.CreateDummyHexAddress(64)
+	sender, _ := addrConv.CreateAddressFromHex(pubKeyBuff)
 
-	pubKeyBuff = createDummyHexAddress(64)
-	receiver, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
+	pubKeyBuff = integrationTests.CreateDummyHexAddress(64)
+	receiver, _ := addrConv.CreateAddressFromHex(pubKeyBuff)
 
 	account, _ := accnts.GetAccountWithJournal(sender)
 	_ = account.(*state.Account).SetNonceWithJournal(nonce)

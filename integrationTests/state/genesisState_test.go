@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/assert"
 )
@@ -77,8 +78,8 @@ func TestExtensionNodeToBranchEdgeCaseSet1(t *testing.T) {
 	marsh := &marshal.JsonMarshalizer{}
 	hasher := sha256.Sha256{}
 
-	tr1, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
-	tr2, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+	tr1, _ := trie.NewTrie(integrationTests.CreateMemUnit(), marsh, hasher)
+	tr2, _ := trie.NewTrie(integrationTests.CreateMemUnit(), marsh, hasher)
 
 	key1 := "e353dd9e3da522eb366e751346195a10"
 	key2 := "a5dfc2ec3b0607e820ad375c5074c510"
@@ -115,8 +116,8 @@ func TestExtensionNodeToBranchEdgeCaseSet2(t *testing.T) {
 	marsh := &marshal.JsonMarshalizer{}
 	hasher := sha256.Sha256{}
 
-	tr1, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
-	tr2, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+	tr1, _ := trie.NewTrie(integrationTests.CreateMemUnit(), marsh, hasher)
+	tr2, _ := trie.NewTrie(integrationTests.CreateMemUnit(), marsh, hasher)
 
 	key1 := "e353dd9e3da522eb366e751346195a10"
 	key2 := "eb6d6e15652c0c4d1f73490e12c8b310"
@@ -173,7 +174,7 @@ func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32byteSlices(
 	)
 
 	numTests := 1000
-	referenceTrie, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+	referenceTrie, _ := trie.NewTrie(integrationTests.CreateMemUnit(), marsh, hasher)
 	refAfterAddRootHash, refFinalRootHash, refTotalPairsIdx, refRemovablePairsIdx := execute(
 		referenceTrie,
 		totalPairs,
@@ -182,7 +183,7 @@ func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32byteSlices(
 	)
 
 	for i := 0; i < numTests; i++ {
-		tr, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+		tr, _ := trie.NewTrie(integrationTests.CreateMemUnit(), marsh, hasher)
 
 		afterAddRootHash, finalRootHash, totalPairsIdx, removablePairsIdx := execute(
 			tr,
@@ -232,7 +233,7 @@ func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32HexByteSlic
 	)
 
 	numTests := 1000
-	referenceTrie, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+	referenceTrie, _ := trie.NewTrie(integrationTests.CreateMemUnit(), marsh, hasher)
 	refAfterAddRootHash, refFinalRootHash, refTotalPairsIdx, refRemovablePairsIdx := execute(
 		referenceTrie,
 		totalPairs,
@@ -241,7 +242,7 @@ func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32HexByteSlic
 	)
 
 	for i := 0; i < numTests; i++ {
-		tr, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+		tr, _ := trie.NewTrie(integrationTests.CreateMemUnit(), marsh, hasher)
 
 		afterAddRootHash, finalRootHash, totalPairsIdx, removablePairsIdx := execute(
 			tr,
@@ -324,7 +325,7 @@ func printTestDebugLines(
 }
 
 func getRootHashByRunningInitialBalances(initialBalances []*InitialBalance) ([]byte, state.AccountsAdapter) {
-	adb, _ := adbCreateAccountsDBWithStorage()
+	adb, _ := integrationTests.CreateAccountsDB(nil)
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "")
 
 	uniformIndexes := make([]int, len(initialBalances))

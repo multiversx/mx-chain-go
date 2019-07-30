@@ -169,15 +169,17 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(shardCoordinator sharding.Coordinator) *state.AccountsDB {
-	hasher := sha256.Sha256{}
-	store := CreateMemUnit()
-
-	tr, _ := trie.NewTrie(store, TestMarshalizer, hasher)
+func CreateAccountsDB(shardCoordinator sharding.Coordinator) (*state.AccountsDB, storage.Storer) {
 	accountFactory, _ := factory.NewAccountFactoryCreator(shardCoordinator)
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
+	if shardCoordinator == nil {
+		accountFactory = factory.NewAccountCreator()
+	}
 
-	return adb
+	store := CreateMemUnit()
+	tr, _ := trie.NewTrie(store, TestMarshalizer, TestHasher)
+	adb, _ := state.NewAccountsDB(tr, TestHasher, TestMarshalizer, accountFactory)
+
+	return adb, store
 }
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
@@ -301,12 +303,32 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 }
 
 // PrintShardAccount outputs on console a shard account data contained
-func PrintShardAccount(accnt *state.Account) {
-	str := fmt.Sprintf("Address: %s\n", hex.EncodeToString(accnt.AddressContainer().Bytes()))
+func PrintShardAccount(accnt *state.Account, tag string) {
+	str := fmt.Sprintf("%s Address: %s\n", tag, base64.StdEncoding.EncodeToString(accnt.AddressContainer().Bytes()))
 	str += fmt.Sprintf("  Nonce: %d\n", accnt.Nonce)
-	str += fmt.Sprintf("  Balance: %d\n", accnt.Balance)
+	str += fmt.Sprintf("  Balance: %d\n", accnt.Balance.Uint64())
 	str += fmt.Sprintf("  Code hash: %s\n", base64.StdEncoding.EncodeToString(accnt.CodeHash))
 	str += fmt.Sprintf("  Root hash: %s\n", base64.StdEncoding.EncodeToString(accnt.RootHash))
 
 	fmt.Println(str)
+}
+
+// CreateDummyAddress creates a random byte array with fixed size
+func CreateDummyAddress() state.AddressContainer {
+	buff := make([]byte, sha256.Sha256{}.Size())
+	_, _ = rand.Reader.Read(buff)
+
+	return state.NewAddress(buff)
+}
+
+// CreateDummyHexAddress returns a string encoded in hex with the given size
+func CreateDummyHexAddress(chars int) string {
+	if chars < 1 {
+		return ""
+	}
+
+	buff := make([]byte, chars/2)
+	_, _ = rand.Reader.Read(buff)
+
+	return hex.EncodeToString(buff)
 }
