@@ -675,4 +675,11 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 	mrsTxs, err := irp.CreateMarshalizedData(txHashes)
 	assert.Nil(t, err)
 	assert.Equal(t, len(txs), len(mrsTxs))
+
+	for i := 0; i < len(mrsTxs); i++ {
+		unMrsScr := &smartContractResult.SmartContractResult{}
+		_ = marshalizer.Unmarshal(unMrsScr, mrsTxs[i])
+
+		assert.Equal(t, unMrsScr, txs[i])
+	}
 }

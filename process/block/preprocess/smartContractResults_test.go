@@ -1,13 +1,14 @@
 package preprocess
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T) {

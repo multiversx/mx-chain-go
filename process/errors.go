@@ -396,3 +396,6 @@ var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor co
 
 // ErrNilPreProcessorsContainer signals that preprocessors container is nil
 var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
+
+// ErrUnknownBlockType signals that block type is not correct
+var ErrUnknownBlockType = errors.New("block type is unknown")

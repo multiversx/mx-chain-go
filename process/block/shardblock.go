@@ -1339,7 +1339,7 @@ func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
-) (map[uint32][]byte, map[uint32][][]byte, error) {
+) (map[uint32][]byte, map[string][][]byte, error) {
 
 	if bodyHandler == nil {
 		return nil, nil, process.ErrNilMiniBlocks

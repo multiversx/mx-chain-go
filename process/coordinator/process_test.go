@@ -3,6 +3,7 @@ package coordinator
 import (
 	"bytes"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"math/big"
 	"reflect"
 	"sync"
@@ -359,7 +360,7 @@ func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 }
 
 func createPreProcessorContainer() process.PreProcessorsContainer {
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
 		&mock.MarshalizerMock{},
@@ -376,26 +377,26 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 	)
-	container, _ := factory.Create()
+	container, _ := preFactory.Create()
 
 	return container
 }
 
 func createInterimProcessorContainer() process.IntermediateProcessorContainer {
-	factory, _ := shard.NewIntermediateProcessorsContainerFactory(
+	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		initStore(),
 	)
-	container, _ := factory.Create()
+	container, _ := preFactory.Create()
 
 	return container
 }
 
 func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder) process.PreProcessorsContainer {
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
 		&mock.MarshalizerMock{},
@@ -412,7 +413,7 @@ func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder)
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 	)
-	container, _ := factory.Create()
+	container, _ := preFactory.Create()
 
 	return container
 }
@@ -539,7 +540,17 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 
 	mrBody, mrTxs := tc.CreateMarshalizedData(body)
 	assert.Equal(t, 1, len(mrTxs))
-	assert.Equal(t, len(scrs), len(mrTxs[1]))
+
+	marshalizer := &mock.MarshalizerMock{}
+	topic := factory.UnsignedTransactionTopic + "_0_1"
+	assert.Equal(t, len(scrs), len(mrTxs[topic]))
+	for i := 0; i < len(mrTxs[topic]); i++ {
+		unMrsScr := &smartContractResult.SmartContractResult{}
+		_ = marshalizer.Unmarshal(unMrsScr, mrTxs[topic][i])
+
+		assert.Equal(t, unMrsScr, scrs[i])
+	}
+
 	assert.Equal(t, 1, len(mrBody))
 }
 
@@ -654,7 +665,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		return hdrPool
 	}
 
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
 		&mock.MarshalizerMock{},
@@ -671,7 +682,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 	)
-	container, _ := factory.Create()
+	container, _ := preFactory.Create()
 
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(5),
@@ -732,7 +743,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		},
 	}
 
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
 		&mock.MarshalizerMock{},
@@ -756,7 +767,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 	)
-	container, _ := factory.Create()
+	container, _ := preFactory.Create()
 
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(5),
@@ -1017,7 +1028,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		}
 	}
 	accounts := initAccountsMock()
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
 		marshalizer,
@@ -1030,7 +1041,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 	)
-	container, _ := factory.Create()
+	container, _ := preFactory.Create()
 
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -1168,7 +1179,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	dataPool := initDataPool(txHash)
 
 	accounts := initAccountsMock()
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
 		&mock.MarshalizerMock{},
@@ -1185,7 +1196,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 	)
-	container, _ := factory.Create()
+	container, _ := preFactory.Create()
 
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -1286,7 +1297,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 	}
 
 	accounts := initAccountsMock()
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
 		&mock.MarshalizerMock{},
@@ -1303,7 +1314,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 	)
-	container, _ := factory.Create()
+	container, _ := preFactory.Create()
 
 	tc, err := NewTransactionCoordinator(
 		shardCoordinator,
@@ -1388,7 +1399,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 			return 0
 		},
 	}
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
 		marshalizer,
@@ -1416,7 +1427,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 	)
-	container, _ := factory.Create()
+	container, _ := preFactory.Create()
 
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -1500,7 +1511,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		},
 	}
 
-	factory, _ := shard.NewPreProcessorsContainerFactory(
+	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
 		marshalizer,
@@ -1520,7 +1531,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 	)
-	container, _ := factory.Create()
+	container, _ := preFactory.Create()
 
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -1550,14 +1561,14 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	adrConv := &mock.AddressConverterMock{}
-	factory, _ := shard.NewIntermediateProcessorsContainerFactory(
+	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		adrConv,
 		&mock.ChainStorerMock{},
 	)
-	container, _ := factory.Create()
+	container, _ := preFactory.Create()
 
 	tc, err := NewTransactionCoordinator(
 		shardCoordinator,
@@ -1593,14 +1604,14 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	adrConv := &mock.AddressConverterMock{}
-	factory, _ := shard.NewIntermediateProcessorsContainerFactory(
+	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		adrConv,
 		&mock.ChainStorerMock{},
 	)
-	container, _ := factory.Create()
+	container, _ := preFactory.Create()
 
 	tc, err := NewTransactionCoordinator(
 		shardCoordinator,
