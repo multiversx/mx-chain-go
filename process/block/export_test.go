@@ -242,3 +242,14 @@ func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
 func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockSizeThrottler) {
 	bp.blockSizeThrottler = blockSizeThrottler
 }
+
+func (sp *shardProcessor) DisplayLogInfo(
+	header *block.Header,
+	body block.Body,
+	headerHash []byte,
+	numShards uint32,
+	selfId uint32,
+	dataPool dataRetriever.PoolsHolder,
+) {
+	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool)
+}
