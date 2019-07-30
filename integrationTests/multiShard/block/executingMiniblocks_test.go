@@ -393,7 +393,7 @@ func generateAndDisseminateTxs(
 				tx.Value,
 				0,
 				0,
-				string(tx.Data),
+				tx.Data,
 				tx.Signature,
 			)
 			incrementalNonce++

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/magiconair/properties/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMaxShouldReturnA(t *testing.T) {
