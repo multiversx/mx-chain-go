@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -470,28 +471,18 @@ func TestElrondNodeFacade_GetHeartbeats(t *testing.T) {
 		GetHeartbeatsHandler: func() []heartbeat.PubKeyHeartbeat {
 			return []heartbeat.PubKeyHeartbeat{
 				{
-					HexPublicKey: "pk1",
-					PeerHeartBeats: []heartbeat.PeerHeartbeat{
-						{
-							P2PAddress: "addr1",
-							IsActive:   true,
-						},
-						{
-							P2PAddress: "addr2",
-						},
-					},
+					HexPublicKey:    "pk1",
+					TimeStamp:       time.Now(),
+					MaxInactiveTime: heartbeat.Duration{Duration: 0},
+					IsActive:        true,
+					ShardID:         uint32(0),
 				},
 				{
-					HexPublicKey: "pk2",
-					PeerHeartBeats: []heartbeat.PeerHeartbeat{
-						{
-							P2PAddress: "addr3",
-							IsActive:   true,
-						},
-						{
-							P2PAddress: "addr4",
-						},
-					},
+					HexPublicKey:    "pk2",
+					TimeStamp:       time.Now(),
+					MaxInactiveTime: heartbeat.Duration{Duration: 0},
+					IsActive:        true,
+					ShardID:         uint32(0),
 				},
 			}
 		},
