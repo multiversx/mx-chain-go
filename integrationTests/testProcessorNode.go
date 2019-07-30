@@ -508,7 +508,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 	tpn.PkTxSignBytes, _ = newPk.ToByteArray()
 }
 
-// ProposeBlockOnlyWithSelf proposes a new block
+// ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint32) (data.BodyHandler, data.HeaderHandler) {
 	haveTime := func() bool { return true }
 

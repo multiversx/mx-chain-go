@@ -451,7 +451,7 @@ func TestNewInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txi.Transaction())
 }
 
-func TestNewInterceptedTransaction_ScTxDeployShouldCorrectlyComputeShardIds(t *testing.T) {
+func TestNewInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *testing.T) {
 	t.Parallel()
 
 	senderAddressInShard1 := make([]byte, 32)
