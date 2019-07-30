@@ -26,6 +26,7 @@ func NewTestElasticIndexer(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	logger *logger.Logger,
+	options *Options,
 ) ElasticIndexer {
 
 	cfg := elasticsearch.Config{
@@ -36,7 +37,7 @@ func NewTestElasticIndexer(
 
 	es, _ := elasticsearch.NewClient(cfg)
 	indexer := elasticIndexer{es, shardCoordinator,
-		marshalizer, hasher, logger}
+		marshalizer, hasher, logger, options}
 
 	return ElasticIndexer{indexer}
 }
