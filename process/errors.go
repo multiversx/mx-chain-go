@@ -154,6 +154,9 @@ var ErrNilMetaHeadersNoncesDataPool = errors.New("nil meta headers nonces cache"
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
+// ErrNilUint64SyncMapCacher signals that a nil Uint64SyncMapCache has been provided
+var ErrNilUint64SyncMapCacher = errors.New("nil Uint64SyncMapCacher")
+
 // ErrNilRcvAddr signals that an operation has been attempted to or with a nil receiver address
 var ErrNilRcvAddr = errors.New("nil receiver address")
 
@@ -195,6 +198,9 @@ var ErrNilTxStorage = errors.New("nil transaction storage")
 
 // ErrNilStorage signals that a nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
+
+// ErrNilShardedDataCacherNotifier signals that a nil sharded data cacher notifier has been provided
+var ErrNilShardedDataCacherNotifier = errors.New("nil sharded data cacher notifier")
 
 // ErrNilBlocksTracker signals that a nil blocks tracker has been provided
 var ErrNilBlocksTracker = errors.New("nil blocks tracker")
