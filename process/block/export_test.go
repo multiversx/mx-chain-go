@@ -256,12 +256,14 @@ func (sp *shardProcessor) DisplayLogInfo(
 
 func (sp *shardProcessor) RestoreMetaBlockIntoPool(
 	miniBlockHashes map[int][][]byte,
-	metaBlockHashes [][]byte) error {
+	metaBlockHashes [][]byte,
+) error {
 	return sp.restoreMetaBlockIntoPool(miniBlockHashes, metaBlockHashes)
 }
 
 func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
 	round uint32,
-	metaHashes [][]byte) (map[string][]byte, error) {
+	metaHashes [][]byte,
+) (map[string][]byte, error) {
 	return sp.getAllMiniBlockDstMeFromMeta(round, metaHashes)
 }
