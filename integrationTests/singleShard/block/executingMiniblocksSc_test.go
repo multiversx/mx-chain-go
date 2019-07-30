@@ -67,19 +67,19 @@ func TestShouldProcessBlocksWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
 	withdrawValue := big.NewInt(10)
-	stepMintAllNodes(nodes, initialVal)
+	mintAllNodes(nodes, initialVal)
 
-	stepDeployScTx(nodes, idxProposer, string(scCode))
-	stepProposeBlock(nodes, idxProposer, round)
-	stepSyncBlock(t, nodes, idxProposer, round)
+	deployScTx(nodes, idxProposer, string(scCode))
+	proposeBlock(nodes, idxProposer, round)
+	syncBlock(t, nodes, idxProposer, round)
 	round = incrementAndPrintRound(round)
 
-	stepNodeDoesJoinGame(nodes, idxProposer, topUpValue, hardCodedScResultingAddress)
-	stepProposeBlock(nodes, idxProposer, round)
-	stepSyncBlock(t, nodes, idxProposer, round)
+	nodeDoesJoinGame(nodes, idxProposer, topUpValue, hardCodedScResultingAddress)
+	proposeBlock(nodes, idxProposer, round)
+	syncBlock(t, nodes, idxProposer, round)
 	round = incrementAndPrintRound(round)
 
-	stepCheckJoinGameIsDoneCorrectly(
+	checkJoinGameIsDoneCorrectly(
 		t,
 		nodes,
 		idxProposer,
@@ -89,16 +89,16 @@ func TestShouldProcessBlocksWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 		hardCodedScResultingAddress,
 	)
 
-	stepNodeCallsRewardAndSend(nodes, idxProposer, idxProposer, withdrawValue, hardCodedScResultingAddress)
-	stepProposeBlock(nodes, idxProposer, round)
-	stepSyncBlock(t, nodes, idxProposer, round)
+	nodeCallsRewardAndSend(nodes, idxProposer, idxProposer, withdrawValue, hardCodedScResultingAddress)
+	proposeBlock(nodes, idxProposer, round)
+	syncBlock(t, nodes, idxProposer, round)
 	round = incrementAndPrintRound(round)
 
-	stepProposeBlock(nodes, idxProposer, round)
-	stepSyncBlock(t, nodes, idxProposer, round)
+	proposeBlock(nodes, idxProposer, round)
+	syncBlock(t, nodes, idxProposer, round)
 	round = incrementAndPrintRound(round)
 
-	stepCheckRewardIsDoneCorrectly(
+	checkRewardIsDoneCorrectly(
 		t,
 		nodes,
 		idxProposer,
@@ -109,7 +109,7 @@ func TestShouldProcessBlocksWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 		hardCodedScResultingAddress,
 	)
 
-	stepCheckRootHashes(t, nodes, []int{0})
+	checkRootHashes(t, nodes, []int{0})
 
 	time.Sleep(1 * time.Second)
 }
@@ -121,7 +121,7 @@ func incrementAndPrintRound(round uint32) uint32 {
 	return round
 }
 
-func stepMintAllNodes(nodes []*integrationTests.TestProcessorNode, value *big.Int) {
+func mintAllNodes(nodes []*integrationTests.TestProcessorNode, value *big.Int) {
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 			continue
@@ -133,7 +133,7 @@ func stepMintAllNodes(nodes []*integrationTests.TestProcessorNode, value *big.In
 	}
 }
 
-func stepDeployScTx(nodes []*integrationTests.TestProcessorNode, senderIdx int, scCode string) {
+func deployScTx(nodes []*integrationTests.TestProcessorNode, senderIdx int, scCode string) {
 	fmt.Println("Deploying SC...")
 	txDeploy := createTxDeploy(nodes[senderIdx], scCode)
 	nodes[senderIdx].SendTransaction(txDeploy)
@@ -143,14 +143,14 @@ func stepDeployScTx(nodes []*integrationTests.TestProcessorNode, senderIdx int, 
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepProposeBlock(nodes []*integrationTests.TestProcessorNode, idxProposer int, round uint32) {
+func proposeBlock(nodes []*integrationTests.TestProcessorNode, idxProposer int, round uint32) {
 	fmt.Println("Proposing block...")
 	for idx, n := range nodes {
 		if idx != idxProposer {
 			continue
 		}
 
-		body, header := n.ProposeBlockOnlyWithSelf(round)
+		body, header := n.ProposeBlock(round)
 		n.BroadcastAndCommit(body, header)
 	}
 
@@ -159,7 +159,7 @@ func stepProposeBlock(nodes []*integrationTests.TestProcessorNode, idxProposer i
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepSyncBlock(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposer int, round uint32) {
+func syncBlock(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposer int, round uint32) {
 	fmt.Println("All other shard nodes sync the proposed block...")
 	for idx, n := range nodes {
 		if idx == idxProposer {
@@ -177,7 +177,7 @@ func stepSyncBlock(t *testing.T, nodes []*integrationTests.TestProcessorNode, id
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepNodeDoesJoinGame(
+func nodeDoesJoinGame(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	joinGameVal *big.Int,
@@ -192,7 +192,7 @@ func stepNodeDoesJoinGame(
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func stepNodeCallsRewardAndSend(
+func nodeCallsRewardAndSend(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNodeOwner int,
 	idxNodeUser int,
@@ -260,7 +260,7 @@ func createTxRewardAndSendToWallet(tnOwner *integrationTests.TestProcessorNode, 
 	return tx
 }
 
-func stepCheckJoinGameIsDoneCorrectly(
+func checkJoinGameIsDoneCorrectly(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	idxNodeScExists int,
@@ -287,7 +287,7 @@ func stepCheckJoinGameIsDoneCorrectly(
 	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
 }
 
-func stepCheckRewardIsDoneCorrectly(
+func checkRewardIsDoneCorrectly(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	idxNodeScExists int,
@@ -318,7 +318,7 @@ func stepCheckRewardIsDoneCorrectly(
 	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }
 
-func stepCheckRootHashes(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int) {
+func checkRootHashes(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int) {
 	for _, idx := range idxProposers {
 		checkRootHashInShard(t, nodes, idx)
 	}
