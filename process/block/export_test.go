@@ -246,3 +246,14 @@ func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockS
 func (sp *shardProcessor) SetCurrHighestMetaHdrNonce(value uint64) {
 	sp.currHighestMetaHdrNonce = value
 }
+
+func (sp *shardProcessor) DisplayLogInfo(
+	header *block.Header,
+	body block.Body,
+	headerHash []byte,
+	numShards uint32,
+	selfId uint32,
+	dataPool dataRetriever.PoolsHolder,
+) {
+	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool)
+}

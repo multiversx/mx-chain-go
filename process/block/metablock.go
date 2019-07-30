@@ -1188,10 +1188,10 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
-) (map[uint32][]byte, map[uint32][][]byte, error) {
+) (map[uint32][]byte, map[string][][]byte, error) {
 
 	mrsData := make(map[uint32][]byte)
-	mrsTxs := make(map[uint32][][]byte)
+	mrsTxs := make(map[string][][]byte)
 
 	// send headers which can validate the current header
 

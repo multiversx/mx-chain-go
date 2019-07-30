@@ -274,7 +274,19 @@ func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
 
 // computeMissingAndExistingScrsForShards calculates what smartContractResults are available and what are missing from block.Body
 func (scr *smartContractResults) computeMissingAndExistingScrsForShards(body block.Body) map[uint32]*txsHashesInfo {
-	missingTxsForShard := scr.computeExistingAndMissing(body, &scr.scrForBlock, scr.chRcvAllScrs, block.SmartContractResultBlock, scr.scrPool)
+	onlyScrFromOthersBody := block.Body{}
+	for _, mb := range body {
+		if mb.Type != block.SmartContractResultBlock {
+			continue
+		}
+		if mb.SenderShardID == scr.shardCoordinator.SelfId() {
+			continue
+		}
+
+		onlyScrFromOthersBody = append(onlyScrFromOthersBody, mb)
+	}
+
+	missingTxsForShard := scr.computeExistingAndMissing(onlyScrFromOthersBody, &scr.scrForBlock, scr.chRcvAllScrs, block.SmartContractResultBlock, scr.scrPool)
 
 	return missingTxsForShard
 }

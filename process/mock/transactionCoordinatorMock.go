@@ -20,7 +20,7 @@ type TransactionCoordinatorMock struct {
 	CreateBlockStartedCalled                             func()
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, maxTxRemaining uint32, maxMbRemaining uint32, round uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
 	CreateMbsAndProcessTransactionsFromMeCalled          func(maxTxRemaining uint32, maxMbRemaining uint32, round uint32, haveTime func() bool) block.MiniBlockSlice
-	CreateMarshalizedDataCalled                          func(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte)
+	CreateMarshalizedDataCalled                          func(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
 	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
 	VerifyCreatedBlockTransactionsCalled                 func(body block.Body) error
 }
@@ -113,9 +113,9 @@ func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessTransactionsFromMe(max
 	return tcm.CreateMbsAndProcessTransactionsFromMeCalled(maxTxRemaining, maxMbRemaining, round, haveTime)
 }
 
-func (tcm *TransactionCoordinatorMock) CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte) {
+func (tcm *TransactionCoordinatorMock) CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte) {
 	if tcm.CreateMarshalizedDataCalled == nil {
-		return make(map[uint32]block.MiniBlockSlice), make(map[uint32][][]byte)
+		return make(map[uint32]block.MiniBlockSlice), make(map[string][][]byte)
 	}
 
 	return tcm.CreateMarshalizedDataCalled(body)

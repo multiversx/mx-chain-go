@@ -215,3 +215,26 @@ func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte
 
 	return shardForSrc, shardForDst, nil
 }
+
+// CreateMarshalizedData creates the marshalized data for broadcasting purposes
+func (irp *intermediateResultsProcessor) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
+	irp.mutInterResultsForBlock.Lock()
+	defer irp.mutInterResultsForBlock.Unlock()
+
+	mrsTxs := make([][]byte, 0)
+	for _, txHash := range txHashes {
+		txInfo := irp.interResultsForBlock[string(txHash)]
+
+		if txInfo == nil || txInfo.tx == nil {
+			continue
+		}
+
+		txMrs, err := irp.marshalizer.Marshal(txInfo.tx)
+		if err != nil {
+			return nil, process.ErrMarshalWithoutSuccess
+		}
+		mrsTxs = append(mrsTxs, txMrs)
+	}
+
+	return mrsTxs, nil
+}
