@@ -204,7 +204,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("could not create address converter: " + err.Error())
 	}
 
-	accountFactory, err := factoryState.NewAccountFactoryCreator(args.shardCoordinator)
+	accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.UserAccount)
 	if err != nil {
 		return nil, errors.New("could not create account factory: " + err.Error())
 	}
@@ -1161,7 +1161,7 @@ func generateGenesisHeadersForInit(
 			return nil, err
 		}
 
-		accountFactory, err := factoryState.NewAccountFactoryCreator(newShardCoordinator)
+		accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.UserAccount)
 		if err != nil {
 			return nil, err
 		}

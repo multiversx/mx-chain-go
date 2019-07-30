@@ -9,13 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
+func TestPeerAccountCreator_CreateAccountNilAddress(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.UserAccount)
+	accF, err := factory.NewAccountFactoryCreator(factory.ValidatorAccount)
 	assert.Nil(t, err)
 
-	_, ok := accF.(*factory.AccountCreator)
+	_, ok := accF.(*factory.PeerAccountCreator)
 	assert.Equal(t, true, ok)
 
 	acc, err := accF.CreateAccount(nil, &mock.AccountTrackerStub{})
@@ -24,13 +24,13 @@ func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
 	assert.Equal(t, err, state.ErrNilAddressContainer)
 }
 
-func TestAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
+func TestPeerAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.UserAccount)
+	accF, err := factory.NewAccountFactoryCreator(factory.ValidatorAccount)
 	assert.Nil(t, err)
 
-	_, ok := accF.(*factory.AccountCreator)
+	_, ok := accF.(*factory.PeerAccountCreator)
 	assert.Equal(t, true, ok)
 
 	acc, err := accF.CreateAccount(&mock.AddressMock{}, nil)
@@ -39,13 +39,13 @@ func TestAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 	assert.Equal(t, err, state.ErrNilAccountTracker)
 }
 
-func TestAccountCreator_CreateAccountOk(t *testing.T) {
+func TestPeerAccountCreator_CreateAccountOk(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.UserAccount)
+	accF, err := factory.NewAccountFactoryCreator(factory.ValidatorAccount)
 	assert.Nil(t, err)
 
-	_, ok := accF.(*factory.AccountCreator)
+	_, ok := accF.(*factory.PeerAccountCreator)
 	assert.Equal(t, true, ok)
 
 	acc, err := accF.CreateAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
