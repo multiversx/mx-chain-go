@@ -190,7 +190,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	syncBlock(t, nodes, idxProposers, round)
 	round = incrementAndPrintRound(round)
 
-	nodeDoesJoinGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
+	nodeJoinsGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
 
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
@@ -329,7 +329,7 @@ func nodeDoesTopUp(
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func nodeDoesJoinGame(
+func nodeJoinsGame(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	joinGameVal *big.Int,

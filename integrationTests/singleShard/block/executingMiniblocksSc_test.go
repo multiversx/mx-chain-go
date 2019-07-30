@@ -73,7 +73,7 @@ func TestShouldProcessWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 	syncBlock(t, nodes, idxProposer, round)
 	round = incrementAndPrintRound(round)
 
-	nodeDoesJoinGame(nodes, idxProposer, topUpValue, hardCodedScResultingAddress)
+	nodeJoinsGame(nodes, idxProposer, topUpValue, hardCodedScResultingAddress)
 	proposeBlock(nodes, idxProposer, round)
 	syncBlock(t, nodes, idxProposer, round)
 	round = incrementAndPrintRound(round)
@@ -160,7 +160,7 @@ func syncBlock(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxPro
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func nodeDoesJoinGame(
+func nodeJoinsGame(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	joinGameVal *big.Int,

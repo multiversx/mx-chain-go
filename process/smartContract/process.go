@@ -403,17 +403,9 @@ func (sc *scProcessor) processVMOutput(
 		return nil, err
 	}
 
-	//we need to reload the sender account as in the case of refunding the exact account that was previously
-	//modified in saveSCOutputToCurrentState, the modifications done there should be visible here
-	//this should be applied only on sender accounts from current shard
-	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
-		isAccountFromCurrentShard := acntSnd.AddressContainer() != nil
-		if isAccountFromCurrentShard {
-			acntSnd, err = sc.getAccountFromAddress(acntSnd.AddressContainer().Bytes())
-			if err != nil {
-				return nil, err
-			}
-		}
+	acntSnd, err = sc.reloadLocalSndAccount(acntSnd)
+	if err != nil {
+		return nil, err
 	}
 
 	totalGasRefund := big.NewInt(0)
@@ -438,6 +430,22 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	return crossTxs, nil
+}
+
+// reloadLocalSndAccount will reload from current account state the sender account
+// this requirement is needed because in the case of refunding the exact account that was previously
+// modified in saveSCOutputToCurrentState, the modifications done there should be visible here
+func (sc *scProcessor) reloadLocalSndAccount(acntSnd state.AccountHandler) (state.AccountHandler, error) {
+	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+		return acntSnd, nil
+	}
+
+	isAccountFromCurrentShard := acntSnd.AddressContainer() != nil
+	if !isAccountFromCurrentShard {
+		return acntSnd, nil
+	}
+
+	return sc.getAccountFromAddress(acntSnd.AddressContainer().Bytes())
 }
 
 func (sc *scProcessor) createSmartContractResult(
