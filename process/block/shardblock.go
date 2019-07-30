@@ -39,6 +39,7 @@ type shardProcessor struct {
 
 	core          serviceContainer.Core
 	txCoordinator process.TransactionCoordinator
+	txCounter     *transactionCounter
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -111,6 +112,7 @@ func NewShardProcessor(
 		dataPool:      dataPool,
 		blocksTracker: blocksTracker,
 		txCoordinator: txCoordinator,
+		txCounter:     NewTransactionCounter(),
 	}
 
 	sp.chRcvAllMetaHdrs = make(chan bool)
@@ -168,7 +170,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	log.Info(fmt.Sprintf("Total txs in pool: %d\n", GetNumTxsWithDst(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())))
+	log.Info(fmt.Sprintf("Total txs in pool: %d\n", sp.txCounter.getNumTxsWithDst(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())))
 
 	sp.txCoordinator.CreateBlockStarted()
 	sp.txCoordinator.RequestBlockTransactions(body)
@@ -424,7 +426,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	}
 
 	restoredTxNr, miniBlockHashes, err := sp.txCoordinator.RestoreBlockDataFromStorage(body)
-	go SubstractRestoredTxs(restoredTxNr)
+	go sp.txCounter.substractRestoredTxs(restoredTxNr)
 	if err != nil {
 		return err
 	}
@@ -662,7 +664,14 @@ func (sp *shardProcessor) CommitBlock(
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler)
 
 	// write data to log
-	go DisplayLogInfo(header, body, headerHash, sp.shardCoordinator.NumberOfShards(), sp.shardCoordinator.SelfId(), sp.dataPool)
+	go sp.txCounter.displayLogInfo(
+		header,
+		body,
+		headerHash,
+		sp.shardCoordinator.NumberOfShards(),
+		sp.shardCoordinator.SelfId(),
+		sp.dataPool,
+	)
 
 	sp.blockSizeThrottler.Succeed(uint64(header.Round))
 
