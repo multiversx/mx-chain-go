@@ -5,7 +5,6 @@ go 1.12
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/ElrondNetwork/concurrent-map v0.1.2
-	github.com/ElrondNetwork/elrond-proxy-go v1.0.0
 	github.com/ElrondNetwork/elrond-vm v0.0.10
 	github.com/ElrondNetwork/elrond-vm-common v0.0.5
 	github.com/beevik/ntp v0.2.0

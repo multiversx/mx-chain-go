@@ -604,7 +604,7 @@ func (n *Node) SendTransaction(
 	return txHexHash, nil
 }
 
-//GetTransactionHandler gets the transaction
+//GetTransaction gets the transaction
 func (n *Node) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
