@@ -2518,7 +2518,7 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	)
 	assert.NotNil(t, sp)
 	hdr.PrevHash = hasher.Compute("prev hash")
-	blproc.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp)
+	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp)
 }
 
 func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
