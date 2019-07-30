@@ -804,6 +804,11 @@ func createNode(
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
+	err = nd.StartHeartbeat(config.Heartbeat)
+	if err != nil {
+		return nil, err
+	}
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		err = nd.ApplyOptions(
 			node.WithInitialNodesBalances(state.InBalanceForShard),
@@ -813,10 +818,6 @@ func createNode(
 			return nil, errors.New("error creating node: " + err.Error())
 		}
 		err = nd.CreateShardedStores()
-		if err != nil {
-			return nil, err
-		}
-		err = nd.StartHeartbeat(config.Heartbeat)
 		if err != nil {
 			return nil, err
 		}
