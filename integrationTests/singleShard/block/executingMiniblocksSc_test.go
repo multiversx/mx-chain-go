@@ -13,14 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
 var agarioFile = "agarioV2.hex"
 var stepDelay = time.Second
 
-func TestShouldProcessBlocksWithScTxsJoinAndRewardTheOwner(t *testing.T) {
+func TestShouldProcessWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -67,7 +66,7 @@ func TestShouldProcessBlocksWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
 	withdrawValue := big.NewInt(10)
-	mintAllNodes(nodes, initialVal)
+	integrationTests.MintAllNodes(nodes, initialVal)
 
 	deployScTx(nodes, idxProposer, string(scCode))
 	proposeBlock(nodes, idxProposer, round)
@@ -94,10 +93,6 @@ func TestShouldProcessBlocksWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 	syncBlock(t, nodes, idxProposer, round)
 	round = incrementAndPrintRound(round)
 
-	proposeBlock(nodes, idxProposer, round)
-	syncBlock(t, nodes, idxProposer, round)
-	round = incrementAndPrintRound(round)
-
 	checkRewardIsDoneCorrectly(
 		t,
 		nodes,
@@ -119,18 +114,6 @@ func incrementAndPrintRound(round uint32) uint32 {
 	fmt.Printf("#################################### ROUND %d BEGINS ####################################\n\n", round)
 
 	return round
-}
-
-func mintAllNodes(nodes []*integrationTests.TestProcessorNode, value *big.Int) {
-	for _, n := range nodes {
-		if n.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-			continue
-		}
-
-		for _, n2 := range nodes {
-			integrationTests.MintAddress(n.AccntState, n2.PkTxSignBytes, value)
-		}
-	}
 }
 
 func deployScTx(nodes []*integrationTests.TestProcessorNode, senderIdx int, scCode string) {
@@ -181,11 +164,12 @@ func nodeDoesJoinGame(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	joinGameVal *big.Int,
-	scAddress []byte) {
+	scAddress []byte,
+) {
 
 	fmt.Println("Calling SC.joinGame...")
-	txDeploy := createTxJoinGame(nodes[idxNode], joinGameVal, scAddress)
-	nodes[idxNode].SendTransaction(txDeploy)
+	txScCall := createTxJoinGame(nodes[idxNode], joinGameVal, scAddress)
+	nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(stepDelay)
 
@@ -197,11 +181,12 @@ func nodeCallsRewardAndSend(
 	idxNodeOwner int,
 	idxNodeUser int,
 	prize *big.Int,
-	scAddress []byte) {
+	scAddress []byte,
+) {
 
 	fmt.Println("Calling SC.rewardAndSendToWallet...")
-	txDeploy := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, scAddress)
-	nodes[idxNodeOwner].SendTransaction(txDeploy)
+	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, scAddress)
+	nodes[idxNodeOwner].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(time.Second * 1)
 
