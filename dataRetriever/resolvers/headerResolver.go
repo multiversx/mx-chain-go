@@ -99,22 +99,22 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P) err
 }
 
 func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error) {
-	//key is now an encoded nonce (uint64)
+	// key is now an encoded nonce (uint64)
 
-	//Step 1. search the nonce-key pair in cache-storage
+	// Search the nonce-key pair in cache-storage
 	hash, err := hdrRes.hdrNoncesStorage.Get(key)
 	if err != nil {
 		log.Debug(err.Error())
 	}
 
-	//Step 2. search the nonce-key pair in data pool
+	// Search the nonce-key pair in data pool
 	if hash == nil {
-		nonce, err := hdrRes.nonceConverter.ToUint64(key)
+		nonceBytes, err := hdrRes.nonceConverter.ToUint64(key)
 		if err != nil {
 			return nil, dataRetriever.ErrInvalidNonceByteSlice
 		}
 
-		value, ok := hdrRes.hdrNonces.Get(nonce)
+		value, ok := hdrRes.hdrNonces.Get(nonceBytes)
 		if ok {
 			value.Range(func(shardId uint32, existingHash []byte) bool {
 				if shardId == hdrRes.TargetShardID() {
@@ -126,7 +126,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 			})
 		}
 
-		if hash == nil {
+		if len(hash) == 0 {
 			return nil, nil
 		}
 	}

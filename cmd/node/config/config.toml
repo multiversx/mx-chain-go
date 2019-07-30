@@ -73,7 +73,7 @@
 
 [TxStorage]
     [TxStorage.Cache]
-        Size = 100000
+        Size = 250000
         Type = "LRU"
     [TxStorage.DB]
         FilePath = "Transactions"
@@ -150,8 +150,9 @@
     Type = "LRU"
 
 [TxDataPool]
-    Size = 100000
-    Type = "LRU"
+    Size = 250000
+    Type = "FIFOSharded"
+    Shards = 16
 
 [UnsignedTransactionDataPool]
     Size = 100000

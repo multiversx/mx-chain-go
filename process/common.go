@@ -26,14 +26,9 @@ func GetShardHeader(
 	storageService dataRetriever.StorageService,
 ) (*block.Header, error) {
 
-	if cacher == nil {
-		return nil, ErrNilCacher
-	}
-	if marshalizer == nil {
-		return nil, ErrNilMarshalizer
-	}
-	if storageService == nil {
-		return nil, ErrNilStorage
+	err := checkGetHeaderParamsForNil(cacher, marshalizer, storageService)
+	if err != nil {
+		return nil, err
 	}
 
 	hdr, err := GetShardHeaderFromPool(hash, cacher)
@@ -55,14 +50,9 @@ func GetMetaHeader(
 	storageService dataRetriever.StorageService,
 ) (*block.MetaBlock, error) {
 
-	if cacher == nil {
-		return nil, ErrNilCacher
-	}
-	if marshalizer == nil {
-		return nil, ErrNilMarshalizer
-	}
-	if storageService == nil {
-		return nil, ErrNilStorage
+	err := checkGetHeaderParamsForNil(cacher, marshalizer, storageService)
+	if err != nil {
+		return nil, err
 	}
 
 	hdr, err := GetMetaHeaderFromPool(hash, cacher)
@@ -82,13 +72,9 @@ func GetShardHeaderFromPool(
 	cacher storage.Cacher,
 ) (*block.Header, error) {
 
-	if cacher == nil {
-		return nil, ErrNilCacher
-	}
-
-	obj, ok := cacher.Peek(hash)
-	if !ok {
-		return nil, ErrMissingHeader
+	obj, err := getHeaderFromPool(hash, cacher)
+	if err != nil {
+		return nil, err
 	}
 
 	hdr, ok := obj.(*block.Header)
@@ -105,13 +91,9 @@ func GetMetaHeaderFromPool(
 	cacher storage.Cacher,
 ) (*block.MetaBlock, error) {
 
-	if cacher == nil {
-		return nil, ErrNilCacher
-	}
-
-	obj, ok := cacher.Peek(hash)
-	if !ok {
-		return nil, ErrMissingHeader
+	obj, err := getHeaderFromPool(hash, cacher)
+	if err != nil {
+		return nil, err
 	}
 
 	hdr, ok := obj.(*block.MetaBlock)
@@ -128,13 +110,6 @@ func GetShardHeaderFromStorage(
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 ) (*block.Header, error) {
-
-	if marshalizer == nil {
-		return nil, ErrNilMarshalizer
-	}
-	if storageService == nil {
-		return nil, ErrNilStorage
-	}
 
 	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.BlockHeaderUnit, hash, marshalizer, storageService)
 	if err != nil {
@@ -156,13 +131,6 @@ func GetMetaHeaderFromStorage(
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 ) (*block.MetaBlock, error) {
-
-	if marshalizer == nil {
-		return nil, ErrNilMarshalizer
-	}
-	if storageService == nil {
-		return nil, ErrNilStorage
-	}
 
 	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, storageService)
 	if err != nil {
@@ -206,117 +174,6 @@ func GetMarshalizedHeaderFromStorage(
 	return buffHdr, nil
 }
 
-// GetMetaHeaderWithNonce method returns a meta block header with a given nonce
-func GetMetaHeaderWithNonce(
-	nonce uint64,
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
-	marshalizer marshal.Marshalizer,
-	storageService dataRetriever.StorageService,
-	uint64Converter typeConverters.Uint64ByteSliceConverter,
-) (*block.MetaBlock, []byte, error) {
-
-	if cacher == nil {
-		return nil, nil, ErrNilCacher
-	}
-	if uint64SyncMapCacher == nil {
-		return nil, nil, ErrNilUint64SyncMapCacher
-	}
-	if marshalizer == nil {
-		return nil, nil, ErrNilMarshalizer
-	}
-	if storageService == nil {
-		return nil, nil, ErrNilStorage
-	}
-	if uint64Converter == nil {
-		return nil, nil, ErrNilUint64Converter
-	}
-
-	hdr, hash, err := GetMetaHeaderFromPoolWithNonce(nonce, cacher, uint64SyncMapCacher)
-	if err != nil {
-		hdr, hash, err = GetMetaHeaderFromStorageWithNonce(nonce, storageService, uint64Converter, marshalizer)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	return hdr, hash, nil
-}
-
-// GetMetaHeaderFromPoolWithNonce method returns a meta block header from pool with a given nonce
-func GetMetaHeaderFromPoolWithNonce(
-	nonce uint64,
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
-) (*block.MetaBlock, []byte, error) {
-
-	if cacher == nil {
-		return nil, nil, ErrNilCacher
-	}
-	if uint64SyncMapCacher == nil {
-		return nil, nil, ErrNilUint64SyncMapCacher
-	}
-
-	syncMap, ok := uint64SyncMapCacher.Get(nonce)
-	if !ok {
-		return nil, nil, ErrMissingHashForHeaderNonce
-	}
-
-	hash, ok := syncMap.Load(sharding.MetachainShardId)
-	if hash == nil || !ok {
-		return nil, nil, ErrMissingHashForHeaderNonce
-	}
-
-	obj, ok := cacher.Peek(hash)
-	if !ok {
-		return nil, nil, ErrMissingHeader
-	}
-
-	hdr, ok := obj.(*block.MetaBlock)
-	if !ok {
-		return nil, nil, ErrWrongTypeAssertion
-	}
-
-	return hdr, hash, nil
-}
-
-// GetMetaHeaderFromStorageWithNonce method returns a meta block header from storage with a given nonce
-func GetMetaHeaderFromStorageWithNonce(
-	nonce uint64,
-	storageService dataRetriever.StorageService,
-	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	marshalizer marshal.Marshalizer,
-) (*block.MetaBlock, []byte, error) {
-
-	if storageService == nil {
-		return nil, nil, ErrNilStorage
-	}
-	if uint64Converter == nil {
-		return nil, nil, ErrNilUint64Converter
-	}
-	if marshalizer == nil {
-		return nil, nil, ErrNilMarshalizer
-	}
-
-	headerStore := storageService.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
-	if headerStore == nil {
-		return nil, nil, ErrNilHeadersStorage
-	}
-
-	nonceToByteSlice := uint64Converter.ToByteSlice(nonce)
-	hash, err := headerStore.Get(nonceToByteSlice)
-	if err != nil {
-		return nil, nil, ErrMissingHashForHeaderNonce
-	}
-
-	hdr, err := GetMetaHeaderFromStorage(hash, marshalizer, storageService)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return hdr, hash, nil
-}
-
 // GetShardHeaderWithNonce method returns a shard block header with a given nonce and shardId
 func GetShardHeaderWithNonce(
 	nonce uint64,
@@ -328,25 +185,40 @@ func GetShardHeaderWithNonce(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 ) (*block.Header, []byte, error) {
 
-	if cacher == nil {
-		return nil, nil, ErrNilCacher
-	}
-	if uint64SyncMapCacher == nil {
-		return nil, nil, ErrNilUint64SyncMapCacher
-	}
-	if marshalizer == nil {
-		return nil, nil, ErrNilMarshalizer
-	}
-	if storageService == nil {
-		return nil, nil, ErrNilStorage
-	}
-	if uint64Converter == nil {
-		return nil, nil, ErrNilUint64Converter
+	err := checkGetHeaderWithNonceParamsForNil(cacher, uint64SyncMapCacher, marshalizer, storageService, uint64Converter)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	hdr, hash, err := GetShardHeaderFromPoolWithNonce(nonce, shardId, cacher, uint64SyncMapCacher)
 	if err != nil {
 		hdr, hash, err = GetShardHeaderFromStorageWithNonce(nonce, shardId, storageService, uint64Converter, marshalizer)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return hdr, hash, nil
+}
+
+// GetMetaHeaderWithNonce method returns a meta block header with a given nonce
+func GetMetaHeaderWithNonce(
+	nonce uint64,
+	cacher storage.Cacher,
+	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+) (*block.MetaBlock, []byte, error) {
+
+	err := checkGetHeaderWithNonceParamsForNil(cacher, uint64SyncMapCacher, marshalizer, storageService, uint64Converter)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hdr, hash, err := GetMetaHeaderFromPoolWithNonce(nonce, cacher, uint64SyncMapCacher)
+	if err != nil {
+		hdr, hash, err = GetMetaHeaderFromStorageWithNonce(nonce, storageService, uint64Converter, marshalizer)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -363,29 +235,32 @@ func GetShardHeaderFromPoolWithNonce(
 	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
 ) (*block.Header, []byte, error) {
 
-	if cacher == nil {
-		return nil, nil, ErrNilCacher
-	}
-	if uint64SyncMapCacher == nil {
-		return nil, nil, ErrNilUint64SyncMapCacher
-	}
-
-	syncMap, ok := uint64SyncMapCacher.Get(nonce)
-	if !ok {
-		return nil, nil, ErrMissingHashForHeaderNonce
-	}
-
-	hash, ok := syncMap.Load(shardId)
-	if hash == nil || !ok {
-		return nil, nil, ErrMissingHashForHeaderNonce
-	}
-
-	obj, ok := cacher.Peek(hash)
-	if !ok {
-		return nil, nil, ErrMissingHeader
+	obj, hash, err := getHeaderFromPoolWithNonce(nonce, shardId, cacher, uint64SyncMapCacher)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	hdr, ok := obj.(*block.Header)
+	if !ok {
+		return nil, nil, ErrWrongTypeAssertion
+	}
+
+	return hdr, hash, nil
+}
+
+// GetMetaHeaderFromPoolWithNonce method returns a meta block header from pool with a given nonce
+func GetMetaHeaderFromPoolWithNonce(
+	nonce uint64,
+	cacher storage.Cacher,
+	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+) (*block.MetaBlock, []byte, error) {
+
+	obj, hash, err := getHeaderFromPoolWithNonce(nonce, sharding.MetachainShardId, cacher, uint64SyncMapCacher)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hdr, ok := obj.(*block.MetaBlock)
 	if !ok {
 		return nil, nil, ErrWrongTypeAssertion
 	}
@@ -402,26 +277,14 @@ func GetShardHeaderFromStorageWithNonce(
 	marshalizer marshal.Marshalizer,
 ) (*block.Header, []byte, error) {
 
-	if storageService == nil {
-		return nil, nil, ErrNilStorage
-	}
-	if uint64Converter == nil {
-		return nil, nil, ErrNilUint64Converter
-	}
-	if marshalizer == nil {
-		return nil, nil, ErrNilMarshalizer
-	}
-
-	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardId)
-	headerStore := storageService.GetStorer(hdrNonceHashDataUnit)
-	if headerStore == nil {
-		return nil, nil, ErrNilHeadersStorage
-	}
-
-	nonceToByteSlice := uint64Converter.ToByteSlice(nonce)
-	hash, err := headerStore.Get(nonceToByteSlice)
+	hash, err := getHeaderHashFromStorageWithNonce(
+		nonce,
+		storageService,
+		uint64Converter,
+		marshalizer,
+		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardId))
 	if err != nil {
-		return nil, nil, ErrMissingHashForHeaderNonce
+		return nil, nil, err
 	}
 
 	hdr, err := GetShardHeaderFromStorage(hash, marshalizer, storageService)
@@ -432,8 +295,34 @@ func GetShardHeaderFromStorageWithNonce(
 	return hdr, hash, nil
 }
 
-// GetTransaction gets the transaction with a given sender/receiver shardId and txHash
-func GetTransaction(
+// GetMetaHeaderFromStorageWithNonce method returns a meta block header from storage with a given nonce
+func GetMetaHeaderFromStorageWithNonce(
+	nonce uint64,
+	storageService dataRetriever.StorageService,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	marshalizer marshal.Marshalizer,
+) (*block.MetaBlock, []byte, error) {
+
+	hash, err := getHeaderHashFromStorageWithNonce(
+		nonce,
+		storageService,
+		uint64Converter,
+		marshalizer,
+		dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hdr, err := GetMetaHeaderFromStorage(hash, marshalizer, storageService)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return hdr, hash, nil
+}
+
+// GetTransactionHandler gets the transaction with a given sender/receiver shardId and txHash
+func GetTransactionHandler(
 	senderShardID uint32,
 	destShardID uint32,
 	txHash []byte,
@@ -442,19 +331,14 @@ func GetTransaction(
 	marshalizer marshal.Marshalizer,
 ) (data.TransactionHandler, error) {
 
-	if shardedDataCacherNotifier == nil {
-		return nil, ErrNilShardedDataCacherNotifier
-	}
-	if storageService == nil {
-		return nil, ErrNilStorage
-	}
-	if marshalizer == nil {
-		return nil, ErrNilMarshalizer
+	err := checkGetTransactionParamsForNil(shardedDataCacherNotifier, storageService, marshalizer)
+	if err != nil {
+		return nil, err
 	}
 
-	tx, err := GetTransactionFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier)
+	tx, err := GetTransactionHandlerFromPool(senderShardID, destShardID, txHash, shardedDataCacherNotifier)
 	if err != nil {
-		tx, err = GetTransactionFromStorage(txHash, storageService, marshalizer)
+		tx, err = GetTransactionHandlerFromStorage(txHash, storageService, marshalizer)
 		if err != nil {
 			return nil, err
 		}
@@ -463,8 +347,8 @@ func GetTransaction(
 	return tx, nil
 }
 
-// GetTransactionFromPool gets the transaction from pool with a given sender/receiver shardId and txHash
-func GetTransactionFromPool(
+// GetTransactionHandlerFromPool gets the transaction from pool with a given sender/receiver shardId and txHash
+func GetTransactionHandlerFromPool(
 	senderShardID uint32,
 	destShardID uint32,
 	txHash []byte,
@@ -494,8 +378,8 @@ func GetTransactionFromPool(
 	return tx, nil
 }
 
-// GetTransactionFromStorage gets the transaction from storage with a given sender/receiver shardId and txHash
-func GetTransactionFromStorage(
+// GetTransactionHandlerFromStorage gets the transaction from storage with a given sender/receiver shardId and txHash
+func GetTransactionHandlerFromStorage(
 	txHash []byte,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
@@ -520,4 +404,145 @@ func GetTransactionFromStorage(
 	}
 
 	return &tx, nil
+}
+
+func checkGetHeaderParamsForNil(
+	cacher storage.Cacher,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+) error {
+
+	if cacher == nil {
+		return ErrNilCacher
+	}
+	if marshalizer == nil {
+		return ErrNilMarshalizer
+	}
+	if storageService == nil {
+		return ErrNilStorage
+	}
+
+	return nil
+}
+
+func checkGetHeaderWithNonceParamsForNil(
+	cacher storage.Cacher,
+	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+) error {
+
+	err := checkGetHeaderParamsForNil(cacher, marshalizer, storageService)
+	if err != nil {
+		return err
+	}
+	if uint64SyncMapCacher == nil {
+		return ErrNilUint64SyncMapCacher
+	}
+	if uint64Converter == nil {
+		return ErrNilUint64Converter
+	}
+
+	return nil
+}
+
+func checkGetTransactionParamsForNil(
+	shardedDataCacherNotifier dataRetriever.ShardedDataCacherNotifier,
+	storageService dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+) error {
+
+	if shardedDataCacherNotifier == nil {
+		return ErrNilShardedDataCacherNotifier
+	}
+	if storageService == nil {
+		return ErrNilStorage
+	}
+	if marshalizer == nil {
+		return ErrNilMarshalizer
+	}
+
+	return nil
+}
+
+func getHeaderFromPool(
+	hash []byte,
+	cacher storage.Cacher,
+) (interface{}, error) {
+
+	if cacher == nil {
+		return nil, ErrNilCacher
+	}
+
+	obj, ok := cacher.Peek(hash)
+	if !ok {
+		return nil, ErrMissingHeader
+	}
+
+	return obj, nil
+}
+
+func getHeaderFromPoolWithNonce(
+	nonce uint64,
+	shardId uint32,
+	cacher storage.Cacher,
+	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+) (interface{}, []byte, error) {
+
+	if cacher == nil {
+		return nil, nil, ErrNilCacher
+	}
+	if uint64SyncMapCacher == nil {
+		return nil, nil, ErrNilUint64SyncMapCacher
+	}
+
+	syncMap, ok := uint64SyncMapCacher.Get(nonce)
+	if !ok {
+		return nil, nil, ErrMissingHashForHeaderNonce
+	}
+
+	hash, ok := syncMap.Load(shardId)
+	if hash == nil || !ok {
+		return nil, nil, ErrMissingHashForHeaderNonce
+	}
+
+	obj, ok := cacher.Peek(hash)
+	if !ok {
+		return nil, nil, ErrMissingHeader
+	}
+
+	return obj, hash, nil
+}
+
+func getHeaderHashFromStorageWithNonce(
+	nonce uint64,
+	storageService dataRetriever.StorageService,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	marshalizer marshal.Marshalizer,
+	blockUnit dataRetriever.UnitType,
+) ([]byte, error) {
+
+	if storageService == nil {
+		return nil, ErrNilStorage
+	}
+	if uint64Converter == nil {
+		return nil, ErrNilUint64Converter
+	}
+	if marshalizer == nil {
+		return nil, ErrNilMarshalizer
+	}
+
+	headerStore := storageService.GetStorer(blockUnit)
+	if headerStore == nil {
+		return nil, ErrNilHeadersStorage
+	}
+
+	nonceToByteSlice := uint64Converter.ToByteSlice(nonce)
+	hash, err := headerStore.Get(nonceToByteSlice)
+	if err != nil {
+		return nil, ErrMissingHashForHeaderNonce
+	}
+
+	return hash, nil
 }

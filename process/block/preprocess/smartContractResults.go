@@ -317,7 +317,7 @@ func (scr *smartContractResults) computeMissingScrsForMiniBlock(mb block.MiniBlo
 	}
 
 	for _, txHash := range mb.TxHashes {
-		tx, _ := process.GetTransactionFromPool(
+		tx, _ := process.GetTransactionHandlerFromPool(
 			mb.SenderShardID,
 			mb.ReceiverShardID,
 			txHash,

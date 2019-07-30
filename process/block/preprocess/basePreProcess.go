@@ -150,7 +150,7 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 		txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
 		if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
 			(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
-			tx, _ := process.GetTransactionFromPool(
+			tx, _ := process.GetTransactionHandlerFromPool(
 				txInfoForHash.senderShardID,
 				txInfoForHash.receiverShardID,
 				txHash,
@@ -193,7 +193,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
-			tx, _ := process.GetTransactionFromPool(
+			tx, _ := process.GetTransactionHandlerFromPool(
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
 				txHash,
