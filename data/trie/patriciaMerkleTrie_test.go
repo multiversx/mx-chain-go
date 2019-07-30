@@ -344,6 +344,30 @@ func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing
 	assert.False(t, ok)
 }
 
+func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T) {
+	tr := emptyTrie()
+
+	_ = tr.Update([]byte("dog"), []byte("cat"))
+	_ = tr.Update([]byte("zebra"), []byte("horse"))
+
+	proof, _ := tr.Prove([]byte("dog"))
+	ok, err := tr.VerifyProof(proof, []byte("dog"))
+	assert.True(t, ok)
+	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testing.T) {
+	tr := emptyTrie()
+
+	_ = tr.Update([]byte("dog"), []byte("cat"))
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+
+	proof, _ := tr.Prove([]byte("dog"))
+	ok, err := tr.VerifyProof(proof, []byte("dog"))
+	assert.True(t, ok)
+	assert.Nil(t, err)
+}
+
 func TestPatriciaMerkleTrie_DeepCloneShouldWork(t *testing.T) {
 	t.Parallel()
 
