@@ -75,6 +75,8 @@ github.com/glycerine/goconvey v0.0.0-20190410193231-58a59202ab31 h1:gclg6gY70GLy
 github.com/glycerine/goconvey v0.0.0-20190410193231-58a59202ab31/go.mod h1:Ogl1Tioa0aV7gstGFO7KhffUsb9M4ydbEbbxpcEDc24=
 github.com/glycerine/rbtree v0.0.0-20180524195614-80eebfe947f7 h1:uBOBRup1RQwEDCNdNSiGdKgyYiSr1+96STAFl2D7lVs=
 github.com/glycerine/rbtree v0.0.0-20180524195614-80eebfe947f7/go.mod h1:tf1G9WLJXoNEQ5TWYvCSkqsOepuCNCJebECwJ/B/64I=
+github.com/glycerine/rbtree v0.0.0-20190406191118-ceb71889d809 h1:wBr8MeUUS+Xi4oweFspffWBlDw8s1rGmRBwM4fUjxrc=
+github.com/glycerine/rbtree v0.0.0-20190406191118-ceb71889d809/go.mod h1:tf1G9WLJXoNEQ5TWYvCSkqsOepuCNCJebECwJ/B/64I=
 github.com/go-check/check v0.0.0-20180628173108-788fd7840127 h1:0gkP6mzaMqkmpcJYCFOLkIBwI7xFExG03bbkOkCvUPI=
 github.com/go-check/check v0.0.0-20180628173108-788fd7840127/go.mod h1:9ES+weclKsC9YodN5RgxqK/VD9HM9JsCSh7rNhMZE98=
 github.com/go-kit/kit v0.8.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=

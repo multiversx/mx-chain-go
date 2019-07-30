@@ -17,6 +17,7 @@ require (
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
 	github.com/gin-gonic/gin v1.3.0
 	github.com/glycerine/go-capnproto v0.0.0-20190118050403-2d07de3aa7fc
+	github.com/glycerine/rbtree v0.0.0-20190406191118-ceb71889d809 // indirect
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.1
 	github.com/google/gops v0.3.6
