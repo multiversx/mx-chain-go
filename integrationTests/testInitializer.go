@@ -131,8 +131,8 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 func CreateMemUnit() storage.Storer {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	persist, _ := memorydb.New()
-
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
+
 	return unit
 }
 
@@ -281,6 +281,7 @@ func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.I
 func MakeDisplayTable(nodes []*TestProcessorNode) string {
 	header := []string{"pk", "shard ID", "txs", "miniblocks", "headers", "metachain headers"}
 	dataLines := make([]*display.LineData, len(nodes))
+
 	for idx, n := range nodes {
 		dataLines[idx] = display.NewLineData(
 			false,
@@ -295,6 +296,7 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 		)
 	}
 	table, _ := display.CreateTableString(header, dataLines)
+
 	return table
 }
 

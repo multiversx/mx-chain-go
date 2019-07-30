@@ -789,7 +789,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 		},
 	}
 	err := sp.ProcessBlock(blkc, hdr, body, haveTime)
-	assert.Equal(t, process.ErrInvalidBlockHash, err)
+	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 }
 
 func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldRevertState(t *testing.T) {
@@ -2510,7 +2510,7 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	)
 	assert.NotNil(t, sp)
 	hdr.PrevHash = hasher.Compute("prev hash")
-	blproc.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp)
+	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp)
 }
 
 func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
@@ -3620,7 +3620,7 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.RandSeed = currRandSeed
 	currHdr.PrevHash = []byte("wronghash")
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrInvalidBlockHash)
+	assert.Equal(t, err, process.ErrNotarizedBlockHashDoesNotMatch)
 
 	currHdr.PrevHash = prevHash
 	prevHdr.RootHash = []byte("prevRootHash")

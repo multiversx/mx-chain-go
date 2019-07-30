@@ -1074,7 +1074,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 		mock.SyncTimerMock{})
 
 	ebm.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return process.ErrInvalidBlockHash
+		return process.ErrBlockHashDoesNotMatch
 	}
 
 	bs, _ := sync.NewMetaBootstrap(
@@ -1095,7 +1095,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 
 	err := bs.SyncBlock()
 
-	assert.Equal(t, process.ErrInvalidBlockHash, err)
+	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 }
 
 func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndexIsZero(t *testing.T) {
