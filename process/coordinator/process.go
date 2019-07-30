@@ -449,9 +449,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	}
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
-	addedTxs := 0
+	txSpaceRemained := int(maxTxSpaceRemained)
 	for i := 0; i < int(tc.shardCoordinator.NumberOfShards()); i++ {
-		txSpaceRemained := int(maxTxSpaceRemained) - addedTxs
 		if txSpaceRemained <= 0 {
 			break
 		}
@@ -467,13 +466,12 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			txSpaceRemained,
 			haveTime,
 			round)
-
 		if err != nil {
-			break
+			continue
 		}
 
 		if len(miniBlock.TxHashes) > 0 {
-			addedTxs += len(miniBlock.TxHashes)
+			txSpaceRemained -= len(miniBlock.TxHashes)
 			miniBlocks = append(miniBlocks, miniBlock)
 		}
 	}
