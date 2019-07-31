@@ -19,7 +19,7 @@
         FilePath = "MiniBlocks"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 30
+        MaxBatchSize = 1
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
@@ -39,7 +39,7 @@
         FilePath = "BlockHeaders"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 6
+        MaxBatchSize = 1
 
 [ShardDataStorage]
     [ShardDataStorage.Cache]
@@ -69,11 +69,11 @@
         FilePath = "MetaBlock"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 6
+        MaxBatchSize = 1
 
 [TxStorage]
     [TxStorage.Cache]
-        Size = 100000
+        Size = 250000
         Type = "LRU"
     [TxStorage.DB]
         FilePath = "Transactions"
@@ -99,7 +99,7 @@
         FilePath = "ShardHdrHashNonce"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 30
+        MaxBatchSize = 1
 
 [MetaHdrNonceHashStorage]
     [MetaHdrNonceHashStorage.Cache]
@@ -109,7 +109,7 @@
         FilePath = "MetaHdrHashNonce"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 6
+        MaxBatchSize = 1
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
@@ -150,9 +150,9 @@
     Type = "LRU"
 
 [TxDataPool]
-    Size = 100000
+    Size = 250000
     Type = "FIFOSharded"
-    Shards = 128
+    Shards = 16
 
 [UnsignedTransactionDataPool]
     Size = 100000
