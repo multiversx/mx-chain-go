@@ -403,6 +403,11 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	}
 
 	txPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
+	scPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+
+	for hash, tx := range scPool {
+		txPool[hash] = tx
+	}
 
 	go sp.core.Indexer().SaveBlock(body, header, txPool)
 }

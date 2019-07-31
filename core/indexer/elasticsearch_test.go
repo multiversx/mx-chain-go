@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -15,7 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
@@ -73,6 +74,17 @@ func newTestBlockBody() block.Body {
 	}
 }
 
+func newTestBlockBodyWithSc(scKey string) block.Body {
+	mainBody := newTestBlockBody()
+	mainBody = append(mainBody, &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte(scKey)},
+		ReceiverShardID: 3,
+		SenderShardID:   1,
+		Type:            0,
+	})
+	return mainBody
+}
+
 func newTestTxPool() map[string]data.TransactionHandler {
 	txPool := make(map[string]data.TransactionHandler)
 
@@ -113,6 +125,14 @@ func newTestTxPool() map[string]data.TransactionHandler {
 	}
 
 	return txPool
+}
+
+func newTestTxPoolWithScResults(testKey string, testScResult *smartContractResult.SmartContractResult) map[string]data.TransactionHandler {
+	mainTxPool := newTestTxPool()
+
+	mainTxPool[testKey] = testScResult
+
+	return mainTxPool
 }
 
 func TestElasticIndexer_NewIndexerWithNilUrlShouldError(t *testing.T) {
@@ -282,6 +302,36 @@ func TestElasticIndexer_buildTransactionBulks(t *testing.T) {
 	for _, bulk := range bulks {
 		assert.NotNil(t, bulk)
 	}
+}
+
+func TestElasticIndexer_buildTransactionBulksWithSCResults(t *testing.T) {
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
+	testSCKey := "utx1"
+	testSCResult := &smartContractResult.SmartContractResult{
+		Nonce:  1,
+		TxHash: []byte("tx1"),
+	}
+	header := newTestBlockHeader()
+	body := newTestBlockBodyWithSc(testSCKey)
+
+	txPool := newTestTxPoolWithScResults(testSCKey, testSCResult)
+
+	bulks := ei.BuildTransactionBulks(body, header, txPool)
+
+	foundSc := false
+	for _, bulk := range bulks {
+		for _, tx := range bulk {
+			if tx.Hash == hex.EncodeToString([]byte(testSCKey)) {
+				foundSc = true
+				break
+			}
+		}
+		if foundSc {
+			break
+		}
+	}
+
+	assert.True(t, foundSc)
 }
 
 //
