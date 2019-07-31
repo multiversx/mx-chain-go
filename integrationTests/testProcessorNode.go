@@ -512,7 +512,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 }
 
 // ProposeBlock proposes a new block
-func (tpn *TestProcessorNode) ProposeBlock(round uint32) (data.BodyHandler, data.HeaderHandler) {
+func (tpn *TestProcessorNode) ProposeBlock(round uint64) (data.BodyHandler, data.HeaderHandler) {
 	haveTime := func() bool { return true }
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)

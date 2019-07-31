@@ -18,7 +18,7 @@ var log = logger.DefaultLogger()
 
 type headerInfo struct {
 	header           data.HeaderHandler
-	broadcastInRound int32
+	broadcastInRound int64
 }
 
 // shardBlockTracker implements NotarisedBlocksTracker interface which tracks notarised blocks
@@ -136,7 +136,7 @@ func (sbt *shardBlockTracker) UnnotarisedBlocks() []data.HeaderHandler {
 }
 
 // SetBlockBroadcastRound sets the round in which the block with the given nonce has been broadcast
-func (sbt *shardBlockTracker) SetBlockBroadcastRound(nonce uint64, round int32) {
+func (sbt *shardBlockTracker) SetBlockBroadcastRound(nonce uint64, round int64) {
 	sbt.mutUnnotarisedHeaders.Lock()
 
 	hInfo := sbt.unnotarisedHeaders[nonce]
@@ -149,7 +149,7 @@ func (sbt *shardBlockTracker) SetBlockBroadcastRound(nonce uint64, round int32) 
 }
 
 // BlockBroadcastRound gets the round in which the block with given nonce has been broadcast
-func (sbt *shardBlockTracker) BlockBroadcastRound(nonce uint64) int32 {
+func (sbt *shardBlockTracker) BlockBroadcastRound(nonce uint64) int64 {
 	sbt.mutUnnotarisedHeaders.RLock()
 	hInfo := sbt.unnotarisedHeaders[nonce]
 	sbt.mutUnnotarisedHeaders.RUnlock()

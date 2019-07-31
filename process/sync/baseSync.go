@@ -74,7 +74,7 @@ type baseBootstrap struct {
 
 	isNodeSynchronized bool
 	hasLastBlock       bool
-	roundIndex         int32
+	roundIndex         int64
 
 	isForkDetected bool
 	forkNonce      uint64
@@ -84,7 +84,7 @@ type baseBootstrap struct {
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	bootstrapRoundIndex   uint32
+	bootstrapRoundIndex   uint64
 	requestsWithTimeout   uint32
 }
 
