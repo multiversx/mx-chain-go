@@ -19,7 +19,7 @@
         FilePath = "MiniBlocks"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 30
+        MaxBatchSize = 1
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]

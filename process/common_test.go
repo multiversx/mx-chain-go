@@ -1972,3 +1972,94 @@ func TestGetTransactionHandlerFromPoolShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, txFromPool, tx)
 }
+
+func TestGetTransactionHandlerFromStorageShouldErrNilStorage(t *testing.T) {
+	hash := []byte("X")
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	tx, err := process.GetTransactionHandlerFromStorage(
+		hash,
+		nil,
+		marshalizer)
+
+	assert.Nil(t, tx)
+	assert.Equal(t, process.ErrNilStorage, err)
+}
+
+func TestGetTransactionHandlerFromStorageShouldErrNilMarshalizer(t *testing.T) {
+	hash := []byte("X")
+
+	storageService := &mock.ChainStorerMock{}
+
+	tx, err := process.GetTransactionHandlerFromStorage(
+		hash,
+		storageService,
+		nil)
+
+	assert.Nil(t, tx)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestGetTransactionHandlerFromStorageShouldErrWhenTxIsNotFound(t *testing.T) {
+	hash := []byte("X")
+	errExpected := errors.New("error")
+
+	storageService := &mock.ChainStorerMock{
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+			return nil, errExpected
+		},
+	}
+	marshalizer := &mock.MarshalizerMock{}
+
+	tx, err := process.GetTransactionHandlerFromStorage(
+		hash,
+		storageService,
+		marshalizer)
+
+	assert.Nil(t, tx)
+	assert.Equal(t, errExpected, err)
+}
+
+func TestGetTransactionHandlerFromStorageShouldErrWhenUnmarshalFail(t *testing.T) {
+	hash := []byte("X")
+
+	marshalizer := &mock.MarshalizerMock{}
+	storageService := &mock.ChainStorerMock{
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+			return nil, nil
+		},
+	}
+
+	tx, err := process.GetTransactionHandlerFromStorage(
+		hash,
+		storageService,
+		marshalizer)
+
+	assert.Nil(t, tx)
+	assert.NotNil(t, err)
+}
+
+func TestGetTransactionHandlerFromStorageShouldWork(t *testing.T) {
+	hash := []byte("X")
+	txFromPool := &transaction.Transaction{Nonce: 1}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txMarsh, _ := marshalizer.Marshal(txFromPool)
+	storageService := &mock.ChainStorerMock{
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+			if bytes.Equal(key, hash) {
+				return txMarsh, nil
+			}
+			return nil, errors.New("error")
+		},
+	}
+
+	tx, err := process.GetTransactionHandlerFromStorage(
+		hash,
+		storageService,
+		marshalizer)
+
+	assert.Nil(t, err)
+	assert.Equal(t, txFromPool, tx)
+}
