@@ -7,13 +7,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,29 +19,16 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	accnts, _ := integrationTests.CreateAccountsDB(nil)
-
-	pubKeyBuff := integrationTests.CreateDummyHexAddress(64)
-
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-
-	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator, &mock.SCProcessorMock{})
-
+	accnts, _, _ := integrationTests.CreateAccountsDB(nil)
+	txProcessor := integrationTests.CreateTxProcessor(accnts)
 	nonce := uint64(6)
 	balance := big.NewInt(10000)
 
 	//Step 1. create account with a nonce and a balance
-	address, _ := addrConv.CreateAddressFromHex(pubKeyBuff)
-	account, _ := accnts.GetAccountWithJournal(address)
-	_ = account.(*state.Account).SetNonceWithJournal(nonce)
-	_ = account.(*state.Account).SetBalanceWithJournal(balance)
-
+	address := integrationTests.CreateAccount(accnts, nonce, balance)
 	hashCreated, _ := accnts.Commit()
 
-	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
+	//Step 2. create a tx moving 1 from address to address
 	tx := &transaction2.Transaction{
 		Nonce:   nonce,
 		Value:   big.NewInt(1),
@@ -68,26 +50,13 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts, _ := integrationTests.CreateAccountsDB(nil)
-
-	pubKeyBuff := integrationTests.CreateDummyHexAddress(64)
-
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-
-	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator, &mock.SCProcessorMock{})
-
+	accnts, _, _ := integrationTests.CreateAccountsDB(nil)
+	txProcessor := integrationTests.CreateTxProcessor(accnts)
 	nonce := uint64(6)
 	balance := big.NewInt(10000)
 
 	//Step 1. create account with a nonce and a balance
-	address, _ := addrConv.CreateAddressFromHex(pubKeyBuff)
-	account, _ := accnts.GetAccountWithJournal(address)
-	_ = account.(*state.Account).SetNonceWithJournal(nonce)
-	_ = account.(*state.Account).SetBalanceWithJournal(balance)
-
+	address := integrationTests.CreateAccount(accnts, nonce, balance)
 	_, _ = accnts.Commit()
 
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
@@ -111,22 +80,14 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts, _ := integrationTests.CreateAccountsDB(nil)
+	accnts, _, _ := integrationTests.CreateAccountsDB(nil)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
 	balance := big.NewInt(initialBalance)
 
-	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	pubKeyBuff := integrationTests.CreateDummyHexAddress(64)
-	sender, _ := addrConv.CreateAddressFromHex(pubKeyBuff)
-
-	pubKeyBuff = integrationTests.CreateDummyHexAddress(64)
-	receiver, _ := addrConv.CreateAddressFromHex(pubKeyBuff)
-
-	account, _ := accnts.GetAccountWithJournal(sender)
-	_ = account.(*state.Account).SetNonceWithJournal(nonce)
-	_ = account.(*state.Account).SetBalanceWithJournal(balance)
+	sender := integrationTests.CreateAccount(accnts, nonce, balance)
+	receiver := integrationTests.CreateAddressFromHex()
 
 	initialHash, _ := accnts.Commit()
 	fmt.Printf("Initial hash: %s\n", base64.StdEncoding.EncodeToString(initialHash))
@@ -141,15 +102,10 @@ func testExecTransactionsMoreTxWithRevert(
 	receiver state.AddressContainer,
 	initialHash []byte,
 	initialNonce uint64,
-	initialBalance int64) {
+	initialBalance int64,
+) {
 
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-
-	txProcessor, _ := transaction.NewTxProcessor(accnts, hasher, addrConv, marshalizer, shardCoordinator, &mock.SCProcessorMock{})
-
+	txProcessor := integrationTests.CreateTxProcessor(accnts)
 	txToGenerate := 15000
 
 	//Step 1. execute a lot moving transactions from pubKeyBuff to another pubKeyBuff
@@ -205,22 +161,14 @@ func testExecTransactionsMoreTxWithRevert(
 func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts, _ := integrationTests.CreateAccountsDB(nil)
+	accnts, _, _ := integrationTests.CreateAccountsDB(nil)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
 	balance := big.NewInt(initialBalance)
 
-	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	pubKeyBuff := integrationTests.CreateDummyHexAddress(64)
-	sender, _ := addrConv.CreateAddressFromHex(pubKeyBuff)
-
-	pubKeyBuff = integrationTests.CreateDummyHexAddress(64)
-	receiver, _ := addrConv.CreateAddressFromHex(pubKeyBuff)
-
-	account, _ := accnts.GetAccountWithJournal(sender)
-	_ = account.(*state.Account).SetNonceWithJournal(nonce)
-	_ = account.(*state.Account).SetBalanceWithJournal(balance)
+	sender := integrationTests.CreateAccount(accnts, nonce, balance)
+	receiver := integrationTests.CreateAddressFromHex()
 
 	initialHash, _ := accnts.Commit()
 	fmt.Printf("Initial hash: %s\n", base64.StdEncoding.EncodeToString(initialHash))

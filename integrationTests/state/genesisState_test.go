@@ -50,7 +50,6 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 
 	genesisBalances := &Genesis{}
 	err := core.LoadJsonFile(genesisBalances, genesisFile, log)
-
 	assert.Nil(t, err)
 
 	fmt.Printf("Loaded %d entries...\n", len(genesisBalances.InitialBalances))
@@ -325,7 +324,7 @@ func printTestDebugLines(
 }
 
 func getRootHashByRunningInitialBalances(initialBalances []*InitialBalance) ([]byte, state.AccountsAdapter) {
-	adb, _ := integrationTests.CreateAccountsDB(nil)
+	adb, _, _ := integrationTests.CreateAccountsDB(nil)
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "")
 
 	uniformIndexes := make([]int, len(initialBalances))

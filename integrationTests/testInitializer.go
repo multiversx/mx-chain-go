@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/process"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -24,11 +26,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -37,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/pkg/errors"
 )
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
@@ -169,7 +174,7 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(shardCoordinator sharding.Coordinator) (*state.AccountsDB, storage.Storer) {
+func CreateAccountsDB(shardCoordinator sharding.Coordinator) (*state.AccountsDB, data.Trie, storage.Storer) {
 	accountFactory, _ := factory.NewAccountFactoryCreator(shardCoordinator)
 	if shardCoordinator == nil {
 		accountFactory = factory.NewAccountCreator()
@@ -179,7 +184,7 @@ func CreateAccountsDB(shardCoordinator sharding.Coordinator) (*state.AccountsDB,
 	tr, _ := trie.NewTrie(store, TestMarshalizer, TestHasher)
 	adb, _ := state.NewAccountsDB(tr, TestHasher, TestMarshalizer, accountFactory)
 
-	return adb, store
+	return adb, tr, store
 }
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
@@ -263,9 +268,16 @@ func CreateIeleVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExe
 	return vm, blockChainHook
 }
 
-// CreateAddresFromAddrBytes creates a n address container object from address bytes provided
+// CreateAddresFromAddrBytes creates an address container object from address bytes provided
 func CreateAddresFromAddrBytes(addressBytes []byte) state.AddressContainer {
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(addressBytes)
+
+	return addr
+}
+
+// CreateAddressFromHex creates an address container object from hex
+func CreateAddressFromHex() state.AddressContainer {
+	addr, _ := TestAddressConverter.CreateAddressFromHex(CreateDummyHexAddress(64))
 
 	return addr
 }
@@ -276,6 +288,16 @@ func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.I
 	accnt, _ := accnts.GetAccountWithJournal(CreateAddresFromAddrBytes(addressBytes))
 	_ = accnt.(*state.Account).SetBalanceWithJournal(value)
 	_, _ = accnts.Commit()
+}
+
+// CreateAccount creates a new account and returns the addres
+func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) state.AddressContainer {
+	address, _ := TestAddressConverter.CreateAddressFromHex(CreateDummyHexAddress(64))
+	account, _ := accnts.GetAccountWithJournal(address)
+	_ = account.(*state.Account).SetNonceWithJournal(nonce)
+	_ = account.(*state.Account).SetBalanceWithJournal(balance)
+
+	return address
 }
 
 // MakeDisplayTable will output a string containing counters for received transactions, headers, miniblocks and
@@ -331,4 +353,67 @@ func CreateDummyHexAddress(chars int) string {
 	_, _ = rand.Reader.Read(buff)
 
 	return hex.EncodeToString(buff)
+}
+
+// GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
+func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
+	adr := CreateDummyAddress()
+	adb, _, _ := CreateAccountsDB(nil)
+	account, _ := state.NewAccount(adr, adb)
+
+	return adr, account, adb
+}
+
+// AdbEmulateBalanceTxSafeExecution emulates a tx execution by altering the accounts
+// balance and nonce, and printing any encountered error
+func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest *state.Account, accounts state.AccountsAdapter, value *big.Int) {
+
+	snapshot := accounts.JournalLen()
+	err := AdbEmulateBalanceTxExecution(acntSrc, acntDest, value)
+
+	if err != nil {
+		fmt.Printf("!!!! Error executing tx (value: %v), reverting...\n", value)
+		err = accounts.RevertToSnapshot(snapshot)
+
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+// AdbEmulateBalanceTxExecution emulates a tx execution by altering the accounts
+// balance and nonce, and printing any encountered error
+func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.Int) error {
+
+	srcVal := acntSrc.Balance
+	destVal := acntDest.Balance
+
+	if srcVal.Cmp(value) < 0 {
+		return errors.New("not enough funds")
+	}
+
+	err := acntSrc.SetBalanceWithJournal(srcVal.Sub(srcVal, value))
+	if err != nil {
+		return err
+	}
+
+	err = acntDest.SetBalanceWithJournal(destVal.Add(destVal, value))
+	if err != nil {
+		return err
+	}
+
+	err = acntSrc.SetNonceWithJournal(acntSrc.Nonce + 1)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CreateTxProcessor returns a transaction processor
+func CreateTxProcessor(accnts state.AccountsAdapter) process.TransactionProcessor {
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	txProcessor, _ := transaction.NewTxProcessor(accnts, TestHasher, TestAddressConverter, TestMarshalizer, shardCoordinator, &mock.SCProcessorMock{})
+
+	return txProcessor
 }
