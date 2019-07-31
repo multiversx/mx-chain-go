@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/pkg/profile"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,7 +75,7 @@ func TestShouldProcessWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 	syncBlock(t, nodes, idxProposer, round)
 	round = incrementAndPrintRound(round)
 
-	nodeJoinsGame(nodes, idxProposer, topUpValue, hardCodedScResultingAddress)
+	nodeJoinsGame(nodes, idxProposer, topUpValue, 0, hardCodedScResultingAddress)
 	proposeBlock(nodes, idxProposer, round)
 	syncBlock(t, nodes, idxProposer, round)
 	round = incrementAndPrintRound(round)
@@ -88,7 +90,7 @@ func TestShouldProcessWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 		hardCodedScResultingAddress,
 	)
 
-	nodeCallsRewardAndSend(nodes, idxProposer, idxProposer, withdrawValue, hardCodedScResultingAddress)
+	nodeCallsRewardAndSend(nodes, idxProposer, idxProposer, withdrawValue, 0, hardCodedScResultingAddress)
 	proposeBlock(nodes, idxProposer, round)
 	syncBlock(t, nodes, idxProposer, round)
 	round = incrementAndPrintRound(round)
@@ -103,6 +105,96 @@ func TestShouldProcessWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 		withdrawValue,
 		hardCodedScResultingAddress,
 	)
+
+	checkRootHashes(t, nodes, []int{0})
+
+	time.Sleep(1 * time.Second)
+}
+
+func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
+	t.Skip("this is a stress test for VM and AGAR.IO")
+
+	stepDelay = time.Nanosecond
+
+	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
+	defer p.Stop()
+
+	log := logger.DefaultLogger()
+	log.SetLevel(logger.LogDebug)
+
+	scCode, err := ioutil.ReadFile(agarioFile)
+	assert.Nil(t, err)
+
+	maxShards := uint32(1)
+	numOfNodes := 1
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
+
+	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
+	for i := 0; i < numOfNodes; i++ {
+		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	}
+
+	idxProposer := 0
+	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	for _, n := range nodes {
+		_ = n.Messenger.Bootstrap()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(stepDelay)
+
+	round := uint64(0)
+	round = incrementAndPrintRound(round)
+
+	initialVal := big.NewInt(10000000)
+	topUpValue := big.NewInt(500)
+	withdrawValue := big.NewInt(10)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	deployScTx(nodes, idxProposer, string(scCode))
+	proposeBlock(nodes, idxProposer, round)
+	syncBlock(t, nodes, idxProposer, round)
+	round = incrementAndPrintRound(round)
+
+	rMonitor := &statistics.ResourceMonitor{}
+	fmt.Println(rMonitor.GenerateStatistics())
+
+	for rr := 0; rr < 50; rr++ {
+		for i := 0; i < 100; i++ {
+			nodeJoinsGame(nodes, idxProposer, topUpValue, rr, hardCodedScResultingAddress)
+		}
+		time.Sleep(time.Second)
+
+		startTime := time.Now()
+		proposeBlock(nodes, idxProposer, round)
+		elapsedTime := time.Since(startTime)
+		fmt.Printf("Block Created in %s\n", elapsedTime)
+		round = incrementAndPrintRound(round)
+
+		nodeCallsRewardAndSend(nodes, idxProposer, idxProposer, withdrawValue, rr, hardCodedScResultingAddress)
+		nodeEndGame(nodes, idxProposer, rr, hardCodedScResultingAddress)
+		time.Sleep(time.Second)
+
+		startTime = time.Now()
+		proposeBlock(nodes, idxProposer, round)
+		elapsedTime = time.Since(startTime)
+		fmt.Printf("Block Created in %s\n", elapsedTime)
+		round = incrementAndPrintRound(round)
+
+		fmt.Println(rMonitor.GenerateStatistics())
+	}
 
 	checkRootHashes(t, nodes, []int{0})
 
@@ -133,8 +225,9 @@ func proposeBlock(nodes []*integrationTests.TestProcessorNode, idxProposer int, 
 			continue
 		}
 
-		body, header := n.ProposeBlock(round)
-		n.BroadcastAndCommit(body, header)
+		body, header, _ := n.ProposeBlock(round)
+		n.BroadcastBlock(body, header)
+		n.CommitBlock(body, header)
 	}
 
 	fmt.Println("Delaying for disseminating headers and miniblocks...")
@@ -164,13 +257,27 @@ func nodeJoinsGame(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	joinGameVal *big.Int,
+	round int,
 	scAddress []byte,
 ) {
 
 	fmt.Println("Calling SC.joinGame...")
-	txScCall := createTxJoinGame(nodes[idxNode], joinGameVal, scAddress)
+	txScCall := createTxJoinGame(nodes[idxNode], joinGameVal, round, scAddress)
 	nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
+	time.Sleep(stepDelay)
+}
+
+func nodeEndGame(
+	nodes []*integrationTests.TestProcessorNode,
+	idxNode int,
+	round int,
+	scAddress []byte,
+) {
+
+	fmt.Println("Calling SC.endGame...")
+	txScCall := createTxEndGame(nodes[idxNode], round, scAddress)
+	nodes[idxNode].SendTransaction(txScCall)
 	time.Sleep(stepDelay)
 
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
@@ -181,16 +288,15 @@ func nodeCallsRewardAndSend(
 	idxNodeOwner int,
 	idxNodeUser int,
 	prize *big.Int,
+	round int,
 	scAddress []byte,
 ) {
 
 	fmt.Println("Calling SC.rewardAndSendToWallet...")
-	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, scAddress)
+	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, round, scAddress)
 	nodes[idxNodeOwner].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
-	time.Sleep(time.Second * 1)
-
-	fmt.Println(integrationTests.MakeDisplayTable(nodes))
+	time.Sleep(stepDelay)
 }
 
 func createTxDeploy(tn *integrationTests.TestProcessorNode, scCode string) *transaction.Transaction {
@@ -201,7 +307,7 @@ func createTxDeploy(tn *integrationTests.TestProcessorNode, scCode string) *tran
 		SndAddr:  tn.PkTxSignBytes,
 		Data:     scCode,
 		GasPrice: 0,
-		GasLimit: 100000,
+		GasLimit: 1000000000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
@@ -209,15 +315,15 @@ func createTxDeploy(tn *integrationTests.TestProcessorNode, scCode string) *tran
 	return tx
 }
 
-func createTxJoinGame(tn *integrationTests.TestProcessorNode, joinGameVal *big.Int, scAddress []byte) *transaction.Transaction {
+func createTxEndGame(tn *integrationTests.TestProcessorNode, round int, scAddress []byte) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    0,
-		Value:    joinGameVal,
+		Value:    big.NewInt(100),
 		RcvAddr:  scAddress,
 		SndAddr:  tn.PkTxSignBytes,
-		Data:     fmt.Sprintf("joinGame@aaaa"),
+		Data:     fmt.Sprintf("endGame@%d", round),
 		GasPrice: 0,
-		GasLimit: 100000,
+		GasLimit: 10000000000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
@@ -227,15 +333,33 @@ func createTxJoinGame(tn *integrationTests.TestProcessorNode, joinGameVal *big.I
 	return tx
 }
 
-func createTxRewardAndSendToWallet(tnOwner *integrationTests.TestProcessorNode, tnUser *integrationTests.TestProcessorNode, prizeVal *big.Int, scAddress []byte) *transaction.Transaction {
+func createTxJoinGame(tn *integrationTests.TestProcessorNode, joinGameVal *big.Int, round int, scAddress []byte) *transaction.Transaction {
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    joinGameVal,
+		RcvAddr:  scAddress,
+		SndAddr:  tn.PkTxSignBytes,
+		Data:     fmt.Sprintf("joinGame@%d", round),
+		GasPrice: 0,
+		GasLimit: 10000000000,
+	}
+	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
+
+	fmt.Printf("Join %s\n", hex.EncodeToString(tn.PkTxSignBytes))
+
+	return tx
+}
+
+func createTxRewardAndSendToWallet(tnOwner *integrationTests.TestProcessorNode, tnUser *integrationTests.TestProcessorNode, prizeVal *big.Int, round int, scAddress []byte) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),
 		RcvAddr:  scAddress,
 		SndAddr:  tnOwner.PkTxSignBytes,
-		Data:     fmt.Sprintf("rewardAndSendToWallet@aaaa@%s@%X", hex.EncodeToString(tnUser.PkTxSignBytes), prizeVal),
+		Data:     fmt.Sprintf("rewardAndSendToWallet@%d@%s@%X", round, hex.EncodeToString(tnUser.PkTxSignBytes), prizeVal),
 		GasPrice: 0,
-		GasLimit: 100000,
+		GasLimit: 10000000000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tnOwner.SingleSigner.Sign(tnOwner.SkTxSign, txBuff)
