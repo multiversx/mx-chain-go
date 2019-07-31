@@ -106,7 +106,7 @@ func TestChronology_RemoveAllSubroundsShouldReturnEmptySubroundHandlersArray(t *
 func TestChronology_StartRoundShouldReturnWhenRoundIndexIsNegative(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{}
-	rounderMock.IndexCalled = func() int32 {
+	rounderMock.IndexCalled = func() int64 {
 		return -1
 	}
 	syncTimerMock := &mock.SyncTimerMock{}
@@ -237,7 +237,7 @@ func TestChronology_InitRoundShouldNotSetSubroundWhenRoundIndexIsNegative(t *tes
 		syncTimerMock)
 
 	chr.AddSubround(initSubroundHandlerMock())
-	rounderMock.IndexCalled = func() int32 {
+	rounderMock.IndexCalled = func() int64 {
 		return -1
 	}
 	chr.InitRound()
@@ -274,7 +274,7 @@ func TestChronology_StartRoundShouldNotUpdateRoundWhenCurrentRoundIsNotFinished(
 	chr.SetSubroundId(0)
 	chr.StartRound()
 
-	assert.Equal(t, int32(0), rounderMock.Index())
+	assert.Equal(t, int64(0), rounderMock.Index())
 }
 
 func TestChronology_StartRoundShouldUpdateRoundWhenCurrentRoundIsFinished(t *testing.T) {
@@ -290,7 +290,7 @@ func TestChronology_StartRoundShouldUpdateRoundWhenCurrentRoundIsFinished(t *tes
 	chr.SetSubroundId(-1)
 	chr.StartRound()
 
-	assert.Equal(t, int32(1), rounderMock.Index())
+	assert.Equal(t, int64(1), rounderMock.Index())
 }
 
 func TestChronology_SetAppStatusHandlerWithNilValueShouldErr(t *testing.T) {

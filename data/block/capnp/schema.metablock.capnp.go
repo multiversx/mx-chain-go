@@ -722,10 +722,10 @@ func (s MetaBlockCapn) Nonce() uint64                  { return C.Struct(s).Get6
 func (s MetaBlockCapn) SetNonce(v uint64)              { C.Struct(s).Set64(0, v) }
 func (s MetaBlockCapn) Epoch() uint32                  { return C.Struct(s).Get32(8) }
 func (s MetaBlockCapn) SetEpoch(v uint32)              { C.Struct(s).Set32(8, v) }
-func (s MetaBlockCapn) Round() uint32                  { return C.Struct(s).Get32(12) }
-func (s MetaBlockCapn) SetRound(v uint32)              { C.Struct(s).Set32(12, v) }
-func (s MetaBlockCapn) TimeStamp() uint64              { return C.Struct(s).Get64(16) }
-func (s MetaBlockCapn) SetTimeStamp(v uint64)          { C.Struct(s).Set64(16, v) }
+func (s MetaBlockCapn) Round() uint64                  { return C.Struct(s).Get64(16) }
+func (s MetaBlockCapn) SetRound(v uint64)              { C.Struct(s).Set64(16, v) }
+func (s MetaBlockCapn) TimeStamp() uint64              { return C.Struct(s).Get64(24) }
+func (s MetaBlockCapn) SetTimeStamp(v uint64)          { C.Struct(s).Set64(24, v) }
 func (s MetaBlockCapn) ShardInfo() ShardDataCapn_List {
 	return ShardDataCapn_List(C.Struct(s).GetObject(0))
 }
@@ -746,8 +746,8 @@ func (s MetaBlockCapn) RandSeed() []byte                { return C.Struct(s).Get
 func (s MetaBlockCapn) SetRandSeed(v []byte)            { C.Struct(s).SetObject(6, s.Segment.NewData(v)) }
 func (s MetaBlockCapn) RootHash() []byte                { return C.Struct(s).GetObject(7).ToData() }
 func (s MetaBlockCapn) SetRootHash(v []byte)            { C.Struct(s).SetObject(7, s.Segment.NewData(v)) }
-func (s MetaBlockCapn) TxCount() uint32                 { return C.Struct(s).Get32(24) }
-func (s MetaBlockCapn) SetTxCount(v uint32)             { C.Struct(s).Set32(24, v) }
+func (s MetaBlockCapn) TxCount() uint32                 { return C.Struct(s).Get32(12) }
+func (s MetaBlockCapn) SetTxCount(v uint32)             { C.Struct(s).Set32(12, v) }
 func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error

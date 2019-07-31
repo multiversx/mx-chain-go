@@ -1222,7 +1222,7 @@ func TestNode_CreateMetaGenesisBlockShouldCreateSaveAndStoreMetaBlock(t *testing
 	assert.NotNil(t, storedHeaderHash)
 
 	assert.Equal(t, uint64(0), savedHeader.Nonce)
-	assert.Equal(t, uint32(0), savedHeader.Round)
+	assert.Equal(t, uint64(0), savedHeader.Round)
 
 	//test saved data matches
 	marshalizedSavedHeader, _ := testMarshalizer.Marshal(savedHeader)

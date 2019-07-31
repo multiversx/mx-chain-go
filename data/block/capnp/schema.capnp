@@ -12,7 +12,7 @@ struct HeaderCapn {
   pubKeysBitmap    @4:   Data;
   shardId          @5:   UInt32;
   timeStamp        @6:   UInt64;
-  round            @7:   UInt32;
+  round            @7:   UInt64;
   epoch            @8:   UInt32;
   blockBodyType    @9:   UInt8;
   signature        @10:  Data;

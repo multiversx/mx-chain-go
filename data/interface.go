@@ -9,7 +9,7 @@ type HeaderHandler interface {
 	GetShardID() uint32
 	GetNonce() uint64
 	GetEpoch() uint32
-	GetRound() uint32
+	GetRound() uint64
 	GetRootHash() []byte
 	GetPrevHash() []byte
 	GetPrevRandSeed() []byte
@@ -21,7 +21,7 @@ type HeaderHandler interface {
 
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
-	SetRound(r uint32)
+	SetRound(r uint64)
 	SetTimeStamp(ts uint64)
 	SetRootHash(rHash []byte)
 	SetPrevHash(pvHash []byte)

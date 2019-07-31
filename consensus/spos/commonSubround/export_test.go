@@ -15,7 +15,7 @@ func (sr *SubroundStartRound) DoStartRoundConsensusCheck() bool {
 	return sr.doStartRoundConsensusCheck()
 }
 
-func (sr *SubroundStartRound) GenerateNextConsensusGroup(roundIndex int32) error {
+func (sr *SubroundStartRound) GenerateNextConsensusGroup(roundIndex int64) error {
 	return sr.generateNextConsensusGroup(roundIndex)
 }
 
