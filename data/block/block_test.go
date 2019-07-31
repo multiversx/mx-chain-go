@@ -32,7 +32,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		PubKeysBitmap:    []byte("pub key bitmap"),
 		ShardId:          uint32(10),
 		TimeStamp:        uint64(1234),
-		Round:            uint32(1),
+		Round:            uint64(1),
 		Epoch:            uint32(1),
 		BlockBodyType:    block.TxBlock,
 		Signature:        []byte("signature"),
@@ -196,7 +196,7 @@ func TestHeader_GetRootHash(t *testing.T) {
 func TestHeader_GetRound(t *testing.T) {
 	t.Parallel()
 
-	round := uint32(1234)
+	round := uint64(1234)
 	h := block.Header{
 		Round: round,
 	}

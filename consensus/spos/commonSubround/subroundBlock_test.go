@@ -285,7 +285,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	sr.SetStatus(SrBlock, spos.SsNotFinished)
 	bpm := &mock.BlockProcessorMock{}
 	err := errors.New("error")
-	bpm.CreateBlockCalled = func(round uint32, remainingTime func() bool) (data.BodyHandler, error) {
+	bpm.CreateBlockCalled = func(round uint64, remainingTime func() bool) (data.BodyHandler, error) {
 		return nil, err
 	}
 	container.SetBlockProcessor(bpm)
@@ -652,7 +652,7 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
 	newRand, _ := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), oldRand)
 	expectedHeader := &block.Header{
-		Round:            uint32(sr.Rounder().Index()),
+		Round:            uint64(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
 		RootHash:         []byte{},
 		Nonce:            uint64(1),
@@ -676,7 +676,7 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 	newRand, _ := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), oldRand)
 
 	expectedHeader := &block.Header{
-		Round:            uint32(sr.Rounder().Index()),
+		Round:            uint64(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
 		RootHash:         []byte{},
 		Nonce:            uint64(sr.BlockChain().GetCurrentBlockHeader().GetNonce() + 1),
@@ -702,7 +702,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 		},
 	}
 	bp := mock.InitBlockProcessorMock()
-	bp.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint32, haveTime func() bool) (header data.HeaderHandler, e error) {
+	bp.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint64, haveTime func() bool) (header data.HeaderHandler, e error) {
 		return &block.Header{MiniBlockHeaders: mbHeaders, RootHash: []byte{}}, nil
 	}
 	container := mock.InitConsensusCore()
@@ -713,7 +713,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 	oldRand := sr.BlockChain().GetCurrentBlockHeader().GetRandSeed()
 	newRand, _ := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), oldRand)
 	expectedHeader := &block.Header{
-		Round:            uint32(sr.Rounder().Index()),
+		Round:            uint64(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
 		RootHash:         []byte{},
 		Nonce:            uint64(sr.BlockChain().GetCurrentBlockHeader().GetNonce() + 1),
@@ -728,7 +728,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	expectedErr := errors.New("nil mini blocks")
 	bp := mock.InitBlockProcessorMock()
-	bp.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint32, haveTime func() bool) (header data.HeaderHandler, e error) {
+	bp.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint64, haveTime func() bool) (header data.HeaderHandler, e error) {
 		return nil, expectedErr
 	}
 	container := mock.InitConsensusCore()

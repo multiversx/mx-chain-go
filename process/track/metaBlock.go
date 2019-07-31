@@ -29,10 +29,10 @@ func (mbt *metaBlockTracker) AddBlock(headerHandler data.HeaderHandler) {
 }
 
 // SetBlockBroadcastRound sets the round in which the block with the given nonce has been broadcast
-func (mbt *metaBlockTracker) SetBlockBroadcastRound(nonce uint64, round int32) {
+func (mbt *metaBlockTracker) SetBlockBroadcastRound(nonce uint64, round int64) {
 }
 
 // BlockBroadcastRound gets the round in which the block with given nonce has been broadcast
-func (mbt *metaBlockTracker) BlockBroadcastRound(nonce uint64) int32 {
+func (mbt *metaBlockTracker) BlockBroadcastRound(nonce uint64) int64 {
 	return 0
 }

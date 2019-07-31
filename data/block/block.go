@@ -90,7 +90,7 @@ type Header struct {
 	PubKeysBitmap    []byte            `capid:"4"`
 	ShardId          uint32            `capid:"5"`
 	TimeStamp        uint64            `capid:"6"`
-	Round            uint32            `capid:"7"`
+	Round            uint64            `capid:"7"`
 	Epoch            uint32            `capid:"8"`
 	BlockBodyType    Type              `capid:"9"`
 	Signature        []byte            `capid:"10"`
@@ -371,7 +371,7 @@ func (h *Header) GetEpoch() uint32 {
 }
 
 // GetRound returns round from header
-func (h *Header) GetRound() uint32 {
+func (h *Header) GetRound() uint64 {
 	return h.Round
 }
 
@@ -426,7 +426,7 @@ func (h *Header) SetEpoch(e uint32) {
 }
 
 // SetRound sets header round
-func (h *Header) SetRound(r uint32) {
+func (h *Header) SetRound(r uint64) {
 	h.Round = r
 }
 
