@@ -188,7 +188,7 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 }
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
-func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error {
+func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error {
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -298,7 +298,7 @@ func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) 
 func (txs *transactions) processAndRemoveBadTransaction(
 	transactionHash []byte,
 	transaction *transaction.Transaction,
-	round uint32,
+	round uint64,
 	sndShardId uint32,
 	dstShardId uint32,
 ) error {
@@ -389,7 +389,7 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
-func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error) {
+func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txStore := txs.txPool.ShardDataStore(strCache)
 
@@ -455,7 +455,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
-func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error {
+func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {
 	if miniBlock.Type != block.TxBlock {
 		return process.ErrWrongTypeInMiniBlock
 	}

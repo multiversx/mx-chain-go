@@ -64,7 +64,7 @@ func TestTpsBenchmark_BlockNumber(t *testing.T) {
 	t.Parallel()
 
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 1)
-	blockNumber := uint32(1)
+	blockNumber := uint64(1)
 	metaBlock := &block.MetaBlock{
 		Nonce: uint64(blockNumber),
 		Round: blockNumber,
@@ -91,7 +91,7 @@ func TestTpsBenchmark_UpdateSmallerNonce(t *testing.T) {
 
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 1)
 
-	round := uint32(2)
+	round := uint64(2)
 	blockNumber := uint64(round)
 
 	metaBlock := &block.MetaBlock{
@@ -137,7 +137,7 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 	t.Parallel()
 
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 1)
-	round := uint32(1)
+	round := uint64(1)
 	blockNumber := uint64(round)
 	txCount := uint32(10)
 	totalTxCount := big.NewInt(int64(txCount * 2))
@@ -171,7 +171,7 @@ func TestTpsBenchmark_UpdatePeakTps(t *testing.T) {
 	nrOfShards := uint32(1)
 	roundDuration := uint64(1)
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(nrOfShards, roundDuration)
-	round := uint32(1)
+	round := uint64(1)
 	blockNumber := uint64(round)
 	txCount := uint32(10)
 	peakTps := uint32(20)
@@ -206,7 +206,7 @@ func TestTPSBenchmark_GettersAndSetters(t *testing.T) {
 	roundDuration := uint64(1)
 	shardId := uint32(0)
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(nrOfShards, roundDuration)
-	round := uint32(1)
+	round := uint64(1)
 	blockNumber := uint64(round)
 	txCount := uint32(10)
 
