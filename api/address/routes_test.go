@@ -48,6 +48,7 @@ type AccountResponse struct {
 		Address  string `json:"address"`
 		Nonce    uint64 `json:"nonce"`
 		Balance  string `json:"balance"`
+		Code     string `json:"code"`
 		CodeHash []byte `json:"codeHash"`
 		RootHash []byte `json:"rootHash"`
 	} `json:"account"`
