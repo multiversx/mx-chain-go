@@ -59,7 +59,7 @@ func (messenger *Messenger) ID() p2p.PeerID {
 	return messenger.P2PID
 }
 
-// Peers returns a slice containing the P2P IDs of all the other peers that is
+// Peers returns a slice containing the P2P IDs of all the other peers that it
 // has knowledge of. Since this is an in-memory network structured as a fully
 // connected graph, this function returns the list of the P2P IDs of all the
 // peers in the network (assuming this Messenger is connected).
@@ -72,10 +72,10 @@ func (messenger *Messenger) Peers() []p2p.PeerID {
 	return messenger.Network.PeerIDs()
 }
 
-// Addresses returns a list of all the addresses that this Messenger is bound
-// to and listening to. Being an in-memory simulation, the only possible
-// address to return is an artificial one, built by the constructor
-// NewMessenger().
+// Addresses returns a list of all the physical addresses that this Messenger
+// is bound to and listening to, depending on the available network interfaces
+// of the machine. Being an in-memory simulation, the only possible address to
+// return is an artificial one, built by the constructor NewMessenger().
 func (messenger *Messenger) Addresses() []string {
 	addresses := make([]string, 1)
 	addresses[0] = messenger.Address
@@ -281,28 +281,29 @@ func (messenger *Messenger) Broadcast(topic string, buff []byte) {
 // parametricBroadcast sends a message to all peers in the network, with the
 // possibility to choose from asynchronous or synchronous sending.
 func (messenger *Messenger) parametricBroadcast(topic string, data []byte, async bool) error {
-	err := error(nil)
-	if messenger.IsConnectedToNetwork() {
-		message, err := NewMessage(topic, data, messenger.ID())
-		if err != nil {
-			return err
-		}
-		for _, peer := range messenger.Network.Peers() {
-			if async {
-				go func() {
-					err := peer.ReceiveMessage(topic, message)
-					log.LogIfError(err)
-				}()
-			} else {
-				err = peer.ReceiveMessage(topic, message)
-			}
-			if err != nil {
-				break
-			}
-		}
-	} else {
-		err = ErrNotConnectedToNetwork
+	if !messenger.IsConnectedToNetwork() {
+		return ErrNotConnectedToNetwork
 	}
+
+	message, err := NewMessage(topic, data, messenger.ID())
+	if err != nil {
+		return err
+	}
+
+	for _, peer := range messenger.Network.Peers() {
+		if async {
+			go func() {
+				err := peer.ReceiveMessage(topic, message)
+				log.LogIfError(err)
+			}()
+		} else {
+			err = peer.ReceiveMessage(topic, message)
+		}
+		if err != nil {
+			break
+		}
+	}
+
 	return err
 }
 
@@ -336,23 +337,19 @@ func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P)
 	validator, found := messenger.Topics[topic]
 	messenger.TopicsMutex.Unlock()
 
-	var err error
-
 	if !found {
-		err = p2p.ErrNilTopic
+		return p2p.ErrNilTopic
 	}
 
 	if validator == nil {
-		err = p2p.ErrNilValidator
+		return p2p.ErrNilValidator
 	}
 
-	if err == nil {
-		err = validator.ProcessReceivedMessage(message)
-
-		if messenger.Network.LogMessages {
-			messenger.Network.LogMessage(message)
-		}
+	if messenger.Network.LogMessages {
+		messenger.Network.LogMessage(message)
 	}
+
+	err := validator.ProcessReceivedMessage(message)
 
 	return err
 }
