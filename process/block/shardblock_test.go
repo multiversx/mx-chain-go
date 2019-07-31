@@ -1666,6 +1666,7 @@ func TestShardProcessor_RequestFinalMissingHeaders(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
+	sp.SetCurrHighestMetaHdrNonce(1)
 	res := sp.RequestFinalMissingHeaders()
 	assert.Equal(t, res > 0, true)
 }
