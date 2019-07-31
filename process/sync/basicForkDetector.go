@@ -56,7 +56,13 @@ func NewBasicForkDetector(rounder consensus.Rounder,
 }
 
 // AddHeader method adds a new header to headers map
-func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+func (bfd *basicForkDetector) AddHeader(
+	header data.HeaderHandler,
+	hash []byte,
+	state process.BlockHeaderState,
+	finalHeader data.HeaderHandler,
+) error {
+
 	if header == nil {
 		return ErrNilHeader
 	}
@@ -72,8 +78,10 @@ func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, 
 	if state == process.BHProcessed {
 		// create a check point and remove all the past headers
 		bfd.mutFork.Lock()
-		bfd.fork.lastCheckpointNonce = bfd.fork.checkpointNonce
-		bfd.fork.lastCheckpointRound = bfd.fork.checkpointRound
+		if !finalHeader.IsInterfaceNil() {
+			bfd.fork.lastCheckpointNonce = finalHeader.GetNonce()
+			bfd.fork.lastCheckpointRound = int64(finalHeader.GetRound())
+		}
 		bfd.fork.checkpointNonce = header.GetNonce()
 		bfd.fork.checkpointRound = int64(header.GetRound())
 		bfd.mutFork.Unlock()
