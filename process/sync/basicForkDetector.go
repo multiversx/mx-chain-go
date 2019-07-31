@@ -78,10 +78,15 @@ func (bfd *basicForkDetector) AddHeader(
 	if state == process.BHProcessed {
 		// create a check point and remove all the past headers
 		bfd.mutFork.Lock()
-		if !finalHeader.IsInterfaceNil() {
+
+		if finalHeader == nil || finalHeader.IsInterfaceNil() {
+			bfd.fork.lastCheckpointNonce = bfd.fork.checkpointNonce
+			bfd.fork.lastCheckpointRound = bfd.fork.checkpointRound
+		} else if finalHeader.GetNonce() > 0 {
 			bfd.fork.lastCheckpointNonce = finalHeader.GetNonce()
 			bfd.fork.lastCheckpointRound = int64(finalHeader.GetRound())
 		}
+
 		bfd.fork.checkpointNonce = header.GetNonce()
 		bfd.fork.checkpointRound = int64(header.GetRound())
 		bfd.mutFork.Unlock()
@@ -120,12 +125,6 @@ func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, stat
 	}
 	if int64(header.GetRound()) > bfd.rounder.Index() {
 		return ErrHigherRoundInBlock
-	}
-	if header.GetNonce() == bfd.fork.checkpointNonce {
-		roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-process.ForkBlockFinality
-		if roundTooOld {
-			return ErrLowerRoundInBlock
-		}
 	}
 	if int64(roundDif) < nonceDif {
 		return ErrHigherNonceInBlock

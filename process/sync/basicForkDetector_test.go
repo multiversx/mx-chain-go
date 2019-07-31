@@ -143,18 +143,6 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *test
 	assert.Equal(t, sync.ErrHigherRoundInBlock, err)
 }
 
-func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlockWhenBlockIsReceivedWithDelay(t *testing.T) {
-	t.Parallel()
-	rounderMock := &mock.RounderMock{RoundIndex: 100}
-	bfd, _ := sync.NewBasicForkDetector(rounderMock)
-	bfd.SetLastCheckpointRound(97)
-	bfd.SetLastCheckpointNonce(97)
-	bfd.SetCheckpointRound(98)
-	bfd.SetCheckpointNonce(98)
-	err := bfd.CheckBlockValidity(&block.Header{Nonce: 98, Round: 98, PubKeysBitmap: []byte("X")}, process.BHReceived)
-	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
-}
-
 func TestBasicForkDetector_CheckBlockValidityShouldErrHigherNonceInBlock(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
@@ -409,7 +397,7 @@ func TestBasicForkDetector_RemoveCheckpointHeaderNonceShouldResetCheckpoint(t *t
 
 	bfd.RemoveHeaders(2, hash1)
 	assert.Equal(t, uint64(0), bfd.CheckpointNonce())
-	assert.Equal(t, int64(0), bfd.CheckpointRound())
+	assert.Equal(t, int64(-1), bfd.CheckpointRound())
 }
 
 func TestBasicForkDetector_GetHighestFinalBlockNonce(t *testing.T) {

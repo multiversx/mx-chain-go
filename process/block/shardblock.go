@@ -646,7 +646,12 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, header)
+	finalHeader, errNotCritical := sp.getHighestHdrForOwnShardFromMetachain(header.Round)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+
+	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeader)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
@@ -675,7 +680,7 @@ func (sp *shardProcessor) CommitBlock(
 		sp.dataPool,
 	)
 
-	sp.blockSizeThrottler.Succeed(uint64(header.Round))
+	sp.blockSizeThrottler.Succeed(header.Round)
 
 	return nil
 }

@@ -483,7 +483,7 @@ func (mp *metaProcessor) CommitBlock(
 		log.Info(errNotCritical.Error())
 	}
 
-	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, header)
+	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
@@ -508,7 +508,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	go mp.displayMetaBlock(header)
 
-	mp.blockSizeThrottler.Succeed(uint64(header.Round))
+	mp.blockSizeThrottler.Succeed(header.Round)
 
 	return nil
 }
