@@ -6,12 +6,12 @@ import (
 )
 
 type RounderMock struct {
-	RoundIndex        int32
+	RoundIndex        int64
 	RoundTimeStamp    time.Time
 	RoundTimeDuration time.Duration
 }
 
-func (rndm *RounderMock) Index() int32 {
+func (rndm *RounderMock) Index() int64 {
 	return rndm.RoundIndex
 }
 
@@ -26,7 +26,7 @@ func (rndm *RounderMock) TimeStamp() time.Time {
 func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
 	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
 
-	index := int32(math.Floor(float64(delta) / float64(rndm.RoundTimeDuration.Nanoseconds())))
+	index := int64(math.Floor(float64(delta) / float64(rndm.RoundTimeDuration.Nanoseconds())))
 
 	if rndm.RoundIndex != index {
 		rndm.RoundIndex = index
