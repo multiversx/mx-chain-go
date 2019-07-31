@@ -82,7 +82,7 @@ func TestRound_IndexShouldReturnFirstIndex(t *testing.T) {
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration/2))
 	index := rnd.Index()
 
-	assert.Equal(t, int32(0), index)
+	assert.Equal(t, int64(0), index)
 }
 
 func TestRound_TimeStampShouldReturnTimeStampOfTheNextRound(t *testing.T) {

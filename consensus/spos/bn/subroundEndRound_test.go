@@ -65,8 +65,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrSignature),
-		int(bn.SrEndRound),
+		bn.SrSignature,
+		bn.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -95,8 +95,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrSignature),
-		int(bn.SrEndRound),
+		bn.SrSignature,
+		bn.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -124,8 +124,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrSignature),
-		int(bn.SrEndRound),
+		bn.SrSignature,
+		bn.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -155,8 +155,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrSignature),
-		int(bn.SrEndRound),
+		bn.SrSignature,
+		bn.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -185,8 +185,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrSignature),
-		int(bn.SrEndRound),
+		bn.SrSignature,
+		bn.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -215,8 +215,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrSignature),
-		int(bn.SrEndRound),
+		bn.SrSignature,
+		bn.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -245,8 +245,8 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		int(bn.SrSignature),
-		int(bn.SrEndRound),
+		bn.SrSignature,
+		bn.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -332,9 +332,9 @@ func TestSubroundEndRound_DoEndRoundJobErrMarshalizedDataToBroadcastOK(t *testin
 	container := mock.InitConsensusCore()
 
 	bpm := mock.InitBlockProcessorMock()
-	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
+	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		err = errors.New("error marshalized data to broadcast")
-		return make(map[uint32][]byte, 0), make(map[uint32][][]byte, 0), err
+		return make(map[uint32][]byte, 0), make(map[string][][]byte, 0), err
 	}
 	container.SetBlockProcessor(bpm)
 
@@ -345,7 +345,7 @@ func TestSubroundEndRound_DoEndRoundJobErrMarshalizedDataToBroadcastOK(t *testin
 		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
 			return nil
 		},
-		BroadcastTransactionsCalled: func(bytes map[uint32][][]byte) error {
+		BroadcastTransactionsCalled: func(bytes map[string][][]byte) error {
 			return nil
 		},
 	}
@@ -366,8 +366,8 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
 	container := mock.InitConsensusCore()
 
 	bpm := mock.InitBlockProcessorMock()
-	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
-		return make(map[uint32][]byte, 0), make(map[uint32][][]byte, 0), nil
+	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+		return make(map[uint32][]byte, 0), make(map[string][][]byte, 0), nil
 	}
 	container.SetBlockProcessor(bpm)
 
@@ -379,7 +379,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
 			err = errors.New("error broadcast miniblocks")
 			return err
 		},
-		BroadcastTransactionsCalled: func(bytes map[uint32][][]byte) error {
+		BroadcastTransactionsCalled: func(bytes map[string][][]byte) error {
 			return nil
 		},
 	}
@@ -400,8 +400,8 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) 
 	container := mock.InitConsensusCore()
 
 	bpm := mock.InitBlockProcessorMock()
-	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
-		return make(map[uint32][]byte, 0), make(map[uint32][][]byte, 0), nil
+	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+		return make(map[uint32][]byte, 0), make(map[string][][]byte, 0), nil
 	}
 	container.SetBlockProcessor(bpm)
 
@@ -412,7 +412,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) 
 		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
 			return nil
 		},
-		BroadcastTransactionsCalled: func(bytes map[uint32][][]byte) error {
+		BroadcastTransactionsCalled: func(bytes map[string][][]byte) error {
 			err = errors.New("error broadcast transactions")
 			return err
 		},
@@ -493,7 +493,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrIndexOutOfBounds(t *te
 
 	_, _ = sr.MultiSigner().Create(nil, 0)
 
-	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrSignature, true)
+	_ = sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrSignature, true)
 
 	multiSignerMock := mock.InitMultiSignerMock()
 	multiSignerMock.SignatureShareMock = func(index uint16) ([]byte, error) {
@@ -520,7 +520,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidSignatureShare(
 
 	container.SetMultiSigner(multiSignerMock)
 
-	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrSignature, true)
+	_ = sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrSignature, true)
 
 	err2 := sr.CheckSignaturesValidity([]byte(string(1)))
 	assert.Equal(t, err, err2)
@@ -531,7 +531,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldRetunNil(t *testing.T) {
 
 	sr := *initSubroundEndRound()
 
-	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrSignature, true)
+	_ = sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrSignature, true)
 
 	err := sr.CheckSignaturesValidity([]byte(string(1)))
 	assert.Equal(t, nil, err)

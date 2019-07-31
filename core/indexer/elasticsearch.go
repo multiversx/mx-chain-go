@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -35,6 +36,11 @@ const shardTpsDocIDPrefix = "shard"
 
 const badRequest = 400
 
+// Options structure holds the indexer's configuration options
+type Options struct {
+	TxIndexingEnabled bool
+}
+
 //TODO refactor this and split in 3: glue code, interface and logic code
 type elasticIndexer struct {
 	db               *elasticsearch.Client
@@ -42,6 +48,7 @@ type elasticIndexer struct {
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
 	logger           *logger.Logger
+	options          *Options
 }
 
 // NewElasticIndexer creates a new elasticIndexer where the server listens on the url, authentication for the server is
@@ -54,6 +61,7 @@ func NewElasticIndexer(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	logger *logger.Logger,
+	options *Options,
 ) (Indexer, error) {
 
 	err := checkElasticSearchParams(
@@ -82,7 +90,9 @@ func NewElasticIndexer(
 		shardCoordinator,
 		marshalizer,
 		hasher,
-		logger}
+		logger,
+		options,
+	}
 
 	err = indexer.checkAndCreateIndex(blockIndex, timestampMapping())
 	if err != nil {
@@ -207,7 +217,9 @@ func (ei *elasticIndexer) SaveBlock(
 		return
 	}
 
-	go ei.saveTransactions(body, headerhandler, txPool)
+	if ei.options.TxIndexingEnabled {
+		go ei.saveTransactions(body, headerhandler, txPool)
+	}
 }
 
 func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.HeaderHandler) ([]byte, []byte) {
@@ -346,29 +358,13 @@ func (ei *elasticIndexer) buildTransactionBulks(
 				continue
 			}
 
-			currentTx, ok := currentTxHandler.(*transaction.Transaction)
-			if !ok {
+			currentTx := getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
+			if currentTx == nil {
 				ei.logger.Warn("elasticsearch found tx in pool but of wrong type")
 				continue
 			}
 
-			bulks[currentBulk] = append(bulks[currentBulk], &Transaction{
-				Hash:          hex.EncodeToString(txHash),
-				MBHash:        hex.EncodeToString(mbHash),
-				BlockHash:     hex.EncodeToString(blockHash),
-				Nonce:         currentTx.Nonce,
-				Value:         currentTx.Value,
-				Receiver:      hex.EncodeToString(currentTx.RcvAddr),
-				Sender:        hex.EncodeToString(currentTx.SndAddr),
-				ReceiverShard: mb.ReceiverShardID,
-				SenderShard:   mb.SenderShardID,
-				GasPrice:      currentTx.GasPrice,
-				GasLimit:      currentTx.GasLimit,
-				Data:          currentTx.Data,
-				Signature:     hex.EncodeToString(currentTx.Signature),
-				Timestamp:     time.Duration(header.GetTimeStamp()),
-				Status:        mbTxStatus,
-			})
+			bulks[currentBulk] = append(bulks[currentBulk], currentTx)
 		}
 	}
 
@@ -480,4 +476,81 @@ func timestampMapping() io.Reader {
 				"mappings": {"_doc": {"properties": {"timestamp": {"type": "date"}}}}
 			}`,
 	)
+}
+
+func getTransactionByType(
+	tx data.TransactionHandler,
+	txHash []byte,
+	mbHash[]byte,
+	blockHash[]byte,
+	mb *block.MiniBlock,
+	header data.HeaderHandler,
+	txStatus string,
+) *Transaction {
+	currentTx, ok := tx.(*transaction.Transaction)
+	if ok && currentTx != nil {
+		return buildTransaction(currentTx, txHash, mbHash, blockHash, mb, header, txStatus)
+	}
+
+	currentSc, ok := tx.(*smartContractResult.SmartContractResult)
+	if ok && currentSc != nil {
+		return buildSmartContractResult(currentSc, txHash, mbHash, blockHash, mb, header)
+	}
+
+	return nil
+}
+
+func buildTransaction(
+	tx *transaction.Transaction,
+	txHash []byte,
+	mbHash[]byte,
+	blockHash[]byte,
+	mb *block.MiniBlock,
+	header data.HeaderHandler,
+	txStatus string,
+) *Transaction {
+	return &Transaction{
+		Hash:          hex.EncodeToString(txHash),
+		MBHash:        hex.EncodeToString(mbHash),
+		BlockHash:     hex.EncodeToString(blockHash),
+		Nonce:         tx.Nonce,
+		Value:         tx.Value,
+		Receiver:      hex.EncodeToString(tx.RcvAddr),
+		Sender:        hex.EncodeToString(tx.SndAddr),
+		ReceiverShard: mb.ReceiverShardID,
+		SenderShard:   mb.SenderShardID,
+		GasPrice:      tx.GasPrice,
+		GasLimit:      tx.GasLimit,
+		Data:          tx.Data,
+		Signature:     hex.EncodeToString(tx.Signature),
+		Timestamp:     time.Duration(header.GetTimeStamp()),
+		Status:        txStatus,
+	}
+}
+
+func buildSmartContractResult(
+	scr *smartContractResult.SmartContractResult,
+	txHash []byte,
+	mbHash[]byte,
+	blockHash[]byte,
+	mb *block.MiniBlock,
+	header data.HeaderHandler,
+) *Transaction {
+	return &Transaction{
+		Hash:          hex.EncodeToString(txHash),
+		MBHash:        hex.EncodeToString(mbHash),
+		BlockHash:     hex.EncodeToString(blockHash),
+		Nonce:         scr.Nonce,
+		Value:         scr.Value,
+		Receiver:      hex.EncodeToString(scr.RcvAddr),
+		Sender:        hex.EncodeToString(scr.SndAddr),
+		ReceiverShard: mb.ReceiverShardID,
+		SenderShard:   mb.SenderShardID,
+		GasPrice:      0,
+		GasLimit:      0,
+		Data:          scr.Data,
+		Signature:     "",
+		Timestamp:     time.Duration(header.GetTimeStamp()),
+		Status:        "Success",
+	}
 }

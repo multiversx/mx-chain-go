@@ -90,7 +90,7 @@ func (rrh *ResolverRequestHandler) RequestTransaction(destShardID uint32, txHash
 }
 
 func (rrh *ResolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string) {
-	log.Debug(fmt.Sprintf("Requesting %d transactions from shard %d from network...\n", len(hashes), destShardID))
+	log.Debug(fmt.Sprintf("Requesting %d transactions from shard %d from network on topic %s...\n", len(hashes), destShardID, topic))
 	resolver, err := rrh.resolversFinder.CrossShardResolver(topic, destShardID)
 	if err != nil {
 		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", topic, destShardID))

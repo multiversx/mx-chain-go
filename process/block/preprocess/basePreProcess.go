@@ -150,7 +150,12 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 		txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
 		if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
 			(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
-			tx := bpp.getTransactionFromPool(txInfoForHash.senderShardID, txInfoForHash.receiverShardID, txHash, txPool)
+			tx, _ := process.GetTransactionHandlerFromPool(
+				txInfoForHash.senderShardID,
+				txInfoForHash.receiverShardID,
+				txHash,
+				txPool)
+
 			if tx != nil {
 				forBlock.txHashAndInfo[string(txHash)].tx = tx
 				forBlock.missingTxs--
@@ -164,35 +169,6 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 	forBlock.mutTxsForBlock.Unlock()
 
 	return false
-}
-
-// getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
-func (bpp *basePreProcess) getTransactionFromPool(
-	senderShardID uint32,
-	destShardID uint32,
-	txHash []byte,
-	txPool dataRetriever.ShardedDataCacherNotifier,
-) data.TransactionHandler {
-	strCache := process.ShardCacherIdentifier(senderShardID, destShardID)
-	txStore := txPool.ShardDataStore(strCache)
-	if txStore == nil {
-		log.Error(process.ErrNilStorage.Error())
-		return nil
-	}
-
-	val, ok := txStore.Peek(txHash)
-	if !ok {
-		log.Debug(process.ErrTxNotFound.Error())
-		return nil
-	}
-
-	tx, ok := val.(data.TransactionHandler)
-	if !ok {
-		log.Error(process.ErrInvalidTxInPool.Error())
-		return nil
-	}
-
-	return tx
 }
 
 func (bpp *basePreProcess) computeExistingAndMissing(
@@ -217,7 +193,11 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
-			tx := bpp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash, txPool)
+			tx, _ := process.GetTransactionHandlerFromPool(
+				miniBlock.SenderShardID,
+				miniBlock.ReceiverShardID,
+				txHash,
+				txPool)
 
 			if tx == nil {
 				txHashes = append(txHashes, txHash)

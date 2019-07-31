@@ -72,6 +72,7 @@ type TestProcessorNode struct {
 	PkTxSign      crypto.PublicKey
 	PkTxSignBytes []byte
 	KeygenTxSign  crypto.KeyGenerator
+	TxSignAddress state.AddressContainer
 
 	ShardDataPool dataRetriever.PoolsHolder
 	MetaDataPool  dataRetriever.MetaPoolsHolder
@@ -168,6 +169,7 @@ func (tpn *TestProcessorNode) initCrypto(txSignPrivKeyShardId uint32) {
 	tpn.PkTxSign = pk
 	tpn.PkTxSignBytes, _ = pk.ToByteArray()
 	tpn.KeygenTxSign = keyGen
+	tpn.TxSignAddress, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(tpn.PkTxSignBytes)
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
@@ -506,25 +508,26 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 	tpn.SkTxSign = newSk
 	tpn.PkTxSign = newPk
 	tpn.PkTxSignBytes, _ = newPk.ToByteArray()
+	tpn.TxSignAddress, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(tpn.PkTxSignBytes)
 }
 
 // ProposeBlock proposes a new block
-func (tpn *TestProcessorNode) ProposeBlock(round uint32) (data.BodyHandler, data.HeaderHandler) {
+func (tpn *TestProcessorNode) ProposeBlock(round uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	haveTime := func() bool { return true }
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
 	if err != nil {
 		fmt.Println(err.Error())
-		return nil, nil
+		return nil, nil, nil
 	}
 	blockHeader, err := tpn.BlockProcessor.CreateBlockHeader(blockBody, round, haveTime)
 	if err != nil {
 		fmt.Println(err.Error())
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	blockHeader.SetRound(round)
-	blockHeader.SetNonce(uint64(round))
+	blockHeader.SetNonce(round)
 	blockHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := TestMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
@@ -538,16 +541,34 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint32) (data.BodyHandler, data
 	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
 	blockHeader.SetRandSeed(sig)
 
-	return blockBody, blockHeader
+	shardBlockBody, ok := blockBody.(dataBlock.Body)
+	txHashes := make([][]byte, 0)
+	if !ok {
+		return blockBody, blockHeader, txHashes
+	}
+
+	for _, mb := range shardBlockBody {
+		for _, hash := range mb.TxHashes {
+			copiedHash := make([]byte, len(hash))
+			copy(copiedHash, hash)
+			txHashes = append(txHashes, copiedHash)
+		}
+	}
+
+	return blockBody, blockHeader, txHashes
 }
 
-// BroadcastAndCommit broadcasts and commits the block and body
-func (tpn *TestProcessorNode) BroadcastAndCommit(body data.BodyHandler, header data.HeaderHandler) {
+// BroadcastBlock broadcasts the block and body to the connected peers
+func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
 	_ = tpn.BroadcastMessenger.BroadcastHeader(header)
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)
+}
+
+// CommitBlock commits the block and body
+func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.HeaderHandler) {
 	_ = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, body)
 }
 
