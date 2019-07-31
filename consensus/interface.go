@@ -74,7 +74,7 @@ type BroadcastMessenger interface {
 	BroadcastBlock(data.BodyHandler, data.HeaderHandler) error
 	BroadcastHeader(data.HeaderHandler) error
 	BroadcastMiniBlocks(map[uint32][]byte) error
-	BroadcastTransactions(map[uint32][][]byte) error
+	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
 }
 

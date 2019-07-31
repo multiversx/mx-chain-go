@@ -243,6 +243,10 @@ func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockS
 	bp.blockSizeThrottler = blockSizeThrottler
 }
 
+func (sp *shardProcessor) SetCurrHighestMetaHdrNonce(value uint64) {
+	sp.currHighestMetaHdrNonce = value
+}
+
 func (sp *shardProcessor) DisplayLogInfo(
 	header *block.Header,
 	body block.Body,

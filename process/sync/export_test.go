@@ -11,14 +11,6 @@ func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
 	boot.requestHeaderWithNonce(nonce)
 }
 
-func (boot *ShardBootstrap) GetHeaderFromPoolWithNonce(nonce uint64) (*block.Header, error) {
-	return boot.getHeaderFromPoolWithNonce(nonce)
-}
-
-func (boot *MetaBootstrap) GetHeaderFromPoolWithNonce(nonce uint64) (*block.MetaBlock, error) {
-	return boot.getHeaderFromPoolWithNonce(nonce)
-}
-
 func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) interface{} {
 	return boot.miniBlockResolver.GetMiniBlocks(hashes)
 }

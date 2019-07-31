@@ -114,15 +114,15 @@ func (inTx *InterceptedTransaction) processFields(txBuffWithSig []byte) ([]byte,
 		return nil, process.ErrInvalidRcvAddr
 	}
 
-	inTx.rcvShard = inTx.coordinator.ComputeId(rcvAddr)
 	inTx.sndShard = inTx.coordinator.ComputeId(sndAddr)
-
 	emptyAddr := make([]byte, len(rcvAddr.Bytes()))
+	inTx.rcvShard = inTx.coordinator.ComputeId(rcvAddr)
+	if bytes.Equal(rcvAddr.Bytes(), emptyAddr) {
+		inTx.rcvShard = inTx.sndShard
+	}
 
-	isSCdeployInOtherShard := bytes.Equal(emptyAddr, rcvAddr.Bytes()) && inTx.sndShard != inTx.coordinator.SelfId()
 	inTx.isAddressedToOtherShards = inTx.rcvShard != inTx.coordinator.SelfId() &&
 		inTx.sndShard != inTx.coordinator.SelfId()
-	inTx.isAddressedToOtherShards = inTx.isAddressedToOtherShards || isSCdeployInOtherShard
 
 	return buffCopiedTx, nil
 }
