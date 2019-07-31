@@ -1,10 +1,11 @@
 package memorydb_test
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestLruDB_LruDB_InitNoError(t *testing.T) {
