@@ -2339,7 +2339,6 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 			},
 		},
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		true,
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{
 			GetAllCurrentUsedTxsCalled: func(blockType block.Type) map[string]data.TransactionHandler {
