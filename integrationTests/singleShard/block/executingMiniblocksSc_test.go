@@ -60,15 +60,15 @@ func TestShouldProcessWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 	round := uint64(0)
 	round = incrementAndPrintRound(round)
 
-	initialVal := big.NewInt(10000000)
-	topUpValue := big.NewInt(500)
-	withdrawValue := big.NewInt(10)
-	integrationTests.MintAllNodes(nodes, initialVal)
-
 	idxProposer := 0
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
+
+	initialVal := big.NewInt(10000000)
+	topUpValue := big.NewInt(500)
+	withdrawValue := big.NewInt(10)
+	integrationTests.MintAllNodes(nodes, initialVal)
 
 	deployScTx(nodes, idxProposer, string(scCode))
 	proposeBlock(nodes, idxProposer, round)
@@ -153,15 +153,15 @@ func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
 	round := uint64(0)
 	round = incrementAndPrintRound(round)
 
-	initialVal := big.NewInt(10000000)
-	topUpValue := big.NewInt(500)
-	withdrawValue := big.NewInt(10)
-	integrationTests.MintAllNodes(nodes, initialVal)
-
 	idxProposer := 0
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
+
+	initialVal := big.NewInt(10000000)
+	topUpValue := big.NewInt(500)
+	withdrawValue := big.NewInt(10)
+	integrationTests.MintAllNodes(nodes, initialVal)
 
 	deployScTx(nodes, idxProposer, string(scCode))
 	proposeBlock(nodes, idxProposer, round)
@@ -307,7 +307,7 @@ func createTxDeploy(tn *integrationTests.TestProcessorNode, scCode string) *tran
 		SndAddr:  tn.PkTxSignBytes,
 		Data:     scCode,
 		GasPrice: 0,
-		GasLimit: 1000000000,
+		GasLimit: 100000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
@@ -323,7 +323,7 @@ func createTxEndGame(tn *integrationTests.TestProcessorNode, round int, scAddres
 		SndAddr:  tn.PkTxSignBytes,
 		Data:     fmt.Sprintf("endGame@%d", round),
 		GasPrice: 0,
-		GasLimit: 10000000000,
+		GasLimit: 100000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
@@ -341,7 +341,7 @@ func createTxJoinGame(tn *integrationTests.TestProcessorNode, joinGameVal *big.I
 		SndAddr:  tn.PkTxSignBytes,
 		Data:     fmt.Sprintf("joinGame@%d", round),
 		GasPrice: 0,
-		GasLimit: 10000000000,
+		GasLimit: 100000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
@@ -359,7 +359,7 @@ func createTxRewardAndSendToWallet(tnOwner *integrationTests.TestProcessorNode, 
 		SndAddr:  tnOwner.PkTxSignBytes,
 		Data:     fmt.Sprintf("rewardAndSendToWallet@%d@%s@%X", round, hex.EncodeToString(tnUser.PkTxSignBytes), prizeVal),
 		GasPrice: 0,
-		GasLimit: 10000000000,
+		GasLimit: 100000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tnOwner.SingleSigner.Sign(tnOwner.SkTxSign, txBuff)
