@@ -477,8 +477,16 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	blockProcessor, blockTracker, err := newBlockProcessorAndTracker(resolversFinder, args.shardCoordinator,
-		args.data, args.core, args.state, forkDetector, shardsGenesisBlocks, args.nodesConfig, args.coreServiceContainer)
+	blockProcessor, blockTracker, err := newBlockProcessorAndTracker(
+		resolversFinder,
+		args.shardCoordinator,
+		args.data,
+		args.core,
+		args.state,
+		forkDetector,
+		shardsGenesisBlocks,
+		args.coreServiceContainer,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1205,11 +1213,10 @@ func newBlockProcessorAndTracker(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return newShardBlockProcessorAndTracker(resolversFinder, shardCoordinator, data, core, state, forkDetector, shardsGenesisBlocks, nodesConfig, coreServiceContainer)
+		return newShardBlockProcessorAndTracker(resolversFinder, shardCoordinator, data, core, state, forkDetector, shardsGenesisBlocks, coreServiceContainer)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
 		return newMetaBlockProcessorAndTracker(resolversFinder, shardCoordinator, data, core, state, forkDetector, shardsGenesisBlocks, coreServiceContainer)
@@ -1226,7 +1233,6 @@ func newShardBlockProcessorAndTracker(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
@@ -1358,7 +1364,6 @@ func newShardBlockProcessorAndTracker(
 		forkDetector,
 		blockTracker,
 		shardsGenesisBlocks,
-		nodesConfig.MetaChainActive,
 		requestHandler,
 		txCoordinator,
 		core.Uint64ByteSliceConverter,

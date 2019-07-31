@@ -62,7 +62,6 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 		&mock.ForkDetectorMock{},
 		&mock.BlocksTrackerMock{},
 		genesisBlocks,
-		true,
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
@@ -202,8 +201,8 @@ func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body blo
 	return sp.checkHeaderBodyCorrelation(hdr, body)
 }
 
-func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
-	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
+func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler) error {
+	return bp.setLastNotarizedHeadersSlice(startHeaders)
 }
 
 func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint32) {

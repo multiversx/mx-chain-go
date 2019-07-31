@@ -320,7 +320,7 @@ func (bp *baseProcessor) getLastNotarizedHdr(shardId uint32) (data.HeaderHandler
 // SetLastNotarizedHeadersSlice sets the headers blocks in lastNotarizedHdrs for every shard
 // This is done when starting a new epoch so metachain can use it when validating next shard header blocks
 // and shard can validate the next meta header
-func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
+func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler) error {
 	//TODO: protect this to be called only once at genesis time
 	//TODO: do this on constructor as it is a must to for blockprocessor to work
 	bp.mutNotarizedHdrs.Lock()
@@ -341,14 +341,12 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 		bp.finalNotarizedHdrs[i] = hdr
 	}
 
-	if metaChainActive {
-		hdr, ok := startHeaders[sharding.MetachainShardId].(*block.MetaBlock)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-		bp.lastNotarizedHdrs[sharding.MetachainShardId] = hdr
-		bp.finalNotarizedHdrs[sharding.MetachainShardId] = hdr
+	hdr, ok := startHeaders[sharding.MetachainShardId].(*block.MetaBlock)
+	if !ok {
+		return process.ErrWrongTypeAssertion
 	}
+	bp.lastNotarizedHdrs[sharding.MetachainShardId] = hdr
+	bp.finalNotarizedHdrs[sharding.MetachainShardId] = hdr
 
 	return nil
 }
