@@ -133,8 +133,9 @@ func proposeBlock(nodes []*integrationTests.TestProcessorNode, idxProposer int, 
 			continue
 		}
 
-		body, header := n.ProposeBlock(round)
-		n.BroadcastAndCommit(body, header)
+		body, header, _ := n.ProposeBlock(round)
+		n.BroadcastBlock(body, header)
+		n.CommitBlock(body, header)
 	}
 
 	fmt.Println("Delaying for disseminating headers and miniblocks...")
