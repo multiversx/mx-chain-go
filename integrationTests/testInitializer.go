@@ -12,8 +12,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/process"
-
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -31,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -195,9 +194,9 @@ func CreateShardChain() *blockchain.BlockChain {
 		badBlockCache,
 	)
 	blockChain.GenesisHeader = &dataBlock.Header{}
-	genisisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GenesisHeader)
+	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GenesisHeader)
 
-	blockChain.SetGenesisHeaderHash(TestHasher.Compute(string(genisisHeaderM)))
+	blockChain.SetGenesisHeaderHash(TestHasher.Compute(string(genesisHeaderM)))
 
 	return blockChain
 }
@@ -268,8 +267,8 @@ func CreateIeleVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExe
 	return vm, blockChainHook
 }
 
-// CreateAddresFromAddrBytes creates an address container object from address bytes provided
-func CreateAddresFromAddrBytes(addressBytes []byte) state.AddressContainer {
+// CreateAddressFromAddrBytes creates an address container object from address bytes provided
+func CreateAddressFromAddrBytes(addressBytes []byte) state.AddressContainer {
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(addressBytes)
 
 	return addr
@@ -285,12 +284,12 @@ func CreateAddressFromHex() state.AddressContainer {
 // MintAddress will create an account (if it does not exists), updated the balance with required value,
 // saves the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
-	accnt, _ := accnts.GetAccountWithJournal(CreateAddresFromAddrBytes(addressBytes))
+	accnt, _ := accnts.GetAccountWithJournal(CreateAddressFromAddrBytes(addressBytes))
 	_ = accnt.(*state.Account).SetBalanceWithJournal(value)
 	_, _ = accnts.Commit()
 }
 
-// CreateAccount creates a new account and returns the addres
+// CreateAccount creates a new account and returns the address
 func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) state.AddressContainer {
 	address, _ := TestAddressConverter.CreateAddressFromHex(CreateDummyHexAddress(64))
 	account, _ := accnts.GetAccountWithJournal(address)
@@ -416,4 +415,19 @@ func CreateTxProcessor(accnts state.AccountsAdapter) process.TransactionProcesso
 	txProcessor, _ := transaction.NewTxProcessor(accnts, TestHasher, TestAddressConverter, TestMarshalizer, shardCoordinator, &mock.SCProcessorMock{})
 
 	return txProcessor
+}
+
+// CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
+func CreateNewDefaultTrie() data.Trie {
+	tr, _ := trie.NewTrie(CreateMemUnit(), TestMarshalizer, TestHasher)
+
+	return tr
+}
+
+// GenerateRandomSlice returns a random byte slice with the given size
+func GenerateRandomSlice(size int) []byte {
+	buff := make([]byte, size)
+	_, _ = rand.Reader.Read(buff)
+
+	return buff
 }

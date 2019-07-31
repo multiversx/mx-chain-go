@@ -254,7 +254,7 @@ func mintAllNodes(
 		}
 
 		for _, n2 := range nodes {
-			addr := integrationTests.CreateAddresFromAddrBytes(n2.PkTxSignBytes)
+			addr := integrationTests.CreateAddressFromAddrBytes(n2.PkTxSignBytes)
 			if n.ShardCoordinator.ComputeId(addr) != n.ShardCoordinator.SelfId() {
 				continue
 			}
@@ -380,7 +380,7 @@ func checkTopUpIsDoneCorrectly(
 	nodeWithCaller := nodes[idxNodeCallerExists]
 
 	fmt.Println("Checking SC account received topUp val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
 
@@ -397,7 +397,7 @@ func checkTopUpIsDoneCorrectly(
 	fmt.Println("Checking sender has initial-topUp val...")
 	expectedVal := big.NewInt(0).Set(initialVal)
 	expectedVal.Sub(expectedVal, topUpVal)
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
 }
@@ -416,14 +416,14 @@ func checkJoinGameIsDoneCorrectly(
 	nodeWithCaller := nodes[idxNodeCallerExists]
 
 	fmt.Println("Checking SC account received topUp val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
 
 	fmt.Println("Checking sender has initial-topUp val...")
 	expectedVal := big.NewInt(0).Set(initialVal)
 	expectedVal.Sub(expectedVal, topUpVal)
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
 }
@@ -476,7 +476,7 @@ func checkWithdrawIsDoneCorrectly(
 	nodeWithCaller := nodes[idxNodeCallerExists]
 
 	fmt.Println("Checking SC account has topUp-withdraw val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	expectedSC := big.NewInt(0).Set(topUpVal)
 	expectedSC.Sub(expectedSC, withdraw)
@@ -496,7 +496,7 @@ func checkWithdrawIsDoneCorrectly(
 	expectedSender := big.NewInt(0).Set(initialVal)
 	expectedSender.Sub(expectedSender, topUpVal)
 	expectedSender.Add(expectedSender, withdraw)
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }
@@ -516,7 +516,7 @@ func checkRewardIsDoneCorrectly(
 	nodeWithCaller := nodes[idxNodeCallerExists]
 
 	fmt.Println("Checking SC account has topUp-withdraw val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	expectedSC := big.NewInt(0).Set(topUpVal)
 	expectedSC.Sub(expectedSC, withdraw)
@@ -526,7 +526,7 @@ func checkRewardIsDoneCorrectly(
 	expectedSender := big.NewInt(0).Set(initialVal)
 	expectedSender.Sub(expectedSender, topUpVal)
 	expectedSender.Add(expectedSender, withdraw)
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }

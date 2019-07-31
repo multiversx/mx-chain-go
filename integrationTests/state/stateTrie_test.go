@@ -17,10 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +26,7 @@ import (
 
 func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	//test simulates creation of a new account, data trie retrieval,
-	//adding a (key, value) pair in that data trie, commiting changes
+	//adding a (key, value) pair in that data trie, committing changes
 	//and then reloading the data trie based on the root hash generated before
 	t.Parallel()
 
@@ -318,8 +316,8 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	assert.Nil(t, err)
 	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
-	tr, _ := trie.NewTrie(mu, &marshal.JsonMarshalizer{}, sha256.Sha256{})
-	adb, _ = state.NewAccountsDB(tr, sha256.Sha256{}, &marshal.JsonMarshalizer{}, factory.NewAccountCreator())
+	tr, _ := trie.NewTrie(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	//reloading a new trie to test if data is inside
 	err = adb.RecreateTrie(h)
@@ -346,7 +344,7 @@ func TestAccountsDB_CommitAnEmptyStateShouldWork(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r != nil {
-			assert.Fail(t, "this test should not have paniced")
+			assert.Fail(t, "this test should not have panicked")
 		}
 	}()
 
@@ -997,12 +995,10 @@ func createAccounts(
 	balance int,
 	persist storage.Persister,
 ) (*state.AccountsDB, []state.AddressContainer, data.Trie) {
-	marsh := &marshal.JsonMarshalizer{}
-	hasher := sha256.Sha256{}
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	store, _ := storageUnit.NewStorageUnit(cache, persist)
-	tr, _ := trie.NewTrie(store, marsh, hasher)
-	adb, _ := state.NewAccountsDB(tr, hasher, marsh, factory.NewAccountCreator())
+	tr, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	addr := make([]state.AddressContainer, nrOfAccounts)
 	for i := 0; i < nrOfAccounts; i++ {
