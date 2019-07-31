@@ -2,6 +2,7 @@ package statusHandler_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -19,9 +20,8 @@ func TestNewAppStatusFacadeWithHandlers_NilHandlersShouldFail(t *testing.T) {
 func TestNewAppStatusFacadeWithHandlers_OkHandlersShouldPass(t *testing.T) {
 	t.Parallel()
 
-	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNillStatusHandler(),
+	_, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNillStatusHandler(),
 		statusHandler.NewPrometheusStatusHandler())
-	defer asf.Close()
 
 	assert.Nil(t, err)
 }
@@ -30,14 +30,16 @@ func TestAppStatusFacade_IncrementAndDecrementShouldPass(t *testing.T) {
 	t.Parallel()
 
 	var metricKey = core.MetricSynchronizedRound
+
 	// we create a new facade which contains a prometheus handler in order to test
-	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNillStatusHandler(),
-		statusHandler.NewPrometheusStatusHandler())
+	promStatusHandler := statusHandler.NewPrometheusStatusHandler()
+	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNillStatusHandler(), promStatusHandler)
 	assert.Nil(t, err)
 
 	asf.Increment(metricKey)
 
-	gauge, err := statusHandler.GetMetricByKey(metricKey)
+	time.Sleep(5 * time.Millisecond)
+	gauge, err := promStatusHandler.GetPrometheusMetricByKey(metricKey)
 	assert.Nil(t, err)
 
 	result := prometheusUtils.ToFloat64(gauge)
@@ -45,6 +47,7 @@ func TestAppStatusFacade_IncrementAndDecrementShouldPass(t *testing.T) {
 
 	asf.Decrement(metricKey)
 
+	time.Sleep(5 * time.Millisecond)
 	result = prometheusUtils.ToFloat64(gauge)
 	assert.Equal(t, float64(0), result)
 }
@@ -53,15 +56,17 @@ func TestAppStatusFacade_SetInt64ValueAndSetUint64ValueShouldPass(t *testing.T) 
 	t.Parallel()
 
 	var metricKey = core.MetricSynchronizedRound
+
 	// we create a new facade which contains a prometheus handler in order to test
-	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNillStatusHandler(),
-		statusHandler.NewPrometheusStatusHandler())
+	promStatusHandler := statusHandler.NewPrometheusStatusHandler()
+	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNillStatusHandler(), promStatusHandler)
 	assert.Nil(t, err)
 
 	// set an int64 value
 	asf.SetInt64Value(metricKey, int64(10))
 
-	gauge, err := statusHandler.GetMetricByKey(metricKey)
+	time.Sleep(5 * time.Millisecond)
+	gauge, err := promStatusHandler.GetPrometheusMetricByKey(metricKey)
 	assert.Nil(t, err)
 
 	result := prometheusUtils.ToFloat64(gauge)
@@ -71,7 +76,8 @@ func TestAppStatusFacade_SetInt64ValueAndSetUint64ValueShouldPass(t *testing.T) 
 	// set an uint64 value
 	asf.SetUInt64Value(metricKey, uint64(20))
 
-	gauge, err = statusHandler.GetMetricByKey(metricKey)
+	time.Sleep(5 * time.Millisecond)
+	gauge, err = promStatusHandler.GetPrometheusMetricByKey(metricKey)
 	assert.Nil(t, err)
 
 	result = prometheusUtils.ToFloat64(gauge)

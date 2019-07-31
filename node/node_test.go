@@ -1421,15 +1421,17 @@ func TestNode_AppStatusHandlerWithFacadeIncrementAndDecrementMetric(t *testing.T
 	t.Parallel()
 
 	metricKey := core.MetricCurrentRound
-	testValue := float64(0)
+	//testValue := float64(0)
+	incrementCalled := make(chan bool)
+	decrementCalled := make(chan bool)
 
 	// create a prometheus status handler which will be passed to the facade
 	prometheusStub := mock.AppStatusHandlerStub{
 		IncrementHandler: func(key string) {
-			testValue++
+			incrementCalled <- true
 		},
 		DecrementHandler: func(key string) {
-			testValue--
+			decrementCalled <- true
 		},
 	}
 	appStatusFacade, err := statusHandler.NewAppStatusFacadeWithHandlers(&prometheusStub)
@@ -1448,9 +1450,13 @@ func TestNode_AppStatusHandlerWithFacadeIncrementAndDecrementMetric(t *testing.T
 	asf := n.GetAppStatusHandler()
 
 	asf.Increment(metricKey)
-	asf.Increment(metricKey)
-	assert.Equal(t, float64(2), testValue)
 
 	asf.Decrement(metricKey)
-	assert.Equal(t, float64(1), testValue)
+
+	select {
+	case <-incrementCalled:
+	case <-decrementCalled:
+	case <-time.After(5 * time.Millisecond):
+		assert.Fail(t, "Timeout - functions not called")
+	}
 }

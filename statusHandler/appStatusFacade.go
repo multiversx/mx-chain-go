@@ -21,35 +21,45 @@ func NewAppStatusFacadeWithHandlers(aphs ...core.AppStatusHandler) (*AppStatusFa
 
 // Increment method - will increment the value for a key for every handler
 func (asf *AppStatusFacade) Increment(key string) {
-	for _, ash := range asf.handlers {
-		ash.Increment(key)
-	}
+	go func() {
+		for _, ash := range asf.handlers {
+			ash.Increment(key)
+		}
+	}()
 }
 
 // Decrement method - will decrement the value for a key for every handler
 func (asf *AppStatusFacade) Decrement(key string) {
-	for _, ash := range asf.handlers {
-		ash.Decrement(key)
-	}
+	go func() {
+		for _, ash := range asf.handlers {
+			ash.Decrement(key)
+		}
+	}()
 }
 
 // SetInt64Value method - will update the value for a key for every handler
 func (asf *AppStatusFacade) SetInt64Value(key string, value int64) {
-	for _, ash := range asf.handlers {
-		ash.SetInt64Value(key, value)
-	}
+	go func() {
+		for _, ash := range asf.handlers {
+			ash.SetInt64Value(key, value)
+		}
+	}()
 }
 
 // SetUInt64Value method - will update the value for a key for every handler
 func (asf *AppStatusFacade) SetUInt64Value(key string, value uint64) {
-	for _, ash := range asf.handlers {
-		ash.SetUInt64Value(key, value)
-	}
+	go func() {
+		for _, ash := range asf.handlers {
+			ash.SetUInt64Value(key, value)
+		}
+	}()
 }
 
 // Close method will close all the handlers
 func (asf *AppStatusFacade) Close() {
-	for _, ash := range asf.handlers {
-		ash.Close()
-	}
+	go func() {
+		for _, ash := range asf.handlers {
+			ash.Close()
+		}
+	}()
 }

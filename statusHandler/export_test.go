@@ -5,8 +5,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-func GetMetricByKey(key string) (prometheus.Gauge, error) {
-	value, ok := prometheusGaugeMetrics.Load(key)
+func (psh *PrometheusStatusHandler) GetPrometheusMetricByKey(key string) (prometheus.Gauge, error) {
+	value, ok := psh.prometheusGaugeMetrics.Load(key)
 	if ok {
 		return value.(prometheus.Gauge), nil
 	}

@@ -20,11 +20,6 @@ func (AppStatusHandlerMock) SetInt64Value(key string, value int64) {
 func (AppStatusHandlerMock) SetUInt64Value(key string, value uint64) {
 }
 
-// GetValue will return 0
-func (AppStatusHandlerMock) GetValue(key string) float64 {
-	return float64(0)
-}
-
 // Close won't do anything
 func (AppStatusHandlerMock) Close() {
 }

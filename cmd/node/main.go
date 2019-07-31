@@ -465,10 +465,15 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
+	coreComponents.StatusHandler = statusHandler.NewNillStatusHandler()
 
+	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
 	if usePrometheusBool {
-		coreComponents.StatusHandler = statusHandler.NewPrometheusStatusHandler()
+		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(
+			statusHandler.NewPrometheusStatusHandler())
+		if err != nil {
+			log.Warn("Cannot init AppStatusFacade", err)
+		}
 	}
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
@@ -565,7 +570,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 
 	err = startStatusPolling(currentNode.GetAppStatusHandler(), generalConfig.GeneralSettings.StatusPollingIntervalSec,
 		networkComponents)
-	log.Info("Problem creating status polling: ", err)
+
+	if err != nil {
+		log.Info("Problem creating status polling: ", err)
+	}
 
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
 
@@ -611,29 +619,29 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 }
 
 func startStatusPolling(ash core.AppStatusHandler, pollingInterval int, networkComponents *factory.Network) error {
-	if ash != nil {
-		pollingInterval := time.Duration(pollingInterval) * time.Second
-		appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingInterval)
-
-		if err != nil {
-			return errors.New("cannot init AppStatusPolling")
-		} else {
-			numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
-				numOfConnectedPeers := int64(len(networkComponents.NetMessenger.ConnectedAddresses()))
-				appStatusHandler.SetInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
-			}
-
-			err = appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
-
-			if err != nil {
-				return errors.New("cannot register handler func for num of connected peers")
-			} else {
-				appStatusPollingHandler.Poll()
-			}
-		}
-	} else {
+	if ash == nil {
 		return errors.New("nil AppStatusHandler")
 	}
+	pollingIntervalDuration := time.Duration(pollingInterval) * time.Second
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingIntervalDuration)
+
+	if err != nil {
+		return errors.New("cannot init AppStatusPolling")
+	}
+
+	numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
+		numOfConnectedPeers := int64(len(networkComponents.NetMessenger.ConnectedAddresses()))
+		appStatusHandler.SetInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
+	}
+
+	err = appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
+
+	if err != nil {
+		return errors.New("cannot register handler func for num of connected peers")
+	}
+
+	appStatusPollingHandler.Poll()
+
 	return nil
 }
 

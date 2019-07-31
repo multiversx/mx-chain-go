@@ -63,7 +63,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -168,14 +167,11 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 	}
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
-	appStatusHandler := CreateAppStatusHandler()
-
 	return &Core{
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
 		Trie:                     merkleTrie,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
-		StatusHandler:            appStatusHandler,
 	}, nil
 }
 
@@ -199,11 +195,6 @@ func NewStateComponentsFactoryArgs(
 		shardCoordinator: shardCoordinator,
 		core:             core,
 	}
-}
-
-// CreateAppStatusHandler will return the handler which will be used
-func CreateAppStatusHandler() core.AppStatusHandler {
-	return statusHandler.NewNillStatusHandler()
 }
 
 // StateComponentsFactory creates the state components

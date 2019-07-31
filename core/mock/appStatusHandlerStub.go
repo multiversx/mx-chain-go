@@ -6,8 +6,7 @@ type AppStatusHandlerStub struct {
 	DecrementHandler      func(key string)
 	SetUInt64ValueHandler func(key string, value uint64)
 	SetInt64ValueHandler  func(key string, value int64)
-	GetValueHandler       func(key string) float64
-	CloseHandler          func(key string)
+	CloseHandler          func()
 }
 
 // Increment will call the handler of the stub for incrementing
@@ -30,11 +29,7 @@ func (ashs *AppStatusHandlerStub) SetUInt64Value(key string, value uint64) {
 	ashs.SetUInt64ValueHandler(key, value)
 }
 
-// GetValue will call the handler of the stub for getting a value
-func (ashs *AppStatusHandlerStub) GetValue(key string) float64 {
-	return ashs.GetValueHandler(key)
-}
-
 // Close will call the handler of the stub for closing
-func (psh *AppStatusHandlerStub) Close() {
+func (ashs *AppStatusHandlerStub) Close() {
+	ashs.CloseHandler()
 }
