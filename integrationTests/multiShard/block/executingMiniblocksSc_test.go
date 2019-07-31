@@ -21,7 +21,7 @@ var agarioFile = "agarioV2.hex"
 var stepDelay = time.Second
 
 // TestShouldProcessBlocksInMultiShardArchitectureWithScTxsTopUpAndWithdrawOnlyProposers tests the following scenario:
-// There are 2 shard and 1 meta, each with only one node (proposer).
+// There are 2 shards and 1 meta, each with only one node (proposer).
 // Shard 1's proposer deploys a SC. There is 1 round for proposing block that will create the SC account.
 // Shard 0's proposer sends a topUp SC call tx and then there are another 6 blocks added to all blockchains.
 // After that there is a first check that the topUp was made. Shard 0's proposer sends a withdraw SC call tx and after
@@ -118,7 +118,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 }
 
 // TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndRewardProposersAndValidators tests the following scenario:
-// There are 2 shard and 1 meta, each with one proposer and one validator.
+// There are 2 shards and 1 meta, each with one proposer and one validator.
 // Shard 1's proposer deploys a SC. There is 1 round for proposing block that will create the SC account.
 // Shard 0's proposer sends a joinGame SC call tx and then there are another 6 blocks added to all blockchains.
 // After that there is a first check that the joinGame was made. Shard 1's proposer sends a rewardAndSendFunds SC call
@@ -237,10 +237,11 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 }
 
 // TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators tests the following scenario:
-// There are 2 shard and 1 meta, each with one proposer and one validator.
+// There are 2 shards and 1 meta, each with one proposer and one validator.
 // Shard 1's proposer deploys a SC. There is 1 round for proposing block that will create the SC account.
 // Shard 0's proposer sends a joinGame SC call tx, proposes a block (not committing it) and the validator
 // should be able to sync it.
+// Test will fail with any variant before commit d79898991f83188118a1c60003f5277bc71209e6
 func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -295,7 +296,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(stepDelay)
 
-	round := uint32(0)
+	round := uint64(0)
 	round = incrementAndPrintRound(round)
 
 	initialVal := big.NewInt(10000000)
@@ -308,7 +309,8 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	round = incrementAndPrintRound(round)
 
 	nodeJoinsGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
-	for i := 0; i < 10; i++ {
+	maxRoundsToWait := 10
+	for i := 0; i < maxRoundsToWait; i++ {
 		proposeBlockWithScTxs(nodes, round, idxProposersWithoutShard1)
 
 		hdr, body, isBodyEmpty := proposeBlockSignalsEmptyBlock(nodes[idxProposerShard1], round)
@@ -397,7 +399,7 @@ func syncBlock(
 			continue
 		}
 
-		err := n.SyncNode(uint64(round))
+		err := n.SyncNode(round)
 		if err != nil {
 			assert.Fail(t, err.Error())
 			return
@@ -452,7 +454,7 @@ func nodeJoinsGame(
 
 func proposeBlockSignalsEmptyBlock(
 	node *integrationTests.TestProcessorNode,
-	round uint32,
+	round uint64,
 ) (data.HeaderHandler, data.BodyHandler, bool) {
 
 	fmt.Println("Proposing block without commit...")

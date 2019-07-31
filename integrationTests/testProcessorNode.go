@@ -527,7 +527,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64) (data.BodyHandler, data
 	}
 
 	blockHeader.SetRound(round)
-	blockHeader.SetNonce(uint64(round))
+	blockHeader.SetNonce(round)
 	blockHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := TestMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
@@ -543,13 +543,15 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64) (data.BodyHandler, data
 
 	shardBlockBody, ok := blockBody.(dataBlock.Body)
 	txHashes := make([][]byte, 0)
-	if ok {
-		for _, mb := range shardBlockBody {
-			for _, hash := range mb.TxHashes {
-				copiedHash := make([]byte, len(hash))
-				copy(copiedHash, hash)
-				txHashes = append(txHashes, copiedHash)
-			}
+	if !ok {
+		return blockBody, blockHeader, txHashes
+	}
+
+	for _, mb := range shardBlockBody {
+		for _, hash := range mb.TxHashes {
+			copiedHash := make([]byte, len(hash))
+			copy(copiedHash, hash)
+			txHashes = append(txHashes, copiedHash)
 		}
 	}
 
