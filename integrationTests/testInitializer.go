@@ -130,7 +130,7 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 // disk I/O)
 func CreateMemUnit() storage.Storer {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	persist, _ := memorydb.New()
+	persist, _ := memorydb.NewlruDB(100000)
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 
 	return unit
@@ -309,4 +309,28 @@ func PrintShardAccount(accnt *state.Account) {
 	str += fmt.Sprintf("  Root hash: %s\n", base64.StdEncoding.EncodeToString(accnt.RootHash))
 
 	fmt.Println(str)
+}
+
+// MintAllNodes will take each shard node (n) and will mint all nodes that have their pk managed by the iterating node n
+func MintAllNodes(nodes []*TestProcessorNode, value *big.Int) {
+	for idx, n := range nodes {
+		if n.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+			continue
+		}
+
+		mintAddressesFromSameShard(nodes, idx, value)
+	}
+}
+
+func mintAddressesFromSameShard(nodes []*TestProcessorNode, targetNodeIdx int, value *big.Int) {
+	targetNode := nodes[targetNodeIdx]
+
+	for _, n := range nodes {
+		shardId := targetNode.ShardCoordinator.ComputeId(n.TxSignAddress)
+		if shardId != targetNode.ShardCoordinator.SelfId() {
+			continue
+		}
+
+		MintAddress(targetNode.AccntState, n.PkTxSignBytes, value)
+	}
 }

@@ -607,7 +607,7 @@ func createShardProcessHeadersToSaveLastNoterized(
 	for i := uint64(1); i <= highestNonce; i++ {
 		hdr := &block.Header{
 			Nonce:         i,
-			Round:         uint32(i),
+			Round:         uint64(i),
 			Signature:     rootHash,
 			RandSeed:      rootHash,
 			PrevRandSeed:  rootHash,
@@ -638,7 +638,7 @@ func createMetaProcessHeadersToSaveLastNoterized(
 	for i := uint64(1); i <= highestNonce; i++ {
 		hdr := &block.MetaBlock{
 			Nonce:         i,
-			Round:         uint32(i),
+			Round:         uint64(i),
 			Signature:     rootHash,
 			RandSeed:      rootHash,
 			PrevRandSeed:  rootHash,

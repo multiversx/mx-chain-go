@@ -59,15 +59,15 @@ func (bfd *basicForkDetector) SetCheckpointNonce(nonce uint64) {
 	bfd.fork.checkpointNonce = nonce
 }
 
-func (bfd *basicForkDetector) CheckpointRound() int32 {
+func (bfd *basicForkDetector) CheckpointRound() int64 {
 	return bfd.fork.checkpointRound
 }
 
-func (bfd *basicForkDetector) SetLastCheckpointRound(round int32) {
+func (bfd *basicForkDetector) SetLastCheckpointRound(round int64) {
 	bfd.fork.lastCheckpointRound = round
 }
 
-func (bfd *basicForkDetector) SetCheckpointRound(round int32) {
+func (bfd *basicForkDetector) SetCheckpointRound(round int64) {
 	bfd.fork.checkpointRound = round
 }
 

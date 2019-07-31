@@ -955,7 +955,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error {
 		wasCalled = true
 		return nil
 	}
@@ -1020,7 +1020,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}
@@ -1094,7 +1094,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	scProcessorMock := &mock.SCProcessorMock{}
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}

@@ -16,7 +16,7 @@ func (hhs *HeaderHandlerStub) GetEpoch() uint32 {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) GetRound() uint32 {
+func (hhs *HeaderHandlerStub) GetRound() uint64 {
 	return 1
 }
 
@@ -60,7 +60,7 @@ func (hhs *HeaderHandlerStub) SetEpoch(e uint32) {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetRound(r uint32) {
+func (hhs *HeaderHandlerStub) SetRound(r uint64) {
 	panic("implement me")
 }
 

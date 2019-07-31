@@ -15,7 +15,7 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(0)
@@ -64,7 +64,7 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(50)
@@ -112,7 +112,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	//equal with requirement
 	gasLimit := vmOpGas
@@ -163,7 +163,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	//slightly less than requirement
 	gasLimit := vmOpGas - 1
