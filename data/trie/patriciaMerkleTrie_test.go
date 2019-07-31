@@ -327,6 +327,47 @@ func emptyTrie() data.Trie {
 	return tr
 }
 
+func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing.T) {
+	tr1 := emptyTrie()
+	tr2 := emptyTrie()
+
+	_ = tr1.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr1.Update([]byte("dog"), []byte("puppy"))
+	_ = tr1.Update([]byte("dogglesworth"), []byte("cat"))
+
+	_ = tr2.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr2.Update([]byte("dog"), []byte("puppy"))
+	_ = tr2.Update([]byte("dogglesworth"), []byte("caterpillar"))
+
+	proof, _ := tr2.Prove([]byte("dogglesworth"))
+	ok, _ := tr1.VerifyProof(proof, []byte("dogglesworth"))
+	assert.False(t, ok)
+}
+
+func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T) {
+	tr := emptyTrie()
+
+	_ = tr.Update([]byte("dog"), []byte("cat"))
+	_ = tr.Update([]byte("zebra"), []byte("horse"))
+
+	proof, _ := tr.Prove([]byte("dog"))
+	ok, err := tr.VerifyProof(proof, []byte("dog"))
+	assert.True(t, ok)
+	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testing.T) {
+	tr := emptyTrie()
+
+	_ = tr.Update([]byte("dog"), []byte("cat"))
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+
+	proof, _ := tr.Prove([]byte("dog"))
+	ok, err := tr.VerifyProof(proof, []byte("dog"))
+	assert.True(t, ok)
+	assert.Nil(t, err)
+}
+
 func TestPatriciaMerkleTrie_DeepCloneShouldWork(t *testing.T) {
 	t.Parallel()
 
