@@ -48,7 +48,7 @@ func NewShardBootstrap(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	bootstrapRoundIndex uint32,
+	bootstrapRoundIndex uint64,
 ) (*ShardBootstrap, error) {
 
 	if poolsHolder == nil {

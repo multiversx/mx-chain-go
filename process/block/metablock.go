@@ -201,7 +201,7 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
-func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint32) {
+func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
 	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(round)
 	if err != nil {
 		log.Debug(err.Error())
@@ -343,12 +343,12 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 }
 
 // CreateBlockBody creates block body of metachain
-func (mp *metaProcessor) CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error) {
+func (mp *metaProcessor) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
 	mp.blockSizeThrottler.ComputeMaxItems()
 	return &block.MetaBlockBody{}, nil
 }
 
-func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint32, haveTime func() time.Duration) error {
+func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {
 	hdrPool := mp.dataPool.ShardHeaders()
 
 	msg := ""
@@ -879,7 +879,7 @@ func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
 	headerHash []byte,
 	shardMiniBlockHeader *block.ShardMiniBlockHeader,
 	hdrPool storage.Cacher,
-	round uint32,
+	round uint64,
 	shardId uint32,
 ) error {
 
@@ -892,7 +892,7 @@ func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
 
 func (mp *metaProcessor) createShardInfo(
 	maxItemsInBlock uint32,
-	round uint32,
+	round uint64,
 	haveTime func() bool,
 ) ([]block.ShardData, error) {
 
@@ -1040,7 +1040,7 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 }
 
 // CreateBlockHeader creates a miniblock header list given a block body
-func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint32, haveTime func() bool) (data.HeaderHandler, error) {
+func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
 	// TODO: add PrevRandSeed and RandSeed when BLS signing is completed
 	header := &block.MetaBlock{
 		ShardInfo:    make([]block.ShardData, 0),
@@ -1198,7 +1198,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
-func (mp *metaProcessor) getOrderedHdrs(round uint32) ([]*block.Header, [][]byte, map[uint32][]*block.Header, error) {
+func (mp *metaProcessor) getOrderedHdrs(round uint64) ([]*block.Header, [][]byte, map[uint32][]*block.Header, error) {
 	hdrStore := mp.dataPool.ShardHeaders()
 	if hdrStore == nil {
 		return nil, nil, nil, process.ErrNilCacher

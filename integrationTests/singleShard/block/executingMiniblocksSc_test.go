@@ -62,7 +62,7 @@ func TestShouldProcessWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(stepDelay)
 
-	round := uint32(0)
+	round := uint64(0)
 	round = incrementAndPrintRound(round)
 
 	initialVal := big.NewInt(10000000)
@@ -218,7 +218,7 @@ func deployScTx(nodes []*integrationTests.TestProcessorNode, senderIdx int, scCo
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func proposeBlock(nodes []*integrationTests.TestProcessorNode, idxProposer int, round uint32) {
+func proposeBlock(nodes []*integrationTests.TestProcessorNode, idxProposer int, round uint64) {
 	fmt.Println("Proposing block...")
 	for idx, n := range nodes {
 		if idx != idxProposer {
@@ -234,7 +234,7 @@ func proposeBlock(nodes []*integrationTests.TestProcessorNode, idxProposer int, 
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func syncBlock(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposer int, round uint32) {
+func syncBlock(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposer int, round uint64) {
 	fmt.Println("All other shard nodes sync the proposed block...")
 	for idx, n := range nodes {
 		if idx == idxProposer {

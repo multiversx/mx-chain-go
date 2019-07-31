@@ -376,7 +376,7 @@ func TestBasicForkDetector_RemoveCheckpointHeaderNonceShouldResetCheckpoint(t *t
 
 	bfd.RemoveHeaders(2, hash1)
 	assert.Equal(t, uint64(0), bfd.CheckpointNonce())
-	assert.Equal(t, int32(-1), bfd.CheckpointRound())
+	assert.Equal(t, int64(-1), bfd.CheckpointRound())
 }
 
 func TestBasicForkDetector_GetHighestFinalBlockNonce(t *testing.T) {

@@ -38,7 +38,7 @@ func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
 	sp.receivedMetaBlock(metaBlockHash)
 }
 
-func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxItemsInBlock uint32, round uint32, haveTime func() bool) (block.Body, error) {
+func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxItemsInBlock uint32, round uint64, haveTime func() bool) (block.Body, error) {
 	return sp.createMiniBlocks(noShards, maxItemsInBlock, round, haveTime)
 }
 
@@ -135,11 +135,11 @@ func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
 	return found
 }
 
-func (mp *metaProcessor) CreateShardInfo(maxItemsInBlock uint32, round uint32, haveTime func() bool) ([]block.ShardData, error) {
+func (mp *metaProcessor) CreateShardInfo(maxItemsInBlock uint32, round uint64, haveTime func() bool) ([]block.ShardData, error) {
 	return mp.createShardInfo(maxItemsInBlock, round, haveTime)
 }
 
-func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint32, haveTime func() time.Duration) error {
+func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {
 	return mp.processBlockHeaders(header, round, haveTime)
 }
 
@@ -205,7 +205,7 @@ func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]da
 	return bp.setLastNotarizedHeadersSlice(startHeaders)
 }
 
-func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint32) {
+func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint64) {
 	sp.checkAndRequestIfMetaHeadersMissing(round)
 }
 
@@ -225,14 +225,14 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality(hdr *block.Header)
 	return sp.checkMetaHeadersValidityAndFinality(hdr)
 }
 
-func (sp *shardProcessor) GetOrderedMetaBlocks(round uint32) ([]*hashAndHdr, error) {
+func (sp *shardProcessor) GetOrderedMetaBlocks(round uint64) ([]*hashAndHdr, error) {
 	return sp.getOrderedMetaBlocks(round)
 }
 
 func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
 	noShards uint32,
-	maxItemsInBlock,
-	round uint32,
+	maxItemsInBlock uint32,
+	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, [][]byte, uint32, error) {
 	return sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxItemsInBlock, round, haveTime)

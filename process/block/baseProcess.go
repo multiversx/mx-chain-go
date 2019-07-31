@@ -351,7 +351,7 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 	return nil
 }
 
-func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler, shardId uint32, maxRound uint32) error {
+func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler, shardId uint32, maxRound uint64) error {
 	prevHdr, err := bp.getLastNotarizedHdr(shardId)
 	if err != nil {
 		return err

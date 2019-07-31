@@ -65,7 +65,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(stepDelay)
 
-	round := uint32(0)
+	round := uint64(0)
 	round = incrementAndPrintRound(round)
 
 	initialVal := big.NewInt(10000000)
@@ -176,7 +176,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(stepDelay)
 
-	round := uint32(0)
+	round := uint64(0)
 	round = incrementAndPrintRound(round)
 
 	initialVal := big.NewInt(10000000)
@@ -235,7 +235,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	checkRootHashes(t, nodes, idxProposers)
 }
 
-func incrementAndPrintRound(round uint32) uint32 {
+func incrementAndPrintRound(round uint64) uint64 {
 	round++
 	fmt.Printf("#################################### ROUND %d BEGINS ####################################\n\n", round)
 
@@ -260,7 +260,7 @@ func deployScTx(
 
 func proposeBlockWithScTxs(
 	nodes []*integrationTests.TestProcessorNode,
-	round uint32,
+	round uint64,
 	idxProposers []int,
 ) {
 
@@ -283,7 +283,7 @@ func syncBlock(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	idxProposers []int,
-	round uint32,
+	round uint64,
 ) {
 
 	fmt.Println("All other shard nodes sync the proposed block...")

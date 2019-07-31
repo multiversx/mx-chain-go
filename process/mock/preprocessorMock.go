@@ -14,12 +14,12 @@ type PreProcessorMock struct {
 	RemoveTxBlockFromPoolsCalled          func(body block.Body, miniBlockPool storage.Cacher) error
 	RestoreTxBlockIntoPoolsCalled         func(body block.Body, miniBlockPool storage.Cacher) (int, map[int][]byte, error)
 	SaveTxBlockToStorageCalled            func(body block.Body) error
-	ProcessBlockTransactionsCalled        func(body block.Body, round uint32, haveTime func() time.Duration) error
+	ProcessBlockTransactionsCalled        func(body block.Body, round uint64, haveTime func() time.Duration) error
 	RequestBlockTransactionsCalled        func(body block.Body) int
 	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
 	RequestTransactionsForMiniBlockCalled func(mb block.MiniBlock) int
-	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error
-	CreateAndProcessMiniBlockCalled       func(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error)
+	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error
+	CreateAndProcessMiniBlockCalled       func(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
 }
 
@@ -58,7 +58,7 @@ func (ppm *PreProcessorMock) SaveTxBlockToStorage(body block.Body) error {
 	return ppm.SaveTxBlockToStorageCalled(body)
 }
 
-func (ppm *PreProcessorMock) ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error {
+func (ppm *PreProcessorMock) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error {
 	if ppm.ProcessBlockTransactionsCalled == nil {
 		return nil
 	}
@@ -86,14 +86,14 @@ func (ppm *PreProcessorMock) RequestTransactionsForMiniBlock(mb block.MiniBlock)
 	return ppm.RequestTransactionsForMiniBlockCalled(mb)
 }
 
-func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error {
+func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {
 	if ppm.ProcessMiniBlockCalled == nil {
 		return nil
 	}
 	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime, round)
 }
 
-func (ppm *PreProcessorMock) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error) {
+func (ppm *PreProcessorMock) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
 	if ppm.CreateAndProcessMiniBlockCalled == nil {
 		return nil, nil
 	}
