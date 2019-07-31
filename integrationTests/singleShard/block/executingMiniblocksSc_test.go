@@ -155,7 +155,7 @@ func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(stepDelay)
 
-	round := uint32(0)
+	round := uint64(0)
 	round = incrementAndPrintRound(round)
 
 	initialVal := big.NewInt(10000000)
@@ -201,7 +201,7 @@ func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
 	time.Sleep(1 * time.Second)
 }
 
-func incrementAndPrintRound(round uint32) uint32 {
+func incrementAndPrintRound(round uint64) uint64 {
 	round++
 	fmt.Printf("#################################### ROUND %d BEGINS ####################################\n\n", round)
 
