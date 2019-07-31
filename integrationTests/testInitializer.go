@@ -130,7 +130,7 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 // disk I/O)
 func CreateMemUnit() storage.Storer {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	persist, _ := memorydb.New()
+	persist, _ := memorydb.NewlruDB(100000)
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 
 	return unit
