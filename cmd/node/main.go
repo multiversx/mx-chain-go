@@ -201,7 +201,7 @@ VERSION:
 	bootstrapRoundIndex = cli.UintFlag{
 		Name:  "bootstrap-round-index",
 		Usage: "Bootstrap round index specifies the round index from which node should bootstrap from storage",
-		Value: math.MaxUint32,
+		Value: math.MaxUint64,
 	}
 	// enableTxIndexing enables transaction indexing. There can be cases when it's too expensive to index all transactions
 	//  so we provide the command line option to disable this behaviour
@@ -539,7 +539,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		cryptoComponents,
 		processComponents,
 		networkComponents,
-		uint32(ctx.GlobalUint(bootstrapRoundIndex.Name)),
+		uint64(ctx.GlobalUint(bootstrapRoundIndex.Name)),
 	)
 	if err != nil {
 		return err
@@ -760,7 +760,7 @@ func createNode(
 	crypto *factory.Crypto,
 	process *factory.Process,
 	network *factory.Network,
-	bootstrapRoundIndex uint32,
+	bootstrapRoundIndex uint64,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {

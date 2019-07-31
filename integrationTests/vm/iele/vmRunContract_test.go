@@ -16,7 +16,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
@@ -84,7 +84,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
@@ -158,7 +158,7 @@ func deployContract(
 	gasPrice uint64,
 	gasLimit uint64,
 	scCode string,
-	round uint32,
+	round uint64,
 	txProc process.TransactionProcessor,
 	accnts state.AccountsAdapter,
 ) {
