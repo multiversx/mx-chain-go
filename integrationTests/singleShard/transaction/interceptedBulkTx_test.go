@@ -33,6 +33,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	shardCoordinator := &sharding.OneShardCoordinator{}
 	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
 		1,
+		1,
 		hasher,
 		0,
 		1,

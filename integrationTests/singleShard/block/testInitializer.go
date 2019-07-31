@@ -43,9 +43,84 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"math/big"
 )
 
 var r io.Reader
+
+type keyPair struct {
+	sk crypto.PrivateKey
+	pk crypto.PublicKey
+}
+
+type cryptoParams struct {
+	keyGen       crypto.KeyGenerator
+	keys         map[uint32][]*keyPair
+	singleSigner crypto.SingleSigner
+}
+
+func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
+	validatorsMap := make(map[uint32][]sharding.Validator)
+
+	for shardId, shardNodesPks := range pubKeysMap {
+		shardValidators := make([]sharding.Validator, 0)
+		for i := 0; i < len(shardNodesPks); i++ {
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]))
+			shardValidators = append(shardValidators, v)
+		}
+		validatorsMap[shardId] = shardValidators
+	}
+
+	return validatorsMap
+}
+
+func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *cryptoParams {
+	suite := kyber.NewSuitePairingBn256()
+	singleSigner := &singlesig.SchnorrSigner{}
+	keyGen := signing.NewKeyGenerator(suite)
+
+	keysMap := make(map[uint32][]*keyPair)
+	keyPairs := make([]*keyPair, nodesPerShard)
+	for shardId := 0; shardId < nbShards; shardId++ {
+		for n := 0; n < nodesPerShard; n++ {
+			kp := &keyPair{}
+			kp.sk, kp.pk = keyGen.GeneratePair()
+			keyPairs[n] = kp
+		}
+		keysMap[uint32(shardId)] = keyPairs
+	}
+
+	keyPairs = make([]*keyPair, nbMetaNodes)
+	for n := 0; n < nbMetaNodes; n++ {
+		kp := &keyPair{}
+		kp.sk, kp.pk = keyGen.GeneratePair()
+		keyPairs[n] = kp
+	}
+	keysMap[sharding.MetachainShardId] = keyPairs
+
+	params := &cryptoParams{
+		keys:         keysMap,
+		keyGen:       keyGen,
+		singleSigner: singleSigner,
+	}
+
+	return params
+}
+
+func pubKeysMapFromKeysMap(keyPairMap map[uint32][]*keyPair) map[uint32][]string {
+	keysMap := make(map[uint32][]string, 0)
+
+	for shardId, pairList := range keyPairMap {
+		shardKeys := make([]string, len(pairList))
+		for i, pair := range pairList {
+			bytes, _ := pair.pk.ToByteArray()
+			shardKeys[i] = string(bytes)
+		}
+		keysMap[shardId] = shardKeys
+	}
+
+	return keysMap
+}
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -153,11 +228,11 @@ func createNetNode(
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
+	params *cryptoParams,
+	keysIndex int,
 ) (
 	*node.Node,
 	p2p.Messenger,
-	crypto.PrivateKey,
-	crypto.PublicKey,
 	crypto.MultiSigner,
 	dataRetriever.ResolversFinder) {
 
@@ -168,12 +243,8 @@ func createNetNode(
 	messenger := createMessenger(context.Background())
 
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-
-	suite := kyber.NewSuitePairingBn256()
-	singleSigner := &singlesig.SchnorrSigner{}
-	keyGen := signing.NewKeyGenerator(suite)
-	sk, pk := keyGen.GeneratePair()
-	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasherSigning)
+	keyPair := params.keys[shardCoordinator.SelfId()][keysIndex]
+	multiSigner, _ := createMultiSigner(keyPair.sk, keyPair.pk, params.keyGen, hasherSigning)
 	blkc := createTestBlockChain()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	dataPacker, _ := partitioning.NewSizeDataPacker(marshalizer)
@@ -185,8 +256,8 @@ func createNetNode(
 		store,
 		marshalizer,
 		hasher,
-		keyGen,
-		singleSigner,
+		params.keyGen,
+		params.singleSigner,
 		multiSigner,
 		dPool,
 		addrConverter,
@@ -212,11 +283,11 @@ func createNetNode(
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithSingleSigner(singleSigner),
+		node.WithSingleSigner(params.singleSigner),
 		node.WithMultiSigner(multiSigner),
-		node.WithKeyGen(keyGen),
-		node.WithTxSignPrivKey(sk),
-		node.WithTxSignPubKey(pk),
+		node.WithKeyGen(params.keyGen),
+		node.WithTxSignPrivKey(keyPair.sk),
+		node.WithTxSignPubKey(keyPair.pk),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
@@ -225,7 +296,7 @@ func createNetNode(
 		node.WithDataStore(store),
 	)
 
-	return n, messenger, sk, pk, multiSigner, resolversFinder
+	return n, messenger, multiSigner, resolversFinder
 }
 
 func createMessenger(ctx context.Context) p2p.Messenger {

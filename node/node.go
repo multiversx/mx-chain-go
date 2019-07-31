@@ -88,6 +88,7 @@ type Node struct {
 	metaDataPool     dataRetriever.MetaPoolsHolder
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
+	nodesCoordinator sharding.NodesCoordinator
 
 	consensusTopic string
 	consensusType  string
@@ -267,11 +268,6 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	nCoordinator, err := n.createNodesCoordinator()
-	if err != nil {
-		return err
-	}
-
 	consensusDataContainer, err := spos.NewConsensusCore(
 		n.blkc,
 		n.blockProcessor,
@@ -286,8 +282,8 @@ func (n *Node) StartConsensus() error {
 		n.multiSigner,
 		n.rounder,
 		n.shardCoordinator,
+		n.nodesCoordinator,
 		n.syncTimer,
-		nCoordinator,
 	)
 	if err != nil {
 		return err
@@ -484,55 +480,6 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 		roundStatus)
 
 	return consensusState, nil
-}
-
-// createNodesCoordinator creates a index hashed group selector object
-func (n *Node) createNodesCoordinator() (sharding.NodesCoordinator, error) {
-	var err error
-
-	nodesMap := make(map[uint32][]sharding.Validator)
-	nbShards := n.shardCoordinator.NumberOfShards()
-
-	for sh := uint32(0); sh < nbShards; sh++ {
-		err = n.createValidatorsForShard(nodesMap, sh)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err = n.createValidatorsForShard(nodesMap, sharding.MetachainShardId)
-	if err != nil {
-		return nil, err
-	}
-
-	nCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
-		n.consensusGroupSize,
-		n.hasher,
-		n.shardCoordinator.SelfId(),
-		n.shardCoordinator.NumberOfShards(),
-		nodesMap,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return nCoordinator, nil
-}
-
-func (n *Node) createValidatorsForShard(nodesMap map[uint32][]sharding.Validator, shId uint32) (err error) {
-	nodesInShard := len(n.initialNodesPubkeys[shId])
-	nodesMap[shId] = make([]sharding.Validator, nodesInShard)
-
-	for i := 0; i < nodesInShard; i++ {
-		validator, err := sharding.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shId][i]))
-		if err != nil {
-			return err
-		}
-
-		nodesMap[shId][i] = validator
-	}
-
-	return nil
 }
 
 // createConsensusTopic creates a consensus topic for node

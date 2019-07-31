@@ -81,6 +81,17 @@ type testNode struct {
 	metachainHdrRecv int32
 }
 
+type keyPair struct {
+	sk crypto.PrivateKey
+	pk crypto.PublicKey
+}
+
+type cryptoParams struct {
+	keyGen       crypto.KeyGenerator
+	keys         map[uint32][]*keyPair
+	singleSigner crypto.SingleSigner
+}
+
 //------- Common
 
 func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
@@ -96,6 +107,54 @@ func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 	}
 
 	return validatorsMap
+}
+
+func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *cryptoParams {
+	suite := kyber.NewBlakeSHA256Ed25519()
+	singleSigner := &singlesig.SchnorrSigner{}
+	keyGen := signing.NewKeyGenerator(suite)
+
+	keysMap := make(map[uint32][]*keyPair)
+	keyPairs := make([]*keyPair, nodesPerShard)
+	for shardId := 0; shardId < nbShards; shardId++ {
+		for n := 0; n < nodesPerShard; n++ {
+			kp := &keyPair{}
+			kp.sk, kp.pk = keyGen.GeneratePair()
+			keyPairs[n] = kp
+		}
+		keysMap[uint32(shardId)] = keyPairs
+	}
+
+	keyPairs = make([]*keyPair, nbMetaNodes)
+	for n := 0; n < nbMetaNodes; n++ {
+		kp := &keyPair{}
+		kp.sk, kp.pk = keyGen.GeneratePair()
+		keyPairs[n] = kp
+	}
+	keysMap[sharding.MetachainShardId] = keyPairs
+
+	params := &cryptoParams{
+		keys:         keysMap,
+		keyGen:       keyGen,
+		singleSigner: singleSigner,
+	}
+
+	return params
+}
+
+func pubKeysMapFromKeysMap(keyPairMap map[uint32][]*keyPair) map[uint32][]string {
+	keysMap := make(map[uint32][]string, 0)
+
+	for shardId, pairList := range keyPairMap {
+		shardKeys := make([]string, len(pairList))
+		for i, pair := range pairList {
+			bytes, _ := pair.pk.ToByteArray()
+			shardKeys[i] = string(bytes)
+		}
+		keysMap[shardId] = shardKeys
+	}
+
+	return keysMap
 }
 
 func createMemUnit() storage.Storer {
@@ -186,22 +245,25 @@ func displayAndStartNodes(nodes []*testNode) {
 
 func createNodes(
 	nodesInMetachain int,
-	senderShard uint32,
+	shardId uint32,
 	initialAddr string,
 	hasher hashing.Hasher,
 ) []*testNode {
 
-	nodesCoordMap := make(map[uint32][]sharding.NodesCoordinator)
-	pkMap := make(map[uint32][]string)
 	nodes := make([]*testNode, nodesInMetachain+1)
 	//first node is a shard node
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(1, senderShard)
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(1, shardId)
+	cp := createCryptoParams(1, nodesInMetachain, 1)
+	keysMap := pubKeysMapFromKeysMap(cp.keys)
+	validatorsMap := genValidatorsFromPubKeys(keysMap)
+
 	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
 		1,
-		hasher,
-		senderShard,
 		1,
-		make(map[uint32][]sharding.Validator),
+		hasher,
+		shardId,
+		1,
+		validatorsMap,
 	)
 
 	nodes[0] = createShardNetNode(
@@ -210,22 +272,19 @@ func createNodes(
 		shardCoordinator,
 		nodesCoordinator,
 		initialAddr,
+		cp,
+		0,
 	)
 
-	pk, _ := nodes[0].pk.ToByteArray()
-	nodesCoordMap[0] = []sharding.NodesCoordinator{nodesCoordinator}
-	pkMap[0] = []string{string(pk)}
-
-	metaNodesCoordinators := make([]sharding.NodesCoordinator, 0)
-	metaPubKeys := make([]string, 0)
 	for i := 0; i < nodesInMetachain; i++ {
 		shardCoordinator, _ = sharding.NewMultiShardCoordinator(1, sharding.MetachainShardId)
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
 			1,
+			1,
 			hasher,
 			sharding.MetachainShardId,
 			1,
-			make(map[uint32][]sharding.Validator),
+			validatorsMap,
 		)
 		nodes[i+1] = createMetaNetNode(
 			createTestMetaDataPool(),
@@ -233,20 +292,9 @@ func createNodes(
 			shardCoordinator,
 			nodesCoordinator,
 			initialAddr,
+			cp,
+			i,
 		)
-		metaNodesCoordinators = append(metaNodesCoordinators, nodesCoordinator)
-		pk, _ := nodes[i+1].pk.ToByteArray()
-		metaPubKeys = append(metaPubKeys, string(pk))
-	}
-
-	nodesCoordMap[sharding.MetachainShardId] = metaNodesCoordinators
-	pkMap[sharding.MetachainShardId] = metaPubKeys
-	valMap := genValidatorsFromPubKeys(pkMap)
-
-	for _, nodeCoordList := range nodesCoordMap {
-		for _, nodeCoord := range nodeCoordList {
-			_ = nodeCoord.SetNodesPerShards(valMap)
-		}
 	}
 
 	return nodes
@@ -317,16 +365,14 @@ func createShardNetNode(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	initialAddr string,
+	params *cryptoParams,
+	keysIndex int,
 ) *testNode {
 
 	tn := testNode{}
 	tn.messenger = createMessengerWithKadDht(context.Background(), initialAddr)
-	suite := kyber.NewBlakeSHA256Ed25519()
-	singleSigner := &singlesig.SchnorrSigner{}
-	keyGen := signing.NewKeyGenerator(suite)
-	sk, pk := keyGen.GeneratePair()
-
-	pkBuff, _ := pk.ToByteArray()
+	keyPair := params.keys[shardCoordinator.SelfId()][keysIndex]
+	pkBuff, _ := keyPair.pk.ToByteArray()
 	fmt.Printf("Found pk: %s\n", hex.EncodeToString(pkBuff))
 
 	blkc := createTestShardChain()
@@ -342,8 +388,8 @@ func createShardNetNode(
 		store,
 		testMarshalizer,
 		testHasher,
-		keyGen,
-		singleSigner,
+		params.keyGen,
+		params.singleSigner,
 		testMultiSig,
 		dPool,
 		addConverter,
@@ -364,7 +410,14 @@ func createShardNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	tn.resolvers, _ = containers.NewResolversFinder(resolversContainer, shardCoordinator)
-	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(tn.resolvers, factory.TransactionTopic, factory.UnsignedTransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
+	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(
+		tn.resolvers,
+		factory.TransactionTopic,
+		factory.UnsignedTransactionTopic,
+		factory.MiniBlocksTopic,
+		factory.MetachainBlocksTopic,
+		100,
+	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
@@ -424,8 +477,8 @@ func createShardNetNode(
 		testMarshalizer,
 		tn.messenger,
 		shardCoordinator,
-		sk,
-		singleSigner,
+		keyPair.sk,
+		params.singleSigner,
 	)
 
 	n, err := node.NewNode(
@@ -435,14 +488,14 @@ func createShardNetNode(
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(testAddressConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithKeyGen(keyGen),
+		node.WithKeyGen(params.keyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
 		node.WithMultiSigner(testMultiSig),
-		node.WithSingleSigner(singleSigner),
-		node.WithPrivKey(sk),
-		node.WithPubKey(pk),
+		node.WithSingleSigner(params.singleSigner),
+		node.WithPrivKey(keyPair.sk),
+		node.WithPubKey(keyPair.pk),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(tn.resolvers),
 		node.WithBlockProcessor(blockProcessor),
@@ -454,8 +507,8 @@ func createShardNetNode(
 	}
 
 	tn.node = n
-	tn.sk = sk
-	tn.pk = pk
+	tn.sk = keyPair.sk
+	tn.pk = keyPair.pk
 	tn.shard = fmt.Sprintf("%d", shardCoordinator.SelfId())
 	tn.shardDataPool = dPool
 
@@ -522,17 +575,15 @@ func createMetaNetNode(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	initialAddr string,
+	params *cryptoParams,
+	keysIndex int,
 ) *testNode {
 
 	tn := testNode{}
 
 	tn.messenger = createMessengerWithKadDht(context.Background(), initialAddr)
-	suite := kyber.NewBlakeSHA256Ed25519()
-	singleSigner := &singlesig.SchnorrSigner{}
-	keyGen := signing.NewKeyGenerator(suite)
-	sk, pk := keyGen.GeneratePair()
-
-	pkBuff, _ := pk.ToByteArray()
+	keyPair := params.keys[sharding.MetachainShardId][keysIndex]
+	pkBuff, _ := keyPair.pk.ToByteArray()
 	fmt.Printf("Found pk: %s\n", hex.EncodeToString(pkBuff))
 
 	blkc := createTestMetaChain()
@@ -590,8 +641,8 @@ func createMetaNetNode(
 		testMarshalizer,
 		tn.messenger,
 		shardCoordinator,
-		sk,
-		singleSigner,
+		keyPair.sk,
+		params.singleSigner,
 	)
 
 	n, err := node.NewNode(
@@ -601,14 +652,14 @@ func createMetaNetNode(
 		node.WithMetaDataPool(dPool),
 		node.WithAddressConverter(testAddressConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithKeyGen(keyGen),
+		node.WithKeyGen(params.keyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
 		node.WithMultiSigner(testMultiSig),
-		node.WithSingleSigner(singleSigner),
-		node.WithPrivKey(sk),
-		node.WithPubKey(pk),
+		node.WithSingleSigner(params.singleSigner),
+		node.WithPrivKey(keyPair.sk),
+		node.WithPubKey(keyPair.pk),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(tn.resolvers),
 		node.WithBlockProcessor(blockProcessor),
@@ -620,8 +671,8 @@ func createMetaNetNode(
 	}
 
 	tn.node = n
-	tn.sk = sk
-	tn.pk = pk
+	tn.sk = keyPair.sk
+	tn.pk = keyPair.pk
 	tn.shard = "meta"
 	tn.metaDataPool = dPool
 

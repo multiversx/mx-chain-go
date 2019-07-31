@@ -556,6 +556,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		privKey,
 		pubKey,
 		shardCoordinator,
+		nodesCoordinator,
 		coreComponents,
 		stateComponents,
 		dataComponents,
@@ -731,15 +732,9 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
-	var consensusGroupSize int
 	nbShards := nodesConfig.NumberOfShards()
-
-	if shardId == sharding.MetachainShardId {
-		consensusGroupSize = int(nodesConfig.MetaChainConsensusGroupSize)
-	} else {
-		consensusGroupSize = int(nodesConfig.ConsensusGroupSize)
-	}
-
+	shardConsensusGroupSize := int(nodesConfig.MetaChainConsensusGroupSize)
+	metaConsensusGroupSize := int(nodesConfig.ConsensusGroupSize)
 	initNodesPubKeys := nodesConfig.InitialNodesPubKeys()
 	initValidators := make(map[uint32][]sharding.Validator)
 
@@ -758,7 +753,8 @@ func createNodesCoordinator(
 	}
 
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
-		consensusGroupSize,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
 		hasher,
 		shardId,
 		nbShards,
@@ -836,6 +832,7 @@ func createNode(
 	privKey crypto.PrivateKey,
 	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	core *factory.Core,
 	state *factory.State,
 	data *factory.Data,
@@ -866,6 +863,7 @@ func createNode(
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(process.Rounder),
 		node.WithShardCoordinator(shardCoordinator),
+		node.WithNodesCoordinator(nodesCoordinator),
 		node.WithUint64ByteSliceConverter(core.Uint64ByteSliceConverter),
 		node.WithSingleSigner(crypto.SingleSigner),
 		node.WithMultiSigner(crypto.MultiSigner),

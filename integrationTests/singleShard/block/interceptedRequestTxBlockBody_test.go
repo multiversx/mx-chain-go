@@ -26,32 +26,40 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	dPoolRequester := createTestDataPool()
 	dPoolResolver := createTestDataPool()
+	cp := createCryptoParams(2, 1, 1)
+	keysMap := pubKeysMapFromKeysMap(cp.keys)
+	validatorsMap := genValidatorsFromPubKeys(keysMap)
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
 	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
 		1,
+		1,
 		hasher,
 		0,
 		1,
-		make(map[uint32][]sharding.Validator),
+		validatorsMap,
 	)
 
 	fmt.Println("Requester:	")
-	nRequester, mesRequester, _, _, _, resolversFinder := createNetNode(
+	nRequester, mesRequester, _, resolversFinder := createNetNode(
 		dPoolRequester,
 		createTestStore(),
 		createAccountsDB(),
 		shardCoordinator,
 		nodesCoordinator,
+		cp,
+		0,
 	)
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _, _, _ := createNetNode(
+	nResolver, mesResolver, _, _ := createNetNode(
 		dPoolResolver,
 		createTestStore(),
 		createAccountsDB(),
 		shardCoordinator,
 		nodesCoordinator,
+		cp,
+		1,
 	)
 
 	_ = nRequester.Start()

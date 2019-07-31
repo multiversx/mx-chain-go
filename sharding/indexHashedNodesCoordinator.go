@@ -9,23 +9,25 @@ import (
 )
 
 type indexHashedNodesCoordinator struct {
-	nbShards             uint32
-	shardId              uint32
-	hasher               hashing.Hasher
-	nodesMap             map[uint32][]Validator
-	expandedEligibleList []Validator
-	consensusGroupSize   int
+	nbShards                uint32
+	shardId                 uint32
+	hasher                  hashing.Hasher
+	nodesMap                map[uint32][]Validator
+	expandedEligibleList    []Validator
+	shardConsensusGroupSize int
+	metaConsensusGroupSize  int
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
 func NewIndexHashedNodesCoordinator(
-	consensusGroupSize int,
+	shardConsensusGroupSize int,
+	metaConsensusGroupSize int,
 	hasher hashing.Hasher,
 	shardId uint32,
 	nbShards uint32,
 	nodes map[uint32][]Validator,
 ) (*indexHashedNodesCoordinator, error) {
-	if consensusGroupSize < 1 {
+	if shardConsensusGroupSize < 1 || metaConsensusGroupSize < 1 {
 		return nil, ErrInvalidConsensusGroupSize
 	}
 
@@ -42,19 +44,16 @@ func NewIndexHashedNodesCoordinator(
 	}
 
 	ihgs := &indexHashedNodesCoordinator{
-		nbShards:             nbShards,
-		shardId:              shardId,
-		hasher:               hasher,
-		nodesMap:             make(map[uint32][]Validator),
-		expandedEligibleList: make([]Validator, 0),
+		nbShards:                nbShards,
+		shardId:                 shardId,
+		hasher:                  hasher,
+		nodesMap:                make(map[uint32][]Validator),
+		expandedEligibleList:    make([]Validator, 0),
+		shardConsensusGroupSize: shardConsensusGroupSize,
+		metaConsensusGroupSize:  metaConsensusGroupSize,
 	}
 
-	err := ihgs.SetConsensusGroupSize(consensusGroupSize)
-	if err != nil {
-		return nil, err
-	}
-
-	err = ihgs.SetNodesPerShards(nodes)
+	err := ihgs.SetNodesPerShards(nodes)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +65,18 @@ func NewIndexHashedNodesCoordinator(
 func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(nodes map[uint32][]Validator) error {
 	if nodes == nil {
 		return ErrNilInputNodesMap
+	}
+
+	nodesList, ok := nodes[MetachainShardId]
+	if ok && len(nodesList) < ihgs.metaConsensusGroupSize {
+		return ErrSmallMetachainEligibleListSize
+	}
+
+	for shardId := uint32(0); shardId < ihgs.nbShards; shardId++ {
+		nbNodesShard := len(nodes[shardId])
+		if nbNodesShard < ihgs.shardConsensusGroupSize {
+			return ErrSmallShardEligibleListSize
+		}
 	}
 
 	ihgs.nodesMap = nodes
@@ -84,17 +95,24 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(nodes map[uint32][]Va
 //    the item at the new proposed index is not found in the list. This new proposed index will be called checked index
 // 4. the item at the checked index is appended in the temp validator list
 func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []Validator, err error) {
-	if len(ihgs.nodesMap[ihgs.shardId]) < ihgs.consensusGroupSize {
-		return nil, ErrSmallEligibleListSize
-	}
-
 	if randomness == nil {
 		return nil, ErrNilRandomness
 	}
 
 	tempList := make([]Validator, 0)
+	var consensusGroupSize int
 
-	for startIdx := 0; startIdx < ihgs.consensusGroupSize; startIdx++ {
+	if ihgs == nil {
+		return nil, ErrNilRandomness
+	}
+
+	if ihgs.shardId == MetachainShardId {
+		consensusGroupSize = ihgs.metaConsensusGroupSize
+	} else {
+		consensusGroupSize = ihgs.shardConsensusGroupSize
+	}
+
+	for startIdx := 0; startIdx < consensusGroupSize; startIdx++ {
 		proposedIndex := ihgs.computeListIndex(startIdx, string(randomness))
 
 		checkedIndex := ihgs.checkIndex(proposedIndex, tempList)
@@ -127,12 +145,19 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(selection []byte)
 	selectionLen := uint16(len(selection) * 8) // 8 selection bits in each byte
 	shardEligibleLen := uint16(len(ihgs.nodesMap[ihgs.shardId]))
 	invalidSelection := selectionLen < shardEligibleLen
+	var consensusGroupSize int
 
 	if invalidSelection {
 		return nil, ErrEligibleSelectionMismatch
 	}
 
-	publicKeys = make([]string, ihgs.consensusGroupSize)
+	if ihgs.shardId == MetachainShardId {
+		consensusGroupSize = ihgs.shardConsensusGroupSize
+	} else {
+		consensusGroupSize = ihgs.metaConsensusGroupSize
+	}
+
+	publicKeys = make([]string, consensusGroupSize)
 	cnt := 0
 
 	for i := uint16(0); i < shardEligibleLen; i++ {
@@ -145,12 +170,12 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(selection []byte)
 		publicKeys[cnt] = string(ihgs.nodesMap[ihgs.shardId][i].PubKey())
 		cnt++
 
-		if cnt > ihgs.consensusGroupSize {
+		if cnt > consensusGroupSize {
 			return nil, ErrEligibleTooManySelections
 		}
 	}
 
-	if cnt < ihgs.consensusGroupSize {
+	if cnt < consensusGroupSize {
 		return nil, ErrEligibleTooFewSelections
 	}
 
@@ -204,19 +229,4 @@ func (ihgs *indexHashedNodesCoordinator) validatorIsInList(v Validator, list []V
 	}
 
 	return false
-}
-
-// ConsensusGroupSize returns the consensus group size
-func (ihgs *indexHashedNodesCoordinator) ConsensusGroupSize() int {
-	return ihgs.consensusGroupSize
-}
-
-// SetConsensusGroupSize sets the consensus group size
-func (ihgs *indexHashedNodesCoordinator) SetConsensusGroupSize(consensusGroupSize int) error {
-	if consensusGroupSize < 1 {
-		return ErrInvalidConsensusGroupSize
-	}
-
-	ihgs.consensusGroupSize = consensusGroupSize
-	return nil
 }

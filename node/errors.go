@@ -58,6 +58,9 @@ var ErrNilDataPool = errors.New("trying to set nil data pool")
 // ErrNilShardCoordinator signals that a nil shard coordinator has been provided
 var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")
 
+// ErrNilNodesCoordinator signals that a nil nodes coordinator has been provided
+var ErrNilNodesCoordinator = errors.New("trying to set nil nodes coordinator")
+
 // ErrNilUint64ByteSliceConverter signals that a nil uint64 <-> byte slice converter has been provided
 var ErrNilUint64ByteSliceConverter = errors.New("trying to set nil uint64 - byte slice converter")
 
@@ -87,9 +90,6 @@ var ErrNilBlockHeader = errors.New("block header is nil")
 
 // ErrNilTxBlockBody is raised when a valid tx block body is expected but nil was used
 var ErrNilTxBlockBody = errors.New("tx block body is nil")
-
-// ErrNilMetaBlockHeader is raised when a valid metablock is expected but nil was provided
-var ErrNilMetaBlockHeader = errors.New("meta block header is nil")
 
 // ErrWrongTypeAssertion is raised when a type assertion occurs
 var ErrWrongTypeAssertion = errors.New("wrong type assertion: expected *block.Header")

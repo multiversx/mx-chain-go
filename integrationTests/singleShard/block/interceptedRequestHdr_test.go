@@ -3,7 +3,6 @@ package block
 import (
 	"encoding/base64"
 	"fmt"
-	"math/big"
 	"reflect"
 	"sync"
 	"testing"
@@ -21,21 +20,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
-	validatorsMap := make(map[uint32][]sharding.Validator)
-
-	for shardId, shardNodesPks := range pubKeysMap {
-		shardValidators := make([]sharding.Validator, 0)
-		for i := 0; i < len(shardNodesPks); i++ {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]))
-			shardValidators = append(shardValidators, v)
-		}
-		validatorsMap[shardId] = shardValidators
-	}
-
-	return validatorsMap
-}
-
 func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -50,47 +34,48 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	storeResolver := createTestStore()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
+	cp := createCryptoParams(2, 1, 1)
+	keysMap := pubKeysMapFromKeysMap(cp.keys)
+	validatorsMap := genValidatorsFromPubKeys(keysMap)
+
 	nodesCoordinator1, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
 		1,
 		hasher,
 		0,
 		1,
-		make(map[uint32][]sharding.Validator),
+		validatorsMap,
 	)
 	nodesCoordinator2, _ := sharding.NewIndexHashedNodesCoordinator(
 		1,
+		1,
 		hasher,
 		0,
 		1,
-		make(map[uint32][]sharding.Validator),
+		validatorsMap,
 	)
 
 	fmt.Println("Requester:")
-	nRequester, mesRequester, _, pk1, multiSigner, resolversFinder := createNetNode(
+	nRequester, mesRequester, multiSigner, resolversFinder := createNetNode(
 		dPoolRequester,
 		storeRequester,
 		createAccountsDB(),
 		shardCoordinator,
 		nodesCoordinator1,
+		cp,
+		0,
 	)
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, pk2, _, _ := createNetNode(
+	nResolver, mesResolver, _, _ := createNetNode(
 		dPoolResolver,
 		storeResolver,
 		createAccountsDB(),
 		shardCoordinator,
 		nodesCoordinator2,
+		cp,
+		1,
 	)
-
-	pubKeyMap := make(map[uint32][]string)
-	pk1Bytes, _ := pk1.ToByteArray()
-	pk2Bytes, _ := pk2.ToByteArray()
-
-	pubKeyMap[0] = []string{string(pk1Bytes), string(pk2Bytes)}
-	validatorsMap := genValidatorsFromPubKeys(pubKeyMap)
-	_ = nodesCoordinator1.SetNodesPerShards(validatorsMap)
-	_ = nodesCoordinator2.SetNodesPerShards(validatorsMap)
 
 	_ = nRequester.Start()
 	_ = nResolver.Start()
@@ -137,8 +122,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	hdrBuff, _ := marshalizer.Marshal(&hdr1)
 	hdrHash := hasher.Compute(string(hdrBuff))
-	msig, _ := multiSigner.Create(pubKeyMap[0], 0)
-	bitmap := []byte{1, 0, 0}
+	msig, _ := multiSigner.Create(keysMap[0], 0)
+	bitmap := []byte{1}
 	_, _ = msig.CreateSignatureShare(hdrHash, bitmap)
 	aggSig, _ := msig.AggregateSigs(bitmap)
 

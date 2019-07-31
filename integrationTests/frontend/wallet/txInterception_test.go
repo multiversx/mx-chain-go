@@ -110,6 +110,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	shardCoordinator := &sharding.OneShardCoordinator{}
 	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
 		1,
+		1,
 		mock.HasherMock{},
 		0,
 		1,

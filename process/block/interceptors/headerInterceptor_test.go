@@ -332,7 +332,8 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		NbShards:      5,
-		ConsensusSize: 1,
+		ShardConsensusSize: 1,
+		MetaConsensusSize: 1,
 		ShardId:       2,
 	}
 

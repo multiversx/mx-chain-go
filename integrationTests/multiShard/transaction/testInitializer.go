@@ -371,6 +371,7 @@ func createNode(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
 	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
 		3,
+		1,
 		hasher,
 		uint32(shardId),
 		uint32(numOfShards),

@@ -265,6 +265,16 @@ func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 	}
 }
 
+func WithNodesCoordinator(nodesCoordinator sharding.NodesCoordinator) Option {
+	return func(n *Node) error {
+		if nodesCoordinator == nil {
+			return ErrNilNodesCoordinator
+		}
+		n.nodesCoordinator = nodesCoordinator
+		return nil
+	}
+}
+
 // WithUint64ByteSliceConverter sets up the uint64 <-> []byte converter
 func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConverter) Option {
 	return func(n *Node) error {

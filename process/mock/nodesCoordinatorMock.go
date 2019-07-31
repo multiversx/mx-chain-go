@@ -7,23 +7,23 @@ import (
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinatorMock struct {
 	Validators                    map[uint32][]sharding.Validator
-	ConsensusSize                 uint32
+	ShardConsensusSize            uint32
+	MetaConsensusSize             uint32
 	ShardId                       uint32
 	NbShards                      uint32
 	GetSelectedPublicKeysCalled   func(selection []byte) (publicKeys []string, err error)
 	GetValidatorsPublicKeysCalled func(randomness []byte) ([]string, error)
 	LoadNodesPerShardsCalled      func(nodes map[uint32][]sharding.Validator) error
 	ComputeValidatorsGroupCalled  func(randomness []byte) (validatorsGroup []sharding.Validator, err error)
-	ConsensusGroupSizeCalled      func() int
-	SetConsensusGroupSizeCalled   func(int) error
 }
 
 func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 	return &NodesCoordinatorMock{
-		ConsensusSize: 1,
-		ShardId:       0,
-		NbShards:      1,
-		Validators:    make(map[uint32][]sharding.Validator),
+		ShardConsensusSize: 1,
+		MetaConsensusSize:  1,
+		ShardId:            0,
+		NbShards:           1,
+		Validators:         make(map[uint32][]sharding.Validator),
 	}
 }
 
@@ -32,15 +32,11 @@ func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte) (public
 		return ncm.GetSelectedPublicKeysCalled(selection)
 	}
 
-	pubKeys := make([]string, 0)
-
 	if len(ncm.Validators) == 0 {
 		return nil, sharding.ErrNilInputNodesMap
 	}
 
-	if len(ncm.Validators[ncm.ShardId]) < int(ncm.ConsensusSize) {
-		return nil, sharding.ErrSmallEligibleListSize
-	}
+	pubKeys := make([]string, 0)
 
 	for _, v := range ncm.Validators[ncm.ShardId] {
 		pubKeys = append(pubKeys, string(v.PubKey()))
@@ -83,12 +79,16 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(nodes map[uint32][]sharding.V
 }
 
 func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(randomess []byte) ([]sharding.Validator, error) {
+	var consensusSize uint32
+
 	if ncm.ComputeValidatorsGroupCalled != nil {
 		return ncm.ComputeValidatorsGroupCalled(randomess)
 	}
 
-	if len(ncm.Validators[ncm.ShardId]) < int(ncm.ConsensusSize) {
-		return nil, sharding.ErrSmallEligibleListSize
+	if ncm.ShardId == sharding.MetachainShardId {
+		consensusSize = ncm.MetaConsensusSize
+	} else {
+		consensusSize = ncm.ShardConsensusSize
 	}
 
 	if randomess == nil {
@@ -97,23 +97,9 @@ func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(randomess []byte) ([]sha
 
 	validatorsGroup := make([]sharding.Validator, 0)
 
-	for i := uint32(0); i < ncm.ConsensusSize; i++ {
+	for i := uint32(0); i < consensusSize; i++ {
 		validatorsGroup = append(validatorsGroup, ncm.Validators[ncm.ShardId][i])
 	}
 
 	return validatorsGroup, nil
-}
-
-func (ncm *NodesCoordinatorMock) ConsensusGroupSize() int {
-	if ncm.ConsensusGroupSizeCalled != nil {
-		return ncm.ConsensusGroupSizeCalled()
-	}
-
-	return int(ncm.ConsensusSize)
-}
-
-func (ncm *NodesCoordinatorMock) SetConsensusGroupSize(size int) error {
-	ncm.ConsensusSize = uint32(size)
-
-	return nil
 }

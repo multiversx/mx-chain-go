@@ -27,19 +27,19 @@ func initConsensusDataContainer() *ConsensusCore {
 	return &ConsensusCore{
 		blockChain:             blockChain,
 		blockProcessor:         blockProcessorMock,
-		blocksTracker:          blocksTrackerMock,
-		bootstrapper:           bootstrapperMock,
-		broadcastMessenger:     broadcastMessengerMock,
-		chronologyHandler:      chronologyHandlerMock,
-		hasher:                 hasherMock,
-		marshalizer:            marshalizerMock,
-		blsPrivateKey:          blsPrivateKeyMock,
-		blsSingleSigner:        blsSingleSignerMock,
-		multiSigner:            multiSignerMock,
-		rounder:                rounderMock,
-		shardCoordinator:       shardCoordinatorMock,
-		syncTimer:              syncTimerMock,
-		validatorGroupSelector: validatorGroupSelector,
+		blocksTracker:      blocksTrackerMock,
+		bootstrapper:       bootstrapperMock,
+		broadcastMessenger: broadcastMessengerMock,
+		chronologyHandler:  chronologyHandlerMock,
+		hasher:             hasherMock,
+		marshalizer:        marshalizerMock,
+		blsPrivateKey:      blsPrivateKeyMock,
+		blsSingleSigner:    blsSingleSignerMock,
+		multiSigner:        multiSignerMock,
+		rounder:            rounderMock,
+		shardCoordinator:   shardCoordinatorMock,
+		syncTimer:          syncTimerMock,
+		nodesCoordinator:   validatorGroupSelector,
 	}
 }
 
@@ -157,7 +157,7 @@ func TestConsensusContainerValidator_ValidateNilValidatorGroupSelectorShouldFail
 	t.Parallel()
 
 	container := initConsensusDataContainer()
-	container.validatorGroupSelector = nil
+	container.nodesCoordinator = nil
 
 	err := ValidateConsensusCore(container)
 

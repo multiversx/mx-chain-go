@@ -14,21 +14,21 @@ import (
 // ConsensusCore implements ConsensusCoreHandler and provides access to common functionalities
 //  for the rest of the consensus structures
 type ConsensusCore struct {
-	blockChain             data.ChainHandler
-	blockProcessor         process.BlockProcessor
-	blocksTracker          process.BlocksTracker
-	bootstrapper           process.Bootstrapper
-	broadcastMessenger     consensus.BroadcastMessenger
-	chronologyHandler      consensus.ChronologyHandler
-	hasher                 hashing.Hasher
-	marshalizer            marshal.Marshalizer
-	blsPrivateKey          crypto.PrivateKey
-	blsSingleSigner        crypto.SingleSigner
-	multiSigner            crypto.MultiSigner
-	rounder                consensus.Rounder
-	shardCoordinator       sharding.Coordinator
-	syncTimer              ntp.SyncTimer
-	validatorGroupSelector sharding.NodesCoordinator
+	blockChain         data.ChainHandler
+	blockProcessor     process.BlockProcessor
+	blocksTracker      process.BlocksTracker
+	bootstrapper       process.Bootstrapper
+	broadcastMessenger consensus.BroadcastMessenger
+	chronologyHandler  consensus.ChronologyHandler
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	blsPrivateKey      crypto.PrivateKey
+	blsSingleSigner    crypto.SingleSigner
+	multiSigner        crypto.MultiSigner
+	rounder            consensus.Rounder
+	shardCoordinator   sharding.Coordinator
+	nodesCoordinator   sharding.NodesCoordinator
+	syncTimer          ntp.SyncTimer
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -46,8 +46,9 @@ func NewConsensusCore(
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	syncTimer ntp.SyncTimer,
-	validatorGroupSelector sharding.NodesCoordinator) (*ConsensusCore, error) {
+) (*ConsensusCore, error) {
 
 	consensusCore := &ConsensusCore{
 		blockChain,
@@ -63,8 +64,8 @@ func NewConsensusCore(
 		multiSigner,
 		rounder,
 		shardCoordinator,
+		nodesCoordinator,
 		syncTimer,
-		validatorGroupSelector,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -137,7 +138,7 @@ func (cc *ConsensusCore) SyncTimer() ntp.SyncTimer {
 
 // NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
 func (cc *ConsensusCore) NodesCoordinator() sharding.NodesCoordinator {
-	return cc.validatorGroupSelector
+	return cc.nodesCoordinator
 }
 
 // RandomnessPrivateKey returns the BLS private key stored in the ConsensusStore

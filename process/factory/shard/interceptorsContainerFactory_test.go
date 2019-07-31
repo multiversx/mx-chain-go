@@ -602,9 +602,10 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	shardCoordinator.CurrentShard = 1
 
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ShardId:       1,
-		ConsensusSize: 1,
-		NbShards:      uint32(noOfShards),
+		ShardId:            1,
+		ShardConsensusSize: 1,
+		MetaConsensusSize:  1,
+		NbShards:           uint32(noOfShards),
 	}
 
 	icf, _ := shard.NewInterceptorsContainerFactory(

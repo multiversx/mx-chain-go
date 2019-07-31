@@ -43,8 +43,11 @@ var ErrNodesSizeSmallerThanMinNoOfNodes = errors.New("length of nodes defined is
 // ErrNilInputNodesMap signals that a nil nodes map was provided
 var ErrNilInputNodesMap = errors.New("nil input nodes map")
 
-// ErrSmallEligibleListSize signals that the eligible validators list's size is less than the consensus size
-var ErrSmallEligibleListSize = errors.New("small eligible list size")
+// ErrSmallShardEligibleListSize signals that the eligible validators list's size is less than the consensus size
+var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
+
+// ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
+var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
 
 // ErrInvalidConsensusGroupSize signals that the consensus size is invalid (e.g. value is negative)
 var ErrInvalidConsensusGroupSize = errors.New("invalid consensus group size")
