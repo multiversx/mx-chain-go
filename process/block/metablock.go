@@ -483,7 +483,7 @@ func (mp *metaProcessor) CommitBlock(
 		log.Info(errNotCritical.Error())
 	}
 
-	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
+	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, header)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}

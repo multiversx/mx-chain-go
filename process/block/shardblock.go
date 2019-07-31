@@ -646,7 +646,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
+	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, header)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
