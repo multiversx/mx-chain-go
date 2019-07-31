@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 )
 
 func generateRandomByteSlice(size int) []byte {
@@ -251,33 +252,24 @@ func TestNewSmartContractProcessor(t *testing.T) {
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
-
-	tx := &transaction.Transaction{}
-	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = nil
-	tx.Value = big.NewInt(45)
-
-	_, err = sc.ComputeTransactionType(tx)
-	assert.Equal(t, process.ErrWrongTransaction, err)
 }
 
 func TestScProcessor_ComputeTransactionTypeScDeployment(t *testing.T) {
 	t.Parallel()
 
 	addressConverter := &mock.AddressConverterMock{}
-	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
-		&mock.ArgumentParserMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		&mock.TemporaryAccountsHandlerMock{},
+
+	txTypeHandler, err := coordinator.NewTxTypeHandler(
 		addressConverter,
 		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.IntermediateTransactionHandlerMock{})
+		&mock.AccountsStub{
+			GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+				return nil, nil
+			},
+		},
+	)
 
-	assert.NotNil(t, sc)
+	assert.NotNil(t, txTypeHandler)
 	assert.Nil(t, err)
 
 	tx := &transaction.Transaction{}
@@ -287,7 +279,7 @@ func TestScProcessor_ComputeTransactionTypeScDeployment(t *testing.T) {
 	tx.Data = "data"
 	tx.Value = big.NewInt(45)
 
-	txType, err := sc.ComputeTransactionType(tx)
+	txType, err := txTypeHandler.ComputeTransactionType(tx)
 	assert.Nil(t, err)
 	assert.Equal(t, process.SCDeployment, txType)
 }
@@ -306,23 +298,20 @@ func TestScProcessor_ComputeTransactionTypeScInvoking(t *testing.T) {
 	_, acntDst := createAccounts(tx)
 	acntDst.SetCode([]byte("code"))
 
-	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
-		&mock.ArgumentParserMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return acntDst, nil
-		}},
-		&mock.TemporaryAccountsHandlerMock{},
+	txTypeHandler, err := coordinator.NewTxTypeHandler(
 		addrConverter,
 		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.IntermediateTransactionHandlerMock{})
+		&mock.AccountsStub{
+			GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+				return acntDst, nil
+			},
+		},
+	)
 
-	assert.NotNil(t, sc)
+	assert.NotNil(t, txTypeHandler)
 	assert.Nil(t, err)
 
-	txType, err := sc.ComputeTransactionType(tx)
+	txType, err := txTypeHandler.ComputeTransactionType(tx)
 	assert.Nil(t, err)
 	assert.Equal(t, process.SCInvoking, txType)
 }
@@ -340,23 +329,20 @@ func TestScProcessor_ComputeTransactionTypeMoveBalance(t *testing.T) {
 
 	_, acntDst := createAccounts(tx)
 
-	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
-		&mock.ArgumentParserMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return acntDst, nil
-		}},
-		&mock.TemporaryAccountsHandlerMock{},
+	txTypeHandler, err := coordinator.NewTxTypeHandler(
 		addrConverter,
 		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.IntermediateTransactionHandlerMock{})
+		&mock.AccountsStub{
+			GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+				return acntDst, nil
+			},
+		},
+	)
 
-	assert.NotNil(t, sc)
+	assert.NotNil(t, txTypeHandler)
 	assert.Nil(t, err)
 
-	txType, err := sc.ComputeTransactionType(tx)
+	txType, err := txTypeHandler.ComputeTransactionType(tx)
 	assert.Nil(t, err)
 	assert.Equal(t, process.MoveBalance, txType)
 }

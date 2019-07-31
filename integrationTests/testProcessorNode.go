@@ -42,8 +42,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
+	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
 )
 
 // TestHasher represents a Sha256 hasher
@@ -125,7 +126,7 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 	tpn.initCrypto(txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initStorage()
-	tpn.AccntState = CreateAccountsDB(tpn.ShardCoordinator)
+	tpn.AccntState = CreateAccountsDB(factory2.UserAccount)
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initInterceptors()
@@ -289,6 +290,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestMarshalizer,
 		TestHasher,
 		TestAddressConverter,
+		&mock.SpecialAddressHandlerMock{},
 		tpn.Storage,
 	)
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -308,7 +310,10 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,
+		&mock.UnsignedTxHandlerMock{},
 	)
+
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(
 		tpn.AccntState,
@@ -317,6 +322,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.ScProcessor,
+		&mock.UnsignedTxHandlerMock{},
+		txTypeHandler,
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(

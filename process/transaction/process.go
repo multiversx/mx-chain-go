@@ -90,7 +90,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return err
 	}
 
-	txType, err := txProc.scProcessor.ComputeTransactionType(tx)
+	txType, err := txProc.txTypeHandler.ComputeTransactionType(tx)
 	if err != nil {
 		return err
 	}

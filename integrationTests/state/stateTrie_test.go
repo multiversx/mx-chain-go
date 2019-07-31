@@ -1144,7 +1144,17 @@ func createAndExecTxs(
 
 	shardCoordinator := mock2.NewMultiShardsCoordinatorMock(1)
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	txProcessor, _ := transaction.NewTxProcessor(adb, hasher, addrConv, marsh, shardCoordinator, &mock2.SCProcessorMock{})
+	txProcessor, _ := transaction.NewTxProcessor(
+		adb,
+		hasher,
+		addrConv,
+		marsh,
+		shardCoordinator,
+		&mock2.SCProcessorMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
+	)
+
 	var totalTime int64 = 0
 
 	for i := 0; i < nrTxs; i++ {

@@ -33,7 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -169,12 +169,12 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(shardCoordinator sharding.Coordinator) *state.AccountsDB {
+func CreateAccountsDB(accountType factory.Type) *state.AccountsDB {
 	hasher := sha256.Sha256{}
 	store := CreateMemUnit()
 
 	tr, _ := trie.NewTrie(store, TestMarshalizer, hasher)
-	accountFactory, _ := factory.NewAccountFactoryCreator(shardCoordinator)
+	accountFactory, _ := factory.NewAccountFactoryCreator(accountType)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
 
 	return adb

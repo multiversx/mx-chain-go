@@ -445,7 +445,7 @@ func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNo
 	//  - Initial balance + withdraw value - fees
 	// TODO: Fees and gas should be taken into consideration when the fees are implemented - now we have extra money
 	//  from the gas returned since the gas was not substracted in the first place
-	finalValue := big.NewInt(0).Add(mintingValue, big.NewInt(int64(withdrawValue+uint64(gasLimit-1*gasPrice))))
+	finalValue := big.NewInt(0).Add(mintingValue, big.NewInt(int64(withdrawValue-1)))
 	acc, _ := proposerNodeShardAccount.node.GetAccount(hex.EncodeToString(accountShardAddressBytes))
 	assert.Equal(t, finalValue, acc.Balance)
 }
