@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -448,9 +449,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	}
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
-	addedTxs := 0
+	txSpaceRemained := int(maxTxSpaceRemained)
 	for i := 0; i < int(tc.shardCoordinator.NumberOfShards()); i++ {
-		txSpaceRemained := int(maxTxSpaceRemained) - addedTxs
 		if txSpaceRemained <= 0 {
 			break
 		}
@@ -466,13 +466,12 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			txSpaceRemained,
 			haveTime,
 			round)
-
 		if err != nil {
-			break
+			continue
 		}
 
 		if len(miniBlock.TxHashes) > 0 {
-			addedTxs += len(miniBlock.TxHashes)
+			txSpaceRemained -= len(miniBlock.TxHashes)
 			miniBlocks = append(miniBlocks, miniBlock)
 		}
 	}
@@ -552,9 +551,29 @@ func (tc *transactionCoordinator) getInterimProcessor(blockType block.Type) proc
 	return interProcessor
 }
 
+func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType block.Type) (string, error) {
+	var baseTopic string
+
+	switch mbType {
+	case block.TxBlock:
+		baseTopic = factory.TransactionTopic
+	case block.PeerBlock:
+		baseTopic = factory.PeerChBodyTopic
+	case block.SmartContractResultBlock:
+		baseTopic = factory.UnsignedTransactionTopic
+	default:
+		return "", process.ErrUnknownBlockType
+	}
+
+	transactionTopic := baseTopic +
+		shardC.CommunicationIdentifier(destShId)
+
+	return transactionTopic, nil
+}
+
 // CreateMarshalizedData creates marshalized data for broadcasting
-func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte) {
-	mrsTxs := make(map[uint32][][]byte)
+func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte) {
+	mrsTxs := make(map[string][][]byte)
 	bodies := make(map[uint32]block.MiniBlockSlice)
 
 	for i := 0; i < len(body); i++ {
@@ -563,6 +582,13 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 		if receiverShardId == tc.shardCoordinator.SelfId() { // not taking into account miniblocks for current shard
 			continue
 		}
+
+		broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, receiverShardId, miniblock.Type)
+		if err != nil {
+			log.Debug(err.Error())
+			continue
+		}
+
 		preproc := tc.getPreprocessor(miniblock.Type)
 		if preproc == nil {
 			continue
@@ -577,7 +603,22 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 		}
 
 		if len(currMrsTxs) > 0 {
-			mrsTxs[receiverShardId] = append(mrsTxs[receiverShardId], currMrsTxs...)
+			mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsTxs...)
+		}
+
+		interimProc := tc.getInterimProcessor(miniblock.Type)
+		if interimProc == nil {
+			continue
+		}
+
+		currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
+		if err != nil {
+			log.Debug(err.Error())
+			continue
+		}
+
+		if len(currMrsInterTxs) > 0 {
+			mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsInterTxs...)
 		}
 	}
 
@@ -656,12 +697,13 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	return nil
 }
 
+// VerifyCreatedBlockTransactions checks whether the created transactions are the same as the one proposed
 func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body) error {
 	tc.mutInterimProcessors.RLock()
 
 	errMutex := sync.Mutex{}
 	var errFound error
-	// TODO: think if it is good in parallel or it is needed in sequences
+
 	wg := sync.WaitGroup{}
 	wg.Add(len(tc.interimProcessors))
 
