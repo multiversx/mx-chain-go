@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -20,7 +21,7 @@ var agarioFile = "agarioV2.hex"
 var stepDelay = time.Second
 
 // TestShouldProcessBlocksInMultiShardArchitectureWithScTxsTopUpAndWithdrawOnlyProposers tests the following scenario:
-// There are 2 shard and 1 meta, each with only one node (proposer).
+// There are 2 shards and 1 meta, each with only one node (proposer).
 // Shard 1's proposer deploys a SC. There is 1 round for proposing block that will create the SC account.
 // Shard 0's proposer sends a topUp SC call tx and then there are another 6 blocks added to all blockchains.
 // After that there is a first check that the topUp was made. Shard 0's proposer sends a withdraw SC call tx and after
@@ -117,7 +118,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 }
 
 // TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndRewardProposersAndValidators tests the following scenario:
-// There are 2 shard and 1 meta, each with one proposer and one validator.
+// There are 2 shards and 1 meta, each with one proposer and one validator.
 // Shard 1's proposer deploys a SC. There is 1 round for proposing block that will create the SC account.
 // Shard 0's proposer sends a joinGame SC call tx and then there are another 6 blocks added to all blockchains.
 // After that there is a first check that the joinGame was made. Shard 1's proposer sends a rewardAndSendFunds SC call
@@ -235,6 +236,111 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	checkRootHashes(t, nodes, idxProposers)
 }
 
+// TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators tests the following scenario:
+// There are 2 shards and 1 meta, each with one proposer and one validator.
+// Shard 1's proposer deploys a SC. There is 1 round for proposing block that will create the SC account.
+// Shard 0's proposer sends a joinGame SC call tx, proposes a block (not committing it) and the validator
+// should be able to sync it.
+// Test will fail with any variant before commit d79898991f83188118a1c60003f5277bc71209e6
+func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	scCode, err := ioutil.ReadFile(agarioFile)
+	assert.Nil(t, err)
+
+	maxShards := uint32(2)
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
+
+	nodeProposerShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	nodeValidatorShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+
+	nodeProposerShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
+	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	nodeProposerShard1.LoadTxSignSkBytes(hardCodedSk)
+	nodeValidatorShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
+
+	nodeProposerMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	nodeValidatorMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+
+	nodes := []*integrationTests.TestProcessorNode{
+		nodeProposerShard0,
+		nodeProposerShard1,
+		nodeProposerMeta,
+		nodeValidatorShard0,
+		nodeValidatorShard1,
+		nodeValidatorMeta,
+	}
+
+	idxProposerShard0 := 0
+	idxProposerShard1 := 1
+	idxProposerMeta := 2
+	idxProposers := []int{idxProposerShard0, idxProposerShard1, idxProposerMeta}
+	idxProposersWithoutShard1 := []int{idxProposerShard0, idxProposerMeta}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	for _, n := range nodes {
+		_ = n.Messenger.Bootstrap()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(stepDelay)
+
+	round := uint64(0)
+	round = incrementAndPrintRound(round)
+
+	initialVal := big.NewInt(10000000)
+	topUpValue := big.NewInt(500)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	deployScTx(nodes, idxProposerShard1, string(scCode))
+	proposeBlockWithScTxs(nodes, round, idxProposers)
+	syncBlock(t, nodes, idxProposers, round)
+	round = incrementAndPrintRound(round)
+
+	nodeJoinsGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
+	maxRoundsToWait := 10
+	for i := 0; i < maxRoundsToWait; i++ {
+		proposeBlockWithScTxs(nodes, round, idxProposersWithoutShard1)
+
+		hdr, body, isBodyEmpty := proposeBlockSignalsEmptyBlock(nodes[idxProposerShard1], round)
+		if isBodyEmpty {
+			nodes[idxProposerShard1].CommitBlock(body, hdr)
+			syncBlock(t, nodes, idxProposers, round)
+			round = incrementAndPrintRound(round)
+			continue
+		}
+
+		//shard 1' proposer got to process at least 1 tx, should not commit but the shard 1's validator
+		//should be able to process the block
+
+		syncBlock(t, nodes, idxProposers, round)
+		round = incrementAndPrintRound(round)
+		checkRootHashes(t, nodes, idxProposers)
+		break
+	}
+
+	checkJoinGameIsDoneCorrectly(
+		t,
+		nodes,
+		idxProposerShard1,
+		idxProposerShard0,
+		initialVal,
+		topUpValue,
+		hardCodedScResultingAddress,
+	)
+}
+
 func incrementAndPrintRound(round uint64) uint64 {
 	round++
 	fmt.Printf("#################################### ROUND %d BEGINS ####################################\n\n", round)
@@ -270,8 +376,9 @@ func proposeBlockWithScTxs(
 			continue
 		}
 
-		body, header := n.ProposeBlock(round)
-		n.BroadcastAndCommit(body, header)
+		body, header, _ := n.ProposeBlock(round)
+		n.BroadcastBlock(body, header)
+		n.CommitBlock(body, header)
 	}
 
 	fmt.Println("Delaying for disseminating headers and miniblocks...")
@@ -292,7 +399,7 @@ func syncBlock(
 			continue
 		}
 
-		err := n.SyncNode(uint64(round))
+		err := n.SyncNode(round)
 		if err != nil {
 			assert.Fail(t, err.Error())
 			return
@@ -343,6 +450,23 @@ func nodeJoinsGame(
 	time.Sleep(stepDelay)
 
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
+}
+
+func proposeBlockSignalsEmptyBlock(
+	node *integrationTests.TestProcessorNode,
+	round uint64,
+) (data.HeaderHandler, data.BodyHandler, bool) {
+
+	fmt.Println("Proposing block without commit...")
+
+	body, header, txHashes := node.ProposeBlock(round)
+	node.BroadcastBlock(body, header)
+	isEmptyBlock := len(txHashes) == 0
+
+	fmt.Println("Delaying for disseminating headers and miniblocks...")
+	time.Sleep(stepDelay)
+
+	return header, body, isEmptyBlock
 }
 
 func checkTopUpIsDoneCorrectly(
