@@ -310,3 +310,27 @@ func PrintShardAccount(accnt *state.Account) {
 
 	fmt.Println(str)
 }
+
+// MintAllNodes will take each shard node (n) and will mint all nodes that have their pk managed by the iterating node n
+func MintAllNodes(nodes []*TestProcessorNode, value *big.Int) {
+	for idx, n := range nodes {
+		if n.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+			continue
+		}
+
+		mintAddressesFromSameShard(nodes, idx, value)
+	}
+}
+
+func mintAddressesFromSameShard(nodes []*TestProcessorNode, targetNodeIdx int, value *big.Int) {
+	targetNode := nodes[targetNodeIdx]
+
+	for _, n := range nodes {
+		shardId := targetNode.ShardCoordinator.ComputeId(n.TxSignAddress)
+		if shardId != targetNode.ShardCoordinator.SelfId() {
+			continue
+		}
+
+		MintAddress(targetNode.AccntState, n.PkTxSignBytes, value)
+	}
+}

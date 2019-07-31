@@ -71,7 +71,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
 	withdrawValue := big.NewInt(10)
-	mintAllNodes(nodes, initialVal)
+	integrationTests.MintAllNodes(nodes, initialVal)
 
 	deployScTx(nodes, idxNodeShard1, string(scCode))
 
@@ -182,7 +182,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
 	withdrawValue := big.NewInt(10)
-	mintAllNodes(nodes, initialVal)
+	integrationTests.MintAllNodes(nodes, initialVal)
 
 	deployScTx(nodes, idxProposerShard1, string(scCode))
 
@@ -190,7 +190,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	syncBlock(t, nodes, idxProposers, round)
 	round = incrementAndPrintRound(round)
 
-	nodeDoesJoinGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
+	nodeJoinsGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
 
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
@@ -241,27 +241,6 @@ func incrementAndPrintRound(round uint32) uint32 {
 
 	time.Sleep(stepDelay)
 	return round
-}
-
-func mintAllNodes(
-	nodes []*integrationTests.TestProcessorNode,
-	value *big.Int,
-) {
-
-	for _, n := range nodes {
-		if n.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-			continue
-		}
-
-		for _, n2 := range nodes {
-			addr := integrationTests.CreateAddresFromAddrBytes(n2.PkTxSignBytes)
-			if n.ShardCoordinator.ComputeId(addr) != n.ShardCoordinator.SelfId() {
-				continue
-			}
-
-			integrationTests.MintAddress(n.AccntState, n2.PkTxSignBytes, value)
-		}
-	}
 }
 
 func deployScTx(
@@ -342,15 +321,15 @@ func nodeDoesTopUp(
 ) {
 
 	fmt.Println("Calling SC.topUp...")
-	txDeploy := createTxTopUp(nodes[idxNode], topUpValue, scAddress)
-	nodes[idxNode].SendTransaction(txDeploy)
+	txScCall := createTxTopUp(nodes[idxNode], topUpValue, scAddress)
+	nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(stepDelay)
 
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
-func nodeDoesJoinGame(
+func nodeJoinsGame(
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	joinGameVal *big.Int,
@@ -358,8 +337,8 @@ func nodeDoesJoinGame(
 ) {
 
 	fmt.Println("Calling SC.joinGame...")
-	txDeploy := createTxJoinGame(nodes[idxNode], joinGameVal, scAddress)
-	nodes[idxNode].SendTransaction(txDeploy)
+	txScCall := createTxJoinGame(nodes[idxNode], joinGameVal, scAddress)
+	nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(stepDelay)
 
@@ -436,8 +415,8 @@ func nodeDoesWithdraw(
 ) {
 
 	fmt.Println("Calling SC.withdraw...")
-	txDeploy := createTxWithdraw(nodes[idxNode], withdrawValue, scAddress)
-	nodes[idxNode].SendTransaction(txDeploy)
+	txScCall := createTxWithdraw(nodes[idxNode], withdrawValue, scAddress)
+	nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(time.Second * 1)
 
@@ -453,8 +432,8 @@ func nodeCallsRewardAndSend(
 ) {
 
 	fmt.Println("Calling SC.rewardAndSendToWallet...")
-	txDeploy := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, scAddress)
-	nodes[idxNodeOwner].SendTransaction(txDeploy)
+	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, scAddress)
+	nodes[idxNodeOwner].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(time.Second * 1)
 
