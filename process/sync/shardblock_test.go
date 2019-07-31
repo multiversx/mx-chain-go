@@ -1836,7 +1836,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	hdr, _ := bs.GetHeaderFromPoolWithNonce(0)
+	hdr, _, _ := process.GetShardHeaderFromPoolWithNonce(0, 0, pools.Headers(), pools.HeadersNonces())
+	assert.NotNil(t, bs)
 	assert.Nil(t, hdr)
 }
 
@@ -1905,7 +1906,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	hdr2, _ := bs.GetHeaderFromPoolWithNonce(0)
+	hdr2, _, _ := process.GetShardHeaderFromPoolWithNonce(0, 0, pools.Headers(), pools.HeadersNonces())
+	assert.NotNil(t, bs)
 	assert.True(t, hdr == hdr2)
 }
 
@@ -2030,7 +2032,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	assert.True(t, wasAdded)
 }
 
-func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToForkDetector(t *testing.T) {
+func TestBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t *testing.T) {
 	t.Parallel()
 
 	addedHash := []byte("hash")
@@ -2104,7 +2106,7 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 
 	bs.ReceivedHeaders(addedHash)
 
-	assert.True(t, wasAdded)
+	assert.False(t, wasAdded)
 }
 
 //------- ForkChoice
