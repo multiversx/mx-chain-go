@@ -394,7 +394,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	txStore := txs.txPool.ShardDataStore(strCache)
 
 	timeBefore := time.Now()
-	orderedTxes, orderedTxHashes, err := txs.getTxs(txStore)
+	orderedTxes, orderedTxHashes, err := SortTxByNonce(txStore)
 	timeAfter := time.Now()
 
 	if err != nil {
@@ -407,7 +407,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		return nil, process.ErrTimeIsOut
 	}
 
-	log.Debug(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
+	log.Info(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
 
 	miniBlock := &block.MiniBlock{}
 	miniBlock.SenderShardID = sndShardId
@@ -434,7 +434,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		)
 
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug(err.Error())
 			err = txs.accounts.RevertToSnapshot(snapshot)
 			if err != nil {
 				log.Error(err.Error())

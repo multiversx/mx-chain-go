@@ -147,12 +147,12 @@ func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte))
 
 func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
 	//TODO should remove this as it is expensive
-	err := txi.txStorer.Has(tx.Hash())
-	isTxInStorage := err == nil
-	if isTxInStorage {
-		log.Debug("intercepted tx already processed")
-		return
-	}
+	//err := txi.txStorer.Has(tx.Hash())
+	//isTxInStorage := err == nil
+	//if isTxInStorage {
+	//	log.Debug("intercepted tx already processed")
+	//	return
+	//}
 
 	cacherIdentifier := process.ShardCacherIdentifier(tx.SndShard(), tx.RcvShard())
 	txi.txPool.AddData(
