@@ -141,7 +141,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 
 	multisigner := mock.NewMultiSigner()
 	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
 			return nil
 		},
 	}
@@ -217,7 +217,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 
 	multisigner := mock.NewMultiSigner()
 	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
 			return nil
 		},
 	}
@@ -288,7 +288,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 
 	multisigner := mock.NewMultiSigner()
 	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
 			return nil
 		},
 	}

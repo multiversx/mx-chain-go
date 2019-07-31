@@ -42,7 +42,7 @@ func NewMetaBootstrap(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	bootstrapRoundIndex uint32,
+	bootstrapRoundIndex uint64,
 ) (*MetaBootstrap, error) {
 
 	if poolsHolder == nil {

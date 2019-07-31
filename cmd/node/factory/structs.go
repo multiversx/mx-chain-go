@@ -532,7 +532,7 @@ type nullChronologyValidator struct {
 
 // ValidateReceivedBlock should validate if parameters to be checked are valid
 // In this implementation it just returns nil
-func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
 	//TODO when implementing a workable variant take into account to receive headers "from future" (nonce or round > current round)
 	// as this might happen when clocks are slightly de-synchronized
 	return nil
