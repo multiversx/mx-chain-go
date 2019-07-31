@@ -10,7 +10,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -252,6 +255,38 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	return store
+}
+
+func createTestDataPool() dataRetriever.PoolsHolder {
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	hdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	hdrNonces, _ := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+
+	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	dPool, _ := dataPool.NewShardedDataPool(
+		txPool,
+		uTxPool,
+		hdrPool,
+		hdrNonces,
+		txBlockBody,
+		peerChangeBlockBody,
+		metaBlocks,
+	)
+
+	return dPool
 }
 
 func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHashes ...[]byte) data.HeaderHandler {

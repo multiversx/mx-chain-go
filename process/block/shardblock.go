@@ -680,6 +680,58 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
+// getHighestHdrForOwnShardFromMetachain calculates the highest shard header notarized by metachain
+func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(round uint64) (*block.Header, error) {
+	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
+	if err != nil {
+		return nil, err
+	}
+
+	lastMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	if err != nil {
+		return nil, err
+	}
+
+	highestNonceOwnShIdHdr := &block.Header{}
+	for i := 0; i < len(orderedMetaBlocks); i++ {
+		hdr, ok := orderedMetaBlocks[i].hdr.(*block.MetaBlock)
+		if !ok {
+			continue
+		}
+
+		err := sp.isHdrConstructionValid(hdr, lastMetaHdr)
+		if err != nil {
+			continue
+		}
+
+		isFinal := sp.isMetaHeaderFinal(hdr, orderedMetaBlocks, i+1)
+		if !isFinal {
+			continue
+		}
+
+		lastMetaHdr = hdr
+
+		// search for own shard id in shardInfo from metaHeaders
+		for _, shardInfo := range hdr.ShardInfo {
+			if shardInfo.ShardId != sp.shardCoordinator.SelfId() {
+				continue
+			}
+
+			ownHdr, err := process.GetShardHeader(shardInfo.HeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
+			if err != nil {
+				continue
+			}
+
+			// save the highest nonce
+			if ownHdr.GetNonce() > highestNonceOwnShIdHdr.GetNonce() {
+				highestNonceOwnShIdHdr = ownHdr
+			}
+		}
+	}
+
+	return highestNonceOwnShIdHdr, nil
+}
+
 // getProcessedMetaBlocksFromPool returns all the meta blocks fully processed
 func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
 	if body == nil {

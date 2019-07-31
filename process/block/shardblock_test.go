@@ -4228,3 +4228,253 @@ func TestShardProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
 	err := sp.CheckHeaderBodyCorrelation(hdr, body)
 	assert.Nil(t, err)
 }
+
+func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainNothingToProcess(t *testing.T) {
+	t.Parallel()
+
+	dataPool := initDataPool([]byte("tx_hash1"))
+
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		dataPool,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		true,
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+
+	hdr, err := sp.GetHighestHdrForOwnShardFromMetachain(0)
+	assert.NotNil(t, hdr)
+	assert.Equal(t, 0, hdr.GetNonce())
+	assert.Nil(t, err)
+}
+
+func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHdr(t *testing.T) {
+	t.Parallel()
+
+	dataPool := createTestDataPool()
+	store := initStore()
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		dataPool,
+		store,
+		hasher,
+		marshalizer,
+		&mock.AccountsStub{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		genesisBlocks,
+		true,
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+
+	shardInfo := make([]block.ShardData, 0)
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: []byte("hash"), ShardId: 1})
+	_ = dataPool.Headers().Put([]byte("hash"), &block.Header{ShardId: 0, Nonce: 1})
+
+	prevMetaHdr := genesisBlocks[sharding.MetachainShardId]
+	prevHash, _ := core.CalculateHash(marshalizer, hasher, prevMetaHdr)
+	currMetaHdr := &block.MetaBlock{
+		Nonce:        1,
+		Epoch:        0,
+		Round:        1,
+		PrevHash:     prevHash,
+		PrevRandSeed: prevMetaHdr.GetRandSeed(),
+		RandSeed:     prevMetaHdr.GetRandSeed(),
+		ShardInfo:    shardInfo,
+	}
+	currHash, _ := core.CalculateHash(marshalizer, hasher, currMetaHdr)
+	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+
+	prevMetaHdr = currMetaHdr
+	prevHash, _ = core.CalculateHash(marshalizer, hasher, prevMetaHdr)
+	currMetaHdr = &block.MetaBlock{
+		Nonce:        2,
+		Epoch:        0,
+		Round:        2,
+		PrevHash:     prevHash,
+		PrevRandSeed: prevMetaHdr.GetRandSeed(),
+		RandSeed:     prevMetaHdr.GetRandSeed(),
+		ShardInfo:    shardInfo,
+	}
+	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
+	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+
+	hdr, err := sp.GetHighestHdrForOwnShardFromMetachain(4)
+	assert.NotNil(t, hdr)
+	assert.Equal(t, 0, hdr.GetNonce())
+	assert.Nil(t, err)
+}
+
+func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrButNotStored(t *testing.T) {
+	t.Parallel()
+
+	dataPool := createTestDataPool()
+	store := initStore()
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		dataPool,
+		store,
+		hasher,
+		marshalizer,
+		&mock.AccountsStub{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		genesisBlocks,
+		true,
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+
+	shardInfo := make([]block.ShardData, 0)
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: []byte("hash"), ShardId: 0})
+
+	prevMetaHdr := genesisBlocks[sharding.MetachainShardId]
+	prevHash, _ := core.CalculateHash(marshalizer, hasher, prevMetaHdr)
+	currMetaHdr := &block.MetaBlock{
+		Nonce:        1,
+		Epoch:        0,
+		Round:        1,
+		PrevHash:     prevHash,
+		PrevRandSeed: prevMetaHdr.GetRandSeed(),
+		RandSeed:     prevMetaHdr.GetRandSeed(),
+		ShardInfo:    shardInfo,
+	}
+	currHash, _ := core.CalculateHash(marshalizer, hasher, currMetaHdr)
+	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+
+	prevMetaHdr = currMetaHdr
+	prevHash, _ = core.CalculateHash(marshalizer, hasher, prevMetaHdr)
+	currMetaHdr = &block.MetaBlock{
+		Nonce:        2,
+		Epoch:        0,
+		Round:        2,
+		PrevHash:     prevHash,
+		PrevRandSeed: prevMetaHdr.GetRandSeed(),
+		RandSeed:     prevMetaHdr.GetRandSeed(),
+		ShardInfo:    shardInfo,
+	}
+	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
+	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+
+	hdr, err := sp.GetHighestHdrForOwnShardFromMetachain(4)
+
+	assert.NotNil(t, hdr)
+	assert.Equal(t, 0, hdr.GetNonce())
+	assert.Nil(t, err)
+}
+
+func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrStored(t *testing.T) {
+	t.Parallel()
+
+	dataPool := createTestDataPool()
+	store := initStore()
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		dataPool,
+		store,
+		hasher,
+		marshalizer,
+		&mock.AccountsStub{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		genesisBlocks,
+		true,
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+
+	ownHdr := &block.Header{
+		Nonce: 1,
+		Round: 1,
+	}
+	ownHash, _ := core.CalculateHash(marshalizer, hasher, ownHdr)
+	_ = dataPool.Headers().Put(ownHash, ownHdr)
+
+	shardInfo := make([]block.ShardData, 0)
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: ownHash, ShardId: 0})
+
+	prevMetaHdr := genesisBlocks[sharding.MetachainShardId]
+	prevHash, _ := core.CalculateHash(marshalizer, hasher, prevMetaHdr)
+	currMetaHdr := &block.MetaBlock{
+		Nonce:        1,
+		Epoch:        0,
+		Round:        1,
+		PrevHash:     prevHash,
+		PrevRandSeed: prevMetaHdr.GetRandSeed(),
+		RandSeed:     prevMetaHdr.GetRandSeed(),
+		ShardInfo:    shardInfo,
+	}
+	currHash, _ := core.CalculateHash(marshalizer, hasher, currMetaHdr)
+	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+
+	ownHdr = &block.Header{
+		Nonce: 2,
+		Round: 2,
+	}
+	ownHash, _ = core.CalculateHash(marshalizer, hasher, ownHdr)
+	mrsOwnHdr, _ := marshalizer.Marshal(ownHdr)
+	_ = store.Put(dataRetriever.BlockHeaderUnit, ownHash, mrsOwnHdr)
+
+	shardInfo = make([]block.ShardData, 0)
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: ownHash, ShardId: 0})
+
+	prevMetaHdr = currMetaHdr
+	prevHash, _ = core.CalculateHash(marshalizer, hasher, prevMetaHdr)
+	currMetaHdr = &block.MetaBlock{
+		Nonce:        2,
+		Epoch:        0,
+		Round:        2,
+		PrevHash:     prevHash,
+		PrevRandSeed: prevMetaHdr.GetRandSeed(),
+		RandSeed:     prevMetaHdr.GetRandSeed(),
+		ShardInfo:    shardInfo,
+	}
+	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
+	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+
+	prevMetaHdr = currMetaHdr
+	prevHash, _ = core.CalculateHash(marshalizer, hasher, prevMetaHdr)
+	currMetaHdr = &block.MetaBlock{
+		Nonce:        3,
+		Epoch:        0,
+		Round:        3,
+		PrevHash:     prevHash,
+		PrevRandSeed: prevMetaHdr.GetRandSeed(),
+		RandSeed:     prevMetaHdr.GetRandSeed(),
+	}
+	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
+	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+
+	hdr, err := sp.GetHighestHdrForOwnShardFromMetachain(4)
+	assert.NotNil(t, hdr)
+	assert.Equal(t, ownHdr.GetNonce(), hdr.GetNonce())
+	assert.Nil(t, err)
+}
