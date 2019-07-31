@@ -116,14 +116,14 @@ func TestBroadcastingMessages(t *testing.T) {
 	peer4, _ := memp2p.NewMessenger(network)
 
 	// All peers listen to the topic "rocket"
-	peer1.CreateTopic("rocket", false)
-	peer1.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer1.ID()))
-	peer2.CreateTopic("rocket", false)
-	peer2.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer2.ID()))
-	peer3.CreateTopic("rocket", false)
-	peer3.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer3.ID()))
-	peer4.CreateTopic("rocket", false)
-	peer4.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer4.ID()))
+	_ = peer1.CreateTopic("rocket", false)
+	_ = peer1.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer1.ID()))
+	_ = peer2.CreateTopic("rocket", false)
+	_ = peer2.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer2.ID()))
+	_ = peer3.CreateTopic("rocket", false)
+	_ = peer3.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer3.ID()))
+	_ = peer4.CreateTopic("rocket", false)
+	_ = peer4.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer4.ID()))
 
 	// Send a message to everybody.
 	peer1.BroadcastOnChannelBlocking("rocket", "rocket", []byte("launch the rocket"))
@@ -153,18 +153,18 @@ func TestConnectivityAndTopics(t *testing.T) {
 	// Create 4 peers on the network, all listening to the topic "rocket".
 	for i := 1; i <= 4; i++ {
 		peer, _ := memp2p.NewMessenger(network)
-		peer.CreateTopic("rocket", false)
+		_ = peer.CreateTopic("rocket", false)
 		processor := mock.NewMockMessageProcessor(peer.ID())
-		peer.RegisterMessageProcessor("rocket", processor)
+		_ = peer.RegisterMessageProcessor("rocket", processor)
 	}
 
 	// Peers 2 and 3 also listen on the topic "carbohydrate"
 	peer2 := network.Peers()["Peer2"]
 	peer3 := network.Peers()["Peer3"]
-	peer2.CreateTopic("carbohydrate", false)
-	peer2.RegisterMessageProcessor("carbohydrate", mock.NewMockMessageProcessor(peer2.ID()))
-	peer3.CreateTopic("carbohydrate", false)
-	peer3.RegisterMessageProcessor("carbohydrate", mock.NewMockMessageProcessor(peer3.ID()))
+	_ = peer2.CreateTopic("carbohydrate", false)
+	_ = peer2.RegisterMessageProcessor("carbohydrate", mock.NewMockMessageProcessor(peer2.ID()))
+	_ = peer3.CreateTopic("carbohydrate", false)
+	_ = peer3.RegisterMessageProcessor("carbohydrate", mock.NewMockMessageProcessor(peer3.ID()))
 
 	peers1234 := []p2p.PeerID{"Peer1", "Peer2", "Peer3", "Peer4"}
 	peers234 := []p2p.PeerID{"Peer2", "Peer3", "Peer4"}
@@ -201,7 +201,7 @@ func TestSendingDirectMessages(t *testing.T) {
 
 	// Create a topic on Peer1. This doesn't help, because Peer2 still can't
 	// receive messages on topic "rocket".
-	peer1.CreateTopic("nitrous_oxide", false)
+	_ = peer1.CreateTopic("nitrous_oxide", false)
 	err = peer2.SendToConnectedPeer("rocket", []byte("try to launch this rocket"), "Peer1")
 	assert.Equal(t, p2p.ErrNilTopic, err)
 
@@ -210,8 +210,8 @@ func TestSendingDirectMessages(t *testing.T) {
 
 	// Finally, create the topic "rocket" on Peer1 and register a
 	// MessageProcessor. This allows it to receive a message on this topic from Peer2.
-	peer1.CreateTopic("rocket", false)
-	peer1.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer1.ID()))
+	_ = peer1.CreateTopic("rocket", false)
+	_ = peer1.RegisterMessageProcessor("rocket", mock.NewMockMessageProcessor(peer1.ID()))
 	err = peer2.SendToConnectedPeer("rocket", []byte("try to launch this rocket"), "Peer1")
 	assert.Nil(t, err)
 
