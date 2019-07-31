@@ -331,7 +331,9 @@ func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerI
 
 // ReceiveMessage handles the received message by passing it to the message
 // processor of the corresponding topic, given that this Messenger has
-// previously registered a message processor for that topic.
+// previously registered a message processor for that topic. The Network will
+// log the message only if the Network.LogMessages flag is set and only if the
+// Messenger has the requested topic and MessageProcessor.
 func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P) error {
 	messenger.TopicsMutex.Lock()
 	validator, found := messenger.Topics[topic]
