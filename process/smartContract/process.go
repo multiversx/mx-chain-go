@@ -403,6 +403,11 @@ func (sc *scProcessor) processVMOutput(
 		return nil, err
 	}
 
+	acntSnd, err = sc.reloadLocalSndAccount(acntSnd)
+	if err != nil {
+		return nil, err
+	}
+
 	totalGasRefund := big.NewInt(0)
 	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
 	scrIfCrossShard, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
@@ -425,6 +430,22 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	return crossTxs, nil
+}
+
+// reloadLocalSndAccount will reload from current account state the sender account
+// this requirement is needed because in the case of refunding the exact account that was previously
+// modified in saveSCOutputToCurrentState, the modifications done there should be visible here
+func (sc *scProcessor) reloadLocalSndAccount(acntSnd state.AccountHandler) (state.AccountHandler, error) {
+	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+		return acntSnd, nil
+	}
+
+	isAccountFromCurrentShard := acntSnd.AddressContainer() != nil
+	if !isAccountFromCurrentShard {
+		return acntSnd, nil
+	}
+
+	return sc.getAccountFromAddress(acntSnd.AddressContainer().Bytes())
 }
 
 func (sc *scProcessor) createSmartContractResult(
