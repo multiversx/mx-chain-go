@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // PeerAction type represents the possible events that a node can trigger for the metachain to notarize
@@ -60,7 +60,7 @@ type ShardData struct {
 type MetaBlock struct {
 	Nonce         uint64      `capid:"0"`
 	Epoch         uint32      `capid:"1"`
-	Round         uint32      `capid:"2"`
+	Round         uint64      `capid:"2"`
 	TimeStamp     uint64      `capid:"3"`
 	ShardInfo     []ShardData `capid:"4"`
 	PeerInfo      []PeerData  `capid:"5"`
@@ -303,7 +303,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	return dest
 }
 
-// GetShardId returns the metachain shard id
+// GetShardID returns the metachain shard id
 func (m *MetaBlock) GetShardID() uint32 {
 	return sharding.MetachainShardId
 }
@@ -319,7 +319,7 @@ func (m *MetaBlock) GetEpoch() uint32 {
 }
 
 // GetRound return round from header
-func (m *MetaBlock) GetRound() uint32 {
+func (m *MetaBlock) GetRound() uint64 {
 	return m.Round
 }
 
@@ -374,7 +374,7 @@ func (m *MetaBlock) SetEpoch(e uint32) {
 }
 
 // SetRound sets header round
-func (m *MetaBlock) SetRound(r uint32) {
+func (m *MetaBlock) SetRound(r uint64) {
 	m.Round = r
 }
 
@@ -455,14 +455,31 @@ func (m *MetaBlock) SetMiniBlockProcessed(hash []byte, processed bool) {
 }
 
 // IntegrityAndValidity return true as block is nil for metablock.
-func (mb *MetaBlockBody) IntegrityAndValidity() error {
+func (m *MetaBlockBody) IntegrityAndValidity() error {
 	return nil
 }
 
 // IsInterfaceNil return if there is no value under the interface
-func (mb *MetaBlock) IsInterfaceNil() bool {
-	if mb == nil {
+func (m *MetaBlock) IsInterfaceNil() bool {
+	if m == nil {
 		return true
 	}
 	return false
+}
+
+// ItemsInHeader gets the number of items(hashes) added in block header
+func (m *MetaBlock) ItemsInHeader() uint32 {
+	itemsInHeader := len(m.ShardInfo)
+	for i := 0; i < len(m.ShardInfo); i++ {
+		itemsInHeader += len(m.ShardInfo[i].ShardMiniBlockHeaders)
+	}
+
+	itemsInHeader += len(m.PeerInfo)
+
+	return uint32(itemsInHeader)
+}
+
+// ItemsInBody gets the number of items(hashes) added in block body
+func (m *MetaBlock) ItemsInBody() uint32 {
+	return 0
 }

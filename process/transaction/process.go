@@ -80,7 +80,7 @@ func NewTxProcessor(
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (txProc *txProcessor) ProcessTransaction(tx data.TransactionHandler, roundIndex uint32) error {
+func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex uint64) error {
 	if tx == nil || tx.IsInterfaceNil() {
 		return process.ErrNilTransaction
 	}
@@ -90,7 +90,7 @@ func (txProc *txProcessor) ProcessTransaction(tx data.TransactionHandler, roundI
 		return err
 	}
 
-	txType, err := txProc.txTypeHandler.ComputeTransactionType(tx)
+	txType, err := txProc.scProcessor.ComputeTransactionType(tx)
 	if err != nil {
 		return err
 	}
@@ -175,13 +175,10 @@ func (txProc *txProcessor) processAccumulatedTxFees(
 }
 
 func (txProc *txProcessor) processMoveBalance(
-	tx data.TransactionHandler,
+	tx *transaction.Transaction,
 	adrSrc, adrDst state.AddressContainer,
 ) error {
-	currTx, ok := tx.(*transaction.Transaction)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
+
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
@@ -189,15 +186,15 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	currFeeTx, err := txProc.processTxFee(currTx, acntSrc)
+	currFeeTx, err := txProc.processTxFee(tx, acntSrc)
 	if err != nil {
 		return err
 	}
 
-	value := currTx.Value
+	value := tx.Value
 	// is sender address in node shard
 	if acntSrc != nil {
-		err = txProc.checkTxValues(acntSrc, value, currTx.Nonce)
+		err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
 		if err != nil {
 			return err
 		}
@@ -222,15 +219,10 @@ func (txProc *txProcessor) processMoveBalance(
 }
 
 func (txProc *txProcessor) processSCDeployment(
-	tx data.TransactionHandler,
+	tx *transaction.Transaction,
 	adrSrc state.AddressContainer,
-	roundIndex uint32,
+	roundIndex uint64,
 ) error {
-	currTx, ok := tx.(*transaction.Transaction)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, err := txProc.getAccountFromAddress(adrSrc)
@@ -238,19 +230,15 @@ func (txProc *txProcessor) processSCDeployment(
 		return err
 	}
 
-	err = txProc.scProcessor.DeploySmartContract(currTx, acntSrc, roundIndex)
+	err = txProc.scProcessor.DeploySmartContract(tx, acntSrc, roundIndex)
 	return err
 }
 
 func (txProc *txProcessor) processSCInvoking(
-	tx data.TransactionHandler,
+	tx *transaction.Transaction,
 	adrSrc, adrDst state.AddressContainer,
-	roundIndex uint32,
+	roundIndex uint64,
 ) error {
-	currTx, ok := tx.(*transaction.Transaction)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
@@ -258,17 +246,17 @@ func (txProc *txProcessor) processSCInvoking(
 		return err
 	}
 
-	err = txProc.scProcessor.ExecuteSmartContractTransaction(currTx, acntSrc, acntDst, roundIndex)
+	err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, roundIndex)
 	return err
 }
 
-func (txProc *txProcessor) getAddresses(tx data.TransactionHandler) (adrSrc, adrDst state.AddressContainer, err error) {
+func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
 	//for now we assume that the address = public key
-	adrSrc, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.GetSndAddress())
+	adrSrc, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
 	if err != nil {
 		return
 	}
-	adrDst, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.GetRecvAddress())
+	adrDst, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
 	return
 }
 

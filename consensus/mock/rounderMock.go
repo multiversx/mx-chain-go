@@ -5,16 +5,16 @@ import (
 )
 
 type RounderMock struct {
-	RoundIndex int32
+	RoundIndex int64
 
-	IndexCalled         func() int32
+	IndexCalled         func() int64
 	TimeDurationCalled  func() time.Duration
 	TimeStampCalled     func() time.Time
 	UpdateRoundCalled   func(time.Time, time.Time)
 	RemainingTimeCalled func(startTime time.Time, maxTime time.Duration) time.Duration
 }
 
-func (rndm *RounderMock) Index() int32 {
+func (rndm *RounderMock) Index() int64 {
 	if rndm.IndexCalled != nil {
 		return rndm.IndexCalled()
 	}

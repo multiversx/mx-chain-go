@@ -172,7 +172,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	return true
 }
 
-func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error {
+func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error {
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
 	if currentHeader == nil {
 		currentHeader = sr.Blockchain().GetGenesisHeader()
@@ -181,7 +181,7 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 		}
 	}
 
-	randomSource := fmt.Sprintf("%d-%s", roundIndex, toB64(currentHeader.GetRandSeed()))
+	randomSource := fmt.Sprintf("%d-%s", roundIndex, core.ToB64(currentHeader.GetRandSeed()))
 
 	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n", randomSource))
 

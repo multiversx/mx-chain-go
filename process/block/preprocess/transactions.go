@@ -188,7 +188,7 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 }
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
-func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error {
+func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error {
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -210,9 +210,14 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint32,
 				return process.ErrMissingTransaction
 			}
 
+			currTx, ok := txInfo.tx.(*transaction.Transaction)
+			if !ok {
+				return process.ErrWrongTypeAssertion
+			}
+
 			err := txs.processAndRemoveBadTransaction(
 				txHash,
-				txInfo.tx,
+				currTx,
 				round,
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
@@ -292,8 +297,8 @@ func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) 
 // processAndRemoveBadTransactions processed transactions, if txs are with error it removes them from pool
 func (txs *transactions) processAndRemoveBadTransaction(
 	transactionHash []byte,
-	transaction data.TransactionHandler,
-	round uint32,
+	transaction *transaction.Transaction,
+	round uint64,
 	sndShardId uint32,
 	dstShardId uint32,
 ) error {
@@ -333,7 +338,12 @@ func (txs *transactions) computeMissingTxsForMiniBlock(mb block.MiniBlock) [][]b
 
 	missingTransactions := make([][]byte, 0)
 	for _, txHash := range mb.TxHashes {
-		tx := txs.getTransactionFromPool(mb.SenderShardID, mb.ReceiverShardID, txHash, txs.txPool)
+		tx, _ := process.GetTransactionHandlerFromPool(
+			mb.SenderShardID,
+			mb.ReceiverShardID,
+			txHash,
+			txs.txPool)
+
 		if tx == nil {
 			missingTransactions = append(missingTransactions, txHash)
 		}
@@ -346,7 +356,7 @@ func (txs *transactions) computeMissingTxsForMiniBlock(mb block.MiniBlock) [][]b
 func (txs *transactions) getAllTxsFromMiniBlock(
 	mb *block.MiniBlock,
 	haveTime func() bool,
-) ([]data.TransactionHandler, [][]byte, error) {
+) ([]*transaction.Transaction, [][]byte, error) {
 
 	strCache := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 	txCache := txs.txPool.ShardDataStore(strCache)
@@ -355,7 +365,7 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	}
 
 	// verify if all transaction exists
-	transactions := make([]data.TransactionHandler, 0)
+	transactions := make([]*transaction.Transaction, 0)
 	txHashes := make([][]byte, 0)
 	for _, txHash := range mb.TxHashes {
 		if !haveTime() {
@@ -367,7 +377,7 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 			return nil, nil, process.ErrNilTransaction
 		}
 
-		tx, ok := tmp.(data.TransactionHandler)
+		tx, ok := tmp.(*transaction.Transaction)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -379,7 +389,7 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
-func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error) {
+func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txStore := txs.txPool.ShardDataStore(strCache)
 
@@ -445,7 +455,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
-func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error {
+func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {
 	if miniBlock.Type != block.TxBlock {
 		return process.ErrWrongTypeInMiniBlock
 	}

@@ -112,7 +112,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 			return &mock.Uint64SyncMapCacherStub{
 				MergeCalled: func(u uint64, syncMap dataRetriever.ShardIdHashMap) {},
-				HasCalled: func(nonce uint64) bool {
+				HasCalled: func(nonce uint64, shardId uint32) bool {
 					return true
 				},
 			}
@@ -333,7 +333,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	hdr.TimeStamp = 0
 	hdr.PrevHash = []byte("X")
 	err := bp.CheckBlockValidity(blkc, hdr, body)
-	assert.Equal(t, process.ErrInvalidBlockHash, err)
+	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 
 	hdr.PrevHash = []byte("")
 	err = bp.CheckBlockValidity(blkc, hdr, body)
@@ -356,7 +356,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	hdr.Nonce = 2
 	hdr.PrevHash = []byte("X")
 	err = bp.CheckBlockValidity(blkc, hdr, body)
-	assert.Equal(t, process.ErrInvalidBlockHash, err)
+	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 
 	hdr.Nonce = 3
 	hdr.PrevHash = []byte("")
@@ -607,7 +607,7 @@ func createShardProcessHeadersToSaveLastNoterized(
 	for i := uint64(1); i <= highestNonce; i++ {
 		hdr := &block.Header{
 			Nonce:         i,
-			Round:         uint32(i),
+			Round:         uint64(i),
 			Signature:     rootHash,
 			RandSeed:      rootHash,
 			PrevRandSeed:  rootHash,
@@ -638,7 +638,7 @@ func createMetaProcessHeadersToSaveLastNoterized(
 	for i := uint64(1); i <= highestNonce; i++ {
 		hdr := &block.MetaBlock{
 			Nonce:         i,
-			Round:         uint32(i),
+			Round:         uint64(i),
 			Signature:     rootHash,
 			RandSeed:      rootHash,
 			PrevRandSeed:  rootHash,

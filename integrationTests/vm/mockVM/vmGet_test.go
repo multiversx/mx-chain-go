@@ -30,7 +30,7 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(0)

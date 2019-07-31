@@ -27,7 +27,7 @@ func (sc *scProcessor) ProcessVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
-	round uint32,
+	round uint64,
 ) ([]data.TransactionHandler, *feeTx.FeeTx, error) {
 	return sc.processVMOutput(vmOutput, tx, acntSnd, round)
 }
@@ -53,19 +53,19 @@ func (sc *scProcessor) GetAccountFromAddress(address []byte) (state.AccountHandl
 	return sc.getAccountFromAddress(address)
 }
 
-func (sc *scProcessor) SaveSCOutputToCurrentState(output *vmcommon.VMOutput, round uint32, txHash []byte) error {
+func (sc *scProcessor) SaveSCOutputToCurrentState(output *vmcommon.VMOutput, round uint64, txHash []byte) error {
 	return sc.saveSCOutputToCurrentState(output, round, txHash)
 }
 
-func (sc *scProcessor) SaveReturnData(returnData []*big.Int, round uint32, txHash []byte) error {
+func (sc *scProcessor) SaveReturnData(returnData []*big.Int, round uint64, txHash []byte) error {
 	return sc.saveReturnData(returnData, round, txHash)
 }
 
-func (sc *scProcessor) SaveReturnCode(returnCode vmcommon.ReturnCode, round uint32, txHash []byte) error {
+func (sc *scProcessor) SaveReturnCode(returnCode vmcommon.ReturnCode, round uint64, txHash []byte) error {
 	return sc.saveReturnCode(returnCode, round, txHash)
 }
 
-func (sc *scProcessor) SaveLogsIntoState(logs []*vmcommon.LogEntry, round uint32, txHash []byte) error {
+func (sc *scProcessor) SaveLogsIntoState(logs []*vmcommon.LogEntry, round uint64, txHash []byte) error {
 	return sc.saveLogsIntoState(logs, round, txHash)
 }
 

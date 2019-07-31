@@ -9,7 +9,7 @@ type HeaderHandler interface {
 	GetShardID() uint32
 	GetNonce() uint64
 	GetEpoch() uint32
-	GetRound() uint32
+	GetRound() uint64
 	GetRootHash() []byte
 	GetPrevHash() []byte
 	GetPrevRandSeed() []byte
@@ -21,7 +21,7 @@ type HeaderHandler interface {
 
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
-	SetRound(r uint32)
+	SetRound(r uint64)
 	SetTimeStamp(ts uint64)
 	SetRootHash(rHash []byte)
 	SetPrevHash(pvHash []byte)
@@ -36,6 +36,8 @@ type HeaderHandler interface {
 	SetMiniBlockProcessed(hash []byte, processed bool)
 
 	IsInterfaceNil() bool
+	ItemsInBody() uint32
+	ItemsInHeader() uint32
 }
 
 // BodyHandler interface for a block body
@@ -90,6 +92,7 @@ type Trie interface {
 	Commit() error
 	Recreate(root []byte) (Trie, error)
 	String() string
+	DeepClone() (Trie, error)
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed

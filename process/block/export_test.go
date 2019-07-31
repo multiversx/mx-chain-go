@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -37,8 +38,8 @@ func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
 	sp.receivedMetaBlock(metaBlockHash)
 }
 
-func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, round uint32, haveTime func() bool) (block.Body, error) {
-	return sp.createMiniBlocks(noShards, maxTxInBlock, round, haveTime)
+func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxItemsInBlock uint32, round uint64, haveTime func() bool) (block.Body, error) {
+	return sp.createMiniBlocks(noShards, maxItemsInBlock, round, haveTime)
 }
 
 func (sp *shardProcessor) GetProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
@@ -81,6 +82,7 @@ func NewMetaProcessorBasicSingleShard(mdp dataRetriever.MetaPoolsHolder, genesis
 		&mock.ChainStorerMock{},
 		genesisBlocks,
 		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
 	)
 	return mp, err
 }
@@ -134,11 +136,11 @@ func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
 	return found
 }
 
-func (mp *metaProcessor) CreateShardInfo(maxMiniBlocksInBlock uint32, round uint32, haveTime func() bool) ([]block.ShardData, error) {
-	return mp.createShardInfo(maxMiniBlocksInBlock, round, haveTime)
+func (mp *metaProcessor) CreateShardInfo(maxItemsInBlock uint32, round uint64, haveTime func() bool) ([]block.ShardData, error) {
+	return mp.createShardInfo(maxItemsInBlock, round, haveTime)
 }
 
-func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint32, haveTime func() time.Duration) error {
+func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {
 	return mp.processBlockHeaders(header, round, haveTime)
 }
 
@@ -204,7 +206,7 @@ func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]da
 	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
 }
 
-func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint32) {
+func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint64) {
 	sp.checkAndRequestIfMetaHeadersMissing(round)
 }
 
@@ -224,15 +226,34 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality(hdr *block.Header)
 	return sp.checkMetaHeadersValidityAndFinality(hdr)
 }
 
-func (sp *shardProcessor) GetOrderedMetaBlocks(round uint32) ([]*hashAndHdr, error) {
+func (sp *shardProcessor) GetOrderedMetaBlocks(round uint64) ([]*hashAndHdr, error) {
 	return sp.getOrderedMetaBlocks(round)
 }
 
 func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
 	noShards uint32,
-	maxTxInBlock int,
-	round uint32,
+	maxItemsInBlock uint32,
+	round uint64,
 	haveTime func() bool,
-) (block.MiniBlockSlice, uint32, error) {
-	return sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxTxInBlock, round, haveTime)
+) (block.MiniBlockSlice, [][]byte, uint32, error) {
+	return sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxItemsInBlock, round, haveTime)
+}
+
+func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockSizeThrottler) {
+	bp.blockSizeThrottler = blockSizeThrottler
+}
+
+func (sp *shardProcessor) SetCurrHighestMetaHdrNonce(value uint64) {
+	sp.currHighestMetaHdrNonce = value
+}
+
+func (sp *shardProcessor) DisplayLogInfo(
+	header *block.Header,
+	body block.Body,
+	headerHash []byte,
+	numShards uint32,
+	selfId uint32,
+	dataPool dataRetriever.PoolsHolder,
+) {
+	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool)
 }
