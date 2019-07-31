@@ -325,7 +325,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 }
 
 // ProcessBlockTransaction processes transactions and updates state tries
-func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round uint32, haveTime func() time.Duration) error {
+func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round uint64, haveTime func() time.Duration) error {
 	separatedBodies := tc.separateBodyByType(body)
 
 	var errFound error
@@ -366,7 +366,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	hdr data.HeaderHandler,
 	maxTxRemaining uint32,
 	maxMbRemaining uint32,
-	round uint32,
+	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, bool) {
 	miniBlocks := make(block.MiniBlockSlice, 0)
@@ -439,7 +439,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	maxTxSpaceRemained uint32,
 	maxMbSpaceRemained uint32,
-	round uint32,
+	round uint64,
 	haveTime func() bool,
 ) block.MiniBlockSlice {
 
@@ -677,7 +677,7 @@ func (tc *transactionCoordinator) receivedMiniBlock(miniBlockHash []byte) {
 func (tc *transactionCoordinator) processCompleteMiniBlock(
 	preproc process.PreProcessor,
 	miniBlock *block.MiniBlock,
-	round uint32,
+	round uint64,
 	haveTime func() bool,
 ) error {
 

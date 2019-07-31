@@ -101,7 +101,7 @@ func TestShardBlockTracker_SetBlockBroadcastRoundShoudNotSetRoundWhenNonceDoesNo
 	hdr := &block.Header{Nonce: 2}
 	mbt.AddBlock(hdr)
 	mbt.SetBlockBroadcastRound(1, 10)
-	assert.Equal(t, int32(0), mbt.BlockBroadcastRound(1))
+	assert.Equal(t, int64(0), mbt.BlockBroadcastRound(1))
 }
 
 func TestShardBlockTracker_SetBlockBroadcastRoundShoudSetRound(t *testing.T) {
@@ -116,7 +116,7 @@ func TestShardBlockTracker_SetBlockBroadcastRoundShoudSetRound(t *testing.T) {
 	hdr := &block.Header{Nonce: 2}
 	mbt.AddBlock(hdr)
 	mbt.SetBlockBroadcastRound(2, 10)
-	assert.Equal(t, int32(10), mbt.BlockBroadcastRound(2))
+	assert.Equal(t, int64(10), mbt.BlockBroadcastRound(2))
 }
 
 func TestShardBlockTracker_RemoveNotarisedBlocksShouldErrWrongTypeAssertion(t *testing.T) {

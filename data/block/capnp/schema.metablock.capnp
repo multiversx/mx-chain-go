@@ -27,7 +27,7 @@ struct ShardDataCapn {
 struct MetaBlockCapn {
     nonce         @0:  UInt64;
     epoch         @1:  UInt32;
-    round         @2:  UInt32;
+    round         @2:  UInt64;
     timeStamp     @3:  UInt64;
     shardInfo     @4:  List(ShardDataCapn);
     peerInfo      @5:  List(PeerDataCapn);

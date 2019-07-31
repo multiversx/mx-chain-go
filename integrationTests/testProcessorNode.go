@@ -72,6 +72,7 @@ type TestProcessorNode struct {
 	PkTxSign      crypto.PublicKey
 	PkTxSignBytes []byte
 	KeygenTxSign  crypto.KeyGenerator
+	TxSignAddress state.AddressContainer
 
 	ShardDataPool dataRetriever.PoolsHolder
 	MetaDataPool  dataRetriever.MetaPoolsHolder
@@ -168,6 +169,7 @@ func (tpn *TestProcessorNode) initCrypto(txSignPrivKeyShardId uint32) {
 	tpn.PkTxSign = pk
 	tpn.PkTxSignBytes, _ = pk.ToByteArray()
 	tpn.KeygenTxSign = keyGen
+	tpn.TxSignAddress, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(tpn.PkTxSignBytes)
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
@@ -506,10 +508,11 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 	tpn.SkTxSign = newSk
 	tpn.PkTxSign = newPk
 	tpn.PkTxSignBytes, _ = newPk.ToByteArray()
+	tpn.TxSignAddress, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(tpn.PkTxSignBytes)
 }
 
 // ProposeBlock proposes a new block
-func (tpn *TestProcessorNode) ProposeBlock(round uint32) (data.BodyHandler, data.HeaderHandler) {
+func (tpn *TestProcessorNode) ProposeBlock(round uint64) (data.BodyHandler, data.HeaderHandler) {
 	haveTime := func() bool { return true }
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
