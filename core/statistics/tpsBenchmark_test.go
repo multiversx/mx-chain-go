@@ -309,8 +309,6 @@ func TestTpsBenchmark_EmptyBlocksShouldNotUpdateMultipleTimes(t *testing.T) {
 }
 
 func TestTpsBenchmark_Concurrent(t *testing.T) {
-	t.Skip("this test is failing. Task EN-3206")
-
 	t.Parallel()
 
 	nrOfShards := uint32(2)

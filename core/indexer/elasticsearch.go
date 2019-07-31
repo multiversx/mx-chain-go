@@ -358,51 +358,13 @@ func (ei *elasticIndexer) buildTransactionBulks(
 				continue
 			}
 
-			currentTx, ok := currentTxHandler.(*transaction.Transaction)
-			if ok && currentTx != nil {
-				bulks[currentBulk] = append(bulks[currentBulk], &Transaction{
-					Hash:          hex.EncodeToString(txHash),
-					MBHash:        hex.EncodeToString(mbHash),
-					BlockHash:     hex.EncodeToString(blockHash),
-					Nonce:         currentTx.Nonce,
-					Value:         currentTx.Value,
-					Receiver:      hex.EncodeToString(currentTx.RcvAddr),
-					Sender:        hex.EncodeToString(currentTx.SndAddr),
-					ReceiverShard: mb.ReceiverShardID,
-					SenderShard:   mb.SenderShardID,
-					GasPrice:      currentTx.GasPrice,
-					GasLimit:      currentTx.GasLimit,
-					Data:          currentTx.Data,
-					Signature:     hex.EncodeToString(currentTx.Signature),
-					Timestamp:     time.Duration(header.GetTimeStamp()),
-					Status:        mbTxStatus,
-				})
+			currentTx := getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
+			if currentTx == nil {
+				ei.logger.Warn("elasticsearch found tx in pool but of wrong type")
 				continue
 			}
 
-			currentSc, ok := currentTxHandler.(*smartContractResult.SmartContractResult)
-			if ok && currentSc != nil {
-				bulks[currentBulk] = append(bulks[currentBulk], &Transaction{
-					Hash:          hex.EncodeToString(txHash),
-					MBHash:        hex.EncodeToString(mbHash),
-					BlockHash:     hex.EncodeToString(blockHash),
-					Nonce:         currentSc.Nonce,
-					Value:         currentSc.Value,
-					Receiver:      hex.EncodeToString(currentSc.RcvAddr),
-					Sender:        hex.EncodeToString(currentSc.SndAddr),
-					ReceiverShard: mb.ReceiverShardID,
-					SenderShard:   mb.SenderShardID,
-					GasPrice:      0,
-					GasLimit:      0,
-					Data:          currentSc.Data,
-					Signature:     "",
-					Timestamp:     time.Duration(header.GetTimeStamp()),
-					Status:        "Success",
-				})
-				continue
-			}
-
-			ei.logger.Warn("elasticsearch found tx in pool but of wrong type")
+			bulks[currentBulk] = append(bulks[currentBulk], currentTx)
 		}
 	}
 
@@ -514,4 +476,81 @@ func timestampMapping() io.Reader {
 				"mappings": {"_doc": {"properties": {"timestamp": {"type": "date"}}}}
 			}`,
 	)
+}
+
+func getTransactionByType(
+	tx data.TransactionHandler,
+	txHash []byte,
+	mbHash[]byte,
+	blockHash[]byte,
+	mb *block.MiniBlock,
+	header data.HeaderHandler,
+	txStatus string,
+) *Transaction {
+	currentTx, ok := tx.(*transaction.Transaction)
+	if ok && currentTx != nil {
+		return buildTransaction(currentTx, txHash, mbHash, blockHash, mb, header, txStatus)
+	}
+
+	currentSc, ok := tx.(*smartContractResult.SmartContractResult)
+	if ok && currentSc != nil {
+		return buildSmartContractResult(currentSc, txHash, mbHash, blockHash, mb, header)
+	}
+
+	return nil
+}
+
+func buildTransaction(
+	tx *transaction.Transaction,
+	txHash []byte,
+	mbHash[]byte,
+	blockHash[]byte,
+	mb *block.MiniBlock,
+	header data.HeaderHandler,
+	txStatus string,
+) *Transaction {
+	return &Transaction{
+		Hash:          hex.EncodeToString(txHash),
+		MBHash:        hex.EncodeToString(mbHash),
+		BlockHash:     hex.EncodeToString(blockHash),
+		Nonce:         tx.Nonce,
+		Value:         tx.Value,
+		Receiver:      hex.EncodeToString(tx.RcvAddr),
+		Sender:        hex.EncodeToString(tx.SndAddr),
+		ReceiverShard: mb.ReceiverShardID,
+		SenderShard:   mb.SenderShardID,
+		GasPrice:      tx.GasPrice,
+		GasLimit:      tx.GasLimit,
+		Data:          tx.Data,
+		Signature:     hex.EncodeToString(tx.Signature),
+		Timestamp:     time.Duration(header.GetTimeStamp()),
+		Status:        txStatus,
+	}
+}
+
+func buildSmartContractResult(
+	scr *smartContractResult.SmartContractResult,
+	txHash []byte,
+	mbHash[]byte,
+	blockHash[]byte,
+	mb *block.MiniBlock,
+	header data.HeaderHandler,
+) *Transaction {
+	return &Transaction{
+		Hash:          hex.EncodeToString(txHash),
+		MBHash:        hex.EncodeToString(mbHash),
+		BlockHash:     hex.EncodeToString(blockHash),
+		Nonce:         scr.Nonce,
+		Value:         scr.Value,
+		Receiver:      hex.EncodeToString(scr.RcvAddr),
+		Sender:        hex.EncodeToString(scr.SndAddr),
+		ReceiverShard: mb.ReceiverShardID,
+		SenderShard:   mb.SenderShardID,
+		GasPrice:      0,
+		GasLimit:      0,
+		Data:          scr.Data,
+		Signature:     "",
+		Timestamp:     time.Duration(header.GetTimeStamp()),
+		Status:        "Success",
+	}
 }

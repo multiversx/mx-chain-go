@@ -330,6 +330,7 @@ func TestElasticIndexer_buildTransactionBulksWithSCResults(t *testing.T) {
 			break
 		}
 	}
+
 	assert.True(t, foundSc)
 }
 
