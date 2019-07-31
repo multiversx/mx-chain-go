@@ -13,15 +13,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var testServerURL string
+
 func init() {
 	// check if bench cli flag is set in order to init the prometheus server
 	flag.Parse()
 	bench := flag.CommandLine.Lookup("test.bench")
 	if bench.Value.String() != "" {
-		http.Handle("/metrics", promhttp.Handler())
-		go func() {
-			_ = http.ListenAndServe(":2112", nil)
-		}()
+		testServer := httptest.NewServer(promhttp.Handler())
+		testServerURL = testServer.URL
 	}
 }
 
@@ -104,23 +104,11 @@ func TestPrometheusStatusHandler_TestSetInt64ValueAndSetUInt64Value(t *testing.T
 	assert.Equal(t, float64(20), result)
 }
 
-func TestPrometheus_BenchFlagNotSetShouldErr(t *testing.T) {
-	tsMux := http.NewServeMux()
-	tsMux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(404)
-	})
-	ts := httptest.NewServer(tsMux)
-	defer ts.Close()
-
-	_, err := http.Get("/metrics")
-	assert.Error(t, err)
-}
-
 func BenchmarkPrometheusStatusHandler_Increment(b *testing.B) {
 	var promStatusHandler core.AppStatusHandler
 	promStatusHandler = statusHandler.NewPrometheusStatusHandler()
 
-	_, err := http.Get("http://localhost:2112/metrics")
+	_, err := http.Get(testServerURL)
 	assert.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {
@@ -134,7 +122,7 @@ func BenchmarkPrometheusStatusHandler_Decrement(b *testing.B) {
 	var promStatusHandler core.AppStatusHandler
 	promStatusHandler = statusHandler.NewPrometheusStatusHandler()
 
-	_, err := http.Get("http://localhost:2112/metrics")
+	_, err := http.Get(testServerURL)
 	assert.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {
@@ -148,7 +136,7 @@ func BenchmarkPrometheusStatusHandler_SetInt64Value(b *testing.B) {
 
 	promStatusHandler = statusHandler.NewPrometheusStatusHandler()
 
-	_, err := http.Get("http://localhost:2112/metrics")
+	_, err := http.Get(testServerURL)
 	assert.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {
@@ -161,7 +149,7 @@ func BenchmarkPrometheusStatusHandler_SetUInt64Value(b *testing.B) {
 	var promStatusHandler core.AppStatusHandler
 	promStatusHandler = statusHandler.NewPrometheusStatusHandler()
 
-	_, err := http.Get("http://localhost:2112/metrics")
+	_, err := http.Get(testServerURL)
 	assert.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {

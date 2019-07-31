@@ -622,9 +622,9 @@ func startStatusPolling(ash core.AppStatusHandler, pollingInterval int, networkC
 	if ash == nil {
 		return errors.New("nil AppStatusHandler")
 	}
+
 	pollingIntervalDuration := time.Duration(pollingInterval) * time.Second
 	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingIntervalDuration)
-
 	if err != nil {
 		return errors.New("cannot init AppStatusPolling")
 	}
@@ -633,7 +633,6 @@ func startStatusPolling(ash core.AppStatusHandler, pollingInterval int, networkC
 		numOfConnectedPeers := int64(len(networkComponents.NetMessenger.ConnectedAddresses()))
 		appStatusHandler.SetInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
 	}
-
 	err = appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
 
 	if err != nil {
