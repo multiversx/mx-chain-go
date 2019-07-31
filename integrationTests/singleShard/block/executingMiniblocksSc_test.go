@@ -43,11 +43,6 @@ func TestShouldProcessWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
 	}
 
-	idxProposer := 0
-	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
-	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
-
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
@@ -69,6 +64,11 @@ func TestShouldProcessWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 	topUpValue := big.NewInt(500)
 	withdrawValue := big.NewInt(10)
 	integrationTests.MintAllNodes(nodes, initialVal)
+
+	idxProposer := 0
+	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
 	deployScTx(nodes, idxProposer, string(scCode))
 	proposeBlock(nodes, idxProposer, round)
@@ -136,11 +136,6 @@ func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
 		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
 	}
 
-	idxProposer := 0
-	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
-	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
-
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
@@ -162,6 +157,11 @@ func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
 	topUpValue := big.NewInt(500)
 	withdrawValue := big.NewInt(10)
 	integrationTests.MintAllNodes(nodes, initialVal)
+
+	idxProposer := 0
+	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
 	deployScTx(nodes, idxProposer, string(scCode))
 	proposeBlock(nodes, idxProposer, round)
@@ -328,7 +328,7 @@ func createTxEndGame(tn *integrationTests.TestProcessorNode, round int, scAddres
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
 
-	fmt.Printf("Join %s\n", hex.EncodeToString(tn.PkTxSignBytes))
+	fmt.Printf("End %s\n", hex.EncodeToString(tn.PkTxSignBytes))
 
 	return tx
 }
