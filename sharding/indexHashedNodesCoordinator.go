@@ -99,20 +99,14 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(randomness []byt
 		return nil, ErrNilRandomness
 	}
 
-	tempList := make([]Validator, 0)
-	var consensusGroupSize int
-
 	if ihgs == nil {
 		return nil, ErrNilRandomness
 	}
 
-	if ihgs.shardId == MetachainShardId {
-		consensusGroupSize = ihgs.metaConsensusGroupSize
-	} else {
-		consensusGroupSize = ihgs.shardConsensusGroupSize
-	}
+	tempList := make([]Validator, 0)
+	cSize := ihgs.consensusGroupSize()
 
-	for startIdx := 0; startIdx < consensusGroupSize; startIdx++ {
+	for startIdx := 0; startIdx < cSize; startIdx++ {
 		proposedIndex := ihgs.computeListIndex(startIdx, string(randomness))
 
 		checkedIndex := ihgs.checkIndex(proposedIndex, tempList)
@@ -145,19 +139,13 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(selection []byte)
 	selectionLen := uint16(len(selection) * 8) // 8 selection bits in each byte
 	shardEligibleLen := uint16(len(ihgs.nodesMap[ihgs.shardId]))
 	invalidSelection := selectionLen < shardEligibleLen
-	var consensusGroupSize int
 
 	if invalidSelection {
 		return nil, ErrEligibleSelectionMismatch
 	}
 
-	if ihgs.shardId == MetachainShardId {
-		consensusGroupSize = ihgs.shardConsensusGroupSize
-	} else {
-		consensusGroupSize = ihgs.metaConsensusGroupSize
-	}
-
-	publicKeys = make([]string, consensusGroupSize)
+	cSize := ihgs.consensusGroupSize()
+	publicKeys = make([]string, cSize)
 	cnt := 0
 
 	for i := uint16(0); i < shardEligibleLen; i++ {
@@ -170,12 +158,12 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(selection []byte)
 		publicKeys[cnt] = string(ihgs.nodesMap[ihgs.shardId][i].PubKey())
 		cnt++
 
-		if cnt > consensusGroupSize {
+		if cnt > cSize {
 			return nil, ErrEligibleTooManySelections
 		}
 	}
 
-	if cnt < consensusGroupSize {
+	if cnt < cSize {
 		return nil, ErrEligibleTooFewSelections
 	}
 
@@ -229,4 +217,13 @@ func (ihgs *indexHashedNodesCoordinator) validatorIsInList(v Validator, list []V
 	}
 
 	return false
+}
+
+// consensusGroupSize returns the consensus group size for the node's shard
+func (ihgs *indexHashedNodesCoordinator) consensusGroupSize() int {
+	if ihgs.shardId == MetachainShardId {
+		return ihgs.metaConsensusGroupSize
+	}
+
+	return ihgs.shardConsensusGroupSize
 }

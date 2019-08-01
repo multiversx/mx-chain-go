@@ -265,6 +265,7 @@ func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 	}
 }
 
+// WithNodesCoordinator sets up the nodes coordinator
 func WithNodesCoordinator(nodesCoordinator sharding.NodesCoordinator) Option {
 	return func(n *Node) error {
 		if nodesCoordinator == nil {

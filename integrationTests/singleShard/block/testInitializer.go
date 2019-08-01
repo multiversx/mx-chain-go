@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"io"
+	"math/big"
 	"math/rand"
 	"strings"
 	"time"
@@ -43,7 +44,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"math/big"
 )
 
 var r io.Reader
