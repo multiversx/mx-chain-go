@@ -347,7 +347,6 @@ func createNetNode(
 			},
 		},
 		genesisBlocks,
-		true,
 		requestHandler,
 		tc,
 		uint64Converter,

@@ -54,7 +54,6 @@ func NewShardProcessor(
 	forkDetector process.ForkDetector,
 	blocksTracker process.BlocksTracker,
 	startHeaders map[uint32]data.HeaderHandler,
-	metaChainActive bool,
 	requestHandler process.RequestHandler,
 	txCoordinator process.TransactionCoordinator,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
@@ -101,7 +100,7 @@ func NewShardProcessor(
 		uint64Converter:               uint64Converter,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
 	}
-	err = base.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
+	err = base.setLastNotarizedHeadersSlice(startHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -403,6 +402,11 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	}
 
 	txPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
+	scPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+
+	for hash, tx := range scPool {
+		txPool[hash] = tx
+	}
 
 	go sp.core.Indexer().SaveBlock(body, header, txPool)
 }

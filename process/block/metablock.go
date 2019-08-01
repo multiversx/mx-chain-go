@@ -99,7 +99,7 @@ func NewMetaProcessor(
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
 	}
 
-	err = base.setLastNotarizedHeadersSlice(startHeaders, true)
+	err = base.setLastNotarizedHeadersSlice(startHeaders)
 	if err != nil {
 		return nil, err
 	}
