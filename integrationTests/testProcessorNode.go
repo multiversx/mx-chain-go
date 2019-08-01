@@ -396,7 +396,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.ForkDetector,
 			tpn.BlockTracker,
 			tpn.GenesisBlocks,
-			true,
 			tpn.RequestHandler,
 			tpn.TxCoordinator,
 			TestUint64Converter,
