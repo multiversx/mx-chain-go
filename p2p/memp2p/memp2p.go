@@ -292,10 +292,10 @@ func (messenger *Messenger) parametricBroadcast(topic string, data []byte, async
 
 	for _, peer := range messenger.Network.Peers() {
 		if async {
-			go func() {
-				err := peer.ReceiveMessage(topic, message)
+			go func(receivingPeer *Messenger) {
+				err := receivingPeer.ReceiveMessage(topic, message)
 				log.LogIfError(err)
-			}()
+			}(peer)
 		} else {
 			err = peer.ReceiveMessage(topic, message)
 		}
