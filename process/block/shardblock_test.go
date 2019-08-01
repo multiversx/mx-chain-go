@@ -3185,7 +3185,6 @@ func TestShardProcessor_NewShardProcessorWrongTypeOfStartHeaderShouldErrWrongTyp
 		&mock.ForkDetectorMock{},
 		&mock.BlocksTrackerMock{},
 		startHeaders,
-		true,
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
@@ -3195,7 +3194,7 @@ func TestShardProcessor_NewShardProcessorWrongTypeOfStartHeaderShouldErrWrongTyp
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
-func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeNotAllDataIsProcessedReturnWithBreakShouldPass(t *testing.T) {
+func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlocksInMetaBlock(t *testing.T) {
 	t.Parallel()
 
 	haveTimeTrue := func() bool {
@@ -3281,7 +3280,6 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeNotAllDataIsProcesse
 		&mock.ForkDetectorMock{},
 		&mock.BlocksTrackerMock{},
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		true,
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
@@ -4456,7 +4454,6 @@ func TestShardProcessor_restoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		&mock.BlocksTrackerMock{},
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		true,
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
@@ -4481,7 +4478,7 @@ func TestShardProcessor_restoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	metaBlockRestored, ok := poolFake.MetaBlocks().Get(metaHash)
 
 	assert.Equal(t, nil, metaBlockRestored)
-	assert.Equal(t, false, ok)
+	assert.False(t, ok)
 
 	err := sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes)
 
@@ -4564,7 +4561,6 @@ func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaShouldPass(t *testing.T) 
 		&mock.ForkDetectorMock{},
 		&mock.BlocksTrackerMock{},
 		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		true,
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
