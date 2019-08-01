@@ -112,7 +112,7 @@ func TestShouldProcessWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 }
 
 func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
-	t.Skip("this is a stress test for VM and AGAR.IO")
+	//t.Skip("this is a stress test for VM and AGAR.IO")
 
 	stepDelay = time.Nanosecond
 
@@ -136,6 +136,11 @@ func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
 		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
 	}
 
+	idxProposer := 0
+	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
+
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
@@ -153,26 +158,23 @@ func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
 	round := uint64(0)
 	round = incrementAndPrintRound(round)
 
-	idxProposer := 0
-	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
-	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
-
+	nrRounds := 200
+	nrPlayers := 100
+	nrRewardedPlayers := 10
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
-	withdrawValue := big.NewInt(10)
+	withdrawValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(nrPlayers) / uint64(nrRewardedPlayers))
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	deployScTx(nodes, idxProposer, string(scCode))
 	proposeBlock(nodes, idxProposer, round)
-	syncBlock(t, nodes, idxProposer, round)
 	round = incrementAndPrintRound(round)
 
 	rMonitor := &statistics.ResourceMonitor{}
 	fmt.Println(rMonitor.GenerateStatistics())
 
-	for rr := 0; rr < 50; rr++ {
-		for i := 0; i < 100; i++ {
+	for rr := 0; rr < nrRounds; rr++ {
+		for i := 0; i < nrPlayers; i++ {
 			nodeJoinsGame(nodes, idxProposer, topUpValue, rr, hardCodedScResultingAddress)
 		}
 		time.Sleep(time.Second)
@@ -183,8 +185,9 @@ func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
 		fmt.Printf("Block Created in %s\n", elapsedTime)
 		round = incrementAndPrintRound(round)
 
-		nodeCallsRewardAndSend(nodes, idxProposer, idxProposer, withdrawValue, rr, hardCodedScResultingAddress)
-		nodeEndGame(nodes, idxProposer, rr, hardCodedScResultingAddress)
+		for i := 0; i < nrRewardedPlayers; i++ {
+			nodeCallsRewardAndSend(nodes, idxProposer, idxProposer, withdrawValue, rr, hardCodedScResultingAddress)
+		}
 		time.Sleep(time.Second)
 
 		startTime = time.Now()
@@ -193,6 +196,7 @@ func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
 		fmt.Printf("Block Created in %s\n", elapsedTime)
 		round = incrementAndPrintRound(round)
 
+		nodeEndGame(nodes, idxProposer, rr, hardCodedScResultingAddress)
 		fmt.Println(rMonitor.GenerateStatistics())
 	}
 
@@ -307,7 +311,7 @@ func createTxDeploy(tn *integrationTests.TestProcessorNode, scCode string) *tran
 		SndAddr:  tn.PkTxSignBytes,
 		Data:     scCode,
 		GasPrice: 0,
-		GasLimit: 100000,
+		GasLimit: 1000000000000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
@@ -323,7 +327,7 @@ func createTxEndGame(tn *integrationTests.TestProcessorNode, round int, scAddres
 		SndAddr:  tn.PkTxSignBytes,
 		Data:     fmt.Sprintf("endGame@%d", round),
 		GasPrice: 0,
-		GasLimit: 100000,
+		GasLimit: 1000000000000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
@@ -341,7 +345,7 @@ func createTxJoinGame(tn *integrationTests.TestProcessorNode, joinGameVal *big.I
 		SndAddr:  tn.PkTxSignBytes,
 		Data:     fmt.Sprintf("joinGame@%d", round),
 		GasPrice: 0,
-		GasLimit: 100000,
+		GasLimit: 1000000000000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
@@ -359,7 +363,7 @@ func createTxRewardAndSendToWallet(tnOwner *integrationTests.TestProcessorNode, 
 		SndAddr:  tnOwner.PkTxSignBytes,
 		Data:     fmt.Sprintf("rewardAndSendToWallet@%d@%s@%X", round, hex.EncodeToString(tnUser.PkTxSignBytes), prizeVal),
 		GasPrice: 0,
-		GasLimit: 100000,
+		GasLimit: 1000000000000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tnOwner.SingleSigner.Sign(tnOwner.SkTxSign, txBuff)
@@ -385,7 +389,10 @@ func checkJoinGameIsDoneCorrectly(
 	fmt.Println("Checking SC account received topUp val...")
 	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
-	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
+	ok := assert.Equal(t, topUpVal.Uint64(), accnt.(*state.Account).Balance.Uint64())
+	if !ok {
+		fmt.Printf("Expected topUp val %d Actual topU val %d\n", topUpVal.Uint64(), accnt.(*state.Account).Balance.Uint64())
+	}
 
 	fmt.Println("Checking sender has initial-topUp val...")
 	expectedVal := big.NewInt(0).Set(initialVal)
@@ -393,7 +400,7 @@ func checkJoinGameIsDoneCorrectly(
 	fmt.Printf("Checking %s\n", hex.EncodeToString(nodeWithCaller.PkTxSignBytes))
 	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
-	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
+	assert.Equal(t, expectedVal.Uint64(), accnt.(*state.Account).Balance.Uint64())
 }
 
 func checkRewardIsDoneCorrectly(
@@ -415,7 +422,10 @@ func checkRewardIsDoneCorrectly(
 	assert.NotNil(t, accnt)
 	expectedSC := big.NewInt(0).Set(topUpVal)
 	expectedSC.Sub(expectedSC, withdraw)
-	assert.Equal(t, expectedSC, accnt.(*state.Account).Balance)
+	ok := assert.Equal(t, expectedSC.Uint64(), accnt.(*state.Account).Balance.Uint64())
+	if !ok {
+		fmt.Printf("Expected smart contract val %d Actual smart contract val %d\n", expectedSC.Uint64(), accnt.(*state.Account).Balance.Uint64())
+	}
 
 	fmt.Println("Checking sender has initial-topUp+withdraw val...")
 	expectedSender := big.NewInt(0).Set(initialVal)
@@ -424,7 +434,10 @@ func checkRewardIsDoneCorrectly(
 	fmt.Printf("Checking %s\n", hex.EncodeToString(nodeWithCaller.PkTxSignBytes))
 	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
-	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
+	ok = assert.Equal(t, expectedSender.Uint64(), accnt.(*state.Account).Balance.Uint64())
+	if !ok {
+		fmt.Printf("Expected sender val %d Actual sender val %d\n", expectedSender.Uint64(), accnt.(*state.Account).Balance.Uint64())
+	}
 }
 
 func checkRootHashes(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int) {
