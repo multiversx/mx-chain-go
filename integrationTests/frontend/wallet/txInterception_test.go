@@ -81,6 +81,8 @@ func TestInterceptedTxFromFrontendGeneratedParamsGasPriceGasLimitNoData(t *testi
 	)
 }
 
+// testInterceptedTxFromFrontendGeneratedParams tests that a frontend generated tx will pass through an interceptor
+// and ends up in the datapool, concluding the tx is correctly signed and follows our protocol
 func testInterceptedTxFromFrontendGeneratedParams(
 	t *testing.T,
 	frontendNonce uint64,
@@ -98,7 +100,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 
 	chDone := make(chan struct{})
 
-	node := integrationTests.NewTestProcessorNode(1, 0, uint32(0), "nodeAddr")
+	node := integrationTests.NewTestProcessorNode(1, 0, 0, "nodeAddr")
 
 	txHexHash := ""
 
