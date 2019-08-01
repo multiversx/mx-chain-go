@@ -162,9 +162,9 @@ func (network *Network) LogMessage(message p2p.MessageP2P) {
 // GetMessageCount returns the number of messages logged internally by the
 // Network.
 func (network *Network) GetMessageCount() int {
-	network.messageLogMutex.Lock()
+	network.messageLogMutex.RLock()
 	count := len(network.Messages)
-	network.messageLogMutex.Unlock()
+	network.messageLogMutex.RUnlock()
 	return count
 }
 
