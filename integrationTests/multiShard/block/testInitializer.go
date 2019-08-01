@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -106,7 +105,6 @@ func createTestShardChain() *blockchain.BlockChain {
 	genisisHeaderM, _ := testMarshalizer.Marshal(blockChain.GenesisHeader)
 
 	blockChain.SetGenesisHeaderHash(testHasher.Compute(string(genisisHeaderM)))
-	_ = blockChain.SetAppStatusHandler(statusHandler.NewNillStatusHandler())
 	return blockChain
 }
 

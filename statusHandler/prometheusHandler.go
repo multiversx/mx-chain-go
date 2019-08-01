@@ -12,9 +12,14 @@ type PrometheusStatusHandler struct {
 	prometheusGaugeMetrics sync.Map
 }
 
+// InitMetricsMap will init the map of prometheus metrics
+func (psh *PrometheusStatusHandler) InitMetricsMap() {
+	psh.prometheusGaugeMetrics = sync.Map{}
+}
+
 // InitMetrics will declare and init all the metrics which should be used for Prometheus
 func (psh *PrometheusStatusHandler) InitMetrics() {
-	psh.prometheusGaugeMetrics = sync.Map{}
+	psh.InitMetricsMap()
 
 	erdSynchronizedRound := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: core.MetricSynchronizedRound,

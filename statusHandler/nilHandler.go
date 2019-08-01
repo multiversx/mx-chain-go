@@ -4,8 +4,8 @@ package statusHandler
 type NilStatusHandler struct {
 }
 
-// NewNillStatusHandler will return an instance of the struct
-func NewNillStatusHandler() *NilStatusHandler {
+// NewNilStatusHandler will return an instance of the struct
+func NewNilStatusHandler() *NilStatusHandler {
 	return new(NilStatusHandler)
 }
 

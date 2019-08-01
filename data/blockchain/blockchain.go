@@ -40,7 +40,7 @@ func NewBlockChain(
 		localHeight:        -1,
 		networkHeight:      -1,
 		badBlocks:          badBlocksCache,
-		appStatusHandler:   statusHandler.NewNillStatusHandler(),
+		appStatusHandler:   statusHandler.NewNilStatusHandler(),
 	}
 
 	return blockChain, nil

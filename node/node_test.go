@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -1363,100 +1362,154 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	assert.Equal(t, accnt, recovAccnt)
 }
 
-func TestNode_AppStatusHandlerWithPrometheusIncrementAndDecrementMetric(t *testing.T) {
-	t.Parallel()
-
-	testValue := float64(0)
-	metricKey := core.MetricIsSyncing
-
-	ashMock := mock.AppStatusHandlerStub{
-		IncrementHandler: func(key string) {
-			testValue++
-		},
-		DecrementHandler: func(key string) {
-			testValue--
-		},
-	}
-
-	n, _ := node.NewNode(
-		node.WithAppStatusHandler(&ashMock))
-
-	ash := n.GetAppStatusHandler()
-
-	ash.Increment(metricKey)
-	ash.Increment(metricKey)
-	assert.Equal(t, float64(2), testValue)
-
-	ash.Decrement(metricKey)
-	assert.Equal(t, float64(1), testValue)
-}
-
-func TestNode_AppStatusHandlerWithPrometheusSetInt64AndUInt64ValueMetric(t *testing.T) {
-	t.Parallel()
-
-	metricKey := core.MetricNonce
-	testValue := float64(0)
-
-	aphStub := mock.AppStatusHandlerStub{
-		SetInt64ValueHandler: func(key string, value int64) {
-			testValue = float64(value)
-		},
-		SetUInt64ValueHandler: func(key string, value uint64) {
-			testValue = float64(value)
-		},
-	}
-
-	n, _ := node.NewNode(
-		node.WithAppStatusHandler(&aphStub))
-	aph := n.GetAppStatusHandler()
-
-	aph.SetInt64Value(metricKey, int64(20))
-	assert.Equal(t, float64(20), testValue)
-
-	aph.SetUInt64Value(metricKey, uint64(30))
-	assert.Equal(t, float64(30), testValue)
-}
-
-func TestNode_AppStatusHandlerWithFacadeIncrementAndDecrementMetric(t *testing.T) {
+func TestNode_AppStatusHandlerWithFacadeIncrement(t *testing.T) {
 	t.Parallel()
 
 	metricKey := core.MetricCurrentRound
-	//testValue := float64(0)
-	incrementCalled := make(chan bool)
-	decrementCalled := make(chan bool)
+	incrementCalled := make(chan bool, 1)
 
 	// create a prometheus status handler which will be passed to the facade
 	prometheusStub := mock.AppStatusHandlerStub{
 		IncrementHandler: func(key string) {
 			incrementCalled <- true
 		},
-		DecrementHandler: func(key string) {
-			decrementCalled <- true
-		},
 	}
-	appStatusFacade, err := statusHandler.NewAppStatusFacadeWithHandlers(&prometheusStub)
-	assert.Nil(t, err)
 
-	asfStub := mock.AppStatusHandlerStub{
-		IncrementHandler: func(key string) {
-			appStatusFacade.Increment(key)
-		},
-		DecrementHandler: func(key string) {
-			appStatusFacade.Decrement(key)
-		},
+	appStatusFacade := mock.AppStatusFacadeStub{
+		ListOfAphs: []core.AppStatusHandler{&prometheusStub},
 	}
+
+	listOfHandlers := appStatusFacade.ListOfAphs
+
+	appStatusFacade.IncrementHandler = func(key string) {
+		for _, ash := range listOfHandlers {
+			ash.Increment(key)
+		}
+	}
+
 	n, _ := node.NewNode(
-		node.WithAppStatusHandler(&asfStub))
+		node.WithAppStatusHandler(&appStatusFacade))
 	asf := n.GetAppStatusHandler()
 
 	asf.Increment(metricKey)
 
+	select {
+	case <-incrementCalled:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Timeout - function not called")
+	}
+}
+
+func TestNode_AppStatusHandlerWithFacadeDecrement(t *testing.T) {
+	t.Parallel()
+
+	metricKey := core.MetricCurrentRound
+	decrementCalled := make(chan bool, 1)
+
+	// create a prometheus status handler which will be passed to the facade
+	prometheusStub := mock.AppStatusHandlerStub{
+		DecrementHandler: func(key string) {
+			decrementCalled <- true
+		},
+	}
+
+	appStatusFacade := mock.AppStatusFacadeStub{
+		ListOfAphs: []core.AppStatusHandler{&prometheusStub},
+	}
+
+	listOfHandlers := appStatusFacade.ListOfAphs
+
+	appStatusFacade.DecrementHandler = func(key string) {
+		for _, ash := range listOfHandlers {
+			ash.Decrement(key)
+		}
+	}
+
+	n, _ := node.NewNode(
+		node.WithAppStatusHandler(&appStatusFacade))
+	asf := n.GetAppStatusHandler()
+
 	asf.Decrement(metricKey)
 
 	select {
-	case <-incrementCalled:
 	case <-decrementCalled:
-	case <-time.After(5 * time.Millisecond):
-		assert.Fail(t, "Timeout - functions not called")
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Timeout - function not called")
+	}
+}
+
+func TestNode_AppStatusHandlerWithFacadeSetInt64Value(t *testing.T) {
+	t.Parallel()
+
+	metricKey := core.MetricCurrentRound
+	setInt64ValueCalled := make(chan bool, 1)
+
+	// create a prometheus status handler which will be passed to the facade
+	prometheusStub := mock.AppStatusHandlerStub{
+		SetInt64ValueHandler: func(key string, value int64) {
+			setInt64ValueCalled <- true
+		},
+	}
+
+	appStatusFacade := mock.AppStatusFacadeStub{
+		ListOfAphs: []core.AppStatusHandler{&prometheusStub},
+	}
+
+	listOfHandlers := appStatusFacade.ListOfAphs
+
+	appStatusFacade.SetInt64ValueHandler = func(key string, value int64) {
+		for _, ash := range listOfHandlers {
+			ash.SetInt64Value(key, value)
+		}
+	}
+
+	n, _ := node.NewNode(
+		node.WithAppStatusHandler(&appStatusFacade))
+	asf := n.GetAppStatusHandler()
+
+	asf.SetInt64Value(metricKey, int64(1))
+
+	select {
+	case <-setInt64ValueCalled:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Timeout - function not called")
+	}
+}
+
+func TestNode_AppStatusHandlerWithFacadeSetUInt64Value(t *testing.T) {
+	t.Parallel()
+
+	metricKey := core.MetricCurrentRound
+	setUInt64ValueCalled := make(chan bool, 1)
+
+	// create a prometheus status handler which will be passed to the facade
+	prometheusStub := mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			setUInt64ValueCalled <- true
+		},
+	}
+
+	appStatusFacade := mock.AppStatusFacadeStub{
+		ListOfAphs: []core.AppStatusHandler{&prometheusStub},
+	}
+
+	listOfHandlers := appStatusFacade.ListOfAphs
+
+	appStatusFacade.SetUInt64ValueHandler = func(key string, value uint64) {
+		for _, ash := range listOfHandlers {
+			ash.SetUInt64Value(key, value)
+		}
+	}
+
+	n, _ := node.NewNode(
+		node.WithAppStatusHandler(&appStatusFacade))
+	asf := n.GetAppStatusHandler()
+
+	asf.SetUInt64Value(metricKey, uint64(1))
+
+	select {
+	case <-setUInt64ValueCalled:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Timeout - function not called")
 	}
 }

@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	prometheusUtils "github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,67 +20,108 @@ func TestNewAppStatusFacadeWithHandlers_NilHandlersShouldFail(t *testing.T) {
 func TestNewAppStatusFacadeWithHandlers_OkHandlersShouldPass(t *testing.T) {
 	t.Parallel()
 
-	_, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNillStatusHandler(),
+	_, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNilStatusHandler(),
 		statusHandler.NewPrometheusStatusHandler())
 
 	assert.Nil(t, err)
 }
 
-func TestAppStatusFacade_IncrementAndDecrementShouldPass(t *testing.T) {
+func TestAppStatusFacade_IncrementShouldPass(t *testing.T) {
 	t.Parallel()
 
+	chanDone := make(chan bool, 1)
 	var metricKey = core.MetricSynchronizedRound
 
 	// we create a new facade which contains a prometheus handler in order to test
-	promStatusHandler := statusHandler.NewPrometheusStatusHandler()
-	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNillStatusHandler(), promStatusHandler)
+	promStatusHandler := mock.AppStatusHandlerStub{
+		IncrementHandler: func(key string) {
+			chanDone <- true
+		},
+	}
+
+	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(&promStatusHandler)
 	assert.Nil(t, err)
 
 	asf.Increment(metricKey)
 
-	time.Sleep(5 * time.Millisecond)
-	gauge, err := promStatusHandler.GetPrometheusMetricByKey(metricKey)
-	assert.Nil(t, err)
-
-	result := prometheusUtils.ToFloat64(gauge)
-	assert.Equal(t, float64(1), result)
-
-	asf.Decrement(metricKey)
-
-	time.Sleep(5 * time.Millisecond)
-	result = prometheusUtils.ToFloat64(gauge)
-	assert.Equal(t, float64(0), result)
+	select {
+	case <-chanDone:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Timeout - function not called")
+	}
 }
 
-func TestAppStatusFacade_SetInt64ValueAndSetUint64ValueShouldPass(t *testing.T) {
+func TestAppStatusFacade_DecrementShouldPass(t *testing.T) {
 	t.Parallel()
 
+	chanDone := make(chan bool, 1)
 	var metricKey = core.MetricSynchronizedRound
 
 	// we create a new facade which contains a prometheus handler in order to test
-	promStatusHandler := statusHandler.NewPrometheusStatusHandler()
-	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNillStatusHandler(), promStatusHandler)
+	promStatusHandler := mock.AppStatusHandlerStub{
+		DecrementHandler: func(key string) {
+			chanDone <- true
+		},
+	}
+
+	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(&promStatusHandler)
 	assert.Nil(t, err)
 
-	// set an int64 value
-	asf.SetInt64Value(metricKey, int64(10))
+	asf.Decrement(metricKey)
 
-	time.Sleep(5 * time.Millisecond)
-	gauge, err := promStatusHandler.GetPrometheusMetricByKey(metricKey)
+	select {
+	case <-chanDone:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Timeout - function not called")
+	}
+}
+
+func TestAppStatusFacade_SetInt64ValueShouldPass(t *testing.T) {
+	t.Parallel()
+
+	chanDone := make(chan bool, 1)
+	var metricKey = core.MetricSynchronizedRound
+
+	// we create a new facade which contains a prometheus handler in order to test
+	promStatusHandler := mock.AppStatusHandlerStub{
+		SetInt64ValueHandler: func(key string, value int64) {
+			chanDone <- true
+		},
+	}
+
+	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(&promStatusHandler)
 	assert.Nil(t, err)
 
-	result := prometheusUtils.ToFloat64(gauge)
-	// test if the metric value was updated
-	assert.Equal(t, float64(10), result)
+	asf.SetInt64Value(metricKey, int64(0))
 
-	// set an uint64 value
-	asf.SetUInt64Value(metricKey, uint64(20))
+	select {
+	case <-chanDone:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Timeout - function not called")
+	}
+}
 
-	time.Sleep(5 * time.Millisecond)
-	gauge, err = promStatusHandler.GetPrometheusMetricByKey(metricKey)
+func TestAppStatusFacade_SetUint64ValueShouldPass(t *testing.T) {
+	t.Parallel()
+
+	chanDone := make(chan bool, 1)
+	var metricKey = core.MetricSynchronizedRound
+
+	// we create a new facade which contains a prometheus handler in order to test
+	promStatusHandler := mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			chanDone <- true
+		},
+	}
+
+	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(&promStatusHandler)
 	assert.Nil(t, err)
 
-	result = prometheusUtils.ToFloat64(gauge)
-	// test if the metric value was updated
-	assert.Equal(t, float64(20), result)
+	asf.SetUInt64Value(metricKey, uint64(0))
+
+	select {
+	case <-chanDone:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Timeout - function not called")
+	}
 }

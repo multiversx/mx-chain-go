@@ -43,7 +43,7 @@ func TestPrometheusStatusHandler_TestIfMetricsAreInitialized(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestPrometheusStatusHandler_TestIncrementAndDecrement(t *testing.T) {
+func TestPrometheusStatusHandler_TestIncrement(t *testing.T) {
 	t.Parallel()
 
 	var metricKey = core.MetricNonce
@@ -60,23 +60,28 @@ func TestPrometheusStatusHandler_TestIncrementAndDecrement(t *testing.T) {
 	result := prometheusUtils.ToFloat64(gauge)
 	// test if the metric was incremented
 	assert.Equal(t, float64(1), result)
+}
 
-	// increment the metric two more times and check if it worked
-	promStatusHandler.Increment(metricKey)
-	promStatusHandler.Increment(metricKey)
+func TestPrometheusStatusHandler_TestDecrement(t *testing.T) {
+	t.Parallel()
 
-	result = prometheusUtils.ToFloat64(gauge)
-	assert.Equal(t, float64(3), result)
+	var metricKey = core.MetricNonce
+
+	promStatusHandler := statusHandler.NewPrometheusStatusHandler()
+
+	// get the gauge
+	gauge, err := promStatusHandler.GetPrometheusMetricByKey(metricKey)
+	assert.Nil(t, err)
 
 	// now decrement the metric
 	promStatusHandler.Decrement(metricKey)
 
-	result = prometheusUtils.ToFloat64(gauge)
+	result := prometheusUtils.ToFloat64(gauge)
 
-	assert.Equal(t, float64(2), result)
+	assert.Equal(t, float64(-1), result)
 }
 
-func TestPrometheusStatusHandler_TestSetInt64ValueAndSetUInt64Value(t *testing.T) {
+func TestPrometheusStatusHandler_TestSetInt64Value(t *testing.T) {
 	t.Parallel()
 
 	var metricKey = core.MetricCurrentRound
@@ -92,14 +97,22 @@ func TestPrometheusStatusHandler_TestSetInt64ValueAndSetUInt64Value(t *testing.T
 	result := prometheusUtils.ToFloat64(gauge)
 	// test if the metric value was updated
 	assert.Equal(t, float64(10), result)
+}
+
+func TestPrometheusStatusHandler_TestSetUInt64Value(t *testing.T) {
+	t.Parallel()
+
+	var metricKey = core.MetricCurrentRound
+
+	promStatusHandler := statusHandler.NewPrometheusStatusHandler()
 
 	// set an uint64 value
 	promStatusHandler.SetUInt64Value(metricKey, uint64(20))
 
-	gauge, err = promStatusHandler.GetPrometheusMetricByKey(metricKey)
+	gauge, err := promStatusHandler.GetPrometheusMetricByKey(metricKey)
 	assert.Nil(t, err)
 
-	result = prometheusUtils.ToFloat64(gauge)
+	result := prometheusUtils.ToFloat64(gauge)
 	// test if the metric value was updated
 	assert.Equal(t, float64(20), result)
 }

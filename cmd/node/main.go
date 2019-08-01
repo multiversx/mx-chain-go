@@ -465,8 +465,6 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	coreComponents.StatusHandler = statusHandler.NewNillStatusHandler()
-
 	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
 	if usePrometheusBool {
 		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(
@@ -572,7 +570,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		networkComponents)
 
 	if err != nil {
-		log.Info("Problem creating status polling: ", err)
+		log.Info("Error creating status polling: ", err)
 	}
 
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)

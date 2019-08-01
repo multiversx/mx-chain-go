@@ -46,11 +46,11 @@ func (asp *AppStatusPolling) Poll() {
 		for {
 			time.Sleep(asp.pollingDuration)
 
-			asp.mutRegisteredFunc.Lock()
+			asp.mutRegisteredFunc.RLock()
 			for _, handler := range asp.registeredFunctions {
 				handler(asp.appStatusHandler)
 			}
-			asp.mutRegisteredFunc.Unlock()
+			asp.mutRegisteredFunc.RUnlock()
 		}
 	}()
 }

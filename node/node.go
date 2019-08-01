@@ -123,7 +123,7 @@ func NewNode(opts ...Option) (*Node, error) {
 		ctx:                      context.Background(),
 		isMetachainActive:        true,
 		currentSendingGoRoutines: 0,
-		appStatusHandler:         statusHandler.NewNillStatusHandler(),
+		appStatusHandler:         statusHandler.NewNilStatusHandler(),
 	}
 	for _, opt := range opts {
 		err := opt(node)
@@ -418,7 +418,6 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 	}
 
 	err = chr.SetAppStatusHandler(appStatusHandler)
-
 	if err != nil {
 		return nil, err
 	}

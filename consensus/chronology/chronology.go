@@ -52,7 +52,7 @@ func NewChronology(
 		genesisTime: genesisTime,
 		rounder:     rounder,
 		syncTimer:   syncTimer,
-		ash:         statusHandler.NewNillStatusHandler()}
+		ash:         statusHandler.NewNilStatusHandler()}
 
 	chr.subroundId = srBeforeStartRound
 

@@ -325,7 +325,7 @@ func TestChronology_SetAppStatusHandlerWithOkValueShouldPass(t *testing.T) {
 func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 	t.Parallel()
 
-	var setValueCalled = false
+	chanDone := make(chan bool, 1)
 	rounderMock := &mock.RounderMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
 	chr, _ := chronology.NewChronology(
@@ -335,7 +335,7 @@ func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 
 	err := chr.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetInt64ValueHandler: func(key string, value int64) {
-			setValueCalled = true
+			chanDone <- true
 		},
 	})
 
@@ -345,10 +345,13 @@ func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 	srm.DoWorkCalled = func(rounder consensus.Rounder) bool {
 		return true
 	}
+
 	chr.AddSubround(srm)
 	chr.StartRound()
 
-	time.Sleep(1 * time.Millisecond)
-
-	assert.True(t, setValueCalled)
+	select {
+	case <-chanDone:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "AppStatusHandler not working")
+	}
 }
