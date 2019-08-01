@@ -170,6 +170,11 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T
 	testedNonce := uint64(67)
 	headers := &mock.CacherStub{}
 	multisigner := mock.NewMultiSigner()
+	chronologyValidator := &mock.ChronologyValidatorStub{
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+			return nil
+		},
+	}
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) error {
 		return errors.New("key not found")

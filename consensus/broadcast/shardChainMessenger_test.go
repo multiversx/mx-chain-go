@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -326,7 +327,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 		singleSignerMock,
 	)
 
-	transactions := make(map[uint32][][]byte)
+	transactions := make(map[string][][]byte)
 	err := scm.BroadcastTransactions(transactions)
 
 	wasCalled := false
@@ -339,7 +340,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 	assert.Nil(t, err)
 	assert.False(t, wasCalled)
 
-	transactions[0] = make([][]byte, 0)
+	transactions[factory.TransactionTopic] = make([][]byte, 0)
 	err = scm.BroadcastTransactions(transactions)
 
 	wasCalled = false
@@ -375,10 +376,10 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 		singleSignerMock,
 	)
 
-	transactions := make(map[uint32][][]byte)
+	transactions := make(map[string][][]byte)
 	txs := make([][]byte, 0)
 	txs = append(txs, []byte(""))
-	transactions[0] = txs
+	transactions[factory.TransactionTopic] = txs
 	err := scm.BroadcastTransactions(transactions)
 
 	wasCalled := false

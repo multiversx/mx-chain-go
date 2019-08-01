@@ -16,7 +16,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
@@ -25,7 +25,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%X",
 		initialValueForInternalVariable)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 
 	deployContract(
 		t,
@@ -61,7 +61,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(0).SetUint64(99895339)
+	expectedBalance := big.NewInt(0).SetUint64(99999791)
 	vm.TestAccount(
 		t,
 		accnts,
@@ -84,7 +84,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
@@ -93,7 +93,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%X",
 		initialValueForInternalVariable)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	//deploy will transfer 0 and will succeed
 	deployContract(
 		t,
@@ -112,7 +112,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	addValue := uint64(128)
 	data := fmt.Sprintf("add@%X", addValue)
 	//contract call tx that will fail with out of gas
-	gasLimitFail := uint64(100)
+	gasLimitFail := uint64(10)
 	txRun := vm.CreateTx(
 		t,
 		senderAddressBytes,
@@ -130,7 +130,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(0).SetUint64(99921994)
+	expectedBalance := big.NewInt(0).SetUint64(99999851)
 	//following operations happened: deploy and call, deploy succeed, call failed, transfer has been reverted, gas consumed
 	vm.TestAccount(
 		t,
@@ -151,21 +151,21 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 }
 
 func deployContract(
-	t *testing.T,
+	tb testing.TB,
 	senderAddressBytes []byte,
 	senderNonce uint64,
 	transferOnCalls *big.Int,
 	gasPrice uint64,
 	gasLimit uint64,
 	scCode string,
-	round uint32,
+	round uint64,
 	txProc process.TransactionProcessor,
 	accnts state.AccountsAdapter,
 ) {
 
 	//contract creation tx
 	tx := vm.CreateTx(
-		t,
+		tb,
 		senderAddressBytes,
 		vm.CreateEmptyAddress().Bytes(),
 		senderNonce,
@@ -176,8 +176,8 @@ func deployContract(
 	)
 
 	err := txProc.ProcessTransaction(tx, round)
-	assert.Nil(t, err)
+	assert.Nil(tb, err)
 
 	_, err = accnts.Commit()
-	assert.Nil(t, err)
+	assert.Nil(tb, err)
 }

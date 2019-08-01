@@ -390,7 +390,7 @@ func WithTxStorageSize(txStorageSize uint32) Option {
 }
 
 // WithBootstrapRoundIndex sets up a bootstrapRoundIndex option for the Node
-func WithBootstrapRoundIndex(bootstrapRoundIndex uint32) Option {
+func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 	return func(n *Node) error {
 		n.bootstrapRoundIndex = bootstrapRoundIndex
 		return nil

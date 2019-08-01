@@ -306,15 +306,15 @@ func createConsensusOnlyNode(
 		},
 		RevertAccountStateCalled: func() {
 		},
-		CreateBlockCalled: func(round uint32, haveTime func() bool) (handler data.BodyHandler, e error) {
+		CreateBlockCalled: func(round uint64, haveTime func() bool) (handler data.BodyHandler, e error) {
 			return &dataBlock.Body{}, nil
 		},
-		CreateBlockHeaderCalled: func(body data.BodyHandler, round uint32, haveTime func() bool) (handler data.HeaderHandler, e error) {
-			return &dataBlock.Header{Round: uint32(round)}, nil
+		CreateBlockHeaderCalled: func(body data.BodyHandler, round uint64, haveTime func() bool) (handler data.HeaderHandler, e error) {
+			return &dataBlock.Header{Round: uint64(round)}, nil
 		},
-		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (bytes map[uint32][]byte, bytes2 map[uint32][][]byte, e error) {
+		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 			mrsData := make(map[uint32][]byte)
-			mrsTxs := make(map[uint32][][]byte)
+			mrsTxs := make(map[string][][]byte)
 			return mrsData, mrsTxs, nil
 		},
 	}
@@ -330,7 +330,7 @@ func createConsensusOnlyNode(
 		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
 			return make([]data.HeaderHandler, 0)
 		},
-		SetBlockBroadcastRoundCalled: func(nonce uint64, round int32) {
+		SetBlockBroadcastRoundCalled: func(nonce uint64, round int64) {
 		},
 	}
 	blockChain := createTestBlockChain()

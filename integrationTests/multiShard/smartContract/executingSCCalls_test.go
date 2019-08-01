@@ -23,7 +23,7 @@ var initialValueForInternalVariable = uint64(45)
 
 func createScCallsNodes() (p2p.Messenger, map[uint32][]*testNode) {
 	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	nodes := createNodes(
 		2,
@@ -35,7 +35,7 @@ func createScCallsNodes() (p2p.Messenger, map[uint32][]*testNode) {
 	return advertiser, nodes
 }
 
-func deploySmartContract(t *testing.T, nodeToProcess *testNode, roundNumber uint32, senderAddressBytes []byte, senderNonce uint64) {
+func deploySmartContract(t *testing.T, nodeToProcess *testNode, roundNumber uint64, senderAddressBytes []byte, senderNonce uint64) {
 	scCode := "aaaa"
 
 	contractTx := createTx(
@@ -96,7 +96,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	generalRoundNumber := uint32(1)
+	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
 	senderNonce := uint64(1)
 	senderMintingValue := big.NewInt(100000000)
@@ -177,7 +177,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	generalRoundNumber := uint32(1)
+	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
 	receiverShard := uint32(1)
 	senderNonce := uint64(1)
@@ -244,9 +244,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	// Test again that the gas for calling the smart contract was substracted from the sender's account
 	acc, _ = proposerNodeShard2.node.GetAccount(hex.EncodeToString(secondShardAddressBytes))
-	// TODO: Afrer fees are implemented, from mintingValue we should substract gasLimit + fees until the other shard executes
-	//  the smart contract and a refund can be made with the remaining value the following rounds
-	assert.Equal(t, mintingValue, acc.Balance)
+
+	afterFee := big.NewInt(0).Sub(mintingValue, big.NewInt(0).SetUint64(contractCallTx.GasLimit*contractCallTx.GasPrice))
+	assert.Equal(t, afterFee, acc.Balance)
 	assert.Equal(t, receiverNonce, acc.Nonce)
 
 	receiverNonce++
@@ -262,7 +262,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	storedVal, _ := scAccount.DataTrieTracker().RetrieveValue([]byte("a"))
 	storedValBI := big.NewInt(0).SetBytes(storedVal)
 
-	assert.Equal(t, big.NewInt(int64(initialValueForInternalVariable+addValue)), storedValBI)
+	assert.Equal(t, big.NewInt(int64(initialValueForInternalVariable + addValue)), storedValBI)
 }
 
 // Test within a network of two shards the following situation
@@ -276,7 +276,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	generalRoundNumber := uint32(1)
+	generalRoundNumber := uint64(1)
 	scShard := uint32(0)
 	accShard := uint32(1)
 	accNonce := uint64(1)
@@ -381,7 +381,7 @@ func processAndTestSmartContractCallInSender(
 	contractCallTx *transaction.Transaction,
 	proposerNodeShardAccount *testNode,
 	accountShardAddressBytes []byte,
-	generalRoundNumber uint32,
+	generalRoundNumber uint64,
 	mintingValue *big.Int,
 	scNonce uint64,
 ) {
@@ -392,9 +392,8 @@ func processAndTestSmartContractCallInSender(
 
 	// Test again that the gas for calling the smart contract was substracted from the sender's account
 	acc, _ := proposerNodeShardAccount.node.GetAccount(hex.EncodeToString(accountShardAddressBytes))
-	// TODO: Afrer fees are implemented, from mintingValue we should substract gasLimit + fees until the other shard executes
-	//  the smart contract and a refund can be made with the remaining value the following rounds
-	assert.Equal(t, mintingValue, acc.Balance)
+	afterFee := big.NewInt(0).Sub(mintingValue, big.NewInt(0).SetUint64(contractCallTx.GasLimit*contractCallTx.GasPrice))
+	assert.Equal(t, afterFee, acc.Balance)
 	assert.Equal(t, scNonce, acc.Nonce)
 }
 
@@ -414,7 +413,7 @@ func processAndTestSmartContractCallInDestination(t *testing.T, contractCallTx *
 	strCache := process.ShardCacherIdentifier(accShard, scShard)
 	proposerNodeShardSC.dPool.Transactions().ShardDataStore(strCache).Put(txHash, contractCallTx)
 	proposerNodeShardSC.txCoordinator.RequestBlockTransactions(blockBody)
-	_ = proposerNodeShardSC.txCoordinator.ProcessBlockTransaction(blockBody, uint32(scNonce), haveTime)
+	_ = proposerNodeShardSC.txCoordinator.ProcessBlockTransaction(blockBody, scNonce, haveTime)
 	_ = proposerNodeShardSC.txCoordinator.SaveBlockDataToStorage(blockBody)
 
 	_, err := proposerNodeShardSC.accntState.Commit()
@@ -428,7 +427,7 @@ func processAndTestSmartContractCallInDestination(t *testing.T, contractCallTx *
 }
 
 func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNode, proposerNodeShardAccount *testNode,
-	accountShardAddressBytes []byte, accShard uint32, generalRoundNumber uint32, mintingValue *big.Int, withdrawValue uint64) {
+	accountShardAddressBytes []byte, accShard uint32, generalRoundNumber uint64, mintingValue *big.Int, withdrawValue uint64) {
 	mbs := proposerNodeShardSC.scrForwarder.CreateAllInterMiniBlocks()
 	mb, _ := mbs[accShard]
 	assert.NotNil(t, mb)
@@ -443,7 +442,7 @@ func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNo
 		_ = testMarshalizer.Unmarshal(tx, txBytes)
 
 		// Now execute transaction back into the account shard
-		proposerNodeShardAccount.txProcessor.ProcessTransaction(tx, generalRoundNumber)
+		_ = proposerNodeShardAccount.txProcessor.ProcessTransaction(tx, generalRoundNumber)
 		generalRoundNumber++
 	}
 	_, err := proposerNodeShardAccount.accntState.Commit()
@@ -453,7 +452,7 @@ func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNo
 	//  - Initial balance + withdraw value - fees
 	// TODO: Fees and gas should be taken into consideration when the fees are implemented - now we have extra money
 	//  from the gas returned since the gas was not substracted in the first place
-	finalValue := big.NewInt(0).Add(mintingValue, big.NewInt(int64(withdrawValue+uint64(gasLimit-1*gasPrice))))
+	finalValue := big.NewInt(0).Add(mintingValue, big.NewInt(int64(withdrawValue-1)))
 	acc, _ := proposerNodeShardAccount.node.GetAccount(hex.EncodeToString(accountShardAddressBytes))
 	assert.Equal(t, finalValue, acc.Balance)
 }

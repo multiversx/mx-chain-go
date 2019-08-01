@@ -319,6 +319,8 @@ func createNetNode(
 		100,
 	)
 
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(testAddressConverter, shardCoordinator, accntAdapter)
+
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,
 		testHasher,
@@ -326,6 +328,8 @@ func createNetNode(
 		testMarshalizer,
 		shardCoordinator,
 		&mock.SCProcessorMock{},
+		&mock.UnsignedTxHandlerMock{},
+		txTypeHandler,
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
@@ -810,6 +814,7 @@ func createMetaNetNode(
 		store,
 		genesisBlocks,
 		requestHandler,
+		uint64Converter,
 	)
 
 	_ = tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])

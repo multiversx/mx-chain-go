@@ -29,7 +29,7 @@ func TestMetaBlockTracker_BlockBroadcastRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
 	mbt, _ := track.NewMetaBlockTracker()
-	assert.Equal(t, int32(0), mbt.BlockBroadcastRound(1))
+	assert.Equal(t, int64(0), mbt.BlockBroadcastRound(1))
 }
 
 func TestMetaBlockTracker_RemoveNotarisedBlocksShouldWork(t *testing.T) {

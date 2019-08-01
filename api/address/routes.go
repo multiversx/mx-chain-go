@@ -1,6 +1,7 @@
 package address
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -20,6 +21,7 @@ type accountResponse struct {
 	Address  string `json:"address"`
 	Nonce    uint64 `json:"nonce"`
 	Balance  string `json:"balance"`
+	Code     string `json:"code"`
 	CodeHash []byte `json:"codeHash"`
 	RootHash []byte `json:"rootHash"`
 }
@@ -76,6 +78,7 @@ func accountResponseFromBaseAccount(address string, account *state.Account) acco
 		Address:  address,
 		Nonce:    account.Nonce,
 		Balance:  account.Balance.String(),
+		Code:     hex.EncodeToString(account.GetCode()),
 		CodeHash: account.CodeHash,
 		RootHash: account.RootHash,
 	}

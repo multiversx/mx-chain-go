@@ -8,7 +8,7 @@ import (
 
 // Rounder defines the actions which should be handled by a round implementation
 type Rounder interface {
-	Index() int32
+	Index() int64
 	// UpdateRound updates the index and the time stamp of the round depending of the genesis time and the current time given
 	UpdateRound(time.Time, time.Time)
 	TimeStamp() time.Time
@@ -52,7 +52,7 @@ type BroadcastMessenger interface {
 	BroadcastBlock(data.BodyHandler, data.HeaderHandler) error
 	BroadcastHeader(data.HeaderHandler) error
 	BroadcastMiniBlocks(map[uint32][]byte) error
-	BroadcastTransactions(map[uint32][][]byte) error
+	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
 }
 

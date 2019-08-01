@@ -334,10 +334,13 @@ func createNetNode(
 		testMarshalizer,
 		testHasher,
 		testAddressConverter,
+		&mock.SpecialAddressHandlerMock{},
 		store,
 	)
 	interimProcContainer, _ := interimProcFactory.Create()
 	scForwarder, _ := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	txFeeInter, _ := interimProcContainer.Get(dataBlock.TxFeeBlock)
+	txFeeHandler, _ := txFeeInter.(process.UnsignedTxHandler)
 
 	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter)
 	argsParser, _ := smartContract.NewAtArgumentParser()
@@ -351,7 +354,10 @@ func createNetNode(
 		addrConv,
 		shardCoordinator,
 		scForwarder,
+		txFeeHandler,
 	)
+
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,
@@ -360,6 +366,8 @@ func createNetNode(
 		testMarshalizer,
 		shardCoordinator,
 		scProcessor,
+		txFeeHandler,
+		txTypeHandler,
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
@@ -739,6 +747,7 @@ func createMetaNetNode(
 		store,
 		genesisBlocks,
 		requestHandler,
+		uint64Converter,
 	)
 
 	_ = tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])

@@ -9,8 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -21,9 +19,6 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
 
 	dPoolRequester := createTestDataPool()
 	dPoolResolver := createTestDataPool()
@@ -74,23 +69,23 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	tx := transaction.Transaction{
 		Nonce:   0,
 		Value:   big.NewInt(0),
-		RcvAddr: hasher.Compute("receiver"),
+		RcvAddr: testHasher.Compute("receiver"),
 		SndAddr: buffPk1,
 		Data:    "tx notarized data",
 	}
 
-	txBuff, _ := marshalizer.Marshal(&tx)
+	txBuff, _ := testMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
 
 	tx.Signature, _ = signer.Sign(sk1, txBuff)
 
-	signedTxBuff, _ := marshalizer.Marshal(&tx)
+	signedTxBuff, _ := testMarshalizer.Marshal(&tx)
 
 	fmt.Printf("Transaction: %v\n%v\n", tx, string(signedTxBuff))
 
 	chanDone := make(chan bool)
 
-	txHash := hasher.Compute(string(signedTxBuff))
+	txHash := testHasher.Compute(string(signedTxBuff))
 
 	//step 2. wire up a received handler for requester
 	dPoolRequester.Transactions().RegisterHandler(func(key []byte) {

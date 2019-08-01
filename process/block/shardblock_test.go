@@ -638,7 +638,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		accounts,
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint64) error {
 				return process.ErrHigherNonceInTransaction
 			},
 		},
@@ -789,7 +789,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 		},
 	}
 	err := sp.ProcessBlock(blkc, hdr, body, haveTime)
-	assert.Equal(t, process.ErrInvalidBlockHash, err)
+	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 }
 
 func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldRevertState(t *testing.T) {
@@ -846,7 +846,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	}
 
 	err := errors.New("process block transaction error")
-	txProcess := func(transaction *transaction.Transaction, round uint32) error {
+	txProcess := func(transaction *transaction.Transaction, round uint64) error {
 		return err
 	}
 
@@ -1663,6 +1663,7 @@ func TestShardProcessor_RequestFinalMissingHeaders(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
+	sp.SetCurrHighestMetaHdrNonce(1)
 	res := sp.RequestFinalMissingHeaders()
 	assert.Equal(t, res > 0, true)
 }
@@ -2510,7 +2511,7 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	)
 	assert.NotNil(t, sp)
 	hdr.PrevHash = hasher.Compute("prev hash")
-	blproc.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp)
+	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp)
 }
 
 func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
@@ -3078,9 +3079,10 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
-	miniBlockSlice, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, 2, haveTimeReturnsBool)
+	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, 2, haveTimeReturnsBool)
 	assert.Equal(t, err == nil, true)
 	assert.Equal(t, len(miniBlockSlice) == 0, true)
+	assert.Equal(t, len(usedMetaHdrsHashes) == 0, true)
 	assert.Equal(t, noOfTxs, uint32(0))
 }
 
@@ -3126,7 +3128,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	tx3ExecutionResult := uint64(0)
 
 	txProcessorMock := &mock.TxProcessorMock{
-		ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint32) error {
+		ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint64) error {
 			//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 			if transaction.Data == string(txHash1) {
 				tx1ExecutionResult = transaction.Nonce
@@ -3619,7 +3621,7 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.RandSeed = currRandSeed
 	currHdr.PrevHash = []byte("wronghash")
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrInvalidBlockHash)
+	assert.Equal(t, err, process.ErrNotarizedBlockHashDoesNotMatch)
 
 	currHdr.PrevHash = prevHash
 	prevHdr.RootHash = []byte("prevRootHash")

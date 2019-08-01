@@ -70,21 +70,19 @@ func initNodesAndTest(
 					header.GetNonce(),
 					getPkEncoded(nodes[0][i].pk),
 				)
-				return process.ErrInvalidBlockHash
+				return process.ErrBlockHashDoesNotMatch
 			}
 			nodes[0][i].blkProcessor.CreateBlockHeaderCalled = func(
 				body data.BodyHandler,
-				round uint32,
+				round uint64,
 				haveTime func() bool,
 			) (handler data.HeaderHandler, e error) {
-
 				return nil, process.ErrAccountStateDirty
 			}
 			nodes[0][i].blkProcessor.CreateBlockCalled = func(
-				round uint32,
+				round uint64,
 				haveTime func() bool,
 			) (handler data.BodyHandler, e error) {
-
 				return nil, process.ErrWrongTypeAssertion
 			}
 		}
@@ -93,7 +91,7 @@ func initNodesAndTest(
 	return nodes[0], advertiser, concMap
 }
 
-func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRoundMap map[uint32]uint64, totalCalled *int) {
+func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) {
 	for _, n := range nodes {
 		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 			n.blkProcessor.NrCommitBlockCalled++
@@ -111,13 +109,13 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 	}
 }
 
-func checkBlockProposedEveryRound(numCommBlock uint32, nonceForRoundMap map[uint32]uint64, mutex *sync.Mutex, chDone chan bool, t *testing.T) {
+func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint64]uint64, mutex *sync.Mutex, chDone chan bool, t *testing.T) {
 	for {
 		mutex.Lock()
 
-		minRound := ^uint32(0)
-		maxRound := uint32(0)
-		if uint32(len(nonceForRoundMap)) >= numCommBlock {
+		minRound := ^uint64(0)
+		maxRound := uint64(0)
+		if uint64(len(nonceForRoundMap)) >= numCommBlock {
 			for k := range nonceForRoundMap {
 				if k > maxRound {
 					maxRound = k
@@ -153,7 +151,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	consensusSize := uint32(4)
 	numInvalid := uint32(0)
 	roundTime := uint64(4000)
-	numCommBlock := uint32(10)
+	numCommBlock := uint64(10)
 	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
 	mutex := &sync.Mutex{}
@@ -168,14 +166,14 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second * 1)
 
-	nonceForRoundMap := make(map[uint32]uint64)
+	nonceForRoundMap := make(map[uint64]uint64)
 	totalCalled := 0
 	startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
 
 	chDone := make(chan bool, 0)
 	go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
 
-	extraTime := uint32(2)
+	extraTime := uint64(2)
 	endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
 	select {
 	case <-chDone:
@@ -223,7 +221,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second * 1)
 
-	nonceForRoundMap := make(map[uint32]uint64)
+	nonceForRoundMap := make(map[uint64]uint64)
 	totalCalled := 0
 	startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
 

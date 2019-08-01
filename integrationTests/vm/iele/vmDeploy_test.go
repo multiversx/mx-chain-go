@@ -14,7 +14,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
@@ -34,7 +34,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 
 	err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
@@ -42,7 +42,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(99922044)
+	expectedBalance := big.NewInt(99999811)
 	vm.TestAccount(
 		t,
 		accnts,
@@ -64,7 +64,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
-	round := uint32(444)
+	round := uint64(444)
 	gasPrice := uint64(1)
 	//less than requirement
 	gasLimit := uint64(100)
@@ -85,7 +85,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 
 	err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)

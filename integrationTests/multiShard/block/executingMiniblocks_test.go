@@ -34,6 +34,8 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	valMinting := big.NewInt(100)
 	valToTransferPerTx := big.NewInt(2)
+	gasPricePerTx := uint64(2)
+	gasLimitPerTx := uint64(2)
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -81,7 +83,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	}
 
 	fmt.Println("Step 3. Generating transactions...")
-	generateAndDisseminateTxs(proposerNode.node, sendersPrivateKeys, receiversPrivateKeys, valToTransferPerTx)
+	generateAndDisseminateTxs(proposerNode.node, sendersPrivateKeys, receiversPrivateKeys, valToTransferPerTx, gasPricePerTx, gasPricePerTx)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
 
@@ -89,7 +91,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	createMintingForSenders(nodes[senderShard], senderShard, sendersPrivateKeys, valMinting)
 
 	fmt.Println("Step 5. Proposer creates block body and header with all available transactions...")
-	blockBody, blockHeader := proposeBlock(t, proposerNode, uint32(1))
+	blockBody, blockHeader := proposeBlock(t, proposerNode, uint64(1))
 	_ = proposerNode.broadcastMessenger.BroadcastBlock(blockBody, blockHeader)
 	_ = proposerNode.broadcastMessenger.BroadcastHeader(blockHeader)
 	miniBlocks, transactions, _ := proposerNode.blkProcessor.MarshalizedDataToBroadcast(blockHeader, blockBody)
@@ -100,7 +102,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
 
-	blockBody, blockHeader = proposeBlock(t, proposerNode, uint32(2))
+	blockBody, blockHeader = proposeBlock(t, proposerNode, uint64(2))
 	_ = proposerNode.broadcastMessenger.BroadcastBlock(blockBody, blockHeader)
 	_ = proposerNode.broadcastMessenger.BroadcastHeader(blockHeader)
 	miniBlocks, transactions, _ = proposerNode.blkProcessor.MarshalizedDataToBroadcast(blockHeader, blockBody)
@@ -135,28 +137,28 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	metaNodeList := nodes[sharding.MetachainShardId]
 
 	metaNode := metaNodeList[len(metaNodeList)-1]
-	_, metaHeader := proposeMetaBlock(t, metaNode, uint32(1))
+	_, metaHeader := proposeMetaBlock(t, metaNode, uint64(1))
 	_ = metaNode.broadcastMessenger.BroadcastBlock(nil, metaHeader)
 	_ = metaNode.blkProcessor.CommitBlock(metaNode.blkc, metaHeader, &block.MetaBlockBody{})
 	fmt.Println("Delaying for disseminating meta header...")
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
 
-	_, metaHeader = proposeMetaBlock(t, metaNode, uint32(2))
+	_, metaHeader = proposeMetaBlock(t, metaNode, uint64(2))
 	_ = metaNode.broadcastMessenger.BroadcastBlock(nil, metaHeader)
 	_ = metaNode.blkProcessor.CommitBlock(metaNode.blkc, metaHeader, &block.MetaBlockBody{})
 	fmt.Println("Delaying for disseminating meta header...")
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
 
-	_, metaHeader = proposeMetaBlock(t, metaNode, uint32(3))
+	_, metaHeader = proposeMetaBlock(t, metaNode, uint64(3))
 	_ = metaNode.broadcastMessenger.BroadcastBlock(nil, metaHeader)
 	_ = metaNode.blkProcessor.CommitBlock(metaNode.blkc, metaHeader, &block.MetaBlockBody{})
 	fmt.Println("Delaying for disseminating meta header...")
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
 
-	_, metaHeader = proposeMetaBlock(t, metaNode, uint32(4))
+	_, metaHeader = proposeMetaBlock(t, metaNode, uint64(4))
 	_ = metaNode.broadcastMessenger.BroadcastBlock(nil, metaHeader)
 	_ = metaNode.blkProcessor.CommitBlock(metaNode.blkc, metaHeader, &block.MetaBlockBody{})
 	fmt.Println("Delaying for disseminating meta header...")
@@ -174,6 +176,12 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		for _, sk := range sendersPrivateKeys {
 			valTransferred := big.NewInt(0).Mul(valToTransferPerTx, big.NewInt(int64(len(receiversPrivateKeys))))
 			valRemaining := big.NewInt(0).Sub(valMinting, valTransferred)
+
+			consumedFee := big.NewInt(0)
+			consumedFee = consumedFee.Mul(big.NewInt(0).SetUint64(gasPricePerTx), big.NewInt(0).SetUint64(gasLimitPerTx))
+			consumedFee = consumedFee.Mul(consumedFee, big.NewInt(int64(len(receiversPrivateKeys))))
+
+			valRemaining = valRemaining.Sub(valRemaining, consumedFee)
 			testPrivateKeyHasBalance(t, n, sk, valRemaining)
 		}
 		//test receiver balances from same shard
@@ -189,7 +197,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		receiverProposer := nodes[shardId][0]
 		firstReceiverNodes = append(firstReceiverNodes, receiverProposer)
 
-		body, header := proposeBlock(t, receiverProposer, uint32(1))
+		body, header := proposeBlock(t, receiverProposer, uint64(1))
 		_ = receiverProposer.broadcastMessenger.BroadcastBlock(body, header)
 		_ = receiverProposer.broadcastMessenger.BroadcastHeader(header)
 		miniBlocks, transactions, _ := proposerNode.blkProcessor.MarshalizedDataToBroadcast(header, body)
@@ -205,7 +213,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	for _, shardId := range recvShards {
 		receiverProposer := nodes[shardId][0]
 
-		body, header := proposeBlock(t, receiverProposer, uint32(2))
+		body, header := proposeBlock(t, receiverProposer, uint64(2))
 		_ = receiverProposer.broadcastMessenger.BroadcastBlock(body, header)
 		_ = receiverProposer.broadcastMessenger.BroadcastHeader(header)
 		miniBlocks, transactions, _ := proposerNode.blkProcessor.MarshalizedDataToBroadcast(header, body)
@@ -220,7 +228,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	for _, shardId := range recvShards {
 		receiverProposer := nodes[shardId][0]
 
-		body, header := proposeBlock(t, receiverProposer, uint32(3))
+		body, header := proposeBlock(t, receiverProposer, uint64(3))
 		_ = receiverProposer.broadcastMessenger.BroadcastBlock(body, header)
 		_ = receiverProposer.broadcastMessenger.BroadcastHeader(header)
 		miniBlocks, transactions, _ := proposerNode.blkProcessor.MarshalizedDataToBroadcast(header, body)
@@ -235,7 +243,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	for _, shardId := range recvShards {
 		receiverProposer := nodes[shardId][0]
 
-		body, header := proposeBlock(t, receiverProposer, uint32(4))
+		body, header := proposeBlock(t, receiverProposer, uint64(4))
 		_ = receiverProposer.broadcastMessenger.BroadcastBlock(body, header)
 		_ = receiverProposer.broadcastMessenger.BroadcastHeader(header)
 		miniBlocks, transactions, _ := proposerNode.blkProcessor.MarshalizedDataToBroadcast(header, body)
@@ -358,6 +366,8 @@ func generateAndDisseminateTxs(
 	senders []crypto.PrivateKey,
 	receiversPrivateKeys map[uint32][]crypto.PrivateKey,
 	valToTransfer *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
 ) {
 
 	for i := 0; i < len(senders); i++ {
@@ -365,15 +375,15 @@ func generateAndDisseminateTxs(
 		incrementalNonce := uint64(0)
 		for _, recvPrivateKeys := range receiversPrivateKeys {
 			receiverKey := recvPrivateKeys[i]
-			tx := generateTransferTx(incrementalNonce, senderKey, receiverKey, valToTransfer)
+			tx := generateTransferTx(incrementalNonce, senderKey, receiverKey, valToTransfer, gasPrice, gasLimit)
 			_, _ = n.SendTransaction(
 				tx.Nonce,
 				hex.EncodeToString(tx.SndAddr),
 				hex.EncodeToString(tx.RcvAddr),
 				tx.Value,
-				0,
-				0,
-				string(tx.Data),
+				tx.GasPrice,
+				tx.GasLimit,
+				tx.Data,
 				tx.Signature,
 			)
 			incrementalNonce++
@@ -385,14 +395,19 @@ func generateTransferTx(
 	nonce uint64,
 	sender crypto.PrivateKey,
 	receiver crypto.PrivateKey,
-	valToTransfer *big.Int) *transaction.Transaction {
+	valToTransfer *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
+) *transaction.Transaction {
 
 	tx := transaction.Transaction{
-		Nonce:   nonce,
-		Value:   valToTransfer,
-		RcvAddr: skToPk(receiver),
-		SndAddr: skToPk(sender),
-		Data:    "",
+		Nonce:    nonce,
+		Value:    valToTransfer,
+		RcvAddr:  skToPk(receiver),
+		SndAddr:  skToPk(sender),
+		Data:     "",
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
 	}
 	txBuff, _ := testMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
@@ -408,7 +423,7 @@ func testPrivateKeyHasBalance(t *testing.T, n *testNode, sk crypto.PrivateKey, e
 	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
 }
 
-func proposeBlock(t *testing.T, proposer *testNode, round uint32) (data.BodyHandler, data.HeaderHandler) {
+func proposeBlock(t *testing.T, proposer *testNode, round uint64) (data.BodyHandler, data.HeaderHandler) {
 	haveTime := func() bool { return true }
 
 	blockBody, err := proposer.blkProcessor.CreateBlockBody(round, haveTime)
@@ -434,7 +449,7 @@ func proposeBlock(t *testing.T, proposer *testNode, round uint32) (data.BodyHand
 	return blockBody, blockHeader
 }
 
-func proposeMetaBlock(t *testing.T, proposer *testNode, round uint32) (data.BodyHandler, data.HeaderHandler) {
+func proposeMetaBlock(t *testing.T, proposer *testNode, round uint64) (data.BodyHandler, data.HeaderHandler) {
 	metaHeader, err := proposer.blkProcessor.CreateBlockHeader(nil, round, func() bool { return true })
 	assert.Nil(t, err)
 

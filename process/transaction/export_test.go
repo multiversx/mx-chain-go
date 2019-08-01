@@ -2,12 +2,16 @@ package transaction
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 )
 
 type TxProcessor *txProcessor
+
+var mutex sync.Mutex
 
 func (txProc *txProcessor) GetAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
 	return txProc.getAddresses(tx)
@@ -28,4 +32,16 @@ func (txProc *txProcessor) MoveBalances(acntSrc, acntDst *state.Account, value *
 
 func (txProc *txProcessor) IncreaseNonce(acntSrc *state.Account) error {
 	return txProc.increaseNonce(acntSrc)
+}
+
+func (txProc *txProcessor) SetMinTxFee(minTxFee uint64) {
+	mutex.Lock()
+	unsigned.MinTxFee = minTxFee
+	mutex.Unlock()
+}
+
+func (txProc *txProcessor) SetMinGasPrice(minGasPrice uint64) {
+	mutex.Lock()
+	unsigned.MinGasPrice = minGasPrice
+	mutex.Unlock()
 }

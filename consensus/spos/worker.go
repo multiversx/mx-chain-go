@@ -398,8 +398,8 @@ func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 func (wrk *Worker) BroadcastUnnotarisedBlocks() {
 	headers := wrk.blockTracker.UnnotarisedBlocks()
 	for _, header := range headers {
-		brodcastRound := wrk.blockTracker.BlockBroadcastRound(header.GetNonce())
-		if brodcastRound >= wrk.consensusState.RoundIndex-MaxRoundsGap {
+		broadcastRound := wrk.blockTracker.BlockBroadcastRound(header.GetNonce())
+		if broadcastRound >= wrk.consensusState.RoundIndex-MaxRoundsGap {
 			continue
 		}
 

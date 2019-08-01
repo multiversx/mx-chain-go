@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -85,8 +86,24 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		addrConv,
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.UnsignedTxHandlerMock{},
 	)
-	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
+
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(
+		addrConv,
+		oneShardCoordinator,
+		accnts)
+
+	txProcessor, _ := transaction.NewTxProcessor(
+		accnts,
+		testHasher,
+		addrConv,
+		testMarshalizer,
+		oneShardCoordinator,
+		scProcessor,
+		&mock.UnsignedTxHandlerMock{},
+		txTypeHandler,
+	)
 
 	return txProcessor
 }
@@ -101,14 +118,17 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 	cryptoHook := hooks.NewVMCryptoHook()
-	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, endpoint.Danse)
+	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, endpoint.ElrondTestnet)
 	//Uncomment this to enable trace printing of the vm
 	//vm.SetTracePretty()
 
 	return vm, blockChainHook
 }
 
-func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) process.TransactionProcessor {
+func CreateTxProcessorWithOneSCExecutorIeleVM(
+	accnts state.AccountsAdapter,
+) (process.TransactionProcessor, vmcommon.BlockchainHook) {
+
 	vm, blockChainHook := CreateVMAndBlockchainHook(accnts)
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
@@ -121,10 +141,26 @@ func CreateTxProcessorWithOneSCExecutorIeleVM(accnts state.AccountsAdapter) proc
 		addrConv,
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.UnsignedTxHandlerMock{},
 	)
-	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
 
-	return txProcessor
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(
+		addrConv,
+		oneShardCoordinator,
+		accnts)
+
+	txProcessor, _ := transaction.NewTxProcessor(
+		accnts,
+		testHasher,
+		addrConv,
+		testMarshalizer,
+		oneShardCoordinator,
+		scProcessor,
+		&mock.UnsignedTxHandlerMock{},
+		txTypeHandler,
+	)
+
+	return txProcessor, blockChainHook
 }
 
 func TestDeployedContractContents(
@@ -171,19 +207,19 @@ func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 }
 
 func CreatePreparedTxProcessorAndAccountsWithIeleVM(
-	t *testing.T,
+	tb testing.TB,
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
-) (process.TransactionProcessor, state.AccountsAdapter) {
+) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
 
 	accnts := CreateInMemoryShardAccountsDB()
 	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
-	txProcessor := CreateTxProcessorWithOneSCExecutorIeleVM(accnts)
-	assert.NotNil(t, txProcessor)
+	txProcessor, blockchainHook := CreateTxProcessorWithOneSCExecutorIeleVM(accnts)
+	assert.NotNil(tb, txProcessor)
 
-	return txProcessor, accnts
+	return txProcessor, accnts, blockchainHook
 }
 
 func CreatePreparedTxProcessorAndAccountsWithMockedVM(
@@ -204,7 +240,7 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 }
 
 func CreateTx(
-	t *testing.T,
+	tb testing.TB,
 	senderAddressBytes []byte,
 	receiverAddressBytes []byte,
 	senderNonce uint64,
@@ -224,7 +260,7 @@ func CreateTx(
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 	}
-	assert.NotNil(t, tx)
+	assert.NotNil(tb, tx)
 
 	return tx
 }
@@ -257,4 +293,12 @@ func ComputeExpectedBalance(
 	expectedSenderBalance.Sub(expectedSenderBalance, gasFunds)
 
 	return expectedSenderBalance
+}
+
+func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int {
+	address, _ := addrConv.CreateAddressFromPublicKeyBytes(addrBytes)
+	accnt, _ := accnts.GetExistingAccount(address)
+	shardAccnt, _ := accnt.(*state.Account)
+
+	return shardAccnt.Balance
 }

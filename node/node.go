@@ -97,7 +97,7 @@ type Node struct {
 	isMetachainActive        bool
 	txStorageSize            uint32
 	currentSendingGoRoutines int32
-	bootstrapRoundIndex      uint32
+	bootstrapRoundIndex      uint64
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -645,6 +645,7 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 		n.privKey,
 		n.marshalizer,
 		HeartbeatTopic,
+		n.shardCoordinator,
 	)
 	if err != nil {
 		return err
@@ -656,7 +657,6 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 	}
 
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
-		n.messenger,
 		n.singleSigner,
 		n.keyGen,
 		n.marshalizer,

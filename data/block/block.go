@@ -34,8 +34,10 @@ const (
 	PeerBlock Type = 2
 	// SmartContractResultBlock identifies a miniblock holding smartcontractresults
 	SmartContractResultBlock Type = 3
+	// TxFeeBlock identifies a miniblock holding accumulated transaction fees
+	TxFeeBlock Type = 4
 	// InvalidBlock identifies identifies an invalid miniblock
-	InvalidBlock Type = 4
+	InvalidBlock Type = 5
 )
 
 // String returns the string representation of the Type
@@ -90,7 +92,7 @@ type Header struct {
 	PubKeysBitmap    []byte            `capid:"4"`
 	ShardId          uint32            `capid:"5"`
 	TimeStamp        uint64            `capid:"6"`
-	Round            uint32            `capid:"7"`
+	Round            uint64            `capid:"7"`
 	Epoch            uint32            `capid:"8"`
 	BlockBodyType    Type              `capid:"9"`
 	Signature        []byte            `capid:"10"`
@@ -355,7 +357,7 @@ func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.Mini
 	return dest
 }
 
-// GetShardId returns header shard id
+// GetShardID returns header shard id
 func (h *Header) GetShardID() uint32 {
 	return h.ShardId
 }
@@ -371,7 +373,7 @@ func (h *Header) GetEpoch() uint32 {
 }
 
 // GetRound returns round from header
-func (h *Header) GetRound() uint32 {
+func (h *Header) GetRound() uint64 {
 	return h.Round
 }
 
@@ -426,7 +428,7 @@ func (h *Header) SetEpoch(e uint32) {
 }
 
 // SetRound sets header round
-func (h *Header) SetRound(r uint32) {
+func (h *Header) SetRound(r uint64) {
 	h.Round = r
 }
 
@@ -518,4 +520,15 @@ func (h *Header) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// ItemsInHeader gets the number of items(hashes) added in block header
+func (h *Header) ItemsInHeader() uint32 {
+	itemsInHeader := len(h.MiniBlockHeaders) + len(h.PeerChanges) + len(h.MetaBlockHashes)
+	return uint32(itemsInHeader)
+}
+
+// ItemsInBody gets the number of items(hashes) added in block body
+func (h *Header) ItemsInBody() uint32 {
+	return h.TxCount
 }

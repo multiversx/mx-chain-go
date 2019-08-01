@@ -202,7 +202,13 @@ VERSION:
 	bootstrapRoundIndex = cli.UintFlag{
 		Name:  "bootstrap-round-index",
 		Usage: "Bootstrap round index specifies the round index from which node should bootstrap from storage",
-		Value: math.MaxUint32,
+		Value: math.MaxUint64,
+	}
+	// enableTxIndexing enables transaction indexing. There can be cases when it's too expensive to index all transactions
+	//  so we provide the command line option to disable this behaviour
+	enableTxIndexing = cli.BoolTFlag{
+		Name:  "tx-indexing",
+		Usage: "Enables transaction indexing. There can be cases when it's too expensive to index all transactions so we provide the command line option to disable this behaviour",
 	}
 
 	// workingDirectory defines a flag for the path for the working directory.
@@ -236,7 +242,7 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = "v1.0.9"
+	app.Version = "v1.0.11"
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
@@ -260,6 +266,7 @@ func main() {
 		logLevel,
 		usePrometheus,
 		bootstrapRoundIndex,
+		enableTxIndexing,
 		workingDirectory,
 		destinationShardAsObserver,
 	}
@@ -514,6 +521,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	if generalConfig.Explorer.Enabled {
 		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
 		dbIndexer, err = CreateElasticIndexer(
+			ctx,
 			serversConfigurationFileName,
 			generalConfig.Explorer.IndexerURL,
 			shardCoordinator,
@@ -563,7 +571,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		cryptoComponents,
 		processComponents,
 		networkComponents,
-		uint32(ctx.GlobalUint(bootstrapRoundIndex.Name)),
+		uint64(ctx.GlobalUint(bootstrapRoundIndex.Name)),
 	)
 	if err != nil {
 		return err
@@ -591,6 +599,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		RestApiPort:       ctx.GlobalString(restApiPort.Name),
 		Prometheus:        ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable,
 		PrometheusJoinURL: prometheusJoinUrl,
+		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
 
 	ef.SetLogger(log)
@@ -787,6 +796,7 @@ func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConf
 // CreateElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
 func CreateElasticIndexer(
+	ctx *cli.Context,
 	serversConfigurationFileName string,
 	url string,
 	coordinator sharding.Coordinator,
@@ -805,7 +815,9 @@ func CreateElasticIndexer(
 		serversConfig.ElasticSearch.Password,
 		coordinator,
 		marshalizer,
-		hasher, log)
+		hasher,
+		log,
+		&indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)})
 	if err != nil {
 		return nil, err
 	}
@@ -839,7 +851,7 @@ func createNode(
 	crypto *factory.Crypto,
 	process *factory.Process,
 	network *factory.Network,
-	bootstrapRoundIndex uint32,
+	bootstrapRoundIndex uint64,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -882,6 +894,11 @@ func createNode(
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
+	}
+
+	err = nd.StartHeartbeat(config.Heartbeat)
+	if err != nil {
+		return nil, err
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -994,7 +1011,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 func createApiResolver(vmAccountsDB vmcommon.BlockchainHook) (facade.ApiResolver, error) {
 	//TODO replace this with a vm factory
 	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.Danse)
+	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.ElrondTestnet)
 
 	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
 	if err != nil {
