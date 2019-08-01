@@ -19,6 +19,7 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	accountfactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -42,9 +43,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
-	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
 )
 
 // TestHasher represents a Sha256 hasher
@@ -126,7 +126,7 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 	tpn.initCrypto(txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initStorage()
-	tpn.AccntState = CreateAccountsDB(factory2.UserAccount)
+	tpn.AccntState = CreateAccountsDB(accountfactory.UserAccount)
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initInterceptors()

@@ -2,28 +2,29 @@ package coordinator
 
 import (
 	"bytes"
+	"errors"
+	"math/big"
 	"reflect"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"math/big"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"time"
-	"sync/atomic"
-	"sync"
-	"errors"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 func initDataPool(testHash []byte) *mock.PoolsHolderStub {

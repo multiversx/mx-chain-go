@@ -12,6 +12,7 @@ import (
 	"sync"
 )
 
+// TODO: Set MinGasPrice and MinTxFee to some positive value (TBD)
 // MinGasPrice is the minimal gas price to be paid for any transaction
 var MinGasPrice = uint64(0)
 

@@ -10,11 +10,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 )
 
 func generateRandomByteSlice(size int) []byte {
