@@ -9,10 +9,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,41 +19,26 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
-
-	dPoolRequester := createTestDataPool()
-	dPoolResolver := createTestDataPool()
-
-	shardCoordinator := &sharding.OneShardCoordinator{}
+	hasher := integrationTests.TestHasher
+	marshalizer := integrationTests.TestMarshalizer
 
 	fmt.Println("Requester:	")
-	nRequester, mesRequester, _, resolversFinder := createNetNode(
-		dPoolRequester,
-		createTestStore(),
-		createAccountsDB(),
-		shardCoordinator,
-	)
+	nRequester := integrationTests.NewTestProcessorNode(1, 0, 0, "0")
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := createNetNode(
-		dPoolResolver,
-		createTestStore(),
-		createAccountsDB(),
-		shardCoordinator,
-	)
+	nResolver := integrationTests.NewTestProcessorNode(1, 0, 0, "1")
 
-	_ = nRequester.Start()
-	_ = nResolver.Start()
+	_ = nRequester.Node.Start()
+	_ = nResolver.Node.Start()
 
 	defer func() {
-		_ = nRequester.Stop()
-		_ = nResolver.Stop()
+		_ = nRequester.Node.Stop()
+		_ = nResolver.Node.Stop()
 	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := mesRequester.ConnectToPeer(getConnectableAddress(mesResolver))
+	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -78,14 +61,14 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	txBlockBodyHash := hasher.Compute(string(txBlockBodyBuff))
 
 	//Step 2. resolver has the tx block body
-	dPoolResolver.MiniBlocks().HasOrAdd(txBlockBodyHash, miniBlock)
+	nResolver.ShardDataPool.MiniBlocks().HasOrAdd(txBlockBodyHash, miniBlock)
 	fmt.Printf("Added %s to dPoolResolver\n", base64.StdEncoding.EncodeToString(txBlockBodyHash))
 
 	//Step 3. wire up a received handler
 	chanDone := make(chan bool)
 
-	dPoolRequester.MiniBlocks().RegisterHandler(func(key []byte) {
-		txBlockBodyStored, _ := dPoolRequester.MiniBlocks().Get(key)
+	nRequester.ShardDataPool.MiniBlocks().RegisterHandler(func(key []byte) {
+		txBlockBodyStored, _ := nRequester.ShardDataPool.MiniBlocks().Get(key)
 
 		if reflect.DeepEqual(txBlockBodyStored, miniBlock) {
 			chanDone <- true
@@ -96,7 +79,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	})
 
 	//Step 4. request tx block body
-	txBlockBodyRequester, _ := resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
+	txBlockBodyRequester, _ := nRequester.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	miniBlockRequester := txBlockBodyRequester.(dataRetriever.MiniBlocksResolver)
 	miniBlockHashes[0] = txBlockBodyHash
 	_ = miniBlockRequester.RequestDataFromHashArray(miniBlockHashes)

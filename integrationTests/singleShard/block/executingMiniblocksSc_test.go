@@ -242,7 +242,7 @@ func syncBlock(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxPro
 			continue
 		}
 
-		err := n.SyncNode(uint64(round))
+		err := n.SyncNode(round)
 		if err != nil {
 			assert.Fail(t, err.Error())
 			return
