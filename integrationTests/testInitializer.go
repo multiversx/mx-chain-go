@@ -10,13 +10,17 @@ import (
 	"math/big"
 	"strings"
 	"sync/atomic"
+	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -332,5 +336,297 @@ func mintAddressesFromSameShard(nodes []*TestProcessorNode, targetNodeIdx int, v
 		}
 
 		MintAddress(targetNode.AccntState, n.PkTxSignBytes, value)
+	}
+}
+
+// IncrementAndPrintRound increments the given variable, and prints the message for teh beginning of the round
+func IncrementAndPrintRound(round uint64) uint64 {
+	round++
+	fmt.Printf("#################################### ROUND %d BEGINS ####################################\n\n", round)
+
+	return round
+}
+
+// DeployScTx creates and sends a SC tx
+func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
+	fmt.Println("Deploying SC...")
+	txDeploy := createTxDeploy(nodes[senderIdx], scCode)
+	nodes[senderIdx].SendTransaction(txDeploy)
+	fmt.Println("Delaying for disseminating the deploy tx...")
+	time.Sleep(time.Second)
+
+	fmt.Println(MakeDisplayTable(nodes))
+}
+
+func createTxDeploy(tn *TestProcessorNode, scCode string) *transaction.Transaction {
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  make([]byte, 32),
+		SndAddr:  tn.PkTxSignBytes,
+		Data:     scCode,
+		GasPrice: 0,
+		GasLimit: 100000,
+	}
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
+
+	return tx
+}
+
+// ProposeBlock proposes a block with SC txs for every shard
+func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64) {
+	fmt.Println("All shards propose blocks...")
+	for idx, n := range nodes {
+		if !isIntInSlice(idx, idxProposers) {
+			continue
+		}
+
+		body, header, _ := n.ProposeBlock(round)
+		n.BroadcastBlock(body, header)
+		n.CommitBlock(body, header)
+	}
+
+	fmt.Println("Delaying for disseminating headers and miniblocks...")
+	time.Sleep(time.Second)
+	fmt.Println(MakeDisplayTable(nodes))
+}
+
+// SyncBlock synchronizes the proposed block in all the other shard nodes
+func SyncBlock(
+	t *testing.T,
+	nodes []*TestProcessorNode,
+	idxProposers []int,
+	round uint64,
+) {
+
+	fmt.Println("All other shard nodes sync the proposed block...")
+	for idx, n := range nodes {
+		if isIntInSlice(idx, idxProposers) {
+			continue
+		}
+
+		err := n.SyncNode(round)
+		if err != nil {
+			assert.Fail(t, err.Error())
+			return
+		}
+	}
+
+	time.Sleep(time.Second)
+	fmt.Println(MakeDisplayTable(nodes))
+}
+
+func isIntInSlice(idx int, slice []int) bool {
+	for _, value := range slice {
+		if value == idx {
+			return true
+		}
+	}
+
+	return false
+}
+
+// NodeJoinsGame creates and sends a join game transaction to the SC
+func NodeJoinsGame(
+	nodes []*TestProcessorNode,
+	idxNode int,
+	joinGameVal *big.Int,
+	round int,
+	scAddress []byte,
+) {
+
+	fmt.Println("Calling SC.joinGame...")
+	txScCall := createTxJoinGame(nodes[idxNode], joinGameVal, round, scAddress)
+	nodes[idxNode].SendTransaction(txScCall)
+	fmt.Println("Delaying for disseminating SC call tx...")
+	time.Sleep(time.Second)
+}
+
+func createTxJoinGame(
+	tn *TestProcessorNode,
+	joinGameVal *big.Int,
+	round int,
+	scAddress []byte,
+) *transaction.Transaction {
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    joinGameVal,
+		RcvAddr:  scAddress,
+		SndAddr:  tn.PkTxSignBytes,
+		Data:     fmt.Sprintf("joinGame@%d", round),
+		GasPrice: 0,
+		GasLimit: 100000,
+	}
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
+
+	fmt.Printf("Join %s\n", hex.EncodeToString(tn.PkTxSignBytes))
+
+	return tx
+}
+
+// NodeEndGame creates and sends an end game transaction to the SC
+func NodeEndGame(
+	nodes []*TestProcessorNode,
+	idxNode int,
+	txVal *big.Int,
+	round int,
+	scAddress []byte,
+) {
+
+	fmt.Println("Calling SC.endGame...")
+	txScCall := createTxEndGame(nodes[idxNode], round, txVal, scAddress)
+	nodes[idxNode].SendTransaction(txScCall)
+	time.Sleep(time.Second)
+
+	fmt.Println(MakeDisplayTable(nodes))
+}
+
+func createTxEndGame(
+	tn *TestProcessorNode,
+	round int,
+	txVal *big.Int,
+	scAddress []byte,
+) *transaction.Transaction {
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    txVal,
+		RcvAddr:  scAddress,
+		SndAddr:  tn.PkTxSignBytes,
+		Data:     fmt.Sprintf("endGame@%d", round),
+		GasPrice: 0,
+		GasLimit: 100000,
+	}
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
+
+	fmt.Printf("End %s\n", hex.EncodeToString(tn.PkTxSignBytes))
+
+	return tx
+}
+
+// NodeCallsRewardAndSend creates and sends reward transactions
+func NodeCallsRewardAndSend(
+	nodes []*TestProcessorNode,
+	idxNodeOwner int,
+	idxNodeUser int,
+	prize *big.Int,
+	round int,
+	scAddress []byte,
+) {
+
+	fmt.Println("Calling SC.rewardAndSendToWallet...")
+	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, round, scAddress)
+	nodes[idxNodeOwner].SendTransaction(txScCall)
+	fmt.Println("Delaying for disseminating SC call tx...")
+	time.Sleep(time.Second)
+}
+
+func createTxRewardAndSendToWallet(
+	tnOwner *TestProcessorNode,
+	tnUser *TestProcessorNode,
+	prizeVal *big.Int,
+	round int,
+	scAddress []byte,
+) *transaction.Transaction {
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  scAddress,
+		SndAddr:  tnOwner.PkTxSignBytes,
+		Data:     fmt.Sprintf("rewardAndSendToWallet@%d@%s@%X", round, hex.EncodeToString(tnUser.PkTxSignBytes), prizeVal),
+		GasPrice: 0,
+		GasLimit: 100000,
+	}
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = tnOwner.SingleSigner.Sign(tnOwner.SkTxSign, txBuff)
+
+	fmt.Printf("Reward %s\n", hex.EncodeToString(tnUser.PkTxSignBytes))
+
+	return tx
+}
+
+// CheckJoinGameIsDoneCorrectly checks if the join game tx was executed correctly
+func CheckJoinGameIsDoneCorrectly(
+	t *testing.T,
+	nodes []*TestProcessorNode,
+	idxNodeScExists int,
+	idxNodeCallerExists int,
+	initialVal *big.Int,
+	topUpVal *big.Int,
+	scAddressBytes []byte,
+) {
+
+	nodeWithSc := nodes[idxNodeScExists]
+	nodeWithCaller := nodes[idxNodeCallerExists]
+
+	fmt.Println("Checking SC account received topUp val...")
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(CreateAddresFromAddrBytes(scAddressBytes))
+	assert.NotNil(t, accnt)
+	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
+
+	fmt.Println("Checking sender has initial-topUp val...")
+	expectedVal := big.NewInt(0).Set(initialVal)
+	expectedVal.Sub(expectedVal, topUpVal)
+	fmt.Printf("Checking %s\n", hex.EncodeToString(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	assert.NotNil(t, accnt)
+	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
+}
+
+// CheckRewardIsDoneCorrectly checks if the reward tx was executed correctly
+func CheckRewardIsDoneCorrectly(
+	t *testing.T,
+	nodes []*TestProcessorNode,
+	idxNodeScExists int,
+	idxNodeCallerExists int,
+	initialVal *big.Int,
+	topUpVal *big.Int,
+	withdraw *big.Int,
+	scAddressBytes []byte,
+) {
+
+	nodeWithSc := nodes[idxNodeScExists]
+	nodeWithCaller := nodes[idxNodeCallerExists]
+
+	fmt.Println("Checking SC account has topUp-withdraw val...")
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(CreateAddresFromAddrBytes(scAddressBytes))
+	assert.NotNil(t, accnt)
+	expectedSC := big.NewInt(0).Set(topUpVal)
+	expectedSC.Sub(expectedSC, withdraw)
+	assert.Equal(t, expectedSC, accnt.(*state.Account).Balance)
+
+	fmt.Println("Checking sender has initial-topUp+withdraw val...")
+	expectedSender := big.NewInt(0).Set(initialVal)
+	expectedSender.Sub(expectedSender, topUpVal)
+	expectedSender.Add(expectedSender, withdraw)
+	fmt.Printf("Checking %s\n", hex.EncodeToString(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	assert.NotNil(t, accnt)
+	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
+}
+
+// CheckRootHashes checks the root hash of the proposer in every shard
+func CheckRootHashes(t *testing.T, nodes []*TestProcessorNode, idxProposers []int) {
+	for _, idx := range idxProposers {
+		checkRootHashInShard(t, nodes, idx)
+	}
+}
+
+func checkRootHashInShard(t *testing.T, nodes []*TestProcessorNode, idxProposer int) {
+	proposerNode := nodes[idxProposer]
+	proposerRootHash, _ := proposerNode.AccntState.RootHash()
+
+	for i := 0; i < len(nodes); i++ {
+		node := nodes[i]
+
+		if node.ShardCoordinator.SelfId() != proposerNode.ShardCoordinator.SelfId() {
+			continue
+		}
+
+		fmt.Printf("Testing roothash for node index %d, shard ID %d...\n", i, node.ShardCoordinator.SelfId())
+		nodeRootHash, _ := node.AccntState.RootHash()
+		assert.Equal(t, proposerRootHash, nodeRootHash)
 	}
 }
