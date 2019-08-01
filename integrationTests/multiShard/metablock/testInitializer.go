@@ -358,7 +358,6 @@ func createShardNetNode(
 			},
 		},
 		createGenesisBlocks(shardCoordinator),
-		true,
 		requestHandler,
 		tc,
 		uint64Converter,
