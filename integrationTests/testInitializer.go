@@ -334,3 +334,20 @@ func mintAddressesFromSameShard(nodes []*TestProcessorNode, targetNodeIdx int, v
 		MintAddress(targetNode.AccntState, n.PkTxSignBytes, value)
 	}
 }
+
+func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, value *big.Int) {
+	shardCoordinator := nodes[0].ShardCoordinator
+
+	for _, player := range players {
+		pShardId := shardCoordinator.ComputeId(player.Address)
+
+		for _, node := range nodes {
+			if pShardId != node.ShardCoordinator.SelfId() {
+				continue
+			}
+
+			MintAddress(node.AccntState, player.Address.Bytes(), value)
+			player.Balance = big.NewInt(0).Set(value)
+		}
+	}
+}
