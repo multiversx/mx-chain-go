@@ -91,8 +91,11 @@ var ErrNilRootHash = errors.New("root hash is nil")
 // ErrWrongNonceInBlock signals the nonce in block is different than expected nonce
 var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 
-// ErrInvalidBlockHash signals the hash of the block is not matching with the previous one
-var ErrInvalidBlockHash = errors.New("invalid block hash")
+// ErrBlockHashDoesNotMatch signals the hash of the block is not matching with the previous one
+var ErrBlockHashDoesNotMatch = errors.New("block hash does not match")
+
+// ErrNotarizedBlockHashDoesNotMatch signals the hash of the notarized block is not matching with the previous one
+var ErrNotarizedBlockHashDoesNotMatch = errors.New("notarized block hash does not match")
 
 // ErrMissingTransaction signals that one transaction is missing
 var ErrMissingTransaction = errors.New("missing transaction")
@@ -151,6 +154,9 @@ var ErrNilMetaHeadersNoncesDataPool = errors.New("nil meta headers nonces cache"
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
+// ErrNilUint64SyncMapCacher signals that a nil Uint64SyncMapCache has been provided
+var ErrNilUint64SyncMapCacher = errors.New("nil Uint64SyncMapCacher")
+
 // ErrNilRcvAddr signals that an operation has been attempted to or with a nil receiver address
 var ErrNilRcvAddr = errors.New("nil receiver address")
 
@@ -192,6 +198,9 @@ var ErrNilTxStorage = errors.New("nil transaction storage")
 
 // ErrNilStorage signals that a nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
+
+// ErrNilShardedDataCacherNotifier signals that a nil sharded data cacher notifier has been provided
+var ErrNilShardedDataCacherNotifier = errors.New("nil sharded data cacher notifier")
 
 // ErrNilBlocksTracker signals that a nil blocks tracker has been provided
 var ErrNilBlocksTracker = errors.New("nil blocks tracker")
@@ -393,6 +402,9 @@ var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor co
 
 // ErrNilPreProcessorsContainer signals that preprocessors container is nil
 var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
+
+// ErrUnknownBlockType signals that block type is not correct
+var ErrUnknownBlockType = errors.New("block type is unknown")
 
 // ErrNotEnoughFeeInTransactions signals that the transaction does not enough fee
 var ErrNotEnoughFeeInTransactions = errors.New("transaction fee is not enough")

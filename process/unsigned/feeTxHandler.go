@@ -12,11 +12,12 @@ import (
 	"sync"
 )
 
+// TODO: Set MinGasPrice and MinTxFee to some positive value (TBD)
 // MinGasPrice is the minimal gas price to be paid for any transaction
-var MinGasPrice = uint64(1)
+var MinGasPrice = uint64(0)
 
 // MinTxFee is the minimal fee to be paid for any transaction
-var MinTxFee = uint64(1)
+var MinTxFee = uint64(0)
 
 const communityPercentage = 0.1 // 1 = 100%, 0 = 0%
 const leaderPercentage = 0.4    // 1 = 100%, 0 = 0%
@@ -246,4 +247,11 @@ func (ftxh *feeTxHandler) VerifyCreatedUTxs() error {
 	}
 
 	return nil
+}
+
+// CreateMarshalizedData creates the marshalized data for broadcasting purposes
+func (ftxh *feeTxHandler) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
+	// TODO: implement me
+
+	return make([][]byte, 0), nil
 }

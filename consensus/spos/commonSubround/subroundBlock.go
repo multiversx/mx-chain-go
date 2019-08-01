@@ -1,12 +1,12 @@
 package commonSubround
 
 import (
-	"encoding/base64"
 	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -106,7 +106,7 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 	}
 
 	blockBody, err := sr.BlockProcessor().CreateBlockBody(
-		uint32(sr.Rounder().Index()),
+		uint64(sr.Rounder().Index()),
 		haveTimeInCurrentSubround,
 	)
 	if err != nil {
@@ -174,7 +174,7 @@ func (sr *SubroundBlock) sendBlockHeader() bool {
 	}
 
 	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been sent\n",
-		sr.SyncTimer().FormattedCurrentTime(), hdr.GetNonce(), toB64(hdrHash)))
+		sr.SyncTimer().FormattedCurrentTime(), hdr.GetNonce(), core.ToB64(hdrHash)))
 
 	sr.Data = hdrHash
 	sr.Header = hdr
@@ -192,13 +192,13 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 
 	hdr, err := sr.BlockProcessor().CreateBlockHeader(
 		sr.BlockBody,
-		uint32(sr.Rounder().Index()),
+		uint64(sr.Rounder().Index()),
 		haveTimeInCurrentSubround)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr.SetRound(uint32(sr.Rounder().Index()))
+	hdr.SetRound(uint64(sr.Rounder().Index()))
 	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 
 	var prevRandSeed []byte
@@ -285,7 +285,7 @@ func (sr *SubroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 	}
 
 	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been received\n",
-		sr.SyncTimer().FormattedCurrentTime(), sr.Header.GetNonce(), toB64(cnsDta.BlockHeaderHash)))
+		sr.SyncTimer().FormattedCurrentTime(), sr.Header.GetNonce(), core.ToB64(cnsDta.BlockHeaderHash)))
 
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 
@@ -384,13 +384,4 @@ func (sr *SubroundBlock) isBlockReceived(threshold int) bool {
 	}
 
 	return n >= threshold
-}
-
-// toB64 convert a byte array to a base64 string
-func toB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-
-	return base64.StdEncoding.EncodeToString(buff)
 }

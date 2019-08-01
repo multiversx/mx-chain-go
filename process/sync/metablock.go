@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -41,7 +42,7 @@ func NewMetaBootstrap(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	bootstrapRoundIndex uint32,
+	bootstrapRoundIndex uint64,
 ) (*MetaBootstrap, error) {
 
 	if poolsHolder == nil {
@@ -317,7 +318,7 @@ func (boot *MetaBootstrap) cleanupNotarizedStorage(lastNotarized map[uint32]uint
 }
 
 func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
-	header, err := process.GetMetaHeader(headerHash, boot.headers, boot.marshalizer, boot.store)
+	header, err := process.GetMetaHeaderFromPool(headerHash, boot.headers)
 	if err != nil {
 		log.Debug(err.Error())
 		return
@@ -366,14 +367,28 @@ func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error)
 		boot.requestsWithTimeout++
 	}
 
-	isForkDetected := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
-	if isForkDetected {
+	shouldRollBack := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	if shouldRollBack {
 		boot.requestsWithTimeout = 0
 		hash := boot.removeHeaderFromPools(hdr)
 		boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
 		errNotCritical := boot.forkChoice()
 		if errNotCritical != nil {
 			log.Info(errNotCritical.Error())
+		}
+	}
+
+	// The below section of code fixed a situation when all peers would have replaced in their headerNonceHash pool a
+	// good/used header in their blockchain construction, with a wrong/unused header on which they didn't construct,
+	// but which came after a late broadcast from a valid proposer.
+	if err == process.ErrBlockHashDoesNotMatch {
+		prevHdr, errNotCritical := boot.getHeaderWithHashRequestingIfMissing(hdr.GetPrevHash())
+		if errNotCritical != nil {
+			log.Info(errNotCritical.Error())
+		} else {
+			syncMap := &dataPool.ShardIdHashSyncMap{}
+			syncMap.Store(prevHdr.GetShardID(), hdr.GetPrevHash())
+			boot.headersNonces.Merge(prevHdr.GetNonce(), syncMap)
 		}
 	}
 }
@@ -447,65 +462,6 @@ func (boot *MetaBootstrap) SyncBlock() error {
 	return nil
 }
 
-func (boot *MetaBootstrap) getHeaderWithNonce(nonce uint64) (*block.MetaBlock, error) {
-	var hash []byte
-	hdr, err := boot.getHeaderFromPoolWithNonce(nonce)
-	if err != nil {
-		hash, err = boot.getHeaderHashFromStorage(nonce)
-		if err != nil {
-			return nil, err
-		}
-
-		hdr, err = process.GetMetaHeaderFromStorage(hash, boot.marshalizer, boot.store)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return hdr, nil
-}
-
-// getHeaderFromPoolWithNonce method returns the block header from a given nonce
-func (boot *MetaBootstrap) getHeaderFromPoolWithNonce(nonce uint64) (*block.MetaBlock, error) {
-	syncMap, ok := boot.headersNonces.Get(nonce)
-	if !ok {
-		return nil, process.ErrMissingHashForHeaderNonce
-	}
-
-	hash, ok := syncMap.Load(sharding.MetachainShardId)
-	if hash == nil || !ok {
-		return nil, process.ErrMissingHashForHeaderNonce
-	}
-
-	obj, ok := boot.headers.Peek(hash)
-	if !ok {
-		return nil, process.ErrMissingHeader
-	}
-
-	hdr, ok := obj.(*block.MetaBlock)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	return hdr, nil
-}
-
-// getHeaderHashFromStorage method returns the block header hash from a given nonce
-func (boot *MetaBootstrap) getHeaderHashFromStorage(nonce uint64) ([]byte, error) {
-	headerStore := boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
-	if headerStore == nil {
-		return nil, process.ErrNilHeadersStorage
-	}
-
-	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-	headerHash, err := headerStore.Get(nonceToByteSlice)
-	if err != nil {
-		return nil, process.ErrMissingHashForHeaderNonce
-	}
-
-	return headerHash, nil
-}
-
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
@@ -533,7 +489,10 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
 // be requested from network
 func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (*block.MetaBlock, error) {
-	hdr, err := boot.getHeaderFromPoolWithNonce(nonce)
+	hdr, _, err := process.GetMetaHeaderFromPoolWithNonce(
+		nonce,
+		boot.headers,
+		boot.headersNonces)
 	if err != nil {
 		process.EmptyChannel(boot.chRcvHdrNonce)
 		boot.requestHeaderWithNonce(nonce)
@@ -542,7 +501,10 @@ func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 			return nil, err
 		}
 
-		hdr, err = boot.getHeaderFromPoolWithNonce(nonce)
+		hdr, _, err = process.GetMetaHeaderFromPoolWithNonce(
+			nonce,
+			boot.headers,
+			boot.headersNonces)
 		if err != nil {
 			return nil, err
 		}

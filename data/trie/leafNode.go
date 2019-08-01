@@ -229,6 +229,10 @@ func (ln *leafNode) isEmptyOrNil() error {
 }
 
 func (ln *leafNode) print(writer io.Writer, index int) {
+	if ln == nil {
+		return
+	}
+
 	key := ""
 	for _, k := range ln.Key {
 		key += fmt.Sprintf("%d", k)
@@ -240,4 +244,31 @@ func (ln *leafNode) print(writer io.Writer, index int) {
 	}
 
 	_, _ = fmt.Fprintf(writer, "L:(%s - %s)\n", key, val)
+}
+
+func (ln *leafNode) deepClone() node {
+	if ln == nil {
+		return nil
+	}
+
+	clonedNode := &leafNode{}
+
+	if ln.Key != nil {
+		clonedNode.Key = make([]byte, len(ln.Key))
+		copy(clonedNode.Key, ln.Key)
+	}
+
+	if ln.Value != nil {
+		clonedNode.Value = make([]byte, len(ln.Value))
+		copy(clonedNode.Value, ln.Value)
+	}
+
+	if ln.hash != nil {
+		clonedNode.hash = make([]byte, len(ln.hash))
+		copy(clonedNode.hash, ln.hash)
+	}
+
+	clonedNode.dirty = ln.dirty
+
+	return clonedNode
 }

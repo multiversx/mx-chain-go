@@ -35,7 +35,7 @@ func createScCallsNodes() (p2p.Messenger, []*testNode) {
 	return advertiser, nodes
 }
 
-func deploySmartContract(t *testing.T, nodeToProcess *testNode, roundNumber uint32, senderAddressBytes []byte, senderNonce uint64) {
+func deploySmartContract(t *testing.T, nodeToProcess *testNode, roundNumber uint64, senderAddressBytes []byte, senderNonce uint64) {
 	scCode := "aaaa"
 
 	contractTx := createTx(
@@ -95,7 +95,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	generalRoundNumber := uint32(1)
+	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
 	senderNonce := uint64(1)
 	senderMintingValue := big.NewInt(100000000)
@@ -174,7 +174,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	generalRoundNumber := uint32(1)
+	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
 	receiverShard := uint32(1)
 	senderNonce := uint64(1)
@@ -271,7 +271,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	generalRoundNumber := uint32(1)
+	generalRoundNumber := uint64(1)
 	scShard := uint32(0)
 	accShard := uint32(1)
 	accNonce := uint64(1)
@@ -374,7 +374,7 @@ func processAndTestSmartContractCallInSender(
 	contractCallTx *transaction.Transaction,
 	proposerNodeShardAccount *testNode,
 	accountShardAddressBytes []byte,
-	generalRoundNumber uint32,
+	generalRoundNumber uint64,
 	mintingValue *big.Int,
 	scNonce uint64,
 ) {
@@ -406,7 +406,7 @@ func processAndTestSmartContractCallInDestination(t *testing.T, contractCallTx *
 	strCache := process.ShardCacherIdentifier(accShard, scShard)
 	proposerNodeShardSC.dPool.Transactions().ShardDataStore(strCache).Put(txHash, contractCallTx)
 	proposerNodeShardSC.txCoordinator.RequestBlockTransactions(blockBody)
-	_ = proposerNodeShardSC.txCoordinator.ProcessBlockTransaction(blockBody, uint32(scNonce), haveTime)
+	_ = proposerNodeShardSC.txCoordinator.ProcessBlockTransaction(blockBody, scNonce, haveTime)
 	_ = proposerNodeShardSC.txCoordinator.SaveBlockDataToStorage(blockBody)
 
 	_, err := proposerNodeShardSC.accntState.Commit()
@@ -420,7 +420,7 @@ func processAndTestSmartContractCallInDestination(t *testing.T, contractCallTx *
 }
 
 func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNode, proposerNodeShardAccount *testNode,
-	accountShardAddressBytes []byte, accShard uint32, generalRoundNumber uint32, mintingValue *big.Int, withdrawValue uint64) {
+	accountShardAddressBytes []byte, accShard uint32, generalRoundNumber uint64, mintingValue *big.Int, withdrawValue uint64) {
 	mbs := proposerNodeShardSC.scrForwarder.CreateAllInterMiniBlocks()
 	mb, _ := mbs[accShard]
 	assert.NotNil(t, mb)
@@ -443,6 +443,8 @@ func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNo
 
 	// After execution, the first account that started the interaction with the smart contract should have:
 	//  - Initial balance + withdraw value - fees
+	// TODO: Fees and gas should be taken into consideration when the fees are implemented - now we have extra money
+	//  from the gas returned since the gas was not substracted in the first place
 	finalValue := big.NewInt(0).Add(mintingValue, big.NewInt(int64(withdrawValue-1)))
 	acc, _ := proposerNodeShardAccount.node.GetAccount(hex.EncodeToString(accountShardAddressBytes))
 	assert.Equal(t, finalValue, acc.Balance)

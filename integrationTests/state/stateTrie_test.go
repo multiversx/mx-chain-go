@@ -7,17 +7,24 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -352,9 +359,6 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, newState2.(*state.Account).Balance, balance2)
 	assert.NotNil(t, newState2.(*state.Account).RootHash)
-	//get data
-	err = adb.LoadDataTrie(newState2)
-	assert.Nil(t, err)
 	valRecovered, err := newState2.DataTrieTracker().RetrieveValue(key)
 	assert.Nil(t, err)
 	assert.Equal(t, val, valRecovered)
@@ -439,9 +443,6 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	assert.Nil(t, err)
 	assert.Equal(t, newState2.(*state.Account).Balance, balance2)
 	assert.NotNil(t, newState2.(*state.Account).RootHash)
-	//get data
-	err = adb.LoadDataTrie(newState2)
-	assert.Nil(t, err)
 	valRecovered, err := newState2.DataTrieTracker().RetrieveValue(key)
 	assert.Nil(t, err)
 	assert.Equal(t, val, valRecovered)
@@ -1023,6 +1024,160 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 
 	adbPrintAccount(acntSrc.(*state.Account), "Source")
 	adbPrintAccount(acntDest.(*state.Account), "Destination")
+}
+
+func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
+	nrOfAccounts := 1000000
+	balance := 1500000
+	persist := mock2.MockDB{}
+
+	adb, _, tr := createAccounts(b, nrOfAccounts, balance, persist)
+	var rtm runtime.MemStats
+	runtime.GC()
+
+	runtime.ReadMemStats(&rtm)
+	fmt.Printf("Mem before committing %v accounts with mockDB: go mem - %s, sys mem - %s \n",
+		nrOfAccounts,
+		core.ConvertBytes(rtm.Alloc),
+		core.ConvertBytes(rtm.Sys),
+	)
+
+	_, _ = adb.Commit()
+
+	runtime.ReadMemStats(&rtm)
+	fmt.Printf("Mem after committing %v accounts with mockDB: go mem - %s, sys mem - %s \n",
+		nrOfAccounts,
+		core.ConvertBytes(rtm.Alloc),
+		core.ConvertBytes(rtm.Sys),
+	)
+
+	runtime.GC()
+	runtime.ReadMemStats(&rtm)
+	fmt.Printf("Mem after committing %v accounts with mockDB and garbage collection : go mem - %s, sys mem - %s \n",
+		nrOfAccounts,
+		core.ConvertBytes(rtm.Alloc),
+		core.ConvertBytes(rtm.Sys),
+	)
+
+	_ = tr.String()
+}
+
+func BenchmarkCreateOneMillionAccounts(b *testing.B) {
+	nrOfAccounts := 1000000
+	nrTxs := 15000
+	txVal := 100
+	balance := nrTxs * txVal
+	persist := mock2.NewCountingDB()
+
+	adb, addr, _ := createAccounts(b, nrOfAccounts, balance, persist)
+	var rtm runtime.MemStats
+
+	_, _ = adb.Commit()
+	runtime.GC()
+
+	runtime.ReadMemStats(&rtm)
+	goMemCollapsedTrie := rtm.Alloc
+
+	fmt.Printf("Partially collapsed trie - ")
+	createAndExecTxs(b, addr, nrTxs, nrOfAccounts, txVal, adb)
+
+	runtime.ReadMemStats(&rtm)
+	goMemAfterTxExec := rtm.Alloc
+
+	fmt.Printf("Extra memory after the exec of %v txs: %s \n",
+		nrTxs,
+		core.ConvertBytes(goMemAfterTxExec-goMemCollapsedTrie),
+	)
+
+	fmt.Println("Total nr. of nodes in trie: ", persist.GetCounter())
+	persist.Reset()
+	_, _ = adb.Commit()
+	fmt.Printf("Nr. of modified nodes after %v txs: %v \n", nrTxs, persist.GetCounter())
+
+	rootHash, err := adb.RootHash()
+	assert.Nil(b, err)
+
+	_ = adb.RecreateTrie(rootHash)
+	fmt.Printf("Completely collapsed trie - ")
+	createAndExecTxs(b, addr, nrTxs, nrOfAccounts, txVal, adb)
+}
+
+func createAccounts(
+	tb testing.TB,
+	nrOfAccounts int,
+	balance int,
+	persist storage.Persister,
+) (*state.AccountsDB, []state.AddressContainer, data.Trie) {
+	marsh := &marshal.JsonMarshalizer{}
+	hasher := sha256.Sha256{}
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+	store, _ := storageUnit.NewStorageUnit(cache, persist)
+	tr, _ := trie.NewTrie(store, marsh, hasher)
+	adb, _ := state.NewAccountsDB(tr, hasher, marsh, &accountFactory{})
+
+	addr := make([]state.AddressContainer, nrOfAccounts)
+	for i := 0; i < nrOfAccounts; i++ {
+		addr[i] = createDummyAddress()
+	}
+
+	for i := 0; i < nrOfAccounts; i++ {
+		account, err := adb.GetAccountWithJournal(addr[i])
+		assert.Nil(tb, err)
+
+		err = account.(*state.Account).SetBalanceWithJournal(big.NewInt(int64(balance)))
+		assert.Nil(tb, err)
+	}
+
+	return adb, addr, tr
+}
+
+func createAndExecTxs(
+	b *testing.B,
+	addr []state.AddressContainer,
+	nrTxs int,
+	nrOfAccounts int,
+	txVal int,
+	adb *state.AccountsDB,
+) {
+	marsh := &marshal.JsonMarshalizer{}
+	hasher := sha256.Sha256{}
+
+	shardCoordinator := mock2.NewMultiShardsCoordinatorMock(1)
+	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
+	txProcessor, _ := transaction.NewTxProcessor(
+		adb,
+		hasher,
+		addrConv,
+		marsh,
+		shardCoordinator,
+		&mock2.SCProcessorMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
+	)
+
+	var totalTime int64 = 0
+
+	for i := 0; i < nrTxs; i++ {
+		sender := rand.Intn(nrOfAccounts)
+		receiver := rand.Intn(nrOfAccounts)
+		for sender == receiver {
+			receiver = rand.Intn(nrOfAccounts)
+		}
+
+		tx := &transaction2.Transaction{
+			Nonce:   1,
+			Value:   big.NewInt(int64(txVal)),
+			SndAddr: addr[sender].Bytes(),
+			RcvAddr: addr[receiver].Bytes(),
+		}
+
+		startTime := time.Now()
+		err := txProcessor.ProcessTransaction(tx, 0)
+		duration := time.Now().Sub(startTime)
+		totalTime += int64(duration)
+		assert.Nil(b, err)
+	}
+	fmt.Printf("Time needed for executing %v transactions: %v \n", nrTxs, time.Duration(totalTime))
 }
 
 func BenchmarkTxExecution(b *testing.B) {

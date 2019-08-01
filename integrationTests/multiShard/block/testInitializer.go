@@ -708,6 +708,7 @@ func createMetaNetNode(
 		store,
 		genesisBlocks,
 		requestHandler,
+		uint64Converter,
 	)
 
 	_ = tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])

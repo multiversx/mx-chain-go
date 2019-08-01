@@ -1053,6 +1053,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
 	tx.Value = big.NewInt(45)
+	tx.GasPrice = 1
+	tx.GasLimit = 1
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
@@ -1060,14 +1062,14 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	acntDst, err := state.NewAccount(mock.NewAddressMock(tx.RcvAddr), tracker)
 	assert.Nil(t, err)
 
-	acntSrc.Balance = big.NewInt(45)
+	acntSrc.Balance = big.NewInt(46)
 	acntDst.SetCode([]byte{65})
 
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 	scProcessorMock := &mock.SCProcessorMock{}
 
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error {
 		wasCalled = true
 		return nil
 	}
@@ -1127,7 +1129,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	scProcessorMock := &mock.SCProcessorMock{}
 
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}
@@ -1194,7 +1196,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 
 	scProcessorMock := &mock.SCProcessorMock{}
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}

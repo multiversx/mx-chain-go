@@ -30,13 +30,14 @@ type hashAndHdr struct {
 type mapShardLastHeaders map[uint32]data.HeaderHandler
 
 type baseProcessor struct {
-	shardCoordinator sharding.Coordinator
-	accounts         state.AccountsAdapter
-	forkDetector     process.ForkDetector
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	store            dataRetriever.StorageService
-	uint64Converter  typeConverters.Uint64ByteSliceConverter
+	shardCoordinator   sharding.Coordinator
+	accounts           state.AccountsAdapter
+	forkDetector       process.ForkDetector
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	store              dataRetriever.StorageService
+	uint64Converter    typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler process.BlockSizeThrottler
 
 	mutNotarizedHdrs   sync.RWMutex
 	lastNotarizedHdrs  mapShardLastHeaders
@@ -103,7 +104,7 @@ func (bp *baseProcessor) checkBlockValidity(
 				core.ToB64(chainHandler.GetGenesisHeaderHash()),
 				core.ToB64(headerHandler.GetPrevHash())))
 
-			return process.ErrInvalidBlockHash
+			return process.ErrBlockHashDoesNotMatch
 		}
 
 		log.Info(fmt.Sprintf("nonce not match: local block nonce is 0 and node received block with nonce %d\n",
@@ -128,7 +129,7 @@ func (bp *baseProcessor) checkBlockValidity(
 		log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
 			core.ToB64(prevHeaderHash), core.ToB64(headerHandler.GetPrevHash())))
 
-		return process.ErrInvalidBlockHash
+		return process.ErrBlockHashDoesNotMatch
 	}
 
 	if bodyHandler != nil {
@@ -211,7 +212,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		return process.ErrInvalidBlockHash
+		return process.ErrNotarizedBlockHashDoesNotMatch
 	}
 
 	return nil
@@ -352,7 +353,7 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 	return nil
 }
 
-func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler, shardId uint32, maxRound uint32) error {
+func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler, shardId uint32, maxRound uint64) error {
 	prevHdr, err := bp.getLastNotarizedHdr(shardId)
 	if err != nil {
 		return err
@@ -457,6 +458,7 @@ func checkProcessorNilParameters(
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
 	shardCoordinator sharding.Coordinator,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
 ) error {
 
 	if accounts == nil {
@@ -476,6 +478,9 @@ func checkProcessorNilParameters(
 	}
 	if shardCoordinator == nil {
 		return process.ErrNilShardCoordinator
+	}
+	if uint64Converter == nil {
+		return process.ErrNilUint64Converter
 	}
 
 	return nil
