@@ -13,8 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -34,7 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -44,6 +42,7 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
@@ -408,7 +407,7 @@ func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.I
 // CreateSimpleTxProcessor returns a transaction processor
 func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionProcessor {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	txProcessor, _ := transaction.NewTxProcessor(accnts, TestHasher, TestAddressConverter, TestMarshalizer, shardCoordinator, &mock.SCProcessorMock{})
+	txProcessor, _ := txProc.NewTxProcessor(accnts, TestHasher, TestAddressConverter, TestMarshalizer, shardCoordinator, &mock.SCProcessorMock{})
 
 	return txProcessor
 }
@@ -674,7 +673,7 @@ func CheckJoinGameIsDoneCorrectly(
 	nodeWithCaller := nodes[idxNodeCallerExists]
 
 	fmt.Println("Checking SC account received topUp val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(CreateAddresFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
 
@@ -682,7 +681,7 @@ func CheckJoinGameIsDoneCorrectly(
 	expectedVal := big.NewInt(0).Set(initialVal)
 	expectedVal.Sub(expectedVal, topUpVal)
 	fmt.Printf("Checking %s\n", hex.EncodeToString(nodeWithCaller.PkTxSignBytes))
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
 }
@@ -703,7 +702,7 @@ func CheckRewardIsDoneCorrectly(
 	nodeWithCaller := nodes[idxNodeCallerExists]
 
 	fmt.Println("Checking SC account has topUp-withdraw val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(CreateAddresFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	expectedSC := big.NewInt(0).Set(topUpVal)
 	expectedSC.Sub(expectedSC, withdraw)
@@ -714,7 +713,7 @@ func CheckRewardIsDoneCorrectly(
 	expectedSender.Sub(expectedSender, topUpVal)
 	expectedSender.Add(expectedSender, withdraw)
 	fmt.Printf("Checking %s\n", hex.EncodeToString(nodeWithCaller.PkTxSignBytes))
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }
