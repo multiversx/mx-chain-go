@@ -87,7 +87,7 @@ func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 	balance := big.NewInt(initialBalance)
 
 	sender := integrationTests.CreateAccount(accnts, nonce, balance)
-	receiver := integrationTests.CreateAddressFromHex()
+	receiver := integrationTests.CreateRandomAddress()
 
 	initialHash, _ := accnts.Commit()
 	fmt.Printf("Initial hash: %s\n", base64.StdEncoding.EncodeToString(initialHash))
@@ -168,7 +168,7 @@ func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *t
 	balance := big.NewInt(initialBalance)
 
 	sender := integrationTests.CreateAccount(accnts, nonce, balance)
-	receiver := integrationTests.CreateAddressFromHex()
+	receiver := integrationTests.CreateRandomAddress()
 
 	initialHash, _ := accnts.Commit()
 	fmt.Printf("Initial hash: %s\n", base64.StdEncoding.EncodeToString(initialHash))

@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
@@ -173,12 +172,13 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(shardCoordinator sharding.Coordinator,
-) (*state.AccountsDB, data.Trie, storage.Storer) {
+func CreateAccountsDB(shardCoordinator sharding.Coordinator) (*state.AccountsDB, data.Trie, storage.Storer) {
 
-	accountFactory, _ := factory.NewAccountFactoryCreator(shardCoordinator)
+	var accountFactory state.AccountFactory
 	if shardCoordinator == nil {
 		accountFactory = factory.NewAccountCreator()
+	} else {
+		accountFactory, _ = factory.NewAccountFactoryCreator(shardCoordinator)
 	}
 
 	store := CreateMemUnit()
@@ -275,14 +275,14 @@ func CreateAddressFromAddrBytes(addressBytes []byte) state.AddressContainer {
 	return addr
 }
 
-// CreateAddressFromHex creates an address container object from hex
-func CreateAddressFromHex() state.AddressContainer {
-	addr, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexAddress(64))
+// CreateRandomAddress creates a random byte array with fixed size
+func CreateRandomAddress() state.AddressContainer {
+	addr, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
 	return addr
 }
 
-// MintAddress will create an account (if it does not exists), updated the balance with required value,
-// saves the account and commit the trie.
+// MintAddress will create an account (if it does not exists), update the balance with required value,
+// save the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
 	accnt, _ := accnts.GetAccountWithJournal(CreateAddressFromAddrBytes(addressBytes))
 	_ = accnt.(*state.Account).SetBalanceWithJournal(value)
@@ -291,7 +291,7 @@ func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.I
 
 // CreateAccount creates a new account and returns the address
 func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) state.AddressContainer {
-	address, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexAddress(64))
+	address, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
 	account, _ := accnts.GetAccountWithJournal(address)
 	_ = account.(*state.Account).SetNonceWithJournal(nonce)
 	_ = account.(*state.Account).SetBalanceWithJournal(balance)
@@ -334,16 +334,8 @@ func PrintShardAccount(accnt *state.Account, tag string) {
 	fmt.Println(str)
 }
 
-// CreateRandomAddress creates a random byte array with fixed size
-func CreateRandomAddress() state.AddressContainer {
-	buff := make([]byte, sha256.Sha256{}.Size())
-	_, _ = rand.Reader.Read(buff)
-
-	return state.NewAddress(buff)
-}
-
-// CreateRandomHexAddress returns a string encoded in hex with the given size
-func CreateRandomHexAddress(chars int) string {
+// CreateRandomHexString returns a string encoded in hex with the given size
+func CreateRandomHexString(chars int) string {
 	if chars < 1 {
 		return ""
 	}
@@ -371,7 +363,7 @@ func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest *state.Account, accounts
 	err := AdbEmulateBalanceTxExecution(acntSrc, acntDest, value)
 
 	if err != nil {
-		fmt.Printf("!!!! Error executing tx (value: %v), reverting...\n", value)
+		fmt.Printf("Error executing tx (value: %v), reverting...\n", value)
 		err = accounts.RevertToSnapshot(snapshot)
 
 		if err != nil {
