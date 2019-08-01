@@ -14,7 +14,14 @@ func TestNewAppStatusFacadeWithHandlers_NilHandlersShouldFail(t *testing.T) {
 	t.Parallel()
 
 	_, err := statusHandler.NewAppStatusFacadeWithHandlers()
-	assert.Equal(t, statusHandler.ErrNilHandlersSlice, err)
+	assert.Equal(t, statusHandler.ErrHandlersSliceIsNil, err)
+}
+
+func TestNewAppStatusFacadeWithHandlers_OneOfTheHandlerIsNilShouldFail(t *testing.T) {
+	t.Parallel()
+
+	_, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNilStatusHandler(), nil)
+	assert.Equal(t, statusHandler.ErrNilHandlerInSlice, err)
 }
 
 func TestNewAppStatusFacadeWithHandlers_OkHandlersShouldPass(t *testing.T) {

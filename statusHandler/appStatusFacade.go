@@ -12,7 +12,12 @@ type AppStatusFacade struct {
 // NewAppStatusFacadeWithHandlers will receive the handlers which should receive monitored data
 func NewAppStatusFacadeWithHandlers(aphs ...core.AppStatusHandler) (*AppStatusFacade, error) {
 	if aphs == nil {
-		return nil, ErrNilHandlersSlice
+		return nil, ErrHandlersSliceIsNil
+	}
+	for _, aph := range aphs {
+		if aph == nil {
+			return nil, ErrNilHandlerInSlice
+		}
 	}
 	return &AppStatusFacade{
 		handlers: aphs,

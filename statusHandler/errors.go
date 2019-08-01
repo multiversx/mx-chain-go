@@ -2,5 +2,8 @@ package statusHandler
 
 import "errors"
 
-// ErrNilHandlersSlice will be returned when trying to create an AppStatusFacade with no handler
-var ErrNilHandlersSlice = errors.New("nil AppStatusHandler provided")
+// ErrHandlersSliceIsNil will be returned when trying to create an AppStatusFacade with no handler
+var ErrHandlersSliceIsNil = errors.New("no AppStatusHandler provided")
+
+// ErrNilHandlerInSlice will be returned when one of the handlers passed to the Facade is nil
+var ErrNilHandlerInSlice = errors.New("nil AppStatusHandler")
