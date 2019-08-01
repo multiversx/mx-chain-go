@@ -48,27 +48,35 @@ func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 }
 
 func (bfd *basicForkDetector) CheckpointNonce() uint64 {
-	return bfd.fork.checkpointNonce
+	return bfd.checkpointNonce()
 }
 
 func (bfd *basicForkDetector) SetLastCheckpointNonce(nonce uint64) {
+	bfd.mutFork.Lock()
 	bfd.fork.lastCheckpointNonce = nonce
+	bfd.mutFork.Unlock()
 }
 
-func (bfd *basicForkDetector) SetCheckpointNonce(nonce uint64) {
-	bfd.fork.checkpointNonce = nonce
+func (bfd *basicForkDetector) SetCheckpointNonce(checkpointNonce []uint64) {
+	bfd.mutFork.Lock()
+	bfd.fork.checkpointNonce = checkpointNonce
+	bfd.mutFork.Unlock()
 }
 
-func (bfd *basicForkDetector) CheckpointRound() int64 {
-	return bfd.fork.checkpointRound
+func (bfd *basicForkDetector) CheckpointRound() uint64 {
+	return bfd.checkpointRound()
 }
 
-func (bfd *basicForkDetector) SetLastCheckpointRound(round int64) {
+func (bfd *basicForkDetector) SetLastCheckpointRound(round uint64) {
+	bfd.mutFork.Lock()
 	bfd.fork.lastCheckpointRound = round
+	bfd.mutFork.Unlock()
 }
 
-func (bfd *basicForkDetector) SetCheckpointRound(round int64) {
-	bfd.fork.checkpointRound = round
+func (bfd *basicForkDetector) SetCheckpointRound(checkpointRound []uint64) {
+	bfd.mutFork.Lock()
+	bfd.fork.checkpointRound = checkpointRound
+	bfd.mutFork.Unlock()
 }
 
 func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header, state process.BlockHeaderState) error {
