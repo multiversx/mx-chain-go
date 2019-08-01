@@ -250,11 +250,9 @@ func (txProc *txProcessor) checkTxValues(acntSrc *state.Account, value *big.Int,
 	if acntSrc.Nonce < nonce {
 		return process.ErrHigherNonceInTransaction
 	}
-
 	if acntSrc.Nonce > nonce {
 		return process.ErrLowerNonceInTransaction
 	}
-
 	//negative balance test is done in transaction interceptor as the transaction is invalid and thus shall not disseminate
 	if acntSrc.Balance.Cmp(value) < 0 {
 		return process.ErrInsufficientFunds
