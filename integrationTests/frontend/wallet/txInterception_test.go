@@ -98,7 +98,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 
 	chDone := make(chan struct{})
 
-	node := integrationTests.NewTestProcessorNode(3, 0, uint32(0), "sdsds")
+	node := integrationTests.NewTestProcessorNode(1, 0, uint32(0), "nodeAddr")
 
 	txHexHash := ""
 
