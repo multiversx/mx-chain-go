@@ -159,6 +159,15 @@ func (network *Network) LogMessage(message p2p.MessageP2P) {
 	network.messageLogMutex.Unlock()
 }
 
+// GetMessageCount returns the number of messages logged internally by the
+// Network.
+func (network *Network) GetMessageCount() int {
+	network.messageLogMutex.RLock()
+	count := len(network.Messages)
+	network.messageLogMutex.RUnlock()
+	return count
+}
+
 // IsPeerConnected returns true if the peer represented by the provided ID is
 // found in the inner `peers` map of the Network instance, which
 // determines whether it is connected to the network or not.
