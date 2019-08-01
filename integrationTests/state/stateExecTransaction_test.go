@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +20,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	}
 
 	accnts, _, _ := integrationTests.CreateAccountsDB(nil)
-	txProcessor := integrationTests.CreateTxProcessor(accnts)
+	txProcessor := integrationTests.CreateSimpleTxProcessor(accnts)
 	nonce := uint64(6)
 	balance := big.NewInt(10000)
 
@@ -29,7 +29,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	hashCreated, _ := accnts.Commit()
 
 	//Step 2. create a tx moving 1 from address to address
-	tx := &transaction2.Transaction{
+	tx := &transaction.Transaction{
 		Nonce:   nonce,
 		Value:   big.NewInt(1),
 		SndAddr: address.Bytes(),
@@ -51,7 +51,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accnts, _, _ := integrationTests.CreateAccountsDB(nil)
-	txProcessor := integrationTests.CreateTxProcessor(accnts)
+	txProcessor := integrationTests.CreateSimpleTxProcessor(accnts)
 	nonce := uint64(6)
 	balance := big.NewInt(10000)
 
@@ -60,7 +60,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	_, _ = accnts.Commit()
 
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
-	tx := &transaction2.Transaction{
+	tx := &transaction.Transaction{
 		Nonce:   nonce,
 		Value:   big.NewInt(1),
 		SndAddr: address.Bytes(),
@@ -105,12 +105,12 @@ func testExecTransactionsMoreTxWithRevert(
 	initialBalance int64,
 ) {
 
-	txProcessor := integrationTests.CreateTxProcessor(accnts)
+	txProcessor := integrationTests.CreateSimpleTxProcessor(accnts)
 	txToGenerate := 15000
 
 	//Step 1. execute a lot moving transactions from pubKeyBuff to another pubKeyBuff
 	for i := 0; i < txToGenerate; i++ {
-		tx := &transaction2.Transaction{
+		tx := &transaction.Transaction{
 			Nonce:   initialNonce + uint64(i),
 			Value:   big.NewInt(1),
 			SndAddr: sender.Bytes(),

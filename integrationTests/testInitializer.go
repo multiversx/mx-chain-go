@@ -134,7 +134,7 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 // disk I/O)
 func CreateMemUnit() storage.Storer {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	persist, _ := memorydb.New()
+	persist, _ := memorydb.NewlruDB(100000)
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 
 	return unit
@@ -173,7 +173,9 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(shardCoordinator sharding.Coordinator) (*state.AccountsDB, data.Trie, storage.Storer) {
+func CreateAccountsDB(shardCoordinator sharding.Coordinator,
+) (*state.AccountsDB, data.Trie, storage.Storer) {
+
 	accountFactory, _ := factory.NewAccountFactoryCreator(shardCoordinator)
 	if shardCoordinator == nil {
 		accountFactory = factory.NewAccountCreator()
@@ -270,14 +272,12 @@ func CreateIeleVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExe
 // CreateAddressFromAddrBytes creates an address container object from address bytes provided
 func CreateAddressFromAddrBytes(addressBytes []byte) state.AddressContainer {
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(addressBytes)
-
 	return addr
 }
 
 // CreateAddressFromHex creates an address container object from hex
 func CreateAddressFromHex() state.AddressContainer {
-	addr, _ := TestAddressConverter.CreateAddressFromHex(CreateDummyHexAddress(64))
-
+	addr, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexAddress(64))
 	return addr
 }
 
@@ -291,7 +291,7 @@ func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.I
 
 // CreateAccount creates a new account and returns the address
 func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) state.AddressContainer {
-	address, _ := TestAddressConverter.CreateAddressFromHex(CreateDummyHexAddress(64))
+	address, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexAddress(64))
 	account, _ := accnts.GetAccountWithJournal(address)
 	_ = account.(*state.Account).SetNonceWithJournal(nonce)
 	_ = account.(*state.Account).SetBalanceWithJournal(balance)
@@ -334,16 +334,16 @@ func PrintShardAccount(accnt *state.Account, tag string) {
 	fmt.Println(str)
 }
 
-// CreateDummyAddress creates a random byte array with fixed size
-func CreateDummyAddress() state.AddressContainer {
+// CreateRandomAddress creates a random byte array with fixed size
+func CreateRandomAddress() state.AddressContainer {
 	buff := make([]byte, sha256.Sha256{}.Size())
 	_, _ = rand.Reader.Read(buff)
 
 	return state.NewAddress(buff)
 }
 
-// CreateDummyHexAddress returns a string encoded in hex with the given size
-func CreateDummyHexAddress(chars int) string {
+// CreateRandomHexAddress returns a string encoded in hex with the given size
+func CreateRandomHexAddress(chars int) string {
 	if chars < 1 {
 		return ""
 	}
@@ -356,7 +356,7 @@ func CreateDummyHexAddress(chars int) string {
 
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
 func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
-	adr := CreateDummyAddress()
+	adr := CreateRandomAddress()
 	adb, _, _ := CreateAccountsDB(nil)
 	account, _ := state.NewAccount(adr, adb)
 
@@ -409,8 +409,8 @@ func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.I
 	return nil
 }
 
-// CreateTxProcessor returns a transaction processor
-func CreateTxProcessor(accnts state.AccountsAdapter) process.TransactionProcessor {
+// CreateSimpleTxProcessor returns a transaction processor
+func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionProcessor {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	txProcessor, _ := transaction.NewTxProcessor(accnts, TestHasher, TestAddressConverter, TestMarshalizer, shardCoordinator, &mock.SCProcessorMock{})
 
@@ -420,7 +420,6 @@ func CreateTxProcessor(accnts state.AccountsAdapter) process.TransactionProcesso
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
 	tr, _ := trie.NewTrie(CreateMemUnit(), TestMarshalizer, TestHasher)
-
 	return tr
 }
 

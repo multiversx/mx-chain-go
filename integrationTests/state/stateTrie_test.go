@@ -161,7 +161,7 @@ func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 
 	//generating 2000 different addresses
 	for len(addresses) < 2000 {
-		addr := integrationTests.CreateDummyAddress()
+		addr := integrationTests.CreateRandomAddress()
 
 		found := false
 		for i := 0; i < len(addresses); i++ {
@@ -205,7 +205,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr1, _, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
-	adr2 := integrationTests.CreateDummyAddress()
+	adr2 := integrationTests.CreateRandomAddress()
 
 	//first account has the balance of 40
 	balance1 := big.NewInt(40)
@@ -284,8 +284,8 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	t.Parallel()
 
 	adb, _, mu := integrationTests.CreateAccountsDB(nil)
-	adr1 := integrationTests.CreateDummyAddress()
-	adr2 := integrationTests.CreateDummyAddress()
+	adr1 := integrationTests.CreateRandomAddress()
+	adr2 := integrationTests.CreateRandomAddress()
 
 	//first account has the balance of 40
 	balance1 := big.NewInt(40)
@@ -414,8 +414,8 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := integrationTests.CreateDummyAddress()
-	adr2 := integrationTests.CreateDummyAddress()
+	adr1 := integrationTests.CreateRandomAddress()
+	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
 	adb, _, _ := integrationTests.CreateAccountsDB(nil)
@@ -485,8 +485,8 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := integrationTests.CreateDummyAddress()
-	adr2 := integrationTests.CreateDummyAddress()
+	adr1 := integrationTests.CreateRandomAddress()
+	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
 	adb, _, _ := integrationTests.CreateAccountsDB(nil)
@@ -557,8 +557,8 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	//adr1 puts code hash + code inside trie. adr2 has the same code hash
 	//revert should work
 
-	adr1 := integrationTests.CreateDummyAddress()
-	adr2 := integrationTests.CreateDummyAddress()
+	adr1 := integrationTests.CreateRandomAddress()
+	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
 	adb, _, _ := integrationTests.CreateAccountsDB(nil)
@@ -623,8 +623,8 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
 
-	adr1 := integrationTests.CreateDummyAddress()
-	adr2 := integrationTests.CreateDummyAddress()
+	adr1 := integrationTests.CreateRandomAddress()
+	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
 	adb, _, _ := integrationTests.CreateAccountsDB(nil)
@@ -698,8 +698,8 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
 
-	adr1 := integrationTests.CreateDummyAddress()
-	adr2 := integrationTests.CreateDummyAddress()
+	adr1 := integrationTests.CreateRandomAddress()
+	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
 	adb, _, _ := integrationTests.CreateAccountsDB(nil)
@@ -793,8 +793,8 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	t.Parallel()
 
-	adrSrc := integrationTests.CreateDummyAddress()
-	adrDest := integrationTests.CreateDummyAddress()
+	adrSrc := integrationTests.CreateRandomAddress()
+	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
 	adb, _, _ := integrationTests.CreateAccountsDB(nil)
@@ -846,8 +846,8 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	t.Parallel()
 
-	adrSrc := integrationTests.CreateDummyAddress()
-	adrDest := integrationTests.CreateDummyAddress()
+	adrSrc := integrationTests.CreateRandomAddress()
+	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
 	adb, _, _ := integrationTests.CreateAccountsDB(nil)
@@ -879,8 +879,8 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	t.Parallel()
 
-	adrSrc := integrationTests.CreateDummyAddress()
-	adrDest := integrationTests.CreateDummyAddress()
+	adrSrc := integrationTests.CreateRandomAddress()
+	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
 	adb, _, _ := integrationTests.CreateAccountsDB(nil)
@@ -1017,7 +1017,7 @@ func createAndExecTxs(
 	adb *state.AccountsDB,
 ) {
 
-	txProcessor := integrationTests.CreateTxProcessor(adb)
+	txProcessor := integrationTests.CreateSimpleTxProcessor(adb)
 	var totalTime int64 = 0
 
 	for i := 0; i < nrTxs; i++ {
@@ -1044,8 +1044,8 @@ func createAndExecTxs(
 }
 
 func BenchmarkTxExecution(b *testing.B) {
-	adrSrc := integrationTests.CreateDummyAddress()
-	adrDest := integrationTests.CreateDummyAddress()
+	adrSrc := integrationTests.CreateRandomAddress()
+	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
 	adb, _, _ := integrationTests.CreateAccountsDB(nil)
