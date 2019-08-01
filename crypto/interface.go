@@ -184,7 +184,7 @@ type MultiSigVerifier interface {
 	// SetAggregatedSig sets the aggregated signature
 	SetAggregatedSig([]byte) error
 	// Verify verifies the aggregated signature
-	Verify(msg []byte, bitmap []byte, ) error
+	Verify(msg []byte, bitmap []byte) error
 }
 
 // LowLevelSignerBLS provides functionality to sign and verify BLS single/multi-signatures
