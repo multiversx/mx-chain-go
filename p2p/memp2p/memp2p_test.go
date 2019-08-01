@@ -128,22 +128,22 @@ func TestBroadcastingMessages(t *testing.T) {
 	// Send a message to everybody.
 	peer1.BroadcastOnChannelBlocking("rocket", "rocket", []byte("launch the rocket"))
 	time.Sleep(1 * time.Second)
-	assert.Equal(t, 4, len(network.Messages))
+	assert.Equal(t, 4, network.GetMessageCount())
 
 	// Send a message after disconnecting. No new messages should appear in the log.
 	err := peer1.Close()
 	assert.Nil(t, err)
 	peer1.BroadcastOnChannelBlocking("rocket", "rocket", []byte("launch the rocket again"))
 	time.Sleep(1 * time.Second)
-	assert.Equal(t, 4, len(network.Messages))
+	assert.Equal(t, 4, network.GetMessageCount())
 
 	peer2.Broadcast("rocket", []byte("launch another rocket"))
 	time.Sleep(1 * time.Second)
-	assert.Equal(t, 7, len(network.Messages))
+	assert.Equal(t, 7, network.GetMessageCount())
 
 	peer3.Broadcast("nitrous_oxide", []byte("this is not a rocket"))
 	time.Sleep(1 * time.Second)
-	assert.Equal(t, 7, len(network.Messages))
+	assert.Equal(t, 7, network.GetMessageCount())
 }
 
 func TestConnectivityAndTopics(t *testing.T) {
@@ -197,7 +197,7 @@ func TestSendingDirectMessages(t *testing.T) {
 	assert.Equal(t, p2p.ErrNilTopic, err)
 
 	// The network has logged no processed messages.
-	assert.Equal(t, 0, len(network.Messages))
+	assert.Equal(t, 0, network.GetMessageCount())
 
 	// Create a topic on Peer1. This doesn't help, because Peer2 still can't
 	// receive messages on topic "rocket".
@@ -206,7 +206,7 @@ func TestSendingDirectMessages(t *testing.T) {
 	assert.Equal(t, p2p.ErrNilTopic, err)
 
 	// The network has still not logged any processed messages.
-	assert.Equal(t, 0, len(network.Messages))
+	assert.Equal(t, 0, network.GetMessageCount())
 
 	// Finally, create the topic "rocket" on Peer1 and register a
 	// MessageProcessor. This allows it to receive a message on this topic from Peer2.
@@ -216,5 +216,5 @@ func TestSendingDirectMessages(t *testing.T) {
 	assert.Nil(t, err)
 
 	// The network has finally logged a processed message.
-	assert.Equal(t, 1, len(network.Messages))
+	assert.Equal(t, 1, network.GetMessageCount())
 }
