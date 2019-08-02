@@ -36,9 +36,16 @@ func TestShouldProcessWithScTxsJoinAndRewardTheOwner(t *testing.T) {
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
+	validatorsKeysMap := integrationTests.CreateValidatorKeys(numOfNodes, 1, int(maxShards))
 	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
 	for i := 0; i < numOfNodes; i++ {
-		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+		nodes[i] = integrationTests.NewTestProcessorNode(
+			maxShards,
+			0,
+			0,
+			advertiserAddr,
+			validatorsKeysMap,
+		)
 	}
 
 	idxProposer := 0

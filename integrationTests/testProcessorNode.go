@@ -62,6 +62,12 @@ var TestMultiSig = mock.NewMultiSigner(1)
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
+// TestKeyPair holds a pair of private/public keys
+type TestKeyPair struct {
+	sk crypto.PrivateKey
+	pk crypto.PublicKey
+}
+
 // TestProcessorNode represents a container type of class used in integration tests
 // with all its fields exported
 type TestProcessorNode struct {
@@ -115,9 +121,28 @@ type TestProcessorNode struct {
 }
 
 // NewTestProcessorNode returns a new TestProcessorNode instance
-func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string) *TestProcessorNode {
+func NewTestProcessorNode(
+	maxShards uint32,
+	nodeShardId uint32,
+	txSignPrivKeyShardId uint32,
+	initialNodeAddr string,
+	validatorsKeys map[uint32][]*TestKeyPair,
+) *TestProcessorNode {
+
+	pubKeysMap := pubKeysMapFromKeysMap(validatorsKeys)
+	validatorsMap := genValidatorsFromPubKeys(pubKeysMap)
+
+	shardConsensusSize := len(validatorsMap[0])
+	metaConsensusSize := len(validatorsMap[sharding.MetachainShardId])
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
-	nodesCoordinator := mock.NodesCoordinatorMock{}
+	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
+		shardConsensusSize,
+		metaConsensusSize,
+		TestHasher,
+		nodeShardId,
+		maxShards,
+		validatorsMap,
+	)
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
