@@ -81,7 +81,6 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	proposeBlock(nodes, idxProposer, round)
 	time.Sleep(time.Second)
 	syncBlock(t, nodes, idxProposer, round)
-	syncBlock(t, nodes, idxProposer, round)
 	round = incrementAndPrintRound(round)
 
 	runMultipleRoundsOfTheGame(
