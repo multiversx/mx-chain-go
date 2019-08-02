@@ -1,6 +1,9 @@
 build:
 	go build ./...
 
+build-cmd:
+	(cd cmd/node && go build)
+
 clean-test:
 	go clean -testcache ./...
 
