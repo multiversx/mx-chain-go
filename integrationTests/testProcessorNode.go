@@ -435,6 +435,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithInterceptorsContainer(tpn.InterceptorsContainer),
 		node.WithResolversFinder(tpn.ResolverFinder),
 		node.WithBlockProcessor(tpn.BlockProcessor),
+		node.WithTxSingleSigner(tpn.SingleSigner),
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
 	)
