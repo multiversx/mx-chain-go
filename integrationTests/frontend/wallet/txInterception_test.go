@@ -104,6 +104,9 @@ func testInterceptedTxFromFrontendGeneratedParams(
 
 	txHexHash := ""
 
+	err := node.SetAccountNonce(uint64(0))
+	assert.Nil(t, err)
+
 	node.ShardDataPool.Transactions().RegisterHandler(func(key []byte) {
 		assert.Equal(t, txHexHash, hex.EncodeToString(key))
 
@@ -133,7 +136,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	sndAddrBytes, _ := hex.DecodeString(frontendSenderHex)
 	signatureBytes, _ := hex.DecodeString(frontendSignature)
 
-	txHexHash, err := node.SendTransaction(&transaction.Transaction{
+	txHexHash, err = node.SendTransaction(&transaction.Transaction{
 		Nonce:     frontendNonce,
 		Value:     frontendValue,
 		RcvAddr:   rcvAddrBytes,
