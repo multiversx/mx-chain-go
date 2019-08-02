@@ -1,8 +1,6 @@
 package statistics_test
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"testing"
 
@@ -10,15 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var errNilFileToWriteStats = errors.New("nil file to write statistics")
-
 func TestResourceMonitor_NewResourceMonitorNilFileShouldErr(t *testing.T) {
 	t.Parallel()
 
 	resourceMonitor, err := stats.NewResourceMonitor(nil)
 
 	assert.Nil(t, resourceMonitor)
-	assert.Equal(t, errNilFileToWriteStats, err)
+	assert.Equal(t, stats.ErrNilFileToWriteStats, err)
 }
 
 func TestResourceMonitor_NewResourceMonitorShouldPass(t *testing.T) {
@@ -26,7 +22,7 @@ func TestResourceMonitor_NewResourceMonitorShouldPass(t *testing.T) {
 
 	resourceMonitor, err := stats.NewResourceMonitor(&os.File{})
 
-	fmt.Println(resourceMonitor)
+	assert.NotNil(t, resourceMonitor)
 
 	assert.Nil(t, err)
 }
@@ -82,7 +78,7 @@ func TestResourceMonitor_SaveStatisticsCloseFileBeforeSaveShouldErr(t *testing.T
 		_ = os.Remove("test")
 	}
 
-	assert.Equal(t, errNilFileToWriteStats, err)
+	assert.Equal(t, stats.ErrNilFileToWriteStats, err)
 }
 
 func TestResourceMonitor_CloseShouldPass(t *testing.T) {

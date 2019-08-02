@@ -2,7 +2,6 @@ package core_test
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -12,11 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/stretchr/testify/assert"
 )
-
-var errInvalidIndex = errors.New("invalid private key index")
-var errPemFileIsInvalid = errors.New("pem file is invalid")
-var errEmptyFile = errors.New("empty file provided")
-var errNilFile = errors.New("nil file provided")
 
 type TestStruct struct {
 	a, b int
@@ -119,7 +113,7 @@ func TestLoadSkFromPemFile_InvalidSkIndexShouldErr(t *testing.T) {
 	data, err := core.LoadSkFromPemFile("testFile", logger.DefaultLogger(), -1)
 
 	assert.Nil(t, data)
-	assert.Equal(t, errInvalidIndex, err)
+	assert.Equal(t, core.ErrInvalidIndex, err)
 }
 
 func TestLoadSkFromPemFile_NoExistingFileShouldErr(t *testing.T) {
@@ -143,7 +137,7 @@ func TestLoadSkFromPemFile_EmptyFileShouldErr(t *testing.T) {
 	}
 
 	assert.Nil(t, data)
-	assert.Equal(t, errEmptyFile, err)
+	assert.Equal(t, core.ErrEmptyFile, err)
 }
 
 func TestLoadSkFromPemFile_ShouldPass(t *testing.T) {
@@ -187,7 +181,7 @@ func TestLoadSkFromPemFile_InvalidPemFileShouldErr(t *testing.T) {
 	}
 
 	assert.Nil(t, data)
-	assert.Equal(t, errPemFileIsInvalid, err)
+	assert.Equal(t, core.ErrPemFileIsInvalid, err)
 }
 
 func TestLoadSkFromPemFile_InvalidIndexShouldErr(t *testing.T) {
@@ -211,7 +205,7 @@ func TestLoadSkFromPemFile_InvalidIndexShouldErr(t *testing.T) {
 	}
 
 	assert.Nil(t, data)
-	assert.Equal(t, errInvalidIndex, err)
+	assert.Equal(t, core.ErrInvalidIndex, err)
 }
 
 func TestSaveSkToPemFile_NilFileShouldErr(t *testing.T) {
@@ -222,7 +216,7 @@ func TestSaveSkToPemFile_NilFileShouldErr(t *testing.T) {
 
 	err := core.SaveSkToPemFile(nil, "data", skBytes)
 
-	assert.Equal(t, errNilFile, err)
+	assert.Equal(t, core.ErrNilFile, err)
 }
 
 func TestSaveSkToPemFile_ShouldPass(t *testing.T) {
