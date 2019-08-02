@@ -383,7 +383,7 @@ func checkJoinGameIsDoneCorrectly(
 	nodeWithCaller := nodes[idxNodeCallerExists]
 
 	fmt.Println("Checking SC account received topUp val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
 
@@ -391,7 +391,7 @@ func checkJoinGameIsDoneCorrectly(
 	expectedVal := big.NewInt(0).Set(initialVal)
 	expectedVal.Sub(expectedVal, topUpVal)
 	fmt.Printf("Checking %s\n", hex.EncodeToString(nodeWithCaller.PkTxSignBytes))
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
 }
@@ -411,7 +411,7 @@ func checkRewardIsDoneCorrectly(
 	nodeWithCaller := nodes[idxNodeCallerExists]
 
 	fmt.Println("Checking SC account has topUp-withdraw val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	expectedSC := big.NewInt(0).Set(topUpVal)
 	expectedSC.Sub(expectedSC, withdraw)
@@ -422,7 +422,7 @@ func checkRewardIsDoneCorrectly(
 	expectedSender.Sub(expectedSender, topUpVal)
 	expectedSender.Add(expectedSender, withdraw)
 	fmt.Printf("Checking %s\n", hex.EncodeToString(nodeWithCaller.PkTxSignBytes))
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }

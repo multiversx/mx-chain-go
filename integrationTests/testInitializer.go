@@ -23,12 +23,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -37,6 +39,7 @@ import (
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/pkg/errors"
 )
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
@@ -169,15 +172,20 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(shardCoordinator sharding.Coordinator) *state.AccountsDB {
-	hasher := sha256.Sha256{}
+func CreateAccountsDB(shardCoordinator sharding.Coordinator) (*state.AccountsDB, data.Trie, storage.Storer) {
+
+	var accountFactory state.AccountFactory
+	if shardCoordinator == nil {
+		accountFactory = factory.NewAccountCreator()
+	} else {
+		accountFactory, _ = factory.NewAccountFactoryCreator(shardCoordinator)
+	}
+
 	store := CreateMemUnit()
+	tr, _ := trie.NewTrie(store, TestMarshalizer, TestHasher)
+	adb, _ := state.NewAccountsDB(tr, TestHasher, TestMarshalizer, accountFactory)
 
-	tr, _ := trie.NewTrie(store, TestMarshalizer, hasher)
-	accountFactory, _ := factory.NewAccountFactoryCreator(shardCoordinator)
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
-
-	return adb
+	return adb, tr, store
 }
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
@@ -188,9 +196,9 @@ func CreateShardChain() *blockchain.BlockChain {
 		badBlockCache,
 	)
 	blockChain.GenesisHeader = &dataBlock.Header{}
-	genisisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GenesisHeader)
+	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GenesisHeader)
 
-	blockChain.SetGenesisHeaderHash(TestHasher.Compute(string(genisisHeaderM)))
+	blockChain.SetGenesisHeaderHash(TestHasher.Compute(string(genesisHeaderM)))
 
 	return blockChain
 }
@@ -261,19 +269,34 @@ func CreateIeleVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExe
 	return vm, blockChainHook
 }
 
-// CreateAddresFromAddrBytes creates a n address container object from address bytes provided
-func CreateAddresFromAddrBytes(addressBytes []byte) state.AddressContainer {
+// CreateAddressFromAddrBytes creates an address container object from address bytes provided
+func CreateAddressFromAddrBytes(addressBytes []byte) state.AddressContainer {
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(addressBytes)
-
 	return addr
 }
 
-// MintAddress will create an account (if it does not exists), updated the balance with required value,
-// saves the account and commit the trie.
+// CreateRandomAddress creates a random byte array with fixed size
+func CreateRandomAddress() state.AddressContainer {
+	addr, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
+	return addr
+}
+
+// MintAddress will create an account (if it does not exists), update the balance with required value,
+// save the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
-	accnt, _ := accnts.GetAccountWithJournal(CreateAddresFromAddrBytes(addressBytes))
+	accnt, _ := accnts.GetAccountWithJournal(CreateAddressFromAddrBytes(addressBytes))
 	_ = accnt.(*state.Account).SetBalanceWithJournal(value)
 	_, _ = accnts.Commit()
+}
+
+// CreateAccount creates a new account and returns the address
+func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) state.AddressContainer {
+	address, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
+	account, _ := accnts.GetAccountWithJournal(address)
+	_ = account.(*state.Account).SetNonceWithJournal(nonce)
+	_ = account.(*state.Account).SetBalanceWithJournal(balance)
+
+	return address
 }
 
 // MakeDisplayTable will output a string containing counters for received transactions, headers, miniblocks and
@@ -301,14 +324,103 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 }
 
 // PrintShardAccount outputs on console a shard account data contained
-func PrintShardAccount(accnt *state.Account) {
-	str := fmt.Sprintf("Address: %s\n", hex.EncodeToString(accnt.AddressContainer().Bytes()))
+func PrintShardAccount(accnt *state.Account, tag string) {
+	str := fmt.Sprintf("%s Address: %s\n", tag, base64.StdEncoding.EncodeToString(accnt.AddressContainer().Bytes()))
 	str += fmt.Sprintf("  Nonce: %d\n", accnt.Nonce)
-	str += fmt.Sprintf("  Balance: %d\n", accnt.Balance)
+	str += fmt.Sprintf("  Balance: %d\n", accnt.Balance.Uint64())
 	str += fmt.Sprintf("  Code hash: %s\n", base64.StdEncoding.EncodeToString(accnt.CodeHash))
 	str += fmt.Sprintf("  Root hash: %s\n", base64.StdEncoding.EncodeToString(accnt.RootHash))
 
 	fmt.Println(str)
+}
+
+// CreateRandomHexString returns a string encoded in hex with the given size
+func CreateRandomHexString(chars int) string {
+	if chars < 1 {
+		return ""
+	}
+
+	buff := make([]byte, chars/2)
+	_, _ = rand.Reader.Read(buff)
+
+	return hex.EncodeToString(buff)
+}
+
+// GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
+func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
+	adr := CreateRandomAddress()
+	adb, _, _ := CreateAccountsDB(nil)
+	account, _ := state.NewAccount(adr, adb)
+
+	return adr, account, adb
+}
+
+// AdbEmulateBalanceTxSafeExecution emulates a tx execution by altering the accounts
+// balance and nonce, and printing any encountered error
+func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest *state.Account, accounts state.AccountsAdapter, value *big.Int) {
+
+	snapshot := accounts.JournalLen()
+	err := AdbEmulateBalanceTxExecution(acntSrc, acntDest, value)
+
+	if err != nil {
+		fmt.Printf("Error executing tx (value: %v), reverting...\n", value)
+		err = accounts.RevertToSnapshot(snapshot)
+
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+// AdbEmulateBalanceTxExecution emulates a tx execution by altering the accounts
+// balance and nonce, and printing any encountered error
+func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.Int) error {
+
+	srcVal := acntSrc.Balance
+	destVal := acntDest.Balance
+
+	if srcVal.Cmp(value) < 0 {
+		return errors.New("not enough funds")
+	}
+
+	err := acntSrc.SetBalanceWithJournal(srcVal.Sub(srcVal, value))
+	if err != nil {
+		return err
+	}
+
+	err = acntDest.SetBalanceWithJournal(destVal.Add(destVal, value))
+	if err != nil {
+		return err
+	}
+
+	err = acntSrc.SetNonceWithJournal(acntSrc.Nonce + 1)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CreateSimpleTxProcessor returns a transaction processor
+func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionProcessor {
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	txProcessor, _ := transaction.NewTxProcessor(accnts, TestHasher, TestAddressConverter, TestMarshalizer, shardCoordinator, &mock.SCProcessorMock{})
+
+	return txProcessor
+}
+
+// CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
+func CreateNewDefaultTrie() data.Trie {
+	tr, _ := trie.NewTrie(CreateMemUnit(), TestMarshalizer, TestHasher)
+	return tr
+}
+
+// GenerateRandomSlice returns a random byte slice with the given size
+func GenerateRandomSlice(size int) []byte {
+	buff := make([]byte, size)
+	_, _ = rand.Reader.Read(buff)
+
+	return buff
 }
 
 // MintAllNodes will take each shard node (n) and will mint all nodes that have their pk managed by the iterating node n
