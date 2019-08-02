@@ -43,7 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -66,6 +66,7 @@ var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 // with all its fields exported
 type TestProcessorNode struct {
 	ShardCoordinator sharding.Coordinator
+	NodesCoordinator sharding.NodesCoordinator
 	Messenger        p2p.Messenger
 
 	SingleSigner  crypto.SingleSigner
@@ -116,11 +117,13 @@ type TestProcessorNode struct {
 // NewTestProcessorNode returns a new TestProcessorNode instance
 func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
+	nodesCoordinator := mock.NodesCoordinatorMock{}
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
+		NodesCoordinator: nodesCoordinator,
 	}
 
 	tpn.initCrypto(txSignPrivKeyShardId)
@@ -202,13 +205,13 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
 			tpn.ShardCoordinator,
+			tpn.NodesCoordinator,
 			tpn.Messenger,
 			tpn.Storage,
 			TestMarshalizer,
 			TestHasher,
 			TestMultiSig,
 			tpn.MetaDataPool,
-			&mock.ChronologyValidatorMock{},
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -218,6 +221,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	} else {
 		interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 			tpn.ShardCoordinator,
+			tpn.NodesCoordinator,
 			tpn.Messenger,
 			tpn.Storage,
 			TestMarshalizer,
@@ -227,7 +231,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestMultiSig,
 			tpn.ShardDataPool,
 			TestAddressConverter,
-			&mock.ChronologyValidatorMock{},
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()

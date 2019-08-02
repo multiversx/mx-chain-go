@@ -27,7 +27,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
 		1,
 		1,
-		hasher,
+		testHasher,
 		0,
 		1,
 		make(map[uint32][]sharding.Validator),
