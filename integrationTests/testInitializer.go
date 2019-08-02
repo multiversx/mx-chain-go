@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -740,4 +741,72 @@ func checkRootHashInShard(t *testing.T, nodes []*TestProcessorNode, idxProposer 
 		nodeRootHash, _ := node.AccntState.RootHash()
 		assert.Equal(t, proposerRootHash, nodeRootHash)
 	}
+}
+
+// CheckTxPresentAndRightNonce verifies that the nonce was updated correctly after the exec of bulk txs
+func CheckTxPresentAndRightNonce(
+	t *testing.T,
+	startingNonce uint64,
+	noOfTxs int,
+	txHashes [][]byte,
+	txs []data.TransactionHandler,
+	cache dataRetriever.ShardedDataCacherNotifier,
+	shardCoordinator sharding.Coordinator,
+) {
+
+	if noOfTxs != len(txHashes) {
+		for i := startingNonce; i < startingNonce+uint64(noOfTxs); i++ {
+			found := false
+
+			for _, txHandler := range txs {
+				nonce := extractUint64ValueFromTxHandler(txHandler)
+				if nonce == i {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				fmt.Printf("unsigned tx with nonce %d is missing\n", i)
+			}
+		}
+		assert.Fail(t, fmt.Sprintf("should have been %d, got %d", noOfTxs, len(txHashes)))
+
+		return
+	}
+
+	bitmap := make([]bool, noOfTxs+int(startingNonce))
+	//set for each nonce from found tx a true flag in bitmap
+	for i := 0; i < noOfTxs; i++ {
+		selfId := shardCoordinator.SelfId()
+		shardDataStore := cache.ShardDataStore(process.ShardCacherIdentifier(selfId, selfId))
+		val, _ := shardDataStore.Get(txHashes[i])
+		if val == nil {
+			continue
+		}
+
+		nonce := extractUint64ValueFromTxHandler(val.(data.TransactionHandler))
+		bitmap[nonce] = true
+	}
+
+	//for the first startingNonce values, the bitmap should be false
+	//for the rest, true
+	for i := 0; i < noOfTxs+int(startingNonce); i++ {
+		if i < int(startingNonce) {
+			assert.False(t, bitmap[i])
+			continue
+		}
+
+		assert.True(t, bitmap[i])
+	}
+}
+
+func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
+	tx, ok := txHandler.(*transaction.Transaction)
+	if ok {
+		return tx.Nonce
+	}
+
+	buff, _ := hex.DecodeString(txHandler.GetData())
+	return binary.BigEndian.Uint64(buff)
 }
