@@ -125,7 +125,7 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 	tpn.initCrypto(txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initStorage()
-	tpn.AccntState = CreateAccountsDB(tpn.ShardCoordinator)
+	tpn.AccntState, _, _ = CreateAccountsDB(tpn.ShardCoordinator)
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initInterceptors()
