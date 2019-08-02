@@ -132,14 +132,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	for i := 1; i < nrPlayers; i++ {
 		players[i] = players[0]
 	}
-
-	// as it is one player
 	nrPlayers = 1
-
-	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
-	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
-
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
@@ -152,12 +145,15 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(stepDelay)
+	time.Sleep(time.Second)
 
 	round := uint64(0)
 	round = incrementAndPrintRound(round)
 
-	nrRounds := 10
+	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
+
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
 	integrationTests.MintAllNodes(nodes, initialVal)
@@ -171,7 +167,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 
 	runMultipleRoundsOfTheGame(
 		t,
-		nrRounds,
+		10,
 		nrPlayers,
 		idxProposer,
 		nodes,
@@ -183,7 +179,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 
 	checkRootHashes(t, nodes, []int{0})
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(time.Second)
 }
 
 func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRounds(t *testing.T) {
@@ -214,13 +210,9 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	idxProposer := 0
 	nrPlayers := 100
 	players := make([]*integrationTests.TestWalletAccount, nrPlayers)
-	for i := 0; i < nrPlayers; i++ {
+	for i := 1; i < nrPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
 	}
-
-	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
-	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
 	defer func() {
 		_ = advertiser.Close()
@@ -234,12 +226,15 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(stepDelay)
+	time.Sleep(time.Second)
 
 	round := uint64(0)
 	round = incrementAndPrintRound(round)
 
-	nrRounds := 10
+	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
+
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
 	integrationTests.MintAllNodes(nodes, initialVal)
@@ -253,7 +248,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 
 	runMultipleRoundsOfTheGame(
 		t,
-		nrRounds,
+		100,
 		nrPlayers,
 		idxProposer,
 		nodes,
@@ -265,7 +260,19 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 
 	checkRootHashes(t, nodes, []int{0})
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(time.Second)
+}
+
+func getPercentageOfValue(value *big.Int, percentage float64) *big.Int {
+	x := new(big.Float).SetInt(value)
+	y := big.NewFloat(percentage)
+
+	z := new(big.Float).Mul(x, y)
+
+	op := big.NewInt(0)
+	result, _ := z.Int(op)
+
+	return result
 }
 
 func runMultipleRoundsOfTheGame(
@@ -282,7 +289,14 @@ func runMultipleRoundsOfTheGame(
 	if nrRewardedPlayers > nrPlayers {
 		nrRewardedPlayers = nrPlayers
 	}
-	withdrawValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(len(players)) / uint64(nrRewardedPlayers))
+
+	totalWithdrawValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(len(players)))
+	withDrawValues := make([]*big.Int, nrRewardedPlayers)
+	winnerRate := 1.0 - 0.05*float64(nrRewardedPlayers-1)
+	withDrawValues[0] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, winnerRate))
+	for i := 1; i < nrRewardedPlayers; i++ {
+		withDrawValues[i] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, 0.05))
+	}
 
 	for rr := 0; rr < nrRounds; rr++ {
 		for _, player := range players {
@@ -313,13 +327,13 @@ func runMultipleRoundsOfTheGame(
 		checkJoinGame(t, nodes, players, topUpValue, idxProposer, hardCodedScResultingAddress)
 
 		for i := 0; i < nrRewardedPlayers; i++ {
-			nodeCallsRewardAndSend(nodes, idxProposer, players[i].Address.Bytes(), withdrawValue, rr, hardCodedScResultingAddress)
+			nodeCallsRewardAndSend(nodes, idxProposer, players[i].Address.Bytes(), withDrawValues[i], rr, hardCodedScResultingAddress)
 			newBalance := big.NewInt(0)
-			newBalance = newBalance.Add(players[i].Balance, withdrawValue)
+			newBalance = newBalance.Add(players[i].Balance, withDrawValues[i])
 			players[i].Balance = players[i].Balance.Set(newBalance)
 		}
 		//TODO activate endgame when it is corrected
-		// nodeEndGame(nodes, idxProposer, rr, hardCodedScResultingAddress)
+		//nodeEndGame(nodes, idxProposer, rr, hardCodedScResultingAddress)
 		time.Sleep(time.Second)
 
 		startTime = time.Now()
@@ -331,8 +345,8 @@ func runMultipleRoundsOfTheGame(
 		syncBlock(t, nodes, idxProposer, round)
 		round = incrementAndPrintRound(round)
 
-		checkRewardsDistribution(t, nodes, players, topUpValue, withdrawValue,
-			hardCodedScResultingAddress, nrRewardedPlayers, idxProposer)
+		checkRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
+			hardCodedScResultingAddress, idxProposer)
 
 		fmt.Println(rMonitor.GenerateStatistics())
 	}
@@ -373,7 +387,7 @@ func checkRewardsDistribution(
 	topUpValue *big.Int,
 	withdrawValue *big.Int,
 	hardCodedScResultingAddress []byte,
-	nrRewardedPlayers, idxProposer int,
+	idxProposer int,
 ) {
 	for _, player := range players {
 		checkRewardIsDoneCorrectlyPlayerSide(
@@ -386,13 +400,12 @@ func checkRewardsDistribution(
 
 	nrPlayers := len(players)
 	allTopUpValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(nrPlayers))
-	allWithDrawValue := big.NewInt(0).SetUint64(withdrawValue.Uint64() * uint64(nrRewardedPlayers))
 	checkRewardIsDoneCorrectlySCSide(
 		t,
 		nodes,
 		idxProposer,
 		allTopUpValue,
-		allWithDrawValue,
+		withdrawValue,
 		hardCodedScResultingAddress,
 	)
 }
@@ -516,7 +529,6 @@ func createTxDeploy(tn *integrationTests.TestProcessorNode, scCode string) *tran
 func createTxEndGame(tn *integrationTests.TestProcessorNode, round int, scAddress []byte) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    0,
-		Value:    big.NewInt(100),
 		RcvAddr:  scAddress,
 		SndAddr:  tn.PkTxSignBytes,
 		Data:     fmt.Sprintf("endGame@%d", round),
@@ -579,7 +591,10 @@ func checkJoinGameIsDoneCorrectlyPlayerSide(
 	fmt.Printf("Checking %s\n", hex.EncodeToString(nodeWithCaller.PkTxSignBytes))
 	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(player.Address.Bytes()))
 	assert.NotNil(t, accnt)
-	assert.Equal(t, player.Balance.Uint64(), accnt.(*state.Account).Balance.Uint64())
+	ok := assert.Equal(t, player.Balance.Uint64(), accnt.(*state.Account).Balance.Uint64())
+	if !ok {
+		fmt.Printf("Expected player balance %d Actual player balance %d\n", player.Balance.Uint64(), accnt.(*state.Account).Balance.Uint64())
+	}
 }
 
 func checkJoinGameIsDoneCorrectlySCSide(
