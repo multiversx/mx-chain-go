@@ -1267,8 +1267,6 @@ func TestMetaBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
 	t.Parallel()
 
-	hdrFinal := block.Header{Nonce: 0, Round: 0}
-
 	hdr1 := block.MetaBlock{Nonce: 1, Round: 2, PubKeysBitmap: []byte("A")}
 	hash1 := []byte("hash1")
 
@@ -1309,7 +1307,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 		math.MaxUint32,
 	)
 
-	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, &hdrFinal)
+	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil)
 	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil)
 
 	shouldSync := bs.ShouldSync()
@@ -1319,7 +1317,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 	if shouldSync && bs.IsForkDetected() {
 		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(hash1)
-		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, &hdrFinal)
+		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil)
 	}
 
 	shouldSync = bs.ShouldSync()
@@ -1329,8 +1327,6 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 
 func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesTheGoodHeader(t *testing.T) {
 	t.Parallel()
-
-	hdrFinal := block.Header{Nonce: 0, Round: 0}
 
 	hdr1 := block.MetaBlock{Nonce: 1, Round: 2, PubKeysBitmap: []byte("A")}
 	hash1 := []byte("hash1")
@@ -1372,7 +1368,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 		math.MaxUint32,
 	)
 
-	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, &hdrFinal)
+	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil)
 	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil)
 
 	shouldSync := bs.ShouldSync()
@@ -1382,7 +1378,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	if shouldSync && bs.IsForkDetected() {
 		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(hash2)
-		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, &hdr1)
+		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil)
 	}
 
 	shouldSync = bs.ShouldSync()
