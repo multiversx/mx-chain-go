@@ -467,8 +467,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 
 	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
 	if usePrometheusBool {
-		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(
-			statusHandler.NewPrometheusStatusHandler())
+		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
+		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(prometheusStatusHandler)
 		if err != nil {
 			log.Warn("Cannot init AppStatusFacade", err)
 		}

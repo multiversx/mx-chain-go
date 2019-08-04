@@ -17,39 +17,25 @@ func (psh *PrometheusStatusHandler) InitMetricsMap() {
 	psh.prometheusGaugeMetrics = sync.Map{}
 }
 
+// will create a prometheus gauge and add it to the sync map
+func (psh *PrometheusStatusHandler) addMetric(name string, help string) {
+	metric := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: name,
+		Help: help,
+	})
+	psh.prometheusGaugeMetrics.Store(name, metric)
+}
+
 // InitMetrics will declare and init all the metrics which should be used for Prometheus
 func (psh *PrometheusStatusHandler) InitMetrics() {
 	psh.InitMetricsMap()
 
-	erdSynchronizedRound := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: core.MetricSynchronizedRound,
-		Help: "The round where the synchronized blockchain is",
-	})
-	psh.prometheusGaugeMetrics.Store(core.MetricSynchronizedRound, erdSynchronizedRound)
-
-	erdNonce := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: core.MetricNonce,
-		Help: "The nonce for the node",
-	})
-	psh.prometheusGaugeMetrics.Store(core.MetricNonce, erdNonce)
-
-	erdCurrentRound := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: core.MetricCurrentRound,
-		Help: "The current round where the node is",
-	})
-	psh.prometheusGaugeMetrics.Store(core.MetricCurrentRound, erdCurrentRound)
-
-	erdNumConnectedPeers := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: core.MetricNumConnectedPeers,
-		Help: "The current number of peers connected",
-	})
-	psh.prometheusGaugeMetrics.Store(core.MetricNumConnectedPeers, erdNumConnectedPeers)
-
-	erdIsSyncing := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: core.MetricIsSyncing,
-		Help: "The synchronization state. If it's in process of syncing will be 1 and if it's synchronized will be 0",
-	})
-	psh.prometheusGaugeMetrics.Store(core.MetricIsSyncing, erdIsSyncing)
+	psh.addMetric(core.MetricSynchronizedRound, "The round where the synchronized blockchain is")
+	psh.addMetric(core.MetricNonce, "The nonce for the node")
+	psh.addMetric(core.MetricCurrentRound, "The current round where the node is")
+	psh.addMetric(core.MetricNumConnectedPeers, "The current number of peers connected")
+	psh.addMetric(core.MetricIsSyncing, "The synchronization state. If it's in process of syncing will be 1"+
+		" and if it's synchronized will be 0")
 
 	psh.prometheusGaugeMetrics.Range(func(key, value interface{}) bool {
 		gauge := value.(prometheus.Gauge)
