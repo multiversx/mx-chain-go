@@ -19,4 +19,6 @@ type PubKeyHeartbeat struct {
 	MaxInactiveTime Duration
 	IsActive        bool
 	ShardID         uint32
+	TotalUpTime     Duration
+	TotalDownTime   Duration
 }

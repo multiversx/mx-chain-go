@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,57 +19,52 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	dPoolRequester := createTestDataPool()
-	dPoolResolver := createTestDataPool()
-	shardCoordinator := &sharding.OneShardCoordinator{}
+	var nrOfShards uint32 = 1
+	var shardID uint32 = 0
+	var txSignPrivKeyShardId uint32 = 0
+	requesterNodeAddr := "0"
+	resolverNodeAddr := "1"
 
-	fmt.Println("Requester:")
-	nRequester, mesRequester, sk1, resolversFinder := createNetNode(
-		dPoolRequester,
-		createAccountsDB(),
-		shardCoordinator)
+	fmt.Println("Requester:	")
+	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := createNetNode(
-		dPoolResolver,
-		createAccountsDB(),
-		shardCoordinator)
-
-	_ = nRequester.Start()
-	_ = nResolver.Start()
+	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
+	_ = nRequester.Node.Start()
+	_ = nResolver.Node.Start()
 	defer func() {
-		_ = nRequester.Stop()
-		_ = nResolver.Stop()
+		_ = nRequester.Node.Stop()
+		_ = nResolver.Node.Stop()
 	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := mesRequester.ConnectToPeer(getConnectableAddress(mesResolver))
+	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
 
-	buffPk1, _ := sk1.GeneratePublic().ToByteArray()
+	buffPk1, _ := nRequester.SkTxSign.GeneratePublic().ToByteArray()
 
 	//Step 1. Generate an unsigned transaction
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:   0,
 		Value:   big.NewInt(0),
-		RcvAddr: testHasher.Compute("receiver"),
+		RcvAddr: integrationTests.TestHasher.Compute("receiver"),
 		SndAddr: buffPk1,
 		Data:    "tx notarized data",
 		TxHash:  []byte("tx hash"),
 	}
 
-	scrBuff, _ := testMarshalizer.Marshal(scr)
+	scrBuff, _ := integrationTests.TestMarshalizer.Marshal(scr)
 	fmt.Printf("Unsigned transaction: %v\n%v\n", scr, string(scrBuff))
 	chanDone := make(chan bool)
-	scrHash := testHasher.Compute(string(scrBuff))
+	scrHash := integrationTests.TestHasher.Compute(string(scrBuff))
 
 	//step 2. wire up a received handler for requester
-	dPoolRequester.UnsignedTransactions().RegisterHandler(func(key []byte) {
-		selfId := shardCoordinator.SelfId()
-		scrStored, _ := dPoolRequester.UnsignedTransactions().ShardDataStore(
+	nRequester.ShardDataPool.UnsignedTransactions().RegisterHandler(func(key []byte) {
+		selfId := nRequester.ShardCoordinator.SelfId()
+		scrStored, _ := nRequester.ShardDataPool.UnsignedTransactions().ShardDataStore(
 			process.ShardCacherIdentifier(selfId, selfId),
 		).Get(key)
 
@@ -82,14 +77,14 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 	})
 
 	//Step 3. add the unsigned transaction in resolver pool
-	dPoolResolver.UnsignedTransactions().AddData(
+	nResolver.ShardDataPool.UnsignedTransactions().AddData(
 		scrHash,
 		scr,
-		process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+		process.ShardCacherIdentifier(nResolver.ShardCoordinator.SelfId(), nResolver.ShardCoordinator.SelfId()),
 	)
 
 	//Step 4. request unsigned tx
-	scrResolver, _ := resolversFinder.IntraShardResolver(factory.UnsignedTransactionTopic)
+	scrResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.UnsignedTransactionTopic)
 	err = scrResolver.RequestDataFromHash(scrHash)
 	assert.Nil(t, err)
 

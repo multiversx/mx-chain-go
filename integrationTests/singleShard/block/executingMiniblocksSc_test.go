@@ -11,8 +11,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/pkg/profile"
@@ -66,7 +64,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
-	round = incrementAndPrintRound(round)
+	round = integrationTests.IncrementAndPrintRound(round)
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -179,7 +177,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 		[]int{idxProposer},
 	)
 
-	checkRootHashes(t, nodes, []int{0})
+	integrationTests.CheckRootHashes(t, nodes, []int{0})
 
 	time.Sleep(time.Second)
 }
@@ -317,7 +315,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
-	round = incrementAndPrintRound(round)
+	round = integrationTests.IncrementAndPrintRound(round)
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")

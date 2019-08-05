@@ -66,3 +66,25 @@ func TestHeartbeatMessageInfo_HeartbeatSweepShouldUpdate(t *testing.T) {
 	hbmi.HeartbeatReceived(uint32(3))
 	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
 }
+
+func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpTime(t *testing.T) {
+	t.Parallel()
+
+	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10))
+	incrementalTime := int64(0)
+	hbmi.getTimeHandler = func() time.Time {
+		tReturned := time.Unix(0, incrementalTime)
+		incrementalTime += 1
+
+		return tReturned
+	}
+
+	assert.Equal(t, emptyTimestamp, hbmi.timeStamp)
+
+	// send heartbeat twice in order to calculate the duration between thm
+	hbmi.HeartbeatReceived(uint32(1))
+	hbmi.HeartbeatReceived(uint32(2))
+
+	assert.True(t, hbmi.totalUpTime.Duration > time.Duration(0))
+	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
+}
