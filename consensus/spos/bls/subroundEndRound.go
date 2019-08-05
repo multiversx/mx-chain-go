@@ -85,9 +85,9 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
 	//TODO: Remove this mechanism which intentionally induces forks
-	if sr.RoundIndex%5 == 0 {
-		time.Sleep(9000 * time.Millisecond)
-	}
+	//if sr.RoundIndex % 5 == 0 {
+	//	time.Sleep(9000 * time.Millisecond)
+	//}
 
 	// broadcast block body and header
 	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
