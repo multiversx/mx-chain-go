@@ -5,11 +5,13 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
 	"sync/atomic"
+	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -17,18 +19,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -37,7 +42,11 @@ import (
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
+
+var stepDelay = time.Second
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
@@ -60,7 +69,7 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", []string{initialAddr}),
+		discovery.NewKadDhtPeerDiscoverer(stepDelay, "test", []string{initialAddr}),
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -169,15 +178,20 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(shardCoordinator sharding.Coordinator) *state.AccountsDB {
-	hasher := sha256.Sha256{}
+func CreateAccountsDB(shardCoordinator sharding.Coordinator) (*state.AccountsDB, data.Trie, storage.Storer) {
+
+	var accountFactory state.AccountFactory
+	if shardCoordinator == nil {
+		accountFactory = factory.NewAccountCreator()
+	} else {
+		accountFactory, _ = factory.NewAccountFactoryCreator(shardCoordinator)
+	}
+
 	store := CreateMemUnit()
+	tr, _ := trie.NewTrie(store, TestMarshalizer, TestHasher)
+	adb, _ := state.NewAccountsDB(tr, TestHasher, TestMarshalizer, accountFactory)
 
-	tr, _ := trie.NewTrie(store, TestMarshalizer, hasher)
-	accountFactory, _ := factory.NewAccountFactoryCreator(shardCoordinator)
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
-
-	return adb
+	return adb, tr, store
 }
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
@@ -188,9 +202,9 @@ func CreateShardChain() *blockchain.BlockChain {
 		badBlockCache,
 	)
 	blockChain.GenesisHeader = &dataBlock.Header{}
-	genisisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GenesisHeader)
+	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GenesisHeader)
 
-	blockChain.SetGenesisHeaderHash(TestHasher.Compute(string(genisisHeaderM)))
+	blockChain.SetGenesisHeaderHash(TestHasher.Compute(string(genesisHeaderM)))
 
 	return blockChain
 }
@@ -261,19 +275,34 @@ func CreateIeleVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExe
 	return vm, blockChainHook
 }
 
-// CreateAddresFromAddrBytes creates a n address container object from address bytes provided
-func CreateAddresFromAddrBytes(addressBytes []byte) state.AddressContainer {
+// CreateAddressFromAddrBytes creates an address container object from address bytes provided
+func CreateAddressFromAddrBytes(addressBytes []byte) state.AddressContainer {
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(addressBytes)
-
 	return addr
 }
 
-// MintAddress will create an account (if it does not exists), updated the balance with required value,
-// saves the account and commit the trie.
+// CreateRandomAddress creates a random byte array with fixed size
+func CreateRandomAddress() state.AddressContainer {
+	addr, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
+	return addr
+}
+
+// MintAddress will create an account (if it does not exists), update the balance with required value,
+// save the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
-	accnt, _ := accnts.GetAccountWithJournal(CreateAddresFromAddrBytes(addressBytes))
+	accnt, _ := accnts.GetAccountWithJournal(CreateAddressFromAddrBytes(addressBytes))
 	_ = accnt.(*state.Account).SetBalanceWithJournal(value)
 	_, _ = accnts.Commit()
+}
+
+// CreateAccount creates a new account and returns the address
+func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) state.AddressContainer {
+	address, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
+	account, _ := accnts.GetAccountWithJournal(address)
+	_ = account.(*state.Account).SetNonceWithJournal(nonce)
+	_ = account.(*state.Account).SetBalanceWithJournal(balance)
+
+	return address
 }
 
 // MakeDisplayTable will output a string containing counters for received transactions, headers, miniblocks and
@@ -301,14 +330,103 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 }
 
 // PrintShardAccount outputs on console a shard account data contained
-func PrintShardAccount(accnt *state.Account) {
-	str := fmt.Sprintf("Address: %s\n", hex.EncodeToString(accnt.AddressContainer().Bytes()))
+func PrintShardAccount(accnt *state.Account, tag string) {
+	str := fmt.Sprintf("%s Address: %s\n", tag, base64.StdEncoding.EncodeToString(accnt.AddressContainer().Bytes()))
 	str += fmt.Sprintf("  Nonce: %d\n", accnt.Nonce)
-	str += fmt.Sprintf("  Balance: %d\n", accnt.Balance)
+	str += fmt.Sprintf("  Balance: %d\n", accnt.Balance.Uint64())
 	str += fmt.Sprintf("  Code hash: %s\n", base64.StdEncoding.EncodeToString(accnt.CodeHash))
 	str += fmt.Sprintf("  Root hash: %s\n", base64.StdEncoding.EncodeToString(accnt.RootHash))
 
 	fmt.Println(str)
+}
+
+// CreateRandomHexString returns a string encoded in hex with the given size
+func CreateRandomHexString(chars int) string {
+	if chars < 1 {
+		return ""
+	}
+
+	buff := make([]byte, chars/2)
+	_, _ = rand.Reader.Read(buff)
+
+	return hex.EncodeToString(buff)
+}
+
+// GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
+func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
+	adr := CreateRandomAddress()
+	adb, _, _ := CreateAccountsDB(nil)
+	account, _ := state.NewAccount(adr, adb)
+
+	return adr, account, adb
+}
+
+// AdbEmulateBalanceTxSafeExecution emulates a tx execution by altering the accounts
+// balance and nonce, and printing any encountered error
+func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest *state.Account, accounts state.AccountsAdapter, value *big.Int) {
+
+	snapshot := accounts.JournalLen()
+	err := AdbEmulateBalanceTxExecution(acntSrc, acntDest, value)
+
+	if err != nil {
+		fmt.Printf("Error executing tx (value: %v), reverting...\n", value)
+		err = accounts.RevertToSnapshot(snapshot)
+
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+// AdbEmulateBalanceTxExecution emulates a tx execution by altering the accounts
+// balance and nonce, and printing any encountered error
+func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.Int) error {
+
+	srcVal := acntSrc.Balance
+	destVal := acntDest.Balance
+
+	if srcVal.Cmp(value) < 0 {
+		return errors.New("not enough funds")
+	}
+
+	err := acntSrc.SetBalanceWithJournal(srcVal.Sub(srcVal, value))
+	if err != nil {
+		return err
+	}
+
+	err = acntDest.SetBalanceWithJournal(destVal.Add(destVal, value))
+	if err != nil {
+		return err
+	}
+
+	err = acntSrc.SetNonceWithJournal(acntSrc.Nonce + 1)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CreateSimpleTxProcessor returns a transaction processor
+func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionProcessor {
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	txProcessor, _ := txProc.NewTxProcessor(accnts, TestHasher, TestAddressConverter, TestMarshalizer, shardCoordinator, &mock.SCProcessorMock{})
+
+	return txProcessor
+}
+
+// CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
+func CreateNewDefaultTrie() data.Trie {
+	tr, _ := trie.NewTrie(CreateMemUnit(), TestMarshalizer, TestHasher)
+	return tr
+}
+
+// GenerateRandomSlice returns a random byte slice with the given size
+func GenerateRandomSlice(size int) []byte {
+	buff := make([]byte, size)
+	_, _ = rand.Reader.Read(buff)
+
+	return buff
 }
 
 // MintAllNodes will take each shard node (n) and will mint all nodes that have their pk managed by the iterating node n
@@ -333,4 +451,362 @@ func mintAddressesFromSameShard(nodes []*TestProcessorNode, targetNodeIdx int, v
 
 		MintAddress(targetNode.AccntState, n.PkTxSignBytes, value)
 	}
+}
+
+// IncrementAndPrintRound increments the given variable, and prints the message for teh beginning of the round
+func IncrementAndPrintRound(round uint64) uint64 {
+	round++
+	fmt.Printf("#################################### ROUND %d BEGINS ####################################\n\n", round)
+
+	return round
+}
+
+// DeployScTx creates and sends a SC tx
+func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
+	fmt.Println("Deploying SC...")
+	txDeploy := createTxDeploy(nodes[senderIdx], scCode)
+	nodes[senderIdx].SendTransaction(txDeploy)
+	fmt.Println("Delaying for disseminating the deploy tx...")
+	time.Sleep(stepDelay)
+
+	fmt.Println(MakeDisplayTable(nodes))
+}
+
+func createTxDeploy(tn *TestProcessorNode, scCode string) *transaction.Transaction {
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  make([]byte, 32),
+		SndAddr:  tn.PkTxSignBytes,
+		Data:     scCode,
+		GasPrice: 0,
+		GasLimit: 100000,
+	}
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
+
+	return tx
+}
+
+// ProposeBlock proposes a block with SC txs for every shard
+func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64) {
+	fmt.Println("All shards propose blocks...")
+	for idx, n := range nodes {
+		if !isIntInSlice(idx, idxProposers) {
+			continue
+		}
+
+		body, header, _ := n.ProposeBlock(round)
+		n.BroadcastBlock(body, header)
+		n.CommitBlock(body, header)
+	}
+
+	fmt.Println("Delaying for disseminating headers and miniblocks...")
+	time.Sleep(stepDelay)
+	fmt.Println(MakeDisplayTable(nodes))
+}
+
+// SyncBlock synchronizes the proposed block in all the other shard nodes
+func SyncBlock(
+	t *testing.T,
+	nodes []*TestProcessorNode,
+	idxProposers []int,
+	round uint64,
+) {
+
+	fmt.Println("All other shard nodes sync the proposed block...")
+	for idx, n := range nodes {
+		if isIntInSlice(idx, idxProposers) {
+			continue
+		}
+
+		err := n.SyncNode(round)
+		if err != nil {
+			assert.Fail(t, err.Error())
+			return
+		}
+	}
+
+	time.Sleep(stepDelay)
+	fmt.Println(MakeDisplayTable(nodes))
+}
+
+func isIntInSlice(idx int, slice []int) bool {
+	for _, value := range slice {
+		if value == idx {
+			return true
+		}
+	}
+
+	return false
+}
+
+// NodeJoinsGame creates and sends a join game transaction to the SC
+func NodeJoinsGame(
+	nodes []*TestProcessorNode,
+	idxNode int,
+	joinGameVal *big.Int,
+	round int,
+	scAddress []byte,
+) {
+
+	fmt.Println("Calling SC.joinGame...")
+	txScCall := createTxJoinGame(nodes[idxNode], joinGameVal, round, scAddress)
+	nodes[idxNode].SendTransaction(txScCall)
+	fmt.Println("Delaying for disseminating SC call tx...")
+	time.Sleep(stepDelay)
+}
+
+func createTxJoinGame(
+	tn *TestProcessorNode,
+	joinGameVal *big.Int,
+	round int,
+	scAddress []byte,
+) *transaction.Transaction {
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    joinGameVal,
+		RcvAddr:  scAddress,
+		SndAddr:  tn.PkTxSignBytes,
+		Data:     fmt.Sprintf("joinGame@%d", round),
+		GasPrice: 0,
+		GasLimit: 100000,
+	}
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
+
+	fmt.Printf("Join %s\n", hex.EncodeToString(tn.PkTxSignBytes))
+
+	return tx
+}
+
+// NodeEndGame creates and sends an end game transaction to the SC
+func NodeEndGame(
+	nodes []*TestProcessorNode,
+	idxNode int,
+	round int,
+	scAddress []byte,
+) {
+
+	fmt.Println("Calling SC.endGame...")
+	txScCall := createTxEndGame(nodes[idxNode], round, scAddress)
+	nodes[idxNode].SendTransaction(txScCall)
+	time.Sleep(stepDelay)
+
+	fmt.Println(MakeDisplayTable(nodes))
+}
+
+func createTxEndGame(
+	tn *TestProcessorNode,
+	round int,
+	scAddress []byte,
+) *transaction.Transaction {
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  scAddress,
+		SndAddr:  tn.PkTxSignBytes,
+		Data:     fmt.Sprintf("endGame@%d", round),
+		GasPrice: 0,
+		GasLimit: 100000,
+	}
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
+
+	fmt.Printf("End %s\n", hex.EncodeToString(tn.PkTxSignBytes))
+
+	return tx
+}
+
+// NodeCallsRewardAndSend creates and sends reward transactions
+func NodeCallsRewardAndSend(
+	nodes []*TestProcessorNode,
+	idxNodeOwner int,
+	idxNodeUser int,
+	prize *big.Int,
+	round int,
+	scAddress []byte,
+) {
+
+	fmt.Println("Calling SC.rewardAndSendToWallet...")
+	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, round, scAddress)
+	nodes[idxNodeOwner].SendTransaction(txScCall)
+	fmt.Println("Delaying for disseminating SC call tx...")
+	time.Sleep(stepDelay)
+}
+
+func createTxRewardAndSendToWallet(
+	tnOwner *TestProcessorNode,
+	tnUser *TestProcessorNode,
+	prizeVal *big.Int,
+	round int,
+	scAddress []byte,
+) *transaction.Transaction {
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  scAddress,
+		SndAddr:  tnOwner.PkTxSignBytes,
+		Data:     fmt.Sprintf("rewardAndSendToWallet@%d@%s@%X", round, hex.EncodeToString(tnUser.PkTxSignBytes), prizeVal),
+		GasPrice: 0,
+		GasLimit: 100000,
+	}
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = tnOwner.SingleSigner.Sign(tnOwner.SkTxSign, txBuff)
+
+	fmt.Printf("Reward %s\n", hex.EncodeToString(tnUser.PkTxSignBytes))
+
+	return tx
+}
+
+// CheckJoinGameIsDoneCorrectly checks if the join game tx was executed correctly
+func CheckJoinGameIsDoneCorrectly(
+	t *testing.T,
+	nodes []*TestProcessorNode,
+	idxNodeScExists int,
+	idxNodeCallerExists int,
+	initialVal *big.Int,
+	topUpVal *big.Int,
+	scAddressBytes []byte,
+) {
+
+	nodeWithSc := nodes[idxNodeScExists]
+	nodeWithCaller := nodes[idxNodeCallerExists]
+
+	fmt.Println("Checking SC account received topUp val...")
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(scAddressBytes))
+	assert.NotNil(t, accnt)
+	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
+
+	fmt.Println("Checking sender has initial-topUp val...")
+	expectedVal := big.NewInt(0).Set(initialVal)
+	expectedVal.Sub(expectedVal, topUpVal)
+	fmt.Printf("Checking %s\n", hex.EncodeToString(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	assert.NotNil(t, accnt)
+	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
+}
+
+// CheckRewardIsDoneCorrectly checks if the reward tx was executed correctly
+func CheckRewardIsDoneCorrectly(
+	t *testing.T,
+	nodes []*TestProcessorNode,
+	idxNodeScExists int,
+	idxNodeCallerExists int,
+	initialVal *big.Int,
+	topUpVal *big.Int,
+	withdraw *big.Int,
+	scAddressBytes []byte,
+) {
+
+	nodeWithSc := nodes[idxNodeScExists]
+	nodeWithCaller := nodes[idxNodeCallerExists]
+
+	fmt.Println("Checking SC account has topUp-withdraw val...")
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(scAddressBytes))
+	assert.NotNil(t, accnt)
+	expectedSC := big.NewInt(0).Set(topUpVal)
+	expectedSC.Sub(expectedSC, withdraw)
+	assert.Equal(t, expectedSC, accnt.(*state.Account).Balance)
+
+	fmt.Println("Checking sender has initial-topUp+withdraw val...")
+	expectedSender := big.NewInt(0).Set(initialVal)
+	expectedSender.Sub(expectedSender, topUpVal)
+	expectedSender.Add(expectedSender, withdraw)
+	fmt.Printf("Checking %s\n", hex.EncodeToString(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	assert.NotNil(t, accnt)
+	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
+}
+
+// CheckRootHashes checks the root hash of the proposer in every shard
+func CheckRootHashes(t *testing.T, nodes []*TestProcessorNode, idxProposers []int) {
+	for _, idx := range idxProposers {
+		checkRootHashInShard(t, nodes, idx)
+	}
+}
+
+func checkRootHashInShard(t *testing.T, nodes []*TestProcessorNode, idxProposer int) {
+	proposerNode := nodes[idxProposer]
+	proposerRootHash, _ := proposerNode.AccntState.RootHash()
+
+	for i := 0; i < len(nodes); i++ {
+		node := nodes[i]
+
+		if node.ShardCoordinator.SelfId() != proposerNode.ShardCoordinator.SelfId() {
+			continue
+		}
+
+		fmt.Printf("Testing roothash for node index %d, shard ID %d...\n", i, node.ShardCoordinator.SelfId())
+		nodeRootHash, _ := node.AccntState.RootHash()
+		assert.Equal(t, proposerRootHash, nodeRootHash)
+	}
+}
+
+// CheckTxPresentAndRightNonce verifies that the nonce was updated correctly after the exec of bulk txs
+func CheckTxPresentAndRightNonce(
+	t *testing.T,
+	startingNonce uint64,
+	noOfTxs int,
+	txHashes [][]byte,
+	txs []data.TransactionHandler,
+	cache dataRetriever.ShardedDataCacherNotifier,
+	shardCoordinator sharding.Coordinator,
+) {
+
+	if noOfTxs != len(txHashes) {
+		for i := startingNonce; i < startingNonce+uint64(noOfTxs); i++ {
+			found := false
+
+			for _, txHandler := range txs {
+				nonce := extractUint64ValueFromTxHandler(txHandler)
+				if nonce == i {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				fmt.Printf("unsigned tx with nonce %d is missing\n", i)
+			}
+		}
+		assert.Fail(t, fmt.Sprintf("should have been %d, got %d", noOfTxs, len(txHashes)))
+
+		return
+	}
+
+	bitmap := make([]bool, noOfTxs+int(startingNonce))
+	//set for each nonce from found tx a true flag in bitmap
+	for i := 0; i < noOfTxs; i++ {
+		selfId := shardCoordinator.SelfId()
+		shardDataStore := cache.ShardDataStore(process.ShardCacherIdentifier(selfId, selfId))
+		val, _ := shardDataStore.Get(txHashes[i])
+		if val == nil {
+			continue
+		}
+
+		nonce := extractUint64ValueFromTxHandler(val.(data.TransactionHandler))
+		bitmap[nonce] = true
+	}
+
+	//for the first startingNonce values, the bitmap should be false
+	//for the rest, true
+	for i := 0; i < noOfTxs+int(startingNonce); i++ {
+		if i < int(startingNonce) {
+			assert.False(t, bitmap[i])
+			continue
+		}
+
+		assert.True(t, bitmap[i])
+	}
+}
+
+func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
+	tx, ok := txHandler.(*transaction.Transaction)
+	if ok {
+		return tx.Nonce
+	}
+
+	buff, _ := hex.DecodeString(txHandler.GetData())
+	return binary.BigEndian.Uint64(buff)
 }

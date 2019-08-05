@@ -13,10 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,42 +23,30 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
+	hasher := integrationTests.TestHasher
+	marshalizer := integrationTests.TestMarshalizer
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	dPoolRequester := createTestDataPool()
-	storeRequester := createTestStore()
-	dPoolResolver := createTestDataPool()
-	storeResolver := createTestStore()
+	var nrOfShards uint32 = 1
+	var shardID uint32 = 0
+	var txSignPrivKeyShardId uint32 = 0
+	requesterNodeAddr := "0"
+	resolverNodeAddr := "1"
 
-	shardCoordinator := &sharding.OneShardCoordinator{}
-
-	fmt.Println("Requester:")
-	nRequester, mesRequester, _, resolversFinder := createNetNode(
-		dPoolRequester,
-		storeRequester,
-		createAccountsDB(),
-		shardCoordinator,
-	)
+	fmt.Println("Requester:	")
+	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := createNetNode(
-		dPoolResolver,
-		storeResolver,
-		createAccountsDB(),
-		shardCoordinator,
-	)
-
-	_ = nRequester.Start()
-	_ = nResolver.Start()
+	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
+	_ = nRequester.Node.Start()
+	_ = nResolver.Node.Start()
 	defer func() {
-		_ = nRequester.Stop()
-		_ = nResolver.Stop()
+		_ = nRequester.Node.Stop()
+		_ = nResolver.Node.Stop()
 	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := mesRequester.ConnectToPeer(getConnectableAddress(mesResolver))
+	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -104,13 +90,13 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
 	//Step 2. resolver has the headers
-	_, _ = dPoolResolver.Headers().HasOrAdd(hdrHash1, &hdr1)
+	_, _ = nResolver.ShardDataPool.Headers().HasOrAdd(hdrHash1, &hdr1)
 
 	syncMap := &dataPool.ShardIdHashSyncMap{}
 	syncMap.Store(0, hdrHash1)
-	dPoolResolver.HeadersNonces().Merge(0, syncMap)
-	_ = storeResolver.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
-	_ = storeResolver.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
+	nResolver.ShardDataPool.HeadersNonces().Merge(0, syncMap)
+	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
+	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
 	//Step 3. wire up a received handler
 	chanDone := make(chan struct{})
@@ -122,8 +108,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 		chanDone <- struct{}{}
 	}()
 
-	dPoolRequester.Headers().RegisterHandler(func(key []byte) {
-		hdrStored, _ := dPoolRequester.Headers().Peek(key)
+	nRequester.ShardDataPool.Headers().RegisterHandler(func(key []byte) {
+		hdrStored, _ := nRequester.ShardDataPool.Headers().Peek(key)
 		fmt.Printf("Recieved hash %v\n", base64.StdEncoding.EncodeToString(key))
 
 		if reflect.DeepEqual(hdrStored, &hdr1) && hdr1.Signature != nil {
@@ -138,7 +124,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	})
 
 	//Step 4. request header from pool
-	res, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)
+	res, err := nRequester.ResolverFinder.IntraShardResolver(factory.HeadersTopic)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	_ = hdrResolver.RequestDataFromNonce(0)

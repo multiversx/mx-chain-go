@@ -357,7 +357,7 @@ func deployScTx(
 
 	fmt.Println("Deploying SC...")
 	txDeploy := createTxDeploy(nodes[senderIdx], scCode)
-	nodes[senderIdx].SendTransaction(txDeploy)
+	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
 	fmt.Println("Delaying for disseminating the deploy tx...")
 	time.Sleep(stepDelay)
 
@@ -429,7 +429,7 @@ func nodeDoesTopUp(
 
 	fmt.Println("Calling SC.topUp...")
 	txScCall := createTxTopUp(nodes[idxNode], topUpValue, scAddress)
-	nodes[idxNode].SendTransaction(txScCall)
+	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(stepDelay)
 
@@ -445,7 +445,7 @@ func nodeJoinsGame(
 
 	fmt.Println("Calling SC.joinGame...")
 	txScCall := createTxJoinGame(nodes[idxNode], joinGameVal, scAddress)
-	nodes[idxNode].SendTransaction(txScCall)
+	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(stepDelay)
 
@@ -483,7 +483,7 @@ func checkTopUpIsDoneCorrectly(
 	nodeWithCaller := nodes[idxNodeCallerExists]
 
 	fmt.Println("Checking SC account received topUp val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
 
@@ -500,7 +500,7 @@ func checkTopUpIsDoneCorrectly(
 	fmt.Println("Checking sender has initial-topUp val...")
 	expectedVal := big.NewInt(0).Set(initialVal)
 	expectedVal.Sub(expectedVal, topUpVal)
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
 }
@@ -519,14 +519,14 @@ func checkJoinGameIsDoneCorrectly(
 	nodeWithCaller := nodes[idxNodeCallerExists]
 
 	fmt.Println("Checking SC account received topUp val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
 
 	fmt.Println("Checking sender has initial-topUp val...")
 	expectedVal := big.NewInt(0).Set(initialVal)
 	expectedVal.Sub(expectedVal, topUpVal)
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
 }
@@ -540,7 +540,7 @@ func nodeDoesWithdraw(
 
 	fmt.Println("Calling SC.withdraw...")
 	txScCall := createTxWithdraw(nodes[idxNode], withdrawValue, scAddress)
-	nodes[idxNode].SendTransaction(txScCall)
+	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(time.Second * 1)
 
@@ -557,7 +557,7 @@ func nodeCallsRewardAndSend(
 
 	fmt.Println("Calling SC.rewardAndSendToWallet...")
 	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, scAddress)
-	nodes[idxNodeOwner].SendTransaction(txScCall)
+	_, _ = nodes[idxNodeOwner].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(time.Second * 1)
 
@@ -579,7 +579,7 @@ func checkWithdrawIsDoneCorrectly(
 	nodeWithCaller := nodes[idxNodeCallerExists]
 
 	fmt.Println("Checking SC account has topUp-withdraw val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	expectedSC := big.NewInt(0).Set(topUpVal)
 	expectedSC.Sub(expectedSC, withdraw)
@@ -599,7 +599,7 @@ func checkWithdrawIsDoneCorrectly(
 	expectedSender := big.NewInt(0).Set(initialVal)
 	expectedSender.Sub(expectedSender, topUpVal)
 	expectedSender.Add(expectedSender, withdraw)
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }
@@ -619,7 +619,7 @@ func checkRewardIsDoneCorrectly(
 	nodeWithCaller := nodes[idxNodeCallerExists]
 
 	fmt.Println("Checking SC account has topUp-withdraw val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	expectedSC := big.NewInt(0).Set(topUpVal)
 	expectedSC.Sub(expectedSC, withdraw)
@@ -629,7 +629,7 @@ func checkRewardIsDoneCorrectly(
 	expectedSender := big.NewInt(0).Set(initialVal)
 	expectedSender.Sub(expectedSender, topUpVal)
 	expectedSender.Add(expectedSender, withdraw)
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(nodeWithCaller.PkTxSignBytes))
+	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.PkTxSignBytes))
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }

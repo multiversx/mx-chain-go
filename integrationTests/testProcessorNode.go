@@ -125,7 +125,7 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 	tpn.initCrypto(txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initStorage()
-	tpn.AccntState = CreateAccountsDB(tpn.ShardCoordinator)
+	tpn.AccntState, _, _ = CreateAccountsDB(tpn.ShardCoordinator)
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initInterceptors()
@@ -435,6 +435,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithInterceptorsContainer(tpn.InterceptorsContainer),
 		node.WithResolversFinder(tpn.ResolverFinder),
 		node.WithBlockProcessor(tpn.BlockProcessor),
+		node.WithTxSingleSigner(tpn.SingleSigner),
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
 	)
@@ -458,8 +459,8 @@ func (tpn *TestProcessorNode) initNode() {
 }
 
 // SendTransaction can send a transaction (it does the dispatching)
-func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) {
-	_, _ = tpn.Node.SendTransaction(
+func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (string, error) {
+	txHash, err := tpn.Node.SendTransaction(
 		tx.Nonce,
 		hex.EncodeToString(tx.SndAddr),
 		hex.EncodeToString(tx.RcvAddr),
@@ -469,6 +470,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) {
 		tx.Data,
 		tx.Signature,
 	)
+	return txHash, err
 }
 
 func (tpn *TestProcessorNode) addHandlersForCounters() {
@@ -717,6 +719,22 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 	}
 
 	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, &dataBlock.MetaBlockBody{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SetAccountNonce sets the account nonce with journal
+func (tpn *TestProcessorNode) SetAccountNonce(nonce uint64) error {
+	nodeAccount, _ := tpn.AccntState.GetAccountWithJournal(tpn.TxSignAddress)
+	err := nodeAccount.(*state.Account).SetNonceWithJournal(nonce)
+	if err != nil {
+		return err
+	}
+
+	_, err = tpn.AccntState.Commit()
 	if err != nil {
 		return err
 	}

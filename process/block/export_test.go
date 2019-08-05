@@ -256,3 +256,17 @@ func (sp *shardProcessor) DisplayLogInfo(
 ) {
 	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool)
 }
+
+func (sp *shardProcessor) RestoreMetaBlockIntoPool(
+	miniBlockHashes map[int][][]byte,
+	metaBlockHashes [][]byte,
+) error {
+	return sp.restoreMetaBlockIntoPool(miniBlockHashes, metaBlockHashes)
+}
+
+func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
+	round uint64,
+	metaHashes [][]byte,
+) (map[string][]byte, error) {
+	return sp.getAllMiniBlockDstMeFromMeta(round, metaHashes)
+}
