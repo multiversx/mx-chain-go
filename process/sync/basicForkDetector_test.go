@@ -138,7 +138,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *test
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 0}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
-	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}, process.BHProcessed)
+	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")}, process.BHProcessed)
 	assert.Equal(t, sync.ErrHigherRoundInBlock, err)
 }
 

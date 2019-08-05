@@ -623,7 +623,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.mutNotarizedHdrs.RLock()
-	lastNotarizedNonce := sp.lastNotarizedHdrs[sharding.MetachainShardId].GetNonce()
+	lastNotarizedNonce := sp.lastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce()
 	sp.mutNotarizedHdrs.RUnlock()
 
 	log.Info(fmt.Sprintf("last notarized block nonce from metachain is %d\n",

@@ -147,8 +147,12 @@ func (mp *metaProcessor) RequestFinalMissingHeaders() uint32 {
 	return mp.requestFinalMissingHeaders()
 }
 
-func (bp *baseProcessor) LastNotarizedHdrs() map[uint32]data.HeaderHandler {
+func (bp *baseProcessor) LastNotarizedHdrs() map[uint32][]data.HeaderHandler {
 	return bp.lastNotarizedHdrs
+}
+
+func (bp *baseProcessor) LastNotarizedHdrForShard(shardId uint32) data.HeaderHandler {
+	return bp.lastNotarizedHdrForShard(shardId)
 }
 
 func (bp *baseProcessor) SetMarshalizer(marshal marshal.Marshalizer) {
@@ -169,11 +173,11 @@ func (mp *metaProcessor) CreateLastNotarizedHdrs(header *block.MetaBlock) error 
 	return mp.createLastNotarizedHdrs(header)
 }
 
-func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (mapShardLastHeaders, error) {
+func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error) {
 	return mp.checkShardHeadersValidity(header)
 }
 
-func (mp *metaProcessor) CheckShardHeadersFinality(header *block.MetaBlock, highestNonceHdrs mapShardLastHeaders) error {
+func (mp *metaProcessor) CheckShardHeadersFinality(header *block.MetaBlock, highestNonceHdrs map[uint32]data.HeaderHandler) error {
 	return mp.checkShardHeadersFinality(header, highestNonceHdrs)
 }
 

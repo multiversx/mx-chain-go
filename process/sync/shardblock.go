@@ -379,7 +379,7 @@ func (boot *ShardBootstrap) applyNotarizedBlocks(
 			return err
 		}
 
-		boot.blkExecutor.SetLastNotarizedHdr(sharding.MetachainShardId, headerHandler)
+		boot.blkExecutor.AddLastNotarizedHdr(sharding.MetachainShardId, headerHandler)
 	}
 
 	nonce = lastNotarized[sharding.MetachainShardId]
@@ -389,7 +389,7 @@ func (boot *ShardBootstrap) applyNotarizedBlocks(
 			return err
 		}
 
-		boot.blkExecutor.SetLastNotarizedHdr(sharding.MetachainShardId, headerHandler)
+		boot.blkExecutor.AddLastNotarizedHdr(sharding.MetachainShardId, headerHandler)
 	}
 
 	return nil

@@ -109,6 +109,7 @@ func (bfd *basicForkDetector) AddHeader(
 func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
 	roundDif := int64(header.GetRound()) - int64(bfd.lastCheckpointRound())
 	nonceDif := int64(header.GetNonce()) - int64(bfd.lastCheckpointNonce())
+	nextRound := bfd.rounder.Index() + 1
 
 	if roundDif <= 0 {
 		return ErrLowerRoundInBlock
@@ -116,7 +117,7 @@ func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, stat
 	if nonceDif <= 0 {
 		return ErrLowerNonceInBlock
 	}
-	if int64(header.GetRound()) > bfd.rounder.Index() {
+	if int64(header.GetRound()) > nextRound {
 		return ErrHigherRoundInBlock
 	}
 	if int64(roundDif) < nonceDif {

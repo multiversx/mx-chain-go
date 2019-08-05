@@ -4015,7 +4015,7 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
-		SetLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
+		AddLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
 		},
 	}
 	hasher := &mock.HasherMock{}
@@ -4285,7 +4285,7 @@ func TestBootstrap_ApplyNotarizedBlockShouldErrWhenGetLastNotarizedMetaHeaderFro
 	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
-		SetLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
+		AddLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
 		},
 	}
 	hasher := &mock.HasherMock{}
@@ -4387,7 +4387,7 @@ func TestBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
-		SetLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
+		AddLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
 		},
 	}
 	hasher := &mock.HasherMock{}

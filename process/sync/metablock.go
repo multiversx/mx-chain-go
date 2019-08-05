@@ -286,7 +286,7 @@ func (boot *MetaBootstrap) applyNotarizedBlocks(
 				return err
 			}
 
-			boot.blkExecutor.SetLastNotarizedHdr(i, headerHandler)
+			boot.blkExecutor.AddLastNotarizedHdr(i, headerHandler)
 		}
 
 		nonce = lastNotarized[i]
@@ -296,7 +296,7 @@ func (boot *MetaBootstrap) applyNotarizedBlocks(
 				return err
 			}
 
-			boot.blkExecutor.SetLastNotarizedHdr(i, headerHandler)
+			boot.blkExecutor.AddLastNotarizedHdr(i, headerHandler)
 		}
 	}
 
