@@ -357,7 +357,7 @@ func deployScTx(
 
 	fmt.Println("Deploying SC...")
 	txDeploy := createTxDeploy(nodes[senderIdx], scCode)
-	nodes[senderIdx].SendTransaction(txDeploy)
+	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
 	fmt.Println("Delaying for disseminating the deploy tx...")
 	time.Sleep(stepDelay)
 
@@ -429,7 +429,7 @@ func nodeDoesTopUp(
 
 	fmt.Println("Calling SC.topUp...")
 	txScCall := createTxTopUp(nodes[idxNode], topUpValue, scAddress)
-	nodes[idxNode].SendTransaction(txScCall)
+	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(stepDelay)
 
@@ -445,7 +445,7 @@ func nodeJoinsGame(
 
 	fmt.Println("Calling SC.joinGame...")
 	txScCall := createTxJoinGame(nodes[idxNode], joinGameVal, scAddress)
-	nodes[idxNode].SendTransaction(txScCall)
+	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(stepDelay)
 
@@ -540,7 +540,7 @@ func nodeDoesWithdraw(
 
 	fmt.Println("Calling SC.withdraw...")
 	txScCall := createTxWithdraw(nodes[idxNode], withdrawValue, scAddress)
-	nodes[idxNode].SendTransaction(txScCall)
+	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(time.Second * 1)
 
@@ -557,7 +557,7 @@ func nodeCallsRewardAndSend(
 
 	fmt.Println("Calling SC.rewardAndSendToWallet...")
 	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, scAddress)
-	nodes[idxNodeOwner].SendTransaction(txScCall)
+	_, _ = nodes[idxNodeOwner].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(time.Second * 1)
 
