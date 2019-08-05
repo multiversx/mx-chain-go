@@ -15,8 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -30,29 +29,26 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 		t.Skip("this is not a short test")
 	}
 
-	dPool := createTestDataPool()
 	startingNonce := uint64(6)
-	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	accntAdapter := createAccountsDB()
-	shardCoordinator := &sharding.OneShardCoordinator{}
-	n, mes, sk, _ := createNetNode(dPool, accntAdapter, shardCoordinator)
 
-	_ = n.Start()
+	var nrOfShards uint32 = 1
+	var shardID uint32 = 0
+	var txSignPrivKeyShardId uint32 = 0
+	nodeAddr := "0"
+
+	n := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, nodeAddr)
+	_ = n.Node.Start()
+
 	defer func() {
-		_ = n.Stop()
+		_ = n.Node.Stop()
 	}()
 
-	_ = n.P2PBootstrap()
+	_ = n.Node.P2PBootstrap()
 
 	time.Sleep(time.Second)
 
 	//set the account's nonce to startingNonce
-	nodePubKeyBytes, _ := sk.GeneratePublic().ToByteArray()
-	nodeAddress, _ := addrConverter.CreateAddressFromPublicKeyBytes(nodePubKeyBytes)
-	nodeAccount, _ := accntAdapter.GetAccountWithJournal(nodeAddress)
-	_ = nodeAccount.(*state.Account).SetNonceWithJournal(startingNonce)
-	_, _ = accntAdapter.Commit()
-
+	_ = n.SetAccountNonce(startingNonce)
 	noOfUnsignedTx := 8000
 
 	time.Sleep(time.Second)
@@ -72,14 +68,14 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 	unsignedTransactions := make([]data.TransactionHandler, 0)
 
 	//wire up handler
-	dPool.UnsignedTransactions().RegisterHandler(func(key []byte) {
+	n.ShardDataPool.UnsignedTransactions().RegisterHandler(func(key []byte) {
 		mut.Lock()
 		defer mut.Unlock()
 
 		unsignedtxHashes = append(unsignedtxHashes, key)
 
-		dataStore := dPool.UnsignedTransactions().ShardDataStore(
-			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+		dataStore := n.ShardDataPool.UnsignedTransactions().ShardDataStore(
+			process.ShardCacherIdentifier(n.ShardCoordinator.SelfId(), n.ShardCoordinator.SelfId()),
 		)
 		val, _ := dataStore.Get(key)
 		if val == nil {
@@ -94,9 +90,9 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 	err := generateAndSendBulkSmartContractResults(
 		startingNonce,
 		noOfUnsignedTx,
-		testMarshalizer,
-		shardCoordinator,
-		mes,
+		integrationTests.TestMarshalizer,
+		n.ShardCoordinator,
+		n.Messenger,
 	)
 
 	assert.Nil(t, err)
@@ -108,7 +104,15 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 		return
 	}
 
-	checkResults(t, startingNonce, noOfUnsignedTx, unsignedtxHashes, unsignedTransactions, dPool.UnsignedTransactions(), shardCoordinator)
+	integrationTests.CheckTxPresentAndRightNonce(
+		t,
+		startingNonce,
+		noOfUnsignedTx,
+		unsignedtxHashes,
+		unsignedTransactions,
+		n.ShardDataPool.UnsignedTransactions(),
+		n.ShardCoordinator,
+	)
 }
 
 func generateAndSendBulkSmartContractResults(
