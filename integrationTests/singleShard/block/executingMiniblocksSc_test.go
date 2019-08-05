@@ -75,11 +75,11 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
-	deployScTx(nodes, idxProposer, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
-	proposeBlock(nodes, []int{idxProposer}, round)
-	syncBlock(t, nodes, []int{idxProposer}, round)
-	round = incrementAndPrintRound(round)
+	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round)
+	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
+	round = integrationTests.IncrementAndPrintRound(round)
 
 	numRounds := 1
 	runMultipleRoundsOfTheGame(
@@ -95,7 +95,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 		[]int{idxProposer},
 	)
 
-	checkRootHashes(t, nodes, []int{0})
+	integrationTests.CheckRootHashes(t, nodes, []int{idxProposer})
 
 	time.Sleep(1 * time.Second)
 }
@@ -146,7 +146,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
-	round = incrementAndPrintRound(round)
+	round = integrationTests.IncrementAndPrintRound(round)
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -157,11 +157,11 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
-	deployScTx(nodes, idxProposer, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
-	proposeBlock(nodes, []int{idxProposer}, round)
-	syncBlock(t, nodes, []int{idxProposer}, round)
-	round = incrementAndPrintRound(round)
+	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round)
+	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
+	round = integrationTests.IncrementAndPrintRound(round)
 
 	numRounds := 100
 	runMultipleRoundsOfTheGame(
@@ -177,7 +177,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 		[]int{idxProposer},
 	)
 
-	integrationTests.CheckRootHashes(t, nodes, []int{0})
+	integrationTests.CheckRootHashes(t, nodes, []int{idxProposer})
 
 	time.Sleep(time.Second)
 }
@@ -227,7 +227,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
-	round = incrementAndPrintRound(round)
+	round = integrationTests.IncrementAndPrintRound(round)
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -238,11 +238,11 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
-	deployScTx(nodes, idxProposer, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
-	proposeBlock(nodes, []int{idxProposer}, round)
-	syncBlock(t, nodes, []int{idxProposer}, round)
-	round = incrementAndPrintRound(round)
+	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round)
+	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
+	round = integrationTests.IncrementAndPrintRound(round)
 
 	numRounds := 100
 	runMultipleRoundsOfTheGame(
@@ -258,7 +258,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		[]int{idxProposer},
 	)
 
-	checkRootHashes(t, nodes, []int{0})
+	integrationTests.CheckRootHashes(t, nodes, []int{idxProposer})
 
 	time.Sleep(time.Second)
 }
@@ -331,12 +331,12 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		nrRoundsToPropagateMultiShard = 1
 	}
 
-	deployScTx(nodes, idxProposer, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		proposeBlock(nodes, idxProposers, round)
-		syncBlock(t, nodes, idxProposers, round)
-		round = incrementAndPrintRound(round)
+		integrationTests.ProposeBlock(nodes, idxProposers, round)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
 	}
 
 	numRounds := 100
@@ -353,7 +353,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		idxProposers,
 	)
 
-	checkRootHashes(t, nodes, []int{0})
+	integrationTests.CheckRootHashes(t, nodes, idxProposers)
 
 	time.Sleep(time.Second)
 }
@@ -406,7 +406,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
-	round = incrementAndPrintRound(round)
+	round = integrationTests.IncrementAndPrintRound(round)
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -427,12 +427,12 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	idxProposers[1] = 2
 	idxProposers[2] = 4
 
-	deployScTx(nodes, idxProposer, string(scCode))
+	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		proposeBlock(nodes, idxProposers, round)
-		syncBlock(t, nodes, idxProposers, round)
-		round = incrementAndPrintRound(round)
+		integrationTests.ProposeBlock(nodes, idxProposers, round)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
 	}
 
 	numRounds := 100
@@ -449,7 +449,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		idxProposers,
 	)
 
-	checkRootHashes(t, nodes, []int{0})
+	integrationTests.CheckRootHashes(t, nodes, []int{0})
 
 	time.Sleep(time.Second)
 }
@@ -498,7 +498,7 @@ func runMultipleRoundsOfTheGame(
 
 	for rr := 0; rr < nrRounds; rr++ {
 		for _, player := range players {
-			playerJoinsGame(
+			integrationTests.PlayerJoinsGame(
 				nodes,
 				player,
 				topUpValue,
@@ -515,18 +515,18 @@ func runMultipleRoundsOfTheGame(
 
 		for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
 			startTime := time.Now()
-			proposeBlock(nodes, idxProposers, round)
+			integrationTests.ProposeBlock(nodes, idxProposers, round)
 			elapsedTime := time.Since(startTime)
 			fmt.Printf("Block Created in %s\n", elapsedTime)
 
-			syncBlock(t, nodes, idxProposers, round)
-			round = incrementAndPrintRound(round)
+			integrationTests.SyncBlock(t, nodes, idxProposers, round)
+			round = integrationTests.IncrementAndPrintRound(round)
 		}
 
-		checkJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
+		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
 		for i := 0; i < numRewardedPlayers; i++ {
-			nodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], rr, hardCodedScResultingAddress)
+			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], rr, hardCodedScResultingAddress)
 			newBalance := big.NewInt(0)
 			newBalance = newBalance.Add(players[i].Balance, withdrawValues[i])
 			players[i].Balance = players[i].Balance.Set(newBalance)
@@ -537,315 +537,17 @@ func runMultipleRoundsOfTheGame(
 
 		for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
 			startTime := time.Now()
-			proposeBlock(nodes, idxProposers, round)
+			integrationTests.ProposeBlock(nodes, idxProposers, round)
 			elapsedTime := time.Since(startTime)
 			fmt.Printf("Block Created in %s\n", elapsedTime)
 
-			syncBlock(t, nodes, idxProposers, round)
-			round = incrementAndPrintRound(round)
+			integrationTests.SyncBlock(t, nodes, idxProposers, round)
+			round = integrationTests.IncrementAndPrintRound(round)
 		}
 
-		checkRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
+		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
 			hardCodedScResultingAddress, idxProposers[0])
 
 		fmt.Println(rMonitor.GenerateStatistics())
-	}
-}
-
-func checkJoinGame(
-	t *testing.T,
-	nodes []*integrationTests.TestProcessorNode,
-	players []*integrationTests.TestWalletAccount,
-	topUpValue *big.Int,
-	idxProposer int,
-	hardCodedScResultingAddress []byte,
-) {
-	for _, player := range players {
-		checkPlayerBalanceTheSameWithBlockchain(
-			t,
-			nodes,
-			player,
-		)
-	}
-
-	numPlayers := len(players)
-	allTopUpValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(numPlayers))
-	checkBalanceIsDoneCorrectlySCSide(
-		t,
-		nodes,
-		idxProposer,
-		allTopUpValue,
-		big.NewInt(0),
-		hardCodedScResultingAddress,
-	)
-}
-
-func checkRewardsDistribution(
-	t *testing.T,
-	nodes []*integrationTests.TestProcessorNode,
-	players []*integrationTests.TestWalletAccount,
-	topUpValue *big.Int,
-	withdrawValue *big.Int,
-	hardCodedScResultingAddress []byte,
-	idxProposer int,
-) {
-	for _, player := range players {
-		checkPlayerBalanceTheSameWithBlockchain(
-			t,
-			nodes,
-			player,
-		)
-	}
-
-	numPlayers := len(players)
-	allTopUpValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(numPlayers))
-	checkBalanceIsDoneCorrectlySCSide(
-		t,
-		nodes,
-		idxProposer,
-		allTopUpValue,
-		withdrawValue,
-		hardCodedScResultingAddress,
-	)
-}
-
-func incrementAndPrintRound(round uint64) uint64 {
-	round++
-	fmt.Printf("#################################### ROUND %d BEGINS ####################################\n\n", round)
-
-	return round
-}
-
-func deployScTx(nodes []*integrationTests.TestProcessorNode, senderIdx int, scCode string) {
-	fmt.Println("Deploying SC...")
-	txDeploy := createTxDeploy(nodes[senderIdx].OwnAccount, scCode)
-	nodes[senderIdx].SendTransaction(txDeploy)
-}
-
-func isIntInSlice(idx int, slice []int) bool {
-	for _, value := range slice {
-		if value == idx {
-			return true
-		}
-	}
-	return false
-}
-
-func proposeBlock(nodes []*integrationTests.TestProcessorNode, idxProposers []int, round uint64) {
-	fmt.Println("Proposing block...")
-	for idx, n := range nodes {
-		if !isIntInSlice(idx, idxProposers) {
-			continue
-		}
-
-		body, header, _ := n.ProposeBlock(round)
-		n.BroadcastBlock(body, header)
-		n.CommitBlock(body, header)
-	}
-
-	fmt.Println("Delaying for disseminating headers and miniblocks...")
-	time.Sleep(stepDelay)
-}
-
-func syncBlock(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int, round uint64) {
-	fmt.Println("All other shard nodes sync the proposed block...")
-	for idx, n := range nodes {
-		if isIntInSlice(idx, idxProposers) {
-			continue
-		}
-
-		err := n.SyncNode(uint64(round))
-		if err != nil {
-			assert.Fail(t, err.Error())
-			return
-		}
-	}
-
-	time.Sleep(stepDelay)
-	fmt.Println(integrationTests.MakeDisplayTable(nodes))
-}
-
-func playerJoinsGame(
-	nodes []*integrationTests.TestProcessorNode,
-	player *integrationTests.TestWalletAccount,
-	joinGameVal *big.Int,
-	round int,
-	scAddress []byte,
-) {
-	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address.Bytes())
-	fmt.Println("Calling SC.joinGame...")
-	txScCall := createTxJoinGame(player, joinGameVal, round, scAddress)
-	txDispatcherNode.SendTransaction(txScCall)
-}
-
-func nodeEndGame(
-	nodes []*integrationTests.TestProcessorNode,
-	idxNode int,
-	round int,
-	scAddress []byte,
-) {
-
-	fmt.Println("Calling SC.endGame...")
-	txScCall := createTxEndGame(nodes[idxNode].OwnAccount, round, scAddress)
-	nodes[idxNode].SendTransaction(txScCall)
-}
-
-func nodeCallsRewardAndSend(
-	nodes []*integrationTests.TestProcessorNode,
-	idxNodeOwner int,
-	winnerAddress []byte,
-	prize *big.Int,
-	round int,
-	scAddress []byte,
-) {
-
-	fmt.Println("Calling SC.rewardAndSendToWallet...")
-	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner].OwnAccount, winnerAddress, prize, round, scAddress)
-	nodes[idxNodeOwner].SendTransaction(txScCall)
-}
-
-func createTxDeploy(twa *integrationTests.TestWalletAccount, scCode string) *transaction.Transaction {
-	tx := &transaction.Transaction{
-		Nonce:    0,
-		Value:    big.NewInt(0),
-		RcvAddr:  make([]byte, 32),
-		SndAddr:  twa.PkTxSignBytes,
-		Data:     scCode,
-		GasPrice: 0,
-		GasLimit: 1000000000000,
-	}
-	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
-	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
-
-	return tx
-}
-
-func createTxEndGame(twa *integrationTests.TestWalletAccount, round int, scAddress []byte) *transaction.Transaction {
-	tx := &transaction.Transaction{
-		Nonce:    0,
-		RcvAddr:  scAddress,
-		SndAddr:  twa.PkTxSignBytes,
-		Data:     fmt.Sprintf("endGame@%d", round),
-		GasPrice: 0,
-		GasLimit: 1000000000000,
-	}
-	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
-	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
-
-	fmt.Printf("End %s\n", hex.EncodeToString(twa.PkTxSignBytes))
-
-	return tx
-}
-
-func createTxJoinGame(twa *integrationTests.TestWalletAccount, joinGameVal *big.Int, round int, scAddress []byte) *transaction.Transaction {
-	tx := &transaction.Transaction{
-		Nonce:    0,
-		Value:    joinGameVal,
-		RcvAddr:  scAddress,
-		SndAddr:  twa.Address.Bytes(),
-		Data:     fmt.Sprintf("joinGame@%d", round),
-		GasPrice: 0,
-		GasLimit: 1000000000000,
-	}
-	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
-	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
-
-	fmt.Printf("Join %s\n", hex.EncodeToString(twa.Address.Bytes()))
-
-	return tx
-}
-
-func createTxRewardAndSendToWallet(tnOwner *integrationTests.TestWalletAccount, winnerAddress []byte, prizeVal *big.Int, round int, scAddress []byte) *transaction.Transaction {
-	tx := &transaction.Transaction{
-		Nonce:    0,
-		Value:    big.NewInt(0),
-		RcvAddr:  scAddress,
-		SndAddr:  tnOwner.PkTxSignBytes,
-		Data:     fmt.Sprintf("rewardAndSendToWallet@%d@%s@%X", round, hex.EncodeToString(winnerAddress), prizeVal),
-		GasPrice: 0,
-		GasLimit: 1000000000000,
-	}
-	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
-	tx.Signature, _ = tnOwner.SingleSigner.Sign(tnOwner.SkTxSign, txBuff)
-
-	fmt.Printf("Reward %s\n", hex.EncodeToString(winnerAddress))
-
-	return tx
-}
-
-func getNodeWithinSameShardAsPlayer(
-	nodes []*integrationTests.TestProcessorNode,
-	player []byte,
-) *integrationTests.TestProcessorNode {
-	nodeWithCaller := nodes[0]
-	playerShId := nodeWithCaller.ShardCoordinator.ComputeId(integrationTests.CreateAddressFromAddrBytes(player))
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() == playerShId {
-			nodeWithCaller = node
-			break
-		}
-	}
-
-	return nodeWithCaller
-}
-
-func checkPlayerBalanceTheSameWithBlockchain(
-	t *testing.T,
-	nodes []*integrationTests.TestProcessorNode,
-	player *integrationTests.TestWalletAccount,
-) {
-	nodeWithCaller := getNodeWithinSameShardAsPlayer(nodes, player.Address.Bytes())
-
-	fmt.Println("Checking sender has initial-topUp val...")
-	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(player.Address.Bytes()))
-	assert.NotNil(t, accnt)
-	ok := assert.Equal(t, player.Balance.Uint64(), accnt.(*state.Account).Balance.Uint64())
-	if !ok {
-		fmt.Printf("Expected player balance %d Actual player balance %d\n", player.Balance.Uint64(), accnt.(*state.Account).Balance.Uint64())
-	}
-}
-
-func checkBalanceIsDoneCorrectlySCSide(
-	t *testing.T,
-	nodes []*integrationTests.TestProcessorNode,
-	idxNodeScExists int,
-	topUpVal *big.Int,
-	withdraw *big.Int,
-	scAddressBytes []byte,
-) {
-
-	nodeWithSc := nodes[idxNodeScExists]
-
-	fmt.Println("Checking SC account has topUp-withdraw val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
-	assert.NotNil(t, accnt)
-	expectedSC := big.NewInt(0).Set(topUpVal)
-	expectedSC.Sub(expectedSC, withdraw)
-	ok := assert.Equal(t, expectedSC.Uint64(), accnt.(*state.Account).Balance.Uint64())
-	if !ok {
-		fmt.Printf("Expected smart contract val %d Actual smart contract val %d\n", expectedSC.Uint64(), accnt.(*state.Account).Balance.Uint64())
-	}
-}
-
-func checkRootHashes(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int) {
-	for _, idx := range idxProposers {
-		checkRootHashInShard(t, nodes, idx)
-	}
-}
-
-func checkRootHashInShard(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposer int) {
-	proposerNode := nodes[idxProposer]
-	proposerRootHash, _ := proposerNode.AccntState.RootHash()
-
-	for i := 0; i < len(nodes); i++ {
-		node := nodes[i]
-
-		if node.ShardCoordinator.SelfId() != proposerNode.ShardCoordinator.SelfId() {
-			continue
-		}
-
-		fmt.Printf("Testing roothash for node index %d, shard ID %d...\n", i, node.ShardCoordinator.SelfId())
-		nodeRootHash, _ := node.AccntState.RootHash()
-		assert.Equal(t, proposerRootHash, nodeRootHash)
 	}
 }

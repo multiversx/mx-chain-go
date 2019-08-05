@@ -401,7 +401,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithInterceptorsContainer(tpn.InterceptorsContainer),
 		node.WithResolversFinder(tpn.ResolverFinder),
 		node.WithBlockProcessor(tpn.BlockProcessor),
-		node.WithTxSingleSigner(tpn.SingleSigner),
+		node.WithTxSingleSigner(tpn.OwnAccount.SingleSigner),
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
 	)
@@ -687,7 +687,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 
 // SetAccountNonce sets the account nonce with journal
 func (tpn *TestProcessorNode) SetAccountNonce(nonce uint64) error {
-	nodeAccount, _ := tpn.AccntState.GetAccountWithJournal(tpn.TxSignAddress)
+	nodeAccount, _ := tpn.AccntState.GetAccountWithJournal(tpn.OwnAccount.Address)
 	err := nodeAccount.(*state.Account).SetNonceWithJournal(nonce)
 	if err != nil {
 		return err
