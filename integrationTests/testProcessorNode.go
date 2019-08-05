@@ -425,8 +425,8 @@ func (tpn *TestProcessorNode) initNode() {
 }
 
 // SendTransaction can send a transaction (it does the dispatching)
-func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) {
-	_, _ = tpn.Node.SendTransaction(
+func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (string, error) {
+	txHash, err := tpn.Node.SendTransaction(
 		tx.Nonce,
 		hex.EncodeToString(tx.SndAddr),
 		hex.EncodeToString(tx.RcvAddr),
@@ -436,6 +436,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) {
 		tx.Data,
 		tx.Signature,
 	)
+	return txHash, err
 }
 
 func (tpn *TestProcessorNode) addHandlersForCounters() {
