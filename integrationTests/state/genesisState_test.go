@@ -14,24 +14,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
-
-var log = logger.DefaultLogger()
-var genesisFile = "genesisEdgeCase.json"
-
-type InitialBalance struct {
-	PubKey  string `json:"pubkey"`
-	Balance string `json:"balance"`
-}
-
-type Genesis struct {
-	InitialBalances []*InitialBalance `json:"initialBalances"`
-}
 
 type testPair struct {
 	key []byte
@@ -47,9 +33,11 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 	}
 	t.Parallel()
 
-	genesisBalances := &Genesis{}
-	err := core.LoadJsonFile(genesisBalances, genesisFile, log)
+	log := logger.DefaultLogger()
+	genesisFile := "genesisEdgeCase.json"
 
+	genesisBalances := &sharding.Genesis{}
+	err := core.LoadJsonFile(genesisBalances, genesisFile, log)
 	assert.Nil(t, err)
 
 	fmt.Printf("Loaded %d entries...\n", len(genesisBalances.InitialBalances))
@@ -74,11 +62,8 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 func TestExtensionNodeToBranchEdgeCaseSet1(t *testing.T) {
 	t.Parallel()
 
-	marsh := &marshal.JsonMarshalizer{}
-	hasher := sha256.Sha256{}
-
-	tr1, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
-	tr2, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+	tr1 := integrationTests.CreateNewDefaultTrie()
+	tr2 := integrationTests.CreateNewDefaultTrie()
 
 	key1 := "e353dd9e3da522eb366e751346195a10"
 	key2 := "a5dfc2ec3b0607e820ad375c5074c510"
@@ -112,11 +97,8 @@ func TestExtensionNodeToBranchEdgeCaseSet1(t *testing.T) {
 func TestExtensionNodeToBranchEdgeCaseSet2(t *testing.T) {
 	t.Parallel()
 
-	marsh := &marshal.JsonMarshalizer{}
-	hasher := sha256.Sha256{}
-
-	tr1, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
-	tr2, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+	tr1 := integrationTests.CreateNewDefaultTrie()
+	tr2 := integrationTests.CreateNewDefaultTrie()
 
 	key1 := "e353dd9e3da522eb366e751346195a10"
 	key2 := "eb6d6e15652c0c4d1f73490e12c8b310"
@@ -157,14 +139,11 @@ func TestExtensionNodeToBranchEdgeCaseSet2(t *testing.T) {
 	assert.Equal(t, hash1, hash2)
 }
 
-func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32byteSlices(t *testing.T) {
+func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCyclesWith32byteSlices(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 	t.Parallel()
-
-	marsh := &marshal.JsonMarshalizer{}
-	hasher := sha256.Sha256{}
 
 	totalPairs, totalPairsIdx, removablePairsIdx := generateTestData(
 		1000,
@@ -173,7 +152,7 @@ func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32byteSlices(
 	)
 
 	numTests := 1000
-	referenceTrie, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+	referenceTrie := integrationTests.CreateNewDefaultTrie()
 	refAfterAddRootHash, refFinalRootHash, refTotalPairsIdx, refRemovablePairsIdx := execute(
 		referenceTrie,
 		totalPairs,
@@ -182,8 +161,7 @@ func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32byteSlices(
 	)
 
 	for i := 0; i < numTests; i++ {
-		tr, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
-
+		tr := integrationTests.CreateNewDefaultTrie()
 		afterAddRootHash, finalRootHash, totalPairsIdx, removablePairsIdx := execute(
 			tr,
 			totalPairs,
@@ -216,14 +194,11 @@ func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32byteSlices(
 	fmt.Printf("Completed %d iterations\n", numTests)
 }
 
-func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32HexByteSlices(t *testing.T) {
+func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCyclesWith32HexByteSlices(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 	t.Parallel()
-
-	marsh := &marshal.JsonMarshalizer{}
-	hasher := sha256.Sha256{}
 
 	totalPairs, totalPairsIdx, removablePairsIdx := generateTestData(
 		1000,
@@ -232,7 +207,7 @@ func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32HexByteSlic
 	)
 
 	numTests := 1000
-	referenceTrie, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+	referenceTrie := integrationTests.CreateNewDefaultTrie()
 	refAfterAddRootHash, refFinalRootHash, refTotalPairsIdx, refRemovablePairsIdx := execute(
 		referenceTrie,
 		totalPairs,
@@ -241,7 +216,7 @@ func TestExtensiveUpdatesAndRemovesWithConsistencyBetweenCylcesWith32HexByteSlic
 	)
 
 	for i := 0; i < numTests; i++ {
-		tr, _ := trie.NewTrie(createMemUnit(), marsh, hasher)
+		tr := integrationTests.CreateNewDefaultTrie()
 
 		afterAddRootHash, finalRootHash, totalPairsIdx, removablePairsIdx := execute(
 			tr,
@@ -323,9 +298,8 @@ func printTestDebugLines(
 	fmt.Println(strTr)
 }
 
-func getRootHashByRunningInitialBalances(initialBalances []*InitialBalance) ([]byte, state.AccountsAdapter) {
-	adb, _ := adbCreateAccountsDBWithStorage()
-	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "")
+func getRootHashByRunningInitialBalances(initialBalances []*sharding.InitialBalance) ([]byte, state.AccountsAdapter) {
+	adb, _, _ := integrationTests.CreateAccountsDB(nil)
 
 	uniformIndexes := make([]int, len(initialBalances))
 	for i := 0; i < len(initialBalances); i++ {
@@ -337,10 +311,7 @@ func getRootHashByRunningInitialBalances(initialBalances []*InitialBalance) ([]b
 		ib := initialBalances[idx]
 		balance, _ := big.NewInt(0).SetString(ib.Balance, 10)
 
-		addr, _ := addrConv.CreateAddressFromPublicKeyBytes([]byte(ib.PubKey))
-		accnt, _ := adb.GetAccountWithJournal(addr)
-		shardAccount := accnt.(*state.Account)
-		_ = shardAccount.SetBalanceWithJournal(balance)
+		integrationTests.MintAddress(adb, []byte(ib.PubKey), balance)
 	}
 
 	rootHash, _ := adb.Commit()
@@ -371,7 +342,7 @@ func execute(
 ) ([]byte, []byte, []int, []int) {
 
 	randomTotalPairsIdx, _ := fisherYatesShuffle(totalPairsIdx)
-	randomRemovablePirsIdx, _ := fisherYatesShuffle(removablePairsIdx)
+	randomRemovablePairsIdx, _ := fisherYatesShuffle(removablePairsIdx)
 
 	for _, idx := range randomTotalPairsIdx {
 		tPair := totalPairs[idx]
@@ -380,14 +351,14 @@ func execute(
 	}
 	afterAddRootHash, _ := tr.Root()
 
-	for _, idx := range randomRemovablePirsIdx {
+	for _, idx := range randomRemovablePairsIdx {
 		tPair := totalPairs[idx]
 
 		_ = tr.Delete(tPair.key)
 	}
 	finalRootHash, _ := tr.Root()
 
-	return afterAddRootHash, finalRootHash, randomTotalPairsIdx, randomRemovablePirsIdx
+	return afterAddRootHash, finalRootHash, randomTotalPairsIdx, randomRemovablePairsIdx
 }
 
 func generateTestData(numTotalPairs int, numRemovablePairs int, generationMethod int) ([]*testPair, []int, []int) {
@@ -400,14 +371,14 @@ func generateTestData(numTotalPairs int, numRemovablePairs int, generationMethod
 		case generate32ByteSlices:
 			sizeBuff := 32
 			totalPairs[i] = &testPair{
-				key: generateRandomSlice(sizeBuff),
-				val: generateRandomSlice(sizeBuff),
+				key: integrationTests.GenerateRandomSlice(sizeBuff),
+				val: integrationTests.GenerateRandomSlice(sizeBuff),
 			}
 		case generate32HexByteSlices:
 			sizeBuff := 16
 			totalPairs[i] = &testPair{
-				key: []byte(hex.EncodeToString(generateRandomSlice(sizeBuff))),
-				val: []byte(hex.EncodeToString(generateRandomSlice(sizeBuff))),
+				key: []byte(hex.EncodeToString(integrationTests.GenerateRandomSlice(sizeBuff))),
+				val: []byte(hex.EncodeToString(integrationTests.GenerateRandomSlice(sizeBuff))),
 			}
 		}
 
@@ -419,11 +390,4 @@ func generateTestData(numTotalPairs int, numRemovablePairs int, generationMethod
 	}
 
 	return totalPairs, totalPairsIndexes, removablePairsIndexes
-}
-
-func generateRandomSlice(size int) []byte {
-	buff := make([]byte, size)
-	_, _ = rand.Reader.Read(buff)
-
-	return buff
 }
