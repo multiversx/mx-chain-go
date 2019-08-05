@@ -660,24 +660,6 @@ func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock,
 	return header, nil
 }
 
-// SetAccountNonce sets the account nonce with journal
-func (tpn *TestProcessorNode) SetAccountNonce(nonce uint64) error {
-	nodePubKeyBytes, _ := tpn.SkTxSign.GeneratePublic().ToByteArray()
-	nodeAddress := CreateAddressFromAddrBytes(nodePubKeyBytes)
-	nodeAccount, _ := tpn.AccntState.GetAccountWithJournal(nodeAddress)
-	err := nodeAccount.(*state.Account).SetNonceWithJournal(nonce)
-	if err != nil {
-		return err
-	}
-
-	_, err = tpn.AccntState.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // SyncNode tries to process and commit a block already stored in data pool with provided nonce
 func (tpn *TestProcessorNode) SyncNode(nonce uint64) error {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
