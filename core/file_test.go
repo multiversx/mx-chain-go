@@ -19,7 +19,7 @@ type TestStruct struct {
 func TestOpenFile_NoExistingFileShouldErr(t *testing.T) {
 	t.Parallel()
 
-	file, err := core.OpenFile("testFile", logger.DefaultLogger())
+	file, err := core.OpenFile("testFile1", logger.DefaultLogger())
 
 	assert.Nil(t, file)
 	assert.Error(t, err)
@@ -28,14 +28,14 @@ func TestOpenFile_NoExistingFileShouldErr(t *testing.T) {
 func TestOpenFile_NoErrShouldPass(t *testing.T) {
 	t.Parallel()
 
-	_, err := os.Create("testFile")
+	_, err := os.Create("testFile2")
 
 	assert.Nil(t, err)
 
-	file, err := core.OpenFile("testFile", logger.DefaultLogger())
+	file, err := core.OpenFile("testFile2", logger.DefaultLogger())
 
-	if _, errF := os.Stat("testFile"); errF == nil {
-		_ = os.Remove("testFile")
+	if _, errF := os.Stat("testFile2"); errF == nil {
+		_ = os.Remove("testFile2")
 	}
 
 	assert.NotNil(t, file)
@@ -57,14 +57,14 @@ func TestLoadTomlFile_FileExitsShouldPass(t *testing.T) {
 
 	cfg := &config.Config{}
 
-	_, err := os.Create("testFile")
+	_, err := os.Create("testFile3")
 
 	assert.Nil(t, err)
 
-	err = core.LoadTomlFile(cfg, "testFile", logger.DefaultLogger())
+	err = core.LoadTomlFile(cfg, "testFile3", logger.DefaultLogger())
 
-	if _, errF := os.Stat("testFile"); errF == nil {
-		_ = os.Remove("testFile")
+	if _, errF := os.Stat("testFile3"); errF == nil {
+		_ = os.Remove("testFile3")
 	}
 
 	assert.Nil(t, err)
@@ -86,22 +86,22 @@ func TestLoadJSonFile_FileExitsShouldPass(t *testing.T) {
 
 	cfg := &config.Config{}
 
-	file, err := os.Create("testFile")
+	file, err := os.Create("testFile4")
 
 	assert.Nil(t, err)
 
 	data, _ := json.MarshalIndent(TestStruct{}, "", " ")
 
-	_ = ioutil.WriteFile("testFile", data, 0644)
+	_ = ioutil.WriteFile("testFile4", data, 0644)
 
 	err = file.Close()
 
 	assert.Nil(t, err)
 
-	err = core.LoadJsonFile(cfg, "testFile", logger.DefaultLogger())
+	err = core.LoadJsonFile(cfg, "testFile4", logger.DefaultLogger())
 
-	if _, errF := os.Stat("testFile"); errF == nil {
-		_ = os.Remove("testFile")
+	if _, errF := os.Stat("testFile4"); errF == nil {
+		_ = os.Remove("testFile4")
 	}
 
 	assert.Nil(t, err)
@@ -110,7 +110,7 @@ func TestLoadJSonFile_FileExitsShouldPass(t *testing.T) {
 func TestLoadSkFromPemFile_InvalidSkIndexShouldErr(t *testing.T) {
 	t.Parallel()
 
-	data, err := core.LoadSkFromPemFile("testFile", logger.DefaultLogger(), -1)
+	data, err := core.LoadSkFromPemFile("testFile5", logger.DefaultLogger(), -1)
 
 	assert.Nil(t, data)
 	assert.Equal(t, core.ErrInvalidIndex, err)
@@ -119,7 +119,7 @@ func TestLoadSkFromPemFile_InvalidSkIndexShouldErr(t *testing.T) {
 func TestLoadSkFromPemFile_NoExistingFileShouldErr(t *testing.T) {
 	t.Parallel()
 
-	data, err := core.LoadSkFromPemFile("testFile", logger.DefaultLogger(), 0)
+	data, err := core.LoadSkFromPemFile("testFile6", logger.DefaultLogger(), 0)
 
 	assert.Nil(t, data)
 	assert.Error(t, err)
@@ -128,12 +128,12 @@ func TestLoadSkFromPemFile_NoExistingFileShouldErr(t *testing.T) {
 func TestLoadSkFromPemFile_EmptyFileShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := os.Create("testFile")
+	_, err := os.Create("testFile7")
 
-	data, err := core.LoadSkFromPemFile("testFile", logger.DefaultLogger(), 0)
+	data, err := core.LoadSkFromPemFile("testFile7", logger.DefaultLogger(), 0)
 
-	if _, errF := os.Stat("testFile"); errF == nil {
-		_ = os.Remove("testFile")
+	if _, errF := os.Stat("testFile7"); errF == nil {
+		_ = os.Remove("testFile7")
 	}
 
 	assert.Nil(t, data)
@@ -143,7 +143,7 @@ func TestLoadSkFromPemFile_EmptyFileShouldErr(t *testing.T) {
 func TestLoadSkFromPemFile_ShouldPass(t *testing.T) {
 	t.Parallel()
 
-	file, err := os.Create("testFile")
+	file, err := os.Create("testFile8")
 
 	assert.Nil(t, err)
 
@@ -154,10 +154,10 @@ func TestLoadSkFromPemFile_ShouldPass(t *testing.T) {
 	_, _ = file.WriteString("ChQeKDI8\n")
 	_, _ = file.WriteString("-----END PRIVATE KEY for data-----")
 
-	data, err := core.LoadSkFromPemFile("testFile", logger.DefaultLogger(), 0)
+	data, err := core.LoadSkFromPemFile("testFile8", logger.DefaultLogger(), 0)
 
-	if _, errF := os.Stat("testFile"); errF == nil {
-		_ = os.Remove("testFile")
+	if _, errF := os.Stat("testFile8"); errF == nil {
+		_ = os.Remove("testFile8")
 	}
 
 	//assert.Nil(t, data)
@@ -168,16 +168,16 @@ func TestLoadSkFromPemFile_ShouldPass(t *testing.T) {
 func TestLoadSkFromPemFile_InvalidPemFileShouldErr(t *testing.T) {
 	t.Parallel()
 
-	file, err := os.Create("testFile")
+	file, err := os.Create("testFile9")
 
 	assert.Nil(t, err)
 
 	_, _ = file.WriteString("data")
 
-	data, err := core.LoadSkFromPemFile("testFile", logger.DefaultLogger(), 0)
+	data, err := core.LoadSkFromPemFile("testFile9", logger.DefaultLogger(), 0)
 
-	if _, errF := os.Stat("testFile"); errF == nil {
-		_ = os.Remove("testFile")
+	if _, errF := os.Stat("testFile9"); errF == nil {
+		_ = os.Remove("testFile9")
 	}
 
 	assert.Nil(t, data)
@@ -187,7 +187,7 @@ func TestLoadSkFromPemFile_InvalidPemFileShouldErr(t *testing.T) {
 func TestLoadSkFromPemFile_InvalidIndexShouldErr(t *testing.T) {
 	t.Parallel()
 
-	file, err := os.Create("testFile")
+	file, err := os.Create("testFile10")
 
 	assert.Nil(t, err)
 
@@ -198,10 +198,10 @@ func TestLoadSkFromPemFile_InvalidIndexShouldErr(t *testing.T) {
 	_, _ = file.WriteString("ChQeKDI8\n")
 	_, _ = file.WriteString("-----END PRIVATE KEY for data-----")
 
-	data, err := core.LoadSkFromPemFile("testFile", logger.DefaultLogger(), 1)
+	data, err := core.LoadSkFromPemFile("testFile10", logger.DefaultLogger(), 1)
 
-	if _, errF := os.Stat("testFile"); errF == nil {
-		_ = os.Remove("testFile")
+	if _, errF := os.Stat("testFile10"); errF == nil {
+		_ = os.Remove("testFile10")
 	}
 
 	assert.Nil(t, data)
@@ -222,7 +222,7 @@ func TestSaveSkToPemFile_NilFileShouldErr(t *testing.T) {
 func TestSaveSkToPemFile_ShouldPass(t *testing.T) {
 	t.Parallel()
 
-	file, err := os.Create("testFile")
+	file, err := os.Create("testFile11")
 
 	assert.Nil(t, err)
 
@@ -231,8 +231,8 @@ func TestSaveSkToPemFile_ShouldPass(t *testing.T) {
 
 	err = core.SaveSkToPemFile(file, "data", skBytes)
 
-	if _, errF := os.Stat("testFile"); errF == nil {
-		_ = os.Remove("testFile")
+	if _, errF := os.Stat("testFile11"); errF == nil {
+		_ = os.Remove("testFile11")
 	}
 
 	assert.Nil(t, err)
