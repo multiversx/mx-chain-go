@@ -253,12 +253,6 @@ type TopicMessageHandler interface {
 	TopicHandler
 }
 
-// ChronologyValidator defines the functionality needed to validate a received header block (shard or metachain)
-// from chronology point of view
-type ChronologyValidator interface {
-	ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint64) error
-}
-
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)

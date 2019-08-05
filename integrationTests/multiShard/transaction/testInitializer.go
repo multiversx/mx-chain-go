@@ -214,6 +214,7 @@ func createNetNode(
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	targetShardId uint32,
 	initialAddr string,
 ) (
@@ -236,6 +237,7 @@ func createNetNode(
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
+		nodesCoordinator,
 		messenger,
 		store,
 		marshalizer,
@@ -245,7 +247,6 @@ func createNetNode(
 		multiSigner,
 		dPool,
 		addrConverter,
-		&mock.ChronologyValidatorMock{},
 	)
 	interceptorsContainer, _ := interceptorContainerFactory.Create()
 
@@ -368,6 +369,14 @@ func createNode(
 	}
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
+	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
+		3,
+		1,
+		hasher,
+		uint32(shardId),
+		uint32(numOfShards),
+		make(map[uint32][]sharding.Validator),
+	)
 	accntAdapter := createAccountsDB()
 	var n *node.Node
 	var mes p2p.Messenger
@@ -378,6 +387,7 @@ func createNode(
 		testNode.dPool,
 		accntAdapter,
 		shardCoordinator,
+		nodesCoordinator,
 		skShardId,
 		serviceID,
 	)

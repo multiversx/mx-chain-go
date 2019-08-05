@@ -1,4 +1,4 @@
-package validators
+package sharding
 
 import (
 	"math/big"

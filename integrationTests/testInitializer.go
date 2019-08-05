@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -33,7 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -333,4 +335,61 @@ func mintAddressesFromSameShard(nodes []*TestProcessorNode, targetNodeIdx int, v
 
 		MintAddress(targetNode.AccntState, n.PkTxSignBytes, value)
 	}
+}
+
+// CreateValidatorKeys
+func CreateValidatorKeys(nodesPerShard int, nbMetaNodes int, nbShards int) map[uint32][]*TestKeyPair {
+	suite := kyber.NewBlakeSHA256Ed25519()
+	keyGen := signing.NewKeyGenerator(suite)
+
+	keysMap := make(map[uint32][]*TestKeyPair)
+	keyPairs := make([]*TestKeyPair, nodesPerShard)
+	for shardId := 0; shardId < nbShards; shardId++ {
+		for n := 0; n < nodesPerShard; n++ {
+			kp := &TestKeyPair{}
+			kp.sk, kp.pk = keyGen.GeneratePair()
+			keyPairs[n] = kp
+		}
+		keysMap[uint32(shardId)] = keyPairs
+	}
+
+	keyPairs = make([]*TestKeyPair, nbMetaNodes)
+	for n := 0; n < nbMetaNodes; n++ {
+		kp := &TestKeyPair{}
+		kp.sk, kp.pk = keyGen.GeneratePair()
+		keyPairs[n] = kp
+	}
+	keysMap[sharding.MetachainShardId] = keyPairs
+
+	return keysMap
+}
+
+func pubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]string {
+	keysMap := make(map[uint32][]string, 0)
+
+	for shardId, pairList := range keyPairMap {
+		shardKeys := make([]string, len(pairList))
+		for i, pair := range pairList {
+			b, _ := pair.pk.ToByteArray()
+			shardKeys[i] = string(b)
+		}
+		keysMap[shardId] = shardKeys
+	}
+
+	return keysMap
+}
+
+func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
+	validatorsMap := make(map[uint32][]sharding.Validator)
+
+	for shardId, shardNodesPks := range pubKeysMap {
+		shardValidators := make([]sharding.Validator, 0)
+		for i := 0; i < len(shardNodesPks); i++ {
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]))
+			shardValidators = append(shardValidators, v)
+		}
+		validatorsMap[shardId] = shardValidators
+	}
+
+	return validatorsMap
 }

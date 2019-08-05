@@ -43,7 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -62,10 +62,17 @@ var TestMultiSig = mock.NewMultiSigner(1)
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
+// TestKeyPair holds a pair of private/public keys
+type TestKeyPair struct {
+	sk crypto.PrivateKey
+	pk crypto.PublicKey
+}
+
 // TestProcessorNode represents a container type of class used in integration tests
 // with all its fields exported
 type TestProcessorNode struct {
 	ShardCoordinator sharding.Coordinator
+	NodesCoordinator sharding.NodesCoordinator
 	Messenger        p2p.Messenger
 
 	SingleSigner  crypto.SingleSigner
@@ -114,13 +121,21 @@ type TestProcessorNode struct {
 }
 
 // NewTestProcessorNode returns a new TestProcessorNode instance
-func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string) *TestProcessorNode {
+func NewTestProcessorNode(
+	maxShards uint32,
+	nodeShardId uint32,
+	txSignPrivKeyShardId uint32,
+	initialNodeAddr string,
+) *TestProcessorNode {
+
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
+		NodesCoordinator: nodesCoordinator,
 	}
 
 	tpn.initCrypto(txSignPrivKeyShardId)
@@ -202,13 +217,13 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
 			tpn.ShardCoordinator,
+			tpn.NodesCoordinator,
 			tpn.Messenger,
 			tpn.Storage,
 			TestMarshalizer,
 			TestHasher,
 			TestMultiSig,
 			tpn.MetaDataPool,
-			&mock.ChronologyValidatorMock{},
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -218,6 +233,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	} else {
 		interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 			tpn.ShardCoordinator,
+			tpn.NodesCoordinator,
 			tpn.Messenger,
 			tpn.Storage,
 			TestMarshalizer,
@@ -227,7 +243,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestMultiSig,
 			tpn.ShardDataPool,
 			TestAddressConverter,
-			&mock.ChronologyValidatorMock{},
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -535,7 +550,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64) (data.BodyHandler, data
 
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(uint64(round))
-	blockHeader.SetPubKeysBitmap(make([]byte, 0))
+	blockHeader.SetPubKeysBitmap([]byte{1})
 	sig, _ := TestMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -452,6 +453,15 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	nodesCoordinator, err := createNodesCoordinator(
+		nodesConfig,
+		generalConfig.GeneralSettings,
+		pubKey,
+		coreComponents.Hasher)
+	if err != nil {
+		return err
+	}
+
 	stateArgs := factory.NewStateComponentsFactoryArgs(generalConfig, genesisConfig, shardCoordinator, coreComponents)
 	stateComponents, err := factory.StateComponentsFactory(stateArgs)
 	if err != nil {
@@ -469,8 +479,18 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(ctx, generalConfig, nodesConfig, shardCoordinator, keyGen,
-		privKey, log, initialBalancesSkPemFile.Name, txSignSk.Name, txSignSkIndex.Name)
+	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
+		ctx,
+		generalConfig,
+		nodesConfig,
+		shardCoordinator,
+		keyGen,
+		privKey,
+		log,
+		initialBalancesSkPemFile.Name,
+		txSignSk.Name,
+		txSignSkIndex.Name,
+	)
 	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
 	if err != nil {
 		return err
@@ -518,8 +538,19 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
-	processArgs := factory.NewProcessComponentsFactoryArgs(genesisConfig, nodesConfig, syncer, shardCoordinator,
-		dataComponents, coreComponents, cryptoComponents, stateComponents, networkComponents, coreServiceContainer)
+	processArgs := factory.NewProcessComponentsFactoryArgs(
+		genesisConfig,
+		nodesConfig,
+		syncer,
+		shardCoordinator,
+		nodesCoordinator,
+		dataComponents,
+		coreComponents,
+		cryptoComponents,
+		stateComponents,
+		networkComponents,
+		coreServiceContainer,
+	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
 		return err
@@ -533,6 +564,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		privKey,
 		pubKey,
 		shardCoordinator,
+		nodesCoordinator,
 		coreComponents,
 		stateComponents,
 		dataComponents,
@@ -644,23 +676,31 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 	return cfg, nil
 }
 
+func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig *sharding.NodesSetup) (uint32, error) {
+	if pubKey == nil {
+		return 0, errors.New("nil public key")
+	}
+
+	publicKey, err := pubKey.ToByteArray()
+	if err != nil {
+		return 0, err
+	}
+
+	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return selfShardId, err
+}
+
 func createShardCoordinator(
 	nodesConfig *sharding.NodesSetup,
 	pubKey crypto.PublicKey,
 	settingsConfig config.GeneralSettingsConfig,
 	log *logger.Logger,
-) (shardCoordinator sharding.Coordinator,
-	err error) {
-	if pubKey == nil {
-		return nil, errors.New("nil public key, could not create shard coordinator")
-	}
-
-	publicKey, err := pubKey.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
-	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
+) (sharding.Coordinator, error) {
+	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
 		log.Info("Starting as observer node...")
 
@@ -678,12 +718,62 @@ func createShardCoordinator(
 	}
 	log.Info(fmt.Sprintf("Starting in shard: %s", shardName))
 
-	shardCoordinator, err = sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
 	if err != nil {
 		return nil, err
 	}
 
 	return shardCoordinator, nil
+}
+
+func createNodesCoordinator(
+	nodesConfig *sharding.NodesSetup,
+	settingsConfig config.GeneralSettingsConfig,
+	pubKey crypto.PublicKey,
+	hasher hashing.Hasher,
+) (sharding.NodesCoordinator, error) {
+
+	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
+	if err == sharding.ErrPublicKeyNotFoundInGenesis {
+		shardId, err = processDestinationShardAsObserver(settingsConfig)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	nbShards := nodesConfig.NumberOfShards()
+	shardConsensusGroupSize := int(nodesConfig.MetaChainConsensusGroupSize)
+	metaConsensusGroupSize := int(nodesConfig.ConsensusGroupSize)
+	initNodesPubKeys := nodesConfig.InitialNodesPubKeys()
+	initValidators := make(map[uint32][]sharding.Validator)
+
+	for shardId, pubKeyList := range initNodesPubKeys {
+		validators := make([]sharding.Validator, 0)
+		for _, pubKey := range pubKeyList {
+			// TODO: the stake needs to be associated to the staking account
+			validator, err := sharding.NewValidator(big.NewInt(0), 0, []byte(pubKey))
+			if err != nil {
+				return nil, err
+			}
+
+			validators = append(validators, validator)
+		}
+		initValidators[shardId] = validators
+	}
+
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
+		hasher,
+		shardId,
+		nbShards,
+		initValidators,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return nodesCoordinator, nil
 }
 
 func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {
@@ -754,6 +844,7 @@ func createNode(
 	privKey crypto.PrivateKey,
 	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	core *factory.Core,
 	state *factory.State,
 	data *factory.Data,
@@ -784,6 +875,7 @@ func createNode(
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(process.Rounder),
 		node.WithShardCoordinator(shardCoordinator),
+		node.WithNodesCoordinator(nodesCoordinator),
 		node.WithUint64ByteSliceConverter(core.Uint64ByteSliceConverter),
 		node.WithSingleSigner(crypto.SingleSigner),
 		node.WithMultiSigner(crypto.MultiSigner),
@@ -818,6 +910,10 @@ func createNode(
 			return nil, errors.New("error creating node: " + err.Error())
 		}
 		err = nd.CreateShardedStores()
+		if err != nil {
+			return nil, err
+		}
+		err = nd.StartHeartbeat(config.Heartbeat)
 		if err != nil {
 			return nil, err
 		}

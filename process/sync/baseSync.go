@@ -72,6 +72,7 @@ type baseBootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
+	mutNodeSynched     sync.RWMutex
 	isNodeSynchronized bool
 	hasLastBlock       bool
 	roundIndex         int64
@@ -434,6 +435,9 @@ func (boot *baseBootstrap) waitForHeaderHash() error {
 // is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
 // synched and it can participate to the consensus, if it is in the jobDone group of this rounder
 func (boot *baseBootstrap) ShouldSync() bool {
+	boot.mutNodeSynched.Lock()
+	defer boot.mutNodeSynched.Unlock()
+
 	isNodeSynchronizedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeSynchronized
 	if isNodeSynchronizedInCurrentRound {
 		return false

@@ -35,7 +35,15 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	accntAdapter := createAccountsDB()
 	shardCoordinator := &sharding.OneShardCoordinator{}
-	n, mes, sk, _ := createNetNode(dPool, accntAdapter, shardCoordinator)
+	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		1,
+		testHasher,
+		0,
+		1,
+		make(map[uint32][]sharding.Validator),
+	)
+	n, mes, sk, _ := createNetNode(dPool, accntAdapter, shardCoordinator, nodesCoordinator)
 
 	_ = n.Start()
 	defer func() {

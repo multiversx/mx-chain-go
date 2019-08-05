@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,8 +25,12 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (*commonSubround.S
 	return startRound, err
 }
 
-func defaultSubround(consensusState *spos.ConsensusState, ch chan bool, container spos.ConsensusCoreHandler) (*spos.Subround,
-	error) {
+func defaultSubround(
+	consensusState *spos.ConsensusState,
+	ch chan bool,
+	container spos.ConsensusCoreHandler,
+) (*spos.Subround, error) {
+
 	return spos.NewSubround(
 		-1,
 		int(SrStartRound),
@@ -319,9 +323,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenShouldSyncRetur
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextConsensusGroupErr(t *testing.T) {
 	t.Parallel()
 
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	validatorGroupSelector := mock.NodesCoordinatorMock{}
 	err := errors.New("error")
-	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]consensus.Validator, error) {
+	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]sharding.Validator, error) {
 		return nil, err
 	}
 	container := mock.InitConsensusCore()
@@ -336,9 +340,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t *testing.T) {
 	t.Parallel()
 
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
-	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]consensus.Validator, error) {
-		return make([]consensus.Validator, 0), nil
+	validatorGroupSelector := mock.NodesCoordinatorMock{}
+	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]sharding.Validator, error) {
+		return make([]sharding.Validator, 0), nil
 	}
 
 	container := mock.InitConsensusCore()
@@ -423,10 +427,10 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing.T) {
 	t.Parallel()
 
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	validatorGroupSelector := mock.NodesCoordinatorMock{}
 
 	err := errors.New("error")
-	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]consensus.Validator, error) {
+	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]sharding.Validator, error) {
 		return nil, err
 	}
 	container := mock.InitConsensusCore()

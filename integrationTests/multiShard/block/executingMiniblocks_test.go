@@ -49,8 +49,10 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	defer func() {
 		_ = advertiser.Close()
-		for _, n := range nodes {
-			_ = n.node.Stop()
+		for _, nodeList := range nodes {
+			for _, n := range nodeList {
+				_ = n.node.Stop()
+			}
 		}
 	}()
 
@@ -62,7 +64,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
 	txToGenerateInEachMiniBlock := 3
 
-	proposerNode := nodes[0]
+	proposerNode := nodes[0][0]
 
 	//sender shard keys, receivers  keys
 	sendersPrivateKeys := make([]crypto.PrivateKey, 3)
@@ -86,7 +88,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	time.Sleep(time.Second * 5)
 
 	fmt.Println("Step 4. Minting sender addresses...")
-	createMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
+	createMintingForSenders(nodes[senderShard], senderShard, sendersPrivateKeys, valMinting)
 
 	fmt.Println("Step 5. Proposer creates block body and header with all available transactions...")
 	blockBody, blockHeader := proposeBlock(t, proposerNode, uint64(1))
@@ -113,9 +115,9 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	fmt.Println("Step 7. Nodes from proposer's shard will have to successfully process the block sent by the proposer...")
 	fmt.Println(makeDisplayTable(nodes))
-	for _, n := range nodes {
-		isNodeInSenderShardAndNotProposer := n.shardId == senderShard && n != proposerNode
-		if isNodeInSenderShardAndNotProposer {
+	for _, n := range nodes[senderShard] {
+		isNotProposer := n != proposerNode
+		if isNotProposer {
 			n.blkc.SetGenesisHeaderHash(n.headers[0].GetPrevHash())
 			err := n.blkProcessor.ProcessBlock(
 				n.blkc,
@@ -132,7 +134,9 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	}
 
 	fmt.Println("Step 7. Metachain processes the received header...")
-	metaNode := nodes[len(nodes)-1]
+	metaNodeList := nodes[sharding.MetachainShardId]
+
+	metaNode := metaNodeList[len(metaNodeList)-1]
 	_, metaHeader := proposeMetaBlock(t, metaNode, uint64(1))
 	_ = metaNode.broadcastMessenger.BroadcastBlock(nil, metaHeader)
 	_ = metaNode.blkProcessor.CommitBlock(metaNode.blkc, metaHeader, &block.MetaBlockBody{})
@@ -154,7 +158,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
 
-	_, metaHeader = proposeMetaBlock(t, metaNode, uint64(3))
+	_, metaHeader = proposeMetaBlock(t, metaNode, uint64(4))
 	_ = metaNode.broadcastMessenger.BroadcastBlock(nil, metaHeader)
 	_ = metaNode.blkProcessor.CommitBlock(metaNode.blkc, metaHeader, &block.MetaBlockBody{})
 	fmt.Println("Delaying for disseminating meta header...")
@@ -162,7 +166,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	fmt.Println(makeDisplayTable(nodes))
 
 	fmt.Println("Step 8. Test nodes from proposer shard to have the correct balances...")
-	for _, n := range nodes {
+	for _, n := range nodes[senderShard] {
 		isNodeInSenderShard := n.shardId == senderShard
 		if !isNodeInSenderShard {
 			continue
@@ -190,7 +194,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	firstReceiverNodes := make([]*testNode, 0)
 	//get first nodes from receiver shards
 	for _, shardId := range recvShards {
-		receiverProposer := nodes[int(shardId)*nodesPerShard]
+		receiverProposer := nodes[shardId][0]
 		firstReceiverNodes = append(firstReceiverNodes, receiverProposer)
 
 		body, header := proposeBlock(t, receiverProposer, uint64(1))
@@ -201,12 +205,13 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		_ = receiverProposer.broadcastMessenger.BroadcastTransactions(transactions)
 		_ = receiverProposer.blkProcessor.CommitBlock(receiverProposer.blkc, header, body)
 	}
+
 	fmt.Println("Delaying for disseminating miniblocks and headers...")
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
 
 	for _, shardId := range recvShards {
-		receiverProposer := nodes[int(shardId)*nodesPerShard]
+		receiverProposer := nodes[shardId][0]
 
 		body, header := proposeBlock(t, receiverProposer, uint64(2))
 		_ = receiverProposer.broadcastMessenger.BroadcastBlock(body, header)
@@ -221,7 +226,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	fmt.Println(makeDisplayTable(nodes))
 
 	for _, shardId := range recvShards {
-		receiverProposer := nodes[int(shardId)*nodesPerShard]
+		receiverProposer := nodes[shardId][0]
 
 		body, header := proposeBlock(t, receiverProposer, uint64(3))
 		_ = receiverProposer.broadcastMessenger.BroadcastBlock(body, header)
@@ -236,7 +241,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	fmt.Println(makeDisplayTable(nodes))
 
 	for _, shardId := range recvShards {
-		receiverProposer := nodes[int(shardId)*nodesPerShard]
+		receiverProposer := nodes[shardId][0]
 
 		body, header := proposeBlock(t, receiverProposer, uint64(4))
 		_ = receiverProposer.broadcastMessenger.BroadcastBlock(body, header)
@@ -252,25 +257,9 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	fmt.Println("Step 10. NodesSetup from receivers shards will have to successfully process the block sent by their proposer...")
 	fmt.Println(makeDisplayTable(nodes))
-	for _, n := range nodes {
-		if n.shardId == sharding.MetachainShardId {
-			continue
-		}
+	for _, recvShardId := range recvShards {
+		for _, n := range nodes[recvShardId][1:] {
 
-		isNodeInReceiverShardAndNotProposer := false
-		for _, shardId := range recvShards {
-			if n.shardId == shardId {
-				isNodeInReceiverShardAndNotProposer = true
-				break
-			}
-		}
-		for _, proposerReceiver := range firstReceiverNodes {
-			if proposerReceiver == n {
-				isNodeInReceiverShardAndNotProposer = false
-			}
-		}
-
-		if isNodeInReceiverShardAndNotProposer {
 			if len(n.headers) > 0 {
 				n.blkc.SetGenesisHeaderHash(n.headers[0].GetPrevHash())
 				err := n.blkProcessor.ProcessBlock(
@@ -361,24 +350,15 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	}
 
 	fmt.Println("Step 11. Test nodes from receiver shards to have the correct balances...")
-	for _, n := range nodes {
-		isNodeInReceiverShardAndNotProposer := false
-		for _, shardId := range recvShards {
-			if n.shardId == shardId {
-				isNodeInReceiverShardAndNotProposer = true
-				break
+	for _, recvShardId := range recvShards {
+		for _, n := range nodes[recvShardId][1:] {
+
+			//test receiver balances from same shard
+			for _, sk := range receiversPrivateKeys[n.shardId] {
+				testPrivateKeyHasBalance(t, n, sk, valToTransferPerTx)
 			}
 		}
-		if !isNodeInReceiverShardAndNotProposer {
-			continue
-		}
-
-		//test receiver balances from same shard
-		for _, sk := range receiversPrivateKeys[n.shardId] {
-			testPrivateKeyHasBalance(t, n, sk, valToTransferPerTx)
-		}
 	}
-
 }
 
 func generateAndDisseminateTxs(
@@ -454,7 +434,7 @@ func proposeBlock(t *testing.T, proposer *testNode, round uint64) (data.BodyHand
 
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(uint64(round))
-	blockHeader.SetPubKeysBitmap(make([]byte, 0))
+	blockHeader.SetPubKeysBitmap([]byte{1, 0, 0})
 	sig, _ := testMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
 	currHdr := proposer.blkc.GetCurrentBlockHeader()
@@ -475,7 +455,7 @@ func proposeMetaBlock(t *testing.T, proposer *testNode, round uint64) (data.Body
 
 	metaHeader.SetNonce(uint64(round))
 	metaHeader.SetRound(round)
-	metaHeader.SetPubKeysBitmap(make([]byte, 0))
+	metaHeader.SetPubKeysBitmap([]byte{1, 0, 0})
 	sig, _ := testMultiSig.AggregateSigs(nil)
 	metaHeader.SetSignature(sig)
 	currHdr := proposer.blkc.GetCurrentBlockHeader()

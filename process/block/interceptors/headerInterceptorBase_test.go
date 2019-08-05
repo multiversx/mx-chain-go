@@ -2,6 +2,8 @@ package interceptors_test
 
 import (
 	"errors"
+	"fmt"
+	"math/big"
 	"testing"
 
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -9,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +27,7 @@ func TestNewHeaderInterceptorBase_NilMarshalizerShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		mock.NewNodesCoordinatorMock(),
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -40,7 +43,7 @@ func TestNewHeaderInterceptorBase_NilStorerShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		mock.NewNodesCoordinatorMock(),
 	)
 
 	assert.Equal(t, process.ErrNilHeadersStorage, err)
@@ -57,7 +60,7 @@ func TestNewHeaderInterceptorBase_NilMultiSignerShouldErr(t *testing.T) {
 		nil,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		mock.NewNodesCoordinatorMock(),
 	)
 
 	assert.Nil(t, hi)
@@ -74,7 +77,7 @@ func TestNewHeaderInterceptorBase_NilHasherShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		nil,
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		mock.NewNodesCoordinatorMock(),
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -91,10 +94,27 @@ func TestNewHeaderInterceptorBase_NilShardCoordinatorShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		nil,
-		&mock.ChronologyValidatorStub{},
+		mock.NewNodesCoordinatorMock(),
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+	assert.Nil(t, hi)
+}
+
+func TestNewHeaderInterceptorBase_NilNodesCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	storer := &mock.StorerStub{}
+	hi, err := interceptors.NewHeaderInterceptorBase(
+		&mock.MarshalizerMock{},
+		storer,
+		mock.NewMultiSigner(),
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock(),
+		nil,
+	)
+
+	assert.Equal(t, process.ErrNilNodesCoordinator, err)
 	assert.Nil(t, hi)
 }
 
@@ -108,7 +128,7 @@ func TestNewHeaderInterceptorBase_OkValsShouldWork(t *testing.T) {
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		mock.NewNodesCoordinatorMock(),
 	)
 
 	assert.Nil(t, err)
@@ -127,7 +147,7 @@ func TestHeaderInterceptorBase_ParseReceivedMessageNilMessageShouldErr(t *testin
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		mock.NewNodesCoordinatorMock(),
 	)
 
 	hdr, err := hib.ParseReceivedMessage(nil)
@@ -146,7 +166,7 @@ func TestHeaderInterceptorBase_ParseReceivedMessageNilDataToProcessShouldErr(t *
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		mock.NewNodesCoordinatorMock(),
 	)
 
 	msg := &mock.P2PMessageMock{}
@@ -172,7 +192,7 @@ func TestHeaderInterceptorBase_ParseReceivedMessageMarshalizerErrorsAtUnmarshali
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		mock.NewNodesCoordinatorMock(),
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -188,23 +208,21 @@ func TestHeaderInterceptorBase_ParseReceivedMessageSanityCheckFailedShouldErr(t 
 	t.Parallel()
 
 	storer := &mock.StorerStub{}
+	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	multisigner := mock.NewMultiSigner()
-	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
-			return nil
-		},
-	}
+
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		marshalizer,
 		storer,
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		chronologyValidator,
+		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, hasher)
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
@@ -215,35 +233,57 @@ func TestHeaderInterceptorBase_ParseReceivedMessageSanityCheckFailedShouldErr(t 
 	assert.Equal(t, process.ErrNilPubKeysBitmap, err)
 }
 
+func createNodesCoordinator() sharding.NodesCoordinator {
+	validators := make(map[uint32][]sharding.Validator, 0)
+
+	//shard0
+	shardValidators := make([]sharding.Validator, 0)
+	for i := 0; i < 16; i++ {
+		pubKeyStr := fmt.Sprintf("pk_shard0_%d", i)
+		v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(pubKeyStr))
+		shardValidators = append(shardValidators, v)
+	}
+
+	//metachain
+	pubKeyBytes := []byte("pk_meta")
+	v, _ := sharding.NewValidator(big.NewInt(0), 1, pubKeyBytes)
+
+	validators[0] = shardValidators
+	validators[sharding.MetachainShardId] = []sharding.Validator{v}
+
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	nodesCoordinator.SetNodesPerShards(validators)
+
+	return nodesCoordinator
+}
+
 func TestHeaderInterceptorBase_ParseReceivedMessageValsOkShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
 	testedNonce := uint64(67)
 	multisigner := mock.NewMultiSigner()
-	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
-			return nil
-		},
-	}
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) error {
 		return errors.New("key not found")
 	}
+
+	nodesCoordinator := createNodesCoordinator()
+
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		marshalizer,
 		storer,
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		chronologyValidator,
+		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, mock.HasherMock{})
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
-	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.PubKeysBitmap = []byte{1}
 	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))

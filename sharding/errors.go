@@ -13,6 +13,9 @@ var ErrInvalidShardId = errors.New("shard id must be smaller than the total numb
 // ErrShardIdOutOfRange signals an error when shard id is out of range
 var ErrShardIdOutOfRange = errors.New("shard id out of range")
 
+// ErrNilPubKey signals that the public key is nil
+var ErrNilPubKey = errors.New("nil public key")
+
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
 
@@ -36,3 +39,36 @@ var ErrMinNodesPerShardSmallerThanConsensusSize = errors.New("minimum nodes per 
 
 // ErrNodesSizeSmallerThanMinNoOfNodes signals that there are not enough nodes defined in genesis file
 var ErrNodesSizeSmallerThanMinNoOfNodes = errors.New("length of nodes defined is smaller than min nodes per shard required")
+
+// ErrNilInputNodesMap signals that a nil nodes map was provided
+var ErrNilInputNodesMap = errors.New("nil input nodes map")
+
+// ErrSmallShardEligibleListSize signals that the eligible validators list's size is less than the consensus size
+var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
+
+// ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
+var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
+
+// ErrInvalidConsensusGroupSize signals that the consensus size is invalid (e.g. value is negative)
+var ErrInvalidConsensusGroupSize = errors.New("invalid consensus group size")
+
+// ErrEligibleSelectionMismatch signals a mismatch between the eligible list and the group selection bitmap
+var ErrEligibleSelectionMismatch = errors.New("invalid eligible validator selection")
+
+// ErrEligibleTooManySelections signals an invalid selection for consensus group
+var ErrEligibleTooManySelections = errors.New("too many selections for consensus group")
+
+// ErrEligibleTooFewSelections signals an invalid selection for consensus group
+var ErrEligibleTooFewSelections = errors.New("too few selections for consensus group")
+
+// ErrNilRandomness signals that a nil randomness source has been provided
+var ErrNilRandomness = errors.New("nil randomness source")
+
+// ErrNilHasher signals that a nil hasher has been provided
+var ErrNilHasher = errors.New("nil hasher")
+
+// ErrNilStake signals that a nil stake structure has been provided
+var ErrNilStake = errors.New("nil stake")
+
+// ErrNegativeStake signals that the stake is negative
+var ErrNegativeStake = errors.New("negative stake")

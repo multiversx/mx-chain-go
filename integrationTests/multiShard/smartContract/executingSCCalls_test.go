@@ -21,7 +21,7 @@ var gasPrice = 1
 var gasLimit = 1000
 var initialValueForInternalVariable = uint64(45)
 
-func createScCallsNodes() (p2p.Messenger, []*testNode) {
+func createScCallsNodes() (p2p.Messenger, map[uint32][]*testNode) {
 	advertiser := createMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
@@ -85,9 +85,10 @@ func haveTime() time.Duration {
 }
 
 // Test within a network of two shards the following situation
-// 1. Node in first shard deploys a smart contract -> we also make sure that the resulting smart contract address falls within the same shard
-// 2. The same account within the first shard calls the smart contract, we make sure the smart contract is updated and the gas
-//  is substracted from the caller's balance
+// 1. Node in first shard deploys a smart contract -> we also make sure that the resulting smart contract address falls
+// within the same shard
+// 2. The same account within the first shard calls the smart contract, we make sure the smart contract is updated and
+// the gas is substracted from the caller's balance
 func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -103,12 +104,14 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
 		_ = advertiser.Close()
-		for _, n := range nodes {
-			_ = n.node.Stop()
+		for _, nodeList := range nodes {
+			for _, n := range nodeList {
+				_ = n.node.Stop()
+			}
 		}
 	}()
 
-	proposerNodeShard1 := nodes[0]
+	proposerNodeShard1 := nodes[0][0]
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -117,7 +120,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 
 	// Minting sender account
-	createMintingForSenders(nodes, senderShard, [][]byte{senderAddressBytes}, senderMintingValue)
+	createMintingForSenders(nodes[0], senderShard, [][]byte{senderAddressBytes}, senderMintingValue)
 
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
 	deploySmartContract(t, proposerNodeShard1, generalRoundNumber, senderAddressBytes, senderNonce)
@@ -184,13 +187,15 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
 		_ = advertiser.Close()
-		for _, n := range nodes {
-			_ = n.node.Stop()
+		for _, nodeList := range nodes {
+			for _, n := range nodeList {
+				_ = n.node.Stop()
+			}
 		}
 	}()
 
-	proposerNodeShard1 := nodes[0]
-	proposerNodeShard2 := nodes[1]
+	proposerNodeShard1 := nodes[0][0]
+	proposerNodeShard2 := nodes[1][0]
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -200,8 +205,8 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	secondShardAddressBytes := []byte("12345678901234567890123456789011")
 
 	// Minting sender account
-	createMintingForSenders(nodes, senderShard, [][]byte{senderAddressBytes}, mintingValue)
-	createMintingForSenders(nodes, receiverShard, [][]byte{secondShardAddressBytes}, mintingValue)
+	createMintingForSenders(nodes[0], senderShard, [][]byte{senderAddressBytes}, mintingValue)
+	createMintingForSenders(nodes[1], receiverShard, [][]byte{secondShardAddressBytes}, mintingValue)
 
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
 	deploySmartContract(t, proposerNodeShard1, generalRoundNumber, senderAddressBytes, senderNonce)
@@ -257,7 +262,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	storedVal, _ := scAccount.DataTrieTracker().RetrieveValue([]byte("a"))
 	storedValBI := big.NewInt(0).SetBytes(storedVal)
 
-	assert.Equal(t, big.NewInt(int64(initialValueForInternalVariable+addValue)), storedValBI)
+	assert.Equal(t, big.NewInt(int64(initialValueForInternalVariable + addValue)), storedValBI)
 }
 
 // Test within a network of two shards the following situation
@@ -281,13 +286,15 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
 		_ = advertiser.Close()
-		for _, n := range nodes {
-			_ = n.node.Stop()
+		for _, nodeList := range nodes {
+			for _, n := range nodeList {
+				_ = n.node.Stop()
+			}
 		}
 	}()
 
-	proposerNodeShardSC := nodes[0]
-	proposerNodeShardAccount := nodes[1]
+	proposerNodeShardSC := nodes[0][0]
+	proposerNodeShardAccount := nodes[1][0]
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -297,8 +304,8 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	accountShardAddressBytes := []byte("12345678901234567890123456789011")
 
 	// Minting sender account
-	createMintingForSenders(nodes, scShard, [][]byte{scAccountAddressBytes}, mintingValue)
-	createMintingForSenders(nodes, accShard, [][]byte{accountShardAddressBytes}, mintingValue)
+	createMintingForSenders(nodes[0], scShard, [][]byte{scAccountAddressBytes}, mintingValue)
+	createMintingForSenders(nodes[1], accShard, [][]byte{accountShardAddressBytes}, mintingValue)
 
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
 	deploySmartContract(t, proposerNodeShardSC, generalRoundNumber, scAccountAddressBytes, accNonce)
@@ -317,7 +324,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	scDeploymentAdddress, _ := hex.DecodeString("ca26d3e6152af91949295cc89f419413e08aa04ba2d5e1ed2b199b2ca8aabc2a")
 
 	// Update the SC account balance so we can call withdraw function
-	createMintingForSenders(nodes, scShard, [][]byte{scDeploymentAdddress}, mintingValue)
+	createMintingForSenders(nodes[0], scShard, [][]byte{scDeploymentAdddress}, mintingValue)
 
 	// Now that the SC is deployed, we test a call from an account located in the second shard
 	withdrawValue := uint64(100)

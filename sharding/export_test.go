@@ -31,3 +31,7 @@ func (ns *NodesSetup) CreateInitialNodesPubKeys() {
 func CommunicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) string {
 	return communicationIdentifierBetweenShards(shardId1, shardId2)
 }
+
+func (ihgs *indexHashedNodesCoordinator) EligibleList() []Validator {
+	return ihgs.nodesMap[ihgs.shardId]
+}

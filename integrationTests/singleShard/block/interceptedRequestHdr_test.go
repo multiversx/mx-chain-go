@@ -34,13 +34,36 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	storeResolver := createTestStore()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
+	cp := createCryptoParams(2, 1, 1)
+	keysMap := pubKeysMapFromKeysMap(cp.keys)
+	validatorsMap := genValidatorsFromPubKeys(keysMap)
+
+	nodesCoordinator1, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		1,
+		hasher,
+		0,
+		1,
+		validatorsMap,
+	)
+	nodesCoordinator2, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		1,
+		hasher,
+		0,
+		1,
+		validatorsMap,
+	)
 
 	fmt.Println("Requester:")
-	nRequester, mesRequester, _, resolversFinder := createNetNode(
+	nRequester, mesRequester, multiSigner, resolversFinder := createNetNode(
 		dPoolRequester,
 		storeRequester,
 		createAccountsDB(),
 		shardCoordinator,
+		nodesCoordinator1,
+		cp,
+		0,
 	)
 
 	fmt.Println("Resolver:")
@@ -49,6 +72,9 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 		storeResolver,
 		createAccountsDB(),
 		shardCoordinator,
+		nodesCoordinator2,
+		cp,
+		1,
 	)
 
 	_ = nRequester.Start()
@@ -68,8 +94,6 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	//Step 1. Generate 2 headers, one will be stored in datapool, the other one in storage
 	hdr1 := block.Header{
 		Nonce:            0,
-		PubKeysBitmap:    []byte{255, 0},
-		Signature:        []byte("signature"),
 		PrevHash:         []byte("prev hash"),
 		TimeStamp:        uint64(time.Now().Unix()),
 		Round:            1,
@@ -83,9 +107,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	}
 
 	hdr2 := block.Header{
-		Nonce:            1,
-		PubKeysBitmap:    []byte{255, 0},
-		Signature:        []byte("signature"),
+		Nonce:            0,
 		PrevHash:         []byte("prev hash"),
 		TimeStamp:        uint64(time.Now().Unix()),
 		Round:            1,
@@ -97,6 +119,18 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 		RandSeed:         make([]byte, 0),
 		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
 	}
+
+	hdrBuff, _ := marshalizer.Marshal(&hdr1)
+	hdrHash := hasher.Compute(string(hdrBuff))
+	msig, _ := multiSigner.Create(keysMap[0], 0)
+	bitmap := []byte{1}
+	_, _ = msig.CreateSignatureShare(hdrHash, bitmap)
+	aggSig, _ := msig.AggregateSigs(bitmap)
+
+	hdr1.PubKeysBitmap = bitmap
+	hdr1.Signature = aggSig
+	hdr2.PubKeysBitmap = bitmap
+	hdr2.Signature = aggSig
 
 	hdrBuff1, _ := marshalizer.Marshal(&hdr1)
 	hdrHash1 := hasher.Compute(string(hdrBuff1))
