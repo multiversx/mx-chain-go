@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -13,9 +11,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/pkg/profile"
 	"github.com/stretchr/testify/assert"
 )
@@ -807,7 +807,7 @@ func getNodeWithinSameShardAsPlayer(
 	player []byte,
 ) *integrationTests.TestProcessorNode {
 	nodeWithCaller := nodes[0]
-	playerShId := nodeWithCaller.ShardCoordinator.ComputeId(integrationTests.CreateAddresFromAddrBytes(player))
+	playerShId := nodeWithCaller.ShardCoordinator.ComputeId(integrationTests.CreateAddressFromAddrBytes(player))
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() == playerShId {
 			nodeWithCaller = node
@@ -826,7 +826,7 @@ func checkPlayerBalanceTheSameWithBlockchain(
 	nodeWithCaller := getNodeWithinSameShardAsPlayer(nodes, player.Address.Bytes())
 
 	fmt.Println("Checking sender has initial-topUp val...")
-	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddresFromAddrBytes(player.Address.Bytes()))
+	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(player.Address.Bytes()))
 	assert.NotNil(t, accnt)
 	ok := assert.Equal(t, player.Balance.Uint64(), accnt.(*state.Account).Balance.Uint64())
 	if !ok {
