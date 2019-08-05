@@ -266,8 +266,6 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRoundsMultiShard(t *testing.T) {
 	t.Skip("this is a stress test for VM and AGAR.IO")
 
-	stepDelay = time.Nanosecond
-
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
 
