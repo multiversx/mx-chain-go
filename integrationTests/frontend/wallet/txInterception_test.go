@@ -100,7 +100,12 @@ func testInterceptedTxFromFrontendGeneratedParams(
 
 	chDone := make(chan struct{})
 
-	node := integrationTests.NewTestProcessorNode(1, 0, 0, "nodeAddr")
+	maxShards := uint32(1)
+	nodeShardId := uint32(0)
+	txSignPrivKeyShardId := uint32(0)
+	initialNodeAddr := "nodeAddr"
+
+	node := integrationTests.NewTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
 
 	txHexHash := ""
 
