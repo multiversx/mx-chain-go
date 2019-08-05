@@ -727,9 +727,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 
 // SetAccountNonce sets the account nonce with journal
 func (tpn *TestProcessorNode) SetAccountNonce(nonce uint64) error {
-	nodePubKeyBytes, _ := tpn.SkTxSign.GeneratePublic().ToByteArray()
-	nodeAddress := CreateAddressFromAddrBytes(nodePubKeyBytes)
-	nodeAccount, _ := tpn.AccntState.GetAccountWithJournal(nodeAddress)
+	nodeAccount, _ := tpn.AccntState.GetAccountWithJournal(tpn.TxSignAddress)
 	err := nodeAccount.(*state.Account).SetNonceWithJournal(nonce)
 	if err != nil {
 		return err

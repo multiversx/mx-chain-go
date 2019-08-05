@@ -46,6 +46,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var stepDelay = time.Second
+
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
 	for _, addr := range mes.Addresses() {
@@ -67,7 +69,7 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", []string{initialAddr}),
+		discovery.NewKadDhtPeerDiscoverer(stepDelay, "test", []string{initialAddr}),
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -465,7 +467,7 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 	txDeploy := createTxDeploy(nodes[senderIdx], scCode)
 	nodes[senderIdx].SendTransaction(txDeploy)
 	fmt.Println("Delaying for disseminating the deploy tx...")
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 
 	fmt.Println(MakeDisplayTable(nodes))
 }
@@ -500,7 +502,7 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64) 
 	}
 
 	fmt.Println("Delaying for disseminating headers and miniblocks...")
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 	fmt.Println(MakeDisplayTable(nodes))
 }
 
@@ -525,7 +527,7 @@ func SyncBlock(
 		}
 	}
 
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 	fmt.Println(MakeDisplayTable(nodes))
 }
 
@@ -552,7 +554,7 @@ func NodeJoinsGame(
 	txScCall := createTxJoinGame(nodes[idxNode], joinGameVal, round, scAddress)
 	nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 }
 
 func createTxJoinGame(
@@ -589,7 +591,7 @@ func NodeEndGame(
 	fmt.Println("Calling SC.endGame...")
 	txScCall := createTxEndGame(nodes[idxNode], round, scAddress)
 	nodes[idxNode].SendTransaction(txScCall)
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 
 	fmt.Println(MakeDisplayTable(nodes))
 }
@@ -630,7 +632,7 @@ func NodeCallsRewardAndSend(
 	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, round, scAddress)
 	nodes[idxNodeOwner].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 }
 
 func createTxRewardAndSendToWallet(
