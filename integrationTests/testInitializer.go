@@ -582,13 +582,12 @@ func createTxJoinGame(
 func NodeEndGame(
 	nodes []*TestProcessorNode,
 	idxNode int,
-	txVal *big.Int,
 	round int,
 	scAddress []byte,
 ) {
 
 	fmt.Println("Calling SC.endGame...")
-	txScCall := createTxEndGame(nodes[idxNode], round, txVal, scAddress)
+	txScCall := createTxEndGame(nodes[idxNode], round, scAddress)
 	nodes[idxNode].SendTransaction(txScCall)
 	time.Sleep(time.Second)
 
@@ -598,12 +597,11 @@ func NodeEndGame(
 func createTxEndGame(
 	tn *TestProcessorNode,
 	round int,
-	txVal *big.Int,
 	scAddress []byte,
 ) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    0,
-		Value:    txVal,
+		Value:    big.NewInt(0),
 		RcvAddr:  scAddress,
 		SndAddr:  tn.PkTxSignBytes,
 		Data:     fmt.Sprintf("endGame@%d", round),

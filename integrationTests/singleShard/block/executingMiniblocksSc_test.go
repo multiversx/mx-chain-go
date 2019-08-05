@@ -158,7 +158,6 @@ func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
 
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
-	endGameVal := big.NewInt(100)
 	withdrawValue := big.NewInt(10)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
@@ -183,7 +182,7 @@ func TestProcessesJoinGameOf100PlayersRewardAndEndgame(t *testing.T) {
 		round = integrationTests.IncrementAndPrintRound(round)
 
 		integrationTests.NodeCallsRewardAndSend(nodes, idxProposer, idxProposer, withdrawValue, rr, hardCodedScResultingAddress)
-		integrationTests.NodeEndGame(nodes, idxProposer, endGameVal, rr, hardCodedScResultingAddress)
+		integrationTests.NodeEndGame(nodes, idxProposer, rr, hardCodedScResultingAddress)
 		time.Sleep(time.Second)
 
 		startTime = time.Now()

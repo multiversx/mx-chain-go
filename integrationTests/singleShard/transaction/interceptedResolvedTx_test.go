@@ -20,12 +20,17 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	fmt.Println("Requester:")
-	nRequester := integrationTests.NewTestProcessorNode(1, 0, 0, "0")
+	var nrOfShards uint32 = 1
+	var shardID uint32 = 0
+	var txSignPrivKeyShardId uint32 = 0
+	requesterNodeAddr := "0"
+	resolverNodeAddr := "1"
+
+	fmt.Println("Requester:	")
+	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(1, 0, 0, "1")
-
+	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
 	_ = nRequester.Node.Start()
 	_ = nResolver.Node.Start()
 	defer func() {

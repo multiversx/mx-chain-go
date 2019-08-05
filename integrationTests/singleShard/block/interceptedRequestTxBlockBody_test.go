@@ -21,13 +21,17 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	hasher := integrationTests.TestHasher
 	marshalizer := integrationTests.TestMarshalizer
+	var nrOfShards uint32 = 1
+	var shardID uint32 = 0
+	var txSignPrivKeyShardId uint32 = 0
+	requesterNodeAddr := "0"
+	resolverNodeAddr := "1"
 
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(1, 0, 0, "0")
+	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(1, 0, 0, "1")
-
+	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
 	_ = nRequester.Node.Start()
 	_ = nResolver.Node.Start()
 
