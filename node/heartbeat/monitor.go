@@ -127,6 +127,8 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			MaxInactiveTime: v.maxInactiveTime,
 			IsActive:        v.isActive,
 			ShardID:         v.shardID,
+			TotalUpTime:     v.totalUpTime,
+			TotalDownTime:   v.totalDownTime,
 		}
 		idx++
 
