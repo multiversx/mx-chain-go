@@ -38,20 +38,17 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
-	validatorsKeysMap := integrationTests.CreateValidatorKeys(1, 1, int(maxShards))
 	nodeShard0 := integrationTests.NewTestProcessorNode(
 		maxShards,
 		0,
 		0,
 		advertiserAddr,
-		validatorsKeysMap,
 	)
 	nodeShard1 := integrationTests.NewTestProcessorNode(
 		maxShards,
 		1,
 		1,
 		advertiserAddr,
-		validatorsKeysMap,
 	)
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -61,7 +58,6 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 		sharding.MetachainShardId,
 		0,
 		advertiserAddr,
-		validatorsKeysMap,
 	)
 
 	nodes := []*integrationTests.TestProcessorNode{nodeShard0, nodeShard1, nodeMeta}
@@ -153,21 +149,17 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
-
-	validatorsKeysMap := integrationTests.CreateValidatorKeys(2, 2, int(maxShards))
 	nodeProposerShard0 := integrationTests.NewTestProcessorNode(
 		maxShards,
 		0,
 		0,
 		advertiserAddr,
-		validatorsKeysMap,
 	)
 	nodeValidatorShard0 := integrationTests.NewTestProcessorNode(
 		maxShards,
 		0,
 		0,
 		advertiserAddr,
-		validatorsKeysMap,
 	)
 
 	nodeProposerShard1 := integrationTests.NewTestProcessorNode(
@@ -175,7 +167,6 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		1,
 		1,
 		advertiserAddr,
-		validatorsKeysMap,
 	)
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -185,7 +176,6 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		1,
 		1,
 		advertiserAddr,
-		validatorsKeysMap,
 	)
 
 	nodeProposerMeta := integrationTests.NewTestProcessorNode(
@@ -193,14 +183,12 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		sharding.MetachainShardId,
 		0,
 		advertiserAddr,
-		validatorsKeysMap,
 	)
 	nodeValidatorMeta := integrationTests.NewTestProcessorNode(
 		maxShards,
 		sharding.MetachainShardId,
 		0,
 		advertiserAddr,
-		validatorsKeysMap,
 	)
 
 	nodes := []*integrationTests.TestProcessorNode{

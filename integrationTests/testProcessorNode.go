@@ -126,23 +126,10 @@ func NewTestProcessorNode(
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
 	initialNodeAddr string,
-	validatorsKeys map[uint32][]*TestKeyPair,
 ) *TestProcessorNode {
 
-	pubKeysMap := pubKeysMapFromKeysMap(validatorsKeys)
-	validatorsMap := genValidatorsFromPubKeys(pubKeysMap)
-
-	shardConsensusSize := len(validatorsMap[0])
-	metaConsensusSize := len(validatorsMap[sharding.MetachainShardId])
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
-	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
-		shardConsensusSize,
-		metaConsensusSize,
-		TestHasher,
-		nodeShardId,
-		maxShards,
-		validatorsMap,
-	)
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
@@ -563,7 +550,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64) (data.BodyHandler, data
 
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(uint64(round))
-	blockHeader.SetPubKeysBitmap(make([]byte, 0))
+	blockHeader.SetPubKeysBitmap([]byte{1})
 	sig, _ := TestMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
