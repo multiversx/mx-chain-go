@@ -309,7 +309,7 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 		dataLines[idx] = display.NewLineData(
 			false,
 			[]string{
-				hex.EncodeToString(n.PkTxSignBytes),
+				hex.EncodeToString(n.OwnAccount.PkTxSignBytes),
 				fmt.Sprintf("%d", n.ShardCoordinator.SelfId()),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterTxRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterMbRecv)),
@@ -438,12 +438,12 @@ func mintAddressesFromSameShard(nodes []*TestProcessorNode, targetNodeIdx int, v
 	targetNode := nodes[targetNodeIdx]
 
 	for _, n := range nodes {
-		shardId := targetNode.ShardCoordinator.ComputeId(n.TxSignAddress)
+		shardId := targetNode.ShardCoordinator.ComputeId(n.OwnAccount.Address)
 		if shardId != targetNode.ShardCoordinator.SelfId() {
 			continue
 		}
 
-		MintAddress(targetNode.AccntState, n.PkTxSignBytes, value)
+		MintAddress(targetNode.AccntState, n.OwnAccount.PkTxSignBytes, value)
 	}
 }
 

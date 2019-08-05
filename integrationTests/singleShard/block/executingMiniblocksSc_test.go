@@ -11,7 +11,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -27,8 +26,6 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	stepDelay = time.Second
 
 	log := logger.DefaultLogger()
 	log.SetLevel(logger.LogDebug)
@@ -48,9 +45,9 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	}
 
 	idxProposer := 0
-	nrPlayers := 1
-	players := make([]*integrationTests.TestWalletAccount, nrPlayers)
-	for i := 0; i < nrPlayers; i++ {
+	numPlayers := 1
+	players := make([]*integrationTests.TestWalletAccount, numPlayers)
+	for i := 0; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
 	}
 
@@ -81,15 +78,16 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
 	deployScTx(nodes, idxProposer, string(scCode))
+	time.Sleep(stepDelay)
 	proposeBlock(nodes, []int{idxProposer}, round)
-	time.Sleep(time.Second)
 	syncBlock(t, nodes, []int{idxProposer}, round)
 	round = incrementAndPrintRound(round)
 
+	numRounds := 1
 	runMultipleRoundsOfTheGame(
 		t,
-		1,
-		nrPlayers,
+		numRounds,
+		numPlayers,
 		nodes,
 		players,
 		topUpValue,
@@ -107,8 +105,6 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRounds(t *testing.T) {
 	t.Skip("this is a stress test for VM and AGAR.IO")
 
-	stepDelay = time.Nanosecond
-
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
 
@@ -130,13 +126,13 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	}
 
 	idxProposer := 0
-	nrPlayers := 100
-	players := make([]*integrationTests.TestWalletAccount, nrPlayers)
+	numPlayers := 100
+	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	players[0] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
-	for i := 1; i < nrPlayers; i++ {
+	for i := 1; i < numPlayers; i++ {
 		players[i] = players[0]
 	}
-	nrPlayers = 1
+	numPlayers = 1
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
@@ -149,7 +145,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 
 	round := uint64(0)
 	round = incrementAndPrintRound(round)
@@ -164,16 +160,16 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
 	deployScTx(nodes, idxProposer, string(scCode))
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 	proposeBlock(nodes, []int{idxProposer}, round)
-	time.Sleep(time.Second)
 	syncBlock(t, nodes, []int{idxProposer}, round)
 	round = incrementAndPrintRound(round)
 
+	numRounds := 100
 	runMultipleRoundsOfTheGame(
 		t,
-		10,
-		nrPlayers,
+		numRounds,
+		numPlayers,
 		nodes,
 		players,
 		topUpValue,
@@ -191,8 +187,6 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRounds(t *testing.T) {
 	t.Skip("this is a stress test for VM and AGAR.IO")
 
-	stepDelay = time.Nanosecond
-
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
 
@@ -214,9 +208,9 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	}
 
 	idxProposer := 0
-	nrPlayers := 100
-	players := make([]*integrationTests.TestWalletAccount, nrPlayers)
-	for i := 1; i < nrPlayers; i++ {
+	numPlayers := 100
+	players := make([]*integrationTests.TestWalletAccount, numPlayers)
+	for i := 1; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
 	}
 
@@ -232,7 +226,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 
 	round := uint64(0)
 	round = incrementAndPrintRound(round)
@@ -247,16 +241,16 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
 	deployScTx(nodes, idxProposer, string(scCode))
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 	proposeBlock(nodes, []int{idxProposer}, round)
-	time.Sleep(time.Second)
 	syncBlock(t, nodes, []int{idxProposer}, round)
 	round = incrementAndPrintRound(round)
 
+	numRounds := 100
 	runMultipleRoundsOfTheGame(
 		t,
-		100,
-		nrPlayers,
+		numRounds,
+		numPlayers,
 		nodes,
 		players,
 		topUpValue,
@@ -297,9 +291,9 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	nodes[2] = integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 1, advertiserAddr)
 
 	idxProposer := 0
-	nrPlayers := 100
-	players := make([]*integrationTests.TestWalletAccount, nrPlayers)
-	for i := 1; i < nrPlayers; i++ {
+	numPlayers := 100
+	players := make([]*integrationTests.TestWalletAccount, numPlayers)
+	for i := 1; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
 	}
 
@@ -320,7 +314,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 
 	round := uint64(0)
 	round = incrementAndPrintRound(round)
@@ -339,20 +333,19 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		nrRoundsToPropagateMultiShard = 1
 	}
 
+	deployScTx(nodes, idxProposer, string(scCode))
+	time.Sleep(stepDelay)
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		time.Sleep(time.Second)
-		deployScTx(nodes, idxProposer, string(scCode))
-		time.Sleep(time.Second)
 		proposeBlock(nodes, idxProposers, round)
-		time.Sleep(time.Second)
 		syncBlock(t, nodes, idxProposers, round)
 		round = incrementAndPrintRound(round)
 	}
 
+	numRounds := 100
 	runMultipleRoundsOfTheGame(
 		t,
-		100,
-		nrPlayers,
+		numRounds,
+		numPlayers,
 		nodes,
 		players,
 		topUpValue,
@@ -369,8 +362,6 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 
 func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRoundsMultiShardMultiNode(t *testing.T) {
 	t.Skip("this is a stress test for VM and AGAR.IO")
-
-	stepDelay = time.Nanosecond
 
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
@@ -396,9 +387,9 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	nodes[5] = integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
 
 	idxProposer := 0
-	nrPlayers := 100
-	players := make([]*integrationTests.TestWalletAccount, nrPlayers)
-	for i := 1; i < nrPlayers; i++ {
+	numPlayers := 100
+	players := make([]*integrationTests.TestWalletAccount, numPlayers)
+	for i := 1; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
 	}
 
@@ -414,7 +405,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 
 	round := uint64(0)
 	round = incrementAndPrintRound(round)
@@ -438,20 +429,19 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	idxProposers[1] = 2
 	idxProposers[2] = 4
 
+	deployScTx(nodes, idxProposer, string(scCode))
+	time.Sleep(stepDelay)
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		time.Sleep(time.Second)
-		deployScTx(nodes, idxProposer, string(scCode))
-		time.Sleep(time.Second)
 		proposeBlock(nodes, idxProposers, round)
-		time.Sleep(time.Second)
 		syncBlock(t, nodes, idxProposers, round)
 		round = incrementAndPrintRound(round)
 	}
 
+	numRounds := 100
 	runMultipleRoundsOfTheGame(
 		t,
-		100,
-		nrPlayers,
+		numRounds,
+		numPlayers,
 		nodes,
 		players,
 		topUpValue,
@@ -480,7 +470,7 @@ func getPercentageOfValue(value *big.Int, percentage float64) *big.Int {
 
 func runMultipleRoundsOfTheGame(
 	t *testing.T,
-	nrRounds, nrPlayers int,
+	nrRounds, numPlayers int,
 	nodes []*integrationTests.TestProcessorNode,
 	players []*integrationTests.TestWalletAccount,
 	topUpValue *big.Int,
@@ -490,17 +480,17 @@ func runMultipleRoundsOfTheGame(
 	idxProposers []int,
 ) {
 	rMonitor := &statistics.ResourceMonitor{}
-	nrRewardedPlayers := 10
-	if nrRewardedPlayers > nrPlayers {
-		nrRewardedPlayers = nrPlayers
+	numRewardedPlayers := 10
+	if numRewardedPlayers > numPlayers {
+		numRewardedPlayers = numPlayers
 	}
 
 	totalWithdrawValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(len(players)))
-	withDrawValues := make([]*big.Int, nrRewardedPlayers)
-	winnerRate := 1.0 - 0.05*float64(nrRewardedPlayers-1)
-	withDrawValues[0] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, winnerRate))
-	for i := 1; i < nrRewardedPlayers; i++ {
-		withDrawValues[i] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, 0.05))
+	withdrawValues := make([]*big.Int, numRewardedPlayers)
+	winnerRate := 1.0 - 0.05*float64(numRewardedPlayers-1)
+	withdrawValues[0] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, winnerRate))
+	for i := 1; i < numRewardedPlayers; i++ {
+		withdrawValues[i] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, 0.05))
 	}
 
 	nrRoundsToPropagateMultiShard := 5
@@ -512,9 +502,7 @@ func runMultipleRoundsOfTheGame(
 		for _, player := range players {
 			playerJoinsGame(
 				nodes,
-				player.Address.Bytes(),
-				player.SingleSigner,
-				player.SkTxSign,
+				player,
 				topUpValue,
 				rr,
 				hardCodedScResultingAddress,
@@ -524,38 +512,37 @@ func runMultipleRoundsOfTheGame(
 			player.Balance = player.Balance.Set(newBalance)
 		}
 
+		// waiting to disseminate transactions
+		time.Sleep(stepDelay)
+
 		for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-			time.Sleep(time.Second)
 			startTime := time.Now()
 			proposeBlock(nodes, idxProposers, round)
 			elapsedTime := time.Since(startTime)
 			fmt.Printf("Block Created in %s\n", elapsedTime)
 
-			time.Sleep(time.Second)
 			syncBlock(t, nodes, idxProposers, round)
 			round = incrementAndPrintRound(round)
 		}
 
 		checkJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
-		for i := 0; i < nrRewardedPlayers; i++ {
-			nodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withDrawValues[i], rr, hardCodedScResultingAddress)
+		for i := 0; i < numRewardedPlayers; i++ {
+			nodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], rr, hardCodedScResultingAddress)
 			newBalance := big.NewInt(0)
-			newBalance = newBalance.Add(players[i].Balance, withDrawValues[i])
+			newBalance = newBalance.Add(players[i].Balance, withdrawValues[i])
 			players[i].Balance = players[i].Balance.Set(newBalance)
 		}
 
-		//TODO activate endgame when it is corrected
-		//nodeEndGame(nodes, idxProposer, rr, hardCodedScResultingAddress)
+		// waiting to disseminate transactions
+		time.Sleep(stepDelay)
 
 		for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-			time.Sleep(time.Second)
 			startTime := time.Now()
 			proposeBlock(nodes, idxProposers, round)
 			elapsedTime := time.Since(startTime)
 			fmt.Printf("Block Created in %s\n", elapsedTime)
 
-			time.Sleep(time.Second)
 			syncBlock(t, nodes, idxProposers, round)
 			round = incrementAndPrintRound(round)
 		}
@@ -583,8 +570,8 @@ func checkJoinGame(
 		)
 	}
 
-	nrPlayers := len(players)
-	allTopUpValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(nrPlayers))
+	numPlayers := len(players)
+	allTopUpValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(numPlayers))
 	checkBalanceIsDoneCorrectlySCSide(
 		t,
 		nodes,
@@ -612,8 +599,8 @@ func checkRewardsDistribution(
 		)
 	}
 
-	nrPlayers := len(players)
-	allTopUpValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(nrPlayers))
+	numPlayers := len(players)
+	allTopUpValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(numPlayers))
 	checkBalanceIsDoneCorrectlySCSide(
 		t,
 		nodes,
@@ -633,12 +620,8 @@ func incrementAndPrintRound(round uint64) uint64 {
 
 func deployScTx(nodes []*integrationTests.TestProcessorNode, senderIdx int, scCode string) {
 	fmt.Println("Deploying SC...")
-	txDeploy := createTxDeploy(nodes[senderIdx], scCode)
+	txDeploy := createTxDeploy(nodes[senderIdx].OwnAccount, scCode)
 	nodes[senderIdx].SendTransaction(txDeploy)
-	fmt.Println("Delaying for disseminating the deploy tx...")
-	time.Sleep(stepDelay)
-
-	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
 func isIntInSlice(idx int, slice []int) bool {
@@ -664,7 +647,6 @@ func proposeBlock(nodes []*integrationTests.TestProcessorNode, idxProposers []in
 
 	fmt.Println("Delaying for disseminating headers and miniblocks...")
 	time.Sleep(stepDelay)
-	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
 func syncBlock(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxProposers []int, round uint64) {
@@ -687,19 +669,15 @@ func syncBlock(t *testing.T, nodes []*integrationTests.TestProcessorNode, idxPro
 
 func playerJoinsGame(
 	nodes []*integrationTests.TestProcessorNode,
-	sndAddress []byte,
-	signer crypto.SingleSigner,
-	privKey crypto.PrivateKey,
+	player *integrationTests.TestWalletAccount,
 	joinGameVal *big.Int,
 	round int,
 	scAddress []byte,
 ) {
-	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, sndAddress)
+	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address.Bytes())
 	fmt.Println("Calling SC.joinGame...")
-	txScCall := createTxJoinGame(sndAddress, signer, privKey, joinGameVal, round, scAddress)
+	txScCall := createTxJoinGame(player, joinGameVal, round, scAddress)
 	txDispatcherNode.SendTransaction(txScCall)
-	fmt.Println("Delaying for disseminating SC call tx...")
-	time.Sleep(stepDelay)
 }
 
 func nodeEndGame(
@@ -710,11 +688,8 @@ func nodeEndGame(
 ) {
 
 	fmt.Println("Calling SC.endGame...")
-	txScCall := createTxEndGame(nodes[idxNode], round, scAddress)
+	txScCall := createTxEndGame(nodes[idxNode].OwnAccount, round, scAddress)
 	nodes[idxNode].SendTransaction(txScCall)
-	time.Sleep(stepDelay)
-
-	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
 
 func nodeCallsRewardAndSend(
@@ -727,64 +702,62 @@ func nodeCallsRewardAndSend(
 ) {
 
 	fmt.Println("Calling SC.rewardAndSendToWallet...")
-	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner], winnerAddress, prize, round, scAddress)
+	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner].OwnAccount, winnerAddress, prize, round, scAddress)
 	nodes[idxNodeOwner].SendTransaction(txScCall)
-	fmt.Println("Delaying for disseminating SC call tx...")
-	time.Sleep(stepDelay)
 }
 
-func createTxDeploy(tn *integrationTests.TestProcessorNode, scCode string) *transaction.Transaction {
+func createTxDeploy(twa *integrationTests.TestWalletAccount, scCode string) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),
 		RcvAddr:  make([]byte, 32),
-		SndAddr:  tn.PkTxSignBytes,
+		SndAddr:  twa.PkTxSignBytes,
 		Data:     scCode,
 		GasPrice: 0,
 		GasLimit: 1000000000000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
-	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
+	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
 
 	return tx
 }
 
-func createTxEndGame(tn *integrationTests.TestProcessorNode, round int, scAddress []byte) *transaction.Transaction {
+func createTxEndGame(twa *integrationTests.TestWalletAccount, round int, scAddress []byte) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    0,
 		RcvAddr:  scAddress,
-		SndAddr:  tn.PkTxSignBytes,
+		SndAddr:  twa.PkTxSignBytes,
 		Data:     fmt.Sprintf("endGame@%d", round),
 		GasPrice: 0,
 		GasLimit: 1000000000000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
-	tx.Signature, _ = tn.SingleSigner.Sign(tn.SkTxSign, txBuff)
+	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
 
-	fmt.Printf("End %s\n", hex.EncodeToString(tn.PkTxSignBytes))
+	fmt.Printf("End %s\n", hex.EncodeToString(twa.PkTxSignBytes))
 
 	return tx
 }
 
-func createTxJoinGame(sndAddress []byte, signer crypto.SingleSigner, privKey crypto.PrivateKey, joinGameVal *big.Int, round int, scAddress []byte) *transaction.Transaction {
+func createTxJoinGame(twa *integrationTests.TestWalletAccount, joinGameVal *big.Int, round int, scAddress []byte) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    0,
 		Value:    joinGameVal,
 		RcvAddr:  scAddress,
-		SndAddr:  sndAddress,
+		SndAddr:  twa.Address.Bytes(),
 		Data:     fmt.Sprintf("joinGame@%d", round),
 		GasPrice: 0,
 		GasLimit: 1000000000000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
-	tx.Signature, _ = signer.Sign(privKey, txBuff)
+	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
 
-	fmt.Printf("Join %s\n", hex.EncodeToString(sndAddress))
+	fmt.Printf("Join %s\n", hex.EncodeToString(twa.Address.Bytes()))
 
 	return tx
 }
 
-func createTxRewardAndSendToWallet(tnOwner *integrationTests.TestProcessorNode, winnerAddress []byte, prizeVal *big.Int, round int, scAddress []byte) *transaction.Transaction {
+func createTxRewardAndSendToWallet(tnOwner *integrationTests.TestWalletAccount, winnerAddress []byte, prizeVal *big.Int, round int, scAddress []byte) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),

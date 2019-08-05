@@ -12,6 +12,7 @@ import (
 	"math/big"
 )
 
+// TestWalletAccount creates and account with balance and crypto necessary to sign transactions
 type TestWalletAccount struct {
 	SingleSigner  crypto.SingleSigner
 	SkTxSign      crypto.PrivateKey
@@ -23,12 +24,14 @@ type TestWalletAccount struct {
 	Balance *big.Int
 }
 
+// CreateTestWalletAccount creates an wallett account in a selected shard
 func CreateTestWalletAccount(coordinator sharding.Coordinator, shardId uint32) *TestWalletAccount {
 	testWalletAccount := &TestWalletAccount{}
 	testWalletAccount.initCrypto(coordinator, shardId)
 	return testWalletAccount
 }
 
+// initCrypto initializes the crypto for the account
 func (twa *TestWalletAccount) initCrypto(coordinator sharding.Coordinator, shardId uint32) {
 	suite := kyber.NewBlakeSHA256Ed25519()
 	twa.SingleSigner = &singlesig.SchnorrSigner{}
@@ -51,5 +54,16 @@ func (twa *TestWalletAccount) initCrypto(coordinator sharding.Coordinator, shard
 	twa.PkTxSign = pk
 	twa.PkTxSignBytes, _ = pk.ToByteArray()
 	twa.KeygenTxSign = keyGen
+	twa.Address, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(twa.PkTxSignBytes)
+}
+
+// LoadTxSignSkBytes alters the already generated sk/pk pair
+func (twa *TestWalletAccount) LoadTxSignSkBytes(skBytes []byte) {
+	newSk, _ := twa.KeygenTxSign.PrivateKeyFromByteArray(skBytes)
+	newPk := newSk.GeneratePublic()
+
+	twa.SkTxSign = newSk
+	twa.PkTxSign = newPk
+	twa.PkTxSignBytes, _ = newPk.ToByteArray()
 	twa.Address, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(twa.PkTxSignBytes)
 }

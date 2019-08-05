@@ -11,10 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -67,12 +63,7 @@ type TestProcessorNode struct {
 	ShardCoordinator sharding.Coordinator
 	Messenger        p2p.Messenger
 
-	SingleSigner  crypto.SingleSigner
-	SkTxSign      crypto.PrivateKey
-	PkTxSign      crypto.PublicKey
-	PkTxSignBytes []byte
-	KeygenTxSign  crypto.KeyGenerator
-	TxSignAddress state.AddressContainer
+	OwnAccount *TestWalletAccount
 
 	ShardDataPool dataRetriever.PoolsHolder
 	MetaDataPool  dataRetriever.MetaPoolsHolder
@@ -122,7 +113,7 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 		Messenger:        messenger,
 	}
 
-	tpn.initCrypto(txSignPrivKeyShardId)
+	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(tpn.ShardCoordinator)
@@ -136,8 +127,8 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 		TestMarshalizer,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
-		tpn.SkTxSign,
-		tpn.SingleSigner,
+		tpn.OwnAccount.SkTxSign,
+		tpn.OwnAccount.SingleSigner,
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -145,31 +136,6 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 	tpn.addHandlersForCounters()
 
 	return tpn
-}
-
-func (tpn *TestProcessorNode) initCrypto(txSignPrivKeyShardId uint32) {
-	suite := kyber.NewBlakeSHA256Ed25519()
-	tpn.SingleSigner = &singlesig.SchnorrSigner{}
-	keyGen := signing.NewKeyGenerator(suite)
-	sk, pk := keyGen.GeneratePair()
-
-	for {
-		pkBytes, _ := pk.ToByteArray()
-		addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBytes)
-		if tpn.ShardCoordinator.ComputeId(addr) == txSignPrivKeyShardId {
-			break
-		}
-		sk, pk = keyGen.GeneratePair()
-	}
-
-	pkBuff, _ := pk.ToByteArray()
-	fmt.Printf("Found pk: %s in shard %d\n", hex.EncodeToString(pkBuff), txSignPrivKeyShardId)
-
-	tpn.SkTxSign = sk
-	tpn.PkTxSign = pk
-	tpn.PkTxSignBytes, _ = pk.ToByteArray()
-	tpn.KeygenTxSign = keyGen
-	tpn.TxSignAddress, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(tpn.PkTxSignBytes)
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
@@ -221,8 +187,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.Storage,
 			TestMarshalizer,
 			TestHasher,
-			tpn.KeygenTxSign,
-			tpn.SingleSigner,
+			tpn.OwnAccount.KeygenTxSign,
+			tpn.OwnAccount.SingleSigner,
 			TestMultiSig,
 			tpn.ShardDataPool,
 			TestAddressConverter,
@@ -424,14 +390,14 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithAccountsAdapter(tpn.AccntState),
-		node.WithKeyGen(tpn.KeygenTxSign),
+		node.WithKeyGen(tpn.OwnAccount.KeygenTxSign),
 		node.WithShardCoordinator(tpn.ShardCoordinator),
 		node.WithBlockChain(tpn.BlockChain),
 		node.WithUint64ByteSliceConverter(TestUint64Converter),
 		node.WithMultiSigner(TestMultiSig),
-		node.WithSingleSigner(tpn.SingleSigner),
-		node.WithTxSignPrivKey(tpn.SkTxSign),
-		node.WithTxSignPubKey(tpn.PkTxSign),
+		node.WithSingleSigner(tpn.OwnAccount.SingleSigner),
+		node.WithTxSignPrivKey(tpn.OwnAccount.SkTxSign),
+		node.WithTxSignPubKey(tpn.OwnAccount.PkTxSign),
 		node.WithInterceptorsContainer(tpn.InterceptorsContainer),
 		node.WithResolversFinder(tpn.ResolverFinder),
 		node.WithBlockProcessor(tpn.BlockProcessor),
@@ -501,13 +467,7 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 
 // LoadTxSignSkBytes alters the already generated sk/pk pair
 func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
-	newSk, _ := tpn.KeygenTxSign.PrivateKeyFromByteArray(skBytes)
-	newPk := newSk.GeneratePublic()
-
-	tpn.SkTxSign = newSk
-	tpn.PkTxSign = newPk
-	tpn.PkTxSignBytes, _ = newPk.ToByteArray()
-	tpn.TxSignAddress, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(tpn.PkTxSignBytes)
+	tpn.OwnAccount.LoadTxSignSkBytes(skBytes)
 }
 
 // ProposeBlock proposes a new block
