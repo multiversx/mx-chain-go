@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -16,9 +15,7 @@ import (
 func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 	fmt.Println("Deploying SC...")
 	txDeploy := createTxDeploy(nodes[senderIdx].OwnAccount, scCode)
-	nodes[senderIdx].SendTransaction(txDeploy)
-	fmt.Println("Delaying for disseminating the deploy tx...")
-	time.Sleep(stepDelay)
+	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
 
 	fmt.Println(MakeDisplayTable(nodes))
 }
@@ -85,7 +82,7 @@ func PlayerJoinsGame(
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address.Bytes())
 	fmt.Println("Calling SC.joinGame...")
 	txScCall := createTxJoinGame(player, joinGameVal, round, scAddress)
-	txDispatcherNode.SendTransaction(txScCall)
+	_, _ = txDispatcherNode.SendTransaction(txScCall)
 }
 
 // NodeEndGame creates and sends an end game transaction to the SC
@@ -98,10 +95,7 @@ func NodeEndGame(
 
 	fmt.Println("Calling SC.endGame...")
 	txScCall := createTxEndGame(nodes[idxNode].OwnAccount, round, scAddress)
-	nodes[idxNode].SendTransaction(txScCall)
-	time.Sleep(stepDelay)
-
-	fmt.Println(MakeDisplayTable(nodes))
+	_, _ = nodes[idxNode].SendTransaction(txScCall)
 }
 
 func createTxRewardAndSendToWallet(
@@ -140,7 +134,7 @@ func NodeCallsRewardAndSend(
 
 	fmt.Println("Calling SC.rewardAndSendToWallet...")
 	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner].OwnAccount, winnerAddress, prize, round, scAddress)
-	nodes[idxNodeOwner].SendTransaction(txScCall)
+	_, _ = nodes[idxNodeOwner].SendTransaction(txScCall)
 }
 
 func getNodeWithinSameShardAsPlayer(
