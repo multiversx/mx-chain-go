@@ -167,9 +167,9 @@ func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
 		return
 	}
 
-	s.mut.Lock()
+	s.mut.RLock()
 	if !s.isMetaBlockRelevant(mb) {
-		s.mut.Unlock()
+		s.mut.RUnlock()
 		return
 	}
 
@@ -178,11 +178,10 @@ func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
 			s.addMissingNonce(i)
 		}
 	}
-
-	_ = s.updateStatistics(mb)
-	s.mut.Unlock()
+	s.mut.RUnlock()
 
 	s.removeMissingNonce(mb.Nonce)
+	_ = s.updateStatistics(mb)
 }
 
 func (s *TpsBenchmark) addMissingNonce(nonce uint64) {
@@ -204,6 +203,9 @@ func (s *TpsBenchmark) setAverageTxCountForRound(round uint64) {
 }
 
 func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
 	s.blockNumber = header.Nonce
 	s.roundNumber = uint64(header.Round)
 	s.lastBlockTxCount = header.TxCount
