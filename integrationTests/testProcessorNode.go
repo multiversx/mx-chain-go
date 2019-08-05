@@ -662,7 +662,7 @@ func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock,
 // SetAccountNonce sets the account nonce with journal
 func (tpn *TestProcessorNode) SetAccountNonce(nonce uint64) error {
 	nodePubKeyBytes, _ := tpn.SkTxSign.GeneratePublic().ToByteArray()
-	nodeAddress := CreateAddresFromAddrBytes(nodePubKeyBytes)
+	nodeAddress := CreateAddressFromAddrBytes(nodePubKeyBytes)
 	nodeAccount, _ := tpn.AccntState.GetAccountWithJournal(nodeAddress)
 	err := nodeAccount.(*state.Account).SetNonceWithJournal(nonce)
 	if err != nil {
