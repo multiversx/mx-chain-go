@@ -260,3 +260,17 @@ func (sp *shardProcessor) DisplayLogInfo(
 func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(round uint64) (*block.Header, error) {
 	return sp.getHighestHdrForOwnShardFromMetachain(round)
 }
+
+func (sp *shardProcessor) RestoreMetaBlockIntoPool(
+	miniBlockHashes map[int][][]byte,
+	metaBlockHashes [][]byte,
+) error {
+	return sp.restoreMetaBlockIntoPool(miniBlockHashes, metaBlockHashes)
+}
+
+func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
+	round uint64,
+	metaHashes [][]byte,
+) (map[string][]byte, error) {
+	return sp.getAllMiniBlockDstMeFromMeta(round, metaHashes)
+}
