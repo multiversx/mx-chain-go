@@ -117,3 +117,6 @@ var ErrTooManyTransactionsInPool = errors.New("too many transactions in pool")
 
 // ErrSystemBusyGeneratingTransactions signals that to many transactions are trying to get generated
 var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generating bulk transactions")
+
+// ErrNilStatusHandler is returned when the status handler is nil
+var ErrNilStatusHandler = errors.New("nil AppStatusHandler")

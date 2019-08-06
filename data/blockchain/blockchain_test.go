@@ -52,3 +52,15 @@ func TestBlockChain_PutBadBlock(t *testing.T) {
 	b.PutBadBlock([]byte("test"))
 	assert.True(t, putCalled)
 }
+
+func TestBlockChain_SetNilAppStatusHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	b, _ := blockchain.NewBlockChain(
+		&mock.CacherStub{},
+	)
+
+	err := b.SetAppStatusHandler(nil)
+
+	assert.Equal(t, blockchain.ErrNilAppStatusHandler, err)
+}

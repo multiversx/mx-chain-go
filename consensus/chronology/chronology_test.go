@@ -292,3 +292,66 @@ func TestChronology_StartRoundShouldUpdateRoundWhenCurrentRoundIsFinished(t *tes
 
 	assert.Equal(t, int64(1), rounderMock.Index())
 }
+
+func TestChronology_SetAppStatusHandlerWithNilValueShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+	chr, _ := chronology.NewChronology(
+		syncTimerMock.CurrentTime(),
+		rounderMock,
+		syncTimerMock)
+	err := chr.SetAppStatusHandler(nil)
+
+	assert.Equal(t, err, chronology.ErrNilStatusHandler)
+}
+
+func TestChronology_SetAppStatusHandlerWithOkValueShouldPass(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+	chr, _ := chronology.NewChronology(
+		syncTimerMock.CurrentTime(),
+		rounderMock,
+		syncTimerMock)
+
+	err := chr.SetAppStatusHandler(mock.AppStatusHandlerMock{})
+
+	assert.Nil(t, err)
+}
+
+func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
+	t.Parallel()
+
+	chanDone := make(chan bool, 1)
+	rounderMock := &mock.RounderMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+	chr, _ := chronology.NewChronology(
+		syncTimerMock.CurrentTime(),
+		rounderMock,
+		syncTimerMock)
+
+	err := chr.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+		SetInt64ValueHandler: func(key string, value int64) {
+			chanDone <- true
+		},
+	})
+
+	assert.Nil(t, err)
+
+	srm := initSubroundHandlerMock()
+	srm.DoWorkCalled = func(rounder consensus.Rounder) bool {
+		return true
+	}
+
+	chr.AddSubround(srm)
+	chr.StartRound()
+
+	select {
+	case <-chanDone:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "AppStatusHandler not working")
+	}
+}
