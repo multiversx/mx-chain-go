@@ -146,6 +146,7 @@ type HeartbeatConfig struct {
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
 	NetworkID                  string
+	StatusPollingIntervalSec   int
 }
 
 // ExplorerConfig will hold the configuration for the explorer indexer

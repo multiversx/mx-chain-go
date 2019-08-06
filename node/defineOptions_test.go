@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -737,5 +738,28 @@ func TestWithConsensusBls_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.Equal(t, consensusType, node.consensusType)
+	assert.Nil(t, err)
+}
+
+func TestWithAppStatusHandler_NilAshShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithAppStatusHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilStatusHandler, err)
+}
+
+func TestWithAppStatusHandler_OkAshShouldPass(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithAppStatusHandler(statusHandler.NewNilStatusHandler())
+	err := opt(node)
+
+	assert.IsType(t, &statusHandler.NilStatusHandler{}, node.appStatusHandler)
 	assert.Nil(t, err)
 }
