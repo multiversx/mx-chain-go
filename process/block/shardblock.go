@@ -696,19 +696,25 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(round uint64) (*
 		return nil, err
 	}
 
-	lastMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	lastNotarizedMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}
 
-	highestNonceOwnShIdHdr := &block.Header{}
+	metaHdr, ok := lastNotarizedMetaHdr.(*block.MetaBlock)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	highestNonceOwnShIdHdr := sp.getHighestHdrForShardFromMetachain(sp.shardCoordinator.SelfId(), metaHdr)
+
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		hdr, ok := orderedMetaBlocks[i].hdr.(*block.MetaBlock)
 		if !ok {
 			continue
 		}
 
-		err := sp.isHdrConstructionValid(hdr, lastMetaHdr)
+		err := sp.isHdrConstructionValid(hdr, lastNotarizedMetaHdr)
 		if err != nil {
 			continue
 		}
@@ -718,27 +724,37 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(round uint64) (*
 			continue
 		}
 
-		lastMetaHdr = hdr
+		lastNotarizedMetaHdr = hdr
 
-		// search for own shard id in shardInfo from metaHeaders
-		for _, shardInfo := range hdr.ShardInfo {
-			if shardInfo.ShardId != sp.shardCoordinator.SelfId() {
-				continue
-			}
-
-			ownHdr, err := process.GetShardHeader(shardInfo.HeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
-			if err != nil {
-				continue
-			}
-
-			// save the highest nonce
-			if ownHdr.GetNonce() > highestNonceOwnShIdHdr.GetNonce() {
-				highestNonceOwnShIdHdr = ownHdr
-			}
+		highestHdr := sp.getHighestHdrForShardFromMetachain(sp.shardCoordinator.SelfId(), hdr)
+		if highestHdr.Nonce > highestNonceOwnShIdHdr.Nonce {
+			highestNonceOwnShIdHdr = highestHdr
 		}
 	}
 
 	return highestNonceOwnShIdHdr, nil
+}
+
+func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) *block.Header {
+	highestNonceOwnShIdHdr := &block.Header{}
+	// search for own shard id in shardInfo from metaHeaders
+	for _, shardInfo := range hdr.ShardInfo {
+		if shardInfo.ShardId != shardId {
+			continue
+		}
+
+		ownHdr, err := process.GetShardHeader(shardInfo.HeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
+		if err != nil {
+			continue
+		}
+
+		// save the highest nonce
+		if ownHdr.GetNonce() > highestNonceOwnShIdHdr.GetNonce() {
+			highestNonceOwnShIdHdr = ownHdr
+		}
+	}
+
+	return highestNonceOwnShIdHdr
 }
 
 // getProcessedMetaBlocksFromPool returns all the meta blocks fully processed
