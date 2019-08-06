@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var agarioFile = "agarioV2.hex"
+var agarioFile = "../../agarioV3.hex"
 var stepDelay = time.Second
 
 // TestShouldProcessBlocksInMultiShardArchitectureWithScTxsTopUpAndWithdrawOnlyProposers tests the following scenario:

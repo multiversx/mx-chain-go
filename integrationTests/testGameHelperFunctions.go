@@ -36,23 +36,6 @@ func createTxDeploy(twa *TestWalletAccount, scCode string) *transaction.Transact
 	return tx
 }
 
-func createTxEndGame(twa *TestWalletAccount, round int, scAddress []byte) *transaction.Transaction {
-	tx := &transaction.Transaction{
-		Nonce:    0,
-		RcvAddr:  scAddress,
-		SndAddr:  twa.PkTxSignBytes,
-		Data:     fmt.Sprintf("endGame@%d", round),
-		GasPrice: 0,
-		GasLimit: 1000000000000,
-	}
-	txBuff, _ := TestMarshalizer.Marshal(tx)
-	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
-
-	fmt.Printf("End %s\n", hex.EncodeToString(twa.PkTxSignBytes))
-
-	return tx
-}
-
 func createTxJoinGame(twa *TestWalletAccount, joinGameVal *big.Int, round int, scAddress []byte) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    0,
@@ -83,19 +66,6 @@ func PlayerJoinsGame(
 	fmt.Println("Calling SC.joinGame...")
 	txScCall := createTxJoinGame(player, joinGameVal, round, scAddress)
 	_, _ = txDispatcherNode.SendTransaction(txScCall)
-}
-
-// NodeEndGame creates and sends an end game transaction to the SC
-func NodeEndGame(
-	nodes []*TestProcessorNode,
-	idxNode int,
-	round int,
-	scAddress []byte,
-) {
-
-	fmt.Println("Calling SC.endGame...")
-	txScCall := createTxEndGame(nodes[idxNode].OwnAccount, round, scAddress)
-	_, _ = nodes[idxNode].SendTransaction(txScCall)
 }
 
 func createTxRewardAndSendToWallet(
