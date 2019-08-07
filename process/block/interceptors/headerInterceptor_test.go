@@ -106,6 +106,125 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, hi)
 }
 
+//------- ParseReceivedMessage
+
+func TestHeaderInterceptor_ParseReceivedMessageNilMessageShouldErr(t *testing.T) {
+	t.Parallel()
+
+	headers := &mock.CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
+	storer := &mock.StorerStub{}
+
+	hi, _ := interceptors.NewHeaderInterceptor(
+		&mock.MarshalizerMock{},
+		headers,
+		headersNonces,
+		storer,
+		mock.NewMultiSigner(),
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
+
+	hdr, err := hi.ParseReceivedMessage(nil)
+
+	assert.Nil(t, hdr)
+	assert.Equal(t, process.ErrNilMessage, err)
+}
+
+func TestHeaderInterceptor_ParseReceivedMessageNilDataToProcessShouldErr(t *testing.T) {
+	t.Parallel()
+
+	headers := &mock.CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
+	storer := &mock.StorerStub{}
+
+	hi, _ := interceptors.NewHeaderInterceptor(
+		&mock.MarshalizerMock{},
+		headers,
+		headersNonces,
+		storer,
+		mock.NewMultiSigner(),
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
+
+	msg := &mock.P2PMessageMock{}
+	hdr, err := hi.ParseReceivedMessage(msg)
+
+	assert.Nil(t, hdr)
+	assert.Equal(t, process.ErrNilDataToProcess, err)
+}
+
+func TestHeaderInterceptor_ParseReceivedMessageMarshalizerErrorsAtUnmarshalingShouldErr(t *testing.T) {
+	t.Parallel()
+
+	errMarshalizer := errors.New("marshalizer error")
+
+	headers := &mock.CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
+	storer := &mock.StorerStub{}
+
+	hi, _ := interceptors.NewHeaderInterceptor(
+		&mock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return errMarshalizer
+			},
+		},
+		headers,
+		headersNonces,
+		storer,
+		mock.NewMultiSigner(),
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
+
+	msg := &mock.P2PMessageMock{
+		DataField: make([]byte, 0),
+	}
+	hdr, err := hi.ParseReceivedMessage(msg)
+
+	assert.Nil(t, hdr)
+	assert.Equal(t, errMarshalizer, err)
+}
+
+func TestHeaderInterceptor_ParseReceivedMessageSanityCheckFailedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	storer := &mock.StorerStub{}
+	marshalizer := &mock.MarshalizerMock{}
+	multisigner := mock.NewMultiSigner()
+	headers := &mock.CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
+	chronologyValidator := &mock.ChronologyValidatorStub{
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
+			return nil
+		},
+	}
+	hi, _ := interceptors.NewHeaderInterceptor(
+		marshalizer,
+		headers,
+		headersNonces,
+		storer,
+		multisigner,
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock(),
+		chronologyValidator,
+	)
+
+	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
+	buff, _ := marshalizer.Marshal(hdr)
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+	}
+	hdr, err := hi.ParseReceivedMessage(msg)
+
+	assert.Nil(t, hdr)
+	assert.Equal(t, process.ErrNilPubKeysBitmap, err)
+}
+
 //------- ProcessReceivedMessage
 
 func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
