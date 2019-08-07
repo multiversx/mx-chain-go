@@ -748,7 +748,9 @@ func TestNode_StartHeartbeatDisabledShouldNotCreateObjects(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             false,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Nil(t, err)
 	assert.Nil(t, n.HeartbeatMonitor())
@@ -765,7 +767,9 @@ func TestNode_StartHeartbeatInvalidMinTimeShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, node.ErrNegativeMinTimeToWaitBetweenBroadcastsInSec, err)
 }
@@ -779,7 +783,9 @@ func TestNode_StartHeartbeatInvalidMaxTimeShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: -1,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, node.ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec, err)
 }
@@ -793,7 +799,9 @@ func TestNode_StartHeartbeatInvalidDurationShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 1,
 		DurationInSecToConsiderUnresponsive: -1,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, node.ErrNegativeDurationInSecToConsiderUnresponsive, err)
 }
@@ -807,7 +815,9 @@ func TestNode_StartHeartbeatInvalidMaxTimeMinTimeShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 1,
 		DurationInSecToConsiderUnresponsive: 2,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, node.ErrWrongValues, err)
 }
@@ -821,7 +831,9 @@ func TestNode_StartHeartbeatInvalidMaxTimeDurationShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 2,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, node.ErrWrongValues, err)
 }
@@ -855,7 +867,9 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "marshalizer")
@@ -890,7 +904,9 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "key generator")
@@ -917,7 +933,9 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, node.ErrValidatorAlreadySet, err)
 }
@@ -950,7 +968,9 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, errExpected, err)
 }
@@ -986,7 +1006,9 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, errExpected, err)
 }
@@ -1041,7 +1063,9 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Nil(t, err)
 	time.Sleep(time.Second * 3)
@@ -1093,7 +1117,9 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 	assert.Nil(t, err)
 
 	elements := n.HeartbeatMonitor().GetHeartbeats()
@@ -1148,7 +1174,9 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 	assert.Nil(t, err)
 	assert.NotNil(t, registeredHandler)
 

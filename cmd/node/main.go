@@ -174,6 +174,13 @@ VERSION:
 		Value: "",
 	}
 
+	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools
+	nodeDisplayName = cli.StringFlag{
+		Name:  "display-name",
+		Usage: "This will represent the friendly name inf the public monitoring tools",
+		Value: "undefined",
+	}
+
 	// usePrometheus joins the node for prometheus monitoring if set
 	usePrometheus = cli.BoolFlag{
 		Name:  "use-prometheus",
@@ -263,6 +270,7 @@ func main() {
 		gopsEn,
 		serversConfigurationFile,
 		networkID,
+		nodeDisplayName,
 		restApiPort,
 		logLevel,
 		usePrometheus,
@@ -404,6 +412,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 
 	if ctx.IsSet(networkID.Name) {
 		generalConfig.GeneralSettings.NetworkID = ctx.GlobalString(networkID.Name)
+	}
+
+	if ctx.IsSet(nodeDisplayName.Name) {
+		generalConfig.GeneralSettings.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
 	}
 
 	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
@@ -551,6 +563,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		processComponents,
 		networkComponents,
 		uint64(ctx.GlobalUint(bootstrapRoundIndex.Name)),
+		version,
 	)
 	if err != nil {
 		return err
@@ -810,6 +823,7 @@ func createNode(
 	process *factory.Process,
 	network *factory.Network,
 	bootstrapRoundIndex uint64,
+	version string,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -854,7 +868,7 @@ func createNode(
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	err = nd.StartHeartbeat(config.Heartbeat)
+	err = nd.StartHeartbeat(config.Heartbeat, version, config.GeneralSettings.NodeDisplayName)
 	if err != nil {
 		return nil, err
 	}
