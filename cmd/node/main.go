@@ -180,6 +180,12 @@ VERSION:
 		Usage: "Will make the node available for prometheus and grafana monitoring",
 	}
 
+	//useTermui
+	useTermui = cli.BoolFlag{
+		Name:  "use-termui",
+		Usage: "will change your terminal view with one more user-friendly",
+	}
+
 	// initialBalancesSkPemFile defines a flag for the path to the ...
 	initialBalancesSkPemFile = cli.StringFlag{
 		Name:  "initialBalancesSkPemFile",
@@ -266,6 +272,7 @@ func main() {
 		restApiPort,
 		logLevel,
 		usePrometheus,
+		useTermui,
 		bootstrapRoundIndex,
 		enableTxIndexing,
 		workingDirectory,
@@ -473,6 +480,26 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 			log.Warn("Cannot init AppStatusFacade", err)
 		}
 	}
+	/////////////////////////////////////////////////////////////
+	//useTermuiBool := ctx.GlobalBool(useTermui.Name)
+	useTermuiBool := true
+
+	if useTermuiBool {
+		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
+
+		err = log.ChangePrinterHookWriter(termuiStatusHandler.Termui())
+		if err != nil {
+			log.Warn("Cannot change hook writer ", err)
+		}
+
+		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(
+			termuiStatusHandler)
+
+		if err != nil {
+			log.Warn("Cannot init AppStatusFacade", err)
+		}
+	}
+	////////////////////////////
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
