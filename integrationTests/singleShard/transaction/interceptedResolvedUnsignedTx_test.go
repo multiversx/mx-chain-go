@@ -44,7 +44,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	buffPk1, _ := nRequester.SkTxSign.GeneratePublic().ToByteArray()
+	buffPk1, _ := nRequester.OwnAccount.SkTxSign.GeneratePublic().ToByteArray()
 
 	//Step 1. Generate an unsigned transaction
 	scr := &smartContractResult.SmartContractResult{
