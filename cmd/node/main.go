@@ -174,10 +174,11 @@ VERSION:
 		Value: "",
 	}
 
-	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools
+	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools. If set, will override
+	// the NodeDisplayName from config.toml
 	nodeDisplayName = cli.StringFlag{
 		Name:  "display-name",
-		Usage: "This will represent the friendly name inf the public monitoring tools",
+		Usage: "This will represent the friendly name in the public monitoring tools. Will override the config.toml one",
 		Value: "undefined",
 	}
 
