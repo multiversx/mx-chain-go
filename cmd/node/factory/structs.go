@@ -63,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -97,6 +98,7 @@ type Core struct {
 	Marshalizer              marshal.Marshalizer
 	Trie                     data.Trie
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	StatusHandler            core.AppStatusHandler
 }
 
 // State struct holds the state components of the Elrond protocol
@@ -171,6 +173,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		Marshalizer:              marshalizer,
 		Trie:                     merkleTrie,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
+		StatusHandler:            statusHandler.NewNilStatusHandler(),
 	}, nil
 }
 
@@ -246,7 +249,7 @@ func NewDataComponentsFactoryArgs(config *config.Config, shardCoordinator shardi
 func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 	var datapool dataRetriever.PoolsHolder
 	var metaDatapool dataRetriever.MetaPoolsHolder
-	blkc, err := createBlockChainFromConfig(args.config, args.shardCoordinator)
+	blkc, err := createBlockChainFromConfig(args.config, args.shardCoordinator, args.core.StatusHandler)
 	if err != nil {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
@@ -579,7 +582,7 @@ func getTrie(cfg config.StorageConfig, marshalizer marshal.Marshalizer, hasher h
 	return trie.NewTrie(accountsTrieStorage, marshalizer, hasher)
 }
 
-func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator) (data.ChainHandler, error) {
+func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
 	badBlockCache, err := storageUnit.NewCache(
 		storageUnit.CacheType(config.BadBlocksCache.Type),
 		config.BadBlocksCache.Size,
@@ -597,6 +600,7 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 		if err != nil {
 			return nil, err
 		}
+		_ = blockChain.SetAppStatusHandler(ash)
 		return blockChain, nil
 	}
 	if coordinator.SelfId() == sharding.MetachainShardId {

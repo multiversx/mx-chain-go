@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -36,7 +37,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/pkg/profile"
@@ -463,6 +465,15 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
+	if usePrometheusBool {
+		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
+		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(prometheusStatusHandler)
+		if err != nil {
+			log.Warn("Cannot init AppStatusFacade", err)
+		}
+	}
+
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
@@ -555,17 +566,18 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
+	err = startStatusPolling(currentNode.GetAppStatusHandler(), generalConfig.GeneralSettings.StatusPollingIntervalSec,
+		networkComponents)
 
-	prometheusURLAvailable := true
-	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
-	if err != nil || prometheusJoinUrl == "" {
-		prometheusURLAvailable = false
+	if err != nil {
+		log.Info("Error creating status polling: ", err)
 	}
+
+	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
 
 	efConfig := &config.FacadeConfig{
 		RestApiPort:       ctx.GlobalString(restApiPort.Name),
-		Prometheus:        ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable,
+		Prometheus:        usePrometheusBool,
 		PrometheusJoinURL: prometheusJoinUrl,
 		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
@@ -602,6 +614,43 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func startStatusPolling(ash core.AppStatusHandler, pollingInterval int, networkComponents *factory.Network) error {
+	if ash == nil {
+		return errors.New("nil AppStatusHandler")
+	}
+
+	pollingIntervalDuration := time.Duration(pollingInterval) * time.Second
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingIntervalDuration)
+	if err != nil {
+		return errors.New("cannot init AppStatusPolling")
+	}
+
+	numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
+		numOfConnectedPeers := int64(len(networkComponents.NetMessenger.ConnectedAddresses()))
+		appStatusHandler.SetInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
+	}
+	err = appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
+
+	if err != nil {
+		return errors.New("cannot register handler func for num of connected peers")
+	}
+
+	appStatusPollingHandler.Poll()
+
+	return nil
+}
+
+func getPrometheusJoinURLIfAvailable(ctx *cli.Context) (string, bool) {
+	prometheusURLAvailable := true
+	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
+	if err != nil || prometheusJoinUrl == "" {
+		prometheusURLAvailable = false
+	}
+	usePrometheusBool := ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable
+
+	return prometheusJoinUrl, usePrometheusBool
 }
 
 func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
@@ -799,6 +848,7 @@ func createNode(
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
+		node.WithAppStatusHandler(core.StatusHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
