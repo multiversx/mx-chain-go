@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/process/metablock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -167,7 +166,7 @@ func (icf *interceptorsContainerFactory) generateShardHeaderInterceptors() ([]st
 
 func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identifier string) (process.Interceptor, error) {
 	hdrStorer := icf.store.GetStorer(dataRetriever.BlockHeaderUnit)
-	interceptor, err := metablock.NewShardHeaderInterceptor(
+	interceptor, err := interceptors.NewHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.ShardHeaders(),
 		icf.dataPool.HeadersNonces(),
