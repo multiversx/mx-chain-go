@@ -1,6 +1,7 @@
 package integrationTests
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -13,6 +14,9 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -532,6 +536,16 @@ func isIntInSlice(idx int, slice []int) bool {
 	return false
 }
 
+// Uint32InSlice checks if a uint32 value is in a slice
+func Uint32InSlice(searched uint32, list []uint32) bool {
+	for _, val := range list {
+		if val == searched {
+			return true
+		}
+	}
+	return false
+}
+
 // CheckRootHashes checks the root hash of the proposer in every shard
 func CheckRootHashes(t *testing.T, nodes []*TestProcessorNode, idxProposers []int) {
 	for _, idx := range idxProposers {
@@ -692,16 +706,7 @@ func GenerateAndDisseminateTxs(
 					sndAddr: skToPk(senderKey),
 				},
 			)
-			_, _ = n.Node.SendTransaction(
-				tx.Nonce,
-				hex.EncodeToString(tx.SndAddr),
-				hex.EncodeToString(tx.RcvAddr),
-				tx.Value,
-				0,
-				0,
-				tx.Data,
-				tx.Signature,
-			)
+			_, _ = n.SendTransaction(tx)
 			incrementalNonce++
 		}
 	}
@@ -783,4 +788,103 @@ func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.Priv
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
 	account, _ := n.AccntState.GetExistingAccount(addr)
 	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
+}
+
+// GetMiniBlocksHashesFromShardIds returns miniblock hashes from body
+func GetMiniBlocksHashesFromShardIds(body dataBlock.Body, shardIds ...uint32) [][]byte {
+	hashes := make([][]byte, 0)
+
+	for _, miniblock := range body {
+		for _, shardId := range shardIds {
+			if miniblock.ReceiverShardID == shardId {
+				buff, _ := TestMarshalizer.Marshal(miniblock)
+				hashes = append(hashes, TestHasher.Compute(string(buff)))
+			}
+		}
+	}
+
+	return hashes
+}
+
+// EqualSlices checks if two slices are equal
+func EqualSlices(slice1 [][]byte, slice2 [][]byte) bool {
+	if len(slice1) != len(slice2) {
+		return false
+	}
+
+	//check slice1 has all elements in slice2
+	for _, buff1 := range slice1 {
+		found := false
+		for _, buff2 := range slice2 {
+			if bytes.Equal(buff1, buff2) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+
+	//check slice2 has all elements in slice1
+	for _, buff2 := range slice2 {
+		found := false
+		for _, buff1 := range slice1 {
+			if bytes.Equal(buff1, buff2) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+// GeneratePrivateKeyInShardId generates a private key that is in a given shard
+func GeneratePrivateKeyInShardId(
+	coordinator sharding.Coordinator,
+	shardId uint32,
+) crypto.PrivateKey {
+
+	suite := kyber.NewBlakeSHA256Ed25519()
+	keyGen := signing.NewKeyGenerator(suite)
+	sk, pk := keyGen.GeneratePair()
+
+	for {
+		buff, _ := pk.ToByteArray()
+		addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(buff)
+
+		if coordinator.ComputeId(addr) == shardId {
+			return sk
+		}
+
+		sk, pk = keyGen.GeneratePair()
+	}
+}
+
+// CreateMintingForSenders creates account with balances for every node in a given shard
+func CreateMintingForSenders(
+	nodes []*TestProcessorNode,
+	senderShard uint32,
+	sendersPrivateKeys []crypto.PrivateKey,
+	value *big.Int,
+) {
+
+	for _, n := range nodes {
+		//only sender shard nodes will be minted
+		if n.ShardCoordinator.SelfId() != senderShard {
+			continue
+		}
+
+		for _, sk := range sendersPrivateKeys {
+			pkBuff, _ := sk.GeneratePublic().ToByteArray()
+			adr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
+			account, _ := n.AccntState.GetAccountWithJournal(adr)
+			_ = account.(*state.Account).SetBalanceWithJournal(value)
+		}
+
+		_, _ = n.AccntState.Commit()
+	}
 }

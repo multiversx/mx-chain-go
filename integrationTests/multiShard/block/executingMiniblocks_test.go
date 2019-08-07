@@ -29,13 +29,13 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	valMinting := big.NewInt(100)
 	valToTransferPerTx := big.NewInt(2)
 
-	advertiser := createMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
-		getConnectableAddress(advertiser),
+		integrationTests.GetConnectableAddress(advertiser),
 	)
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -60,14 +60,14 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	sendersPrivateKeys := make([]crypto.PrivateKey, 3)
 	receiversPrivateKeys := make(map[uint32][]crypto.PrivateKey)
 	for i := 0; i < txToGenerateInEachMiniBlock; i++ {
-		sendersPrivateKeys[i] = generatePrivateKeyInShardId(generateCoordinator, senderShard)
+		sendersPrivateKeys[i] = integrationTests.GeneratePrivateKeyInShardId(generateCoordinator, senderShard)
 
 		//receivers in same shard with the sender
-		sk := generatePrivateKeyInShardId(generateCoordinator, senderShard)
+		sk := integrationTests.GeneratePrivateKeyInShardId(generateCoordinator, senderShard)
 		receiversPrivateKeys[senderShard] = append(receiversPrivateKeys[senderShard], sk)
 		//receivers in other shards
 		for _, shardId := range recvShards {
-			sk = generatePrivateKeyInShardId(generateCoordinator, shardId)
+			sk = integrationTests.GeneratePrivateKeyInShardId(generateCoordinator, shardId)
 			receiversPrivateKeys[shardId] = append(receiversPrivateKeys[shardId], sk)
 		}
 	}
@@ -78,7 +78,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	time.Sleep(time.Second * 5)
 
 	fmt.Println("Step 4. Minting sender addresses...")
-	createMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
+	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
 
 	fmt.Println("Step 5. Proposer creates block body and header with all available transactions...")
 	blockBody, blockHeader := integrationTests.CreateBlockBodyAndHeader(t, proposerNode, uint64(1), proposerNode.ShardCoordinator)
@@ -364,5 +364,4 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 			integrationTests.TestPrivateKeyHasBalance(t, n, sk, valToTransferPerTx)
 		}
 	}
-
 }

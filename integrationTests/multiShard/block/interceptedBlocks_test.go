@@ -33,13 +33,13 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	senderShard := uint32(0)
 	recvShards := []uint32{1, 2}
 
-	advertiser := createMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
-		getConnectableAddress(advertiser),
+		integrationTests.GetConnectableAddress(advertiser),
 	)
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -66,7 +66,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 
 	for _, n := range nodes {
 		isSenderShard := n.ShardCoordinator.SelfId() == senderShard
-		isRecvShard := uint32InSlice(n.ShardCoordinator.SelfId(), recvShards)
+		isRecvShard := integrationTests.Uint32InSlice(n.ShardCoordinator.SelfId(), recvShards)
 		isRecvMetachain := n.ShardCoordinator.SelfId() == sharding.MetachainShardId
 
 		assert.Equal(t, int32(0), atomic.LoadInt32(&n.CounterMetaRcv))
@@ -77,15 +77,15 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 			shards := []uint32{senderShard}
 			shards = append(shards, recvShards...)
 
-			expectedMiniblocks := getMiniBlocksHashesFromShardIds(body.(block.Body), shards...)
+			expectedMiniblocks := integrationTests.GetMiniBlocksHashesFromShardIds(body.(block.Body), shards...)
 
-			assert.True(t, equalSlices(expectedMiniblocks, n.MiniBlocksHashes))
+			assert.True(t, integrationTests.EqualSlices(expectedMiniblocks, n.MiniBlocksHashes))
 		}
 
 		if isRecvShard && !isSenderShard {
 			assert.Equal(t, int32(0), atomic.LoadInt32(&n.CounterHdrRecv))
-			expectedMiniblocks := getMiniBlocksHashesFromShardIds(body.(block.Body), n.ShardCoordinator.SelfId())
-			assert.True(t, equalSlices(expectedMiniblocks, n.MiniBlocksHashes))
+			expectedMiniblocks := integrationTests.GetMiniBlocksHashesFromShardIds(body.(block.Body), n.ShardCoordinator.SelfId())
+			assert.True(t, integrationTests.EqualSlices(expectedMiniblocks, n.MiniBlocksHashes))
 		}
 
 		if !isSenderShard && !isRecvShard && !isRecvMetachain {
@@ -120,7 +120,7 @@ func generateHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyH
 			SenderShardID:   senderShard,
 			ReceiverShardID: senderShard,
 			TxHashes: [][]byte{
-				testHasher.Compute("tx1"),
+				integrationTests.TestHasher.Compute("tx1"),
 			},
 		},
 	}
@@ -132,7 +132,7 @@ func generateHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyH
 				SenderShardID:   senderShard,
 				ReceiverShardID: recvShard,
 				TxHashes: [][]byte{
-					testHasher.Compute(fmt.Sprintf("tx%d", i)),
+					integrationTests.TestHasher.Compute(fmt.Sprintf("tx%d", i)),
 				},
 			},
 		)
