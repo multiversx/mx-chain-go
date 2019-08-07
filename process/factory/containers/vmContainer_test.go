@@ -1,13 +1,12 @@
 package containers_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -217,13 +216,13 @@ func TestVirtualMachineContainer_LenShouldWork(t *testing.T) {
 
 	keys = c.Keys()
 	assert.Equal(t, 2, len(keys))
-	assert.Contains(t, keys, block.TxBlock)
-	assert.Contains(t, keys, block.PeerBlock)
+	assert.Contains(t, keys, []byte("0001"))
+	assert.Contains(t, keys, []byte("0002"))
 
 	c.Remove([]byte("0002"))
 	assert.Equal(t, 1, c.Len())
 
 	keys = c.Keys()
 	assert.Equal(t, 1, len(keys))
-	assert.Equal(t, block.TxBlock, keys[0])
+	assert.Equal(t, []byte("0001"), keys[0])
 }
