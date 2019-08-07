@@ -382,8 +382,12 @@ func (sc *scProcessor) processVMOutput(
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		log.Info(fmt.Sprintf(
-			"error processing tx %s in VM: return code: %s",
+			"error processing tx %s from %s to %s with the value of %s and data of %s in VM: return code: %s ",
 			hex.EncodeToString(txHash),
+			hex.EncodeToString(tx.SndAddr),
+			hex.EncodeToString(tx.RcvAddr),
+			tx.Value.String(),
+			tx.Data,
 			vmOutput.ReturnCode),
 		)
 	}
@@ -529,6 +533,9 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			return nil, err
 		}
 
+		//TODO remove this when receipts are implemented
+		log.Info(fmt.Sprintf("*** Updated account after SC call %s with value %s ***", hex.EncodeToString(outAcc.Address), outAcc.Balance.String()))
+
 		fakeAcc := sc.tempAccounts.TempAccount(outAcc.Address)
 
 		if acc == nil || acc.IsInterfaceNil() {
@@ -554,9 +561,6 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			if err != nil {
 				return nil, err
 			}
-
-			//TODO remove this when receipts are implemented
-			log.Info(fmt.Sprintf("*** Generated/called SC account: %s ***", hex.EncodeToString(outAcc.Address)))
 		}
 
 		if outAcc.Nonce == nil || outAcc.Nonce.Cmp(big.NewInt(int64(acc.GetNonce()))) < 0 {
