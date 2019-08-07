@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var agarioFile = "agarioV2.hex"
+var agarioFile = "../../agarioV3.hex"
 
 func TestDeployAgarioContract(t *testing.T) {
 	scCode, err := ioutil.ReadFile(agarioFile)
