@@ -49,4 +49,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	vm, err := container.Get([]byte(factory.IELEVirtualMachine))
 	assert.Nil(t, err)
 	assert.NotNil(t, vm)
+
+	acc := vmf.VMAccountsDB()
+	assert.NotNil(t, acc)
 }

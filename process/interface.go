@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"math/big"
 	"time"
 
@@ -208,7 +209,7 @@ type IntermediateProcessorsContainerFactory interface {
 type VirtualMachineContainer interface {
 	Get(key []byte) (vmcommon.VMExecutionHandler, error)
 	Add(key []byte, val vmcommon.VMExecutionHandler) error
-	AddMultiple(keys [][]byte, preprocessors []vmcommon.VMExecutionHandler) error
+	AddMultiple(keys [][]byte, vms []vmcommon.VMExecutionHandler) error
 	Replace(key []byte, val vmcommon.VMExecutionHandler) error
 	Remove(key []byte)
 	Len() int
@@ -218,6 +219,7 @@ type VirtualMachineContainer interface {
 // VirtualMachineContainerFactory defines the functionality to create a virtual machine container
 type VirtualMachineContainerFactory interface {
 	Create() (VirtualMachineContainer, error)
+	VMAccountsDB() *hooks.VMAccountsDB
 }
 
 // Interceptor defines what a data interceptor should do

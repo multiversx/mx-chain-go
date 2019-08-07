@@ -13,6 +13,8 @@ import (
 type vmContainerFactory struct {
 	accounts         state.AccountsAdapter
 	addressConverter state.AddressConverter
+	vmAccountsDB     *hooks.VMAccountsDB
+	cryptoHook       vmcommon.CryptoHook
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -27,9 +29,17 @@ func NewVMContainerFactory(
 		return nil, process.ErrNilAddressConverter
 	}
 
+	vmAccountsDB, err := hooks.NewVMAccountsDB(accounts, addressConverter)
+	if err != nil {
+		return nil, err
+	}
+	cryptoHook := hooks.NewVMCryptoHook()
+
 	return &vmContainerFactory{
 		accounts:         accounts,
 		addressConverter: addressConverter,
+		vmAccountsDB:     vmAccountsDB,
+		cryptoHook:       cryptoHook,
 	}, nil
 }
 
@@ -37,14 +47,7 @@ func NewVMContainerFactory(
 func (vmf *vmContainerFactory) Create() (process.VirtualMachineContainer, error) {
 	container := containers.NewVirtualMachineContainer()
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(vmf.accounts, vmf.addressConverter)
-	if err != nil {
-		return nil, err
-	}
-
-	cryptoHook := hooks.NewVMCryptoHook()
-
-	vm, err := vmf.createIeleVM(vmAccountsDB, cryptoHook)
+	vm, err := vmf.createIeleVM()
 	if err != nil {
 		return nil, err
 	}
@@ -57,11 +60,12 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachineContainer, error)
 	return container, nil
 }
 
-func (vmf *vmContainerFactory) createIeleVM(
-	blockChainHook vmcommon.BlockchainHook,
-	crypto vmcommon.CryptoHook,
-) (vmcommon.VMExecutionHandler, error) {
+func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
 
-	ieleVM := endpoint.NewElrondIeleVM(blockChainHook, crypto, endpoint.ElrondTestnet)
+	ieleVM := endpoint.NewElrondIeleVM(vmf.vmAccountsDB, vmf.cryptoHook, endpoint.ElrondTestnet)
 	return ieleVM, nil
+}
+
+func (vmf *vmContainerFactory) VMAccountsDB() *hooks.VMAccountsDB {
+	return vmf.vmAccountsDB
 }
