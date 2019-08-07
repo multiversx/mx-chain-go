@@ -140,6 +140,11 @@ type Notifier interface {
 	RegisterHandler(func(key []byte))
 }
 
+// PeersListCreator is used to create peers list based on some criteria
+type PeersListCreator interface {
+	PeersList() []p2p.PeerID
+}
+
 // ShardedDataCacherNotifier defines what a sharded-data structure can perform
 type ShardedDataCacherNotifier interface {
 	Notifier
