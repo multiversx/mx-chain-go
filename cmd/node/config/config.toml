@@ -11,7 +11,7 @@
    StatusPollingIntervalSec = 10
 
    # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor
-   NodeDisplayName = "undefined"
+   NodeDisplayName = ""
 
 [Explorer]
     Enabled = false

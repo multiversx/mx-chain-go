@@ -179,7 +179,7 @@ VERSION:
 	nodeDisplayName = cli.StringFlag{
 		Name:  "display-name",
 		Usage: "This will represent the friendly name in the public monitoring tools. Will override the config.toml one",
-		Value: "undefined",
+		Value: "",
 	}
 
 	// usePrometheus joins the node for prometheus monitoring if set
