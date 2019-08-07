@@ -45,7 +45,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	buffPk1, _ := nRequester.SkTxSign.GeneratePublic().ToByteArray()
+	buffPk1, _ := nRequester.OwnAccount.SkTxSign.GeneratePublic().ToByteArray()
 
 	//Step 1. Generate a signed transaction
 	tx := transaction.Transaction{
@@ -58,7 +58,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
-	tx.Signature, _ = signer.Sign(nRequester.SkTxSign, txBuff)
+	tx.Signature, _ = signer.Sign(nRequester.OwnAccount.SkTxSign, txBuff)
 	signedTxBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
 
 	fmt.Printf("Transaction: %v\n%v\n", tx, string(signedTxBuff))
