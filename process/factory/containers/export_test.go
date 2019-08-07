@@ -13,3 +13,7 @@ func (ppc *PreProcessorsContainer) Insert(key block.Type, value interface{}) boo
 func (ppc *IntermediateTransactionHandlersContainer) Insert(key block.Type, value interface{}) bool {
 	return ppc.objects.Insert(uint8(key), value)
 }
+
+func (vmc *VirtualMachineContainer) Insert(key []byte, value interface{}) bool {
+	return vmc.objects.Insert(key, value)
+}

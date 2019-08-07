@@ -204,6 +204,22 @@ type IntermediateProcessorsContainerFactory interface {
 	Create() (IntermediateProcessorContainer, error)
 }
 
+// VirtualMachineContainer defines a virtual machine holder data type with basic functionality
+type VirtualMachineContainer interface {
+	Get(key []byte) (vmcommon.VMExecutionHandler, error)
+	Add(key []byte, val vmcommon.VMExecutionHandler) error
+	AddMultiple(keys [][]byte, preprocessors []vmcommon.VMExecutionHandler) error
+	Replace(key []byte, val vmcommon.VMExecutionHandler) error
+	Remove(key []byte)
+	Len() int
+	Keys() [][]byte
+}
+
+// VirtualMachineContainerFactory defines the functionality to create a virtual machine container
+type VirtualMachineContainerFactory interface {
+	Create() (VirtualMachineContainer, error)
+}
+
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {

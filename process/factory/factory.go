@@ -16,3 +16,8 @@ const (
 	// ShardHeadersForMetachainTopic is used for sharing shards block headers to the metachain nodes
 	ShardHeadersForMetachainTopic = "shardHeadersForMetachain"
 )
+
+const (
+	// IELEVirtualMachine is the VM for IELE with k Framework and GO backend
+	IELEVirtualMachine = "0001"
+)
