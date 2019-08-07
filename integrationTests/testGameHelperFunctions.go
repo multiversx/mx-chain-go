@@ -7,51 +7,26 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/stretchr/testify/assert"
 )
 
 // DeployScTx creates and sends a SC tx
 func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 	fmt.Println("Deploying SC...")
-	txDeploy := createTxDeploy(nodes[senderIdx].OwnAccount, scCode)
+	txDeploy := generateTx(
+		nodes[senderIdx].OwnAccount.SkTxSign,
+		nodes[senderIdx].OwnAccount.SingleSigner,
+		&txArgs{
+			value:    big.NewInt(0),
+			rcvAddr:  make([]byte, 32),
+			sndAddr:  nodes[senderIdx].OwnAccount.PkTxSignBytes,
+			data:     scCode,
+			gasLimit: 1000000000000,
+		})
 	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
+	fmt.Println("Delaying for disseminating the deploy tx...")
 
 	fmt.Println(MakeDisplayTable(nodes))
-}
-
-func createTxDeploy(twa *TestWalletAccount, scCode string) *transaction.Transaction {
-	tx := &transaction.Transaction{
-		Nonce:    0,
-		Value:    big.NewInt(0),
-		RcvAddr:  make([]byte, 32),
-		SndAddr:  twa.PkTxSignBytes,
-		Data:     scCode,
-		GasPrice: 0,
-		GasLimit: 1000000000000,
-	}
-	txBuff, _ := TestMarshalizer.Marshal(tx)
-	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
-
-	return tx
-}
-
-func createTxJoinGame(twa *TestWalletAccount, joinGameVal *big.Int, round int, scAddress []byte) *transaction.Transaction {
-	tx := &transaction.Transaction{
-		Nonce:    0,
-		Value:    joinGameVal,
-		RcvAddr:  scAddress,
-		SndAddr:  twa.Address.Bytes(),
-		Data:     fmt.Sprintf("joinGame@%d", round),
-		GasPrice: 0,
-		GasLimit: 1000000000000,
-	}
-	txBuff, _ := TestMarshalizer.Marshal(tx)
-	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
-
-	fmt.Printf("Join %s\n", hex.EncodeToString(twa.Address.Bytes()))
-
-	return tx
 }
 
 // PlayerJoinsGame creates and sends a join game transaction to the SC
@@ -64,32 +39,18 @@ func PlayerJoinsGame(
 ) {
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address.Bytes())
 	fmt.Println("Calling SC.joinGame...")
-	txScCall := createTxJoinGame(player, joinGameVal, round, scAddress)
+	txScCall := generateTx(
+		player.SkTxSign,
+		player.SingleSigner,
+		&txArgs{
+			value:    joinGameVal,
+			rcvAddr:  scAddress,
+			sndAddr:  player.Address.Bytes(),
+			data:     fmt.Sprintf("joinGame@%d", round),
+			gasLimit: 1000000000000,
+		})
+	fmt.Printf("Join %s\n", hex.EncodeToString(player.Address.Bytes()))
 	_, _ = txDispatcherNode.SendTransaction(txScCall)
-}
-
-func createTxRewardAndSendToWallet(
-	tnOwner *TestWalletAccount,
-	winnerAddress []byte,
-	prizeVal *big.Int,
-	round int,
-	scAddress []byte,
-) *transaction.Transaction {
-	tx := &transaction.Transaction{
-		Nonce:    0,
-		Value:    big.NewInt(0),
-		RcvAddr:  scAddress,
-		SndAddr:  tnOwner.PkTxSignBytes,
-		Data:     fmt.Sprintf("rewardAndSendToWallet@%d@%s@%X", round, hex.EncodeToString(winnerAddress), prizeVal),
-		GasPrice: 0,
-		GasLimit: 100000,
-	}
-	txBuff, _ := TestMarshalizer.Marshal(tx)
-	tx.Signature, _ = tnOwner.SingleSigner.Sign(tnOwner.SkTxSign, txBuff)
-
-	fmt.Printf("Reward %s\n", hex.EncodeToString(winnerAddress))
-
-	return tx
 }
 
 // NodeCallsRewardAndSend - smart contract owner sends reward transaction
@@ -103,7 +64,17 @@ func NodeCallsRewardAndSend(
 ) {
 
 	fmt.Println("Calling SC.rewardAndSendToWallet...")
-	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner].OwnAccount, winnerAddress, prize, round, scAddress)
+	txScCall := generateTx(
+		nodes[idxNodeOwner].OwnAccount.SkTxSign,
+		nodes[idxNodeOwner].OwnAccount.SingleSigner,
+		&txArgs{
+			value:    big.NewInt(0),
+			rcvAddr:  scAddress,
+			sndAddr:  nodes[idxNodeOwner].OwnAccount.PkTxSignBytes,
+			data:     fmt.Sprintf("rewardAndSendToWallet@%d@%s@%X", round, hex.EncodeToString(winnerAddress), prize),
+			gasLimit: 100000,
+		})
+	fmt.Printf("Reward %s\n", hex.EncodeToString(winnerAddress))
 	_, _ = nodes[idxNodeOwner].SendTransaction(txScCall)
 }
 
@@ -123,7 +94,7 @@ func getNodeWithinSameShardAsPlayer(
 	return nodeWithCaller
 }
 
-// CheckPlayerBalanceTheSameWithBlockchain verifies if player blaance is the same as in the blockchain
+// CheckPlayerBalanceTheSameWithBlockchain verifies if player balance is the same as in the blockchain
 func CheckPlayerBalanceTheSameWithBlockchain(
 	t *testing.T,
 	nodes []*TestProcessorNode,

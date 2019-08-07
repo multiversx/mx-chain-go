@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -621,4 +622,165 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 
 	buff, _ := hex.DecodeString(txHandler.GetData())
 	return binary.BigEndian.Uint64(buff)
+}
+
+// CreateNodes creates multiple nodes in different shards
+func CreateNodes(
+	numOfShards int,
+	nodesPerShard int,
+	serviceID string,
+) []*TestProcessorNode {
+	//first node generated will have is pk belonging to firstSkShardId
+	numMetaChainNodes := 1
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+
+	idx := 0
+	for shardId := 0; shardId < numOfShards; shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			node := NewTestProcessorNode(uint32(numOfShards), uint32(shardId), uint32(shardId), serviceID)
+
+			nodes[idx] = node
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		metaNode := NewTestProcessorNode(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID)
+		idx := i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+	}
+
+	return nodes
+}
+
+// DisplayAndStartNodes prints each nodes shard ID, sk and pk, and then starts the node
+func DisplayAndStartNodes(nodes []*TestProcessorNode) {
+	for _, n := range nodes {
+		skBuff, _ := n.OwnAccount.SkTxSign.ToByteArray()
+		pkBuff, _ := n.OwnAccount.PkTxSign.ToByteArray()
+
+		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
+			n.ShardCoordinator.SelfId(),
+			hex.EncodeToString(skBuff),
+			hex.EncodeToString(pkBuff),
+		)
+		_ = n.Node.Start()
+		_ = n.Node.P2PBootstrap()
+	}
+}
+
+// GenerateAndDisseminateTxs generates and sends multiple txs
+func GenerateAndDisseminateTxs(
+	n *TestProcessorNode,
+	senders []crypto.PrivateKey,
+	receiversPrivateKeys map[uint32][]crypto.PrivateKey,
+	valToTransfer *big.Int,
+) {
+
+	for i := 0; i < len(senders); i++ {
+		senderKey := senders[i]
+		incrementalNonce := 0
+		for _, recvPrivateKeys := range receiversPrivateKeys {
+			receiverKey := recvPrivateKeys[i]
+			tx := generateTx(
+				senderKey,
+				n.OwnAccount.SingleSigner,
+				&txArgs{
+					nonce:   incrementalNonce,
+					value:   valToTransfer,
+					rcvAddr: skToPk(receiverKey),
+					sndAddr: skToPk(senderKey),
+				},
+			)
+			_, _ = n.Node.SendTransaction(
+				tx.Nonce,
+				hex.EncodeToString(tx.SndAddr),
+				hex.EncodeToString(tx.RcvAddr),
+				tx.Value,
+				0,
+				0,
+				tx.Data,
+				tx.Signature,
+			)
+			incrementalNonce++
+		}
+	}
+}
+
+type txArgs struct {
+	nonce    int
+	value    *big.Int
+	rcvAddr  []byte
+	sndAddr  []byte
+	data     string
+	gasPrice int
+	gasLimit int
+}
+
+func generateTx(
+	skSign crypto.PrivateKey,
+	signer crypto.SingleSigner,
+	args *txArgs,
+) *transaction.Transaction {
+	tx := &transaction.Transaction{
+		Nonce:    uint64(args.nonce),
+		Value:    args.value,
+		RcvAddr:  args.rcvAddr,
+		SndAddr:  args.sndAddr,
+		GasPrice: uint64(args.gasPrice),
+		GasLimit: uint64(args.gasLimit),
+		Data:     args.data,
+	}
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = signer.Sign(skSign, txBuff)
+
+	return tx
+}
+
+func skToPk(sk crypto.PrivateKey) []byte {
+	pkBuff, _ := sk.GeneratePublic().ToByteArray()
+	return pkBuff
+}
+
+// CreateBlockBodyAndHeader creates and returns the block body and header
+func CreateBlockBodyAndHeader(t *testing.T, proposer *TestProcessorNode, round uint64, coordinator sharding.Coordinator) (data.BodyHandler, data.HeaderHandler) {
+	haveTime := func() bool { return true }
+	var err error
+	var blockHeader data.HeaderHandler
+	var blockBody data.BodyHandler
+
+	if coordinator.SelfId() == sharding.MetachainShardId {
+		blockHeader, err = proposer.BlockProcessor.CreateBlockHeader(nil, round, haveTime)
+		assert.Nil(t, err)
+	} else {
+		blockBody, err = proposer.BlockProcessor.CreateBlockBody(round, haveTime)
+		assert.Nil(t, err)
+
+		blockHeader, err = proposer.BlockProcessor.CreateBlockHeader(blockBody, round, haveTime)
+		assert.Nil(t, err)
+	}
+
+	blockHeader.SetRound(round)
+	blockHeader.SetNonce(round)
+	blockHeader.SetPubKeysBitmap(make([]byte, 0))
+	sig, _ := TestMultiSig.AggregateSigs(nil)
+	blockHeader.SetSignature(sig)
+	currHdr := proposer.BlockChain.GetCurrentBlockHeader()
+	if currHdr == nil {
+		currHdr = proposer.BlockChain.GetGenesisHeader()
+	}
+	buff, _ := TestMarshalizer.Marshal(currHdr)
+	blockHeader.SetPrevHash(TestHasher.Compute(string(buff)))
+	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
+	blockHeader.SetRandSeed(sig)
+
+	return blockBody, blockHeader
+}
+
+// TestPrivateKeyHasBalance checks if the private key has the expected balance
+func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.PrivateKey, expectedBalance *big.Int) {
+	pkBuff, _ := sk.GeneratePublic().ToByteArray()
+	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
+	account, _ := n.AccntState.GetExistingAccount(addr)
+	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
 }
