@@ -17,10 +17,10 @@ func FisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) (
 	return fisherYatesShuffle(indexes, randomizer)
 }
 
-func (dplc *DiffPeersListCreator) MainTopic() string {
+func (dplc *DiffPeerListCreator) MainTopic() string {
 	return dplc.mainTopic
 }
 
-func (dplc *DiffPeersListCreator) ExcludedPeersOnTopic() string {
+func (dplc *DiffPeerListCreator) ExcludedPeersOnTopic() string {
 	return dplc.excludePeersFromTopic
 }

@@ -20,7 +20,7 @@ func TestNewTopicResolverSender_NilMessengerShouldErr(t *testing.T) {
 	trs, err := topicResolverSender.NewTopicResolverSender(
 		nil,
 		"topic",
-		&mock.PeersListCreatorStub{},
+		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
 		0,
@@ -43,7 +43,7 @@ func TestNewTopicResolverSender_NilPeersListCreatorShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, trs)
-	assert.Equal(t, dataRetriever.ErrNilPeersListCreator, err)
+	assert.Equal(t, dataRetriever.ErrNilPeerListCreator, err)
 }
 
 func TestNewTopicResolverSender_NilMarshalizerShouldErr(t *testing.T) {
@@ -52,7 +52,7 @@ func TestNewTopicResolverSender_NilMarshalizerShouldErr(t *testing.T) {
 	trs, err := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{},
 		"topic",
-		&mock.PeersListCreatorStub{},
+		&mock.PeerListCreatorStub{},
 		nil,
 		&mock.IntRandomizerMock{},
 		0,
@@ -68,7 +68,7 @@ func TestNewTopicResolverSender_NilRandomizerShouldErr(t *testing.T) {
 	trs, err := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{},
 		"topic",
-		&mock.PeersListCreatorStub{},
+		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerMock{},
 		nil,
 		0,
@@ -84,7 +84,7 @@ func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
 	trs, err := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{},
 		"topic",
-		&mock.PeersListCreatorStub{},
+		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
 		0,
@@ -104,7 +104,7 @@ func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *test
 	trs, _ := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{},
 		"topic",
-		&mock.PeersListCreatorStub{},
+		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
 				return nil, errExpected
@@ -125,8 +125,8 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 	trs, _ := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{},
 		"topic",
-		&mock.PeersListCreatorStub{
-			PeersListCalled: func() []p2p.PeerID {
+		&mock.PeerListCreatorStub{
+			PeerListCalled: func() []p2p.PeerID {
 				return make([]p2p.PeerID, 0)
 			},
 		},
@@ -157,8 +157,8 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 			},
 		},
 		"topic",
-		&mock.PeersListCreatorStub{
-			PeersListCalled: func() []p2p.PeerID {
+		&mock.PeerListCreatorStub{
+			PeerListCalled: func() []p2p.PeerID {
 				return []p2p.PeerID{pID1}
 			},
 		},
@@ -194,7 +194,7 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 			},
 		},
 		"topic",
-		&mock.PeersListCreatorStub{},
+		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
 		0,

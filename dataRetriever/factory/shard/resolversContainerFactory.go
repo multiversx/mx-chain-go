@@ -198,7 +198,7 @@ func (rcf *resolversContainerFactory) createTxResolver(
 
 	txStorer := rcf.store.GetStorer(unit)
 
-	peerListCreator, err := topicResolverSender.NewDiffPeersListCreator(rcf.messenger, topic, excludedTopic)
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +243,7 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 	//only one intrashard header topic
 	identifierHdr := factory.HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	peerListCreator, err := topicResolverSender.NewDiffPeersListCreator(rcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -326,7 +326,7 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 func (rcf *resolversContainerFactory) createMiniBlocksResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
 	miniBlocksStorer := rcf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
-	peerListCreator, err := topicResolverSender.NewDiffPeersListCreator(rcf.messenger, topic, excludedTopic)
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -369,7 +369,7 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolver() ([]strin
 	identifierPeerCh := factory.PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 	peerBlockBodyStorer := rcf.store.GetStorer(dataRetriever.PeerChangesUnit)
 
-	peerListCreator, err := topicResolverSender.NewDiffPeersListCreator(rcf.messenger, identifierPeerCh, emptyExcludePeersOnTopic)
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, identifierPeerCh, emptyExcludePeersOnTopic)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -415,7 +415,7 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 	//only one metachain header topic
 	//example: shardHeadersForMetachain_0_META
 	identifierHdr := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
-	peerListCreator, err := topicResolverSender.NewDiffPeersListCreator(rcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -473,7 +473,7 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 	metaAndCrtShardTopic := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	peerListCreator, err := topicResolverSender.NewDiffPeersListCreator(rcf.messenger, metaAndCrtShardTopic, excludedPeersOnTopic)
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, metaAndCrtShardTopic, excludedPeersOnTopic)
 	if err != nil {
 		return nil, nil, err
 	}

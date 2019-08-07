@@ -185,5 +185,5 @@ var ErrEmptyHeaderRequestTopic = errors.New("empty header request topic")
 // ErrInvalidMaxTxRequest signals that max tx request is too small
 var ErrInvalidMaxTxRequest = errors.New("max tx request number is invalid")
 
-// ErrNilPeersListCreator signals that a nil peers list creator implementation has been provided
-var ErrNilPeersListCreator = errors.New("nil peers list creator provided")
+// ErrNilPeerListCreator signals that a nil peer list creator implementation has been provided
+var ErrNilPeerListCreator = errors.New("nil peer list creator provided")

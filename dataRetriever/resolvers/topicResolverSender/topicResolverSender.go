@@ -13,19 +13,19 @@ const topicRequestSuffix = "_REQUEST"
 const NumPeersToQuery = 2
 
 type topicResolverSender struct {
-	messenger        dataRetriever.MessageHandler
-	marshalizer      marshal.Marshalizer
-	topicName        string
-	peersListCreator dataRetriever.PeersListCreator
-	randomizer       dataRetriever.IntRandomizer
-	targetShardId    uint32
+	messenger       dataRetriever.MessageHandler
+	marshalizer     marshal.Marshalizer
+	topicName       string
+	peerListCreator dataRetriever.PeerListCreator
+	randomizer      dataRetriever.IntRandomizer
+	targetShardId   uint32
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
 func NewTopicResolverSender(
 	messenger dataRetriever.MessageHandler,
 	topicName string,
-	peersListCreator dataRetriever.PeersListCreator,
+	peerListCreator dataRetriever.PeerListCreator,
 	marshalizer marshal.Marshalizer,
 	randomizer dataRetriever.IntRandomizer,
 	targetShardId uint32,
@@ -40,17 +40,17 @@ func NewTopicResolverSender(
 	if randomizer == nil {
 		return nil, dataRetriever.ErrNilRandomizer
 	}
-	if peersListCreator == nil {
-		return nil, dataRetriever.ErrNilPeersListCreator
+	if peerListCreator == nil {
+		return nil, dataRetriever.ErrNilPeerListCreator
 	}
 
 	resolver := &topicResolverSender{
-		messenger:        messenger,
-		topicName:        topicName,
-		peersListCreator: peersListCreator,
-		marshalizer:      marshalizer,
-		randomizer:       randomizer,
-		targetShardId:    targetShardId,
+		messenger:       messenger,
+		topicName:       topicName,
+		peerListCreator: peerListCreator,
+		marshalizer:     marshalizer,
+		randomizer:      randomizer,
+		targetShardId:   targetShardId,
 	}
 
 	return resolver, nil
@@ -64,7 +64,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 		return err
 	}
 
-	peerList := trs.peersListCreator.PeersList()
+	peerList := trs.peerListCreator.PeerList()
 	if len(peerList) == 0 {
 		return dataRetriever.ErrNoConnectedPeerToSendRequest
 	}

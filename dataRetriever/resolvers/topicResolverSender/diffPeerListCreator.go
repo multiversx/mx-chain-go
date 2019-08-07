@@ -7,33 +7,33 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-// DiffPeersListCreator can create a peers list by making the set difference between peers on
+// DiffPeerListCreator can create a peer list by making the set difference between peers on
 // main topic and the exclusion topic. If the resulting list is empty, will return the peers on the main topic.
-type DiffPeersListCreator struct {
+type DiffPeerListCreator struct {
 	messenger             dataRetriever.MessageHandler
 	mainTopic             string
 	excludePeersFromTopic string
 }
 
-// NewDiffPeersListCreator is the constructor for DiffPeersListCreator
-func NewDiffPeersListCreator(
+// NewDiffPeerListCreator is the constructor for DiffPeerListCreator
+func NewDiffPeerListCreator(
 	messenger dataRetriever.MessageHandler,
 	mainTopic string,
 	excludePeersFromTopic string,
-) (*DiffPeersListCreator, error) {
+) (*DiffPeerListCreator, error) {
 	if messenger == nil {
 		return nil, dataRetriever.ErrNilMessenger
 	}
 
-	return &DiffPeersListCreator{
+	return &DiffPeerListCreator{
 		messenger:             messenger,
 		mainTopic:             mainTopic,
 		excludePeersFromTopic: excludePeersFromTopic,
 	}, nil
 }
 
-// PeersList will return the list of peers
-func (dplc *DiffPeersListCreator) PeersList() []p2p.PeerID {
+// PeerList will return the generated list of peers
+func (dplc *DiffPeerListCreator) PeerList() []p2p.PeerID {
 	allConnectedPeers := dplc.messenger.ConnectedPeersOnTopic(dplc.mainTopic)
 	mainTopicHasPeers := len(allConnectedPeers) != 0
 	if !mainTopicHasPeers {
