@@ -15,11 +15,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -747,41 +747,6 @@ func skToPk(sk crypto.PrivateKey) []byte {
 	return pkBuff
 }
 
-// CreateBlockBodyAndHeader creates and returns the block body and header
-func CreateBlockBodyAndHeader(t *testing.T, proposer *TestProcessorNode, round uint64, coordinator sharding.Coordinator) (data.BodyHandler, data.HeaderHandler) {
-	haveTime := func() bool { return true }
-	var err error
-	var blockHeader data.HeaderHandler
-	var blockBody data.BodyHandler
-
-	if coordinator.SelfId() == sharding.MetachainShardId {
-		blockHeader, err = proposer.BlockProcessor.CreateBlockHeader(nil, round, haveTime)
-		assert.Nil(t, err)
-	} else {
-		blockBody, err = proposer.BlockProcessor.CreateBlockBody(round, haveTime)
-		assert.Nil(t, err)
-
-		blockHeader, err = proposer.BlockProcessor.CreateBlockHeader(blockBody, round, haveTime)
-		assert.Nil(t, err)
-	}
-
-	blockHeader.SetRound(round)
-	blockHeader.SetNonce(round)
-	blockHeader.SetPubKeysBitmap(make([]byte, 0))
-	sig, _ := TestMultiSig.AggregateSigs(nil)
-	blockHeader.SetSignature(sig)
-	currHdr := proposer.BlockChain.GetCurrentBlockHeader()
-	if currHdr == nil {
-		currHdr = proposer.BlockChain.GetGenesisHeader()
-	}
-	buff, _ := TestMarshalizer.Marshal(currHdr)
-	blockHeader.SetPrevHash(TestHasher.Compute(string(buff)))
-	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
-	blockHeader.SetRandSeed(sig)
-
-	return blockBody, blockHeader
-}
-
 // TestPrivateKeyHasBalance checks if the private key has the expected balance
 func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.PrivateKey, expectedBalance *big.Int) {
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
@@ -887,4 +852,66 @@ func CreateMintingForSenders(
 
 		_, _ = n.AccntState.Commit()
 	}
+}
+
+// GenerateDefaultHeaderAndBody creates a default header and body
+func GenerateDefaultHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyHandler, data.HeaderHandler) {
+	hdr := block.Header{
+		Nonce:            0,
+		PubKeysBitmap:    []byte{255, 0},
+		Signature:        []byte("signature"),
+		PrevHash:         []byte("prev hash"),
+		TimeStamp:        uint64(time.Now().Unix()),
+		Round:            1,
+		Epoch:            2,
+		ShardId:          senderShard,
+		BlockBodyType:    block.TxBlock,
+		RootHash:         []byte{255, 255},
+		PrevRandSeed:     make([]byte, 0),
+		RandSeed:         make([]byte, 0),
+		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
+	}
+
+	body := block.Body{
+		&block.MiniBlock{
+			SenderShardID:   senderShard,
+			ReceiverShardID: senderShard,
+			TxHashes: [][]byte{
+				TestHasher.Compute("tx1"),
+			},
+		},
+	}
+
+	for i, recvShard := range recvShards {
+		body = append(
+			body,
+			&block.MiniBlock{
+				SenderShardID:   senderShard,
+				ReceiverShardID: recvShard,
+				TxHashes: [][]byte{
+					TestHasher.Compute(fmt.Sprintf("tx%d", i)),
+				},
+			},
+		)
+	}
+
+	return body, &hdr
+}
+
+// ProposeBlockSignalsEmptyBlock
+func ProposeBlockSignalsEmptyBlock(
+	node *TestProcessorNode,
+	round uint64,
+) (data.HeaderHandler, data.BodyHandler, bool) {
+
+	fmt.Println("Proposing block without commit...")
+
+	body, header, txHashes := node.ProposeBlock(round)
+	node.BroadcastBlock(body, header)
+	isEmptyBlock := len(txHashes) == 0
+
+	fmt.Println("Delaying for disseminating headers and miniblocks...")
+	time.Sleep(stepDelay)
+
+	return header, body, isEmptyBlock
 }

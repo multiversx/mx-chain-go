@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
@@ -25,6 +26,7 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 		})
 	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
 	fmt.Println("Delaying for disseminating the deploy tx...")
+	time.Sleep(stepDelay)
 
 	fmt.Println(MakeDisplayTable(nodes))
 }
@@ -34,7 +36,7 @@ func PlayerJoinsGame(
 	nodes []*TestProcessorNode,
 	player *TestWalletAccount,
 	joinGameVal *big.Int,
-	round int,
+	round string,
 	scAddress []byte,
 ) {
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address.Bytes())
@@ -46,7 +48,7 @@ func PlayerJoinsGame(
 			value:    joinGameVal,
 			rcvAddr:  scAddress,
 			sndAddr:  player.Address.Bytes(),
-			data:     fmt.Sprintf("joinGame@%d", round),
+			data:     fmt.Sprintf("joinGame@%s", round),
 			gasLimit: 1000000000000,
 		})
 	fmt.Printf("Join %s\n", hex.EncodeToString(player.Address.Bytes()))
@@ -59,7 +61,7 @@ func NodeCallsRewardAndSend(
 	idxNodeOwner int,
 	winnerAddress []byte,
 	prize *big.Int,
-	round int,
+	round string,
 	scAddress []byte,
 ) {
 
@@ -71,13 +73,64 @@ func NodeCallsRewardAndSend(
 			value:    big.NewInt(0),
 			rcvAddr:  scAddress,
 			sndAddr:  nodes[idxNodeOwner].OwnAccount.PkTxSignBytes,
-			data:     fmt.Sprintf("rewardAndSendToWallet@%d@%s@%X", round, hex.EncodeToString(winnerAddress), prize),
+			data:     fmt.Sprintf("rewardAndSendToWallet@%s@%s@%X", round, hex.EncodeToString(winnerAddress), prize),
 			gasLimit: 100000,
 		})
 	fmt.Printf("Reward %s\n", hex.EncodeToString(winnerAddress))
 	_, _ = nodes[idxNodeOwner].SendTransaction(txScCall)
+
+	fmt.Println(MakeDisplayTable(nodes))
 }
 
+// NodeDoesWithdraw creates and sends a withdraw tx to the SC
+func NodeDoesWithdraw(
+	nodes []*TestProcessorNode,
+	idxNode int,
+	withdrawValue *big.Int,
+	scAddress []byte,
+) {
+	fmt.Println("Calling SC.withdraw...")
+	txScCall := generateTx(
+		nodes[idxNode].OwnAccount.SkTxSign,
+		nodes[idxNode].OwnAccount.SingleSigner,
+		&txArgs{
+			value:    big.NewInt(0),
+			rcvAddr:  scAddress,
+			sndAddr:  nodes[idxNode].OwnAccount.PkTxSignBytes,
+			data:     fmt.Sprintf("withdraw@%X", withdrawValue),
+			gasLimit: 100000,
+		})
+	_, _ = nodes[idxNode].SendTransaction(txScCall)
+	fmt.Println("Delaying for disseminating SC call tx...")
+	time.Sleep(stepDelay)
+
+	fmt.Println(MakeDisplayTable(nodes))
+}
+
+// NodeDoesTopUp creates and sends a
+func NodeDoesTopUp(
+	nodes []*TestProcessorNode,
+	idxNode int,
+	topUpValue *big.Int,
+	scAddress []byte,
+) {
+	fmt.Println("Calling SC.topUp...")
+	txScCall := generateTx(
+		nodes[idxNode].OwnAccount.SkTxSign,
+		nodes[idxNode].OwnAccount.SingleSigner,
+		&txArgs{
+			value:    topUpValue,
+			rcvAddr:  scAddress,
+			sndAddr:  nodes[idxNode].OwnAccount.PkTxSignBytes,
+			data:     fmt.Sprintf("topUp"),
+			gasLimit: 100000,
+		})
+	_, _ = nodes[idxNode].SendTransaction(txScCall)
+	fmt.Println("Delaying for disseminating SC call tx...")
+	time.Sleep(stepDelay)
+
+	fmt.Println(MakeDisplayTable(nodes))
+}
 func getNodeWithinSameShardAsPlayer(
 	nodes []*TestProcessorNode,
 	player []byte,

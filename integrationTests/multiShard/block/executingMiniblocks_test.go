@@ -81,7 +81,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
 
 	fmt.Println("Step 5. Proposer creates block body and header with all available transactions...")
-	blockBody, blockHeader := integrationTests.CreateBlockBodyAndHeader(t, proposerNode, uint64(1), proposerNode.ShardCoordinator)
+	blockBody, blockHeader, _ := proposerNode.ProposeBlock(1)
 	_ = proposerNode.BroadcastMessenger.BroadcastBlock(blockBody, blockHeader)
 	_ = proposerNode.BroadcastMessenger.BroadcastHeader(blockHeader)
 	miniBlocks, transactions, _ := proposerNode.BlockProcessor.MarshalizedDataToBroadcast(blockHeader, blockBody)
@@ -92,7 +92,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	time.Sleep(time.Second * 5)
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
-	blockBody, blockHeader = integrationTests.CreateBlockBodyAndHeader(t, proposerNode, uint64(2), proposerNode.ShardCoordinator)
+	blockBody, blockHeader, _ = proposerNode.ProposeBlock(2)
 	_ = proposerNode.BroadcastMessenger.BroadcastBlock(blockBody, blockHeader)
 	_ = proposerNode.BroadcastMessenger.BroadcastHeader(blockHeader)
 	miniBlocks, transactions, _ = proposerNode.BlockProcessor.MarshalizedDataToBroadcast(blockHeader, blockBody)
@@ -125,28 +125,28 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	fmt.Println("Step 7. Metachain processes the received header...")
 	metaNode := nodes[len(nodes)-1]
-	_, metaHeader := integrationTests.CreateBlockBodyAndHeader(t, metaNode, uint64(1), metaNode.ShardCoordinator)
+	_, metaHeader, _ := metaNode.ProposeBlock(1)
 	_ = metaNode.BroadcastMessenger.BroadcastBlock(nil, metaHeader)
 	_ = metaNode.BlockProcessor.CommitBlock(metaNode.BlockChain, metaHeader, &block.MetaBlockBody{})
 	fmt.Println("Delaying for disseminating meta header...")
 	time.Sleep(time.Second * 5)
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
-	_, metaHeader = integrationTests.CreateBlockBodyAndHeader(t, metaNode, uint64(2), metaNode.ShardCoordinator)
+	_, metaHeader, _ = metaNode.ProposeBlock(2)
 	_ = metaNode.BroadcastMessenger.BroadcastBlock(nil, metaHeader)
 	_ = metaNode.BlockProcessor.CommitBlock(metaNode.BlockChain, metaHeader, &block.MetaBlockBody{})
 	fmt.Println("Delaying for disseminating meta header...")
 	time.Sleep(time.Second * 5)
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
-	_, metaHeader = integrationTests.CreateBlockBodyAndHeader(t, metaNode, uint64(3), metaNode.ShardCoordinator)
+	_, metaHeader, _ = metaNode.ProposeBlock(3)
 	_ = metaNode.BroadcastMessenger.BroadcastBlock(nil, metaHeader)
 	_ = metaNode.BlockProcessor.CommitBlock(metaNode.BlockChain, metaHeader, &block.MetaBlockBody{})
 	fmt.Println("Delaying for disseminating meta header...")
 	time.Sleep(time.Second * 5)
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
-	_, metaHeader = integrationTests.CreateBlockBodyAndHeader(t, metaNode, uint64(3), metaNode.ShardCoordinator)
+	_, metaHeader, _ = metaNode.ProposeBlock(3)
 	_ = metaNode.BroadcastMessenger.BroadcastBlock(nil, metaHeader)
 	_ = metaNode.BlockProcessor.CommitBlock(metaNode.BlockChain, metaHeader, &block.MetaBlockBody{})
 	fmt.Println("Delaying for disseminating meta header...")
@@ -179,7 +179,8 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		receiverProposer := nodes[int(shardId)*nodesPerShard]
 		firstReceiverNodes = append(firstReceiverNodes, receiverProposer)
 
-		body, header := integrationTests.CreateBlockBodyAndHeader(t, receiverProposer, uint64(1), receiverProposer.ShardCoordinator)
+		//body, header := integrationTests.CreateBlockBodyAndHeader(t, receiverProposer, uint64(1), receiverProposer.ShardCoordinator)
+		body, header, _ := receiverProposer.ProposeBlock(1)
 		_ = receiverProposer.BroadcastMessenger.BroadcastBlock(body, header)
 		_ = receiverProposer.BroadcastMessenger.BroadcastHeader(header)
 		miniBlocks, transactions, _ := proposerNode.BlockProcessor.MarshalizedDataToBroadcast(header, body)
@@ -194,7 +195,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	for _, shardId := range recvShards {
 		receiverProposer := nodes[int(shardId)*nodesPerShard]
 
-		body, header := integrationTests.CreateBlockBodyAndHeader(t, receiverProposer, uint64(2), receiverProposer.ShardCoordinator)
+		body, header, _ := receiverProposer.ProposeBlock(2)
 		_ = receiverProposer.BroadcastMessenger.BroadcastBlock(body, header)
 		_ = receiverProposer.BroadcastMessenger.BroadcastHeader(header)
 		miniBlocks, transactions, _ := proposerNode.BlockProcessor.MarshalizedDataToBroadcast(header, body)
@@ -209,7 +210,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	for _, shardId := range recvShards {
 		receiverProposer := nodes[int(shardId)*nodesPerShard]
 
-		body, header := integrationTests.CreateBlockBodyAndHeader(t, receiverProposer, uint64(3), receiverProposer.ShardCoordinator)
+		body, header, _ := receiverProposer.ProposeBlock(3)
 		_ = receiverProposer.BroadcastMessenger.BroadcastBlock(body, header)
 		_ = receiverProposer.BroadcastMessenger.BroadcastHeader(header)
 		miniBlocks, transactions, _ := proposerNode.BlockProcessor.MarshalizedDataToBroadcast(header, body)
@@ -224,7 +225,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	for _, shardId := range recvShards {
 		receiverProposer := nodes[int(shardId)*nodesPerShard]
 
-		body, header := integrationTests.CreateBlockBodyAndHeader(t, receiverProposer, uint64(4), receiverProposer.ShardCoordinator)
+		body, header, _ := receiverProposer.ProposeBlock(4)
 		_ = receiverProposer.BroadcastMessenger.BroadcastBlock(body, header)
 		_ = receiverProposer.BroadcastMessenger.BroadcastHeader(header)
 		miniBlocks, transactions, _ := proposerNode.BlockProcessor.MarshalizedDataToBroadcast(header, body)
