@@ -1888,7 +1888,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		accounts,
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 				return nil
 			},
 		},
@@ -1961,7 +1961,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 		accounts,
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 				return nil
 			},
 		},
@@ -2095,7 +2095,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		},
 	}
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 			return nil
 		},
 	}
@@ -2199,7 +2199,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 	forkDetectorAddCalled := false
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 			if header == hdr {
 				forkDetectorAddCalled = true
 				return nil
@@ -2300,7 +2300,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 		},
 	}
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 			return nil
 		},
 	}
@@ -3914,7 +3914,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
 	assert.Nil(t, err)
 
-	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.CreateLastNotarizedHdrs(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -3935,7 +3935,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
 	assert.Equal(t, nil, err)
 
-	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.CreateLastNotarizedHdrs(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -3957,7 +3957,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
 	assert.Nil(t, err)
 
-	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.CreateLastNotarizedHdrs(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -4110,7 +4110,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
 	assert.Nil(t, err)
 
-	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.CreateLastNotarizedHdrs(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -4244,7 +4244,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(processedMetaHdrs))
 
-	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.CreateLastNotarizedHdrs(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)

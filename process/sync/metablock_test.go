@@ -1307,8 +1307,8 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 		math.MaxUint32,
 	)
 
-	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil)
-	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil)
+	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
+	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
 
 	shouldSync := bs.ShouldSync()
 	assert.True(t, shouldSync)
@@ -1317,7 +1317,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 	if shouldSync && bs.IsForkDetected() {
 		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(hash1)
-		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil)
+		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	}
 
 	shouldSync = bs.ShouldSync()
@@ -1368,8 +1368,8 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 		math.MaxUint32,
 	)
 
-	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil)
-	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil)
+	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
+	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
 
 	shouldSync := bs.ShouldSync()
 	assert.True(t, shouldSync)
@@ -1378,7 +1378,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	if shouldSync && bs.IsForkDetected() {
 		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(hash2)
-		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil)
+		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil, nil)
 	}
 
 	shouldSync = bs.ShouldSync()
@@ -1518,7 +1518,7 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler) error {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
@@ -1573,7 +1573,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler) error {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
@@ -2252,7 +2252,7 @@ func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 			return nil
 		},
 	}

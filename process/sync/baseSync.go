@@ -223,7 +223,7 @@ func (boot *baseBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64)
 		return
 	}
 
-	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil)
+	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 		return
@@ -346,7 +346,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		core.ToB64(headerHash),
 		headerHandler.GetNonce()))
 
-	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil)
+	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil)
 	if err != nil {
 		log.Info(err.Error())
 	}

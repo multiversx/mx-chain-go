@@ -140,6 +140,10 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	log.Info(fmt.Sprintf("starting process block with round %d and nonce %d\n",
+		headerHandler.GetRound(),
+		headerHandler.GetNonce()))
+
 	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -152,13 +156,13 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	if requestedShardHdrs > 0 || requestedFinalShardHdrs > 0 {
-		log.Info(fmt.Sprintf("requested %d missing block headers and %d final block headers\n", requestedShardHdrs, requestedFinalShardHdrs))
+		log.Info(fmt.Sprintf("requested %d missing shard headers and %d final shard headers\n", requestedShardHdrs, requestedFinalShardHdrs))
 		err = mp.waitForBlockHeaders(haveTime())
 		mp.mutRequestedShardHdrsHashes.Lock()
 		mp.allNeededShardHdrsFound = true
 		unreceivedShardHdrs := len(mp.requestedShardHdrsHashes)
 		mp.mutRequestedShardHdrsHashes.Unlock()
-		log.Info(fmt.Sprintf("received %d missing block headers\n", int(requestedShardHdrs)-unreceivedShardHdrs))
+		log.Info(fmt.Sprintf("received %d missing shard headers\n", int(requestedShardHdrs)-unreceivedShardHdrs))
 		if err != nil {
 			return err
 		}
@@ -405,6 +409,10 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	log.Info(fmt.Sprintf("starting commit block with round %d and nonce %d\n",
+		headerHandler.GetRound(),
+		headerHandler.GetNonce()))
+
 	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
@@ -483,7 +491,7 @@ func (mp *metaProcessor) CommitBlock(
 		log.Info(errNotCritical.Error())
 	}
 
-	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil)
+	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
@@ -540,6 +548,7 @@ func (mp *metaProcessor) createLastNotarizedHdrs(header *block.MetaBlock) error 
 
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
 		mp.lastNotarizedHdrs[i] = append(mp.lastNotarizedHdrs[i], tmpLastNotarized[i])
+		mp.displayLastNotarized(tmpLastNotarized[i], i)
 	}
 
 	return nil
@@ -758,6 +767,8 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 			requestedBlockHeaders := mp.requestFinalMissingHeaders()
 			if requestedBlockHeaders == 0 {
 				areFinalAttestingHdrsInCache = true
+			} else {
+				log.Info(fmt.Sprintf("requested %d missing final shard headers\n", requestedBlockHeaders))
 			}
 		}
 
@@ -1079,7 +1090,7 @@ func (mp *metaProcessor) displayMetaBlock(header *block.MetaBlock) {
 		return
 	}
 
-	headerHash, err := mp.computeHeaderHash(header)
+	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, header)
 	if err != nil {
 		log.Error(err.Error())
 		return

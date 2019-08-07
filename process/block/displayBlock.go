@@ -107,6 +107,7 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 	shardLines = append(shardLines, lines...)
 
 	if header.BlockBodyType == block.TxBlock {
+		shardLines = txc.displayMetaHashesIncluded(shardLines, header)
 		shardLines = txc.displayTxBlockBody(shardLines, body)
 
 		return tableHeader, shardLines
@@ -116,6 +117,40 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 
 	shardLines = append(shardLines, display.NewLineData(false, []string{"Unknown", "", ""}))
 	return tableHeader, shardLines
+}
+
+func (txc *transactionCounter) displayMetaHashesIncluded(
+	lines []*display.LineData,
+	header *block.Header,
+) []*display.LineData {
+
+	part := fmt.Sprintf("MetaBlockHashes")
+	if header.MetaBlockHashes == nil || len(header.MetaBlockHashes) == 0 {
+		lines = append(lines, display.NewLineData(false, []string{
+			part, "", "<EMPTY>"}))
+	}
+
+	for i := 0; i < len(header.MetaBlockHashes); i++ {
+		if i == 0 || i >= len(header.MetaBlockHashes)-1 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part,
+				fmt.Sprintf("MetaBlockHash_%d", i+1),
+				core.ToB64(header.MetaBlockHashes[i])}))
+
+			part = ""
+		} else if i == 1 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part,
+				fmt.Sprintf("..."),
+				fmt.Sprintf("...")}))
+
+			part = ""
+		}
+	}
+
+	lines[len(lines)-1].HorizontalRuleAfter = true
+
+	return lines
 }
 
 func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.LineData {

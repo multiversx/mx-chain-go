@@ -154,6 +154,10 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	log.Info(fmt.Sprintf("starting process block with round %d and nonce %d\n",
+		headerHandler.GetRound(),
+		headerHandler.GetNonce()))
+
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -185,7 +189,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	if requestedMetaHdrs > 0 || requestedFinalMetaHdrs > 0 {
-		log.Info(fmt.Sprintf("requested %d missing meta headers and %d final meta headers to confirm cross shard txs\n", requestedMetaHdrs, requestedFinalMetaHdrs))
+		log.Info(fmt.Sprintf("requested %d missing meta headers and %d final meta headers\n", requestedMetaHdrs, requestedFinalMetaHdrs))
 		err = sp.waitForMetaHdrHashes(haveTime())
 		sp.mutRequestedMetaHdrsHashes.Lock()
 		sp.allNeededMetaHdrsFound = true
@@ -558,6 +562,10 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	log.Info(fmt.Sprintf("starting commit block with round %d and nonce %d\n",
+		headerHandler.GetRound(),
+		headerHandler.GetNonce()))
+
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
@@ -617,17 +625,10 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.createLastNotarizedHdrs(sharding.MetachainShardId, processedMetaHdrs)
 	if err != nil {
 		return err
 	}
-
-	sp.mutNotarizedHdrs.RLock()
-	lastNotarizedNonce := sp.lastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce()
-	sp.mutNotarizedHdrs.RUnlock()
-
-	log.Info(fmt.Sprintf("last notarized block nonce from metachain is %d\n",
-		lastNotarizedNonce))
 
 	_, err = sp.accounts.Commit()
 	if err != nil {
@@ -655,7 +656,12 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeader)
+	finalHeaderHash, errNotCritical := core.CalculateHash(sp.marshalizer, sp.hasher, finalHeader)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+
+	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeader, finalHeaderHash)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
@@ -880,12 +886,12 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 	}
 
 	if processed > 0 {
-		log.Info(fmt.Sprintf("%d meta blocks have been processed completely and removed from pool\n", processed))
+		log.Debug(fmt.Sprintf("%d meta blocks have been processed completely and removed from pool\n", processed))
 	}
 
 	notarized := unnotarized - len(sp.blocksTracker.UnnotarisedBlocks())
 	if notarized > 0 {
-		log.Info(fmt.Sprintf("%d shard blocks have been notarised by metachain\n", notarized))
+		log.Debug(fmt.Sprintf("%d shard blocks have been notarised by metachain\n", notarized))
 	}
 
 	return nil
@@ -941,6 +947,8 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 			requestedBlockHeaders := sp.requestFinalMissingHeaders()
 			if requestedBlockHeaders == 0 {
 				areFinalAttestingHdrsInCache = true
+			} else {
+				log.Info(fmt.Sprintf("requested %d missing final meta headers\n", requestedBlockHeaders))
 			}
 		}
 
@@ -1239,7 +1247,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 		itemsAddedInHeader := uint32(len(usedMetaHdrsHashes) + len(miniBlocks))
 		if itemsAddedInHeader >= maxItemsInBlock {
-			log.Info(fmt.Sprintf("max records allowed to be added in shard header has been reached\n"))
+			log.Info(fmt.Sprintf("%d max records allowed to be added in shard header has been reached\n", maxItemsInBlock))
 			break
 		}
 

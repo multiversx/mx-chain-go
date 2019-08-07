@@ -3,6 +3,7 @@ package block
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -15,7 +16,7 @@ import (
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
-	return bp.computeHeaderHash(hdr)
+	return core.CalculateHash(bp.marshalizer, bp.hasher, hdr)
 }
 
 func (bp *baseProcessor) VerifyStateRoot(rootHash []byte) bool {
@@ -197,8 +198,8 @@ func NewBaseProcessor(shardCord sharding.Coordinator) *baseProcessor {
 	return &baseProcessor{shardCoordinator: shardCord}
 }
 
-func (bp *baseProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
-	return bp.saveLastNotarizedHeader(shardId, processedHdrs)
+func (bp *baseProcessor) CreateLastNotarizedHdrs(shardId uint32, processedHdrs []data.HeaderHandler) error {
+	return bp.createLastNotarizedHdrs(shardId, processedHdrs)
 }
 
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {

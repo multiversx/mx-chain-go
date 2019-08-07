@@ -10,6 +10,8 @@ const (
 	BHProcessed
 	// BHProposed defines ID of a proposed block header
 	BHProposed
+	// BHNotarized defines ID of a notarized block header
+	BHNotarized
 )
 
 // TransactionType specifies the type of the transaction
