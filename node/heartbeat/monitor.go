@@ -57,7 +57,7 @@ func NewMonitor(
 
 	var err error
 	for _, pubkey := range pubKeyList {
-		mon.heartbeatMessages[pubkey], err = newHeartbeatMessageInfo(maxDurationPeerUnresponsive)
+		mon.heartbeatMessages[pubkey], err = newHeartbeatMessageInfo(maxDurationPeerUnresponsive, true)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +100,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 		pe := m.heartbeatMessages[string(hb.Pubkey)]
 		if pe == nil {
-			pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive)
+			pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false)
 			if err != nil {
 				log.Error(err.Error())
 				return
@@ -108,7 +108,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			m.heartbeatMessages[string(hb.Pubkey)] = pe
 		}
 
-		pe.HeartbeatReceived(hb.ShardID)
+		pe.HeartbeatReceived(hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
 	}(message, hbRecv)
 
 	return nil
@@ -129,6 +129,9 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			ShardID:         v.shardID,
 			TotalUpTime:     v.totalUpTime,
 			TotalDownTime:   v.totalDownTime,
+			VersionNumber:   v.versionNumber,
+			IsValidator:     v.isValidator,
+			NodeDisplayName: v.nodeDisplayName,
 		}
 		idx++
 
