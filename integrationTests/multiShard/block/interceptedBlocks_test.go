@@ -22,6 +22,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 
 	numOfShards := 6
 	nodesPerShard := 3
+	numMetachainNodes := 1
 
 	senderShard := uint32(0)
 	recvShards := []uint32{1, 2}
@@ -32,6 +33,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
+		numMetachainNodes,
 		integrationTests.GetConnectableAddress(advertiser),
 	)
 	integrationTests.DisplayAndStartNodes(nodes)

@@ -458,6 +458,7 @@ func mintAddressesFromSameShard(nodes []*TestProcessorNode, targetNodeIdx int, v
 	}
 }
 
+// MintAllPlayers mints addresses for all players
 func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, value *big.Int) {
 	shardCoordinator := nodes[0].ShardCoordinator
 
@@ -642,10 +643,10 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 func CreateNodes(
 	numOfShards int,
 	nodesPerShard int,
+	numMetaChainNodes int,
 	serviceID string,
 ) []*TestProcessorNode {
 	//first node generated will have is pk belonging to firstSkShardId
-	numMetaChainNodes := 1
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 
 	idx := 0
@@ -896,6 +897,25 @@ func GenerateDefaultHeaderAndBody(senderShard uint32, recvShards ...uint32) (dat
 	}
 
 	return body, &hdr
+}
+
+// GenerateDefaultMetaHeader creates a metaHeader with default values
+func GenerateDefaultMetaHeader() data.HeaderHandler {
+	hdr := block.MetaBlock{
+		Nonce:         0,
+		PubKeysBitmap: []byte{255, 0},
+		Signature:     []byte("signature"),
+		PrevHash:      []byte("prev hash"),
+		TimeStamp:     uint64(time.Now().Unix()),
+		Round:         1,
+		Epoch:         2,
+		RootHash:      []byte{255, 255},
+		PrevRandSeed:  make([]byte, 0),
+		RandSeed:      make([]byte, 0),
+		ShardInfo:     make([]block.ShardData, 0),
+	}
+
+	return &hdr
 }
 
 // ProposeBlockSignalsEmptyBlock proposes and broadcasts a block
