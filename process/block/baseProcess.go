@@ -322,7 +322,6 @@ func (bp *baseProcessor) getLastNotarizedHdr(shardId uint32) (data.HeaderHandler
 // and shard can validate the next meta header
 func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler) error {
 	//TODO: protect this to be called only once at genesis time
-	//TODO: do this on constructor as it is a must to for blockprocessor to work
 	bp.mutNotarizedHdrs.Lock()
 	defer bp.mutNotarizedHdrs.Unlock()
 

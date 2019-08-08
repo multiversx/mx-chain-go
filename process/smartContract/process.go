@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"math/big"
 	"sync"
 
@@ -157,6 +158,21 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	if tx == nil {
 		return process.ErrNilTransaction
 	}
+
+	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
+	if err != nil {
+		return err
+	}
+
+	log.Info(fmt.Sprintf(
+		"Started smart contract processing %s from %s to %s with the value of %s and data of %s ",
+		hex.EncodeToString(txHash),
+		hex.EncodeToString(tx.SndAddr),
+		hex.EncodeToString(tx.RcvAddr),
+		tx.Value.String(),
+		tx.Data),
+	)
+
 	if acntDst == nil {
 		return process.ErrNilSCDestAccount
 	}
@@ -164,7 +180,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return process.ErrNilSCDestAccount
 	}
 
-	err := sc.prepareSmartContractCall(tx, acntSnd)
+	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
 		return err
 	}
