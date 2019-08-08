@@ -10,6 +10,9 @@
    # StatusPollingIntervalSec represents the no of seconds between multiple polling for the status for AppStatusHandler
    StatusPollingIntervalSec = 10
 
+   # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor
+   NodeDisplayName = ""
+
 [Explorer]
     Enabled = false
     IndexerURL = "http://localhost:9200"
