@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"time"
@@ -384,6 +385,26 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	return transactions, txHashes, nil
 }
 
+//TODO move this constant to txFeeHandler
+const minGasLimitForTx = uint64(5)
+
+const numZerosForSCAddress = 10
+
+//TODO move this to smart contract address calculation component
+func isTxRcvAddressOfSmartContract(rcvAddress []byte) bool {
+	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
+	if isEmptyAddress {
+		return true
+	}
+
+	isSCAddress := bytes.Equal(rcvAddress[:(numZerosForSCAddress-1)], make([]byte, numZerosForSCAddress-1))
+	if isSCAddress {
+		return true
+	}
+
+	return false
+}
+
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
 func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
@@ -419,14 +440,11 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 			break
 		}
 
-		// only for cross shard
-		if sndShardId != dstShardId {
-			currTxGasLimit := orderedTxes[index].GasLimit
-			addedGasLimitPerCrossShardMiniblock += currTxGasLimit
+		currTxGasLimit := minGasLimitForTx
+		if isTxRcvAddressOfSmartContract(orderedTxes[index].RcvAddr) {
+			currTxGasLimit = orderedTxes[index].GasLimit
 
-			if addedGasLimitPerCrossShardMiniblock > process.MaxGasLimitPerMiniBlock {
-				// try if next transaction is with smaller gasLimit
-				addedGasLimitPerCrossShardMiniblock -= currTxGasLimit
+			if addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock {
 				continue
 			}
 		}
@@ -453,6 +471,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 
 		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 		addedTxs++
+		addedGasLimitPerCrossShardMiniblock += currTxGasLimit
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
 			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
