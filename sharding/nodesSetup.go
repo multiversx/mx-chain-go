@@ -21,6 +21,21 @@ type NodeInfo struct {
 	address       []byte
 }
 
+// AssignedShard gets the node assigned shard
+func (ni *NodeInfo) AssignedShard() uint32 {
+	return ni.assignedShard
+}
+
+// Address gets the node address
+func (ni *NodeInfo) Address() []byte {
+	return ni.address
+}
+
+// PubKey gets the node public key
+func (ni *NodeInfo) PubKey() []byte {
+	return ni.pubKey
+}
+
 // NodesSetup hold data for decoded data from json file
 type NodesSetup struct {
 	StartTime          int64  `json:"startTime"`

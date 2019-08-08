@@ -24,6 +24,7 @@ type Validator interface {
 	Stake() *big.Int
 	Rating() int32
 	PubKey() []byte
+	Address() []byte
 }
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection

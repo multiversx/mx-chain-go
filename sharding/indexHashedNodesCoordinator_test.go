@@ -24,13 +24,13 @@ func uint64ToBytes(value uint64) []byte {
 
 func createDummyNodesMap() map[uint32][]sharding.Validator {
 	list := []sharding.Validator{
-		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
-		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1")),
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0"), []byte("addr0")),
+		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1"), []byte("addr1")),
 	}
 
 	listMeta := []sharding.Validator{
-		mock.NewValidatorMock(big.NewInt(1), 1, []byte("pkMeta1")),
-		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pkMeta2")),
+		mock.NewValidatorMock(big.NewInt(1), 1, []byte("pkMeta1"), []byte("addrMeta1")),
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pkMeta2"), []byte("addrMeta2")),
 	}
 
 	nodesMap := make(map[uint32][]sharding.Validator)
@@ -190,7 +190,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup1ValidatorShouldReturnSa
 	t.Parallel()
 
 	list := []sharding.Validator{
-		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0"), []byte("addr0")),
 	}
 
 	nodesMap := make(map[uint32][]sharding.Validator)
@@ -269,8 +269,8 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrd
 		return nil
 	}
 
-	validator0 := mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0"))
-	validator1 := mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1"))
+	validator0 := mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0"), []byte("addr0"))
+	validator1 := mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1"), []byte("addr1"))
 
 	list := []sharding.Validator{
 		validator0,
@@ -279,7 +279,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrd
 
 	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
-	metaNode, _ := sharding.NewValidator(big.NewInt(1), 1, []byte("pubKeyMeta"))
+	metaNode, _ := sharding.NewValidator(big.NewInt(1), 1, []byte("pubKeyMeta"), []byte("addressMeta"))
 	nodesMap[sharding.MetachainShardId] = []sharding.Validator{metaNode}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
 		2,
@@ -369,16 +369,16 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 		return convertBigIntToBytes(val)
 	}
 
-	validator0 := mock.NewValidatorMock(big.NewInt(1), 1, []byte("pk0"))
-	validator1 := mock.NewValidatorMock(big.NewInt(2), 2, []byte("pk1"))
-	validator2 := mock.NewValidatorMock(big.NewInt(3), 3, []byte("pk2"))
-	validator3 := mock.NewValidatorMock(big.NewInt(4), 4, []byte("pk3"))
-	validator4 := mock.NewValidatorMock(big.NewInt(5), 5, []byte("pk4"))
-	validator5 := mock.NewValidatorMock(big.NewInt(6), 6, []byte("pk5"))
-	validator6 := mock.NewValidatorMock(big.NewInt(7), 7, []byte("pk6"))
-	validator7 := mock.NewValidatorMock(big.NewInt(8), 8, []byte("pk7"))
-	validator8 := mock.NewValidatorMock(big.NewInt(9), 9, []byte("pk8"))
-	validator9 := mock.NewValidatorMock(big.NewInt(10), 10, []byte("pk9"))
+	validator0 := mock.NewValidatorMock(big.NewInt(1), 1, []byte("pk0"), []byte("addr0"))
+	validator1 := mock.NewValidatorMock(big.NewInt(2), 2, []byte("pk1"), []byte("addr1"))
+	validator2 := mock.NewValidatorMock(big.NewInt(3), 3, []byte("pk2"), []byte("addr2"))
+	validator3 := mock.NewValidatorMock(big.NewInt(4), 4, []byte("pk3"), []byte("addr3"))
+	validator4 := mock.NewValidatorMock(big.NewInt(5), 5, []byte("pk4"), []byte("addr4"))
+	validator5 := mock.NewValidatorMock(big.NewInt(6), 6, []byte("pk5"), []byte("addr5"))
+	validator6 := mock.NewValidatorMock(big.NewInt(7), 7, []byte("pk6"), []byte("addr6"))
+	validator7 := mock.NewValidatorMock(big.NewInt(8), 8, []byte("pk7"), []byte("addr7"))
+	validator8 := mock.NewValidatorMock(big.NewInt(9), 9, []byte("pk8"), []byte("addr8"))
+	validator9 := mock.NewValidatorMock(big.NewInt(10), 10, []byte("pk9"), []byte("addr9"))
 
 	list := []sharding.Validator{
 		validator0,
@@ -395,7 +395,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 
 	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
-	validatorMeta, _ := sharding.NewValidator(big.NewInt(1), 1, []byte("pubKeyMeta"))
+	validatorMeta, _ := sharding.NewValidator(big.NewInt(1), 1, []byte("pubKeyMeta"), []byte("addressMeta"))
 	nodesMap[sharding.MetachainShardId] = []sharding.Validator{validatorMeta}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
 		6,
@@ -425,7 +425,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 
 	//generate 400 validators
 	for i := 0; i < 400; i++ {
-		list = append(list, mock.NewValidatorMock(big.NewInt(0), 0, []byte("pk"+strconv.Itoa(i))))
+		list = append(list, mock.NewValidatorMock(big.NewInt(0), 0, []byte("pk"+strconv.Itoa(i)), []byte("addr"+strconv.Itoa(i))))
 	}
 
 	nodesMap := make(map[uint32][]sharding.Validator)

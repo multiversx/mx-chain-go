@@ -75,3 +75,6 @@ var ErrNilStake = errors.New("nil stake")
 
 // ErrNegativeStake signals that the stake is negative
 var ErrNegativeStake = errors.New("negative stake")
+
+// ErrNilAddress signals that the address is nil
+var ErrNilAddress = errors.New("nil address")
