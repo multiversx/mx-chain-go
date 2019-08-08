@@ -423,9 +423,18 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ReceiverShardID))
 
 	addedTxs := 0
+	addedGasInMiniblock := uint64(0)
 	for index := range orderedTxes {
 		if !haveTime() {
 			break
+		}
+
+		// limit gas on cross shard miniblock creation - as it may break the destination shard if too many smart contract calls are added
+		if dstShardId != sndShardId {
+			addedGasInMiniblock += orderedTxes[index].GasLimit
+			if addedGasInMiniblock > process.MaxGasLimitInMiniblock {
+				break
+			}
 		}
 
 		snapshot := txs.accounts.JournalLen()

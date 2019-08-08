@@ -31,4 +31,5 @@ const MetaBlockFinality = 1
 const ForkBlockFinality = 1
 const MaxHeaderRequestsAllowed = 10
 const MaxItemsInBlock = 15000
+const MaxGasLimitInMiniblock = 100000
 const MaxRequestsWithTimeoutAllowed = 5

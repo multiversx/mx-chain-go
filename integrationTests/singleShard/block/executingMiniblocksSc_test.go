@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -41,7 +43,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	}
 
 	idxProposer := 0
-	numPlayers := 40
+	numPlayers := 100
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
@@ -79,7 +81,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
 	round = integrationTests.IncrementAndPrintRound(round)
 
-	numRounds := 10
+	numRounds := 2
 	runMultipleRoundsOfTheGame(
 		t,
 		numRounds,
@@ -153,13 +155,23 @@ func runMultipleRoundsOfTheGame(
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		startTime := time.Now()
-		integrationTests.ProposeBlock(nodes, idxProposers, round)
-		elapsedTime := time.Since(startTime)
-		fmt.Printf("Block Created in %s\n", elapsedTime)
+		for i := 1; i != 0; {
+			startTime := time.Now()
+			integrationTests.ProposeBlock(nodes, idxProposers, round)
+			elapsedTime := time.Since(startTime)
+			fmt.Printf("Block Created in %s\n", elapsedTime)
 
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
+			integrationTests.SyncBlock(t, nodes, idxProposers, round)
+			round = integrationTests.IncrementAndPrintRound(round)
+
+			for idProp := range idxProposers {
+				propNode := nodes[idProp]
+				i = getNumTxsWithDst(propNode.ShardCoordinator.SelfId(), propNode.ShardDataPool, 1)
+				if i > 0 {
+					break
+				}
+			}
+		}
 
 		roomxtopUp := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(rooms))
 		integrationTests.CheckJoinGame(t, nodes, players, roomxtopUp, idxProposers[0], hardCodedScResultingAddress)
@@ -176,17 +188,46 @@ func runMultipleRoundsOfTheGame(
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		startTime = time.Now()
-		integrationTests.ProposeBlock(nodes, idxProposers, round)
-		elapsedTime = time.Since(startTime)
-		fmt.Printf("Block Created in %s\n", elapsedTime)
+		for i := 1; i != 0; {
+			startTime := time.Now()
+			integrationTests.ProposeBlock(nodes, idxProposers, round)
+			elapsedTime := time.Since(startTime)
+			fmt.Printf("Block Created in %s\n", elapsedTime)
 
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
+			integrationTests.SyncBlock(t, nodes, idxProposers, round)
+			round = integrationTests.IncrementAndPrintRound(round)
 
+			for idProp := range idxProposers {
+				propNode := nodes[idProp]
+				i = getNumTxsWithDst(propNode.ShardCoordinator.SelfId(), propNode.ShardDataPool, 1)
+				if i > 0 {
+					break
+				}
+			}
+		}
 		integrationTests.CheckRewardsDistribution(t, nodes, players, big.NewInt(0), big.NewInt(0),
 			hardCodedScResultingAddress, idxProposers[0])
 
 		fmt.Println(rMonitor.GenerateStatistics())
 	}
+}
+
+func getNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
+	txPool := dataPool.Transactions()
+	if txPool == nil {
+		return 0
+	}
+
+	sumTxs := 0
+
+	for i := uint32(0); i < nrShards; i++ {
+		strCache := process.ShardCacherIdentifier(i, dstShardId)
+		txStore := txPool.ShardDataStore(strCache)
+		if txStore == nil {
+			continue
+		}
+		sumTxs += txStore.Len()
+	}
+
+	return sumTxs
 }

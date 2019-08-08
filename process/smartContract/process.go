@@ -416,6 +416,8 @@ func (sc *scProcessor) processVMOutput(
 		return nil, err
 	}
 
+	log.Info(fmt.Sprintf("consumed gas while running the SC call %s", big.NewInt(0).SetUint64(tx.GasLimit-vmOutput.GasRemaining.Uint64()).String()))
+
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		log.Info(fmt.Sprint(">>>>>>>>>>>>>>>>>>>==================================<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"))
 
