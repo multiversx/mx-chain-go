@@ -41,7 +41,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	}
 
 	idxProposer := 0
-	numPlayers := 100
+	numPlayers := 40
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
@@ -79,7 +79,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
 	round = integrationTests.IncrementAndPrintRound(round)
 
-	numRounds := 1
+	numRounds := 10
 	runMultipleRoundsOfTheGame(
 		t,
 		numRounds,
@@ -125,6 +125,7 @@ func runMultipleRoundsOfTheGame(
 		numRewardedPlayers = numPlayers
 	}
 
+	rooms := 3
 	totalWithdrawValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(len(players)))
 	withdrawValues := make([]*big.Int, numRewardedPlayers)
 	winnerRate := 1.0 - 0.05*float64(numRewardedPlayers-1)
@@ -134,17 +135,19 @@ func runMultipleRoundsOfTheGame(
 	}
 
 	for rr := 0; rr < nrRounds; rr++ {
-		for _, player := range players {
-			integrationTests.PlayerJoinsGame(
-				nodes,
-				player,
-				topUpValue,
-				rr,
-				hardCodedScResultingAddress,
-			)
-			newBalance := big.NewInt(0)
-			newBalance = newBalance.Sub(player.Balance, topUpValue)
-			player.Balance = player.Balance.Set(newBalance)
+		for i := 0; i < rooms; i++ {
+			for _, player := range players {
+				integrationTests.PlayerJoinsGame(
+					nodes,
+					player,
+					topUpValue,
+					rr+10*i,
+					hardCodedScResultingAddress,
+				)
+				newBalance := big.NewInt(0)
+				newBalance = newBalance.Sub(player.Balance, topUpValue)
+				player.Balance = player.Balance.Set(newBalance)
+			}
 		}
 
 		// waiting to disseminate transactions
@@ -158,13 +161,16 @@ func runMultipleRoundsOfTheGame(
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
 
-		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
+		roomxtopUp := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(rooms))
+		integrationTests.CheckJoinGame(t, nodes, players, roomxtopUp, idxProposers[0], hardCodedScResultingAddress)
 
-		for i := 0; i < numRewardedPlayers; i++ {
-			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], rr, hardCodedScResultingAddress)
-			newBalance := big.NewInt(0)
-			newBalance = newBalance.Add(players[i].Balance, withdrawValues[i])
-			players[i].Balance = players[i].Balance.Set(newBalance)
+		for room := 0; room < rooms; room++ {
+			for i := 0; i < numRewardedPlayers; i++ {
+				integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], rr+10*room, hardCodedScResultingAddress)
+				newBalance := big.NewInt(0)
+				newBalance = newBalance.Add(players[i].Balance, withdrawValues[i])
+				players[i].Balance = players[i].Balance.Set(newBalance)
+			}
 		}
 
 		// waiting to disseminate transactions
@@ -178,7 +184,7 @@ func runMultipleRoundsOfTheGame(
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
 
-		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
+		integrationTests.CheckRewardsDistribution(t, nodes, players, big.NewInt(0), big.NewInt(0),
 			hardCodedScResultingAddress, idxProposers[0])
 
 		fmt.Println(rMonitor.GenerateStatistics())
