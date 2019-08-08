@@ -898,7 +898,7 @@ func GenerateDefaultHeaderAndBody(senderShard uint32, recvShards ...uint32) (dat
 	return body, &hdr
 }
 
-// ProposeBlockSignalsEmptyBlock
+// ProposeBlockSignalsEmptyBlock proposes and broadcasts a block
 func ProposeBlockSignalsEmptyBlock(
 	node *TestProcessorNode,
 	round uint64,
@@ -914,4 +914,25 @@ func ProposeBlockSignalsEmptyBlock(
 	time.Sleep(stepDelay)
 
 	return header, body, isEmptyBlock
+}
+
+// ProposeBroadcastAndCommitBlock proposes and commits block, and broadcasts block, header, miniblocks and transactions
+func ProposeBroadcastAndCommitBlock(node *TestProcessorNode, round uint64) {
+	blockBody, blockHeader, _ := node.ProposeBlock(round)
+	_ = node.BroadcastMessenger.BroadcastBlock(blockBody, blockHeader)
+	_ = node.BroadcastMessenger.BroadcastHeader(blockHeader)
+	miniBlocks, transactions, _ := node.BlockProcessor.MarshalizedDataToBroadcast(blockHeader, blockBody)
+	_ = node.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
+	_ = node.BroadcastMessenger.BroadcastTransactions(transactions)
+	_ = node.BlockProcessor.CommitBlock(node.BlockChain, blockHeader, blockBody)
+}
+
+// ProposeBroadcastAndCommitMetaBlock proposes, broadcasts and commits block
+func ProposeBroadcastAndCommitMetaBlock(nodes []*TestProcessorNode, metaNode *TestProcessorNode, round uint64) {
+	_, metaHeader, _ := metaNode.ProposeBlock(round)
+	_ = metaNode.BroadcastMessenger.BroadcastBlock(nil, metaHeader)
+	_ = metaNode.BlockProcessor.CommitBlock(metaNode.BlockChain, metaHeader, &block.MetaBlockBody{})
+	fmt.Println("Delaying for disseminating meta header...")
+	time.Sleep(time.Second * 5)
+	fmt.Println(MakeDisplayTable(nodes))
 }
