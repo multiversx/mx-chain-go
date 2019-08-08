@@ -377,6 +377,20 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 	return nil
 }
 
+func printAllLogs(vmOutput *vmcommon.VMOutput) {
+	for key, vmLog := range vmOutput.Logs {
+		log.Info(fmt.Sprintf("log %d: %s %s", key, vmLog.Address, vmLog.Data))
+
+		for j, topic := range vmLog.Topics {
+			log.Info(fmt.Sprintf("topic %d: %s", j, topic.String()))
+		}
+	}
+
+	for key, rdata := range vmOutput.ReturnData {
+		log.Info(fmt.Sprintf("return data %d %s", key, rdata.String()))
+	}
+}
+
 func (sc *scProcessor) processVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	tx *transaction.Transaction,
@@ -397,6 +411,8 @@ func (sc *scProcessor) processVMOutput(
 	txHash := sc.hasher.Compute(string(txBytes))
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
+		log.Info(fmt.Sprint(">>>>>>>>>>>>>>>>>>>==================================<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"))
+
 		log.Info(fmt.Sprintf(
 			"error processing tx %s from %s to %s with the value of %s and data of %s in VM: return code: %s ",
 			hex.EncodeToString(txHash),
@@ -406,6 +422,10 @@ func (sc *scProcessor) processVMOutput(
 			tx.Data,
 			vmOutput.ReturnCode),
 		)
+
+		printAllLogs(vmOutput)
+
+		log.Info(fmt.Sprint(">>>>>>>>>>>>>>>>>>>==================================<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"))
 	}
 
 	err = sc.saveSCOutputToCurrentState(vmOutput, round, txHash)
