@@ -16,10 +16,13 @@ type heartbeatMessageInfo struct {
 	shardID                     uint32
 	totalUpTime                 Duration
 	totalDownTime               Duration
+	versionNumber               string
+	nodeDisplayName             string
+	isValidator                 bool
 }
 
 // newHeartbeatMessageInfo returns a new instance of a PubkeyElement
-func newHeartbeatMessageInfo(maxDurationPeerUnresponsive time.Duration) (*heartbeatMessageInfo, error) {
+func newHeartbeatMessageInfo(maxDurationPeerUnresponsive time.Duration, isValidator bool) (*heartbeatMessageInfo, error) {
 	if maxDurationPeerUnresponsive == 0 {
 		return nil, ErrInvalidMaxDurationPeerUnresponsive
 	}
@@ -33,6 +36,9 @@ func newHeartbeatMessageInfo(maxDurationPeerUnresponsive time.Duration) (*heartb
 	hbmi.timeStamp = emptyTimestamp
 	hbmi.totalUpTime = Duration{0}
 	hbmi.totalDownTime = Duration{0}
+	hbmi.versionNumber = ""
+	hbmi.nodeDisplayName = ""
+	hbmi.isValidator = isValidator
 
 	return hbmi, nil
 }
@@ -61,12 +67,14 @@ func (hbmi *heartbeatMessageInfo) updateUpAndDownTime() {
 }
 
 // HeartbeatReceived processes a new message arrived from a peer
-func (hbmi *heartbeatMessageInfo) HeartbeatReceived(shardID uint32) {
+func (hbmi *heartbeatMessageInfo) HeartbeatReceived(shardID uint32, version string, nodeDisplayName string) {
 	crtTime := hbmi.getTimeHandler()
 	hbmi.sweep()
 	hbmi.shardID = shardID
 	hbmi.updateMaxInactiveTimeDuration()
 	hbmi.timeStamp = crtTime
+	hbmi.versionNumber = version
+	hbmi.nodeDisplayName = nodeDisplayName
 }
 
 func (hbmi *heartbeatMessageInfo) updateMaxInactiveTimeDuration() {
