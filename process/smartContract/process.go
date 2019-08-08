@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"math/big"
 	"sync"
 
@@ -33,7 +34,7 @@ type scProcessor struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
-	vm               vmcommon.VMExecutionHandler
+	vmContainer      process.VirtualMachineContainer
 	argsParser       process.ArgumentsParser
 
 	mutSCState   sync.Mutex
@@ -46,7 +47,7 @@ var log = logger.DefaultLogger()
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
 func NewSmartContractProcessor(
-	vm vmcommon.VMExecutionHandler,
+	vmContainer process.VirtualMachineContainer,
 	argsParser process.ArgumentsParser,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
@@ -56,7 +57,7 @@ func NewSmartContractProcessor(
 	coordinator sharding.Coordinator,
 	scrForwarder process.IntermediateTransactionHandler,
 ) (*scProcessor, error) {
-	if vm == nil {
+	if vmContainer == nil {
 		return nil, process.ErrNoVM
 	}
 	if argsParser == nil {
@@ -85,7 +86,7 @@ func NewSmartContractProcessor(
 	}
 
 	return &scProcessor{
-		vm:               vm,
+		vmContainer:      vmContainer,
 		argsParser:       argsParser,
 		hasher:           hasher,
 		marshalizer:      marshalizer,
@@ -174,7 +175,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
-	vmOutput, err := sc.vm.RunSmartContractCall(vmInput)
+	vm, err := sc.getVMFromTransaction(tx)
+	if err != nil {
+		return err
+	}
+
+	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		return err
 	}
@@ -214,6 +220,15 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 	return nil
 }
 
+func (sc *scProcessor) getVMFromTransaction(tx *transaction.Transaction) (vmcommon.VMExecutionHandler, error) {
+	//TODO add processing here - like calculating what kind of VM does this contract call needs
+	vm, err := sc.vmContainer.Get([]byte(factory.IELEVirtualMachine))
+	if err != nil {
+		return nil, err
+	}
+	return vm, nil
+}
+
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(
 	tx *transaction.Transaction,
@@ -242,8 +257,13 @@ func (sc *scProcessor) DeploySmartContract(
 		return err
 	}
 
+	vm, err := sc.getVMFromTransaction(tx)
+	if err != nil {
+		return err
+	}
+
 	// TODO: Smart contract address calculation
-	vmOutput, err := sc.vm.RunSmartContractCreate(vmInput)
+	vmOutput, err := vm.RunSmartContractCreate(vmInput)
 	if err != nil {
 		return err
 	}
