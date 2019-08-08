@@ -7,16 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-func (boot *ShardBootstrap) RequestHeader(nonce uint64) {
-	boot.requestHeader(nonce)
-}
-
-func (boot *ShardBootstrap) GetHeaderFromPoolWithNonce(nonce uint64) (*block.Header, error) {
-	return boot.getHeaderFromPoolWithNonce(nonce)
-}
-
-func (boot *MetaBootstrap) GetHeaderFromPoolWithNonce(nonce uint64) (*block.MetaBlock, error) {
-	return boot.getHeaderFromPoolWithNonce(nonce)
+func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
+	boot.requestHeaderWithNonce(nonce)
 }
 
 func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) interface{} {
@@ -67,15 +59,15 @@ func (bfd *basicForkDetector) SetCheckpointNonce(nonce uint64) {
 	bfd.fork.checkpointNonce = nonce
 }
 
-func (bfd *basicForkDetector) CheckpointRound() int32 {
+func (bfd *basicForkDetector) CheckpointRound() int64 {
 	return bfd.fork.checkpointRound
 }
 
-func (bfd *basicForkDetector) SetLastCheckpointRound(round int32) {
+func (bfd *basicForkDetector) SetLastCheckpointRound(round int64) {
 	bfd.fork.lastCheckpointRound = round
 }
 
-func (bfd *basicForkDetector) SetCheckpointRound(round int32) {
+func (bfd *basicForkDetector) SetCheckpointRound(round int64) {
 	bfd.fork.checkpointRound = round
 }
 
@@ -129,6 +121,14 @@ func (boot *ShardBootstrap) SetForkNonce(nonce uint64) {
 
 func (boot *MetaBootstrap) SetForkNonce(nonce uint64) {
 	boot.forkNonce = nonce
+}
+
+func (boot *ShardBootstrap) IsForkDetected() bool {
+	return boot.isForkDetected
+}
+
+func (boot *MetaBootstrap) IsForkDetected() bool {
+	return boot.isForkDetected
 }
 
 func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {

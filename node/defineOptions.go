@@ -265,6 +265,17 @@ func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 	}
 }
 
+// WithNodesCoordinator sets up the nodes coordinator
+func WithNodesCoordinator(nodesCoordinator sharding.NodesCoordinator) Option {
+	return func(n *Node) error {
+		if nodesCoordinator == nil {
+			return ErrNilNodesCoordinator
+		}
+		n.nodesCoordinator = nodesCoordinator
+		return nil
+	}
+}
+
 // WithUint64ByteSliceConverter sets up the uint64 <-> []byte converter
 func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConverter) Option {
 	return func(n *Node) error {
@@ -379,7 +390,7 @@ func WithTxStorageSize(txStorageSize uint32) Option {
 }
 
 // WithBootstrapRoundIndex sets up a bootstrapRoundIndex option for the Node
-func WithBootstrapRoundIndex(bootstrapRoundIndex uint32) Option {
+func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 	return func(n *Node) error {
 		n.bootstrapRoundIndex = bootstrapRoundIndex
 		return nil

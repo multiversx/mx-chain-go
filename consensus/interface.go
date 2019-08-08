@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -9,7 +8,7 @@ import (
 
 // Rounder defines the actions which should be handled by a round implementation
 type Rounder interface {
-	Index() int32
+	Index() int64
 	// UpdateRound updates the index and the time stamp of the round depending of the genesis time and the current time given
 	UpdateRound(time.Time, time.Time)
 	TimeStamp() time.Time
@@ -48,33 +47,12 @@ type SposFactory interface {
 	GenerateSubrounds()
 }
 
-// Validator defines what a consensus validator implementation should do.
-type Validator interface {
-	Stake() *big.Int
-	Rating() int32
-	PubKey() []byte
-}
-
-// ValidatorGroupSelector defines the behaviour of a struct able to do validator group selection
-type ValidatorGroupSelector interface {
-	PublicKeysSelector
-	LoadEligibleList(eligibleList []Validator) error
-	ComputeValidatorsGroup(randomness []byte) (validatorsGroup []Validator, err error)
-	ConsensusGroupSize() int
-	SetConsensusGroupSize(int) error
-}
-
-// PublicKeysSelector allows retrieval of eligible validators public keys selected by a bitmap
-type PublicKeysSelector interface {
-	GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error)
-}
-
 // BroadcastMessenger defines the behaviour of the broadcast messages by the consensus group
 type BroadcastMessenger interface {
 	BroadcastBlock(data.BodyHandler, data.HeaderHandler) error
 	BroadcastHeader(data.HeaderHandler) error
 	BroadcastMiniBlocks(map[uint32][]byte) error
-	BroadcastTransactions(map[uint32][][]byte) error
+	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
 }
 

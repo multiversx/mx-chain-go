@@ -9,8 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -22,25 +20,34 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
-
 	dPoolRequester := createTestDataPool()
 	dPoolResolver := createTestDataPool()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
+	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		1,
+		testHasher,
+		0,
+		1,
+		make(map[uint32][]sharding.Validator),
+	)
 
 	fmt.Println("Requester:")
 	nRequester, mesRequester, sk1, resolversFinder := createNetNode(
 		dPoolRequester,
 		createAccountsDB(),
-		shardCoordinator)
+		shardCoordinator,
+		nodesCoordinator,
+	)
 
 	fmt.Println("Resolver:")
 	nResolver, mesResolver, _, _ := createNetNode(
 		dPoolResolver,
 		createAccountsDB(),
-		shardCoordinator)
+		shardCoordinator,
+		nodesCoordinator,
+	)
 
 	_ = nRequester.Start()
 	_ = nResolver.Start()
@@ -62,23 +69,23 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	tx := transaction.Transaction{
 		Nonce:   0,
 		Value:   big.NewInt(0),
-		RcvAddr: hasher.Compute("receiver"),
+		RcvAddr: testHasher.Compute("receiver"),
 		SndAddr: buffPk1,
 		Data:    "tx notarized data",
 	}
 
-	txBuff, _ := marshalizer.Marshal(&tx)
+	txBuff, _ := testMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
 
 	tx.Signature, _ = signer.Sign(sk1, txBuff)
 
-	signedTxBuff, _ := marshalizer.Marshal(&tx)
+	signedTxBuff, _ := testMarshalizer.Marshal(&tx)
 
 	fmt.Printf("Transaction: %v\n%v\n", tx, string(signedTxBuff))
 
 	chanDone := make(chan bool)
 
-	txHash := hasher.Compute(string(signedTxBuff))
+	txHash := testHasher.Compute(string(signedTxBuff))
 
 	//step 2. wire up a received handler for requester
 	dPoolRequester.Transactions().RegisterHandler(func(key []byte) {

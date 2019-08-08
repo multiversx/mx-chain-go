@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -138,9 +138,9 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 
 	cns := internalInitConsensusState()
 
-	vgs := mock.ValidatorGroupSelectorMock{}
+	vgs := mock.NodesCoordinatorMock{}
 	err := errors.New("error")
-	vgs.ComputeValidatorsGroupCalled = func(randomness []byte) ([]consensus.Validator, error) {
+	vgs.ComputeValidatorsGroupCalled = func(randomness []byte) ([]sharding.Validator, error) {
 		return nil, err
 	}
 
@@ -153,7 +153,7 @@ func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	vgs := mock.ValidatorGroupSelectorMock{}
+	vgs := mock.NodesCoordinatorMock{}
 
 	nextConsensusGroup, err := cns.GetNextConsensusGroup("", vgs)
 	assert.Nil(t, err)

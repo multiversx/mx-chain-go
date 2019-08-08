@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.DefaultLogger()
@@ -20,7 +21,7 @@ type ConsensusState struct {
 	BlockBody data.BodyHandler
 	Header    data.HeaderHandler
 
-	RoundIndex     int32
+	RoundIndex     int64
 	RoundTimeStamp time.Time
 	RoundCanceled  bool
 
@@ -94,7 +95,7 @@ func (cns *ConsensusState) GetLeader() (string, error) {
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random
 // source for the new selection
-func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs consensus.ValidatorGroupSelector) ([]string,
+func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs sharding.NodesCoordinator) ([]string,
 	error) {
 	validatorsGroup, err := vgs.ComputeValidatorsGroup([]byte(randomSource))
 
@@ -189,7 +190,7 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 }
 
 // CanProcessReceivedMessage method returns true if the message received can be processed and false otherwise
-func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *consensus.Message, currentRoundIndex int32,
+func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *consensus.Message, currentRoundIndex int64,
 	currentSubroundId int) bool {
 	if cns.IsNodeSelf(string(cnsDta.PubKey)) {
 		return false

@@ -38,6 +38,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 		numMetaNodes,
 		senderShard,
 		getConnectableAddress(advertiser),
+		testHasher,
 	)
 	displayAndStartNodes(nodes)
 
@@ -103,6 +104,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		numMetaNodes,
 		senderShard,
 		getConnectableAddress(advertiser),
+		testHasher,
 	)
 	displayAndStartNodes(nodes)
 
@@ -194,13 +196,12 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	for _, n := range nodes {
 		assert.Equal(t, int32(2), atomic.LoadInt32(&n.metachainHdrRecv))
 	}
-
 }
 
 func generateHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyHandler, data.HeaderHandler) {
 	hdr := block.Header{
 		Nonce:            0,
-		PubKeysBitmap:    []byte{255, 0},
+		PubKeysBitmap:    []byte{1, 0, 0},
 		Signature:        []byte("signature"),
 		PrevHash:         []byte("prev hash"),
 		TimeStamp:        uint64(time.Now().Unix()),
@@ -243,7 +244,7 @@ func generateHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyH
 func generateMetaHeader() data.HeaderHandler {
 	hdr := block.MetaBlock{
 		Nonce:         0,
-		PubKeysBitmap: []byte{255, 0},
+		PubKeysBitmap: []byte{1, 0, 0},
 		Signature:     []byte("signature"),
 		PrevHash:      []byte("prev hash"),
 		TimeStamp:     uint64(time.Now().Unix()),

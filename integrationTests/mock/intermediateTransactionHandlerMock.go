@@ -10,8 +10,16 @@ type IntermediateTransactionHandlerMock struct {
 	CreateAllInterMiniBlocksCalled           func() map[uint32]*block.MiniBlock
 	VerifyInterMiniBlocksCalled              func(body block.Body) error
 	SaveCurrentIntermediateTxToStorageCalled func() error
+	CreateBlockStartedCalled                 func()
+	CreateMarshalizedDataCalled              func(txHashes [][]byte) ([][]byte, error)
 }
 
+func (ith *IntermediateTransactionHandlerMock) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
+	if ith.CreateMarshalizedDataCalled == nil {
+		return nil, nil
+	}
+	return ith.CreateMarshalizedDataCalled(txHashes)
+}
 func (ith *IntermediateTransactionHandlerMock) AddIntermediateTransactions(txs []data.TransactionHandler) error {
 	if ith.AddIntermediateTransactionsCalled == nil {
 		return nil
@@ -38,4 +46,10 @@ func (ith *IntermediateTransactionHandlerMock) SaveCurrentIntermediateTxToStorag
 		return nil
 	}
 	return ith.SaveCurrentIntermediateTxToStorageCalled()
+}
+
+func (ith *IntermediateTransactionHandlerMock) CreateBlockStarted() {
+	if ith.CreateBlockStartedCalled != nil {
+		ith.CreateAllInterMiniBlocksCalled()
+	}
 }

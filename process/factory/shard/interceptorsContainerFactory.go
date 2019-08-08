@@ -16,22 +16,23 @@ import (
 )
 
 type interceptorsContainerFactory struct {
-	shardCoordinator    sharding.Coordinator
-	messenger           process.TopicHandler
-	store               dataRetriever.StorageService
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	keyGen              crypto.KeyGenerator
-	singleSigner        crypto.SingleSigner
-	multiSigner         crypto.MultiSigner
-	dataPool            dataRetriever.PoolsHolder
-	addrConverter       state.AddressConverter
-	chronologyValidator process.ChronologyValidator
+	shardCoordinator sharding.Coordinator
+	messenger        process.TopicHandler
+	store            dataRetriever.StorageService
+	marshalizer      marshal.Marshalizer
+	hasher           hashing.Hasher
+	keyGen           crypto.KeyGenerator
+	singleSigner     crypto.SingleSigner
+	multiSigner      crypto.MultiSigner
+	dataPool         dataRetriever.PoolsHolder
+	addrConverter    state.AddressConverter
+	nodesCoordinator sharding.NodesCoordinator
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewInterceptorsContainerFactory(
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	messenger process.TopicHandler,
 	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
@@ -41,7 +42,6 @@ func NewInterceptorsContainerFactory(
 	multiSigner crypto.MultiSigner,
 	dataPool dataRetriever.PoolsHolder,
 	addrConverter state.AddressConverter,
-	chronologyValidator process.ChronologyValidator,
 ) (*interceptorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -74,22 +74,22 @@ func NewInterceptorsContainerFactory(
 	if addrConverter == nil {
 		return nil, process.ErrNilAddressConverter
 	}
-	if chronologyValidator == nil {
-		return nil, process.ErrNilChronologyValidator
+	if nodesCoordinator == nil {
+		return nil, process.ErrNilNodesCoordinator
 	}
 
 	return &interceptorsContainerFactory{
-		shardCoordinator:    shardCoordinator,
-		messenger:           messenger,
-		store:               store,
-		marshalizer:         marshalizer,
-		hasher:              hasher,
-		keyGen:              keyGen,
-		singleSigner:        singleSigner,
-		multiSigner:         multiSigner,
-		dataPool:            dataPool,
-		addrConverter:       addrConverter,
-		chronologyValidator: chronologyValidator,
+		shardCoordinator: shardCoordinator,
+		nodesCoordinator: nodesCoordinator,
+		messenger:        messenger,
+		store:            store,
+		marshalizer:      marshalizer,
+		hasher:           hasher,
+		keyGen:           keyGen,
+		singleSigner:     singleSigner,
+		multiSigner:      multiSigner,
+		dataPool:         dataPool,
+		addrConverter:    addrConverter,
 	}, nil
 }
 
@@ -297,7 +297,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
-		icf.chronologyValidator,
+		icf.nodesCoordinator,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -392,7 +392,7 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
-		icf.chronologyValidator,
+		icf.nodesCoordinator,
 	)
 	if err != nil {
 		return nil, nil, err

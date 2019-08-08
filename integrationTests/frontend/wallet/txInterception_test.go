@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -107,8 +108,16 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	accntAdapter := createAccountsDB()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
+	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		1,
+		mock.HasherMock{},
+		0,
+		1,
+		make(map[uint32][]sharding.Validator),
+	)
 
-	n, _, sk, _ := createNetNode(dPool, accntAdapter, shardCoordinator)
+	n, _, sk, _ := createNetNode(dPool, accntAdapter, shardCoordinator, nodesCoordinator)
 
 	//set the account's nonce to startingNonce
 	nodePubKeyBytes, _ := sk.GeneratePublic().ToByteArray()
