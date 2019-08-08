@@ -75,7 +75,7 @@ func TestNewSmartContractProcessorNilArgsParser(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		nil,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -93,7 +93,7 @@ func TestNewSmartContractProcessorNilHasher(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		nil,
 		&mock.MarshalizerMock{},
@@ -111,7 +111,7 @@ func TestNewSmartContractProcessorNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		nil,
@@ -129,7 +129,7 @@ func TestNewSmartContractProcessorNilAccountsDB(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -147,7 +147,7 @@ func TestNewSmartContractProcessorNilAdrConv(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -165,7 +165,7 @@ func TestNewSmartContractProcessorNilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -183,7 +183,7 @@ func TestNewSmartContractProcessorNilFakeAccountsHandler(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -201,7 +201,7 @@ func TestNewSmartContractProcessor_NilIntermediateMock(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -219,7 +219,7 @@ func TestNewSmartContractProcessor(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -237,7 +237,7 @@ func TestScProcessor_ComputeTransactionTypeNil(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -258,7 +258,7 @@ func TestScProcessor_ComputeTransactionTypeNilTx(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -286,7 +286,7 @@ func TestScProcessor_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -314,7 +314,7 @@ func TestScProcessor_ComputeTransactionTypeScDeployment(t *testing.T) {
 
 	addressConverter := &mock.AddressConverterMock{}
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -354,7 +354,7 @@ func TestScProcessor_ComputeTransactionTypeScInvoking(t *testing.T) {
 	acntDst.SetCode([]byte("code"))
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -388,7 +388,7 @@ func TestScProcessor_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	_, acntDst := createAccounts(tx)
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -412,7 +412,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	t.Parallel()
 
 	addrConverter := &mock.AddressConverterMock{}
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -447,10 +447,10 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	t.Parallel()
 
 	addrConverter := &mock.AddressConverterMock{}
-	vm := &mock.VMExecutionHandlerStub{}
+	vmContainer := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
-		vm,
+		vmContainer,
 		argParser,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -471,9 +471,15 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 
 	tmpError := errors.New("error")
+	vm := &mock.VMExecutionHandlerStub{}
 	vm.RunSmartContractCreateCalled = func(input *vmcommon.ContractCreateInput) (output *vmcommon.VMOutput, e error) {
 		return nil, tmpError
 	}
+
+	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+		return vm, nil
+	}
+
 	err = sc.DeploySmartContract(tx, acntSrc, 10)
 	assert.Equal(t, tmpError, err)
 }
@@ -481,7 +487,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -512,7 +518,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	t.Parallel()
 
 	addrConverter := &mock.AddressConverterMock{}
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	accntState := &mock.AccountsStub{}
 	sc, err := NewSmartContractProcessor(
@@ -547,7 +553,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -577,7 +583,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -615,7 +621,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -650,10 +656,10 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vmContainer := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
-		vm,
+		vmContainer,
 		argParser,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -675,9 +681,14 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 
 	acntDst.SetCode([]byte("code"))
 	tmpError := errors.New("error")
+	vm := &mock.VMExecutionHandlerStub{}
 	vm.RunSmartContractCallCalled = func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
 		return nil, tmpError
 	}
+	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+		return vm, nil
+	}
+
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
 	assert.Equal(t, tmpError, err)
 }
@@ -685,7 +696,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	accntState := &mock.AccountsStub{}
 	sc, err := NewSmartContractProcessor(
@@ -721,7 +732,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -755,7 +766,7 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 func TestScProcessor_CreateVMCallInput(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -785,7 +796,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -820,7 +831,7 @@ func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
 func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -850,7 +861,7 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -884,7 +895,7 @@ func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
 func TestScProcessor_CreateVMInput(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -927,7 +938,7 @@ func createAccountsAndTransaction() (*state.Account, *state.Account, *transactio
 func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -951,7 +962,7 @@ func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 func TestScProcessor_processVMOutputNilTx(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -976,7 +987,7 @@ func TestScProcessor_processVMOutputNilTx(t *testing.T) {
 func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -1004,7 +1015,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 	t.Parallel()
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	accntState := &mock.AccountsStub{}
 	sc, err := NewSmartContractProcessor(
@@ -1049,7 +1060,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 		return shardCoordinator.SelfId()
 	}
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -1087,7 +1098,7 @@ func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
 		return shardCoordinator.SelfId()
 	}
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -1125,7 +1136,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 		return shardCoordinator.SelfId()
 	}
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -1163,7 +1174,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 		return shardCoordinator.SelfId() + 1
 	}
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -1202,7 +1213,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 		return shardCoordinator.SelfId()
 	}
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -1242,7 +1253,7 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 		return shardCoordinator.SelfId()
 	}
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -1282,7 +1293,7 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 		return shardCoordinator.SelfId() + 1
 	}
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -1327,7 +1338,7 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 		return shardCoordinator.SelfId()
 	}
 
-	vm := &mock.VMExecutionHandlerStub{}
+	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
 	sc, err := NewSmartContractProcessor(
 		vm,
@@ -1354,7 +1365,7 @@ func TestScProcessor_ProcessSCPaymentAccNotInShardShouldNotReturnError(t *testin
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1384,7 +1395,7 @@ func TestScProcessor_ProcessSCPaymentWrongTypeAssertion(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1416,7 +1427,7 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1453,7 +1464,7 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1488,7 +1499,7 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1528,7 +1539,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1571,7 +1582,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1611,7 +1622,7 @@ func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
 	acntSrc, _, tx := createAccountsAndTransaction()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1635,7 +1646,7 @@ func TestScProcessor_processVMOutputNilTransaction(t *testing.T) {
 	acntSrc, _, _ := createAccountsAndTransaction()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1661,7 +1672,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 
 	accntState := &mock.AccountsStub{}
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1694,7 +1705,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	accTracker := &mock.AccountTrackerStub{}
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1776,7 +1787,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1816,7 +1827,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1859,7 +1870,7 @@ func TestScProcessor_ProcessSmartContractResultNilScr(t *testing.T) {
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1885,7 +1896,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1909,7 +1920,7 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1938,7 +1949,7 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1970,7 +1981,7 @@ func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -2008,7 +2019,7 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -2050,7 +2061,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},

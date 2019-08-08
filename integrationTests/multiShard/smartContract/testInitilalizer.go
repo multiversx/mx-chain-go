@@ -270,9 +270,13 @@ func createNetNode(
 	scForwarder, _ := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
 
 	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter)
+	vmContainer := &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return vm, nil
+		}}
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
-		vm,
+		vmContainer,
 		argsParser,
 		testHasher,
 		testMarshalizer,
