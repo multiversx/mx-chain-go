@@ -123,7 +123,7 @@ func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) erro
 }
 
 // CheckHeaderForCurrentShard checks if the header is for current shard
-func (hi *HeaderInterceptor) CheckHeaderForCurrentShard(interceptedHdr *block.InterceptedHeader) bool {
+func (hi *HeaderInterceptor) checkHeaderForCurrentShard(interceptedHdr *block.InterceptedHeader) bool {
 	isHeaderForCurrentShard := hi.shardCoordinator.SelfId() == interceptedHdr.GetHeader().ShardId
 	isMetachainShardCoordinator := hi.shardCoordinator.SelfId() == sharding.MetachainShardId
 
@@ -131,7 +131,7 @@ func (hi *HeaderInterceptor) CheckHeaderForCurrentShard(interceptedHdr *block.In
 }
 
 func (hi *HeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHeader) {
-	if !hi.CheckHeaderForCurrentShard(hdrIntercepted) {
+	if !hi.checkHeaderForCurrentShard(hdrIntercepted) {
 		return
 	}
 
