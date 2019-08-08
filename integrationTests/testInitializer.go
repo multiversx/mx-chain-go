@@ -622,3 +622,69 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 	buff, _ := hex.DecodeString(txHandler.GetData())
 	return binary.BigEndian.Uint64(buff)
 }
+
+func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
+	txPool := dataPool.Transactions()
+	if txPool == nil {
+		return 0
+	}
+
+	sumTxs := 0
+
+	for i := uint32(0); i < nrShards; i++ {
+		strCache := process.ShardCacherIdentifier(i, dstShardId)
+		txStore := txPool.ShardDataStore(strCache)
+		if txStore == nil {
+			continue
+		}
+		sumTxs += txStore.Len()
+	}
+
+	return sumTxs
+}
+
+func ProposeAndSyncBlocks(
+	t *testing.T,
+	numInTxs int,
+	nodes []*TestProcessorNode,
+	idxProposers []int,
+	round uint64,
+) uint64 {
+
+	// propose until pool is cleared
+	for i := numInTxs; i != 0; {
+		startTime := time.Now()
+		ProposeBlock(nodes, idxProposers, round)
+		elapsedTime := time.Since(startTime)
+		fmt.Printf("Block Created in %s\n", elapsedTime)
+
+		SyncBlock(t, nodes, idxProposers, round)
+		round = IncrementAndPrintRound(round)
+
+		for _, idProposer := range idxProposers {
+			proposedNode := nodes[idProposer]
+			i = GetNumTxsWithDst(
+				proposedNode.ShardCoordinator.SelfId(),
+				proposedNode.ShardDataPool,
+				proposedNode.ShardCoordinator.NumberOfShards(),
+			)
+
+			if i > 0 {
+				break
+			}
+		}
+	}
+
+	if nodes[0].ShardCoordinator.NumberOfShards() == 1 {
+		return round
+	}
+
+	numberToPropagateToEveryShard := 5
+	for i := 0; i < numberToPropagateToEveryShard; i++ {
+		ProposeBlock(nodes, idxProposers, round)
+		SyncBlock(t, nodes, idxProposers, round)
+		round = IncrementAndPrintRound(round)
+	}
+
+	return round
+}

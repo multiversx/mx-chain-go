@@ -148,10 +148,6 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 
 	txsRestored := 0
 
-	if miniBlockPool == nil {
-		return txsRestored, miniBlockHashes, process.ErrNilMiniBlockPool
-	}
-
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
@@ -417,9 +413,22 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ReceiverShardID))
 
 	addedTxs := 0
+	addedGasLimitPerCrossShardMiniblock := uint64(0)
 	for index := range orderedTxes {
 		if !haveTime() {
 			break
+		}
+
+		// only for cross shard
+		if sndShardId != dstShardId {
+			currTxGasLimit := orderedTxes[index].GasLimit
+			addedGasLimitPerCrossShardMiniblock += currTxGasLimit
+
+			if addedGasLimitPerCrossShardMiniblock > process.MaxGasLimitPerMiniBlock {
+				// try if next transaction is with smaller gasLimit
+				addedGasLimitPerCrossShardMiniblock -= currTxGasLimit
+				continue
+			}
 		}
 
 		snapshot := txs.accounts.JournalLen()

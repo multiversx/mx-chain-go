@@ -3,6 +3,8 @@ package preprocess
 import (
 	"bytes"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -538,6 +540,93 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 	body = append(body, &miniblock)
 	err := txs.RemoveTxBlockFromPools(body, tdp.MiniBlocks())
 	assert.Nil(t, err)
+}
+
+func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testing.T) {
+	t.Parallel()
+
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	txs, _ := NewTransactionPreprocessor(
+		txPool,
+		&mock.ChainStorerMock{},
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint64) error {
+			return nil
+		}},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+	assert.NotNil(t, txs)
+
+	sndShardId := uint32(0)
+	dstShardId := uint32(1)
+	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+
+	addedTxs := make([]*transaction.Transaction, 0)
+	for i := 0; i < 10; i++ {
+		newTx := &transaction.Transaction{GasLimit: uint64(i)}
+
+		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
+		txPool.AddData(txHash, newTx, strCache)
+
+		addedTxs = append(addedTxs, newTx)
+	}
+
+	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, 10)
+	assert.Nil(t, err)
+
+	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
+}
+
+func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asGasLimitOverrun(t *testing.T) {
+	t.Parallel()
+
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	txs, _ := NewTransactionPreprocessor(
+		txPool,
+		&mock.ChainStorerMock{},
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint64) error {
+			return nil
+		}},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+	assert.NotNil(t, txs)
+
+	sndShardId := uint32(0)
+	dstShardId := uint32(1)
+	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+
+	numTxToAdd := 5
+	gasLimit := process.MaxGasLimitPerMiniBlock / uint64(numTxToAdd)
+
+	addedTxs := make([]*transaction.Transaction, 0)
+	for i := 0; i < 10; i++ {
+		newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i)}
+
+		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
+		txPool.AddData(txHash, newTx, strCache)
+
+		addedTxs = append(addedTxs, newTx)
+	}
+
+	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, 10)
+	assert.Nil(t, err)
+
+	assert.Equal(t, numTxToAdd, len(mb.TxHashes))
 }
 
 //------- SortTxByNonce

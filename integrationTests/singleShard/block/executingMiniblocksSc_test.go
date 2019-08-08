@@ -41,7 +41,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	}
 
 	idxProposer := 0
-	numPlayers := 1
+	numPlayers := 10
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
@@ -150,13 +150,7 @@ func runMultipleRoundsOfTheGame(
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		startTime := time.Now()
-		integrationTests.ProposeBlock(nodes, idxProposers, round)
-		elapsedTime := time.Since(startTime)
-		fmt.Printf("Block Created in %s\n", elapsedTime)
-
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
+		round = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round)
 
 		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
@@ -170,13 +164,7 @@ func runMultipleRoundsOfTheGame(
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		startTime = time.Now()
-		integrationTests.ProposeBlock(nodes, idxProposers, round)
-		elapsedTime = time.Since(startTime)
-		fmt.Printf("Block Created in %s\n", elapsedTime)
-
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
+		round = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round)
 
 		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
 			hardCodedScResultingAddress, idxProposers[0])
