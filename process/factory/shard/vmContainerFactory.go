@@ -44,8 +44,8 @@ func NewVMContainerFactory(
 }
 
 // Create sets up all the needed virtual machine returning a container of all the VMs
-func (vmf *vmContainerFactory) Create() (process.VirtualMachineContainer, error) {
-	container := containers.NewVirtualMachineContainer()
+func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error) {
+	container := containers.NewVirtualMachinesContainer()
 
 	vm, err := vmf.createIeleVM()
 	if err != nil {
