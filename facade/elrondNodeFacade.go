@@ -232,3 +232,8 @@ func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 func (ef *ElrondNodeFacade) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
 	return ef.apiResolver.GetVmValue(address, funcName, argsBuff...)
 }
+
+// PprofEnabled returns if profiling mode should be active or not on the application
+func (ef *ElrondNodeFacade) PprofEnabled() bool {
+	return ef.config.PprofEnabled
+}
