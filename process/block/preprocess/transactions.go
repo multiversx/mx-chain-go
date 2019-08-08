@@ -148,10 +148,6 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 
 	txsRestored := 0
 
-	if miniBlockPool == nil {
-		return txsRestored, miniBlockHashes, process.ErrNilMiniBlockPool
-	}
-
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
@@ -294,6 +290,17 @@ func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) 
 	return missingTxsForShard
 }
 
+func isErrorOfWrongTransaction(err error) bool {
+	switch err {
+	case process.ErrLowerNonceInTransaction:
+		return true
+	case process.ErrInsufficientFunds:
+		return true
+	default:
+		return false
+	}
+}
+
 // processAndRemoveBadTransactions processed transactions, if txs are with error it removes them from pool
 func (txs *transactions) processAndRemoveBadTransaction(
 	transactionHash []byte,
@@ -304,8 +311,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 ) error {
 
 	err := txs.txProcessor.ProcessTransaction(transaction, round)
-	if err == process.ErrLowerNonceInTransaction ||
-		err == process.ErrInsufficientFunds {
+	if isErrorOfWrongTransaction(err) {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 		txs.txPool.RemoveData(transactionHash, strCache)
 	}

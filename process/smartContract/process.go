@@ -118,6 +118,8 @@ func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (proc
 		return 0, err
 	}
 
+	//
+
 	if acntDst == nil {
 		return process.MoveBalance, nil
 	}
@@ -404,11 +406,15 @@ func (sc *scProcessor) processVMOutput(
 		return nil, process.ErrNilTransaction
 	}
 
-	txBytes, err := sc.marshalizer.Marshal(tx)
+	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
 	if err != nil {
 		return nil, err
 	}
-	txHash := sc.hasher.Compute(string(txBytes))
+
+	err = sc.saveSCOutputToCurrentState(vmOutput, round, txHash)
+	if err != nil {
+		return nil, err
+	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		log.Info(fmt.Sprint(">>>>>>>>>>>>>>>>>>>==================================<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"))
@@ -426,11 +432,6 @@ func (sc *scProcessor) processVMOutput(
 		printAllLogs(vmOutput)
 
 		log.Info(fmt.Sprint(">>>>>>>>>>>>>>>>>>>==================================<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"))
-	}
-
-	err = sc.saveSCOutputToCurrentState(vmOutput, round, txHash)
-	if err != nil {
-		return nil, err
 	}
 
 	crossOutAccs, err := sc.processSCOutputAccounts(vmOutput.OutputAccounts)
