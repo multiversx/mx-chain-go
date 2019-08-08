@@ -432,7 +432,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		// limit gas on cross shard miniblock creation - as it may break the destination shard if too many smart contract calls are added
 		if dstShardId != sndShardId {
 			addedGasInMiniblock += orderedTxes[index].GasLimit
-			if addedGasInMiniblock > process.MaxGasLimitInMiniblock {
+			if addedGasInMiniblock > process.MaxAddedGasLimitInMiniblock {
 				break
 			}
 		}

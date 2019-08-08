@@ -1,8 +1,11 @@
 package transaction
 
 import (
+	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -109,6 +112,15 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			txi.shardCoordinator)
 
 		if err != nil {
+			log.Info(err.Error())
+			tx := &transaction.Transaction{}
+			_ = txi.marshalizer.Unmarshal(tx, txBuff)
+
+			txHash, _ := core.CalculateHash(txi.marshalizer, txi.hasher, tx)
+			if txHash != nil {
+				log.Info("intercepted transaction was invalid: %s %s %s", hex.EncodeToString(txHash), hex.EncodeToString(tx.SndAddr), hex.EncodeToString(tx.RcvAddr))
+			}
+
 			lastErrEncountered = err
 			continue
 		}
@@ -116,7 +128,7 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		//tx is validated, add it to filtered out txs
 		filteredTxsBuffs = append(filteredTxsBuffs, txBuff)
 		if txIntercepted.IsAddressedToOtherShards() {
-			log.Debug("intercepted tx is for other shards")
+			log.Info("intercepted tx is for other shards")
 
 			continue
 		}
@@ -150,7 +162,7 @@ func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
 	err := txi.txStorer.Has(tx.Hash())
 	isTxInStorage := err == nil
 	if isTxInStorage {
-		log.Debug("intercepted tx already processed")
+		log.Info("intercepted tx already processed")
 		return
 	}
 
