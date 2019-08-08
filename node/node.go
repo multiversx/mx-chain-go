@@ -679,7 +679,7 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module
-func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
+func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber string, nodeDisplayName string) error {
 	if !config.Enabled {
 		return nil
 	}
@@ -707,6 +707,8 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 		n.marshalizer,
 		HeartbeatTopic,
 		n.shardCoordinator,
+		versionNumber,
+		nodeDisplayName,
 	)
 	if err != nil {
 		return err
