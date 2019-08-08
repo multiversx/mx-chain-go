@@ -66,6 +66,7 @@ func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, erro
 	return ieleVM, nil
 }
 
+// VMAccountsDB returns the created vmAccountsDB
 func (vmf *vmContainerFactory) VMAccountsDB() *hooks.VMAccountsDB {
 	return vmf.vmAccountsDB
 }

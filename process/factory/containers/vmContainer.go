@@ -87,10 +87,11 @@ func (vmc *VirtualMachineContainer) Len() int {
 	return vmc.objects.Len()
 }
 
+// Keys returns all the keys from the container
 func (vmc *VirtualMachineContainer) Keys() [][]byte {
 	keys := make([][]byte, 0)
-	for key := range vmc.objects.Iter() {
-		byteKey, ok := key.Key.([]byte)
+	for obj := range vmc.objects.Iter() {
+		byteKey, ok := obj.Key.([]byte)
 		if !ok {
 			continue
 		}
