@@ -122,6 +122,17 @@ VERSION:
 		Value: 0,
 	}
 	// profileMode defines a flag for profiling the binary
+	// If enabled, it will open the pprof routes over the default gin rest webserver.
+	// There are several routes that will be available for profiling (profiling can be analyzed with: go tool pprof):
+	//  /debug/pprof/ (can be accessed in the browser, will list the available options)
+	//  /debug/pprof/goroutine
+	//  /debug/pprof/heap
+	//  /debug/pprof/threadcreate
+	//  /debug/pprof/block
+	//  /debug/pprof/mutex
+	//  /debug/pprof/profile (CPU profile)
+	//  /debug/pprof/trace?seconds=5 (CPU trace) -> being a trace, can be analyzed with: go tool trace
+	// Usage: go tool pprof http(s)://ip.of.the.server/debug/pprof/xxxxx
 	profileMode = cli.BoolFlag{
 		Name:  "profile-mode",
 		Usage: "Boolean profiling mode option. If set to true, the /debug/pprof routes will be available on the node for profiling the application.",
