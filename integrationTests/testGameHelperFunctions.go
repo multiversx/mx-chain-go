@@ -172,7 +172,7 @@ func CheckBalanceIsDoneCorrectlySCSide(
 	topUpVal *big.Int,
 	withdraw *big.Int,
 	scAddressBytes []byte,
-) {
+) *big.Int {
 
 	nodeWithSc := nodes[idxNodeScExists]
 
@@ -185,6 +185,8 @@ func CheckBalanceIsDoneCorrectlySCSide(
 	if !ok {
 		fmt.Printf("Expected smart contract val %d Actual smart contract val %d\n", expectedSC.Uint64(), accnt.(*state.Account).Balance.Uint64())
 	}
+
+	return expectedSC
 }
 
 // CheckJoinGame verifies if joinGame was done correctly by players
@@ -244,4 +246,68 @@ func CheckRewardsDistribution(
 		withdrawValue,
 		hardCodedScResultingAddress,
 	)
+}
+
+// CheckSenderOkBalanceAfterTopUpAndWithdraw checks if sender balance is ok after top-up and withdraw
+func CheckSenderOkBalanceAfterTopUpAndWithdraw(
+	t *testing.T,
+	nodeWithCaller *TestProcessorNode,
+	initialVal *big.Int,
+	topUpVal *big.Int,
+	withdraw *big.Int,
+) {
+	fmt.Println("Checking sender has initial-topUp+withdraw val...")
+	expectedSender := big.NewInt(0).Set(initialVal)
+	expectedSender.Sub(expectedSender, topUpVal)
+	expectedSender.Add(expectedSender, withdraw)
+	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(nodeWithCaller.OwnAccount.PkTxSignBytes))
+	assert.NotNil(t, accnt)
+	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
+}
+
+// CheckSenderOkBalanceAfterTopUp checks if sender balance is ok after top-up
+func CheckSenderOkBalanceAfterTopUp(
+	t *testing.T,
+	nodeWithCaller *TestProcessorNode,
+	initialVal *big.Int,
+	topUpVal *big.Int,
+) {
+	fmt.Println("Checking sender has initial-topUp val...")
+	expectedVal := big.NewInt(0).Set(initialVal)
+	expectedVal.Sub(expectedVal, topUpVal)
+	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(nodeWithCaller.OwnAccount.PkTxSignBytes))
+	assert.NotNil(t, accnt)
+	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
+}
+
+// CheckScTopUp checks if sc received the top-up value
+func CheckScTopUp(
+	t *testing.T,
+	nodeWithSc *TestProcessorNode,
+	topUpVal *big.Int,
+	scAddressBytes []byte,
+) {
+	fmt.Println("Checking SC account received topUp val...")
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(scAddressBytes))
+	assert.NotNil(t, accnt)
+	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
+}
+
+// CheckScBalanceOf checks the balance of a SC
+func CheckScBalanceOf(
+	t *testing.T,
+	nodeWithSc *TestProcessorNode,
+	nodeWithCaller *TestProcessorNode,
+	expectedSC *big.Int,
+	scAddressBytes []byte,
+) {
+	fmt.Println("Checking SC.balanceOf...")
+	bytesValue, _ := nodeWithSc.ScDataGetter.Get(
+		scAddressBytes,
+		"balanceOf",
+		nodeWithCaller.OwnAccount.PkTxSignBytes,
+	)
+	retrievedValue := big.NewInt(0).SetBytes(bytesValue)
+	fmt.Printf("SC balanceOf returned %d\n", retrievedValue)
+	assert.Equal(t, expectedSC, retrievedValue)
 }

@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/pkg/profile"
 	"io/ioutil"
 	"math/big"
+	"strconv"
 	"testing"
 	"time"
+
+	"github.com/pkg/profile"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -420,7 +422,7 @@ func runMultipleRoundsOfTheGame(
 				nodes,
 				player,
 				topUpValue,
-				rr,
+				strconv.Itoa(rr),
 				hardCodedScResultingAddress,
 			)
 			newBalance := big.NewInt(0)
@@ -444,7 +446,7 @@ func runMultipleRoundsOfTheGame(
 		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
 		for i := 0; i < numRewardedPlayers; i++ {
-			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], rr, hardCodedScResultingAddress)
+			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], strconv.Itoa(rr), hardCodedScResultingAddress)
 			newBalance := big.NewInt(0)
 			newBalance = newBalance.Add(players[i].Balance, withdrawValues[i])
 			players[i].Balance = players[i].Balance.Set(newBalance)

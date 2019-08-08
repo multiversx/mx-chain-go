@@ -179,7 +179,6 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		receiverProposer := nodes[int(shardId)*nodesPerShard]
 		firstReceiverNodes = append(firstReceiverNodes, receiverProposer)
 
-		//body, header := integrationTests.CreateBlockBodyAndHeader(t, receiverProposer, uint64(1), receiverProposer.ShardCoordinator)
 		body, header, _ := receiverProposer.ProposeBlock(1)
 		_ = receiverProposer.BroadcastMessenger.BroadcastBlock(body, header)
 		_ = receiverProposer.BroadcastMessenger.BroadcastHeader(header)

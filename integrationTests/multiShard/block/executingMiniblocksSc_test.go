@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
@@ -85,15 +84,12 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 		round = integrationTests.IncrementAndPrintRound(round)
 	}
 
-	checkTopUpIsDoneCorrectly(
-		t,
-		nodes,
-		idxNodeShard1,
-		idxNodeShard0,
-		initialVal,
-		topUpValue,
-		hardCodedScResultingAddress,
-	)
+	nodeWithSc := nodes[idxNodeShard1]
+	nodeWithCaller := nodes[idxNodeShard0]
+
+	integrationTests.CheckScTopUp(t, nodeWithSc, topUpValue, hardCodedScResultingAddress)
+	integrationTests.CheckScBalanceOf(t, nodeWithSc, nodeWithCaller, topUpValue, hardCodedScResultingAddress)
+	integrationTests.CheckSenderOkBalanceAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
 
 	integrationTests.NodeDoesWithdraw(nodes, idxNodeShard0, withdrawValue, hardCodedScResultingAddress)
 
@@ -103,16 +99,9 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 		round = integrationTests.IncrementAndPrintRound(round)
 	}
 
-	checkWithdrawIsDoneCorrectly(
-		t,
-		nodes,
-		idxNodeShard1,
-		idxNodeShard0,
-		initialVal,
-		topUpValue,
-		withdrawValue,
-		hardCodedScResultingAddress,
-	)
+	expectedSC := integrationTests.CheckBalanceIsDoneCorrectlySCSide(t, nodes, idxNodeShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
+	integrationTests.CheckScBalanceOf(t, nodeWithSc, nodeWithCaller, expectedSC, hardCodedScResultingAddress)
+	integrationTests.CheckSenderOkBalanceAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
 }
 
 // TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndRewardProposersAndValidators tests the following scenario:
@@ -204,16 +193,11 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
 
-	checkJoinGameIsDoneCorrectly(
-		t,
-		nodes,
-		idxProposerShard1,
-		idxProposerShard0,
-		initialVal,
-		topUpValue,
-		hardCodedScResultingAddress,
-	)
+	nodeWithSc := nodes[idxProposerShard1]
+	nodeWithCaller := nodes[idxProposerShard0]
 
+	integrationTests.CheckScTopUp(t, nodeWithSc, topUpValue, hardCodedScResultingAddress)
+	integrationTests.CheckSenderOkBalanceAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
 	integrationTests.NodeCallsRewardAndSend(
 		nodes,
 		idxProposerShard1,
@@ -232,17 +216,8 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
 
-	checkRewardIsDoneCorrectly(
-		t,
-		nodes,
-		idxProposerShard1,
-		idxProposerShard0,
-		initialVal,
-		topUpValue,
-		withdrawValue,
-		hardCodedScResultingAddress,
-	)
-
+	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSide(t, nodes, idxProposerShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
+	integrationTests.CheckSenderOkBalanceAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
 	integrationTests.CheckRootHashes(t, nodes, idxProposers)
 }
 
@@ -346,145 +321,9 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 		break
 	}
 
-	checkJoinGameIsDoneCorrectly(
-		t,
-		nodes,
-		idxProposerShard1,
-		idxProposerShard0,
-		initialVal,
-		topUpValue,
-		hardCodedScResultingAddress,
-	)
-}
+	nodeWithSc := nodes[idxProposerShard1]
+	nodeWithCaller := nodes[idxProposerShard0]
 
-func checkTopUpIsDoneCorrectly(
-	t *testing.T,
-	nodes []*integrationTests.TestProcessorNode,
-	idxNodeScExists int,
-	idxNodeCallerExists int,
-	initialVal *big.Int,
-	topUpVal *big.Int,
-	scAddressBytes []byte,
-) {
-
-	nodeWithSc := nodes[idxNodeScExists]
-	nodeWithCaller := nodes[idxNodeCallerExists]
-
-	fmt.Println("Checking SC account received topUp val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
-	assert.NotNil(t, accnt)
-	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
-
-	fmt.Println("Checking SC.balanceOf...")
-	bytesValue, _ := nodeWithSc.ScDataGetter.Get(
-		scAddressBytes,
-		"balanceOf",
-		nodeWithCaller.OwnAccount.PkTxSignBytes,
-	)
-	retrievedValue := big.NewInt(0).SetBytes(bytesValue)
-	fmt.Printf("SC balanceOf returned %d\n", retrievedValue)
-	assert.Equal(t, topUpVal, retrievedValue)
-
-	fmt.Println("Checking sender has initial-topUp val...")
-	expectedVal := big.NewInt(0).Set(initialVal)
-	expectedVal.Sub(expectedVal, topUpVal)
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.OwnAccount.PkTxSignBytes))
-	assert.NotNil(t, accnt)
-	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
-}
-
-func checkJoinGameIsDoneCorrectly(
-	t *testing.T,
-	nodes []*integrationTests.TestProcessorNode,
-	idxNodeScExists int,
-	idxNodeCallerExists int,
-	initialVal *big.Int,
-	topUpVal *big.Int,
-	scAddressBytes []byte,
-) {
-
-	nodeWithSc := nodes[idxNodeScExists]
-	nodeWithCaller := nodes[idxNodeCallerExists]
-
-	fmt.Println("Checking SC account received topUp val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
-	assert.NotNil(t, accnt)
-	assert.Equal(t, topUpVal, accnt.(*state.Account).Balance)
-
-	fmt.Println("Checking sender has initial-topUp val...")
-	expectedVal := big.NewInt(0).Set(initialVal)
-	expectedVal.Sub(expectedVal, topUpVal)
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.OwnAccount.PkTxSignBytes))
-	assert.NotNil(t, accnt)
-	assert.Equal(t, expectedVal, accnt.(*state.Account).Balance)
-}
-
-func checkWithdrawIsDoneCorrectly(
-	t *testing.T,
-	nodes []*integrationTests.TestProcessorNode,
-	idxNodeScExists int,
-	idxNodeCallerExists int,
-	initialVal *big.Int,
-	topUpVal *big.Int,
-	withdraw *big.Int,
-	scAddressBytes []byte,
-) {
-
-	nodeWithSc := nodes[idxNodeScExists]
-	nodeWithCaller := nodes[idxNodeCallerExists]
-
-	fmt.Println("Checking SC account has topUp-withdraw val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
-	assert.NotNil(t, accnt)
-	expectedSC := big.NewInt(0).Set(topUpVal)
-	expectedSC.Sub(expectedSC, withdraw)
-	assert.Equal(t, expectedSC, accnt.(*state.Account).Balance)
-
-	fmt.Println("Checking SC.balanceOf...")
-	bytesValue, _ := nodeWithSc.ScDataGetter.Get(
-		scAddressBytes,
-		"balanceOf",
-		nodeWithCaller.OwnAccount.PkTxSignBytes,
-	)
-	retrievedValue := big.NewInt(0).SetBytes(bytesValue)
-	fmt.Printf("SC balanceOf returned %d\n", retrievedValue)
-	assert.Equal(t, expectedSC, retrievedValue)
-
-	fmt.Println("Checking sender has initial-topUp+withdraw val...")
-	expectedSender := big.NewInt(0).Set(initialVal)
-	expectedSender.Sub(expectedSender, topUpVal)
-	expectedSender.Add(expectedSender, withdraw)
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.OwnAccount.PkTxSignBytes))
-	assert.NotNil(t, accnt)
-	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
-}
-
-func checkRewardIsDoneCorrectly(
-	t *testing.T,
-	nodes []*integrationTests.TestProcessorNode,
-	idxNodeScExists int,
-	idxNodeCallerExists int,
-	initialVal *big.Int,
-	topUpVal *big.Int,
-	withdraw *big.Int,
-	scAddressBytes []byte,
-) {
-
-	nodeWithSc := nodes[idxNodeScExists]
-	nodeWithCaller := nodes[idxNodeCallerExists]
-
-	fmt.Println("Checking SC account has topUp-withdraw val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(scAddressBytes))
-	assert.NotNil(t, accnt)
-	expectedSC := big.NewInt(0).Set(topUpVal)
-	expectedSC.Sub(expectedSC, withdraw)
-	assert.Equal(t, expectedSC, accnt.(*state.Account).Balance)
-
-	fmt.Println("Checking sender has initial-topUp+withdraw val...")
-	expectedSender := big.NewInt(0).Set(initialVal)
-	expectedSender.Sub(expectedSender, topUpVal)
-	expectedSender.Add(expectedSender, withdraw)
-	accnt, _ = nodeWithCaller.AccntState.GetExistingAccount(integrationTests.CreateAddressFromAddrBytes(nodeWithCaller.OwnAccount.PkTxSignBytes))
-	assert.NotNil(t, accnt)
-	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
+	integrationTests.CheckScTopUp(t, nodeWithSc, topUpValue, hardCodedScResultingAddress)
+	integrationTests.CheckSenderOkBalanceAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
 }
