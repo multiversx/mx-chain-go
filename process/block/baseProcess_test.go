@@ -236,9 +236,8 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 		},
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 			cs := &mock.Uint64SyncMapCacherStub{}
-			cs.RemoveNonceCalled = func(u uint64) {}
 			cs.MergeCalled = func(u uint64, syncMap dataRetriever.ShardIdHashMap) {}
-			cs.RemoveShardIdCalled = func(nonce uint64, shardId uint32) {}
+			cs.RemoveCalled = func(nonce uint64, shardId uint32) {}
 			return cs
 		},
 	}

@@ -122,7 +122,6 @@ func createMockPools() *mock.PoolsHolderStub {
 				return nil, false
 			},
 			RegisterHandlerCalled: func(handler func(nonce uint64, shardId uint32, hash []byte)) {},
-			RemoveNonceCalled:     func(u uint64) {},
 		}
 		return hnc
 	}
@@ -232,12 +231,7 @@ func createHeadersNoncesDataPool(
 
 			return nil, false
 		},
-		RemoveNonceCalled: func(u uint64) {
-			if u == removedNonce {
-				remFlags.flagHdrRemovedFromNonces = true
-			}
-		},
-		RemoveShardIdCalled: func(nonce uint64, providedShardId uint32) {
+		RemoveCalled: func(nonce uint64, providedShardId uint32) {
 			if nonce == removedNonce && shardId == providedShardId {
 				remFlags.flagHdrRemovedFromNonces = true
 			}
@@ -1071,7 +1065,6 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 
 			return nil, false
 		}
-		hnc.RemoveNonceCalled = func(u uint64) {}
 
 		return hnc
 	}
@@ -1436,7 +1429,6 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.RemoveNonceCalled = func(u uint64) {}
 		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
 			if u == 2 {
 				syncMap := &dataPool.ShardIdHashSyncMap{}
@@ -1447,7 +1439,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 			return nil, false
 		}
-		hnc.RemoveShardIdCalled = func(nonce uint64, shardId uint32) {}
+		hnc.RemoveCalled = func(nonce uint64, shardId uint32) {}
 		return hnc
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
@@ -3077,7 +3069,6 @@ func TestBootstrap_LoadBlocksShouldWorkAfterRemoveInvalidBlocks(t *testing.T) {
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.RemoveNonceCalled = func(u uint64) {}
 
 		return hnc
 	}
@@ -3871,7 +3862,6 @@ func TestBootstrap_RemoveBlockHeaderShouldWork(t *testing.T) {
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.RemoveNonceCalled = func(u uint64) {}
 
 		return hnc
 	}
@@ -4765,7 +4755,6 @@ func TestBootstrap_RemoveNotarizedBlockShouldWork(t *testing.T) {
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.RemoveNonceCalled = func(u uint64) {}
 
 		return hnc
 	}

@@ -460,7 +460,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
-	boot.headersNonces.RemoveShardId(header.GetNonce(), header.GetShardID())
+	boot.headersNonces.Remove(header.GetNonce(), header.GetShardID())
 
 	hash, err := core.CalculateHash(boot.marshalizer, boot.hasher, header)
 	if err != nil {

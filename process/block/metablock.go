@@ -273,7 +273,7 @@ func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error 
 		}
 
 		headerPool.Remove(shardData.HeaderHash)
-		headerNoncesPool.RemoveShardId(hdr.Nonce, hdr.ShardId)
+		headerNoncesPool.Remove(hdr.Nonce, hdr.ShardId)
 	}
 
 	return nil

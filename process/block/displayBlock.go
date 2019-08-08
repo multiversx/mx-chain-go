@@ -124,12 +124,11 @@ func (txc *transactionCounter) displayMetaHashesIncluded(
 	header *block.Header,
 ) []*display.LineData {
 
-	part := fmt.Sprintf("MetaBlockHashes")
 	if header.MetaBlockHashes == nil || len(header.MetaBlockHashes) == 0 {
-		lines = append(lines, display.NewLineData(false, []string{
-			part, "", "<EMPTY>"}))
+		return lines
 	}
 
+	part := fmt.Sprintf("MetaBlockHashes")
 	for i := 0; i < len(header.MetaBlockHashes); i++ {
 		if i == 0 || i >= len(header.MetaBlockHashes)-1 {
 			lines = append(lines, display.NewLineData(false, []string{

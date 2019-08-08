@@ -128,6 +128,10 @@ func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, stat
 	if int64(header.GetRound()) > nextRound {
 		return ErrHigherRoundInBlock
 	}
+	roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-process.ForkBlockFinality
+	if roundTooOld {
+		return ErrLowerRoundInBlock
+	}
 	if int64(roundDif) < nonceDif {
 		return ErrHigherNonceInBlock
 	}

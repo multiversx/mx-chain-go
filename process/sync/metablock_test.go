@@ -49,8 +49,7 @@ func createMockMetaPools() *mock.MetaPoolsHolderStub {
 				return nil, false
 			},
 			RegisterHandlerCalled: func(handler func(nonce uint64, shardId uint32, hash []byte)) {},
-			RemoveNonceCalled:     func(u uint64) {},
-			RemoveShardIdCalled:   func(nonce uint64, shardId uint32) {},
+			RemoveCalled:          func(nonce uint64, shardId uint32) {},
 			MergeCalled:           func(u uint64, src dataRetriever.ShardIdHashMap) {},
 		}
 		return hnc
@@ -1036,7 +1035,6 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.RemoveNonceCalled = func(u uint64) {}
 		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
 			if u == 2 {
 				syncMap := &dataPool.ShardIdHashSyncMap{}
@@ -1047,7 +1045,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 
 			return nil, false
 		}
-		hnc.RemoveShardIdCalled = func(nonce uint64, shardId uint32) {}
+		hnc.RemoveCalled = func(nonce uint64, shardId uint32) {}
 		return hnc
 	}
 

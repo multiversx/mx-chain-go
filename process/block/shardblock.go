@@ -877,10 +877,12 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 		}
 
 		sp.dataPool.MetaBlocks().Remove(headerHash)
-		sp.dataPool.HeadersNonces().RemoveNonce(hdr.GetNonce())
+		sp.dataPool.HeadersNonces().Remove(hdr.GetNonce(), sharding.MetachainShardId)
 
-		log.Debug(fmt.Sprintf("metaBlock with nonce %d has been processed completely and removed from pool\n",
-			hdr.GetNonce()))
+		log.Debug(fmt.Sprintf("metaBlock with round %d nonce %d and hash %s has been processed completely and removed from pool\n",
+			hdr.GetRound(),
+			hdr.GetNonce(),
+			core.ToB64(headerHash)))
 
 		processed++
 	}

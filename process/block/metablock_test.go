@@ -558,7 +558,6 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 
 			return syncMap, true
 		}
-		cs.RemoveNonceCalled = func(u uint64) {}
 		return cs
 	}
 	mp.AddHdrHashToRequestedList([]byte("header_hash"))
