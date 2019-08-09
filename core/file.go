@@ -3,7 +3,6 @@ package core
 import (
 	"encoding/json"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,11 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/pelletier/go-toml"
 )
-
-var errPemFileIsInvalid = errors.New("pem file is invalid")
-var errNilFile = errors.New("nil file provided")
-var errEmptyFile = errors.New("empty file provided")
-var errInvalidIndex = errors.New("invalid private key index")
 
 // OpenFile method opens the file from given path - does not close the file
 func OpenFile(relativePath string, log *logger.Logger) (*os.File, error) {
@@ -95,7 +89,7 @@ func CreateFile(prefix string, subfolder string, fileExtension string) (*os.File
 // LoadSkFromPemFile loads the secret key bytes stored in the file
 func LoadSkFromPemFile(relativePath string, log *logger.Logger, skIndex int) ([]byte, error) {
 	if skIndex < 0 {
-		return nil, errInvalidIndex
+		return nil, ErrInvalidIndex
 	}
 
 	file, err := OpenFile(relativePath, log)
@@ -113,7 +107,7 @@ func LoadSkFromPemFile(relativePath string, log *logger.Logger, skIndex int) ([]
 		return nil, err
 	}
 	if len(buff) == 0 {
-		return nil, errEmptyFile
+		return nil, ErrEmptyFile
 	}
 
 	var blkRecovered *pem.Block
@@ -121,12 +115,12 @@ func LoadSkFromPemFile(relativePath string, log *logger.Logger, skIndex int) ([]
 	for i := 0; i <= skIndex; i++ {
 		if len(buff) == 0 {
 			//less private keys present in the file than required
-			return nil, errInvalidIndex
+			return nil, ErrInvalidIndex
 		}
 
 		blkRecovered, buff = pem.Decode(buff)
 		if blkRecovered == nil {
-			return nil, errPemFileIsInvalid
+			return nil, ErrPemFileIsInvalid
 		}
 	}
 
@@ -136,7 +130,7 @@ func LoadSkFromPemFile(relativePath string, log *logger.Logger, skIndex int) ([]
 // SaveSkToPemFile saves secret key bytes in the file
 func SaveSkToPemFile(file *os.File, identifier string, skBytes []byte) error {
 	if file == nil {
-		return errNilFile
+		return ErrNilFile
 	}
 
 	blk := pem.Block{

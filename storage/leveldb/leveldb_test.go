@@ -59,6 +59,15 @@ func TestDB_GetOKAfterPutWithTimeout(t *testing.T) {
 	assert.Equal(t, val, v)
 }
 
+func TestDB_GetErrorOnFail(t *testing.T) {
+	ldb := createLevelDb(t, 1, 100)
+	ldb.Close()
+
+	v, err := ldb.Get([]byte("key"))
+	assert.Nil(t, v)
+	assert.NotNil(t, err)
+}
+
 func TestDB_RemoveBeforeTimeoutOK(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
 	ldb := createLevelDb(t, 1, 100)
