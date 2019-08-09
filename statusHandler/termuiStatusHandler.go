@@ -21,27 +21,27 @@ func (tsh *TermuiStatusHandler) Termui() *termuic.TermuiConsole {
 	return tsh.tui
 }
 
-// Increment method - won't do anything
+// Increment method - will increment the value for a key
 func (tsh *TermuiStatusHandler) Increment(key string) {
 	tsh.tui.Increment(key)
 }
 
-// Decrement method - won't do anything
+// Decrement method - will decrement the value for a key
 func (tsh *TermuiStatusHandler) Decrement(key string) {
 	return
 }
 
-// SetInt64Value method - won't do anything
+// SetInt64Value method - will update the value for a key
 func (tsh *TermuiStatusHandler) SetInt64Value(key string, value int64) {
 	tsh.tui.SetInt64Value(key, value)
 }
 
-// SetUInt64Value method - won't do anything
+// SetUInt64Value method - will update the value for a key
 func (tsh *TermuiStatusHandler) SetUInt64Value(key string, value uint64) {
 	tsh.tui.SetUInt64Value(key, value)
 }
 
-// SetString - will update the value for a key
+// SetStringValue - will update the value for a key
 func (tsh *TermuiStatusHandler) SetStringValue(key string, value string) {
 	tsh.tui.SetString(key, value)
 }

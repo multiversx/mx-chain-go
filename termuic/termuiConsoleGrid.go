@@ -116,7 +116,7 @@ func (tcg *termuiConsoleGrid) PrepareNonceForDisplay(Nonce int) {
 }
 
 func (tcg *termuiConsoleGrid) PrepareSynchronizedRoundForDisplay(synchronizedRound int) {
-	tcg.pSynchronizeRound.Text = "SynchronizedRound : " + strconv.Itoa(synchronizedRound)
+	tcg.pSynchronizeRound.Text = "Synchronized Round : " + strconv.Itoa(synchronizedRound)
 	return
 }
 
@@ -138,7 +138,7 @@ func (tcg *termuiConsoleGrid) PrepareIsSyncingForDisplay(isSyncing int) {
 }
 
 func (tcg *termuiConsoleGrid) PrepareCurrentRoundForDisplay(currentRound int) {
-	tcg.pCurrentRound.Text = "CurrentRound : " + strconv.Itoa(currentRound)
+	tcg.pCurrentRound.Text = "Current Round : " + strconv.Itoa(currentRound)
 	return
 }
 
@@ -171,24 +171,24 @@ func (tcg *termuiConsoleGrid) PrepareSparkLineGroupForDisplay(txPoolLoad int, nu
 	}
 	tcg.slTxPoolLoadData = append(tcg.slTxPoolLoadData, float64(txPoolLoad))
 	tcg.slTxPoolLoad.Data = tcg.slTxPoolLoadData
-	tcg.slTxPoolLoad.Title = fmt.Sprintf("TxPoolLoad %v", txPoolLoad)
+	tcg.slTxPoolLoad.Title = fmt.Sprintf("Tx Pool Load %v", txPoolLoad)
 
 	if len(tcg.slNumConnectedPeersData) >= 50 {
 		tcg.slNumConnectedPeersData = tcg.slNumConnectedPeersData[1:50]
 	}
 	tcg.slNumConnectedPeersData = append(tcg.slNumConnectedPeersData, float64(numConnectedPeers))
 	tcg.slNumConnectedPeer.Data = tcg.slNumConnectedPeersData
-	tcg.slNumConnectedPeer.Title = fmt.Sprintf("NumConnecterPeers %v", numConnectedPeers)
+	tcg.slNumConnectedPeer.Title = fmt.Sprintf("Num Connecter Peers %v", numConnectedPeers)
 
 	return
 }
 
 func (tcg *termuiConsoleGrid) PrepareConcensusInformationsForDisplay(countConsensus int, countLeader int, acceptedBlocks int) {
-	tcg.pCountConsensus.Text = fmt.Sprintf("CountConsensusGroup %v", countConsensus)
+	tcg.pCountConsensus.Text = fmt.Sprintf("Count Consensus Group %v", countConsensus)
 
-	tcg.pCountLeader.Text = fmt.Sprintf("CountLeader %v", countLeader)
+	tcg.pCountLeader.Text = fmt.Sprintf("Count Leader %v", countLeader)
 
-	tcg.pCountAcceptedBlocks.Text = fmt.Sprintf("AcceptedBlocks %v", acceptedBlocks)
+	tcg.pCountAcceptedBlocks.Text = fmt.Sprintf("Accepted Blocks %v", acceptedBlocks)
 
 	return
 }

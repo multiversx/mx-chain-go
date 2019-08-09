@@ -17,6 +17,9 @@ type TermuiConsole struct {
 	TermuiConsoleMetrics sync.Map
 	logLines             []string
 	mutLogLineWrite      sync.RWMutex
+	viewBigLog           bool
+	numLogLines          int
+	termuiConsoleWidgets *termuiConsoleGrid
 }
 
 //NewTermuiConsole method is used to return a new TermuiConsole structure
@@ -25,6 +28,9 @@ func NewTermuiConsole() *TermuiConsole {
 	tdm := TermuiConsole{}
 
 	tdm.initMetricsMap()
+
+	tdm.viewBigLog = false
+	tdm.numLogLines = 10
 
 	return &tdm
 }
@@ -35,8 +41,8 @@ func (tdm *TermuiConsole) Write(p []byte) (n int, err error) {
 		logLine := string(p)
 
 		tdm.mutLogLineWrite.Lock()
-		if len(tdm.logLines) >= 10 {
-			tdm.logLines = tdm.logLines[1:10]
+		if len(tdm.logLines) >= tdm.numLogLines {
+			tdm.logLines = tdm.logLines[1:tdm.numLogLines]
 		}
 		tdm.mutLogLineWrite.Unlock()
 
@@ -119,14 +125,9 @@ func (tdm *TermuiConsole) Start() {
 
 func (tdm *TermuiConsole) eventLoop() {
 
-	termuiConsoleWidgets := NewtermuiConsoleGrid()
+	tdm.termuiConsoleWidgets = NewtermuiConsoleGrid()
 
-	grid := termuiConsoleWidgets.Grid()
-
-	time.Sleep(1 * time.Second)
-
-	termWidth, termHeight := ui.TerminalDimensions()
-	grid.SetRect(0, 0, termWidth, termHeight)
+	grid := tdm.configConsoleNormalTermuiWidgets()
 
 	uiEvents := ui.PollEvents()
 	// handles kill signal sent to gotop
@@ -138,7 +139,7 @@ func (tdm *TermuiConsole) eventLoop() {
 	for {
 		select {
 		case <-drawTicker:
-			tdm.prepareData(termuiConsoleWidgets)
+			tdm.refreshDataForConsole()
 
 			ui.Clear()
 			ui.Render(grid)
@@ -157,43 +158,52 @@ func (tdm *TermuiConsole) eventLoop() {
 
 			case "q":
 				ui.Clear()
-				return
+				grid = tdm.changeConsoleDisplay()
+
 			}
 		}
 	}
 }
 
-func (tdm *TermuiConsole) prepareData(termuiConsoleWidgets *termuiConsoleGrid) {
+func (tdm *TermuiConsole) refreshDataForConsole() {
+	if tdm.viewBigLog == false {
+		tdm.prepareData()
+	} else {
+		tdm.bigConsoleLogDisplay()
+	}
+}
+
+func (tdm *TermuiConsole) prepareData() {
 	nonceI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricNonce)
 	nonce := nonceI.(int)
-	termuiConsoleWidgets.PrepareNonceForDisplay(nonce)
+	tdm.termuiConsoleWidgets.PrepareNonceForDisplay(nonce)
 
 	synchronizedRoundI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricSynchronizedRound)
 	synchronizedRound := synchronizedRoundI.(int)
-	termuiConsoleWidgets.PrepareSynchronizedRoundForDisplay(synchronizedRound)
+	tdm.termuiConsoleWidgets.PrepareSynchronizedRoundForDisplay(synchronizedRound)
 
 	currentRoundI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricCurrentRound)
 	currentRound := currentRoundI.(int)
-	termuiConsoleWidgets.PrepareCurrentRoundForDisplay(currentRound)
+	tdm.termuiConsoleWidgets.PrepareCurrentRoundForDisplay(currentRound)
 
 	isSyncingI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricIsSyncing)
 	isSyncing := isSyncingI.(int)
-	termuiConsoleWidgets.PrepareIsSyncingForDisplay(isSyncing)
+	tdm.termuiConsoleWidgets.PrepareIsSyncingForDisplay(isSyncing)
 
 	publicKeyI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricPublicKey)
 	publicKey := publicKeyI.(string)
-	termuiConsoleWidgets.PreparePublicKeyForDisplay(publicKey)
+	tdm.termuiConsoleWidgets.PreparePublicKeyForDisplay(publicKey)
 
 	shardIdI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricShardId)
 	shardId := shardIdI.(int)
-	termuiConsoleWidgets.PrepareShardIdForDisplay(shardId)
+	tdm.termuiConsoleWidgets.PrepareShardIdForDisplay(shardId)
 
 	numConnectedPeersI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricNumConnectedPeers)
 	numConnectedPeers := numConnectedPeersI.(int)
 
 	txPoolLoadI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricTxPoolLoad)
 	txPoolLoad := txPoolLoadI.(int)
-	termuiConsoleWidgets.PrepareSparkLineGroupForDisplay(txPoolLoad, numConnectedPeers)
+	tdm.termuiConsoleWidgets.PrepareSparkLineGroupForDisplay(txPoolLoad, numConnectedPeers)
 
 	countConsensusI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricCountConsensus)
 	countConsensus := countConsensusI.(int)
@@ -204,7 +214,49 @@ func (tdm *TermuiConsole) prepareData(termuiConsoleWidgets *termuiConsoleGrid) {
 	countAcceptedBlocksI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricCountAcceptedBlocks)
 	countAcceptedBlocks := countAcceptedBlocksI.(int)
 
-	termuiConsoleWidgets.PrepareConcensusInformationsForDisplay(countConsensus, countLeader, countAcceptedBlocks)
+	tdm.termuiConsoleWidgets.PrepareConcensusInformationsForDisplay(countConsensus, countLeader, countAcceptedBlocks)
 
-	termuiConsoleWidgets.PrepareListWithLogsForDisplay(tdm.logLines)
+	tdm.termuiConsoleWidgets.PrepareListWithLogsForDisplay(tdm.logLines)
+}
+
+func (tdm *TermuiConsole) bigConsoleLogDisplay() {
+	tdm.termuiConsoleWidgets.PrepareListWithLogsForDisplay(tdm.logLines)
+}
+
+func (tdm *TermuiConsole) changeConsoleDisplay() *ui.Grid {
+	if tdm.viewBigLog == false {
+		tdm.viewBigLog = true
+		tdm.numLogLines = 50
+
+		return tdm.configConsoleWithBigLog()
+
+	} else {
+		tdm.viewBigLog = false
+		tdm.numLogLines = 10
+
+		return tdm.configConsoleNormalTermuiWidgets()
+	}
+}
+
+func (tdm *TermuiConsole) configConsoleWithBigLog() *ui.Grid {
+	grid := ui.NewGrid()
+	grid.Set(
+		ui.NewRow(1.0, tdm.termuiConsoleWidgets.lLog),
+	)
+
+	termWidth, termHeight := ui.TerminalDimensions()
+	grid.SetRect(0, 0, termWidth, termHeight)
+
+	return grid
+}
+
+func (tdm *TermuiConsole) configConsoleNormalTermuiWidgets() *ui.Grid {
+	tdm.termuiConsoleWidgets.setupGrid()
+
+	grid := tdm.termuiConsoleWidgets.Grid()
+
+	termWidth, termHeight := ui.TerminalDimensions()
+	grid.SetRect(0, 0, termWidth, termHeight)
+
+	return grid
 }
