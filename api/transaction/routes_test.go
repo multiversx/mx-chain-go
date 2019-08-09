@@ -49,11 +49,11 @@ func TestGenerateTransaction_WithParametersShouldReturnTransaction(t *testing.T)
 	data := "data"
 
 	facade := mock.Facade{
-		GenerateTransactionHandler: func(sender string, receiver string, value *big.Int, code string) (transaction *tr.Transaction, e error) {
+		GenerateTransactionHandler: func(sender string, receiver string, value *big.Int, data string) (transaction *tr.Transaction, e error) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
-				Data:    []byte(code),
+				Data:    data,
 				Value:   value,
 			}, nil
 		},
@@ -61,11 +61,12 @@ func TestGenerateTransaction_WithParametersShouldReturnTransaction(t *testing.T)
 
 	ws := startNodeServer(&facade)
 
-	jsonStr := fmt.Sprintf(
-		`{"sender":"%s",`+
-			`"receiver":"%s",`+
-			`"value":%s,`+
-			`"data":"%s"}`, sender, receiver, value, data)
+	jsonStr := fmt.Sprintf(`{"sender":"%s", "receiver":"%s", "value":%s, "data":"%s"}`,
+		sender,
+		receiver,
+		value,
+		data,
+	)
 
 	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(jsonStr)))
 
@@ -100,10 +101,7 @@ func TestGenerateAndSendMultipleTransaction_WithParametersShouldReturnNoError(t 
 
 	ws := startNodeServer(&facade)
 
-	jsonStr := fmt.Sprintf(
-		`{"receiver":"%s",`+
-			`"value":%s,`+
-			`"txCount":%d}`, receiver, value, txCount)
+	jsonStr := fmt.Sprintf(`{"receiver":"%s", "value":%s, "txCount":%d}`, receiver, value, txCount)
 
 	req, _ := http.NewRequest("POST", "/transaction/generate-and-send-multiple", bytes.NewBuffer([]byte(jsonStr)))
 
@@ -133,10 +131,7 @@ func TestGenerateAndSendMultipleTransactionOneByOne_WithParametersShouldReturnNo
 
 	ws := startNodeServer(&facade)
 
-	jsonStr := fmt.Sprintf(
-		`{"receiver":"%s",`+
-			`"value":%s,`+
-			`"txCount":%d}`, receiver, value, txCount)
+	jsonStr := fmt.Sprintf(`{"receiver":"%s", "value":%s, "txCount":%d}`, receiver, value, txCount)
 
 	req, _ := http.NewRequest("POST", "/transaction/generate-and-send-multiple-one-by-one", bytes.NewBuffer([]byte(jsonStr)))
 
@@ -162,7 +157,7 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
-				Data:    []byte(data),
+				Data:    data,
 				Value:   value,
 			}, nil
 		},
@@ -200,7 +195,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
-				Data:    []byte(data),
+				Data:    data,
 				Value:   value,
 			}, nil
 		},
@@ -327,11 +322,12 @@ func TestGenerateTransaction_ErrorsWhenFacadeGenerateTransactionFails(t *testing
 	}
 	ws := startNodeServer(&facade)
 
-	jsonStr := fmt.Sprintf(
-		`{"sender":"%s",`+
-			`"receiver":"%s",`+
-			`"value":%s,`+
-			`"data":"%s"}`, sender, receiver, value, data)
+	jsonStr := fmt.Sprintf(`{"sender":"%s", "receiver":"%s", "value":%s, "data":"%s"}`,
+		sender,
+		receiver,
+		value,
+		data,
+	)
 
 	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(jsonStr)))
 
@@ -370,11 +366,12 @@ func TestSendTransaction_WrongParametersShouldErrorOnValidation(t *testing.T) {
 	facade := mock.Facade{}
 	ws := startNodeServer(&facade)
 
-	jsonStr := fmt.Sprintf(
-		`{"sender":"%s",`+
-			`"receiver":"%s",`+
-			`"value":%s,`+
-			`"data":"%s"}`, sender, receiver, value, data)
+	jsonStr := fmt.Sprintf(`{"sender":"%s", "receiver":"%s", "value":%s, "data":"%s"}`,
+		sender,
+		receiver,
+		value,
+		data,
+	)
 
 	req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer([]byte(jsonStr)))
 
@@ -400,12 +397,13 @@ func TestSendTransaction_InvalidHexSignatureShouldError(t *testing.T) {
 	facade := mock.Facade{}
 	ws := startNodeServer(&facade)
 
-	jsonStr := fmt.Sprintf(
-		`{"sender":"%s",`+
-			`"receiver":"%s",`+
-			`"value":%s,`+
-			`"signature":"%s",`+
-			`"data":"%s"}`, sender, receiver, value, signature, data)
+	jsonStr := fmt.Sprintf(`{"sender":"%s", "receiver":"%s", "value":%s, "signature":"%s", "data":"%s"}`,
+		sender,
+		receiver,
+		value,
+		signature,
+		data,
+	)
 
 	req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer([]byte(jsonStr)))
 
@@ -437,12 +435,13 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	}
 	ws := startNodeServer(&facade)
 
-	jsonStr := fmt.Sprintf(
-		`{"sender":"%s",`+
-			`"receiver":"%s",`+
-			`"value":%s,`+
-			`"signature":"%s",`+
-			`"data":"%s"}`, sender, receiver, value, signature, data)
+	jsonStr := fmt.Sprintf(`{"sender":"%s", "receiver":"%s", "value":%s, "signature":"%s", "data":"%s"}`,
+		sender,
+		receiver,
+		value,
+		signature,
+		data,
+	)
 
 	req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer([]byte(jsonStr)))
 
@@ -475,14 +474,15 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	}
 	ws := startNodeServer(&facade)
 
-	jsonStr := fmt.Sprintf(`{
-		"nonce": %d,
-		"sender": "%s",
-		"receiver": "%s",
-		"value": %s,
-		"signature": "%s",
-		"data": "%s"
-	}`, nonce, sender, receiver, value, signature, data)
+	jsonStr := fmt.Sprintf(
+		`{"nonce": %d, "sender": "%s", "receiver": "%s", "value": %s, "signature": "%s", "data": "%s"}`,
+		nonce,
+		sender,
+		receiver,
+		value,
+		signature,
+		data,
+	)
 
 	req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer([]byte(jsonStr)))
 

@@ -12,13 +12,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 )
 
 // DefaultRestPort is the default port the REST API will start on if not specified
 const DefaultRestPort = "8080"
+
 // DefaultRestPortOff is the default value that should be passed if it is desired
 //  to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
@@ -26,7 +26,7 @@ const DefaultRestPortOff = "off"
 // ElrondNodeFacade represents a facade for grouping the functionality for node, transaction and address
 type ElrondNodeFacade struct {
 	node         NodeWrapper
-	resolver     ExternalResolver
+	apiResolver  ApiResolver
 	syncer       ntp.SyncTimer
 	log          *logger.Logger
 	tpsBenchmark *statistics.TpsBenchmark
@@ -34,17 +34,17 @@ type ElrondNodeFacade struct {
 }
 
 // NewElrondNodeFacade creates a new Facade with a NodeWrapper
-func NewElrondNodeFacade(node NodeWrapper, resolver ExternalResolver) *ElrondNodeFacade {
+func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver) *ElrondNodeFacade {
 	if node == nil {
 		return nil
 	}
-	if resolver == nil {
+	if apiResolver == nil {
 		return nil
 	}
 
 	return &ElrondNodeFacade{
-		node:     node,
-		resolver: resolver,
+		node:        node,
+		apiResolver: apiResolver,
 	}
 }
 
@@ -122,12 +122,22 @@ func (ef *ElrondNodeFacade) RestApiPort() string {
 	return ef.config.RestApiPort
 }
 
+// PrometheusMonitoring returns if prometheus is enabled for monitoring by the flag
+func (ef *ElrondNodeFacade) PrometheusMonitoring() bool {
+	return ef.config.Prometheus
+}
+
+// PrometheusJoinURL will return the join URL from server.toml
+func (ef *ElrondNodeFacade) PrometheusJoinURL() string {
+	return ef.config.PrometheusJoinURL
+}
+
 func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	switch ef.RestApiPort() {
 	case DefaultRestPortOff:
-		ef.log.Info(fmt.Sprintf("Web server is off") )
+		ef.log.Info(fmt.Sprintf("Web server is off"))
 		break
 	default:
 		ef.log.Info("Starting web server...")
@@ -213,12 +223,7 @@ func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	return hbStatus, nil
 }
 
-// RecentNotarizedBlocks computes last notarized [maxShardHeadersNum] shard headers (by metachain node)
-func (ef *ElrondNodeFacade) RecentNotarizedBlocks(maxShardHeadersNum int) ([]*external.BlockHeader, error) {
-	return ef.resolver.RecentNotarizedBlocks(maxShardHeadersNum)
-}
-
-// RetrieveShardBlock retrieves a shard block info containing header and transactions
-func (ef *ElrondNodeFacade) RetrieveShardBlock(blockHash []byte) (*external.ShardBlockInfo, error) {
-	return ef.resolver.RetrieveShardBlock(blockHash)
+// GetVmValue retrieves data from existing SC trie
+func (ef *ElrondNodeFacade) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
+	return ef.apiResolver.GetVmValue(address, funcName, argsBuff...)
 }

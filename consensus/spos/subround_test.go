@@ -223,7 +223,7 @@ func TestSubround_NilContainerBootstrapperShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, sr)
-	assert.Equal(t, spos.ErrNilBlootstraper, err)
+	assert.Equal(t, spos.ErrNilBootstrapper, err)
 }
 
 func TestSubround_NilContainerChronologyShouldFail(t *testing.T) {

@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
+	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
@@ -52,10 +53,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
@@ -65,6 +66,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -599,7 +601,11 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 	return nil, errors.New("can not create blockchain")
 }
 
-func createDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
+func createDataStoreFromConfig(
+	config *config.Config,
+	shardCoordinator sharding.Coordinator,
+	uniqueID string,
+) (dataRetriever.StorageService, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return createShardDataStoreFromConfig(config, shardCoordinator, uniqueID)
 	}
@@ -609,8 +615,12 @@ func createDataStoreFromConfig(config *config.Config, shardCoordinator sharding.
 	return nil, errors.New("can not create data store")
 }
 
-func createShardDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
-	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit, scrUnit, metaHdrHashNonceUnit, shardHdrHashNonceUnit *storageUnit.Unit
+func createShardDataStoreFromConfig(
+	config *config.Config,
+	shardCoordinator sharding.Coordinator,
+	uniqueID string,
+) (dataRetriever.StorageService, error) {
+	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit, unsignedTxUnit, metaHdrHashNonceUnit, shardHdrHashNonceUnit *storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -628,8 +638,8 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 			if txUnit != nil {
 				_ = txUnit.DestroyUnit()
 			}
-			if scrUnit != nil {
-				_ = scrUnit.DestroyUnit()
+			if unsignedTxUnit != nil {
+				_ = unsignedTxUnit.DestroyUnit()
 			}
 			if metachainHeaderUnit != nil {
 				_ = metachainHeaderUnit.DestroyUnit()
@@ -651,10 +661,10 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 		return nil, err
 	}
 
-	scrUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.SmartContractResultStorage.Cache),
-		getDBFromConfig(config.SmartContractResultStorage.DB, uniqueID),
-		getBloomFromConfig(config.SmartContractResultStorage.Bloom))
+	unsignedTxUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
+		getDBFromConfig(config.UnsignedTransactionStorage.DB, uniqueID),
+		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -716,7 +726,7 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 	store.AddStorer(dataRetriever.PeerChangesUnit, peerBlockUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaBlockUnit, metachainHeaderUnit)
-	store.AddStorer(dataRetriever.SmartContractResultUnit, scrUnit)
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, unsignedTxUnit)
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardCoordinator.SelfId())
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
@@ -724,7 +734,11 @@ func createShardDataStoreFromConfig(config *config.Config, shardCoordinator shar
 	return store, err
 }
 
-func createMetaChainDataStoreFromConfig(config *config.Config, shardCoordinator sharding.Coordinator, uniqueID string) (dataRetriever.StorageService, error) {
+func createMetaChainDataStoreFromConfig(
+	config *config.Config,
+	shardCoordinator sharding.Coordinator,
+	uniqueID string,
+) (dataRetriever.StorageService, error) {
 	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, metaHdrHashNonceUnit *storageUnit.Unit
 	var shardHdrHashNonceUnits []*storageUnit.Unit
 	var err error
@@ -836,7 +850,7 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	scrPool, err := shardedData.NewShardedData(getCacherFromConfig(config.SmartContractDataPool))
+	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
 		fmt.Println("error creating smart contract result")
 		return nil, err
@@ -862,7 +876,7 @@ func createShardDataPoolFromConfig(
 		fmt.Println("error creating hdrNoncesCacher")
 		return nil, err
 	}
-	hdrNonces, err := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSliceConverter)
+	hdrNonces, err := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
 		fmt.Println("error creating hdrNonces")
 		return nil, err
@@ -882,27 +896,14 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
-	metaBlockNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		fmt.Println("error creating metaBlockNoncesCacher")
-		return nil, err
-	}
-	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
-	if err != nil {
-		fmt.Println("error creating metaBlockNonces")
-		return nil, err
-	}
-
 	return dataPool.NewShardedDataPool(
 		txPool,
-		scrPool,
+		uTxPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlockBody,
-		metaBlockNonces,
 	)
 }
 
@@ -930,30 +931,18 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	shardHeadersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	headersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		fmt.Println("error creating shard headers nonces pool")
 		return nil, err
 	}
-	shardHeadersNonces, err := dataPool.NewNonceToHashCacher(shardHeadersNoncesCacher, uint64ByteSliceConverter)
+	headersNonces, err := dataPool.NewNonceSyncMapCacher(headersNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
 		fmt.Println("error creating shard headers nonces pool")
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
-	metaBlockNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	if err != nil {
-		fmt.Println("error creating metaBlockNoncesCacher")
-		return nil, err
-	}
-	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
-	if err != nil {
-		fmt.Println("error creating metaBlockNonces")
-		return nil, err
-	}
-
-	return dataPool.NewMetaDataPool(metaBlockBody, miniBlockHashes, shardHeaders, metaBlockNonces, shardHeadersNonces)
+	return dataPool.NewMetaDataPool(metaBlockBody, miniBlockHashes, shardHeaders, headersNonces)
 }
 
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
@@ -1250,26 +1239,110 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	//TODO: change the mock
-	scProcessor, err := smartContract.NewSmartContractProcessor(&mock.VMExecutionHandlerStub{}, argsParser,
-		core.Hasher, core.Marshalizer, state.AccountsAdapter, vmAccountsDB, state.AddressConverter, shardCoordinator)
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
+		shardCoordinator,
+		core.Marshalizer,
+		core.Hasher,
+		state.AddressConverter,
+		data.Store,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	requestHandler, err := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic,
-		factory.SmartContractResultTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, MaxTxsToRequest)
+	interimProcContainer, err := interimProcFactory.Create()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	transactionProcessor, err := transaction.NewTxProcessor(state.AccountsAdapter, core.Hasher,
-		state.AddressConverter, core.Marshalizer, shardCoordinator, scProcessor)
+	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	//TODO replace this with a vm factory
+	cryptoHook := hooks.NewVMCryptoHook()
+	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.ElrondTestnet)
+
+	scProcessor, err := smartContract.NewSmartContractProcessor(
+		ieleVM,
+		argsParser,
+		core.Hasher,
+		core.Marshalizer,
+		state.AccountsAdapter,
+		vmAccountsDB,
+		state.AddressConverter,
+		shardCoordinator,
+		scForwarder,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	requestHandler, err := requestHandlers.NewShardResolverRequestHandler(
+		resolversFinder,
+		factory.TransactionTopic,
+		factory.UnsignedTransactionTopic,
+		factory.MiniBlocksTopic,
+		factory.MetachainBlocksTopic,
+		MaxTxsToRequest,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	transactionProcessor, err := transaction.NewTxProcessor(
+		state.AccountsAdapter,
+		core.Hasher,
+		state.AddressConverter,
+		core.Marshalizer,
+		shardCoordinator,
+		scProcessor,
+	)
 	if err != nil {
 		return nil, nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	blockTracker, err := track.NewShardBlockTracker(data.Datapool, core.Marshalizer, shardCoordinator, data.Store)
+	blockTracker, err := track.NewShardBlockTracker(
+		data.Datapool,
+		core.Marshalizer,
+		shardCoordinator,
+		data.Store,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
+		shardCoordinator,
+		data.Store,
+		core.Marshalizer,
+		core.Hasher,
+		data.Datapool,
+		state.AddressConverter,
+		state.AccountsAdapter,
+		requestHandler,
+		transactionProcessor,
+		scProcessor,
+		scProcessor,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	preProcContainer, err := preProcFactory.Create()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	txCoordinator, err := coordinator.NewTransactionCoordinator(
+		shardCoordinator,
+		state.AccountsAdapter,
+		data.Datapool,
+		requestHandler,
+		preProcContainer,
+		interimProcContainer,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1280,7 +1353,6 @@ func newShardBlockProcessorAndTracker(
 		data.Store,
 		core.Hasher,
 		core.Marshalizer,
-		transactionProcessor,
 		state.AccountsAdapter,
 		shardCoordinator,
 		forkDetector,
@@ -1288,6 +1360,8 @@ func newShardBlockProcessorAndTracker(
 		shardsGenesisBlocks,
 		nodesConfig.MetaChainActive,
 		requestHandler,
+		txCoordinator,
+		core.Uint64ByteSliceConverter,
 	)
 	if err != nil {
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
@@ -1342,9 +1416,9 @@ func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
 	}
 }
 
-func getDBFromConfig(cfg config.DBConfig, uniqueID string) storageUnit.DBConfig {
+func getDBFromConfig(cfg config.DBConfig, uniquePath string) storageUnit.DBConfig {
 	return storageUnit.DBConfig{
-		FilePath:          filepath.Join(config.DefaultPath()+uniqueID, cfg.FilePath),
+		FilePath:          filepath.Join(uniquePath, cfg.FilePath),
 		Type:              storageUnit.DBType(cfg.Type),
 		MaxBatchSize:      cfg.MaxBatchSize,
 		BatchDelaySeconds: cfg.BatchDelaySeconds,

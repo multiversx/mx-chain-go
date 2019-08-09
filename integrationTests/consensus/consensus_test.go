@@ -32,7 +32,7 @@ func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint
 	fmt.Println("Step 1. Setup nodes...")
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	concMap := &sync.Map{}
 
@@ -49,7 +49,7 @@ func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint
 		for i := uint32(0); i < numInvalid; i++ {
 			nodes[i].blkProcessor.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 				fmt.Println("process block invalid ", header.GetRound(), header.GetNonce(), getPkEncoded(nodes[i].pk))
-				return process.ErrInvalidBlockHash
+				return process.ErrBlockHashDoesNotMatch
 			}
 			nodes[i].blkProcessor.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint32, haveTime func() bool) (handler data.HeaderHandler, e error) {
 				return nil, process.ErrAccountStateDirty
@@ -128,9 +128,9 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 
 	mutex := &sync.Mutex{}
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -179,13 +179,13 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(4000)
-	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, bnConsensusType)
+	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
 	mutex := &sync.Mutex{}
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 

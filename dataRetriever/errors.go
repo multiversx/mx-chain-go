@@ -61,8 +61,8 @@ var ErrNilMessenger = errors.New("nil Messenger")
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
-// ErrNilSmartContractResultsPool signals that a nil smart contract results pool has been provided
-var ErrNilSmartContractResultsPool = errors.New("nil smart contract results data pool")
+// ErrNilUnsignedTransactionPool signals that a nil unsigned transactions pool has been provided
+var ErrNilUnsignedTransactionPool = errors.New("nil unsigned transactions data pool")
 
 // ErrNilHeadersDataPool signals that a nil header pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
@@ -90,9 +90,6 @@ var ErrNilHeadersNoncesStorage = errors.New("nil headers nonces storage")
 
 // ErrNilResolverSender signals that a nil resolver sender object has been provided
 var ErrNilResolverSender = errors.New("nil resolver sender")
-
-// ErrNilNonceConverter signals that a nil nonce converter has been provided
-var ErrNilNonceConverter = errors.New("nil nonce converter")
 
 // ErrInvalidNonceByteSlice signals that an invalid byte slice has been provided
 // and an uint64 can not be decoded from that byte slice

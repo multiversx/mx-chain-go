@@ -27,12 +27,12 @@ func (wrk *Worker) SetBlockTracker(blockTracker process.BlocksTracker) {
 	wrk.blockTracker = blockTracker
 }
 
-func (wrk *Worker) Bootstraper() process.Bootstrapper {
-	return wrk.bootstraper
+func (wrk *Worker) Bootstrapper() process.Bootstrapper {
+	return wrk.bootstrapper
 }
 
-func (wrk *Worker) SetBootstraper(bootstraper process.Bootstrapper) {
-	wrk.bootstraper = bootstraper
+func (wrk *Worker) SetBootstrapper(bootstrapper process.Bootstrapper) {
+	wrk.bootstrapper = bootstrapper
 }
 
 func (wrk *Worker) BroadcastMessenger() consensus.BroadcastMessenger {

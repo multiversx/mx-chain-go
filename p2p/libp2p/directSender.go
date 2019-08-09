@@ -22,7 +22,6 @@ import (
 )
 
 const timeSeenMessages = time.Second * 120
-const maxSendBuffSize = 1 << 20
 const maxMutexes = 10000
 
 var streamTimeout = time.Second * 5

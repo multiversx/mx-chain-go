@@ -120,8 +120,8 @@ func (rrh *ResolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 	}()
 }
 
-// RequestSmartContractResults method asks for smart contract results from the connected peers
-func (rrh *ResolverRequestHandler) RequestSmartContractResults(destShardID uint32, scrHashes [][]byte) {
+// RequestUnsignedTransactions method asks for unsigned transactions from the connected peers
+func (rrh *ResolverRequestHandler) RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte) {
 	rrh.requestByHashes(destShardID, scrHashes, rrh.scrRequestTopic)
 }
 
