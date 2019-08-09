@@ -91,6 +91,14 @@ func (tcg *termuiConsoleGrid) setupGrid() {
 	)
 }
 
+func (tcg *termuiConsoleGrid) SetupBigLogGrid() {
+	tcg.grid = ui.NewGrid()
+
+	tcg.grid.Set(
+		ui.NewRow(1.0, tcg.lLog),
+	)
+}
+
 //Grid returns all console widgets that needs to be displayed
 func (tcg *termuiConsoleGrid) Grid() *ui.Grid {
 	return tcg.grid
