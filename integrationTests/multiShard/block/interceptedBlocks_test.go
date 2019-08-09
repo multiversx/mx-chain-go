@@ -174,7 +174,7 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(stepDelay)
+	time.Sleep(time.Second * 5)
 
 	metaHdrFromMetachain := &block.MetaBlock{
 		Nonce:         110,
