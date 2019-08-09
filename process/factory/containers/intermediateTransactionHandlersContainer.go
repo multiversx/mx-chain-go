@@ -6,21 +6,21 @@ import (
 	"github.com/cornelk/hashmap"
 )
 
-// IntermediateTransactionHandlersContainer is an IntermediateTransactionHandlers holder organized by type
-type IntermediateTransactionHandlersContainer struct {
+// intermediateTransactionHandlersContainer is an IntermediateTransactionHandlers holder organized by type
+type intermediateTransactionHandlersContainer struct {
 	objects *hashmap.HashMap
 }
 
 // NewIntermediateTransactionHandlersContainer will create a new instance of a container
-func NewIntermediateTransactionHandlersContainer() *IntermediateTransactionHandlersContainer {
-	return &IntermediateTransactionHandlersContainer{
+func NewIntermediateTransactionHandlersContainer() *intermediateTransactionHandlersContainer {
+	return &intermediateTransactionHandlersContainer{
 		objects: &hashmap.HashMap{},
 	}
 }
 
 // Get returns the object stored at a certain key.
 // Returns an error if the element does not exist
-func (ppc *IntermediateTransactionHandlersContainer) Get(key block.Type) (process.IntermediateTransactionHandler, error) {
+func (ppc *intermediateTransactionHandlersContainer) Get(key block.Type) (process.IntermediateTransactionHandler, error) {
 	value, ok := ppc.objects.Get(uint8(key))
 	if !ok {
 		return nil, process.ErrInvalidContainerKey
@@ -36,7 +36,7 @@ func (ppc *IntermediateTransactionHandlersContainer) Get(key block.Type) (proces
 
 // Add will add an object at a given key. Returns
 // an error if the element already exists
-func (ppc *IntermediateTransactionHandlersContainer) Add(key block.Type, interProcessor process.IntermediateTransactionHandler) error {
+func (ppc *intermediateTransactionHandlersContainer) Add(key block.Type, interProcessor process.IntermediateTransactionHandler) error {
 	if interProcessor == nil {
 		return process.ErrNilContainerElement
 	}
@@ -52,7 +52,7 @@ func (ppc *IntermediateTransactionHandlersContainer) Add(key block.Type, interPr
 
 // AddMultiple will add objects with given keys. Returns
 // an error if one element already exists, lengths mismatch or an interceptor is nil
-func (ppc *IntermediateTransactionHandlersContainer) AddMultiple(keys []block.Type, IntermediateTransactionHandlers []process.IntermediateTransactionHandler) error {
+func (ppc *intermediateTransactionHandlersContainer) AddMultiple(keys []block.Type, IntermediateTransactionHandlers []process.IntermediateTransactionHandler) error {
 	if len(keys) != len(IntermediateTransactionHandlers) {
 		return process.ErrLenMismatch
 	}
@@ -68,7 +68,7 @@ func (ppc *IntermediateTransactionHandlersContainer) AddMultiple(keys []block.Ty
 }
 
 // Replace will add (or replace if it already exists) an object at a given key
-func (ppc *IntermediateTransactionHandlersContainer) Replace(key block.Type, interProcessor process.IntermediateTransactionHandler) error {
+func (ppc *intermediateTransactionHandlersContainer) Replace(key block.Type, interProcessor process.IntermediateTransactionHandler) error {
 	if interProcessor == nil {
 		return process.ErrNilContainerElement
 	}
@@ -78,17 +78,17 @@ func (ppc *IntermediateTransactionHandlersContainer) Replace(key block.Type, int
 }
 
 // Remove will remove an object at a given key
-func (ppc *IntermediateTransactionHandlersContainer) Remove(key block.Type) {
+func (ppc *intermediateTransactionHandlersContainer) Remove(key block.Type) {
 	ppc.objects.Del(uint8(key))
 }
 
 // Len returns the length of the added objects
-func (ppc *IntermediateTransactionHandlersContainer) Len() int {
+func (ppc *intermediateTransactionHandlersContainer) Len() int {
 	return ppc.objects.Len()
 }
 
 // Keys returns all the existing keys in the container
-func (ppc *IntermediateTransactionHandlersContainer) Keys() []block.Type {
+func (ppc *intermediateTransactionHandlersContainer) Keys() []block.Type {
 	keys := make([]block.Type, 0)
 	for key := range ppc.objects.Iter() {
 		uint8key, ok := key.Key.(uint8)
