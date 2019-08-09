@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -36,10 +37,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
-	"github.com/pkg/profile"
 	"github.com/urfave/cli"
 )
 
@@ -123,10 +124,20 @@ VERSION:
 		Value: 0,
 	}
 	// profileMode defines a flag for profiling the binary
-	profileMode = cli.StringFlag{
+	// If enabled, it will open the pprof routes over the default gin rest webserver.
+	// There are several routes that will be available for profiling (profiling can be analyzed with: go tool pprof):
+	//  /debug/pprof/ (can be accessed in the browser, will list the available options)
+	//  /debug/pprof/goroutine
+	//  /debug/pprof/heap
+	//  /debug/pprof/threadcreate
+	//  /debug/pprof/block
+	//  /debug/pprof/mutex
+	//  /debug/pprof/profile (CPU profile)
+	//  /debug/pprof/trace?seconds=5 (CPU trace) -> being a trace, can be analyzed with: go tool trace
+	// Usage: go tool pprof http(s)://ip.of.the.server/debug/pprof/xxxxx
+	profileMode = cli.BoolFlag{
 		Name:  "profile-mode",
-		Usage: "Profiling mode. Available options: cpu, mem, mutex, block",
-		Value: "",
+		Usage: "Boolean profiling mode option. If set to true, the /debug/pprof routes will be available on the node for profiling the application.",
 	}
 	// txSignSkIndex defines a flag that specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file
 	txSignSkIndex = cli.IntFlag{
@@ -169,6 +180,14 @@ VERSION:
 	networkID = cli.StringFlag{
 		Name:  "network-id",
 		Usage: "The network version, overriding the one from config.toml",
+		Value: "",
+	}
+
+	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools. If set, will override
+	// the NodeDisplayName from config.toml
+	nodeDisplayName = cli.StringFlag{
+		Name:  "display-name",
+		Usage: "This will represent the friendly name in the public monitoring tools. Will override the config.toml one",
 		Value: "",
 	}
 
@@ -261,6 +280,7 @@ func main() {
 		gopsEn,
 		serversConfigurationFile,
 		networkID,
+		nodeDisplayName,
 		restApiPort,
 		logLevel,
 		usePrometheus,
@@ -305,22 +325,6 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	logLevel := ctx.GlobalString(logLevel.Name)
 	log.SetLevel(logLevel)
-
-	profileMode := ctx.GlobalString(profileMode.Name)
-	switch profileMode {
-	case "cpu":
-		p := profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-		defer p.Stop()
-	case "mem":
-		p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-		defer p.Stop()
-	case "mutex":
-		p := profile.Start(profile.MutexProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-		defer p.Stop()
-	case "block":
-		p := profile.Start(profile.BlockProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-		defer p.Stop()
-	}
 
 	enableGopsIfNeeded(ctx, log)
 
@@ -404,6 +408,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		generalConfig.GeneralSettings.NetworkID = ctx.GlobalString(networkID.Name)
 	}
 
+	if ctx.IsSet(nodeDisplayName.Name) {
+		generalConfig.GeneralSettings.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
+	}
+
 	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
@@ -461,6 +469,15 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log, workingDir)
 	if err != nil {
 		return err
+	}
+
+	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
+	if usePrometheusBool {
+		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
+		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(prometheusStatusHandler)
+		if err != nil {
+			log.Warn("Cannot init AppStatusFacade", err)
+		}
 	}
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
@@ -540,6 +557,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		processComponents,
 		networkComponents,
 		uint64(ctx.GlobalUint(bootstrapRoundIndex.Name)),
+		version,
 	)
 	if err != nil {
 		return err
@@ -555,17 +573,19 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
+	err = startStatusPolling(currentNode.GetAppStatusHandler(), generalConfig.GeneralSettings.StatusPollingIntervalSec,
+		networkComponents)
 
-	prometheusURLAvailable := true
-	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
-	if err != nil || prometheusJoinUrl == "" {
-		prometheusURLAvailable = false
+	if err != nil {
+		log.Info("Error creating status polling: ", err)
 	}
+
+	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
 
 	efConfig := &config.FacadeConfig{
 		RestApiPort:       ctx.GlobalString(restApiPort.Name),
-		Prometheus:        ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable,
+		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
+		Prometheus:        usePrometheusBool,
 		PrometheusJoinURL: prometheusJoinUrl,
 		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
@@ -602,6 +622,43 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func startStatusPolling(ash core.AppStatusHandler, pollingInterval int, networkComponents *factory.Network) error {
+	if ash == nil {
+		return errors.New("nil AppStatusHandler")
+	}
+
+	pollingIntervalDuration := time.Duration(pollingInterval) * time.Second
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingIntervalDuration)
+	if err != nil {
+		return errors.New("cannot init AppStatusPolling")
+	}
+
+	numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
+		numOfConnectedPeers := int64(len(networkComponents.NetMessenger.ConnectedAddresses()))
+		appStatusHandler.SetInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
+	}
+	err = appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
+
+	if err != nil {
+		return errors.New("cannot register handler func for num of connected peers")
+	}
+
+	appStatusPollingHandler.Poll()
+
+	return nil
+}
+
+func getPrometheusJoinURLIfAvailable(ctx *cli.Context) (string, bool) {
+	prometheusURLAvailable := true
+	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
+	if err != nil || prometheusJoinUrl == "" {
+		prometheusURLAvailable = false
+	}
+	usePrometheusBool := ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable
+
+	return prometheusJoinUrl, usePrometheusBool
 }
 
 func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
@@ -761,6 +818,7 @@ func createNode(
 	process *factory.Process,
 	network *factory.Network,
 	bootstrapRoundIndex uint64,
+	version string,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -799,12 +857,13 @@ func createNode(
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
+		node.WithAppStatusHandler(core.StatusHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	err = nd.StartHeartbeat(config.Heartbeat)
+	err = nd.StartHeartbeat(config.Heartbeat, version, config.GeneralSettings.NodeDisplayName)
 	if err != nil {
 		return nil, err
 	}

@@ -23,7 +23,7 @@ var initialValueForInternalVariable = uint64(45)
 
 func createScCallsNodes() (p2p.Messenger, []*testNode) {
 	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	nodes := createNodes(
 		2,
@@ -102,9 +102,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -183,9 +183,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -280,9 +280,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -436,7 +436,7 @@ func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNo
 		_ = testMarshalizer.Unmarshal(tx, txBytes)
 
 		// Now execute transaction back into the account shard
-		proposerNodeShardAccount.txProcessor.ProcessTransaction(tx, generalRoundNumber)
+		_ = proposerNodeShardAccount.txProcessor.ProcessTransaction(tx, generalRoundNumber)
 		generalRoundNumber++
 	}
 	_, err := proposerNodeShardAccount.accntState.Commit()

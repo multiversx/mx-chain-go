@@ -11,10 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -67,12 +63,7 @@ type TestProcessorNode struct {
 	ShardCoordinator sharding.Coordinator
 	Messenger        p2p.Messenger
 
-	SingleSigner  crypto.SingleSigner
-	SkTxSign      crypto.PrivateKey
-	PkTxSign      crypto.PublicKey
-	PkTxSignBytes []byte
-	KeygenTxSign  crypto.KeyGenerator
-	TxSignAddress state.AddressContainer
+	OwnAccount *TestWalletAccount
 
 	ShardDataPool dataRetriever.PoolsHolder
 	MetaDataPool  dataRetriever.MetaPoolsHolder
@@ -122,10 +113,10 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 		Messenger:        messenger,
 	}
 
-	tpn.initCrypto(txSignPrivKeyShardId)
+	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initStorage()
-	tpn.AccntState = CreateAccountsDB(tpn.ShardCoordinator)
+	tpn.AccntState, _, _ = CreateAccountsDB(tpn.ShardCoordinator)
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initInterceptors()
@@ -136,8 +127,8 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 		TestMarshalizer,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
-		tpn.SkTxSign,
-		tpn.SingleSigner,
+		tpn.OwnAccount.SkTxSign,
+		tpn.OwnAccount.SingleSigner,
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -145,31 +136,6 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 	tpn.addHandlersForCounters()
 
 	return tpn
-}
-
-func (tpn *TestProcessorNode) initCrypto(txSignPrivKeyShardId uint32) {
-	suite := kyber.NewBlakeSHA256Ed25519()
-	tpn.SingleSigner = &singlesig.SchnorrSigner{}
-	keyGen := signing.NewKeyGenerator(suite)
-	sk, pk := keyGen.GeneratePair()
-
-	for {
-		pkBytes, _ := pk.ToByteArray()
-		addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBytes)
-		if tpn.ShardCoordinator.ComputeId(addr) == txSignPrivKeyShardId {
-			break
-		}
-		sk, pk = keyGen.GeneratePair()
-	}
-
-	pkBuff, _ := pk.ToByteArray()
-	fmt.Printf("Found pk: %s in shard %d\n", hex.EncodeToString(pkBuff), txSignPrivKeyShardId)
-
-	tpn.SkTxSign = sk
-	tpn.PkTxSign = pk
-	tpn.PkTxSignBytes, _ = pk.ToByteArray()
-	tpn.KeygenTxSign = keyGen
-	tpn.TxSignAddress, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(tpn.PkTxSignBytes)
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
@@ -221,8 +187,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.Storage,
 			TestMarshalizer,
 			TestHasher,
-			tpn.KeygenTxSign,
-			tpn.SingleSigner,
+			tpn.OwnAccount.KeygenTxSign,
+			tpn.OwnAccount.SingleSigner,
 			TestMultiSig,
 			tpn.ShardDataPool,
 			TestAddressConverter,
@@ -297,9 +263,14 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.VmProcessor, tpn.BlockchainHook = CreateIeleVMAndBlockchainHook(tpn.AccntState)
 	tpn.VmDataGetter, _ = CreateIeleVMAndBlockchainHook(tpn.AccntState)
 
+	vmContainer := &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return tpn.VmProcessor, nil
+		}}
+
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
-		tpn.VmProcessor,
+		vmContainer,
 		tpn.ArgsParser,
 		TestHasher,
 		TestMarshalizer,
@@ -424,17 +395,18 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithHasher(TestHasher),
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithAccountsAdapter(tpn.AccntState),
-		node.WithKeyGen(tpn.KeygenTxSign),
+		node.WithKeyGen(tpn.OwnAccount.KeygenTxSign),
 		node.WithShardCoordinator(tpn.ShardCoordinator),
 		node.WithBlockChain(tpn.BlockChain),
 		node.WithUint64ByteSliceConverter(TestUint64Converter),
 		node.WithMultiSigner(TestMultiSig),
-		node.WithSingleSigner(tpn.SingleSigner),
-		node.WithTxSignPrivKey(tpn.SkTxSign),
-		node.WithTxSignPubKey(tpn.PkTxSign),
+		node.WithSingleSigner(tpn.OwnAccount.SingleSigner),
+		node.WithTxSignPrivKey(tpn.OwnAccount.SkTxSign),
+		node.WithTxSignPubKey(tpn.OwnAccount.PkTxSign),
 		node.WithInterceptorsContainer(tpn.InterceptorsContainer),
 		node.WithResolversFinder(tpn.ResolverFinder),
 		node.WithBlockProcessor(tpn.BlockProcessor),
+		node.WithTxSingleSigner(tpn.OwnAccount.SingleSigner),
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
 	)
@@ -458,8 +430,8 @@ func (tpn *TestProcessorNode) initNode() {
 }
 
 // SendTransaction can send a transaction (it does the dispatching)
-func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) {
-	_, _ = tpn.Node.SendTransaction(
+func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (string, error) {
+	txHash, err := tpn.Node.SendTransaction(
 		tx.Nonce,
 		hex.EncodeToString(tx.SndAddr),
 		hex.EncodeToString(tx.RcvAddr),
@@ -469,6 +441,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) {
 		tx.Data,
 		tx.Signature,
 	)
+	return txHash, err
 }
 
 func (tpn *TestProcessorNode) addHandlersForCounters() {
@@ -501,13 +474,7 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 
 // LoadTxSignSkBytes alters the already generated sk/pk pair
 func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
-	newSk, _ := tpn.KeygenTxSign.PrivateKeyFromByteArray(skBytes)
-	newPk := newSk.GeneratePublic()
-
-	tpn.SkTxSign = newSk
-	tpn.PkTxSign = newPk
-	tpn.PkTxSignBytes, _ = newPk.ToByteArray()
-	tpn.TxSignAddress, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(tpn.PkTxSignBytes)
+	tpn.OwnAccount.LoadTxSignSkBytes(skBytes)
 }
 
 // ProposeBlock proposes a new block
@@ -717,6 +684,22 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 	}
 
 	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, &dataBlock.MetaBlockBody{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SetAccountNonce sets the account nonce with journal
+func (tpn *TestProcessorNode) SetAccountNonce(nonce uint64) error {
+	nodeAccount, _ := tpn.AccntState.GetAccountWithJournal(tpn.OwnAccount.Address)
+	err := nodeAccount.(*state.Account).SetNonceWithJournal(nonce)
+	if err != nil {
+		return err
+	}
+
+	_, err = tpn.AccntState.Commit()
 	if err != nil {
 		return err
 	}

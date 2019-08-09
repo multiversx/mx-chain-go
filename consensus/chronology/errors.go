@@ -9,3 +9,6 @@ var ErrNilRounder = errors.New("rounder is nil")
 
 // ErrNilSyncTimer is raised when a valid sync timer is expected but nil used
 var ErrNilSyncTimer = errors.New("sync timer is nil")
+
+// ErrNilStatusHandler is raised when the AppStatusHandler is nil when setting it
+var ErrNilStatusHandler = errors.New("nil AppStatusHandler")

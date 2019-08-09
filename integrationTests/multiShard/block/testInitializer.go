@@ -105,7 +105,6 @@ func createTestShardChain() *blockchain.BlockChain {
 	genisisHeaderM, _ := testMarshalizer.Marshal(blockChain.GenesisHeader)
 
 	blockChain.SetGenesisHeaderHash(testHasher.Compute(string(genisisHeaderM)))
-
 	return blockChain
 }
 
