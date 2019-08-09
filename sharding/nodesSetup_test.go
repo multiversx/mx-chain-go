@@ -27,7 +27,7 @@ func createNodesSetupOneShardOneNode() *sharding.NodesSetup {
 	}
 
 	ns.ProcessShardAssignment()
-	ns.CreateInitialNodesPubKeys()
+	ns.CreateInitialNodesInfo()
 
 	return ns
 }
@@ -62,7 +62,7 @@ func createNodesSetupTwoShardTwoNodes() *sharding.NodesSetup {
 	}
 
 	ns.ProcessShardAssignment()
-	ns.CreateInitialNodesPubKeys()
+	ns.CreateInitialNodesInfo()
 
 	return ns
 }
@@ -100,7 +100,7 @@ func createNodesSetupTwoShard5Nodes() *sharding.NodesSetup {
 	}
 
 	ns.ProcessShardAssignment()
-	ns.CreateInitialNodesPubKeys()
+	ns.CreateInitialNodesInfo()
 
 	return ns
 }
@@ -144,7 +144,7 @@ func createNodesSetupTwoShard6NodesMeta() *sharding.NodesSetup {
 	}
 
 	ns.ProcessShardAssignment()
-	ns.CreateInitialNodesPubKeys()
+	ns.CreateInitialNodesInfo()
 
 	return ns
 }

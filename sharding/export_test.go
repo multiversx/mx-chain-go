@@ -24,7 +24,7 @@ func (ns *NodesSetup) ProcessMetaChainAssigment() {
 	ns.processMetaChainAssigment()
 }
 
-func (ns *NodesSetup) CreateInitialNodesPubKeys() {
+func (ns *NodesSetup) CreateInitialNodesInfo() {
 	ns.createInitialNodesInfo()
 }
 
