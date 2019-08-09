@@ -43,7 +43,7 @@ func createNodesSetupTwoShardTwoNodes() *sharding.NodesSetup {
 
 	ns.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 	ns.InitialNodes[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
-	ns.InitialNodes[2].PubKey = ""
+	ns.InitialNodes[2].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
 	ns.InitialNodes[3].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416"
 
 	err := ns.ProcessConfig()
@@ -111,6 +111,43 @@ func createNodesSetupTwoShard6NodesMeta() *sharding.NodesSetup {
 	ns.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 	ns.InitialNodes[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
 	ns.InitialNodes[2].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417"
+	ns.InitialNodes[3].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416"
+	ns.InitialNodes[4].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7411"
+	ns.InitialNodes[5].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7410"
+
+	err := ns.ProcessConfig()
+	if err != nil {
+		return nil
+	}
+
+	if ns.MetaChainActive {
+		ns.ProcessMetaChainAssigment()
+	}
+
+	ns.ProcessShardAssignment()
+	ns.CreateInitialNodesPubKeys()
+
+	return ns
+}
+
+func createNodesSetupTwoShard6NodesMeta_TestShardAssignment() *sharding.NodesSetup {
+	ns := &sharding.NodesSetup{}
+	ns.ConsensusGroupSize = 1
+	ns.MinNodesPerShard = 2
+	ns.MetaChainActive = true
+	ns.MetaChainMinNodes = 2
+	ns.MetaChainConsensusGroupSize = 2
+	ns.InitialNodes = make([]*sharding.InitialNode, 6)
+	ns.InitialNodes[0] = &sharding.InitialNode{}
+	ns.InitialNodes[1] = &sharding.InitialNode{}
+	ns.InitialNodes[2] = &sharding.InitialNode{}
+	ns.InitialNodes[3] = &sharding.InitialNode{}
+	ns.InitialNodes[4] = &sharding.InitialNode{}
+	ns.InitialNodes[5] = &sharding.InitialNode{}
+
+	ns.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	ns.InitialNodes[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+	ns.InitialNodes[2].PubKey = ""
 	ns.InitialNodes[3].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416"
 	ns.InitialNodes[4].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7411"
 	ns.InitialNodes[5].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7410"
