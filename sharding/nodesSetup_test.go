@@ -43,7 +43,7 @@ func createNodesSetupTwoShardTwoNodes() *sharding.NodesSetup {
 
 	ns.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 	ns.InitialNodes[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
-	ns.InitialNodes[2].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417"
+	ns.InitialNodes[2].PubKey = ""
 	ns.InitialNodes[3].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416"
 
 	err := ns.ProcessConfig()
