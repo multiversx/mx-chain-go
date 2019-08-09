@@ -1,20 +1,23 @@
 package mock
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinatorMock struct {
-	Validators                    map[uint32][]sharding.Validator
-	ShardConsensusSize            uint32
-	MetaConsensusSize             uint32
-	ShardId                       uint32
-	NbShards                      uint32
-	GetSelectedPublicKeysCalled   func(selection []byte) (publicKeys []string, err error)
-	GetValidatorsPublicKeysCalled func(randomness []byte) ([]string, error)
-	LoadNodesPerShardsCalled      func(nodes map[uint32][]sharding.Validator) error
-	ComputeValidatorsGroupCalled  func(randomness []byte) (validatorsGroup []sharding.Validator, err error)
+	Validators                      map[uint32][]sharding.Validator
+	ShardConsensusSize              uint32
+	MetaConsensusSize               uint32
+	ShardId                         uint32
+	NbShards                        uint32
+	GetSelectedPublicKeysCalled     func(selection []byte) (publicKeys []string, err error)
+	GetValidatorsPublicKeysCalled   func(randomness []byte) ([]string, error)
+	LoadNodesPerShardsCalled        func(nodes map[uint32][]sharding.Validator) error
+	ComputeValidatorsGroupCalled    func(randomness []byte) (validatorsGroup []sharding.Validator, err error)
+	GetValidatorWithPublicKeyCalled func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error)
 }
 
 func NewNodesCoordinatorMock() *NodesCoordinatorMock {
@@ -102,4 +105,24 @@ func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(randomess []byte) ([]sha
 	}
 
 	return validatorsGroup, nil
+}
+
+func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (sharding.Validator, uint32, error) {
+	if ncm.GetValidatorWithPublicKeyCalled != nil {
+		return ncm.GetValidatorWithPublicKeyCalled(publicKey)
+	}
+
+	if publicKey == nil {
+		return nil, 0, sharding.ErrNilPubKey
+	}
+
+	for shardId, shardEligible := range ncm.Validators {
+		for i := 0; i < len(shardEligible); i++ {
+			if bytes.Equal(publicKey, shardEligible[i].PubKey()) {
+				return shardEligible[i], shardId, nil
+			}
+		}
+	}
+
+	return nil, 0, sharding.ErrValidatorNotFound
 }

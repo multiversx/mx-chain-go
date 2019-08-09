@@ -116,6 +116,23 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(randomness []byt
 	return tempList, nil
 }
 
+// GetValidatorWithPublicKey gets the validator with the given public key
+func (ihgs *indexHashedNodesCoordinator) GetValidatorWithPublicKey(publicKey []byte) (Validator, uint32, error) {
+	if publicKey == nil {
+		return nil, 0, ErrNilPubKey
+	}
+
+	for shardId, shardEligible := range ihgs.nodesMap {
+		for i := 0; i < len(shardEligible); i++ {
+			if bytes.Equal(publicKey, shardEligible[i].PubKey()) {
+				return shardEligible[i], shardId, nil
+			}
+		}
+	}
+
+	return nil, 0, ErrValidatorNotFound
+}
+
 // GetValidatorsPublicKeys calculates the validators group for a specific randomness,
 // returning their public keys
 func (ihgs *indexHashedNodesCoordinator) GetValidatorsPublicKeys(randomness []byte) ([]string, error) {

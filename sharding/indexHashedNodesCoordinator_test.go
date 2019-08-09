@@ -449,3 +449,98 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}
 }
+
+func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldReturnErrNilPubKey(t *testing.T) {
+	t.Parallel()
+
+	list := []sharding.Validator{
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0"), []byte("addr0")),
+	}
+
+	nodesMap := make(map[uint32][]sharding.Validator)
+	nodesMap[0] = list
+	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		1,
+		mock.HasherMock{},
+		0,
+		1,
+		nodesMap,
+	)
+
+	_, _, err := ihgs.GetValidatorWithPublicKey(nil)
+
+	assert.Equal(t, sharding.ErrNilPubKey, err)
+}
+
+func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldReturnErrValidatorNotFound(t *testing.T) {
+	t.Parallel()
+
+	list := []sharding.Validator{
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0"), []byte("addr0")),
+	}
+
+	nodesMap := make(map[uint32][]sharding.Validator)
+	nodesMap[0] = list
+	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		1,
+		mock.HasherMock{},
+		0,
+		1,
+		nodesMap,
+	)
+
+	_, _, err := ihgs.GetValidatorWithPublicKey([]byte("pk1"))
+
+	assert.Equal(t, sharding.ErrValidatorNotFound, err)
+}
+
+func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldWork(t *testing.T) {
+	t.Parallel()
+
+	list_meta := []sharding.Validator{
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0_meta"), []byte("addr0_meta")),
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk1_meta"), []byte("addr1_meta")),
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk2_meta"), []byte("addr2_meta")),
+	}
+	list_shard0 := []sharding.Validator{
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0_shard0"), []byte("addr0_shard0")),
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk1_shard0"), []byte("addr1_shard0")),
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk2_shard0"), []byte("addr2_shard0")),
+	}
+	list_shard1 := []sharding.Validator{
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0_shard1"), []byte("addr0_shard1")),
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk1_shard1"), []byte("addr1_shard1")),
+		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk2_shard1"), []byte("addr2_shard1")),
+	}
+
+	nodesMap := make(map[uint32][]sharding.Validator)
+	nodesMap[sharding.MetachainShardId] = list_meta
+	nodesMap[0] = list_shard0
+	nodesMap[1] = list_shard1
+
+	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		1,
+		mock.HasherMock{},
+		0,
+		2,
+		nodesMap,
+	)
+
+	validator, shardId, err := ihgs.GetValidatorWithPublicKey([]byte("pk0_meta"))
+	assert.Nil(t, err)
+	assert.Equal(t, sharding.MetachainShardId, shardId)
+	assert.Equal(t, []byte("addr0_meta"), validator.Address())
+
+	validator, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk1_shard0"))
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(0), shardId)
+	assert.Equal(t, []byte("addr1_shard0"), validator.Address())
+
+	validator, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk2_shard1"))
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), shardId)
+	assert.Equal(t, []byte("addr2_shard1"), validator.Address())
+}

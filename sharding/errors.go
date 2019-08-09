@@ -78,3 +78,6 @@ var ErrNegativeStake = errors.New("negative stake")
 
 // ErrNilAddress signals that the address is nil
 var ErrNilAddress = errors.New("nil address")
+
+// ErrValidatorNotFound signals that the validator has not been found
+var ErrValidatorNotFound = errors.New("validator not found")

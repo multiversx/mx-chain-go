@@ -32,6 +32,7 @@ type NodesCoordinator interface {
 	PublicKeysSelector
 	SetNodesPerShards(nodes map[uint32][]Validator) error
 	ComputeValidatorsGroup(randomness []byte) (validatorsGroup []Validator, err error)
+	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
 }
 
 // PublicKeysSelector allows retrieval of eligible validators public keys
