@@ -15,16 +15,16 @@ type Heartbeat struct {
 	NodeDisplayName string
 }
 
-// PubKeyHeartbeat returns the heartbeat status for the public key
+// PubKeyHeartbeat returns the heartbeat status for a public key
 type PubKeyHeartbeat struct {
-	HexPublicKey    string
-	TimeStamp       time.Time
-	MaxInactiveTime Duration
-	IsActive        bool
-	ShardID         uint32
-	TotalUpTime     Duration
-	TotalDownTime   Duration
-	VersionNumber   string
-	IsValidator     bool
-	NodeDisplayName string
+	HexPublicKey    string    `json:"hexPublicKey"`
+	TimeStamp       time.Time `json:"timeStamp"`
+	MaxInactiveTime Duration  `json:"maxInactiveTime"`
+	IsActive        bool      `json:"isActive"`
+	ShardID         uint32    `json:"shardID"`
+	TotalUpTime     Duration  `json:"totalUpTime"`
+	TotalDownTime   Duration  `json:"totalDownTime"`
+	VersionNumber   string    `json:"versionNumber"`
+	IsValidator     bool      `json:"isValidator"`
+	NodeDisplayName string    `json:"nodeDisplayName"`
 }
