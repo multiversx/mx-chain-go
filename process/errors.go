@@ -217,9 +217,6 @@ var ErrNilHeadersStorage = errors.New("nil headers storage")
 // ErrNilHeadersNonceHashStorage signals that a nil header nonce hash storage has been provided
 var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 
-// ErrNilMetaHeadersStorage signals that a nil metachain header storage has been provided
-var ErrNilMetaHeadersStorage = errors.New("nil meta headers storage")
-
 // ErrNilBlockBodyStorage signals that a nil block body storage has been provided
 var ErrNilBlockBodyStorage = errors.New("nil block body storage")
 
@@ -405,3 +402,9 @@ var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
 
 // ErrUnknownBlockType signals that block type is not correct
 var ErrUnknownBlockType = errors.New("block type is unknown")
+
+// ErrNilTxValidator signals that a nil tx handler validator has been provided
+var ErrNilTxValidator = errors.New("nil tx handler validator provided")
+
+// ErrNilHeaderHandlerValidator signals that a nil header handler validator has been provided
+var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator provided")

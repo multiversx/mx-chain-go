@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -8,8 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -65,6 +69,9 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	//sender shard keys, receivers  keys
 	sendersPrivateKeys := make([]crypto.PrivateKey, 3)
 	receiversPrivateKeys := make(map[uint32][]crypto.PrivateKey)
+	receiversShardsID := make([]uint32, 0)
+	receiversShardsID = append(receiversShardsID, senderShard)
+	receiversShardsID = append(receiversShardsID, recvShards...)
 	for i := 0; i < txToGenerateInEachMiniBlock; i++ {
 		sendersPrivateKeys[i] = generatePrivateKeyInShardId(generateCoordinator, senderShard)
 
@@ -79,9 +86,11 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	}
 
 	fmt.Println("Step 3. Generating transactions...")
-	generateAndDisseminateTxs(proposerNode.node, sendersPrivateKeys, receiversPrivateKeys, valToTransferPerTx)
+	generateAndDisseminateTxs(proposerNode.node, sendersPrivateKeys, receiversPrivateKeys, receiversShardsID, valToTransferPerTx)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
+
+	fmt.Println(makeDisplayTable(nodes))
 
 	fmt.Println("Step 4. Minting sender addresses...")
 	createMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
@@ -118,7 +127,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 			err := n.blkProcessor.ProcessBlock(
 				n.blkc,
 				n.headers[0],
-				block.Body(n.miniblocks),
+				getBlockBody(testMarshalizer, testHasher, n.headers[0], n.miniblocks),
 				func() time.Duration {
 					//fair enough to process a few transactions
 					return time.Second * 2
@@ -373,18 +382,45 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 }
 
+func getBlockBody(
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	headerHandler data.HeaderHandler,
+	miniblocks []*block.MiniBlock,
+) block.Body {
+
+	body := block.Body{}
+
+	header := headerHandler.(*block.Header)
+	for _, miniBlockHeader := range header.MiniBlockHeaders {
+		miniBlockHash := miniBlockHeader.Hash
+
+		for _, miniblock := range miniblocks {
+			mbHash, _ := core.CalculateHash(marshalizer, hasher, miniblock)
+
+			if bytes.Equal(mbHash, miniBlockHash) {
+				body = append(body, miniblock)
+				break
+			}
+		}
+	}
+
+	return body
+}
+
 func generateAndDisseminateTxs(
 	n *node.Node,
 	senders []crypto.PrivateKey,
 	receiversPrivateKeys map[uint32][]crypto.PrivateKey,
+	shardsIDs []uint32,
 	valToTransfer *big.Int,
 ) {
 
 	for i := 0; i < len(senders); i++ {
 		senderKey := senders[i]
 		incrementalNonce := uint64(0)
-		for _, recvPrivateKeys := range receiversPrivateKeys {
-			receiverKey := recvPrivateKeys[i]
+		for _, shardId := range shardsIDs {
+			receiverKey := receiversPrivateKeys[shardId][i]
 			tx := generateTransferTx(incrementalNonce, senderKey, receiverKey, valToTransfer)
 			_, _ = n.SendTransaction(
 				tx.Nonce,

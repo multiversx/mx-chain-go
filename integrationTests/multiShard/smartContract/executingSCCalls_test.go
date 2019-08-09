@@ -177,9 +177,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
 	receiverShard := uint32(1)
-	senderNonce := uint64(1)
+	senderNonce := uint64(0)
 	mintingValue := big.NewInt(100000000)
-	receiverNonce := uint64(1)
+	receiverNonce := uint64(0)
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
@@ -211,9 +211,10 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(mintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
-	assert.Equal(t, senderNonce, acc.Nonce)
 
 	senderNonce++
+	assert.Equal(t, senderNonce, acc.Nonce)
+
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
@@ -242,9 +243,10 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	// TODO: Afrer fees are implemented, from mintingValue we should substract gasLimit + fees until the other shard executes
 	//  the smart contract and a refund can be made with the remaining value the following rounds
 	assert.Equal(t, mintingValue, acc.Balance)
-	assert.Equal(t, receiverNonce, acc.Nonce)
 
 	receiverNonce++
+	assert.Equal(t, receiverNonce, acc.Nonce)
+
 	generalRoundNumber++
 
 	// After second shard processed the transaction, tx should get into the first shard where the SC resides
@@ -276,7 +278,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	accShard := uint32(1)
 	accNonce := uint64(1)
 	mintingValue := big.NewInt(100000000)
-	scNonce := uint64(1)
+	scNonce := uint64(0)
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
@@ -332,6 +334,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	)
 
 	// The account shard should process this tx as MoveBalance
+	scNonce++
 	processAndTestSmartContractCallInSender(
 		t,
 		contractCallTx,
@@ -341,7 +344,6 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 		mintingValue,
 		scNonce,
 	)
-	scNonce++
 	generalRoundNumber++
 
 	// After second shard processed the transaction, tx should get into the first shard where the SC resides

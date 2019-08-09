@@ -397,8 +397,6 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 //------- checkTxValues
 
 func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
-	t.Skip()
-
 	adr1 := mock.NewAddressMock([]byte{65})
 	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -412,7 +410,6 @@ func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
-	t.Skip()
 	adr1 := mock.NewAddressMock([]byte{65})
 	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -639,7 +636,6 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 }
 
 func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
-	t.Skip()
 	//these values will trigger ErrHigherNonceInTransaction
 	tx := transaction.Transaction{}
 	tx.Nonce = 1

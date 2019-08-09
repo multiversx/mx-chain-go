@@ -27,7 +27,7 @@ func NewHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	headers storage.Cacher,
 	headersNonces dataRetriever.Uint64SyncMapCacher,
-	storer storage.Storer,
+	headerValidator process.HeaderHandlerProcessValidator,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
@@ -42,7 +42,7 @@ func NewHeaderInterceptor(
 	}
 	hdrBaseInterceptor, err := NewHeaderInterceptorBase(
 		marshalizer,
-		storer,
+		headerValidator,
 		multiSigVerifier,
 		hasher,
 		shardCoordinator,
@@ -80,10 +80,9 @@ func (hi *HeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHead
 		return
 	}
 
-	err := hi.hdrInterceptorBase.storer.Has(hdrIntercepted.Hash())
-	isHeaderInStorage := err == nil
-	if isHeaderInStorage {
-		log.Debug("intercepted block header already processed")
+	isHeaderOkForProcessing := hi.hdrInterceptorBase.headerValidator.CheckHeaderHandlerValid(hdrIntercepted.Header)
+	if !isHeaderOkForProcessing {
+		log.Debug("intercepted block header can not be processed")
 		return
 	}
 

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -16,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durTimeout = time.Duration(time.Second)
+var durTimeout = time.Second
 
 //------- NewTxInterceptor
 
@@ -27,13 +28,13 @@ func TestNewTxInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		nil,
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -50,13 +51,13 @@ func TestNewTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
 		nil,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -67,7 +68,7 @@ func TestNewTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 	assert.Nil(t, txi)
 }
 
-func TestNewTxInterceptor_NilStorerShouldErr(t *testing.T) {
+func TestNewTxInterceptor_NilTxValidatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txPool := &mock.ShardedDataStub{}
@@ -86,7 +87,7 @@ func TestNewTxInterceptor_NilStorerShouldErr(t *testing.T) {
 		keyGen,
 		oneSharder)
 
-	assert.Equal(t, process.ErrNilTxStorage, err)
+	assert.Equal(t, process.ErrNilTxValidator, err)
 	assert.Nil(t, txi)
 }
 
@@ -96,13 +97,13 @@ func TestNewTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 	txPool := &mock.ShardedDataStub{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
 		txPool,
-		storer,
+		txValidator,
 		nil,
 		mock.HasherMock{},
 		signer,
@@ -120,13 +121,13 @@ func TestNewTxInterceptor_NilHasherShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		nil,
 		signer,
@@ -144,12 +145,12 @@ func TestNewTxInterceptor_NilSignerShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		nil,
@@ -166,13 +167,13 @@ func TestNewTxInterceptor_NilKeyGenShouldErr(t *testing.T) {
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -189,13 +190,13 @@ func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -213,13 +214,13 @@ func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -239,13 +240,13 @@ func TestTransactionInterceptor_ProcessReceivedMessageNilMesssageShouldErr(t *te
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -264,13 +265,13 @@ func TestTransactionInterceptor_ProcessReceivedMessageMilMessageDataShouldErr(t 
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -293,7 +294,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarsha
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
@@ -303,7 +304,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarsha
 			},
 		},
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -326,7 +327,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShou
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
@@ -339,7 +340,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShou
 			},
 		},
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -364,13 +365,13 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
 		marshalizer,
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -414,9 +415,9 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 		},
 	}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{
-		HasCalled: func(key []byte) error {
-			return errors.New("key not found")
+	txValidator := &mock.TxHandlerProcessValidatorStub{
+		CheckTxHandlerValidCalled: func(txHandler data.TransactionHandler) bool {
+			return true
 		},
 	}
 	signer := &mock.SignerMock{
@@ -428,7 +429,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 	txi, _ := transaction.NewTxInterceptor(
 		marshalizer,
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -495,7 +496,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t 
 	errExpected := errors.New("sig not valid")
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
 			return errExpected
@@ -505,7 +506,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t 
 	txi, _ := transaction.NewTxInterceptor(
 		marshalizer,
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -549,9 +550,10 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 	}
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) error {
-		return errors.New("key not found")
+	txValidator := &mock.TxHandlerProcessValidatorStub{
+		CheckTxHandlerValidCalled: func(txHandler data.TransactionHandler) bool {
+			return true
+		},
 	}
 	signer := &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
@@ -562,7 +564,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 	txi, _ := transaction.NewTxInterceptor(
 		marshalizer,
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -621,7 +623,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 	multiSharder.ComputeIdCalled = func(address state.AddressContainer) uint32 {
 		return 0
 	}
-	storer := &mock.StorerStub{}
+	txValidator := &mock.TxHandlerProcessValidatorStub{}
 	signer := &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
 			return nil
@@ -631,7 +633,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 	txi, _ := transaction.NewTxInterceptor(
 		marshalizer,
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,
@@ -671,7 +673,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 	}
 }
 
-func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAdd(t *testing.T) {
+func TestTransactionInterceptor_ProcessReceivedMessageTxNotValidShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -683,9 +685,10 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
 	}
-	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) error {
-		return nil
+	txValidator := &mock.TxHandlerProcessValidatorStub{
+		CheckTxHandlerValidCalled: func(txHandler data.TransactionHandler) bool {
+			return false
+		},
 	}
 
 	multiSharder := mock.NewMultipleShardsCoordinatorMock()
@@ -707,7 +710,7 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 	txi, _ := transaction.NewTxInterceptor(
 		marshalizer,
 		txPool,
-		storer,
+		txValidator,
 		addrConv,
 		mock.HasherMock{},
 		signer,

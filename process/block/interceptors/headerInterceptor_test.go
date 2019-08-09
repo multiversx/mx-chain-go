@@ -2,11 +2,11 @@ package interceptors_test
 
 import (
 	"bytes"
-	"errors"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durTimeout = time.Duration(time.Second)
+var durTimeout = time.Second
 
 //------- NewHeaderInterceptor
 
@@ -25,13 +25,13 @@ func TestNewHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 
 	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderHandlerValidatorStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
 		nil,
 		headers,
 		headersNonces,
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -46,13 +46,13 @@ func TestNewHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderHandlerValidatorStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		nil,
 		headersNonces,
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -67,13 +67,13 @@ func TestNewHeaderInterceptor_NilHeadersNoncesShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderHandlerValidatorStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
 		nil,
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -89,13 +89,13 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 
 	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderHandlerValidatorStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
 		headersNonces,
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -113,13 +113,13 @@ func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.
 
 	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderHandlerValidatorStub{}
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
 		headersNonces,
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -152,16 +152,17 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 		}
 	}
 
-	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) error {
-		return errors.New("key not found")
+	headerValidator := &mock.HeaderHandlerValidatorStub{
+		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+			return true
+		},
 	}
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
 		headers,
 		headersNonces,
-		storer,
+		headerValidator,
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -207,7 +208,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	}
 }
 
-func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *testing.T) {
+func TestHeaderInterceptor_ProcessReceivedMessageIsNotValidShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	chanDone := make(chan struct{}, 10)
@@ -228,16 +229,17 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 		}
 	}
 
-	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) error {
-		return nil
+	headerValidator := &mock.HeaderHandlerValidatorStub{
+		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+			return false
+		},
 	}
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
 		headers,
 		headersNonces,
-		storer,
+		headerValidator,
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -299,9 +301,10 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 		}
 	}
 
-	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) error {
-		return errors.New("key not found")
+	headerValidator := &mock.HeaderHandlerValidatorStub{
+		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+			return true
+		},
 	}
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinator.CurrentShard = 2
@@ -311,7 +314,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 		marshalizer,
 		headers,
 		headersNonces,
-		storer,
+		headerValidator,
 		multisigner,
 		mock.HasherMock{},
 		shardCoordinator,

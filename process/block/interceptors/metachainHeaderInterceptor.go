@@ -19,7 +19,7 @@ type MetachainHeaderInterceptor struct {
 	marshalizer            marshal.Marshalizer
 	metachainHeaders       storage.Cacher
 	metachainHeadersNonces dataRetriever.Uint64SyncMapCacher
-	storer                 storage.Storer
+	headerValidator        process.HeaderHandlerProcessValidator
 	multiSigVerifier       crypto.MultiSigVerifier
 	hasher                 hashing.Hasher
 	shardCoordinator       sharding.Coordinator
@@ -32,7 +32,7 @@ func NewMetachainHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	metachainHeaders storage.Cacher,
 	metachainHeadersNonces dataRetriever.Uint64SyncMapCacher,
-	storer storage.Storer,
+	headerValidator process.HeaderHandlerProcessValidator,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
@@ -48,8 +48,8 @@ func NewMetachainHeaderInterceptor(
 	if metachainHeadersNonces == nil {
 		return nil, process.ErrNilMetaHeadersNoncesDataPool
 	}
-	if storer == nil {
-		return nil, process.ErrNilMetaHeadersStorage
+	if headerValidator == nil {
+		return nil, process.ErrNilHeaderHandlerValidator
 	}
 	if multiSigVerifier == nil {
 		return nil, process.ErrNilMultiSigVerifier
@@ -68,7 +68,7 @@ func NewMetachainHeaderInterceptor(
 		messageChecker:         &messageChecker{},
 		marshalizer:            marshalizer,
 		metachainHeaders:       metachainHeaders,
-		storer:                 storer,
+		headerValidator:        headerValidator,
 		multiSigVerifier:       multiSigVerifier,
 		hasher:                 hasher,
 		shardCoordinator:       shardCoordinator,
@@ -110,9 +110,8 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 }
 
 func (mhi *MetachainHeaderInterceptor) processMetaHeader(metaHdrIntercepted *block.InterceptedMetaHeader) {
-	err := mhi.storer.Has(metaHdrIntercepted.Hash())
-	isHeaderInStorage := err == nil
-	if isHeaderInStorage {
+	isHeaderOkForProcessing := mhi.headerValidator.CheckHeaderHandlerValid(metaHdrIntercepted.MetaBlock)
+	if !isHeaderOkForProcessing {
 		log.Debug("intercepted meta block header already processed")
 		return
 	}

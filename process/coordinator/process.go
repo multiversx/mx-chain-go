@@ -336,6 +336,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round
 	wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
+		//TODO check if we can really execute on go routines with activated nonce check
 		go func(blockType block.Type, blockBody block.Body) {
 			preproc := tc.getPreprocessor(blockType)
 			if preproc == nil {

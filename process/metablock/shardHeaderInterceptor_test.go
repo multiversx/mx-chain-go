@@ -2,10 +2,10 @@ package metablock_test
 
 import (
 	"bytes"
-	"errors"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durTimeout = time.Duration(time.Second)
+var durTimeout = time.Second
 
 //------- NewShardHeaderInterceptor
 
@@ -23,12 +23,12 @@ func TestNewShardHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderHandlerValidatorStub{}
 	hi, err := metablock.NewShardHeaderInterceptor(
 		nil,
 		headers,
 		&mock.Uint64SyncMapCacherStub{},
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -42,12 +42,12 @@ func TestNewShardHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewShardHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderHandlerValidatorStub{}
 	hi, err := metablock.NewShardHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		nil,
 		&mock.Uint64SyncMapCacherStub{},
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -62,12 +62,12 @@ func TestNewShardHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderHandlerValidatorStub{}
 	hi, err := metablock.NewShardHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
 		&mock.Uint64SyncMapCacherStub{},
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -84,12 +84,12 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *tes
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderHandlerValidatorStub{}
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
 		&mock.Uint64SyncMapCacherStub{},
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -112,9 +112,10 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 			return nil
 		},
 	}
-	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) error {
-		return errors.New("key not found")
+	headerValidator := &mock.HeaderHandlerValidatorStub{
+		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+			return true
+		},
 	}
 	hdrsNonces := &mock.Uint64SyncMapCacherStub{
 		MergeCalled: func(nonce uint64, src dataRetriever.ShardIdHashMap) {},
@@ -124,7 +125,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 		marshalizer,
 		headers,
 		hdrsNonces,
-		storer,
+		headerValidator,
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -178,9 +179,10 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T
 			return nil
 		},
 	}
-	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) error {
-		return errors.New("key not found")
+	headerValidator := &mock.HeaderHandlerValidatorStub{
+		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+			return true
+		},
 	}
 	hdrsNonces := &mock.Uint64SyncMapCacherStub{}
 
@@ -188,7 +190,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T
 		marshalizer,
 		headers,
 		hdrsNonces,
-		storer,
+		headerValidator,
 		multisigner,
 		mock.HasherMock{},
 		mock.NewMultiShardsCoordinatorMock(2),
@@ -231,7 +233,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T
 	}
 }
 
-func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *testing.T) {
+func TestShardHeaderInterceptor_ProcessReceivedMessageIsNotValidShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -244,15 +246,16 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t 
 			return nil
 		},
 	}
-	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) error {
-		return nil
+	headerValidator := &mock.HeaderHandlerValidatorStub{
+		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+			return false
+		},
 	}
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		marshalizer,
 		headers,
 		&mock.Uint64SyncMapCacherStub{},
-		storer,
+		headerValidator,
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
