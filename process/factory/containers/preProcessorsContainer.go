@@ -11,7 +11,7 @@ type preProcessorsContainer struct {
 	objects *hashmap.HashMap
 }
 
-// NewpPeProcessorsContainer will create a new instance of a container
+// NewPreProcessorsContainer will create a new instance of a container
 func NewPreProcessorsContainer() *preProcessorsContainer {
 	return &preProcessorsContainer{
 		objects: &hashmap.HashMap{},
