@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/gin-gonic/gin/json"
@@ -32,6 +33,7 @@ type prometheus struct {
 // MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
 type MainApiHandler interface {
 	RestApiPort() string
+	PprofEnabled() bool
 	PrometheusMonitoring() bool
 	PrometheusJoinURL() string
 	PrometheusNetworkID() string
@@ -108,6 +110,9 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 		nodeRoutes.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	}
 
+	if apiHandler.PprofEnabled() {
+		pprof.Register(ws)
+	}
 }
 
 func registerValidators() error {
