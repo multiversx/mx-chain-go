@@ -9,26 +9,19 @@ import (
 )
 
 type termuiConsoleGrid struct {
-	grid              *ui.Grid
-	pNonce            *widgets.Paragraph
-	pSynchronizeRound *widgets.Paragraph
-	pCurrentRound     *widgets.Paragraph
-	pIsSyncing        *widgets.Paragraph
-	lLog              *widgets.List
-	pPublicKey        *widgets.Paragraph
-	pShardId          *widgets.Paragraph
+	grid       *ui.Grid
+	lLog       *widgets.List
+	pPublicKey *widgets.Paragraph
+	pShardId   *widgets.Paragraph
 
 	pCountLeader         *widgets.Paragraph
 	pCountConsensus      *widgets.Paragraph
 	pCountAcceptedBlocks *widgets.Paragraph
 
-	slTxPoolLoad       *widgets.Sparkline
-	slNumConnectedPeer *widgets.Sparkline
+	gTxPoolLoad        *widgets.Gauge
+	pNumConnectedPeers *widgets.Paragraph
 
-	slgNode *widgets.SparklineGroup
-
-	slTxPoolLoadData        []float64
-	slNumConnectedPeersData []float64
+	tSyncInfo *widgets.Table
 }
 
 //NewtermuiConsoleGrid initialize struct termuiConsoleGrid
@@ -40,17 +33,11 @@ func NewtermuiConsoleGrid() *termuiConsoleGrid {
 
 	self.setupGrid()
 
-	self.slTxPoolLoadData = make([]float64, 0, 200)
-	self.slNumConnectedPeersData = make([]float64, 0, 200)
-
 	return &self
 }
 
 func (tcg *termuiConsoleGrid) initWidgets() {
-	tcg.pNonce = widgets.NewParagraph()
-	tcg.pSynchronizeRound = widgets.NewParagraph()
-	tcg.pCurrentRound = widgets.NewParagraph()
-	tcg.pIsSyncing = widgets.NewParagraph()
+
 	tcg.pPublicKey = widgets.NewParagraph()
 	tcg.pShardId = widgets.NewParagraph()
 
@@ -58,12 +45,12 @@ func (tcg *termuiConsoleGrid) initWidgets() {
 	tcg.pCountConsensus = widgets.NewParagraph()
 	tcg.pCountAcceptedBlocks = widgets.NewParagraph()
 
-	tcg.slTxPoolLoad = widgets.NewSparkline()
-	tcg.slNumConnectedPeer = widgets.NewSparkline()
-	tcg.slgNode = widgets.NewSparklineGroup(tcg.slTxPoolLoad, tcg.slNumConnectedPeer)
+	tcg.gTxPoolLoad = widgets.NewGauge()
+	tcg.pNumConnectedPeers = widgets.NewParagraph()
 
 	tcg.lLog = widgets.NewList()
 
+	tcg.tSyncInfo = widgets.NewTable()
 }
 
 func (tcg *termuiConsoleGrid) setupGrid() {
@@ -71,6 +58,7 @@ func (tcg *termuiConsoleGrid) setupGrid() {
 
 	tcg.grid.Set(
 		ui.NewRow(1.0/7, tcg.pPublicKey),
+		ui.NewRow(1.0/10, tcg.tSyncInfo),
 		ui.NewRow(1.0/3,
 			ui.NewCol(1.0/2,
 				ui.NewRow(1.0/4, tcg.pShardId),
@@ -78,13 +66,10 @@ func (tcg *termuiConsoleGrid) setupGrid() {
 				ui.NewRow(1.0/4, tcg.pCountLeader),
 				ui.NewRow(1.0/4, tcg.pCountAcceptedBlocks),
 			),
-			ui.NewCol(1.0/2, tcg.slgNode),
-		),
-		ui.NewRow(1.0/7,
-			ui.NewCol(1.0/4, tcg.pNonce),
-			ui.NewCol(1.0/4, tcg.pCurrentRound),
-			ui.NewCol(1.0/4, tcg.pSynchronizeRound),
-			ui.NewCol(1.0/4, tcg.pIsSyncing),
+			ui.NewCol(1.0/2,
+				ui.NewRow(1.0/2, tcg.gTxPoolLoad),
+				ui.NewRow(1.0/2, tcg.pNumConnectedPeers),
+			),
 		),
 		//ui.NewRow(1.0/3, tcg.slgNode),
 		ui.NewRow(1.0/3, tcg.lLog),
@@ -104,44 +89,6 @@ func (tcg *termuiConsoleGrid) Grid() *ui.Grid {
 	return tcg.grid
 }
 
-func (tcg *termuiConsoleGrid) PrepareNonceForDisplay(Nonce int) {
-	tcg.pNonce.Text = "Nonce : " + strconv.Itoa(Nonce)
-	tcg.pNonce.TextStyle = ui.Style{
-		Fg:       ui.ColorBlack,
-		Bg:       ui.ColorGreen,
-		Modifier: 1,
-	}
-
-	return
-}
-
-func (tcg *termuiConsoleGrid) PrepareSynchronizedRoundForDisplay(synchronizedRound int) {
-	tcg.pSynchronizeRound.Text = "Synchronized Round : " + strconv.Itoa(synchronizedRound)
-	return
-}
-
-func (tcg *termuiConsoleGrid) PrepareIsSyncingForDisplay(isSyncing int) {
-	tcg.pIsSyncing.Text = "Synchronized"
-
-	tcg.pIsSyncing.TextStyle = ui.Style{
-		Fg:       ui.ColorBlack,
-		Bg:       ui.ColorGreen,
-		Modifier: 1,
-	}
-
-	if isSyncing == 1 {
-		tcg.pIsSyncing.Text = "IsSyncing"
-		tcg.pIsSyncing.TextStyle.Bg = ui.ColorRed
-	}
-
-	return
-}
-
-func (tcg *termuiConsoleGrid) PrepareCurrentRoundForDisplay(currentRound int) {
-	tcg.pCurrentRound.Text = "Current Round : " + strconv.Itoa(currentRound)
-	return
-}
-
 func (tcg *termuiConsoleGrid) PrepareListWithLogsForDisplay(logData []string) {
 
 	tcg.lLog.Title = "Log info"
@@ -153,42 +100,63 @@ func (tcg *termuiConsoleGrid) PrepareListWithLogsForDisplay(logData []string) {
 }
 
 func (tcg *termuiConsoleGrid) PreparePublicKeyForDisplay(publicKey string) {
-	tcg.pPublicKey.Text = "PublicKey : " + publicKey
+	tcg.pPublicKey.Title = fmt.Sprintf("PubicKey")
+	tcg.pPublicKey.Text = fmt.Sprintf(publicKey)
 
 	return
 }
 
 func (tcg *termuiConsoleGrid) PrepareShardIdForDisplay(shardId int) {
-	tcg.pShardId.Text = "ShardId : " + strconv.Itoa(shardId)
+	tcg.pShardId.Text = "ShardId: " + strconv.Itoa(shardId)
 
 	return
 }
 
-func (tcg *termuiConsoleGrid) PrepareSparkLineGroupForDisplay(txPoolLoad int, numConnectedPeers int) {
+func (tcg *termuiConsoleGrid) PrepareTxPoolLoadForDisplay(txPoolLoad int) {
 
-	if len(tcg.slTxPoolLoadData) >= 50 {
-		tcg.slTxPoolLoadData = tcg.slTxPoolLoadData[1:50]
-	}
-	tcg.slTxPoolLoadData = append(tcg.slTxPoolLoadData, float64(txPoolLoad))
-	tcg.slTxPoolLoad.Data = tcg.slTxPoolLoadData
-	tcg.slTxPoolLoad.Title = fmt.Sprintf("Tx Pool Load %v", txPoolLoad)
+	tcg.gTxPoolLoad.Title = fmt.Sprintf("Tx pool load: %v", txPoolLoad)
+	tcg.gTxPoolLoad.Percent = 100 * txPoolLoad / 250000
+	tcg.gTxPoolLoad.Label = fmt.Sprintf("%v%% ", tcg.gTxPoolLoad.Percent)
 
-	if len(tcg.slNumConnectedPeersData) >= 50 {
-		tcg.slNumConnectedPeersData = tcg.slNumConnectedPeersData[1:50]
-	}
-	tcg.slNumConnectedPeersData = append(tcg.slNumConnectedPeersData, float64(numConnectedPeers))
-	tcg.slNumConnectedPeer.Data = tcg.slNumConnectedPeersData
-	tcg.slNumConnectedPeer.Title = fmt.Sprintf("Num Connecter Peers %v", numConnectedPeers)
+	return
+}
+
+func (tcg *termuiConsoleGrid) PrepareNumConnectedPeersForDisplay(numConnectedPeers int) {
+	tcg.pNumConnectedPeers.Text = fmt.Sprintf("Num connected peers: %v", numConnectedPeers)
 
 	return
 }
 
 func (tcg *termuiConsoleGrid) PrepareConcensusInformationsForDisplay(countConsensus int, countLeader int, acceptedBlocks int) {
-	tcg.pCountConsensus.Text = fmt.Sprintf("Count Consensus Group %v", countConsensus)
+	tcg.pCountConsensus.Text = fmt.Sprintf("Count consensus group: %v", countConsensus)
 
-	tcg.pCountLeader.Text = fmt.Sprintf("Count Leader %v", countLeader)
+	tcg.pCountLeader.Text = fmt.Sprintf("Count leader: %v", countLeader)
 
-	tcg.pCountAcceptedBlocks.Text = fmt.Sprintf("Accepted Blocks %v", acceptedBlocks)
+	tcg.pCountAcceptedBlocks.Text = fmt.Sprintf("Accepted blocks: %v", acceptedBlocks)
 
 	return
+}
+
+func (tcg *termuiConsoleGrid) PrepareSyncInfoForDisplay(nonce, currentRound, synchronizedRound, isSyncing int) {
+
+	isSyncingS := "Synchronized"
+
+	tcg.tSyncInfo.TextStyle = ui.NewStyle(ui.ColorWhite)
+	tcg.tSyncInfo.RowSeparator = true
+	tcg.tSyncInfo.BorderStyle = ui.NewStyle(ui.ColorWhite)
+	tcg.tSyncInfo.RowStyles[0] = ui.NewStyle(ui.ColorWhite, ui.ColorGreen, ui.ModifierBold)
+
+	if isSyncing == 1 {
+		isSyncingS = "IsSyncing"
+		tcg.tSyncInfo.RowStyles[0] = ui.NewStyle(ui.ColorWhite, ui.ColorRed, ui.ModifierBold)
+
+	}
+
+	nonceS := fmt.Sprintf("Nonce: %v", nonce)
+	currentRoundS := fmt.Sprintf("Current round: %v", currentRound)
+	synchronizedRoundS := fmt.Sprintf("Syncronized round: %v", synchronizedRound)
+
+	tcg.tSyncInfo.Rows = [][]string{
+		{isSyncingS, nonceS, synchronizedRoundS, currentRoundS},
+	}
 }

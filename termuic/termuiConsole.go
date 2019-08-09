@@ -191,19 +191,17 @@ func (tc *TermuiConsole) refreshDataForConsole() {
 func (tc *TermuiConsole) prepareDataNormalWidgets() {
 	nonceI, _ := tc.TermuiConsoleMetrics.Load(core.MetricNonce)
 	nonce := nonceI.(int)
-	tc.termuiConsoleWidgets.PrepareNonceForDisplay(nonce)
 
 	synchronizedRoundI, _ := tc.TermuiConsoleMetrics.Load(core.MetricSynchronizedRound)
 	synchronizedRound := synchronizedRoundI.(int)
-	tc.termuiConsoleWidgets.PrepareSynchronizedRoundForDisplay(synchronizedRound)
 
 	currentRoundI, _ := tc.TermuiConsoleMetrics.Load(core.MetricCurrentRound)
 	currentRound := currentRoundI.(int)
-	tc.termuiConsoleWidgets.PrepareCurrentRoundForDisplay(currentRound)
 
 	isSyncingI, _ := tc.TermuiConsoleMetrics.Load(core.MetricIsSyncing)
 	isSyncing := isSyncingI.(int)
-	tc.termuiConsoleWidgets.PrepareIsSyncingForDisplay(isSyncing)
+
+	tc.termuiConsoleWidgets.PrepareSyncInfoForDisplay(nonce, currentRound, synchronizedRound, isSyncing)
 
 	publicKeyI, _ := tc.TermuiConsoleMetrics.Load(core.MetricPublicKey)
 	publicKey := publicKeyI.(string)
@@ -218,7 +216,8 @@ func (tc *TermuiConsole) prepareDataNormalWidgets() {
 
 	txPoolLoadI, _ := tc.TermuiConsoleMetrics.Load(core.MetricTxPoolLoad)
 	txPoolLoad := txPoolLoadI.(int)
-	tc.termuiConsoleWidgets.PrepareSparkLineGroupForDisplay(txPoolLoad, numConnectedPeers)
+	tc.termuiConsoleWidgets.PrepareTxPoolLoadForDisplay(txPoolLoad)
+	tc.termuiConsoleWidgets.PrepareNumConnectedPeersForDisplay(numConnectedPeers)
 
 	countConsensusI, _ := tc.TermuiConsoleMetrics.Load(core.MetricCountConsensus)
 	countConsensus := countConsensusI.(int)
