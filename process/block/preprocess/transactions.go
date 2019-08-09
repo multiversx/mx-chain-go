@@ -391,7 +391,7 @@ const minGasLimitForTx = uint64(5)
 const numZerosForSCAddress = 10
 
 //TODO move this to smart contract address calculation component
-func isTxRcvAddressOfSmartContract(rcvAddress []byte) bool {
+func isSmartContractAddress(rcvAddress []byte) bool {
 	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
 	if isEmptyAddress {
 		return true
@@ -441,12 +441,12 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		}
 
 		currTxGasLimit := minGasLimitForTx
-		if isTxRcvAddressOfSmartContract(orderedTxes[index].RcvAddr) {
+		if isSmartContractAddress(orderedTxes[index].RcvAddr) {
 			currTxGasLimit = orderedTxes[index].GasLimit
+		}
 
-			if addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock {
-				continue
-			}
+		if addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock {
+			continue
 		}
 
 		snapshot := txs.accounts.JournalLen()

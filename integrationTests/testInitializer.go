@@ -653,20 +653,14 @@ func ProposeAndSyncBlocks(
 
 	// propose until pool is cleared
 	for i := numInTxs; i != 0; {
-		startTime := time.Now()
-		ProposeBlock(nodes, idxProposers, round)
-		elapsedTime := time.Since(startTime)
-		fmt.Printf("Block Created in %s\n", elapsedTime)
-
-		SyncBlock(t, nodes, idxProposers, round)
-		round = IncrementAndPrintRound(round)
+		round = ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
 
 		for _, idProposer := range idxProposers {
-			proposedNode := nodes[idProposer]
+			proposerNode := nodes[idProposer]
 			i = GetNumTxsWithDst(
-				proposedNode.ShardCoordinator.SelfId(),
-				proposedNode.ShardDataPool,
-				proposedNode.ShardCoordinator.NumberOfShards(),
+				proposerNode.ShardCoordinator.SelfId(),
+				proposerNode.ShardDataPool,
+				proposerNode.ShardCoordinator.NumberOfShards(),
 			)
 
 			if i > 0 {
@@ -681,10 +675,21 @@ func ProposeAndSyncBlocks(
 
 	numberToPropagateToEveryShard := 5
 	for i := 0; i < numberToPropagateToEveryShard; i++ {
-		ProposeBlock(nodes, idxProposers, round)
-		SyncBlock(t, nodes, idxProposers, round)
-		round = IncrementAndPrintRound(round)
+		round = ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
 	}
+
+	return round
+}
+
+func ProposeAndSyncOneBlock(
+	t *testing.T,
+	nodes []*TestProcessorNode,
+	idxProposers []int,
+	round uint64,
+) uint64 {
+	ProposeBlock(nodes, idxProposers, round)
+	SyncBlock(t, nodes, idxProposers, round)
+	round = IncrementAndPrintRound(round)
 
 	return round
 }
