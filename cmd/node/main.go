@@ -42,7 +42,6 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
-	"github.com/pkg/profile"
 	"github.com/urfave/cli"
 )
 
@@ -126,10 +125,20 @@ VERSION:
 		Value: 0,
 	}
 	// profileMode defines a flag for profiling the binary
-	profileMode = cli.StringFlag{
+	// If enabled, it will open the pprof routes over the default gin rest webserver.
+	// There are several routes that will be available for profiling (profiling can be analyzed with: go tool pprof):
+	//  /debug/pprof/ (can be accessed in the browser, will list the available options)
+	//  /debug/pprof/goroutine
+	//  /debug/pprof/heap
+	//  /debug/pprof/threadcreate
+	//  /debug/pprof/block
+	//  /debug/pprof/mutex
+	//  /debug/pprof/profile (CPU profile)
+	//  /debug/pprof/trace?seconds=5 (CPU trace) -> being a trace, can be analyzed with: go tool trace
+	// Usage: go tool pprof http(s)://ip.of.the.server/debug/pprof/xxxxx
+	profileMode = cli.BoolFlag{
 		Name:  "profile-mode",
-		Usage: "Profiling mode. Available options: cpu, mem, mutex, block",
-		Value: "",
+		Usage: "Boolean profiling mode option. If set to true, the /debug/pprof routes will be available on the node for profiling the application.",
 	}
 	// txSignSkIndex defines a flag that specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file
 	txSignSkIndex = cli.IntFlag{
@@ -317,22 +326,6 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	logLevel := ctx.GlobalString(logLevel.Name)
 	log.SetLevel(logLevel)
-
-	profileMode := ctx.GlobalString(profileMode.Name)
-	switch profileMode {
-	case "cpu":
-		p := profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-		defer p.Stop()
-	case "mem":
-		p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-		defer p.Stop()
-	case "mutex":
-		p := profile.Start(profile.MutexProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-		defer p.Stop()
-	case "block":
-		p := profile.Start(profile.BlockProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-		defer p.Stop()
-	}
 
 	enableGopsIfNeeded(ctx, log)
 
@@ -592,6 +585,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 
 	efConfig := &config.FacadeConfig{
 		RestApiPort:       ctx.GlobalString(restApiPort.Name),
+		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
 		Prometheus:        usePrometheusBool,
 		PrometheusJoinURL: prometheusJoinUrl,
 		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
