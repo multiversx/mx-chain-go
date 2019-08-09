@@ -10,25 +10,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
+
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
-	"github.com/whyrusleeping/go-logging"
 )
-
-func init() {
-	logging.SetLevel(logging.ERROR, "pubsub")
-}
 
 // TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard tests what happens when
 // a network with 5 shards, each containing 3 nodes broadcast 100 transactions from node 0.
@@ -42,21 +39,22 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	numOfShards := 6
 	nodesPerShard := 3
 
-	advertiser := createMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
-	nodes := createNodesWithNodeSkInShardExceptFirst(
+	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		0,
-		getConnectableAddress(advertiser),
+		integrationTests.GetConnectableAddress(advertiser),
 	)
-	displayAndStartNodes(nodes)
+	integrationTests.CreateAccForNodes(nodes)
+	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.node.Stop()
+			_ = n.Node.Stop()
 		}
 	}()
 
@@ -70,15 +68,15 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	generateAddrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	fmt.Println("Generating and broadcasting transactions...")
-	addrInShardFive := createDummyHexAddressInShard(generateCoordinator, generateAddrConverter)
-	_ = nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+	addrInShardFive := integrationTests.GenerateRandomHexAddressInShard(generateCoordinator, generateAddrConverter)
+	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 	time.Sleep(time.Second * 10)
 
 	//since there is a slight chance that some transactions get lost (peer to slow, queue full, validators throttling...)
 	//we should get the max transactions received
 	maxTxReceived := int32(0)
 	for _, n := range nodes {
-		txRecv := atomic.LoadInt32(&n.txRecv)
+		txRecv := atomic.LoadInt32(&n.CounterTxRecv)
 
 		if txRecv > maxTxReceived {
 			maxTxReceived = txRecv
@@ -89,12 +87,12 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 
 	//only sender shard (all 3 nodes from shard 0) have the transactions
 	for _, n := range nodes {
-		if n.shardId == 0 {
-			assert.Equal(t, maxTxReceived, atomic.LoadInt32(&n.txRecv))
+		if n.ShardCoordinator.SelfId() == 0 {
+			assert.Equal(t, maxTxReceived, atomic.LoadInt32(&n.CounterTxRecv))
 			continue
 		}
 
-		assert.Equal(t, int32(0), atomic.LoadInt32(&n.txRecv))
+		assert.Equal(t, int32(0), atomic.LoadInt32(&n.CounterTxRecv))
 	}
 }
 
@@ -112,14 +110,14 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 
 	firstSkInShard := uint32(4)
 
-	advertiser := createMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
 	nodes := createNodesWithNodeSkInShardExceptFirst(
 		numOfShards,
 		nodesPerShard,
 		firstSkInShard,
-		getConnectableAddress(advertiser),
+		integrationTests.GetConnectableAddress(advertiser),
 	)
 	displayAndStartNodes(nodes)
 
@@ -139,7 +137,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 5)
 	generateAddrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
-	addrInShardFive := createDummyHexAddressInShard(generateCoordinator, generateAddrConverter)
+	addrInShardFive := integrationTests.GenerateRandomHexAddressInShard(generateCoordinator, generateAddrConverter)
 
 	_ = nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 
@@ -192,14 +190,14 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 
 	firstSkInShard := uint32(4)
 
-	advertiser := createMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
 	nodes := createNodesWithNodeSkInShardExceptFirst(
 		numOfShards,
 		nodesPerShard,
 		firstSkInShard,
-		getConnectableAddress(advertiser),
+		integrationTests.GetConnectableAddress(advertiser),
 	)
 	displayAndStartNodes(nodes)
 
@@ -222,7 +220,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), shardRequester)
 	generateAddrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
-	addrInShardFive := createDummyHexAddressInShard(generateCoordinator, generateAddrConverter)
+	addrInShardFive := integrationTests.GenerateRandomHexAddressInShard(generateCoordinator, generateAddrConverter)
 
 	mutGeneratedTxHashes := sync.Mutex{}
 	generatedTxHashes := make([][]byte, 0)
@@ -288,7 +286,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := createMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
 	nodes := make([]*testNode, 0)
@@ -314,7 +312,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 			maxShards,
 			dPool,
 			0,
-			getConnectableAddress(advertiser),
+			integrationTests.GetConnectableAddress(advertiser),
 		)
 
 		nodes = append(nodes, tn)
@@ -331,7 +329,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 			maxShards,
 			dPool,
 			1,
-			getConnectableAddress(advertiser),
+			integrationTests.GetConnectableAddress(advertiser),
 		)
 
 		atomic.StoreInt32(&tn.txRecv, int32(txGenerated))
@@ -441,7 +439,7 @@ func generateValidTx(
 	_, pkRecv := generateSkPkInShardAndCreateAccount(shardCoordinator, receiverShardId, nil)
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
-	accnts := createAccountsDB()
+	accnts, _, _ := integrationTests.CreateAccountsDB(shardCoordinator)
 	addrSender, _ := addrConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
 	_, _ = accnts.GetAccountWithJournal(addrSender)
 	_, _ = accnts.Commit()

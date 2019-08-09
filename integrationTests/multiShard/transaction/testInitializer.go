@@ -2,49 +2,36 @@ package transaction
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
+
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
 var hasher = sha256.Sha256{}
@@ -65,37 +52,6 @@ type testNode struct {
 	txRecv       int32
 	mutNeededTxs sync.Mutex
 	neededTxs    [][]byte
-}
-
-func createTestBlockChain() *blockchain.BlockChain {
-	cfgCache := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	badBlockCache, _ := storageUnit.NewCache(cfgCache.Type, cfgCache.Size, cfgCache.Shards)
-	blockChain, _ := blockchain.NewBlockChain(
-		badBlockCache,
-	)
-
-	return blockChain
-}
-
-func createMemUnit() storage.Storer {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	persist, _ := memorydb.New()
-	unit, _ := storageUnit.NewStorageUnit(cache, persist)
-	return unit
-}
-
-func createTestStore(coordinator sharding.Coordinator) dataRetriever.StorageService {
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
-	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
-	store.AddStorer(dataRetriever.UnsignedTransactionUnit, createMemUnit())
-	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(coordinator.SelfId()), createMemUnit())
-	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
-
-	return store
 }
 
 func createTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
@@ -133,60 +89,6 @@ func createTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetr
 	return dPool
 }
 
-func createDummyAddress(chars int) []byte {
-	if chars < 1 {
-		return nil
-	}
-	buff := make([]byte, chars)
-	_, _ = rand.Read(buff)
-	return buff
-}
-
-func createDummyHexAddressInShard(
-	coordinator sharding.Coordinator,
-	addrConv state.AddressConverter,
-) string {
-
-	addrBytes := createDummyAddress(32)
-	for {
-		addr, _ := addrConv.CreateAddressFromPublicKeyBytes(addrBytes)
-		if coordinator.ComputeId(addr) == coordinator.SelfId() {
-			return hex.EncodeToString(addrBytes)
-		}
-		addrBytes = createDummyAddress(32)
-	}
-}
-
-func createAccountsDB() *state.AccountsDB {
-	marsh := &marshal.JsonMarshalizer{}
-	hasher := sha256.Sha256{}
-	store := createMemUnit()
-
-	tr, _ := trie.NewTrie(store, marsh, hasher)
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
-			return state.NewAccount(address, tracker)
-		},
-	})
-
-	return adb
-}
-
-func createMultiSigner(
-	privateKey crypto.PrivateKey,
-	publicKey crypto.PublicKey,
-	keyGen crypto.KeyGenerator,
-	hasher hashing.Hasher,
-) (crypto.MultiSigner, error) {
-
-	publicKeys := make([]string, 1)
-	pubKey, _ := publicKey.ToByteArray()
-	publicKeys[0] = string(pubKey)
-	multiSigner, err := multisig.NewBelNevMultisig(hasher, publicKeys, privateKey, keyGen, 0)
-
-	return multiSigner, err
-}
-
 func generateSkPkInShardAndCreateAccount(
 	shardCoordinator sharding.Coordinator,
 	targetShardId uint32,
@@ -222,15 +124,15 @@ func createNetNode(
 	crypto.PrivateKey,
 	dataRetriever.ResolversFinder) {
 
-	messenger := createMessengerWithKadDht(context.Background(), initialAddr)
+	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), initialAddr)
 	sk, pk := generateSkPkInShardAndCreateAccount(shardCoordinator, targetShardId, accntAdapter)
 
 	pkBuff, _ := pk.ToByteArray()
 	fmt.Printf("Found pk: %s\n", hex.EncodeToString(pkBuff))
 
-	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
-	blkc := createTestBlockChain()
-	store := createTestStore(shardCoordinator)
+	multiSigner := integrationTests.TestMultiSig
+	blkc := integrationTests.CreateShardChain()
+	store := integrationTests.CreateShardStore(shardCoordinator.NumberOfShards())
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	dataPacker, _ := partitioning.NewSizeDataPacker(marshalizer)
 
@@ -283,35 +185,6 @@ func createNetNode(
 	)
 
 	return n, messenger, sk, resolversFinder
-}
-
-func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
-
-	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
-		ctx,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", []string{initialAddr}),
-	)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	return libP2PMes
-}
-
-func getConnectableAddress(mes p2p.Messenger) string {
-	for _, addr := range mes.Addresses() {
-		if strings.Contains(addr, "circuit") || strings.Contains(addr, "169.254") {
-			continue
-		}
-		return addr
-	}
-
-	return ""
 }
 
 func makeDisplayTable(nodes []*testNode) string {
@@ -368,7 +241,7 @@ func createNode(
 	}
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
-	accntAdapter := createAccountsDB()
+	accntAdapter, _, _ := integrationTests.CreateAccountsDB(shardCoordinator)
 	var n *node.Node
 	var mes p2p.Messenger
 	var sk crypto.PrivateKey

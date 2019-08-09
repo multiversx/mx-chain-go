@@ -830,6 +830,22 @@ func GeneratePrivateKeyInShardId(
 	}
 }
 
+// GenerateRandomHexAddressInShard generates a random address in the given shard
+func GenerateRandomHexAddressInShard(
+	coordinator sharding.Coordinator,
+	addrConv state.AddressConverter,
+) string {
+
+	addrBytes := []byte(CreateRandomHexString(32))
+	for {
+		addr, _ := addrConv.CreateAddressFromPublicKeyBytes(addrBytes)
+		if coordinator.ComputeId(addr) == coordinator.SelfId() {
+			return hex.EncodeToString(addrBytes)
+		}
+		addrBytes = []byte(CreateRandomHexString(32))
+	}
+}
+
 // CreateMintingForSenders creates account with balances for every node in a given shard
 func CreateMintingForSenders(
 	nodes []*TestProcessorNode,
@@ -955,4 +971,18 @@ func ProposeBroadcastAndCommitMetaBlock(nodes []*TestProcessorNode, metaNode *Te
 	fmt.Println("Delaying for disseminating meta header...")
 	time.Sleep(time.Second * 5)
 	fmt.Println(MakeDisplayTable(nodes))
+}
+
+// CreateAccForNodes creates accounts for each node and commits the accounts state
+func CreateAccForNodes(nodes []*TestProcessorNode) {
+	for i := 0; i < len(nodes); i++ {
+		CreateAccForNode(nodes[i])
+	}
+}
+
+// CreateAccForNode creates an account for the given node
+func CreateAccForNode(node *TestProcessorNode) {
+	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(node.OwnAccount.PkTxSignBytes)
+	_, _ = node.AccntState.GetAccountWithJournal(addr)
+	_, _ = node.AccntState.Commit()
 }
