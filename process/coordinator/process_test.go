@@ -434,12 +434,12 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 
 	tc.CreateBlockStarted()
 
-	tc.mutPreprocessor.Lock()
-	for _, value := range tc.txPreprocessors {
+	tc.mutPreProcessor.Lock()
+	for _, value := range tc.txPreProcessors {
 		txs := value.GetAllCurrentUsedTxs()
 		assert.Equal(t, 0, len(txs))
 	}
-	tc.mutPreprocessor.Unlock()
+	tc.mutPreProcessor.Unlock()
 }
 
 func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {

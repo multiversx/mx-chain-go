@@ -1,6 +1,7 @@
 package coordinator
 
 import (
+	"sort"
 	"sync"
 	"time"
 
@@ -20,11 +21,13 @@ type transactionCoordinator struct {
 	accounts         state.AccountsAdapter
 	miniBlockPool    storage.Cacher
 
-	mutPreprocessor sync.RWMutex
-	txPreprocessors map[block.Type]process.PreProcessor
+	mutPreProcessor sync.RWMutex
+	txPreProcessors map[block.Type]process.PreProcessor
+	keysTxPreProcs  []block.Type
 
 	mutInterimProcessors sync.RWMutex
 	interimProcessors    map[block.Type]process.IntermediateTransactionHandler
+	keysInterimProcs     []block.Type
 
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
@@ -75,20 +78,26 @@ func NewTransactionCoordinator(
 
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	tc.requestedTxs = make(map[block.Type]int)
-	tc.txPreprocessors = make(map[block.Type]process.PreProcessor)
+	tc.txPreProcessors = make(map[block.Type]process.PreProcessor)
 	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)
 
-	keys := preProcessors.Keys()
-	for _, value := range keys {
-		preproc, err := preProcessors.Get(value)
+	tc.keysTxPreProcs = preProcessors.Keys()
+	sort.Slice(tc.keysTxPreProcs, func(i, j int) bool {
+		return tc.keysTxPreProcs[i] < tc.keysTxPreProcs[j]
+	})
+	for _, value := range tc.keysTxPreProcs {
+		preProc, err := preProcessors.Get(value)
 		if err != nil {
 			return nil, err
 		}
-		tc.txPreprocessors[value] = preproc
+		tc.txPreProcessors[value] = preProc
 	}
 
-	keys = interProcessors.Keys()
-	for _, value := range keys {
+	tc.keysInterimProcs = interProcessors.Keys()
+	sort.Slice(tc.keysInterimProcs, func(i, j int) bool {
+		return tc.keysInterimProcs[i] < tc.keysInterimProcs[j]
+	})
+	for _, value := range tc.keysInterimProcs {
 		interProc, err := interProcessors.Get(value)
 		if err != nil {
 			return nil, err
@@ -325,39 +334,27 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 }
 
 // ProcessBlockTransaction processes transactions and updates state tries
-func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round uint64, haveTime func() time.Duration) error {
+func (tc *transactionCoordinator) ProcessBlockTransaction(
+	body block.Body,
+	round uint64,
+	haveTime func() time.Duration,
+) error {
 	separatedBodies := tc.separateBodyByType(body)
 
-	var errFound error
-	errMutex := sync.Mutex{}
+	// processing has to be done in order, as the order of different type of transactions over the same account is strict
+	for blockType, blockBody := range separatedBodies {
+		preproc := tc.getPreprocessor(blockType)
+		if preproc == nil {
+			return process.ErrMissingPreProcessor
+		}
 
-	// TODO: think if it is good in parallel or it is needed in sequences
-	wg := sync.WaitGroup{}
-	wg.Add(len(separatedBodies))
-
-	for key, value := range separatedBodies {
-		go func(blockType block.Type, blockBody block.Body) {
-			preproc := tc.getPreprocessor(blockType)
-			if preproc == nil {
-				wg.Done()
-				return
-			}
-
-			err := preproc.ProcessBlockTransactions(blockBody, round, haveTime)
-			if err != nil {
-				log.Debug(err.Error())
-
-				errMutex.Lock()
-				errFound = err
-				errMutex.Unlock()
-			}
-			wg.Done()
-		}(key, value)
+		err := preproc.ProcessBlockTransactions(blockBody, round, haveTime)
+		if err != nil {
+			return err
+		}
 	}
 
-	wg.Wait()
-
-	return errFound
+	return nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe creates miniblocks and processes cross shard transaction
@@ -487,38 +484,30 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
-	tc.mutInterimProcessors.RLock()
+	// processing has to be done in order, as the order of different type of transactions over the same account is strict
+	for _, blockType := range tc.keysInterimProcs {
+		interimProc := tc.getInterimProcessor(blockType)
+		if interimProc == nil {
+			// this will never be reached as keysInterimProcs are the actual keys from the interimMap
+			continue
+		}
 
-	resMutex := sync.Mutex{}
-	// TODO: think if it is good in parallel or it is needed in sequences
-	wg := sync.WaitGroup{}
-	wg.Add(len(tc.interimProcessors))
-
-	for _, interimProc := range tc.interimProcessors {
-		go func(intermediateProcessor process.IntermediateTransactionHandler) {
-			currMbs := intermediateProcessor.CreateAllInterMiniBlocks()
-			resMutex.Lock()
-			for _, value := range currMbs {
-				miniBlocks = append(miniBlocks, value)
-			}
-			resMutex.Unlock()
-			wg.Done()
-		}(interimProc)
+		currMbs := interimProc.CreateAllInterMiniBlocks()
+		for _, value := range currMbs {
+			miniBlocks = append(miniBlocks, value)
+		}
 	}
-
-	wg.Wait()
-	tc.mutInterimProcessors.RUnlock()
 
 	return miniBlocks
 }
 
 // CreateBlockStarted initializes necessary data for preprocessors at block create or block process
 func (tc *transactionCoordinator) CreateBlockStarted() {
-	tc.mutPreprocessor.RLock()
-	for _, value := range tc.txPreprocessors {
+	tc.mutPreProcessor.RLock()
+	for _, value := range tc.txPreProcessors {
 		value.CreateBlockStarted()
 	}
-	tc.mutPreprocessor.RUnlock()
+	tc.mutPreProcessor.RUnlock()
 
 	tc.mutInterimProcessors.RLock()
 	for _, value := range tc.interimProcessors {
@@ -528,9 +517,9 @@ func (tc *transactionCoordinator) CreateBlockStarted() {
 }
 
 func (tc *transactionCoordinator) getPreprocessor(blockType block.Type) process.PreProcessor {
-	tc.mutPreprocessor.RLock()
-	preprocessor, exists := tc.txPreprocessors[blockType]
-	tc.mutPreprocessor.RUnlock()
+	tc.mutPreProcessor.RLock()
+	preprocessor, exists := tc.txPreProcessors[blockType]
+	tc.mutPreProcessor.RUnlock()
 
 	if !exists {
 		return nil
@@ -627,14 +616,14 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 // GetAllCurrentUsedTxs returns the cached transaction data for current round
 func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler {
-	tc.mutPreprocessor.RLock()
-	defer tc.mutPreprocessor.RUnlock()
+	tc.mutPreProcessor.RLock()
+	defer tc.mutPreProcessor.RUnlock()
 
-	if _, ok := tc.txPreprocessors[blockType]; !ok {
+	if _, ok := tc.txPreProcessors[blockType]; !ok {
 		return nil
 	}
 
-	return tc.txPreprocessors[blockType].GetAllCurrentUsedTxs()
+	return tc.txPreProcessors[blockType].GetAllCurrentUsedTxs()
 }
 
 // RequestMiniBlocks request miniblocks if missing
