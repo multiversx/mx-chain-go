@@ -1,6 +1,8 @@
 package bls
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -13,6 +15,8 @@ type factory struct {
 	consensusCore  spos.ConsensusCoreHandler
 	consensusState *spos.ConsensusState
 	worker         spos.WorkerHandler
+
+	appStatusHandler core.AppStatusHandler
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -31,9 +35,10 @@ func NewSubroundsFactory(
 	}
 
 	fct := factory{
-		consensusCore:  consensusDataContainer,
-		consensusState: consensusState,
-		worker:         worker,
+		consensusCore:    consensusDataContainer,
+		consensusState:   consensusState,
+		worker:           worker,
+		appStatusHandler: statusHandler.NewNilStatusHandler(),
 	}
 
 	return &fct, nil
@@ -56,6 +61,11 @@ func checkNewFactoryParams(
 	}
 
 	return nil
+}
+
+// SetAppStatusHandler method set appStatusHandler
+func (fct *factory) SetAppStatusHandler(handler core.AppStatusHandler) {
+	fct.appStatusHandler = handler
 }
 
 // GenerateSubrounds will generate the subrounds used in BLS Cns
@@ -119,6 +129,8 @@ func (fct *factory) generateStartRoundSubround() error {
 	if err != nil {
 		return err
 	}
+
+	subroundStartRound.SetAppStatusHandler(fct.appStatusHandler)
 
 	fct.consensusCore.Chronology().AddSubround(subroundStartRound)
 
@@ -216,6 +228,8 @@ func (fct *factory) generateEndRoundSubround() error {
 	if err != nil {
 		return err
 	}
+
+	subroundEndRound.SetAppStatusHandler(fct.appStatusHandler)
 
 	fct.consensusCore.Chronology().AddSubround(subroundEndRound)
 

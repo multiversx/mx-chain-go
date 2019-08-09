@@ -29,6 +29,11 @@ func (psh *NilStatusHandler) SetUInt64Value(key string, value uint64) {
 	return
 }
 
+// SetStringValue method - won't do anything
+func (psh *NilStatusHandler) SetStringValue(key string, value string) {
+	return
+}
+
 // Close method - won't do anything
 func (psh *NilStatusHandler) Close() {
 }

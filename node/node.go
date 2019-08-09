@@ -314,7 +314,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType)
+	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType, n.appStatusHandler)
 	if err != nil {
 		return err
 	}

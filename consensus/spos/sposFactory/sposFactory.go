@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -17,13 +18,24 @@ func GetSubroundsFactory(
 	consensusState *spos.ConsensusState,
 	worker spos.WorkerHandler,
 	consensusType string,
+	appStatusHandler core.AppStatusHandler,
 ) (spos.SubroundsFactory, error) {
 
 	switch consensusType {
 	case blsConsensusType:
-		return bls.NewSubroundsFactory(consensusDataContainer, consensusState, worker)
+		subRoundFactoryBls, err := bls.NewSubroundsFactory(consensusDataContainer, consensusState, worker)
+		if err == nil {
+			subRoundFactoryBls.SetAppStatusHandler(appStatusHandler)
+		}
+
+		return subRoundFactoryBls, err
 	case bnConsensusType:
-		return bn.NewSubroundsFactory(consensusDataContainer, consensusState, worker)
+		subRoundFactoryBn, err := bn.NewSubroundsFactory(consensusDataContainer, consensusState, worker)
+		if err == nil {
+			subRoundFactoryBn.SetAppStatusHandler(appStatusHandler)
+		}
+
+		return subRoundFactoryBn, err
 	}
 
 	return nil, ErrInvalidConsensusType

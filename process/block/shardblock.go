@@ -40,6 +40,13 @@ type shardProcessor struct {
 	core          serviceContainer.Core
 	txCoordinator process.TransactionCoordinator
 	txCounter     *transactionCounter
+
+	appStatusHandler core.AppStatusHandler
+}
+
+// SetAppStatusHandler method is used to set appStatusHandler
+func (sp *shardProcessor) SetAppStatusHandler(handler core.AppStatusHandler) {
+	sp.appStatusHandler = handler
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -169,7 +176,14 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	log.Info(fmt.Sprintf("Total txs in pool: %d\n", sp.txCounter.getNumTxsWithDst(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())))
+	numTxWithDst := sp.txCounter.getNumTxsWithDst(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())
+
+	if sp.appStatusHandler != nil {
+
+		sp.appStatusHandler.SetInt64Value(core.MetricTxPoolLoad, int64(numTxWithDst))
+	}
+
+	log.Info(fmt.Sprintf("Total txs in pool: %d\n", numTxWithDst))
 
 	sp.txCoordinator.CreateBlockStarted()
 	sp.txCoordinator.RequestBlockTransactions(body)

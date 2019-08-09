@@ -19,6 +19,7 @@ type TermuiConsole struct {
 	mutLogLineWrite      sync.RWMutex
 }
 
+//NewTermuiConsole method is used to return a new TermuiConsole structure
 func NewTermuiConsole() *TermuiConsole {
 
 	tdm := TermuiConsole{}
@@ -49,6 +50,7 @@ func (tdm *TermuiConsole) Write(p []byte) (n int, err error) {
 			tdm.mutLogLineWrite.Unlock()
 		}
 	}()
+
 	return len(p), nil
 }
 
@@ -61,6 +63,14 @@ func (tdm *TermuiConsole) initMetricsMap() {
 	tdm.TermuiConsoleMetrics.Store(core.MetricNonce, 0)
 	tdm.TermuiConsoleMetrics.Store(core.MetricNumConnectedPeers, 0)
 	tdm.TermuiConsoleMetrics.Store(core.MetricSynchronizedRound, 0)
+
+	tdm.TermuiConsoleMetrics.Store(core.MetricPublicKey, "")
+	tdm.TermuiConsoleMetrics.Store(core.MetricShardId, 0)
+	tdm.TermuiConsoleMetrics.Store(core.MetricTxPoolLoad, 0)
+
+	tdm.TermuiConsoleMetrics.Store(core.MetricCountConsensus, 0)
+	tdm.TermuiConsoleMetrics.Store(core.MetricCountLeader, 0)
+	tdm.TermuiConsoleMetrics.Store(core.MetricCountAcceptedBlocks, 0)
 }
 
 // SetInt64Value method - will update the value for a key
@@ -77,6 +87,24 @@ func (tdm *TermuiConsole) SetUInt64Value(key string, value uint64) {
 	}
 }
 
+// SetString method - will update the value of a key
+func (tdm *TermuiConsole) SetString(key string, value string) {
+	if _, ok := tdm.TermuiConsoleMetrics.Load(key); ok {
+		tdm.TermuiConsoleMetrics.Store(key, value)
+	}
+}
+
+// Increment - will increment the value of a key
+func (tdm *TermuiConsole) Increment(key string) {
+	if keyValueI, ok := tdm.TermuiConsoleMetrics.Load(key); ok {
+
+		keyValue := keyValueI.(int)
+		keyValue++
+		tdm.TermuiConsoleMetrics.Store(key, keyValue)
+	}
+}
+
+// Start method - will start termui console
 func (tdm *TermuiConsole) Start() {
 	go func() {
 		if err := ui.Init(); err != nil {
@@ -151,6 +179,32 @@ func (tdm *TermuiConsole) prepareData(termuiConsoleWidgets *termuiConsoleGrid) {
 	isSyncingI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricIsSyncing)
 	isSyncing := isSyncingI.(int)
 	termuiConsoleWidgets.PrepareIsSyncingForDisplay(isSyncing)
+
+	publicKeyI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricPublicKey)
+	publicKey := publicKeyI.(string)
+	termuiConsoleWidgets.PreparePublicKeyForDisplay(publicKey)
+
+	shardIdI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricShardId)
+	shardId := shardIdI.(int)
+	termuiConsoleWidgets.PrepareShardIdForDisplay(shardId)
+
+	numConnectedPeersI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricNumConnectedPeers)
+	numConnectedPeers := numConnectedPeersI.(int)
+
+	txPoolLoadI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricTxPoolLoad)
+	txPoolLoad := txPoolLoadI.(int)
+	termuiConsoleWidgets.PrepareSparkLineGroupForDisplay(txPoolLoad, numConnectedPeers)
+
+	countConsensusI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricCountConsensus)
+	countConsensus := countConsensusI.(int)
+
+	countLeaderI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricCountLeader)
+	countLeader := countLeaderI.(int)
+
+	countAcceptedBlocksI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricCountAcceptedBlocks)
+	countAcceptedBlocks := countAcceptedBlocksI.(int)
+
+	termuiConsoleWidgets.PrepareConcensusInformationsForDisplay(countConsensus, countLeader, countAcceptedBlocks)
 
 	termuiConsoleWidgets.PrepareListWithLogsForDisplay(tdm.logLines)
 }

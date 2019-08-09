@@ -472,17 +472,14 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	var appStatusHandlers []core.AppStatusHandler
+
 	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
 	if usePrometheusBool {
 		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
-		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(prometheusStatusHandler)
-		if err != nil {
-			log.Warn("Cannot init AppStatusFacade", err)
-		}
+		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
 	}
-	/////////////////////////////////////////////////////////////
-	//useTermuiBool := ctx.GlobalBool(useTermui.Name)
-	useTermuiBool := true
+	useTermuiBool := ctx.GlobalBool(useTermui.Name)
 
 	if useTermuiBool {
 		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
@@ -492,14 +489,21 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 			log.Warn("Cannot change hook writer ", err)
 		}
 
-		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(
-			termuiStatusHandler)
+		termuiStatusHandler.SetStringValue(core.MetricPublicKey, factory.GetPkEncoded(pubKey))
+		termuiStatusHandler.SetInt64Value(core.MetricShardId, int64(shardCoordinator.SelfId()))
 
+		appStatusHandlers = append(appStatusHandlers, termuiStatusHandler)
+	}
+
+	if len(appStatusHandlers) > 0 {
+		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
 		if err != nil {
 			log.Warn("Cannot init AppStatusFacade", err)
 		}
+	} else {
+		coreComponents.StatusHandler = statusHandler.NewNilStatusHandler()
+		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
-	////////////////////////////
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)

@@ -3,6 +3,7 @@ package commonSubround
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -19,6 +20,8 @@ type SubroundStartRound struct {
 	getSubroundName               func(subroundId int) string
 	executeStoredMessages         func()
 	broadcastUnnotarisedBlocks    func()
+
+	appStatusHandler core.AppStatusHandler
 }
 
 // NewSubroundStartRound creates a SubroundStartRound object
@@ -44,6 +47,7 @@ func NewSubroundStartRound(
 		getSubroundName,
 		executeStoredMessages,
 		broadcastUnnotarisedBlocks,
+		statusHandler.NewNilStatusHandler(),
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -69,6 +73,11 @@ func checkNewSubroundStartRoundParams(
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
+}
+
+// SetAppStatusHandler method set appStatusHandler
+func (sr *SubroundStartRound) SetAppStatusHandler(handler core.AppStatusHandler) {
+	sr.appStatusHandler = handler
 }
 
 // doStartRoundJob method does the job of the subround StartRound
@@ -163,8 +172,17 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	if leader == sr.SelfPubKey() {
+		if sr.appStatusHandler != nil {
+			sr.appStatusHandler.Increment(core.MetricCountLeader)
+		}
 		//TODO: Should be analyzed if call of sr.broadcastUnnotarisedBlocks() is still necessary
 	}
+
+	if sr.appStatusHandler != nil {
+		sr.appStatusHandler.Increment(core.MetricCountConsensus)
+	}
+
+	//TODO rollback decrement
 
 	// execute stored messages which were received in this new round but before this initialisation
 	go sr.executeStoredMessages()

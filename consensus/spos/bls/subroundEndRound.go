@@ -2,6 +2,8 @@ package bls
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -9,6 +11,13 @@ import (
 
 type subroundEndRound struct {
 	*spos.Subround
+
+	appStatusHandler core.AppStatusHandler
+}
+
+// SetAppStatusHandler method set appStatusHandler
+func (sr *subroundEndRound) SetAppStatusHandler(handler core.AppStatusHandler) {
+	sr.appStatusHandler = handler
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -25,6 +34,7 @@ func NewSubroundEndRound(
 
 	srEndRound := subroundEndRound{
 		baseSubround,
+		statusHandler.NewNilStatusHandler(),
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -108,6 +118,9 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
+	if sr.appStatusHandler != nil {
+		sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
+	}
 	return true
 }
 

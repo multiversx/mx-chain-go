@@ -60,6 +60,15 @@ func (asf *AppStatusFacade) SetUInt64Value(key string, value uint64) {
 	}()
 }
 
+// SetStringValue method - will update the value for a key for every handler
+func (asf *AppStatusFacade) SetStringValue(key string, value string) {
+	go func() {
+		for _, ash := range asf.handlers {
+			ash.SetStringValue(key, value)
+		}
+	}()
+}
+
 // Close method will close all the handlers
 func (asf *AppStatusFacade) Close() {
 	go func() {

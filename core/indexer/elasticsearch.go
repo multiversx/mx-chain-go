@@ -481,8 +481,8 @@ func timestampMapping() io.Reader {
 func getTransactionByType(
 	tx data.TransactionHandler,
 	txHash []byte,
-	mbHash[]byte,
-	blockHash[]byte,
+	mbHash []byte,
+	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 	txStatus string,
@@ -503,8 +503,8 @@ func getTransactionByType(
 func buildTransaction(
 	tx *transaction.Transaction,
 	txHash []byte,
-	mbHash[]byte,
-	blockHash[]byte,
+	mbHash []byte,
+	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 	txStatus string,
@@ -531,8 +531,8 @@ func buildTransaction(
 func buildSmartContractResult(
 	scr *smartContractResult.SmartContractResult,
 	txHash []byte,
-	mbHash[]byte,
-	blockHash[]byte,
+	mbHash []byte,
+	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 ) *Transaction {

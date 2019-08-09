@@ -24,3 +24,21 @@ const MetricSynchronizedRound = "erd_synchronized_round"
 
 // MetricIsSyncing is the metric for monitoring if a node is syncing
 const MetricIsSyncing = "erd_is_syncing"
+
+// MetricPublicKey is the metric for monitoring public key of a node
+const MetricPublicKey = "erd_public_key"
+
+// MetricShardId is the metric for monitoring shard id of a node
+const MetricShardId = "erd_shard_id"
+
+// MetricTxPoolLoad is the metric for monitoring number of transactions from pool of a node
+const MetricTxPoolLoad = "erd_tx_pool_load"
+
+// MetricCountLeader is the metric for monitoring number of rounds when a node was leader
+const MetricCountLeader = "erd_count_leader"
+
+// MetricCountConsensus is the metric for monitoring number of rounds when a node was in consensus group
+const MetricCountConsensus = "erd_count_consensus"
+
+// MetricCountAcceptedBlocks is the metric for monitoring number of blocks that was accepted proposed by a node
+const MetricCountAcceptedBlocks = "erd_count_accepted_blocks"

@@ -1,6 +1,8 @@
 package bn
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -13,6 +15,8 @@ type factory struct {
 	consensusCore  spos.ConsensusCoreHandler
 	consensusState *spos.ConsensusState
 	worker         spos.WorkerHandler
+
+	appStatusHandler core.AppStatusHandler
 }
 
 // NewSubroundsFactory creates a new factory for BN subrounds
@@ -33,9 +37,10 @@ func NewSubroundsFactory(
 	}
 
 	fct := factory{
-		consensusCore:  consensusDataContainer,
-		consensusState: consensusState,
-		worker:         worker,
+		consensusCore:    consensusDataContainer,
+		consensusState:   consensusState,
+		worker:           worker,
+		appStatusHandler: statusHandler.NewNilStatusHandler(),
 	}
 
 	return &fct, nil
@@ -60,6 +65,11 @@ func checkNewFactoryParams(
 	}
 
 	return nil
+}
+
+// SetAppStatusHandler method set appStatusHandler
+func (fct *factory) SetAppStatusHandler(handler core.AppStatusHandler) {
+	fct.appStatusHandler = handler
 }
 
 // GenerateSubrounds will generate the subrounds used in Belare & Naveen Cns

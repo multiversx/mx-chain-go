@@ -17,30 +17,35 @@ func NewTermuiStatusHandler() *TermuiStatusHandler {
 }
 
 //Termui method - returns address of TermuiConsole structure from TermuiStatusHandler
-func (psh *TermuiStatusHandler) Termui() *termuic.TermuiConsole {
-	return psh.tui
+func (tsh *TermuiStatusHandler) Termui() *termuic.TermuiConsole {
+	return tsh.tui
 }
 
 // Increment method - won't do anything
-func (psh *TermuiStatusHandler) Increment(key string) {
-	return
+func (tsh *TermuiStatusHandler) Increment(key string) {
+	tsh.tui.Increment(key)
 }
 
 // Decrement method - won't do anything
-func (psh *TermuiStatusHandler) Decrement(key string) {
+func (tsh *TermuiStatusHandler) Decrement(key string) {
 	return
 }
 
 // SetInt64Value method - won't do anything
-func (psh *TermuiStatusHandler) SetInt64Value(key string, value int64) {
-	psh.tui.SetInt64Value(key, value)
+func (tsh *TermuiStatusHandler) SetInt64Value(key string, value int64) {
+	tsh.tui.SetInt64Value(key, value)
 }
 
 // SetUInt64Value method - won't do anything
-func (psh *TermuiStatusHandler) SetUInt64Value(key string, value uint64) {
-	psh.tui.SetUInt64Value(key, value)
+func (tsh *TermuiStatusHandler) SetUInt64Value(key string, value uint64) {
+	tsh.tui.SetUInt64Value(key, value)
+}
+
+// SetString - will update the value for a key
+func (tsh *TermuiStatusHandler) SetStringValue(key string, value string) {
+	tsh.tui.SetString(key, value)
 }
 
 // Close method - won't do anything
-func (psh *TermuiStatusHandler) Close() {
+func (tsh *TermuiStatusHandler) Close() {
 }
