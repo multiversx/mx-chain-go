@@ -484,7 +484,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	if useTermuiBool {
 		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
 
-		err = log.ChangePrinterHookWriter(termuiStatusHandler.Termui())
+		termuiConsole, err := termuiStatusHandler.Termui()
+
+		if err != nil {
+			log.Warn("Nil termui console", err)
+		}
+
+		err = log.ChangePrinterHookWriter(termuiConsole)
 		if err != nil {
 			log.Warn("Cannot change hook writer ", err)
 		}

@@ -93,8 +93,8 @@ func (tdm *TermuiConsole) SetUInt64Value(key string, value uint64) {
 	}
 }
 
-// SetString method - will update the value of a key
-func (tdm *TermuiConsole) SetString(key string, value string) {
+// SetStringValue method - will update the value of a key
+func (tdm *TermuiConsole) SetStringValue(key string, value string) {
 	if _, ok := tdm.TermuiConsoleMetrics.Load(key); ok {
 		tdm.TermuiConsoleMetrics.Store(key, value)
 	}
@@ -108,6 +108,16 @@ func (tdm *TermuiConsole) Increment(key string) {
 		keyValue++
 		tdm.TermuiConsoleMetrics.Store(key, keyValue)
 	}
+}
+
+// Decrement method - will decrement the value for a key
+func (tsh *TermuiConsole) Decrement(key string) {
+	return
+}
+
+// Close method - won't do anything
+func (tdm *TermuiConsole) Close() {
+	return
 }
 
 // Start method - will start termui console
@@ -127,7 +137,9 @@ func (tdm *TermuiConsole) eventLoop() {
 
 	tdm.termuiConsoleWidgets = NewtermuiConsoleGrid()
 
-	grid := tdm.configConsoleNormalTermuiWidgets()
+	time.Sleep(1 * time.Second)
+
+	grid := tdm.configConsoleWithNormalTermuiWidgets()
 
 	uiEvents := ui.PollEvents()
 	// handles kill signal sent to gotop
@@ -145,6 +157,7 @@ func (tdm *TermuiConsole) eventLoop() {
 			ui.Render(grid)
 		case <-sigTerm:
 			ui.Clear()
+
 			return
 		case e := <-uiEvents:
 			switch e.ID {
@@ -153,13 +166,15 @@ func (tdm *TermuiConsole) eventLoop() {
 				grid.SetRect(0, 0, payload.Width, payload.Height)
 				ui.Clear()
 				ui.Render(grid)
-			case "?":
-				ui.Render(grid)
-
 			case "q":
 				ui.Clear()
 				grid = tdm.changeConsoleDisplay()
 
+			case "<C-c>":
+				ui.Clear()
+				_ = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+
+				return
 			}
 		}
 	}
@@ -167,13 +182,13 @@ func (tdm *TermuiConsole) eventLoop() {
 
 func (tdm *TermuiConsole) refreshDataForConsole() {
 	if tdm.viewBigLog == false {
-		tdm.prepareData()
+		tdm.prepareDataNormalWidgets()
 	} else {
-		tdm.bigConsoleLogDisplay()
+		tdm.prepareDataBigLog()
 	}
 }
 
-func (tdm *TermuiConsole) prepareData() {
+func (tdm *TermuiConsole) prepareDataNormalWidgets() {
 	nonceI, _ := tdm.TermuiConsoleMetrics.Load(core.MetricNonce)
 	nonce := nonceI.(int)
 	tdm.termuiConsoleWidgets.PrepareNonceForDisplay(nonce)
@@ -219,7 +234,7 @@ func (tdm *TermuiConsole) prepareData() {
 	tdm.termuiConsoleWidgets.PrepareListWithLogsForDisplay(tdm.logLines)
 }
 
-func (tdm *TermuiConsole) bigConsoleLogDisplay() {
+func (tdm *TermuiConsole) prepareDataBigLog() {
 	tdm.termuiConsoleWidgets.PrepareListWithLogsForDisplay(tdm.logLines)
 }
 
@@ -234,7 +249,7 @@ func (tdm *TermuiConsole) changeConsoleDisplay() *ui.Grid {
 		tdm.viewBigLog = false
 		tdm.numLogLines = 10
 
-		return tdm.configConsoleNormalTermuiWidgets()
+		return tdm.configConsoleWithNormalTermuiWidgets()
 	}
 }
 
@@ -250,7 +265,7 @@ func (tdm *TermuiConsole) configConsoleWithBigLog() *ui.Grid {
 	return grid
 }
 
-func (tdm *TermuiConsole) configConsoleNormalTermuiWidgets() *ui.Grid {
+func (tdm *TermuiConsole) configConsoleWithNormalTermuiWidgets() *ui.Grid {
 	tdm.termuiConsoleWidgets.setupGrid()
 
 	grid := tdm.termuiConsoleWidgets.Grid()

@@ -2,9 +2,10 @@ package termuic
 
 import (
 	"fmt"
+	"strconv"
+
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
-	"strconv"
 )
 
 type termuiConsoleGrid struct {
@@ -97,19 +98,10 @@ func (tcg *termuiConsoleGrid) Grid() *ui.Grid {
 
 func (tcg *termuiConsoleGrid) PrepareNonceForDisplay(Nonce int) {
 	tcg.pNonce.Text = "Nonce : " + strconv.Itoa(Nonce)
-
-	if Nonce < 50 {
-		tcg.pNonce.TextStyle = ui.Style{
-			Fg:       ui.ColorBlack,
-			Bg:       ui.ColorRed,
-			Modifier: 1,
-		}
-	} else {
-		tcg.pNonce.TextStyle = ui.Style{
-			Fg:       ui.ColorBlack,
-			Bg:       ui.ColorRed,
-			Modifier: 10,
-		}
+	tcg.pNonce.TextStyle = ui.Style{
+		Fg:       ui.ColorBlack,
+		Bg:       ui.ColorGreen,
+		Modifier: 1,
 	}
 
 	return

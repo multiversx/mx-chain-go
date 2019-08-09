@@ -17,8 +17,11 @@ func NewTermuiStatusHandler() *TermuiStatusHandler {
 }
 
 //Termui method - returns address of TermuiConsole structure from TermuiStatusHandler
-func (tsh *TermuiStatusHandler) Termui() *termuic.TermuiConsole {
-	return tsh.tui
+func (tsh *TermuiStatusHandler) Termui() (*termuic.TermuiConsole, error) {
+	if tsh.tui == nil {
+		return nil, ErrNilTermuiConsole
+	}
+	return tsh.tui, nil
 }
 
 // Increment method - will increment the value for a key
@@ -43,7 +46,7 @@ func (tsh *TermuiStatusHandler) SetUInt64Value(key string, value uint64) {
 
 // SetStringValue - will update the value for a key
 func (tsh *TermuiStatusHandler) SetStringValue(key string, value string) {
-	tsh.tui.SetString(key, value)
+	tsh.tui.SetStringValue(key, value)
 }
 
 // Close method - won't do anything
