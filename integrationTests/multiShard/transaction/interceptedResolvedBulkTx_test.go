@@ -38,6 +38,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 
 	numOfShards := 6
 	nodesPerShard := 3
+	numMetachainNodes := 0
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -45,7 +46,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
-		0,
+		numMetachainNodes,
 		integrationTests.GetConnectableAddress(advertiser),
 	)
 	integrationTests.CreateAccForNodes(nodes)
@@ -65,10 +66,9 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	txToSend := 100
 
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 5)
-	generateAddrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
 	fmt.Println("Generating and broadcasting transactions...")
-	addrInShardFive := integrationTests.GenerateRandomHexAddressInShard(generateCoordinator, generateAddrConverter)
+	addrInShardFive := integrationTests.GenerateRandomHexAddressInShard(generateCoordinator, integrationTests.TestAddressConverter)
 	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 	time.Sleep(time.Second * 10)
 
@@ -107,24 +107,26 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 
 	numOfShards := 6
 	nodesPerShard := 3
-
+	numMetachainNodes := 0
 	firstSkInShard := uint32(4)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
-	nodes := createNodesWithNodeSkInShardExceptFirst(
+	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
-		firstSkInShard,
+		numMetachainNodes,
 		integrationTests.GetConnectableAddress(advertiser),
 	)
-	displayAndStartNodes(nodes)
+	nodes[0] = integrationTests.NewTestProcessorNode(uint32(numOfShards), 0, firstSkInShard, integrationTests.GetConnectableAddress(advertiser))
+	integrationTests.CreateAccForNodes(nodes)
+	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.node.Stop()
+			_ = n.Node.Stop()
 		}
 	}()
 
@@ -139,20 +141,20 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 
 	addrInShardFive := integrationTests.GenerateRandomHexAddressInShard(generateCoordinator, generateAddrConverter)
 
-	_ = nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 
 	//display, can be removed
 	for i := 0; i < 10; i++ {
 		time.Sleep(time.Second)
 
-		fmt.Println(makeDisplayTable(nodes))
+		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 	}
 
 	//since there is a slight chance that some transactions get lost (peer to slow, queue full...)
 	//we should get the max transactions received
 	maxTxReceived := int32(0)
 	for _, n := range nodes {
-		txRecv := atomic.LoadInt32(&n.txRecv)
+		txRecv := atomic.LoadInt32(&n.CounterTxRecv)
 
 		if txRecv > maxTxReceived {
 			maxTxReceived = txRecv
@@ -163,12 +165,12 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 
 	//only sender shard (all 3 nodes from shard firstSkInShard) has the transactions
 	for _, n := range nodes {
-		if n.shardId == firstSkInShard {
-			assert.Equal(t, atomic.LoadInt32(&n.txRecv), maxTxReceived)
+		if n.ShardCoordinator.SelfId() == firstSkInShard {
+			assert.Equal(t, atomic.LoadInt32(&n.CounterTxRecv), maxTxReceived)
 			continue
 		}
 
-		assert.Equal(t, atomic.LoadInt32(&n.txRecv), int32(0))
+		assert.Equal(t, atomic.LoadInt32(&n.CounterTxRecv), int32(0))
 	}
 }
 
