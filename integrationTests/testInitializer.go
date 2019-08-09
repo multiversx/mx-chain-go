@@ -37,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
+	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -985,4 +986,43 @@ func CreateAccForNode(node *TestProcessorNode) {
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(node.OwnAccount.PkTxSignBytes)
 	_, _ = node.AccntState.GetAccountWithJournal(addr)
 	_, _ = node.AccntState.Commit()
+}
+
+// ComputeAndRequestMissingTransactions computes missing transactions for each node, and requests them
+func ComputeAndRequestMissingTransactions(
+	nodes []*TestProcessorNode,
+	generatedTxHashes [][]byte,
+	shardResolver uint32,
+	shardRequesters ...uint32,
+) {
+	for _, n := range nodes {
+		if !Uint32InSlice(n.ShardCoordinator.SelfId(), shardRequesters) {
+			continue
+		}
+
+		neededTxs := getMissingTxsForNode(n, generatedTxHashes)
+		requestMissingTransactions(n, shardResolver, neededTxs)
+	}
+}
+
+func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]byte {
+	neededTxs := make([][]byte, 0)
+
+	for i := 0; i < len(generatedTxHashes); i++ {
+		_, ok := n.ShardDataPool.Transactions().SearchFirstData(generatedTxHashes[i])
+		if !ok {
+			//tx is still missing
+			neededTxs = append(neededTxs, generatedTxHashes[i])
+		}
+	}
+
+	return neededTxs
+}
+
+func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, neededTxs [][]byte) {
+	txResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.TransactionTopic, shardResolver)
+
+	for i := 0; i < len(neededTxs); i++ {
+		_ = txResolver.RequestDataFromHash(neededTxs[i])
+	}
 }

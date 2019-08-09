@@ -10,19 +10,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
-
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
@@ -189,28 +188,30 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 
 	numOfShards := 6
 	nodesPerShard := 3
-
+	numMetachainNodes := 0
 	firstSkInShard := uint32(4)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
-	nodes := createNodesWithNodeSkInShardExceptFirst(
+	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
-		firstSkInShard,
+		numMetachainNodes,
 		integrationTests.GetConnectableAddress(advertiser),
 	)
-	displayAndStartNodes(nodes)
+	nodes[0] = integrationTests.NewTestProcessorNode(uint32(numOfShards), 0, firstSkInShard, integrationTests.GetConnectableAddress(advertiser))
+	integrationTests.CreateAccForNodes(nodes)
+	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.node.Stop()
+			_ = n.Node.Stop()
 		}
 	}()
 
-	// delay for bootstrapping and topic a0nnouncement
+	// delay for bootstrapping and topic announcement
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(time.Second * 5)
 
@@ -228,8 +229,8 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	generatedTxHashes := make([][]byte, 0)
 	//wire a new hook for generated txs on a node in sender shard to populate tx hashes generated
 	for _, n := range nodes {
-		if n.shardId == firstSkInShard {
-			n.dPool.Transactions().RegisterHandler(func(key []byte) {
+		if n.ShardCoordinator.SelfId() == firstSkInShard {
+			n.ShardDataPool.Transactions().RegisterHandler(func(key []byte) {
 				mutGeneratedTxHashes.Lock()
 				generatedTxHashes = append(generatedTxHashes, key)
 				mutGeneratedTxHashes.Unlock()
@@ -237,31 +238,25 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 		}
 	}
 
-	_ = nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 
 	fmt.Println("Waiting for senders to fetch generated transactions...")
 	time.Sleep(time.Second * 10)
 
-	//right now all 3 nodes from sender shard have the transactions
-	//nodes from shardRequester should ask and receive all generated transactions
-	mutGeneratedTxHashes.Lock()
-	copyNeededTransactions(nodes, generatedTxHashes)
-	mutGeneratedTxHashes.Unlock()
-
 	fmt.Println("Request transactions by destination shard nodes...")
 	//periodically compute and request missing transactions
 	for i := 0; i < 10; i++ {
-		computeAndRequestMissingTransactions(nodes, firstSkInShard, shardRequester, randomShard)
+		integrationTests.ComputeAndRequestMissingTransactions(nodes, generatedTxHashes, firstSkInShard, shardRequester, randomShard)
 		time.Sleep(time.Second)
 
-		fmt.Println(makeDisplayTable(nodes))
+		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 	}
 
 	//since there is a slight chance that some transactions get lost (peer to slow, queue full...)
 	//we should get the max transactions received
 	maxTxReceived := int32(0)
 	for _, n := range nodes {
-		txRecv := atomic.LoadInt32(&n.txRecv)
+		txRecv := atomic.LoadInt32(&n.CounterTxRecv)
 
 		if txRecv > maxTxReceived {
 			maxTxReceived = txRecv
@@ -272,14 +267,14 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 
 	//only sender and destination shards have the transactions
 	for _, n := range nodes {
-		isSenderOrDestinationShard := n.shardId == firstSkInShard || n.shardId == shardRequester
+		isSenderOrDestinationShard := n.ShardCoordinator.SelfId() == firstSkInShard || n.ShardCoordinator.SelfId() == shardRequester
 
 		if isSenderOrDestinationShard {
-			assert.Equal(t, atomic.LoadInt32(&n.txRecv), maxTxReceived)
+			assert.Equal(t, atomic.LoadInt32(&n.CounterTxRecv), maxTxReceived)
 			continue
 		}
 
-		assert.Equal(t, atomic.LoadInt32(&n.txRecv), int32(0))
+		assert.Equal(t, atomic.LoadInt32(&n.CounterTxRecv), int32(0))
 	}
 }
 
@@ -469,76 +464,4 @@ func generateValidTx(
 	txHash := hasher.Compute(string(txBuff))
 
 	return tx, txHash
-}
-
-func copyNeededTransactions(
-	nodes []*testNode,
-	generatedTxHashes [][]byte,
-) {
-
-	for _, n := range nodes {
-		n.neededTxs = make([][]byte, len(generatedTxHashes))
-
-		n.mutNeededTxs.Lock()
-		for i := 0; i < len(generatedTxHashes); i++ {
-			n.neededTxs[i] = make([]byte, len(generatedTxHashes[i]))
-			copy(n.neededTxs[i], generatedTxHashes[i])
-		}
-		n.mutNeededTxs.Unlock()
-	}
-}
-
-func computeAndRequestMissingTransactions(
-	nodes []*testNode,
-	shardResolver uint32,
-	shardRequesters ...uint32,
-) {
-	for _, n := range nodes {
-		if !isInList(n.shardId, shardRequesters) {
-			continue
-		}
-
-		computeMissingTransactions(n)
-		requestMissingTransactions(n, shardResolver)
-	}
-}
-
-func isInList(searched uint32, list []uint32) bool {
-	for _, val := range list {
-		if val == searched {
-			return true
-		}
-	}
-
-	return false
-}
-
-func computeMissingTransactions(n *testNode) {
-	n.mutNeededTxs.Lock()
-
-	newNeededTxs := make([][]byte, 0)
-
-	for i := 0; i < len(n.neededTxs); i++ {
-		_, ok := n.dPool.Transactions().SearchFirstData(n.neededTxs[i])
-		if !ok {
-			//tx is still missing
-			newNeededTxs = append(newNeededTxs, n.neededTxs[i])
-		}
-	}
-
-	n.neededTxs = newNeededTxs
-
-	n.mutNeededTxs.Unlock()
-}
-
-func requestMissingTransactions(n *testNode, shardResolver uint32) {
-	n.mutNeededTxs.Lock()
-
-	txResolver, _ := n.resFinder.CrossShardResolver(factory.TransactionTopic, shardResolver)
-
-	for i := 0; i < len(n.neededTxs); i++ {
-		_ = txResolver.RequestDataFromHash(n.neededTxs[i])
-	}
-
-	n.mutNeededTxs.Unlock()
 }
