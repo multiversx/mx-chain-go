@@ -58,7 +58,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -67,7 +66,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -1244,7 +1242,12 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(state.AccountsAdapter, state.AddressConverter)
+	vmFactory, err := shard.NewVMContainerFactory(state.AccountsAdapter, state.AddressConverter)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	vmContainer, err := vmFactory.Create()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1270,17 +1273,13 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	//TODO replace this with a vm factory
-	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.ElrondTestnet)
-
 	scProcessor, err := smartContract.NewSmartContractProcessor(
-		ieleVM,
+		vmContainer,
 		argsParser,
 		core.Hasher,
 		core.Marshalizer,
 		state.AccountsAdapter,
-		vmAccountsDB,
+		vmFactory.VMAccountsDB(),
 		state.AddressConverter,
 		shardCoordinator,
 		scForwarder,

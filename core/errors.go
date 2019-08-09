@@ -27,3 +27,15 @@ var ErrNilUrl = errors.New("url is empty")
 
 // ErrWrongTypeAssertion signals that an type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrPemFileIsInvalid signals that a pem file is invalid
+var ErrPemFileIsInvalid = errors.New("pem file is invalid")
+
+// ErrNilFile signals that a nil file has been provided
+var ErrNilFile = errors.New("nil file provided")
+
+// ErrEmptyFile signals that a empty file has been provided
+var ErrEmptyFile = errors.New("empty file provided")
+
+// ErrInvalidIndex signals that an invalid private key index has been provided
+var ErrInvalidIndex = errors.New("invalid private key index")
