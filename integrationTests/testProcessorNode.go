@@ -263,9 +263,14 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.VmProcessor, tpn.BlockchainHook = CreateIeleVMAndBlockchainHook(tpn.AccntState)
 	tpn.VmDataGetter, _ = CreateIeleVMAndBlockchainHook(tpn.AccntState)
 
+	vmContainer := &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return tpn.VmProcessor, nil
+		}}
+
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
-		tpn.VmProcessor,
+		vmContainer,
 		tpn.ArgsParser,
 		TestHasher,
 		TestMarshalizer,
