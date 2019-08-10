@@ -348,6 +348,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 
 // CreateBlockBody creates block body of metachain
 func (mp *metaProcessor) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
+	log.Info(fmt.Sprintf("starting create block body in round %d\n", round))
 	mp.blockSizeThrottler.ComputeMaxItems()
 	return &block.MetaBlockBody{}, nil
 }
@@ -495,6 +496,9 @@ func (mp *metaProcessor) CommitBlock(
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
+
+	hdrsToAttestFinality := mp.nextKValidity
+	mp.removeNotarizedHdrsBehindFinal(hdrsToAttestFinality)
 
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
@@ -1042,6 +1046,7 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 
 // CreateBlockHeader creates a miniblock header list given a block body
 func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
+	log.Info(fmt.Sprintf("starting create block header in round %d\n", round))
 	// TODO: add PrevRandSeed and RandSeed when BLS signing is completed
 	header := &block.MetaBlock{
 		ShardInfo:    make([]block.ShardData, 0),

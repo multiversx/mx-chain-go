@@ -227,6 +227,18 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 	return nil
 }
 
+func (bp *baseProcessor) removeNotarizedHdrsBehindFinal(hdrsToAttestFinality uint32) {
+	bp.mutNotarizedHdrs.Lock()
+	for shardId := range bp.lastNotarizedHdrs {
+		notarizedHdrsCount := uint32(len(bp.lastNotarizedHdrs[shardId]))
+		if notarizedHdrsCount > hdrsToAttestFinality {
+			finalIndex := notarizedHdrsCount - 1 - hdrsToAttestFinality
+			bp.lastNotarizedHdrs[shardId] = bp.lastNotarizedHdrs[shardId][finalIndex:]
+		}
+	}
+	bp.mutNotarizedHdrs.Unlock()
+}
+
 func (bp *baseProcessor) restoreLastNotarized() {
 	bp.mutNotarizedHdrs.Lock()
 	for shardId := range bp.lastNotarizedHdrs {

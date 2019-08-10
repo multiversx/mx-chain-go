@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -83,7 +84,7 @@ func (bfd *basicForkDetector) AddHeader(
 		// create a check point and remove all the past headers
 		if finalHeader == nil || finalHeader.IsInterfaceNil() {
 			bfd.setFinalCheckpoint(bfd.lastCheckpoint())
-		} else if finalHeader.GetNonce() > 0 {
+		} else if finalHeader.GetNonce() > core.GenesisBlockNonce {
 			bfd.setFinalCheckpoint(&checkpointInfo{nonce: finalHeader.GetNonce(), round: finalHeader.GetRound()})
 			bfd.append(&headerInfo{
 				nonce: finalHeader.GetNonce(),
@@ -132,7 +133,7 @@ func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, stat
 	if roundTooOld {
 		return ErrLowerRoundInBlock
 	}
-	if int64(roundDif) < nonceDif {
+	if roundDif < nonceDif {
 		return ErrHigherNonceInBlock
 	}
 	if state == process.BHProposed {
@@ -173,7 +174,7 @@ func (bfd *basicForkDetector) removeInvalidHeaders() {
 		for i := 0; i < len(hdrInfos); i++ {
 			roundDif := int64(hdrInfos[i].round) - int64(finalCheckpointRound)
 			nonceDif := int64(hdrInfos[i].nonce) - int64(finalCheckpointNonce)
-			if int64(roundDif) >= nonceDif {
+			if roundDif >= nonceDif {
 				validHdrInfos = append(validHdrInfos, hdrInfos[i])
 			}
 		}
@@ -188,10 +189,10 @@ func (bfd *basicForkDetector) removeInvalidHeaders() {
 }
 
 func (bfd *basicForkDetector) removePastCheckpoints() {
-	bfd.removeNoncesCheckpointsBehindNonce(bfd.finalCheckpoint().nonce)
+	bfd.removeCheckpointsBehindNonce(bfd.finalCheckpoint().nonce)
 }
 
-func (bfd *basicForkDetector) removeNoncesCheckpointsBehindNonce(nonce uint64) {
+func (bfd *basicForkDetector) removeCheckpointsBehindNonce(nonce uint64) {
 	bfd.mutFork.Lock()
 	var preservedCheckpoint []*checkpointInfo
 
@@ -307,9 +308,9 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 	for _, hdrInfoStored := range hdrInfos {
 		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) {
 			if hdrInfoStored.state != process.BHProcessed {
-				// if the stored and received headers processed at the same time have equal hashes, that the old record
-				// will be replaced with the processed one. This nonce is marked at bootsrapping as processed, but as it
-				// is also received through broadcasting, the system stores as received.
+				// If the old appended headers have the same hashes with the new comes than the state of the old records
+				// will be replaced if the new one is more important. This is the hierarchy from low to high in term of
+				// importance: (BHProposed, BHReceived, BHNotarized, BHProcessed)
 				if hdrInfo.state == process.BHNotarized {
 					hdrInfoStored.state = process.BHNotarized
 				} else if hdrInfo.state == process.BHProcessed {
@@ -357,7 +358,7 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64, []byte) {
 			if hdrInfos[i].state == process.BHNotarized {
 				lowestRoundInForkNonce = 0
 				forkHeaderHash = hdrInfos[i].hash
-				break
+				continue
 			}
 
 			if hdrInfos[i].round < lowestRoundInForkNonce {
