@@ -429,7 +429,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		)
 
 		if err != nil {
-			log.Info(err.Error())
+			log.Debug(err.Error())
 			err = txs.accounts.RevertToSnapshot(snapshot)
 			if err != nil {
 				log.Error(err.Error())
@@ -444,10 +444,6 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
 			return miniBlock, nil
 		}
-	}
-
-	if len(miniBlock.TxHashes) < 3 && len(miniBlock.TxHashes) > 0 {
-		fmt.Println("bubu")
 	}
 
 	return miniBlock, nil
