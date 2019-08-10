@@ -7,8 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 	"github.com/whyrusleeping/go-logging"
@@ -137,4 +140,109 @@ func generateHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyH
 	}
 
 	return body, &hdr
+}
+
+// TestMetaHeadersAreRequstedOnlyFromMetachain tests the metaheader request to be made only from metachain nodes
+// The test will have 2 shards and meta, one shard node will request a metaheader and it should received it only from
+// the meta node
+func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	maxShards := uint32(2)
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
+
+	node1Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	node2Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	node3Shard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 0, advertiserAddr)
+	node4Meta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+
+	nodes := []*integrationTests.TestProcessorNode{node1Shard0, node2Shard0, node3Shard1, node4Meta}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	for _, n := range nodes {
+		_ = n.Messenger.Bootstrap()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(time.Second * 5)
+
+	metaHdrFromMetachain := &block.MetaBlock{
+		Nonce:         110,
+		Epoch:         0,
+		ShardInfo:     make([]block.ShardData, 0),
+		PeerInfo:      make([]block.PeerData, 0),
+		Signature:     []byte("signature"),
+		PubKeysBitmap: []byte{1},
+		PrevHash:      []byte("prev hash"),
+		PrevRandSeed:  []byte("prev rand seed"),
+		RandSeed:      []byte("rand seed"),
+		RootHash:      []byte("root hash"),
+		TxCount:       0,
+	}
+	metaHdrHashFromMetachain, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaHdrFromMetachain)
+
+	metaHdrFromShard := &block.MetaBlock{
+		Nonce:         220,
+		Epoch:         0,
+		ShardInfo:     make([]block.ShardData, 0),
+		PeerInfo:      make([]block.PeerData, 0),
+		Signature:     []byte("signature"),
+		PubKeysBitmap: []byte{1},
+		PrevHash:      []byte("prev hash"),
+		PrevRandSeed:  []byte("prev rand seed"),
+		RandSeed:      []byte("rand seed"),
+		RootHash:      []byte("root hash"),
+		TxCount:       0,
+	}
+	metaHdrFromShardHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaHdrFromShard)
+
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+			n.ShardDataPool.MetaBlocks().Put(metaHdrFromShardHash, metaHdrFromShard)
+		}
+	}
+
+	chanReceived := make(chan struct{}, 1000)
+	node4Meta.MetaDataPool.MetaChainBlocks().Put(metaHdrHashFromMetachain, metaHdrFromMetachain)
+	node1Shard0.ShardDataPool.MetaBlocks().Clear()
+	node1Shard0.ShardDataPool.MetaBlocks().RegisterHandler(func(key []byte) {
+		chanReceived <- struct{}{}
+	})
+
+	retrievedHeader := requestAndRetrieveMetaHeader(node1Shard0, metaHdrHashFromMetachain, chanReceived)
+	assert.NotNil(t, retrievedHeader)
+	assert.Equal(t, metaHdrFromMetachain.Nonce, retrievedHeader.Nonce)
+
+	retrievedHeader = requestAndRetrieveMetaHeader(node1Shard0, metaHdrFromShardHash, chanReceived)
+	assert.Nil(t, retrievedHeader)
+}
+
+func requestAndRetrieveMetaHeader(
+	node *integrationTests.TestProcessorNode,
+	hash []byte,
+	chanReceived chan struct{},
+) *block.MetaBlock {
+
+	resolver, _ := node.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	_ = resolver.RequestDataFromHash(hash)
+
+	select {
+	case <-chanReceived:
+	case <-time.After(time.Second * 2):
+		return nil
+	}
+
+	retrievedObject, _ := node.ShardDataPool.MetaBlocks().Get(hash)
+
+	return retrievedObject.(*block.MetaBlock)
 }

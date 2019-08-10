@@ -20,7 +20,7 @@ func TestNewTopicResolverSender_NilMessengerShouldErr(t *testing.T) {
 	trs, err := topicResolverSender.NewTopicResolverSender(
 		nil,
 		"topic",
-		"",
+		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
 		0,
@@ -30,13 +30,29 @@ func TestNewTopicResolverSender_NilMessengerShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
 }
 
+func TestNewTopicResolverSender_NilPeersListCreatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	trs, err := topicResolverSender.NewTopicResolverSender(
+		&mock.MessageHandlerStub{},
+		"topic",
+		nil,
+		&mock.MarshalizerMock{},
+		&mock.IntRandomizerMock{},
+		0,
+	)
+
+	assert.Nil(t, trs)
+	assert.Equal(t, dataRetriever.ErrNilPeerListCreator, err)
+}
+
 func TestNewTopicResolverSender_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	trs, err := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{},
 		"topic",
-		"",
+		&mock.PeerListCreatorStub{},
 		nil,
 		&mock.IntRandomizerMock{},
 		0,
@@ -52,7 +68,7 @@ func TestNewTopicResolverSender_NilRandomizerShouldErr(t *testing.T) {
 	trs, err := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{},
 		"topic",
-		"",
+		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerMock{},
 		nil,
 		0,
@@ -68,7 +84,7 @@ func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
 	trs, err := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{},
 		"topic",
-		"",
+		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
 		0,
@@ -88,7 +104,7 @@ func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *test
 	trs, _ := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{},
 		"topic",
-		"",
+		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
 				return nil, errExpected
@@ -107,13 +123,13 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 	t.Parallel()
 
 	trs, _ := topicResolverSender.NewTopicResolverSender(
-		&mock.MessageHandlerStub{
-			ConnectedPeersOnTopicCalled: func(topic string) []p2p.PeerID {
+		&mock.MessageHandlerStub{},
+		"topic",
+		&mock.PeerListCreatorStub{
+			PeerListCalled: func() []p2p.PeerID {
 				return make([]p2p.PeerID, 0)
 			},
 		},
-		"topic",
-		"",
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
 		0,
@@ -132,9 +148,6 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 
 	trs, _ := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{
-			ConnectedPeersOnTopicCalled: func(topic string) []p2p.PeerID {
-				return []p2p.PeerID{pID1}
-			},
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pID1.Bytes()) {
 					sentToPid1 = true
@@ -144,7 +157,11 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 			},
 		},
 		"topic",
-		"",
+		&mock.PeerListCreatorStub{
+			PeerListCalled: func() []p2p.PeerID {
+				return []p2p.PeerID{pID1}
+			},
+		},
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
 		0,
@@ -177,7 +194,7 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 			},
 		},
 		"topic",
-		"",
+		&mock.PeerListCreatorStub{},
 		&mock.MarshalizerMock{},
 		&mock.IntRandomizerMock{},
 		0,
@@ -187,53 +204,6 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, sentToPid1)
-}
-
-// ------- MakeDiffList
-
-func TestMakeDiffList_EmptyExcludedShoudRetAllPeersList(t *testing.T) {
-	t.Parallel()
-
-	allPeers := []p2p.PeerID{p2p.PeerID("peer1"), p2p.PeerID("peer2")}
-	excludedPeerList := make([]p2p.PeerID, 0)
-	diff := topicResolverSender.MakeDiffList(allPeers, excludedPeerList)
-
-	assert.Equal(t, allPeers, diff)
-}
-
-func TestMakeDiffList_AllFoundInExcludedShouldRetEmpty(t *testing.T) {
-	t.Parallel()
-
-	allPeers := []p2p.PeerID{p2p.PeerID("peer1"), p2p.PeerID("peer2")}
-	excluded := make([]p2p.PeerID, len(allPeers))
-	copy(excluded, allPeers)
-
-	diff := topicResolverSender.MakeDiffList(allPeers, excluded)
-
-	assert.Empty(t, diff)
-}
-
-func TestMakeDiffList_SomeFoundInExcludedShouldRetTheDifference(t *testing.T) {
-	t.Parallel()
-
-	allPeers := []p2p.PeerID{p2p.PeerID("peer1"), p2p.PeerID("peer2")}
-	excluded := []p2p.PeerID{p2p.PeerID("peer1"), p2p.PeerID("peer3")}
-
-	diff := topicResolverSender.MakeDiffList(allPeers, excluded)
-
-	assert.Equal(t, 1, len(diff))
-	assert.Equal(t, allPeers[1], diff[0])
-}
-
-func TestMakeDiffList_NoneFoundInExcludedShouldRetAllPeers(t *testing.T) {
-	t.Parallel()
-
-	allPeers := []p2p.PeerID{p2p.PeerID("peer1"), p2p.PeerID("peer2")}
-	excluded := []p2p.PeerID{p2p.PeerID("peer3"), p2p.PeerID("peer4")}
-
-	diff := topicResolverSender.MakeDiffList(allPeers, excluded)
-
-	assert.Equal(t, allPeers, diff)
 }
 
 // ------- FisherYatesShuffle
