@@ -603,7 +603,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(header *block.MetaBlock) (map
 		return nil, process.ErrNotarizedHdrsSliceIsNil
 	}
 
-	tmpLastNotarized := make(map[uint32]data.HeaderHandler, 0)
+	tmpLastNotarized := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
 		tmpLastNotarized[i] = mp.lastNotarizedHdrForShard(i)
 	}
@@ -614,7 +614,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(header *block.MetaBlock) (map
 		return nil, err
 	}
 
-	highestNonceHdrs := make(map[uint32]data.HeaderHandler, 0)
+	highestNonceHdrs := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
 	for shId := uint32(0); shId < mp.shardCoordinator.NumberOfShards(); shId++ {
 		hdrsForShard := sortedShardHdrs[shId]
 		if len(hdrsForShard) == 0 {
