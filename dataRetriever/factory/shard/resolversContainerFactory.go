@@ -198,12 +198,17 @@ func (rcf *resolversContainerFactory) createTxResolver(
 
 	txStorer := rcf.store.GetStorer(unit)
 
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
+	if err != nil {
+		return nil, err
+	}
+
 	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		topic,
-		excludedTopic,
+		peerListCreator,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 		uint32(0),
@@ -237,11 +242,17 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []dataRet
 
 	//only one intrashard header topic
 	identifierHdr := factory.HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	hdrStorer := rcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierHdr,
-		emptyExcludePeersOnTopic,
+		peerListCreator,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 		shardC.SelfId(),
@@ -315,10 +326,15 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 func (rcf *resolversContainerFactory) createMiniBlocksResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
 	miniBlocksStorer := rcf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
+	if err != nil {
+		return nil, err
+	}
+
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		topic,
-		excludedTopic,
+		peerListCreator,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 		uint32(0),
@@ -353,10 +369,15 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolver() ([]strin
 	identifierPeerCh := factory.PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 	peerBlockBodyStorer := rcf.store.GetStorer(dataRetriever.PeerChangesUnit)
 
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, identifierPeerCh, emptyExcludePeersOnTopic)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierPeerCh,
-		emptyExcludePeersOnTopic,
+		peerListCreator,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 		shardC.SelfId(),
@@ -392,13 +413,18 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 	shardC := rcf.shardCoordinator
 
 	//only one metachain header topic
-	//example: shardHeadersForMetachain_0
+	//example: shardHeadersForMetachain_0_META
 	identifierHdr := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, identifierHdr, emptyExcludePeersOnTopic)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	hdrStorer := rcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierHdr,
-		emptyExcludePeersOnTopic,
+		peerListCreator,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 		shardC.SelfId(),
@@ -437,15 +463,25 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 //------- MetaBlockHeaderResolvers
 
 func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]string, []dataRetriever.Resolver, error) {
+	shardC := rcf.shardCoordinator
+
 	//only one metachain header block topic
 	//this is: metachainBlocks
 	identifierHdr := factory.MetachainBlocksTopic
 	hdrStorer := rcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
+	metaAndCrtShardTopic := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, metaAndCrtShardTopic, excludedPeersOnTopic)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifierHdr,
-		emptyExcludePeersOnTopic,
+		peerListCreator,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 		sharding.MetachainShardId,
