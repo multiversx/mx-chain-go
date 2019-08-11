@@ -215,8 +215,8 @@ type IntermediateProcessorsContainerFactory interface {
 	Create() (IntermediateProcessorContainer, error)
 }
 
-// VirtualMachineContainer defines a virtual machine holder data type with basic functionality
-type VirtualMachineContainer interface {
+// VirtualMachinesContainer defines a virtual machine holder data type with basic functionality
+type VirtualMachinesContainer interface {
 	Get(key []byte) (vmcommon.VMExecutionHandler, error)
 	Add(key []byte, val vmcommon.VMExecutionHandler) error
 	AddMultiple(keys [][]byte, vms []vmcommon.VMExecutionHandler) error
@@ -226,9 +226,9 @@ type VirtualMachineContainer interface {
 	Keys() [][]byte
 }
 
-// VirtualMachineContainerFactory defines the functionality to create a virtual machine container
-type VirtualMachineContainerFactory interface {
-	Create() (VirtualMachineContainer, error)
+// VirtualMachinesContainerFactory defines the functionality to create a virtual machine container
+type VirtualMachinesContainerFactory interface {
+	Create() (VirtualMachinesContainer, error)
 	VMAccountsDB() *hooks.VMAccountsDB
 }
 
