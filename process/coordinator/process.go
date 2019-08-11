@@ -143,7 +143,7 @@ func (tc *transactionCoordinator) RequestBlockTransactions(body block.Body) {
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
-			preproc := tc.getPreprocessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
 				return
@@ -173,7 +173,7 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 
 	for key, value := range tc.requestedTxs {
 		go func(blockType block.Type, requestedTxs int) {
-			preproc := tc.getPreprocessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
 
@@ -211,7 +211,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
-			preproc := tc.getPreprocessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
 				return
@@ -265,7 +265,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 		go func(blockType block.Type, blockBody block.Body) {
 			restoredMbs := make(map[int][]byte)
 
-			preproc := tc.getPreprocessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
 				return
@@ -310,7 +310,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
-			preproc := tc.getPreprocessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
 				return
@@ -342,13 +342,17 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	separatedBodies := tc.separateBodyByType(body)
 
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
-	for blockType, blockBody := range separatedBodies {
-		preproc := tc.getPreprocessor(blockType)
+	for _, blockType := range tc.keysTxPreProcs {
+		if separatedBodies[blockType] == nil {
+			continue
+		}
+
+		preproc := tc.getPreProcessor(blockType)
 		if preproc == nil {
 			return process.ErrMissingPreProcessor
 		}
 
-		err := preproc.ProcessBlockTransactions(blockBody, round, haveTime)
+		err := preproc.ProcessBlockTransactions(separatedBodies[blockType], round, haveTime)
 		if err != nil {
 			return err
 		}
@@ -396,7 +400,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		preproc := tc.getPreprocessor(miniBlock.Type)
+		preproc := tc.getPreProcessor(miniBlock.Type)
 		if preproc == nil {
 			continue
 		}
@@ -440,7 +444,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	haveTime func() bool,
 ) block.MiniBlockSlice {
 
-	txPreProc := tc.getPreprocessor(block.TxBlock)
+	txPreProc := tc.getPreProcessor(block.TxBlock)
 	if txPreProc == nil {
 		return nil
 	}
@@ -516,7 +520,7 @@ func (tc *transactionCoordinator) CreateBlockStarted() {
 	tc.mutInterimProcessors.RUnlock()
 }
 
-func (tc *transactionCoordinator) getPreprocessor(blockType block.Type) process.PreProcessor {
+func (tc *transactionCoordinator) getPreProcessor(blockType block.Type) process.PreProcessor {
 	tc.mutPreProcessor.RLock()
 	preprocessor, exists := tc.txPreProcessors[blockType]
 	tc.mutPreProcessor.RUnlock()
@@ -578,7 +582,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 			continue
 		}
 
-		preproc := tc.getPreprocessor(miniblock.Type)
+		preproc := tc.getPreProcessor(miniblock.Type)
 		if preproc == nil {
 			continue
 		}
@@ -654,7 +658,7 @@ func (tc *transactionCoordinator) receivedMiniBlock(miniBlockHash []byte) {
 		return
 	}
 
-	preproc := tc.getPreprocessor(miniBlock.Type)
+	preproc := tc.getPreProcessor(miniBlock.Type)
 	if preproc == nil {
 		return
 	}

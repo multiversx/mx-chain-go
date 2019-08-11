@@ -1443,7 +1443,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	haveTime := func() bool {
 		return true
 	}
-	preproc := tc.getPreprocessor(block.TxBlock)
+	preproc := tc.getPreProcessor(block.TxBlock)
 	err = tc.processCompleteMiniBlock(preproc, &miniBlock, 0, haveTime)
 
 	assert.Nil(t, err)
@@ -1547,7 +1547,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	haveTime := func() bool {
 		return true
 	}
-	preproc := tc.getPreprocessor(block.TxBlock)
+	preproc := tc.getPreProcessor(block.TxBlock)
 	err = tc.processCompleteMiniBlock(preproc, &miniBlock, 0, haveTime)
 
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
