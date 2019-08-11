@@ -122,7 +122,7 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 
 	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
 	// against blockchain's latest nonce - k finality
-	hdrValidator, err := dataValidators.NewNilHeaderHandlerProcessValidator()
+	hdrValidator, err := dataValidators.NewNilHeaderValidator()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -175,7 +175,7 @@ func (icf *interceptorsContainerFactory) generateShardHeaderInterceptors() ([]st
 func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identifier string) (process.Interceptor, error) {
 	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
 	// against blockchain's latest nonce - k finality
-	hdrValidator, err := dataValidators.NewNilHeaderHandlerProcessValidator()
+	hdrValidator, err := dataValidators.NewNilHeaderValidator()
 	if err != nil {
 		return nil, err
 	}

@@ -25,7 +25,7 @@ func TestNewHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 
 	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
 		nil,
@@ -46,7 +46,7 @@ func TestNewHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
 		&mock.MarshalizerMock{},
@@ -67,7 +67,7 @@ func TestNewHeaderInterceptor_NilHeadersNoncesShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
 		&mock.MarshalizerMock{},
@@ -89,7 +89,7 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 
 	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
 		&mock.MarshalizerMock{},
@@ -113,7 +113,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.
 
 	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		&mock.MarshalizerMock{},
@@ -152,8 +152,8 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 		}
 	}
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{
-		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+	headerValidator := &mock.HeaderValidatorStub{
+		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
 			return true
 		},
 	}
@@ -229,8 +229,8 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsNotValidShouldNotAdd(t *testi
 		}
 	}
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{
-		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+	headerValidator := &mock.HeaderValidatorStub{
+		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
 			return false
 		},
 	}
@@ -301,8 +301,8 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 		}
 	}
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{
-		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+	headerValidator := &mock.HeaderValidatorStub{
+		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
 			return true
 		},
 	}

@@ -19,7 +19,7 @@ type MetachainHeaderInterceptor struct {
 	marshalizer            marshal.Marshalizer
 	metachainHeaders       storage.Cacher
 	metachainHeadersNonces dataRetriever.Uint64SyncMapCacher
-	headerValidator        process.HeaderHandlerProcessValidator
+	headerValidator        process.HeaderValidator
 	multiSigVerifier       crypto.MultiSigVerifier
 	hasher                 hashing.Hasher
 	shardCoordinator       sharding.Coordinator
@@ -32,7 +32,7 @@ func NewMetachainHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	metachainHeaders storage.Cacher,
 	metachainHeadersNonces dataRetriever.Uint64SyncMapCacher,
-	headerValidator process.HeaderHandlerProcessValidator,
+	headerValidator process.HeaderValidator,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
@@ -110,7 +110,7 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 }
 
 func (mhi *MetachainHeaderInterceptor) processMetaHeader(metaHdrIntercepted *block.InterceptedMetaHeader) {
-	isHeaderOkForProcessing := mhi.headerValidator.CheckHeaderHandlerValid(metaHdrIntercepted.MetaBlock)
+	isHeaderOkForProcessing := mhi.headerValidator.IsHeaderValidForProcessing(metaHdrIntercepted.MetaBlock)
 	if !isHeaderOkForProcessing {
 		log.Debug("intercepted meta block header already processed")
 		return

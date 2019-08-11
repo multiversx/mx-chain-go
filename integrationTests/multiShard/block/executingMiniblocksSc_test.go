@@ -79,9 +79,8 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	proposeBlockWithScTxs(nodes, round, idxProposers)
 	round = incrementAndPrintRound(round)
 
-	nonceNodeIdx0 := uint64(0)
-	nodeDoesTopUp(nonceNodeIdx0, nodes, idxNodeShard0, topUpValue, hardCodedScResultingAddress)
-	nonceNodeIdx0++
+	nodeDoesTopUp(nodes, idxNodeShard0, topUpValue, hardCodedScResultingAddress)
+	nodes[idxNodeShard0].OwnAccount.Nonce++
 
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
@@ -99,8 +98,8 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 		hardCodedScResultingAddress,
 	)
 
-	nodeDoesWithdraw(nonceNodeIdx0, nodes, idxNodeShard0, withdrawValue, hardCodedScResultingAddress)
-	nonceNodeIdx0++
+	nodeDoesWithdraw(nodes, idxNodeShard0, withdrawValue, hardCodedScResultingAddress)
+	nodes[idxNodeShard0].OwnAccount.Nonce++
 
 	roundsToWait = 12
 	for i := 0; i < roundsToWait; i++ {
@@ -194,9 +193,8 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	syncBlock(t, nodes, idxProposers, round)
 	round = incrementAndPrintRound(round)
 
-	nonceNodeIdx0 := uint64(0)
-	nodeJoinsGame(nonceNodeIdx0, nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
-	nonceNodeIdx0++
+	nodeJoinsGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
+	nodes[idxProposerShard0].OwnAccount.Nonce++
 
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
@@ -216,7 +214,8 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		hardCodedScResultingAddress,
 	)
 
-	nodeCallsRewardAndSend(nonceNodeIdx0, nodes, idxProposerShard1, idxProposerShard0, withdrawValue, hardCodedScResultingAddress)
+	nodeCallsRewardAndSend(nodes, idxProposerShard1, idxProposerShard0, withdrawValue, hardCodedScResultingAddress)
+	nodes[idxProposerShard0].OwnAccount.Nonce++
 
 	//TODO investigate why do we need 7 rounds here
 	roundsToWait = 7
@@ -313,9 +312,9 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	syncBlock(t, nodes, idxProposers, round)
 	round = incrementAndPrintRound(round)
 
-	nonceNodeIdx0 := uint64(0)
-	nodeJoinsGame(nonceNodeIdx0, nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
-	nonceNodeIdx0++
+	nodeJoinsGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
+	nodes[idxProposerShard0].OwnAccount.Nonce++
+
 	maxRoundsToWait := 10
 	for i := 0; i < maxRoundsToWait; i++ {
 		proposeBlockWithScTxs(nodes, round, idxProposersWithoutShard1)
@@ -428,7 +427,6 @@ func isIntInSlice(idx int, slice []int) bool {
 }
 
 func nodeDoesTopUp(
-	txNonce uint64,
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	topUpValue *big.Int,
@@ -436,7 +434,7 @@ func nodeDoesTopUp(
 ) {
 
 	fmt.Println("Calling SC.topUp...")
-	txScCall := createTxTopUp(txNonce, nodes[idxNode], topUpValue, scAddress)
+	txScCall := createTxTopUp(nodes[idxNode], topUpValue, scAddress)
 	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(stepDelay)
@@ -445,7 +443,6 @@ func nodeDoesTopUp(
 }
 
 func nodeJoinsGame(
-	txNonce uint64,
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	joinGameVal *big.Int,
@@ -453,7 +450,7 @@ func nodeJoinsGame(
 ) {
 
 	fmt.Println("Calling SC.joinGame...")
-	txScCall := createTxJoinGame(txNonce, nodes[idxNode], joinGameVal, scAddress)
+	txScCall := createTxJoinGame(nodes[idxNode], joinGameVal, scAddress)
 	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(stepDelay)
@@ -541,7 +538,6 @@ func checkJoinGameIsDoneCorrectly(
 }
 
 func nodeDoesWithdraw(
-	txNonce uint64,
 	nodes []*integrationTests.TestProcessorNode,
 	idxNode int,
 	withdrawValue *big.Int,
@@ -549,7 +545,7 @@ func nodeDoesWithdraw(
 ) {
 
 	fmt.Println("Calling SC.withdraw...")
-	txScCall := createTxWithdraw(txNonce, nodes[idxNode], withdrawValue, scAddress)
+	txScCall := createTxWithdraw(nodes[idxNode], withdrawValue, scAddress)
 	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(time.Second * 1)
@@ -558,7 +554,6 @@ func nodeDoesWithdraw(
 }
 
 func nodeCallsRewardAndSend(
-	txNonce uint64,
 	nodes []*integrationTests.TestProcessorNode,
 	idxNodeOwner int,
 	idxNodeUser int,
@@ -567,7 +562,7 @@ func nodeCallsRewardAndSend(
 ) {
 
 	fmt.Println("Calling SC.rewardAndSendToWallet...")
-	txScCall := createTxRewardAndSendToWallet(txNonce, nodes[idxNodeOwner], nodes[idxNodeUser], prize, scAddress)
+	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner], nodes[idxNodeUser], prize, scAddress)
 	_, _ = nodes[idxNodeOwner].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(time.Second * 1)
@@ -699,14 +694,13 @@ func createTxDeploy(
 }
 
 func createTxTopUp(
-	nonce uint64,
 	tn *integrationTests.TestProcessorNode,
 	topUpVal *big.Int,
 	scAddress []byte,
 ) *transaction.Transaction {
 
 	tx := &transaction.Transaction{
-		Nonce:    nonce,
+		Nonce:    tn.OwnAccount.Nonce,
 		Value:    topUpVal,
 		RcvAddr:  scAddress,
 		SndAddr:  tn.OwnAccount.PkTxSignBytes,
@@ -721,14 +715,13 @@ func createTxTopUp(
 }
 
 func createTxJoinGame(
-	nonce uint64,
 	tn *integrationTests.TestProcessorNode,
 	joinGameVal *big.Int,
 	scAddress []byte,
 ) *transaction.Transaction {
 
 	tx := &transaction.Transaction{
-		Nonce:    nonce,
+		Nonce:    tn.OwnAccount.Nonce,
 		Value:    joinGameVal,
 		RcvAddr:  scAddress,
 		SndAddr:  tn.OwnAccount.PkTxSignBytes,
@@ -743,14 +736,13 @@ func createTxJoinGame(
 }
 
 func createTxWithdraw(
-	nonce uint64,
 	tn *integrationTests.TestProcessorNode,
 	withdrawVal *big.Int,
 	scAddress []byte,
 ) *transaction.Transaction {
 
 	tx := &transaction.Transaction{
-		Nonce:    nonce,
+		Nonce:    tn.OwnAccount.Nonce,
 		Value:    big.NewInt(0),
 		RcvAddr:  scAddress,
 		SndAddr:  tn.OwnAccount.PkTxSignBytes,
@@ -765,7 +757,6 @@ func createTxWithdraw(
 }
 
 func createTxRewardAndSendToWallet(
-	nonce uint64,
 	tnOwner *integrationTests.TestProcessorNode,
 	tnUser *integrationTests.TestProcessorNode,
 	prizeVal *big.Int,
@@ -773,7 +764,7 @@ func createTxRewardAndSendToWallet(
 ) *transaction.Transaction {
 
 	tx := &transaction.Transaction{
-		Nonce:    nonce,
+		Nonce:    tnOwner.OwnAccount.Nonce,
 		Value:    big.NewInt(0),
 		RcvAddr:  scAddress,
 		SndAddr:  tnOwner.OwnAccount.PkTxSignBytes,

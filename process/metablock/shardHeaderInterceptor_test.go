@@ -23,7 +23,7 @@ func TestNewShardHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hi, err := metablock.NewShardHeaderInterceptor(
 		nil,
 		headers,
@@ -42,7 +42,7 @@ func TestNewShardHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewShardHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hi, err := metablock.NewShardHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		nil,
@@ -62,7 +62,7 @@ func TestNewShardHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hi, err := metablock.NewShardHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
@@ -84,7 +84,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *tes
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hi, _ := metablock.NewShardHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		headers,
@@ -112,8 +112,8 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 			return nil
 		},
 	}
-	headerValidator := &mock.HeaderHandlerValidatorStub{
-		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+	headerValidator := &mock.HeaderValidatorStub{
+		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
 			return true
 		},
 	}
@@ -179,8 +179,8 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T
 			return nil
 		},
 	}
-	headerValidator := &mock.HeaderHandlerValidatorStub{
-		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+	headerValidator := &mock.HeaderValidatorStub{
+		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
 			return true
 		},
 	}
@@ -246,8 +246,8 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageIsNotValidShouldNotAdd(t *
 			return nil
 		},
 	}
-	headerValidator := &mock.HeaderHandlerValidatorStub{
-		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+	headerValidator := &mock.HeaderValidatorStub{
+		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
 			return false
 		},
 	}

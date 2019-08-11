@@ -20,7 +20,7 @@ func TestNewHeaderInterceptorBase_NilMarshalizerShouldErr(t *testing.T) {
 
 	hi, err := interceptors.NewHeaderInterceptorBase(
 		nil,
-		&mock.HeaderHandlerValidatorStub{},
+		&mock.HeaderValidatorStub{},
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -52,7 +52,7 @@ func TestNewHeaderInterceptorBase_NilMultiSignerShouldErr(t *testing.T) {
 
 	hi, err := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
-		&mock.HeaderHandlerValidatorStub{},
+		&mock.HeaderValidatorStub{},
 		nil,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -66,7 +66,7 @@ func TestNewHeaderInterceptorBase_NilMultiSignerShouldErr(t *testing.T) {
 func TestNewHeaderInterceptorBase_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hi, err := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
 		headerValidator,
@@ -83,7 +83,7 @@ func TestNewHeaderInterceptorBase_NilHasherShouldErr(t *testing.T) {
 func TestNewHeaderInterceptorBase_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hi, err := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
 		headerValidator,
@@ -100,7 +100,7 @@ func TestNewHeaderInterceptorBase_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewHeaderInterceptorBase_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hib, err := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
 		headerValidator,
@@ -119,7 +119,7 @@ func TestNewHeaderInterceptorBase_OkValsShouldWork(t *testing.T) {
 func TestHeaderInterceptorBase_ParseReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
 		headerValidator,
@@ -138,7 +138,7 @@ func TestHeaderInterceptorBase_ParseReceivedMessageNilMessageShouldErr(t *testin
 func TestHeaderInterceptorBase_ParseReceivedMessageNilDataToProcessShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
 		headerValidator,
@@ -160,7 +160,7 @@ func TestHeaderInterceptorBase_ParseReceivedMessageMarshalizerErrorsAtUnmarshali
 
 	errMarshalizer := errors.New("marshalizer error")
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
@@ -186,7 +186,7 @@ func TestHeaderInterceptorBase_ParseReceivedMessageMarshalizerErrorsAtUnmarshali
 func TestHeaderInterceptorBase_ParseReceivedMessageSanityCheckFailedShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	multisigner := mock.NewMultiSigner()
 	chronologyValidator := &mock.ChronologyValidatorStub{
@@ -225,8 +225,8 @@ func TestHeaderInterceptorBase_ParseReceivedMessageValsOkShouldWork(t *testing.T
 			return nil
 		},
 	}
-	headerValidator := &mock.HeaderHandlerValidatorStub{
-		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+	headerValidator := &mock.HeaderValidatorStub{
+		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
 			return true
 		},
 	}

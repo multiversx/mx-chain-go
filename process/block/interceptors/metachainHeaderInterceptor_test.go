@@ -22,7 +22,7 @@ func TestNewMetachainHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	metachainHeaders := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		nil,
@@ -42,7 +42,7 @@ func TestNewMetachainHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewMetachainHeaderInterceptor_NilMetachainHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
@@ -62,7 +62,7 @@ func TestNewMetachainHeaderInterceptor_NilMetachainHeadersShouldErr(t *testing.T
 func TestNewMetachainHeaderInterceptor_NilMetachainHeadersNoncesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
@@ -103,7 +103,7 @@ func TestNewMetachainHeaderInterceptor_NilMultiSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	metachainHeaders := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
@@ -124,7 +124,7 @@ func TestNewMetachainHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	metachainHeaders := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
@@ -145,7 +145,7 @@ func TestNewMetachainHeaderInterceptor_NilShardCoordinatorShouldErr(t *testing.T
 	t.Parallel()
 
 	metachainHeaders := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
@@ -166,7 +166,7 @@ func TestNewMetachainHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	metachainHeaders := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
@@ -189,7 +189,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t 
 	t.Parallel()
 
 	metachainHeaders := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
@@ -209,7 +209,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilDataToProcessShould
 	t.Parallel()
 
 	metachainHeaders := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
@@ -232,7 +232,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnm
 
 	errMarshalizer := errors.New("marshalizer error")
 	metachainHeaders := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerStub{
@@ -260,7 +260,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShoul
 	t.Parallel()
 
 	metachainHeaders := &mock.CacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	multisigner := mock.NewMultiSigner()
 	chronologyValidator := &mock.ChronologyValidatorStub{
@@ -296,8 +296,8 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 	testedNonce := uint64(67)
 	metachainHeaders := &mock.CacherStub{}
 	metachainHeadersNonces := &mock.Uint64SyncMapCacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{
-		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+	headerValidator := &mock.HeaderValidatorStub{
+		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
 			return true
 		},
 	}
@@ -387,8 +387,8 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsNotValidShouldNotAdd
 	}
 	metachainHeaders := &mock.CacherStub{}
 	metachainHeadersNonces := &mock.Uint64SyncMapCacherStub{}
-	headerValidator := &mock.HeaderHandlerValidatorStub{
-		CheckHeaderHandlerValidCalled: func(headerHandler data.HeaderHandler) bool {
+	headerValidator := &mock.HeaderValidatorStub{
+		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
 			return false
 		},
 	}

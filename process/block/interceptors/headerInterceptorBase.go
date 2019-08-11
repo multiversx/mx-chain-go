@@ -13,7 +13,7 @@ import (
 // HeaderInterceptorBase is the "abstract class" extended in HeaderInterceptor and ShardHeaderInterceptor
 type HeaderInterceptorBase struct {
 	marshalizer         marshal.Marshalizer
-	headerValidator     process.HeaderHandlerProcessValidator
+	headerValidator     process.HeaderValidator
 	multiSigVerifier    crypto.MultiSigVerifier
 	hasher              hashing.Hasher
 	shardCoordinator    sharding.Coordinator
@@ -23,7 +23,7 @@ type HeaderInterceptorBase struct {
 // NewHeaderInterceptorBase creates a new HeaderIncterceptorBase instance
 func NewHeaderInterceptorBase(
 	marshalizer marshal.Marshalizer,
-	headerValidator process.HeaderHandlerProcessValidator,
+	headerValidator process.HeaderValidator,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,

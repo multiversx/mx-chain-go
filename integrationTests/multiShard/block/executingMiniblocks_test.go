@@ -474,7 +474,7 @@ func proposeBlock(t *testing.T, proposer *testNode, round uint64) (data.BodyHand
 	assert.Nil(t, err)
 
 	blockHeader.SetRound(round)
-	blockHeader.SetNonce(uint64(round))
+	blockHeader.SetNonce(round)
 	blockHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := testMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
@@ -494,7 +494,7 @@ func proposeMetaBlock(t *testing.T, proposer *testNode, round uint64) (data.Body
 	metaHeader, err := proposer.blkProcessor.CreateBlockHeader(nil, round, func() bool { return true })
 	assert.Nil(t, err)
 
-	metaHeader.SetNonce(uint64(round))
+	metaHeader.SetNonce(round)
 	metaHeader.SetRound(round)
 	metaHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := testMultiSig.AggregateSigs(nil)

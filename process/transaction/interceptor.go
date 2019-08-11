@@ -18,7 +18,7 @@ import (
 type TxInterceptor struct {
 	marshalizer              marshal.Marshalizer
 	txPool                   dataRetriever.ShardedDataCacherNotifier
-	txValidator              process.TxHandlerProcessValidator
+	txValidator              process.TxValidator
 	addrConverter            state.AddressConverter
 	hasher                   hashing.Hasher
 	singleSigner             crypto.SingleSigner
@@ -31,7 +31,7 @@ type TxInterceptor struct {
 func NewTxInterceptor(
 	marshalizer marshal.Marshalizer,
 	txPool dataRetriever.ShardedDataCacherNotifier,
-	txValidator process.TxHandlerProcessValidator,
+	txValidator process.TxValidator,
 	addrConverter state.AddressConverter,
 	hasher hashing.Hasher,
 	singleSigner crypto.SingleSigner,
@@ -148,7 +148,7 @@ func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte))
 }
 
 func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
-	isTxValid := txi.txValidator.CheckTxHandlerValid(tx.Transaction())
+	isTxValid := txi.txValidator.IsTxValidForProcessing(tx.Transaction())
 	if !isTxValid {
 		log.Debug(fmt.Sprintf("intercepted tx with hash %s is not valid", hex.EncodeToString(tx.hash)))
 		return

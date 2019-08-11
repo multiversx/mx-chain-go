@@ -402,7 +402,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		return nil, process.ErrTimeIsOut
 	}
 
-	log.Info(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
+	log.Debug(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
 
 	miniBlock := &block.MiniBlock{}
 	miniBlock.SenderShardID = sndShardId
@@ -429,7 +429,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		)
 
 		if err != nil {
-			log.Debug(err.Error())
+			log.Error(err.Error())
 			err = txs.accounts.RevertToSnapshot(snapshot)
 			if err != nil {
 				log.Error(err.Error())

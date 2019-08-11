@@ -212,7 +212,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
 	//TODO implement other TxHandlerProcessValidator that will check the tx nonce against account's nonce
-	txValidator, err := dataValidators.NewNilTxHandlerProcessValidator()
+	txValidator, err := dataValidators.NewNilTxValidator()
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +292,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 	shardC := icf.shardCoordinator
 	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
 	// against blockchain's latest nonce - k finality
-	hdrValidator, err := dataValidators.NewNilHeaderHandlerProcessValidator()
+	hdrValidator, err := dataValidators.NewNilHeaderValidator()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -394,7 +394,7 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 	identifierHdr := factory.MetachainBlocksTopic
 	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
 	// against blockchain's latest nonce - k finality
-	hdrValidator, err := dataValidators.NewNilHeaderHandlerProcessValidator()
+	hdrValidator, err := dataValidators.NewNilHeaderValidator()
 	if err != nil {
 		return nil, nil, err
 	}

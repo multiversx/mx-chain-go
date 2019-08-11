@@ -31,14 +31,14 @@ type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
 }
 
-// TxHandlerProcessValidator can determine if a provided transaction handler is valid or not from the process point of view
-type TxHandlerProcessValidator interface {
-	CheckTxHandlerValid(txHandler data.TransactionHandler) bool
+// TxValidator can determine if a provided transaction handler is valid or not from the process point of view
+type TxValidator interface {
+	IsTxValidForProcessing(txHandler data.TransactionHandler) bool
 }
 
-// HeaderHandlerProcessValidator can determine if a provided header handler is valid or not from the process point of view
-type HeaderHandlerProcessValidator interface {
-	CheckHeaderHandlerValid(headerHandler data.HeaderHandler) bool
+// HeaderValidator can determine if a provided header handler is valid or not from the process point of view
+type HeaderValidator interface {
+	IsHeaderValidForProcessing(headerHandler data.HeaderHandler) bool
 }
 
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
