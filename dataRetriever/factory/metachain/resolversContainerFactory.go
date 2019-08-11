@@ -129,10 +129,15 @@ func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, 
 func (rcf *resolversContainerFactory) createShardHeaderResolver(topic string, excludedTopic string, shardID uint32) (dataRetriever.Resolver, error) {
 	hdrStorer := rcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
+	if err != nil {
+		return nil, err
+	}
+
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		topic,
-		excludedTopic,
+		peerListCreator,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 		shardID,
@@ -179,10 +184,15 @@ func (rcf *resolversContainerFactory) generateMetaChainHeaderResolvers() ([]stri
 func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier string, shardId uint32) (dataRetriever.Resolver, error) {
 	hdrStorer := rcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, identifier, emptyExcludePeersOnTopic)
+	if err != nil {
+		return nil, err
+	}
+
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifier,
-		emptyExcludePeersOnTopic,
+		peerListCreator,
 		rcf.marshalizer,
 		rcf.intRandomizer,
 		shardId,
