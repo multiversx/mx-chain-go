@@ -10,20 +10,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewVirtualMachineContainer_ShouldWork(t *testing.T) {
+func TestNewVirtualMachinesContainer_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	assert.NotNil(t, c)
 }
 
 //------- Add
 
-func TestVirtualMachineContainer_AddAlreadyExistingShouldErr(t *testing.T) {
+func TestVirtualMachinesContainer_AddAlreadyExistingShouldErr(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	_ = c.Add([]byte("0001"), &mock.VMExecutionHandlerStub{})
 	err := c.Add([]byte("0001"), &mock.VMExecutionHandlerStub{})
@@ -31,20 +31,20 @@ func TestVirtualMachineContainer_AddAlreadyExistingShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrContainerKeyAlreadyExists, err)
 }
 
-func TestVirtualMachineContainer_AddNilShouldErr(t *testing.T) {
+func TestVirtualMachinesContainer_AddNilShouldErr(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	err := c.Add([]byte("0001"), nil)
 
 	assert.Equal(t, process.ErrNilContainerElement, err)
 }
 
-func TestVirtualMachineContainer_AddShouldWork(t *testing.T) {
+func TestVirtualMachinesContainer_AddShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	err := c.Add([]byte("0001"), &mock.VMExecutionHandlerStub{})
 
@@ -54,10 +54,10 @@ func TestVirtualMachineContainer_AddShouldWork(t *testing.T) {
 
 //------- AddMultiple
 
-func TestVirtualMachineContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
+func TestVirtualMachinesContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	keys := [][]byte{[]byte("0001"), []byte("0001")}
 	vms := []vmcommon.VMExecutionHandler{&mock.VMExecutionHandlerStub{}, &mock.VMExecutionHandlerStub{}}
@@ -67,10 +67,10 @@ func TestVirtualMachineContainer_AddMultipleAlreadyExistingShouldErr(t *testing.
 	assert.Equal(t, process.ErrContainerKeyAlreadyExists, err)
 }
 
-func TestVirtualMachineContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
+func TestVirtualMachinesContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	keys := [][]byte{[]byte("0001")}
 	vms := []vmcommon.VMExecutionHandler{&mock.VMExecutionHandlerStub{}, &mock.VMExecutionHandlerStub{}}
@@ -80,10 +80,10 @@ func TestVirtualMachineContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrLenMismatch, err)
 }
 
-func TestVirtualMachineContainer_AddMultipleShouldWork(t *testing.T) {
+func TestVirtualMachinesContainer_AddMultipleShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	keys := [][]byte{[]byte("0001"), []byte("0002")}
 	vms := []vmcommon.VMExecutionHandler{&mock.VMExecutionHandlerStub{}, &mock.VMExecutionHandlerStub{}}
@@ -96,10 +96,10 @@ func TestVirtualMachineContainer_AddMultipleShouldWork(t *testing.T) {
 
 //------- Get
 
-func TestVirtualMachineContainer_GetNotFoundShouldErr(t *testing.T) {
+func TestVirtualMachinesContainer_GetNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	key := []byte("0001")
 	keyNotFound := []byte("0002")
@@ -112,10 +112,10 @@ func TestVirtualMachineContainer_GetNotFoundShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrInvalidContainerKey, err)
 }
 
-func TestVirtualMachineContainer_GetWrongTypeShouldErr(t *testing.T) {
+func TestVirtualMachinesContainer_GetWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	key := []byte("0001")
 
@@ -126,10 +126,10 @@ func TestVirtualMachineContainer_GetWrongTypeShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrWrongTypeInContainer, err)
 }
 
-func TestVirtualMachineContainer_GetShouldWork(t *testing.T) {
+func TestVirtualMachinesContainer_GetShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	key := []byte("0001")
 	val := &mock.VMExecutionHandlerStub{}
@@ -143,10 +143,10 @@ func TestVirtualMachineContainer_GetShouldWork(t *testing.T) {
 
 //------- Replace
 
-func TestVirtualMachineContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
+func TestVirtualMachinesContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	key := []byte("0001")
 	val := &mock.VMExecutionHandlerStub{}
@@ -160,10 +160,10 @@ func TestVirtualMachineContainer_ReplaceNilValueShouldErrAndNotModify(t *testing
 	assert.Equal(t, val, valRecovered)
 }
 
-func TestVirtualMachineContainer_ReplaceShouldWork(t *testing.T) {
+func TestVirtualMachinesContainer_ReplaceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	key := []byte("0001")
 	val := &mock.VMExecutionHandlerStub{}
@@ -180,10 +180,10 @@ func TestVirtualMachineContainer_ReplaceShouldWork(t *testing.T) {
 
 //------- Remove
 
-func TestVirtualMachineContainer_RemoveShouldWork(t *testing.T) {
+func TestVirtualMachinesContainer_RemoveShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	key := []byte("0001")
 	val := &mock.VMExecutionHandlerStub{}
@@ -199,10 +199,10 @@ func TestVirtualMachineContainer_RemoveShouldWork(t *testing.T) {
 
 //------- Len
 
-func TestVirtualMachineContainer_LenShouldWork(t *testing.T) {
+func TestVirtualMachinesContainer_LenShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewVirtualMachineContainer()
+	c := containers.NewVirtualMachinesContainer()
 
 	_ = c.Add([]byte("0001"), &mock.VMExecutionHandlerStub{})
 	assert.Equal(t, 1, c.Len())

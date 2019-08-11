@@ -34,7 +34,7 @@ type scProcessor struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
-	vmContainer      process.VirtualMachineContainer
+	vmContainer      process.VirtualMachinesContainer
 	argsParser       process.ArgumentsParser
 
 	mutSCState   sync.Mutex
@@ -47,7 +47,7 @@ var log = logger.DefaultLogger()
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
 func NewSmartContractProcessor(
-	vmContainer process.VirtualMachineContainer,
+	vmContainer process.VirtualMachinesContainer,
 	argsParser process.ArgumentsParser,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
