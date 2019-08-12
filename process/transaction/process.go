@@ -164,18 +164,28 @@ func (txProc *txProcessor) processSCInvoking(
 	return err
 }
 
-func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
+func (txProc *txProcessor) getAddresses(
+	tx *transaction.Transaction,
+) (state.AddressContainer, state.AddressContainer, error) {
 	//for now we assume that the address = public key
-	adrSrc, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
+	adrSrc, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
 	if err != nil {
-		return
+		return nil, nil, err
 	}
-	adrDst, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
-	return
+
+	adrDst, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return adrSrc, adrDst, nil
 }
 
-func (txProc *txProcessor) getAccounts(adrSrc, adrDst state.AddressContainer,
-) (acntSrc, acntDst *state.Account, err error) {
+func (txProc *txProcessor) getAccounts(
+	adrSrc, adrDst state.AddressContainer,
+) (*state.Account, *state.Account, error) {
+
+	var acntSrc, acntDst *state.Account
 
 	shardForCurrentNode := txProc.shardCoordinator.SelfId()
 	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
@@ -231,7 +241,7 @@ func (txProc *txProcessor) getAccounts(adrSrc, adrDst state.AddressContainer,
 		acntDst = account
 	}
 
-	return
+	return acntSrc, acntDst, nil
 }
 
 func (txProc *txProcessor) getAccountFromAddress(adrSrc state.AddressContainer) (state.AccountHandler, error) {
