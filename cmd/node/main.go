@@ -256,6 +256,12 @@ var dbIndexer indexer.Indexer
 var coreServiceContainer serviceContainer.Core
 
 // appVersion should be populated at build time using ldflags
+// Usage examples:
+// linux/mac:
+//            go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
+// windows:
+//            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
+//            go build -i -v -ldflags="-X main.appVersion=%VERS%"
 var appVersion = "undefined"
 
 func main() {
