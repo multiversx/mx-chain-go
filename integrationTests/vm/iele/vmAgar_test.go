@@ -118,7 +118,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	senderBalance := big.NewInt(100000000)
 	round := uint64(444)
 	gasPrice := uint64(1)
-	gasLimit := uint64(1000000)
+	gasLimit := uint64(100000)
 
 	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
@@ -158,6 +158,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 		data,
 	)
 
+	userNonce++
 	err = txProc.ProcessTransaction(txRun, round)
 	assert.Nil(t, err)
 
@@ -201,7 +202,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	senderBalance := big.NewInt(100000000)
 	round := uint64(444)
 	gasPrice := uint64(0)
-	gasLimit := uint64(1000000)
+	gasLimit := uint64(100000)
 
 	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
@@ -272,6 +273,8 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
+
+	defaultUserNonce++
 
 	balanceOfSC, _ := blockchainHook.GetBalance(scAddressBytes)
 	fmt.Printf("balance of SC: %v\n", balanceOfSC)

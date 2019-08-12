@@ -1409,7 +1409,7 @@ func TestScProcessor_ProcessSCPaymentWrongTypeAssertion(t *testing.T) {
 	assert.Nil(t, err)
 
 	tx := &transaction.Transaction{}
-	tx.Nonce = 1
+	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 
@@ -1452,12 +1452,51 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 	stAcc, _ := acntSrc.(*state.Account)
 	stAcc.Balance = big.NewInt(45)
+	stAcc.Nonce = 1
 
 	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 
 	err = sc.ProcessSCPayment(tx, acntSrc)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
 	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
+}
+
+func TestScProcessor_ProcessSCPaymentCheckNonce(t *testing.T) {
+	t.Parallel()
+
+	sc, err := NewSmartContractProcessor(
+		&mock.VMContainerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		&mock.TemporaryAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{})
+
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 1
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 10
+	tx.GasLimit = 10
+
+	acntSrc, _ := createAccounts(tx)
+	acntSrc.SetNonce(1)
+
+	tx.Nonce = 2
+	err = sc.ProcessSCPayment(tx, acntSrc)
+	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
+
+	tx.Nonce = 0
+	err = sc.ProcessSCPayment(tx, acntSrc)
+	assert.Equal(t, process.ErrLowerNonceInTransaction, err)
 }
 
 func TestScProcessor_ProcessSCPayment(t *testing.T) {
@@ -1478,7 +1517,7 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	assert.Nil(t, err)
 
 	tx := &transaction.Transaction{}
-	tx.Nonce = 1
+	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 

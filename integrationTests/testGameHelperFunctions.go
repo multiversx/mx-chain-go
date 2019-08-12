@@ -22,7 +22,7 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 
 func createTxDeploy(twa *TestWalletAccount, scCode string) *transaction.Transaction {
 	tx := &transaction.Transaction{
-		Nonce:    0,
+		Nonce:    twa.Nonce,
 		Value:    big.NewInt(0),
 		RcvAddr:  make([]byte, 32),
 		SndAddr:  twa.PkTxSignBytes,
@@ -33,12 +33,14 @@ func createTxDeploy(twa *TestWalletAccount, scCode string) *transaction.Transact
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
 
+	twa.Nonce++
+
 	return tx
 }
 
 func createTxJoinGame(twa *TestWalletAccount, joinGameVal *big.Int, round int, scAddress []byte) *transaction.Transaction {
 	tx := &transaction.Transaction{
-		Nonce:    0,
+		Nonce:    twa.Nonce,
 		Value:    joinGameVal,
 		RcvAddr:  scAddress,
 		SndAddr:  twa.Address.Bytes(),
@@ -50,6 +52,7 @@ func createTxJoinGame(twa *TestWalletAccount, joinGameVal *big.Int, round int, s
 	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
 
 	fmt.Printf("Join %s\n", hex.EncodeToString(twa.Address.Bytes()))
+	twa.Nonce++
 
 	return tx
 }
@@ -76,7 +79,7 @@ func createTxRewardAndSendToWallet(
 	scAddress []byte,
 ) *transaction.Transaction {
 	tx := &transaction.Transaction{
-		Nonce:    0,
+		Nonce:    tnOwner.Nonce,
 		Value:    big.NewInt(0),
 		RcvAddr:  scAddress,
 		SndAddr:  tnOwner.PkTxSignBytes,
@@ -88,6 +91,7 @@ func createTxRewardAndSendToWallet(
 	tx.Signature, _ = tnOwner.SingleSigner.Sign(tnOwner.SkTxSign, txBuff)
 
 	fmt.Printf("Reward %s\n", hex.EncodeToString(winnerAddress))
+	tnOwner.Nonce++
 
 	return tx
 }
