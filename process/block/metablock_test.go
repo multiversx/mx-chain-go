@@ -99,6 +99,26 @@ func createGenesisMetaBlock() *block.MetaBlock {
 	}
 }
 
+func setLastNotarizedHdr(
+	noOfShards uint32,
+	round uint64,
+	nonce uint64,
+	randSeed []byte,
+	lastNotarizedHdrs map[uint32][]data.HeaderHandler) {
+	for i := uint32(0); i < noOfShards; i++ {
+		lastHdr := &block.Header{Round: round,
+			Nonce:    nonce,
+			RandSeed: randSeed,
+			ShardId:  i}
+		lastNotarizedHdrsCount := len(lastNotarizedHdrs[i])
+		if lastNotarizedHdrsCount > 0 {
+			lastNotarizedHdrs[i][lastNotarizedHdrsCount-1] = lastHdr
+		} else {
+			lastNotarizedHdrs[i] = append(lastNotarizedHdrs[i], lastHdr)
+		}
+	}
+}
+
 //------- NewMetaProcessor
 
 func TestNewMetaProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
@@ -1226,7 +1246,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	miniBlockHeaders3 := make([]block.MiniBlockHeader, 0)
 	miniBlockHeaders3 = append(miniBlockHeaders3, miniBlockHeader1)
 
-	shardNr := uint32(5)
+	noOfShards := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
@@ -1240,7 +1260,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		},
 		pool,
 		&mock.ForkDetectorMock{},
-		mock.NewMultiShardsCoordinatorMock(shardNr),
+		mock.NewMultiShardsCoordinatorMock(noOfShards),
 		hasher,
 		marshalizer,
 		initStore(),
@@ -1252,20 +1272,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	haveTime := func() bool { return true }
 
 	prevRandSeed := []byte("prevrand")
-
 	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	for i := uint32(0); i < shardNr; i++ {
-		lastHdr := &block.Header{Round: 9,
-			Nonce:    44,
-			RandSeed: prevRandSeed,
-			ShardId:  i}
-		lastNotarizedHdrsCount := len(lastNotarizedHdrs[i])
-		if lastNotarizedHdrsCount > 0 {
-			lastNotarizedHdrs[i][lastNotarizedHdrsCount-1] = lastHdr
-		} else {
-			lastNotarizedHdrs[i] = append(lastNotarizedHdrs[i], lastHdr)
-		}
-	}
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
 
 	//put the existing headers inside datapool
 	prevHash, _ := mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(0).(*block.Header))
@@ -1355,7 +1363,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	miniBlockHeaders3 := make([]block.MiniBlockHeader, 0)
 	miniBlockHeaders3 = append(miniBlockHeaders3, miniBlockHeader1)
 
-	shardNr := uint32(5)
+	noOfShards := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
@@ -1369,11 +1377,11 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		},
 		pool,
 		&mock.ForkDetectorMock{},
-		mock.NewMultiShardsCoordinatorMock(shardNr),
+		mock.NewMultiShardsCoordinatorMock(noOfShards),
 		hasher,
 		marshalizer,
 		initStore(),
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards)),
 		&mock.RequestHandlerMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
@@ -1383,18 +1391,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
 	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	for i := uint32(0); i < shardNr; i++ {
-		lastHdr := &block.Header{Round: 9,
-			Nonce:    44,
-			RandSeed: prevRandSeed,
-			ShardId:  i}
-		lastNotarizedHdrsCount := len(lastNotarizedHdrs[i])
-		if lastNotarizedHdrsCount > 0 {
-			lastNotarizedHdrs[i][lastNotarizedHdrsCount-1] = lastHdr
-		} else {
-			lastNotarizedHdrs[i] = append(lastNotarizedHdrs[i], lastHdr)
-		}
-	}
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
 
 	headers := make([]*block.Header, 0)
 
@@ -1532,7 +1529,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	miniBlockHeaders3 := make([]block.MiniBlockHeader, 0)
 	miniBlockHeaders3 = append(miniBlockHeaders3, miniBlockHeader1)
 
-	shardNr := uint32(5)
+	noOfShards := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
@@ -1546,11 +1543,11 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		},
 		pool,
 		&mock.ForkDetectorMock{},
-		mock.NewMultiShardsCoordinatorMock(shardNr),
+		mock.NewMultiShardsCoordinatorMock(noOfShards),
 		hasher,
 		marshalizer,
 		initStore(),
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards)),
 		&mock.RequestHandlerMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
@@ -1560,18 +1557,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
 	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	for i := uint32(0); i < shardNr; i++ {
-		lastHdr := &block.Header{Round: 9,
-			Nonce:    44,
-			RandSeed: prevRandSeed,
-			ShardId:  i}
-		lastNotarizedHdrsCount := len(lastNotarizedHdrs[i])
-		if lastNotarizedHdrsCount > 0 {
-			lastNotarizedHdrs[i][lastNotarizedHdrsCount-1] = lastHdr
-		} else {
-			lastNotarizedHdrs[i] = append(lastNotarizedHdrs[i], lastHdr)
-		}
-	}
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
 
 	headers := make([]*block.Header, 0)
 
@@ -1749,7 +1735,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	pool := mock.NewMetaPoolsHolderFake()
 
-	shardNr := uint32(5)
+	noOfShards := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
@@ -1763,11 +1749,11 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 		},
 		pool,
 		&mock.ForkDetectorMock{},
-		mock.NewMultiShardsCoordinatorMock(shardNr),
+		mock.NewMultiShardsCoordinatorMock(noOfShards),
 		hasher,
 		marshalizer,
 		initStore(),
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards)),
 		&mock.RequestHandlerMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
@@ -1776,18 +1762,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	currRandSeed := []byte("currrand")
 	lastNotarizedHdrs := mp.LastNotarizedHdrs()
 	firstNonce := uint64(44)
-	for i := uint32(0); i < shardNr; i++ {
-		lastHdr := &block.Header{Round: 9,
-			Nonce:    firstNonce,
-			RandSeed: prevRandSeed,
-			ShardId:  i}
-		lastNotarizedHdrsCount := len(lastNotarizedHdrs[i])
-		if lastNotarizedHdrsCount > 0 {
-			lastNotarizedHdrs[i][lastNotarizedHdrsCount-1] = lastHdr
-		} else {
-			lastNotarizedHdrs[i] = append(lastNotarizedHdrs[i], lastHdr)
-		}
-	}
+	setLastNotarizedHdr(noOfShards, 9, firstNonce, prevRandSeed, lastNotarizedHdrs)
 
 	//put the existing headers inside datapool
 
@@ -1822,7 +1797,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataPrev)
 
 	// test header not in pool and defer called
-	err := mp.CreateLastNotarizedHdrs(metaHdr)
+	err := mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Equal(t, process.ErrMissingHeader, err)
 	lastNotarizedHdrs = mp.LastNotarizedHdrs()
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
@@ -1831,7 +1806,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	pool.ShardHeaders().Put(currHash, metaHdr)
 	pool.ShardHeaders().Put(prevHash, prevHdr)
 
-	err = mp.CreateLastNotarizedHdrs(metaHdr)
+	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	lastNotarizedHdrs = mp.LastNotarizedHdrs()
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
@@ -1840,7 +1815,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	pool.ShardHeaders().Put(currHash, currHdr)
 	pool.ShardHeaders().Put(prevHash, prevHdr)
 
-	err = mp.CreateLastNotarizedHdrs(metaHdr)
+	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Nil(t, err)
 	lastNotarizedHdrs = mp.LastNotarizedHdrs()
 	assert.Equal(t, currHdr, mp.LastNotarizedHdrForShard(currHdr.ShardId))
@@ -1853,7 +1828,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	pool := mock.NewMetaPoolsHolderFake()
 
-	shardNr := uint32(5)
+	noOfShards := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
@@ -1867,11 +1842,11 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		},
 		pool,
 		&mock.ForkDetectorMock{},
-		mock.NewMultiShardsCoordinatorMock(shardNr),
+		mock.NewMultiShardsCoordinatorMock(noOfShards),
 		hasher,
 		marshalizer,
 		initStore(),
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards)),
 		&mock.RequestHandlerMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
@@ -1879,18 +1854,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
 	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	for i := uint32(0); i < shardNr; i++ {
-		lastHdr := &block.Header{Round: 9,
-			Nonce:    44,
-			RandSeed: prevRandSeed,
-			ShardId:  i}
-		lastNotarizedHdrsCount := len(lastNotarizedHdrs[i])
-		if lastNotarizedHdrsCount > 0 {
-			lastNotarizedHdrs[i][lastNotarizedHdrsCount-1] = lastHdr
-		} else {
-			lastNotarizedHdrs[i] = append(lastNotarizedHdrs[i], lastHdr)
-		}
-	}
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
 
 	//put the existing headers inside datapool
 
@@ -1958,7 +1922,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 	marshalizer := &mock.MarshalizerMock{}
 	pool := mock.NewMetaPoolsHolderFake()
 
-	shardNr := uint32(5)
+	noOfShards := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
@@ -1972,11 +1936,11 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 		},
 		pool,
 		&mock.ForkDetectorMock{},
-		mock.NewMultiShardsCoordinatorMock(shardNr),
+		mock.NewMultiShardsCoordinatorMock(noOfShards),
 		hasher,
 		marshalizer,
 		initStore(),
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards)),
 		&mock.RequestHandlerMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
@@ -1984,18 +1948,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
 	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	for i := uint32(0); i < shardNr; i++ {
-		lastHdr := &block.Header{Round: 9,
-			Nonce:    44,
-			RandSeed: prevRandSeed,
-			ShardId:  i}
-		lastNotarizedHdrsCount := len(lastNotarizedHdrs[i])
-		if lastNotarizedHdrsCount > 0 {
-			lastNotarizedHdrs[i][lastNotarizedHdrsCount-1] = lastHdr
-		} else {
-			lastNotarizedHdrs[i] = append(lastNotarizedHdrs[i], lastHdr)
-		}
-	}
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
 
 	//put the existing headers inside datapool
 	currHdr := &block.Header{
@@ -2026,7 +1979,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	marshalizer := &mock.MarshalizerMock{}
 	pool := mock.NewMetaPoolsHolderFake()
 
-	shardNr := uint32(5)
+	noOfShards := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
@@ -2040,11 +1993,11 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 		},
 		pool,
 		&mock.ForkDetectorMock{},
-		mock.NewMultiShardsCoordinatorMock(shardNr),
+		mock.NewMultiShardsCoordinatorMock(noOfShards),
 		hasher,
 		marshalizer,
 		initStore(),
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards)),
 		&mock.RequestHandlerMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
@@ -2052,18 +2005,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
 	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	for i := uint32(0); i < shardNr; i++ {
-		lastHdr := &block.Header{Round: 0,
-			Nonce:    0,
-			RandSeed: prevRandSeed,
-			ShardId:  i}
-		lastNotarizedHdrsCount := len(lastNotarizedHdrs[i])
-		if lastNotarizedHdrsCount > 0 {
-			lastNotarizedHdrs[i][lastNotarizedHdrsCount-1] = lastHdr
-		} else {
-			lastNotarizedHdrs[i] = append(lastNotarizedHdrs[i], lastHdr)
-		}
-	}
+	setLastNotarizedHdr(noOfShards, 0, 0, prevRandSeed, lastNotarizedHdrs)
 
 	//put the existing headers inside datapool
 	currHdr := &block.Header{
@@ -2100,7 +2042,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	pool := mock.NewMetaPoolsHolderFake()
 
-	shardNr := uint32(5)
+	noOfShards := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
@@ -2114,11 +2056,11 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 		},
 		pool,
 		&mock.ForkDetectorMock{},
-		mock.NewMultiShardsCoordinatorMock(shardNr),
+		mock.NewMultiShardsCoordinatorMock(noOfShards),
 		hasher,
 		marshalizer,
 		initStore(),
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards)),
 		&mock.RequestHandlerMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
@@ -2126,18 +2068,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
 	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	for i := uint32(0); i < shardNr; i++ {
-		lastHdr := &block.Header{Round: 9,
-			Nonce:    44,
-			RandSeed: prevRandSeed,
-			ShardId:  i}
-		lastNotarizedHdrsCount := len(lastNotarizedHdrs[i])
-		if lastNotarizedHdrsCount > 0 {
-			lastNotarizedHdrs[i][lastNotarizedHdrsCount-1] = lastHdr
-		} else {
-			lastNotarizedHdrs[i] = append(lastNotarizedHdrs[i], lastHdr)
-		}
-	}
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
 
 	//put the existing headers inside datapool
 
@@ -2177,7 +2108,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 	metaHdr := &block.MetaBlock{Round: 1}
 
 	highestNonceHdrs := make(map[uint32]data.HeaderHandler)
-	for i := uint32(0); i < shardNr; i++ {
+	for i := uint32(0); i < noOfShards; i++ {
 		highestNonceHdrs[i] = mp.LastNotarizedHdrForShard(i)
 	}
 
@@ -2223,7 +2154,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	pool := mock.NewMetaPoolsHolderFake()
 
-	shardNr := uint32(5)
+	noOfShards := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
@@ -2237,11 +2168,11 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 		},
 		pool,
 		&mock.ForkDetectorMock{},
-		mock.NewMultiShardsCoordinatorMock(shardNr),
+		mock.NewMultiShardsCoordinatorMock(noOfShards),
 		hasher,
 		marshalizer,
 		initStore(),
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards)),
 		&mock.RequestHandlerMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
@@ -2249,18 +2180,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
 	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	for i := uint32(0); i < shardNr; i++ {
-		lastHdr := &block.Header{Round: 9,
-			Nonce:    44,
-			RandSeed: prevRandSeed,
-			ShardId:  i}
-		lastNotarizedHdrsCount := len(lastNotarizedHdrs[i])
-		if lastNotarizedHdrsCount > 0 {
-			lastNotarizedHdrs[i][lastNotarizedHdrsCount-1] = lastHdr
-		} else {
-			lastNotarizedHdrs[i] = append(lastNotarizedHdrs[i], lastHdr)
-		}
-	}
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
 
 	//put the existing headers inside datapool
 
@@ -2340,7 +2260,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	pool := mock.NewMetaPoolsHolderFake()
 
-	shardNr := uint32(5)
+	noOfShards := uint32(5)
 	mp, _ := blproc.NewMetaProcessor(
 		&mock.ServiceContainerMock{},
 		&mock.AccountsStub{
@@ -2354,11 +2274,11 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 		},
 		pool,
 		&mock.ForkDetectorMock{},
-		mock.NewMultiShardsCoordinatorMock(shardNr),
+		mock.NewMultiShardsCoordinatorMock(noOfShards),
 		hasher,
 		marshalizer,
 		initStore(),
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(shardNr)),
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards)),
 		&mock.RequestHandlerMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
@@ -2366,18 +2286,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
 	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	for i := uint32(0); i < shardNr; i++ {
-		lastHdr := &block.Header{Round: 9,
-			Nonce:    44,
-			RandSeed: prevRandSeed,
-			ShardId:  i}
-		lastNotarizedHdrsCount := len(lastNotarizedHdrs[i])
-		if lastNotarizedHdrsCount > 0 {
-			lastNotarizedHdrs[i][lastNotarizedHdrsCount-1] = lastHdr
-		} else {
-			lastNotarizedHdrs[i] = append(lastNotarizedHdrs[i], lastHdr)
-		}
-	}
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
 
 	//put the existing headers inside datapool
 

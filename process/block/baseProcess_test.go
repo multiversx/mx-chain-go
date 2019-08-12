@@ -10,10 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -254,38 +251,6 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	return store
-}
-
-func createTestDataPool() dataRetriever.PoolsHolder {
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
-	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-
-	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	hdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	hdrNonces, _ := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
-
-	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-
-	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
-	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-
-	dPool, _ := dataPool.NewShardedDataPool(
-		txPool,
-		uTxPool,
-		hdrPool,
-		hdrNonces,
-		txBlockBody,
-		peerChangeBlockBody,
-		metaBlocks,
-	)
-
-	return dPool
 }
 
 func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHashes ...[]byte) data.HeaderHandler {
@@ -680,7 +645,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrLastNotSliceNotSet(t *testing.T) {
 	base.SetMarshalizer(&mock.MarshalizerMock{})
 	prHdrs := createShardProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
 
-	err := base.CreateLastNotarizedHdrs(2, prHdrs)
+	err := base.SaveLastNotarizedHeader(2, prHdrs)
 
 	assert.Equal(t, process.ErrNotarizedHdrsSliceIsNil, err)
 }
@@ -695,7 +660,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrLastNotShardIdMissmatch(t *testing.T)
 	_ = base.SetLastNotarizedHeadersSlice(createGenesisBlocks(shardCoordinator))
 	prHdrs := createShardProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
 
-	err := base.CreateLastNotarizedHdrs(6, prHdrs)
+	err := base.SaveLastNotarizedHeader(6, prHdrs)
 
 	assert.Equal(t, process.ErrShardIdMissmatch, err)
 }
@@ -716,7 +681,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrLastNotHdrNil(t *testing.T) {
 	_ = base.SetLastNotarizedHeadersSlice(genesisBlock)
 	prHdrs := createShardProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
 
-	err := base.CreateLastNotarizedHdrs(shardId, prHdrs)
+	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -737,7 +702,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrLastNotWrongTypeShard(t *testing.T) {
 	_ = base.SetLastNotarizedHeadersSlice(genesisBlock)
 	prHdrs := createShardProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
 
-	err := base.CreateLastNotarizedHdrs(shardId, prHdrs)
+	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -757,7 +722,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrLastNotWrongTypeMeta(t *testing.T) {
 	_ = base.SetLastNotarizedHeadersSlice(genesisBlock)
 	prHdrs := createMetaProcessHeadersToSaveLastNoterized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
 
-	err := base.CreateLastNotarizedHdrs(sharding.MetachainShardId, prHdrs)
+	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -774,7 +739,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrShardWrongProcessed(t *testing.T) {
 	prHdrs := createMetaProcessHeadersToSaveLastNoterized(highestNonce, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	shardId := uint32(0)
-	err := base.CreateLastNotarizedHdrs(shardId, prHdrs)
+	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 
 	lastNodesHdrs := base.LastNotarizedHdrs()
@@ -792,7 +757,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrMetaWrongProcessed(t *testing.T) {
 	highestNonce := uint64(10)
 	prHdrs := createShardProcessHeadersToSaveLastNoterized(highestNonce, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
 
-	err := base.CreateLastNotarizedHdrs(sharding.MetachainShardId, prHdrs)
+	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 
 	lastNodesHdrs := base.LastNotarizedHdrs()
@@ -815,7 +780,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrShardGood(t *testing.T) {
 	shardId := uint32(0)
 	prHdrs := createShardProcessHeadersToSaveLastNoterized(highestNonce, genesisBlcks[shardId], hasher, marshalizer)
 
-	err := base.CreateLastNotarizedHdrs(shardId, prHdrs)
+	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
 	assert.Nil(t, err)
 
 	assert.Equal(t, highestNonce, base.LastNotarizedHdrForShard(shardId).GetNonce())
@@ -836,7 +801,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrMetaGood(t *testing.T) {
 	highestNonce := uint64(10)
 	prHdrs := createMetaProcessHeadersToSaveLastNoterized(highestNonce, genesisBlcks[sharding.MetachainShardId], hasher, marshalizer)
 
-	err := base.CreateLastNotarizedHdrs(sharding.MetachainShardId, prHdrs)
+	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
 	assert.Nil(t, err)
 
 	assert.Equal(t, highestNonce, base.LastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce())

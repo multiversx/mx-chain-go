@@ -140,7 +140,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	log.Info(fmt.Sprintf("starting process block with round %d and nonce %d\n",
+	log.Debug(fmt.Sprintf("started processing block with round %d and nonce %d\n",
 		headerHandler.GetRound(),
 		headerHandler.GetNonce()))
 
@@ -348,7 +348,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 
 // CreateBlockBody creates block body of metachain
 func (mp *metaProcessor) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
-	log.Info(fmt.Sprintf("starting create block body in round %d\n", round))
+	log.Debug(fmt.Sprintf("started creating block body in round %d\n", round))
 	mp.blockSizeThrottler.ComputeMaxItems()
 	return &block.MetaBlockBody{}, nil
 }
@@ -410,7 +410,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	log.Info(fmt.Sprintf("starting commit block with round %d and nonce %d\n",
+	log.Debug(fmt.Sprintf("started committing block with round %d and nonce %d\n",
 		headerHandler.GetRound(),
 		headerHandler.GetNonce()))
 
@@ -473,7 +473,7 @@ func (mp *metaProcessor) CommitBlock(
 		log.LogIfError(errNotCritical)
 	}
 
-	err = mp.createLastNotarizedHdrs(header)
+	err = mp.saveLastNotarizedHeader(header)
 	if err != nil {
 		return err
 	}
@@ -525,7 +525,7 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
-func (mp *metaProcessor) createLastNotarizedHdrs(header *block.MetaBlock) error {
+func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error {
 	mp.mutNotarizedHdrs.Lock()
 	defer mp.mutNotarizedHdrs.Unlock()
 
@@ -1046,7 +1046,7 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 
 // CreateBlockHeader creates a miniblock header list given a block body
 func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
-	log.Info(fmt.Sprintf("starting create block header in round %d\n", round))
+	log.Debug(fmt.Sprintf("started creating block header in round %d\n", round))
 	// TODO: add PrevRandSeed and RandSeed when BLS signing is completed
 	header := &block.MetaBlock{
 		ShardInfo:    make([]block.ShardData, 0),

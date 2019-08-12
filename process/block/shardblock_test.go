@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	poolMock "github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/transaction"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
@@ -3922,7 +3923,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
 	assert.Nil(t, err)
 
-	err = sp.CreateLastNotarizedHdrs(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -3943,7 +3944,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
 	assert.Equal(t, nil, err)
 
-	err = sp.CreateLastNotarizedHdrs(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -3965,7 +3966,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
 	assert.Nil(t, err)
 
-	err = sp.CreateLastNotarizedHdrs(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -4118,7 +4119,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
 	assert.Nil(t, err)
 
-	err = sp.CreateLastNotarizedHdrs(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -4252,7 +4253,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(processedMetaHdrs))
 
-	err = sp.CreateLastNotarizedHdrs(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
 	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
@@ -4612,7 +4613,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainNothingToProcess(t 
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
-	hdr, err := sp.GetHighestHdrForOwnShardFromMetachain(0)
+	hdr, _, err := sp.GetHighestHdrForOwnShardFromMetachain(0)
 	assert.NotNil(t, hdr)
 	assert.Equal(t, uint64(0), hdr.GetNonce())
 	assert.Nil(t, err)
@@ -4621,7 +4622,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainNothingToProcess(t 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHdr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := createTestDataPool()
+	dataPool := poolMock.CreateTestDataPool(nil)
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -4675,7 +4676,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
 	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
 
-	hdr, err := sp.GetHighestHdrForOwnShardFromMetachain(4)
+	hdr, _, err := sp.GetHighestHdrForOwnShardFromMetachain(4)
 	assert.NotNil(t, hdr)
 	assert.Equal(t, uint64(0), hdr.GetNonce())
 	assert.Nil(t, err)
@@ -4684,7 +4685,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrButNotStored(t *testing.T) {
 	t.Parallel()
 
-	dataPool := createTestDataPool()
+	dataPool := poolMock.CreateTestDataPool(nil)
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -4737,7 +4738,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
 	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
 
-	hdr, err := sp.GetHighestHdrForOwnShardFromMetachain(4)
+	hdr, _, err := sp.GetHighestHdrForOwnShardFromMetachain(4)
 
 	assert.NotNil(t, hdr)
 	assert.Equal(t, uint64(0), hdr.GetNonce())
@@ -4747,7 +4748,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrStored(t *testing.T) {
 	t.Parallel()
 
-	dataPool := createTestDataPool()
+	dataPool := poolMock.CreateTestDataPool(nil)
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -4831,7 +4832,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
 	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
 
-	hdr, err := sp.GetHighestHdrForOwnShardFromMetachain(4)
+	hdr, _, err := sp.GetHighestHdrForOwnShardFromMetachain(4)
 	assert.NotNil(t, hdr)
 	assert.Equal(t, ownHdr.GetNonce(), hdr.GetNonce())
 	assert.Nil(t, err)

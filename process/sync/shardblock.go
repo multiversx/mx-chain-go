@@ -572,18 +572,22 @@ func (boot *ShardBootstrap) SyncBlock() error {
 	}
 
 	blockBody := block.Body(miniBlockSlice)
+	timeBefore := time.Now()
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 	if err != nil {
 		return err
 	}
+	timeAfter := time.Now()
+	log.Info(fmt.Sprintf("time elapsed to process block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
 
-	timeBefore := time.Now()
+	timeBefore = time.Now()
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
 	if err != nil {
 		return err
 	}
-	timeAfter := time.Now()
+	timeAfter = time.Now()
 	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
+
 	log.Info(fmt.Sprintf("block with nonce %d has been synced successfully\n", hdr.Nonce))
 	boot.requestsWithTimeout = 0
 

@@ -154,7 +154,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	log.Info(fmt.Sprintf("starting process block with round %d and nonce %d\n",
+	log.Debug(fmt.Sprintf("started processing block with round %d and nonce %d\n",
 		headerHandler.GetRound(),
 		headerHandler.GetNonce()))
 
@@ -532,7 +532,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][][]b
 // CreateBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
-	log.Info(fmt.Sprintf("starting create block body in round %d\n", round))
+	log.Debug(fmt.Sprintf("started creating block body in round %d\n", round))
 	sp.txCoordinator.CreateBlockStarted()
 	sp.blockSizeThrottler.ComputeMaxItems()
 
@@ -563,7 +563,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	log.Info(fmt.Sprintf("starting commit block with round %d and nonce %d\n",
+	log.Debug(fmt.Sprintf("started committing block with round %d and nonce %d\n",
 		headerHandler.GetRound(),
 		headerHandler.GetNonce()))
 
@@ -626,7 +626,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	err = sp.createLastNotarizedHdrs(sharding.MetachainShardId, processedMetaHdrs)
+	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	if err != nil {
 		return err
 	}
@@ -652,12 +652,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	finalHeader, errNotCritical := sp.getHighestHdrForOwnShardFromMetachain(header.Round)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-	}
-
-	finalHeaderHash, errNotCritical := core.CalculateHash(sp.marshalizer, sp.hasher, finalHeader)
+	finalHeader, finalHeaderHash, errNotCritical := sp.getHighestHdrForOwnShardFromMetachain(header.Round)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
@@ -700,22 +695,23 @@ func (sp *shardProcessor) CommitBlock(
 }
 
 // getHighestHdrForOwnShardFromMetachain calculates the highest shard header notarized by metachain
-func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(round uint64) (*block.Header, error) {
+func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(round uint64) (*block.Header, []byte, error) {
 	highestNonceOwnShIdHdr := &block.Header{}
+	highestNonceOwnShIdHdrHash, _ := core.CalculateHash(sp.marshalizer, sp.hasher, highestNonceOwnShIdHdr)
 
 	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
 	if err != nil {
-		return highestNonceOwnShIdHdr, err
+		return highestNonceOwnShIdHdr, highestNonceOwnShIdHdrHash, err
 	}
 
 	lastNotarizedMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
-		return highestNonceOwnShIdHdr, err
+		return highestNonceOwnShIdHdr, highestNonceOwnShIdHdrHash, err
 	}
 
 	metaHdr, ok := lastNotarizedMetaHdr.(*block.MetaBlock)
 	if !ok {
-		return highestNonceOwnShIdHdr, process.ErrWrongTypeAssertion
+		return highestNonceOwnShIdHdr, highestNonceOwnShIdHdrHash, process.ErrWrongTypeAssertion
 	}
 
 	highestNonceOwnShIdHdr = sp.getHighestHdrForShardFromMetachain(sp.shardCoordinator.SelfId(), metaHdr)
@@ -744,7 +740,9 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(round uint64) (*
 		}
 	}
 
-	return highestNonceOwnShIdHdr, nil
+	highestNonceOwnShIdHdrHash, _ = core.CalculateHash(sp.marshalizer, sp.hasher, highestNonceOwnShIdHdr)
+
+	return highestNonceOwnShIdHdr, highestNonceOwnShIdHdrHash, nil
 }
 
 func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) *block.Header {
@@ -1379,7 +1377,7 @@ func (sp *shardProcessor) createMiniBlocks(
 
 // CreateBlockHeader creates a miniblock header list given a block body
 func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
-	log.Info(fmt.Sprintf("starting create block header in round %d\n", round))
+	log.Debug(fmt.Sprintf("started creating block header in round %d\n", round))
 	header := &block.Header{
 		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
 		RootHash:         sp.getRootHash(),

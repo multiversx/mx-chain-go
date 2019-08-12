@@ -259,7 +259,7 @@ func (bp *baseProcessor) lastNotarizedHdrForShard(shardId uint32) data.HeaderHan
 	return nil
 }
 
-func (bp *baseProcessor) createLastNotarizedHdrs(shardId uint32, processedHdrs []data.HeaderHandler) error {
+func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
 	bp.mutNotarizedHdrs.Lock()
 	defer bp.mutNotarizedHdrs.Unlock()
 

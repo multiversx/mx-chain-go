@@ -170,8 +170,8 @@ func (mp *metaProcessor) SetNextKValidity(val uint32) {
 	mp.mutRequestedShardHdrsHashes.Unlock()
 }
 
-func (mp *metaProcessor) CreateLastNotarizedHdrs(header *block.MetaBlock) error {
-	return mp.createLastNotarizedHdrs(header)
+func (mp *metaProcessor) SaveLastNotarizedHeader(header *block.MetaBlock) error {
+	return mp.saveLastNotarizedHeader(header)
 }
 
 func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error) {
@@ -198,8 +198,8 @@ func NewBaseProcessor(shardCord sharding.Coordinator) *baseProcessor {
 	return &baseProcessor{shardCoordinator: shardCord}
 }
 
-func (bp *baseProcessor) CreateLastNotarizedHdrs(shardId uint32, processedHdrs []data.HeaderHandler) error {
-	return bp.createLastNotarizedHdrs(shardId, processedHdrs)
+func (bp *baseProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
+	return bp.saveLastNotarizedHeader(shardId, processedHdrs)
 }
 
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {
@@ -262,7 +262,7 @@ func (sp *shardProcessor) DisplayLogInfo(
 	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool)
 }
 
-func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(round uint64) (*block.Header, error) {
+func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(round uint64) (*block.Header, []byte, error) {
 	return sp.getHighestHdrForOwnShardFromMetachain(round)
 }
 

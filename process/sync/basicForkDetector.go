@@ -95,10 +95,7 @@ func (bfd *basicForkDetector) AddHeader(
 		}
 
 		bfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
-
-		bfd.removePastHeaders()
-		bfd.removeInvalidHeaders()
-		bfd.removePastCheckpoints()
+		bfd.removePastOrInvalidRecords()
 	}
 
 	bfd.append(&headerInfo{
@@ -115,10 +112,19 @@ func (bfd *basicForkDetector) AddHeader(
 	return nil
 }
 
+func (bfd *basicForkDetector) removePastOrInvalidRecords() {
+	bfd.removePastHeaders()
+	bfd.removeInvalidHeaders()
+	bfd.removePastCheckpoints()
+
+}
+
 func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
 	roundDif := int64(header.GetRound()) - int64(bfd.finalCheckpoint().round)
 	nonceDif := int64(header.GetNonce()) - int64(bfd.finalCheckpoint().nonce)
+	//TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
 	nextRound := bfd.rounder.Index() + 1
+	roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-process.ForkBlockFinality
 
 	if roundDif <= 0 {
 		return ErrLowerRoundInBlock
@@ -129,7 +135,6 @@ func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, stat
 	if int64(header.GetRound()) > nextRound {
 		return ErrHigherRoundInBlock
 	}
-	roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-process.ForkBlockFinality
 	if roundTooOld {
 		return ErrLowerRoundInBlock
 	}
@@ -308,9 +313,9 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 	for _, hdrInfoStored := range hdrInfos {
 		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) {
 			if hdrInfoStored.state != process.BHProcessed {
-				// If the old appended headers have the same hashes with the new comes than the state of the old records
-				// will be replaced if the new one is more important. This is the hierarchy from low to high in term of
-				// importance: (BHProposed, BHReceived, BHNotarized, BHProcessed)
+				// If the old appended header has the same hash with the new one received, than the state of the old
+				// record will be replaced if the new one is more important. Below is the hierarchy, from low to high,
+				// of the record state importance: (BHProposed, BHReceived, BHNotarized, BHProcessed)
 				if hdrInfo.state == process.BHNotarized {
 					hdrInfoStored.state = process.BHNotarized
 				} else if hdrInfo.state == process.BHProcessed {
