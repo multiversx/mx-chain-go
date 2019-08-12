@@ -25,6 +25,9 @@ const MetricSynchronizedRound = "erd_synchronized_round"
 // MetricIsSyncing is the metric for monitoring if a node is syncing
 const MetricIsSyncing = "erd_is_syncing"
 
+// GenesisBlockNonce is the nonce of the genesis block
+const GenesisBlockNonce = 0
+
 // MetricPublicKey is the metric for monitoring public key of a node
 const MetricPublicKey = "erd_public_key"
 
