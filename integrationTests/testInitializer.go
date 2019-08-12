@@ -651,19 +651,20 @@ func ProposeAndSyncBlocks(
 	round uint64,
 ) uint64 {
 
-	// propose until pool is cleared
-	for i := numInTxs; i != 0; {
+	// propose and sync block until all the transaction pools are empty
+	// if there are many transactions, they might not fit into the block body in only one round
+	for numTxsInPool := numInTxs; numTxsInPool != 0; {
 		round = ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
 
 		for _, idProposer := range idxProposers {
 			proposerNode := nodes[idProposer]
-			i = GetNumTxsWithDst(
+			numTxsInPool = GetNumTxsWithDst(
 				proposerNode.ShardCoordinator.SelfId(),
 				proposerNode.ShardDataPool,
 				proposerNode.ShardCoordinator.NumberOfShards(),
 			)
 
-			if i > 0 {
+			if numTxsInPool > 0 {
 				break
 			}
 		}
@@ -673,6 +674,9 @@ func ProposeAndSyncBlocks(
 		return round
 	}
 
+	// cross shard smart contract call is first processed at sender shard, notarized by metachain, processed at
+	// shard with smart contract, smart contract result is notarized by metachain, then finally processed at the
+	// sender shard
 	numberToPropagateToEveryShard := 5
 	for i := 0; i < numberToPropagateToEveryShard; i++ {
 		round = ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
