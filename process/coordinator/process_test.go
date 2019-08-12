@@ -434,12 +434,12 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 
 	tc.CreateBlockStarted()
 
-	tc.mutPreprocessor.Lock()
-	for _, value := range tc.txPreprocessors {
+	tc.mutPreProcessor.Lock()
+	for _, value := range tc.txPreProcessors {
 		txs := value.GetAllCurrentUsedTxs()
 		assert.Equal(t, 0, len(txs))
 	}
-	tc.mutPreprocessor.Unlock()
+	tc.mutPreProcessor.Unlock()
 }
 
 func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
@@ -1443,7 +1443,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	haveTime := func() bool {
 		return true
 	}
-	preproc := tc.getPreprocessor(block.TxBlock)
+	preproc := tc.getPreProcessor(block.TxBlock)
 	err = tc.processCompleteMiniBlock(preproc, &miniBlock, 0, haveTime)
 
 	assert.Nil(t, err)
@@ -1547,7 +1547,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	haveTime := func() bool {
 		return true
 	}
-	preproc := tc.getPreprocessor(block.TxBlock)
+	preproc := tc.getPreProcessor(block.TxBlock)
 	err = tc.processCompleteMiniBlock(preproc, &miniBlock, 0, haveTime)
 
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
