@@ -17,15 +17,15 @@ func (ncm NodesCoordinatorMock) ComputeValidatorsGroup(randomness []byte) (valid
 	}
 
 	list := []sharding.Validator{
-		NewValidatorMock(big.NewInt(0), 0, []byte("A")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("B")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("C")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("D")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("E")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("F")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("G")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("H")),
-		NewValidatorMock(big.NewInt(0), 0, []byte("I")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("A"), []byte("AA")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("B"), []byte("BB")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("C"), []byte("CC")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("D"), []byte("DD")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("E"), []byte("EE")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("F"), []byte("FF")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("G"), []byte("GG")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("H"), []byte("HH")),
+		NewValidatorMock(big.NewInt(0), 0, []byte("I"), []byte("II")),
 	}
 
 	return list, nil
@@ -63,5 +63,9 @@ func (ncm NodesCoordinatorMock) SetConsensusGroupSize(int) error {
 }
 
 func (ncm NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error) {
+	panic("implement me")
+}
+
+func (ncm NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (sharding.Validator, uint32, error) {
 	panic("implement me")
 }

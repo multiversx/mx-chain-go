@@ -24,6 +24,7 @@ type Validator interface {
 	Stake() *big.Int
 	Rating() int32
 	PubKey() []byte
+	Address() []byte
 }
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
@@ -31,6 +32,7 @@ type NodesCoordinator interface {
 	PublicKeysSelector
 	SetNodesPerShards(nodes map[uint32][]Validator) error
 	ComputeValidatorsGroup(randomness []byte) (validatorsGroup []Validator, err error)
+	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
 }
 
 // PublicKeysSelector allows retrieval of eligible validators public keys

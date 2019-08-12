@@ -56,3 +56,7 @@ func (ncm NodesCoordinatorMock) SetConsensusGroupSize(int) error {
 func (ncm NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error) {
 	panic("implement me")
 }
+
+func (ncm NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (sharding.Validator, uint32, error) {
+	panic("implement me")
+}
