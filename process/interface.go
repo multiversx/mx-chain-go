@@ -1,7 +1,6 @@
 package process
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"math/big"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
@@ -29,6 +29,16 @@ type SmartContractResultProcessor interface {
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
+}
+
+// TxValidator can determine if a provided transaction handler is valid or not from the process point of view
+type TxValidator interface {
+	IsTxValidForProcessing(txHandler data.TransactionHandler) bool
+}
+
+// HeaderValidator can determine if a provided header handler is valid or not from the process point of view
+type HeaderValidator interface {
+	IsHeaderValidForProcessing(headerHandler data.HeaderHandler) bool
 }
 
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors

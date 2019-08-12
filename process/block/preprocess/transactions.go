@@ -140,12 +140,7 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 	body block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, map[int][]byte, error) {
-	if miniBlockPool == nil {
-		return 0, nil, process.ErrNilMiniBlockPool
-	}
-
 	miniBlockHashes := make(map[int][]byte)
-
 	txsRestored := 0
 
 	if miniBlockPool == nil {
@@ -394,7 +389,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	txStore := txs.txPool.ShardDataStore(strCache)
 
 	timeBefore := time.Now()
-	orderedTxes, orderedTxHashes, err := txs.getTxs(txStore)
+	orderedTxes, orderedTxHashes, err := SortTxByNonce(txStore)
 	timeAfter := time.Now()
 
 	if err != nil {
