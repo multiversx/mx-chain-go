@@ -223,7 +223,7 @@ func (boot *baseBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64)
 		return
 	}
 
-	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
+	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 		return
@@ -346,7 +346,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		core.ToB64(headerHash),
 		headerHandler.GetNonce()))
 
-	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived)
+	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil)
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -460,7 +460,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
-	boot.headersNonces.RemoveShardId(header.GetNonce(), header.GetShardID())
+	boot.headersNonces.Remove(header.GetNonce(), header.GetShardID())
 
 	hash, err := core.CalculateHash(boot.marshalizer, boot.hasher, header)
 	if err != nil {
