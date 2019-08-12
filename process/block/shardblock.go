@@ -445,7 +445,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return err
 	}
 
-	sp.restoreLastNotarized()
+	sp.removeLastNotarized()
 
 	return nil
 }

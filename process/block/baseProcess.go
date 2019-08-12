@@ -27,7 +27,7 @@ type hashAndHdr struct {
 	hash []byte
 }
 
-type mapShardLastHeaders map[uint32][]data.HeaderHandler
+type mapShardHeaders map[uint32][]data.HeaderHandler
 
 type baseProcessor struct {
 	shardCoordinator   sharding.Coordinator
@@ -39,8 +39,8 @@ type baseProcessor struct {
 	uint64Converter    typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler process.BlockSizeThrottler
 
-	mutNotarizedHdrs  sync.RWMutex
-	lastNotarizedHdrs mapShardLastHeaders
+	mutNotarizedHdrs sync.RWMutex
+	notarizedHdrs    mapShardHeaders
 
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
@@ -75,7 +75,7 @@ func (bp *baseProcessor) RevertAccountState() {
 // AddLastNotarizedHdr adds the last notarized header
 func (bp *baseProcessor) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	bp.mutNotarizedHdrs.Lock()
-	bp.lastNotarizedHdrs[shardId] = append(bp.lastNotarizedHdrs[shardId], processedHdr)
+	bp.notarizedHdrs[shardId] = append(bp.notarizedHdrs[shardId], processedHdr)
 	bp.mutNotarizedHdrs.Unlock()
 }
 
@@ -229,31 +229,31 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 
 func (bp *baseProcessor) removeNotarizedHdrsBehindFinal(hdrsToAttestFinality uint32) {
 	bp.mutNotarizedHdrs.Lock()
-	for shardId := range bp.lastNotarizedHdrs {
-		notarizedHdrsCount := uint32(len(bp.lastNotarizedHdrs[shardId]))
+	for shardId := range bp.notarizedHdrs {
+		notarizedHdrsCount := uint32(len(bp.notarizedHdrs[shardId]))
 		if notarizedHdrsCount > hdrsToAttestFinality {
 			finalIndex := notarizedHdrsCount - 1 - hdrsToAttestFinality
-			bp.lastNotarizedHdrs[shardId] = bp.lastNotarizedHdrs[shardId][finalIndex:]
+			bp.notarizedHdrs[shardId] = bp.notarizedHdrs[shardId][finalIndex:]
 		}
 	}
 	bp.mutNotarizedHdrs.Unlock()
 }
 
-func (bp *baseProcessor) restoreLastNotarized() {
+func (bp *baseProcessor) removeLastNotarized() {
 	bp.mutNotarizedHdrs.Lock()
-	for shardId := range bp.lastNotarizedHdrs {
-		notarizedHdrsCount := len(bp.lastNotarizedHdrs[shardId])
+	for shardId := range bp.notarizedHdrs {
+		notarizedHdrsCount := len(bp.notarizedHdrs[shardId])
 		if notarizedHdrsCount > 0 {
-			bp.lastNotarizedHdrs[shardId] = bp.lastNotarizedHdrs[shardId][:notarizedHdrsCount-1]
+			bp.notarizedHdrs[shardId] = bp.notarizedHdrs[shardId][:notarizedHdrsCount-1]
 		}
 	}
 	bp.mutNotarizedHdrs.Unlock()
 }
 
 func (bp *baseProcessor) lastNotarizedHdrForShard(shardId uint32) data.HeaderHandler {
-	notarizedHdrsCount := len(bp.lastNotarizedHdrs[shardId])
+	notarizedHdrsCount := len(bp.notarizedHdrs[shardId])
 	if notarizedHdrsCount > 0 {
-		return bp.lastNotarizedHdrs[shardId][notarizedHdrsCount-1]
+		return bp.notarizedHdrs[shardId][notarizedHdrsCount-1]
 	}
 
 	return nil
@@ -263,7 +263,7 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 	bp.mutNotarizedHdrs.Lock()
 	defer bp.mutNotarizedHdrs.Unlock()
 
-	if bp.lastNotarizedHdrs == nil {
+	if bp.notarizedHdrs == nil {
 		return process.ErrNotarizedHdrsSliceIsNil
 	}
 
@@ -276,7 +276,7 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 		return processedHdrs[i].GetNonce() < processedHdrs[j].GetNonce()
 	})
 
-	tmpLastNotarized := bp.lastNotarizedHdrForShard(shardId)
+	tmpLastNotarizedHdrForShard := bp.lastNotarizedHdrForShard(shardId)
 
 	for i := 0; i < len(processedHdrs); i++ {
 		err = bp.checkHeaderTypeCorrect(shardId, processedHdrs[i])
@@ -284,16 +284,16 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 			return err
 		}
 
-		err = bp.isHdrConstructionValid(processedHdrs[i], tmpLastNotarized)
+		err = bp.isHdrConstructionValid(processedHdrs[i], tmpLastNotarizedHdrForShard)
 		if err != nil {
 			return err
 		}
 
-		tmpLastNotarized = processedHdrs[i]
+		tmpLastNotarizedHdrForShard = processedHdrs[i]
 	}
 
-	bp.lastNotarizedHdrs[shardId] = append(bp.lastNotarizedHdrs[shardId], tmpLastNotarized)
-	bp.displayLastNotarized(tmpLastNotarized, shardId)
+	bp.notarizedHdrs[shardId] = append(bp.notarizedHdrs[shardId], tmpLastNotarizedHdrForShard)
+	DisplayLastNotarized(bp.marshalizer, bp.hasher, tmpLastNotarizedHdrForShard, shardId)
 
 	return nil
 }
@@ -302,7 +302,7 @@ func (bp *baseProcessor) getLastNotarizedHdr(shardId uint32) (data.HeaderHandler
 	bp.mutNotarizedHdrs.RLock()
 	defer bp.mutNotarizedHdrs.RUnlock()
 
-	if bp.lastNotarizedHdrs == nil {
+	if bp.notarizedHdrs == nil {
 		return nil, process.ErrNotarizedHdrsSliceIsNil
 	}
 
@@ -316,7 +316,7 @@ func (bp *baseProcessor) getLastNotarizedHdr(shardId uint32) (data.HeaderHandler
 	return hdr, nil
 }
 
-// SetLastNotarizedHeadersSlice sets the headers blocks in lastNotarizedHdrs for every shard
+// SetLastNotarizedHeadersSlice sets the headers blocks in notarizedHdrs for every shard
 // This is done when starting a new epoch so metachain can use it when validating next shard header blocks
 // and shard can validate the next meta header
 func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler) error {
@@ -329,20 +329,20 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 		return process.ErrNotarizedHdrsSliceIsNil
 	}
 
-	bp.lastNotarizedHdrs = make(mapShardLastHeaders, bp.shardCoordinator.NumberOfShards())
+	bp.notarizedHdrs = make(mapShardHeaders, bp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < bp.shardCoordinator.NumberOfShards(); i++ {
 		hdr, ok := startHeaders[i].(*block.Header)
 		if !ok {
 			return process.ErrWrongTypeAssertion
 		}
-		bp.lastNotarizedHdrs[i] = append(bp.lastNotarizedHdrs[i], hdr)
+		bp.notarizedHdrs[i] = append(bp.notarizedHdrs[i], hdr)
 	}
 
 	hdr, ok := startHeaders[sharding.MetachainShardId].(*block.MetaBlock)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
-	bp.lastNotarizedHdrs[sharding.MetachainShardId] = append(bp.lastNotarizedHdrs[sharding.MetachainShardId], hdr)
+	bp.notarizedHdrs[sharding.MetachainShardId] = append(bp.notarizedHdrs[sharding.MetachainShardId], hdr)
 
 	return nil
 }
@@ -478,20 +478,4 @@ func checkProcessorNilParameters(
 	}
 
 	return nil
-}
-
-func (bp *baseProcessor) displayLastNotarized(lastNotarizedHdrForShard data.HeaderHandler, shardId uint32) {
-	lastNotarizedHdrHashForShard, errNotCritical := core.CalculateHash(
-		bp.marshalizer,
-		bp.hasher,
-		lastNotarizedHdrForShard)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-	}
-
-	log.Info(fmt.Sprintf("last notarized block from shard %d has: round = %d, nonce = %d, hash = %s\n",
-		shardId,
-		lastNotarizedHdrForShard.GetRound(),
-		lastNotarizedHdrForShard.GetNonce(),
-		core.ToB64(lastNotarizedHdrHashForShard)))
 }

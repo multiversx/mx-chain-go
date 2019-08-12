@@ -742,8 +742,8 @@ func TestBaseProcessor_SaveLastNoterizedHdrShardWrongProcessed(t *testing.T) {
 	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 
-	lastNodesHdrs := base.LastNotarizedHdrs()
-	assert.Equal(t, uint64(0), lastNodesHdrs[shardId][0].GetNonce())
+	notarizedHdrs := base.NotarizedHdrs()
+	assert.Equal(t, uint64(0), notarizedHdrs[shardId][0].GetNonce())
 }
 
 func TestBaseProcessor_SaveLastNoterizedHdrMetaWrongProcessed(t *testing.T) {
@@ -760,8 +760,8 @@ func TestBaseProcessor_SaveLastNoterizedHdrMetaWrongProcessed(t *testing.T) {
 	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 
-	lastNodesHdrs := base.LastNotarizedHdrs()
-	assert.Equal(t, uint64(0), lastNodesHdrs[sharding.MetachainShardId][0].GetNonce())
+	notarizedHdrs := base.NotarizedHdrs()
+	assert.Equal(t, uint64(0), notarizedHdrs[sharding.MetachainShardId][0].GetNonce())
 }
 
 func TestBaseProcessor_SaveLastNoterizedHdrShardGood(t *testing.T) {

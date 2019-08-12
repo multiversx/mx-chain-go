@@ -1272,8 +1272,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	haveTime := func() bool { return true }
 
 	prevRandSeed := []byte("prevrand")
-	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
+	notarizedHdrs := mp.NotarizedHdrs()
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, notarizedHdrs)
 
 	//put the existing headers inside datapool
 	prevHash, _ := mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(0).(*block.Header))
@@ -1390,8 +1390,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
-	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
+	notarizedHdrs := mp.NotarizedHdrs()
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, notarizedHdrs)
 
 	headers := make([]*block.Header, 0)
 
@@ -1556,8 +1556,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
-	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
+	notarizedHdrs := mp.NotarizedHdrs()
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, notarizedHdrs)
 
 	headers := make([]*block.Header, 0)
 
@@ -1760,9 +1760,9 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
-	lastNotarizedHdrs := mp.LastNotarizedHdrs()
+	notarizedHdrs := mp.NotarizedHdrs()
 	firstNonce := uint64(44)
-	setLastNotarizedHdr(noOfShards, 9, firstNonce, prevRandSeed, lastNotarizedHdrs)
+	setLastNotarizedHdr(noOfShards, 9, firstNonce, prevRandSeed, notarizedHdrs)
 
 	//put the existing headers inside datapool
 
@@ -1799,7 +1799,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	// test header not in pool and defer called
 	err := mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Equal(t, process.ErrMissingHeader, err)
-	lastNotarizedHdrs = mp.LastNotarizedHdrs()
+	notarizedHdrs = mp.NotarizedHdrs()
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
 
 	// wrong header type in pool and defer called
@@ -1808,7 +1808,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 
 	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-	lastNotarizedHdrs = mp.LastNotarizedHdrs()
+	notarizedHdrs = mp.NotarizedHdrs()
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
 
 	// put headers in pool
@@ -1817,7 +1817,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 
 	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Nil(t, err)
-	lastNotarizedHdrs = mp.LastNotarizedHdrs()
+	notarizedHdrs = mp.NotarizedHdrs()
 	assert.Equal(t, currHdr, mp.LastNotarizedHdrForShard(currHdr.ShardId))
 }
 
@@ -1853,8 +1853,8 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
-	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
+	notarizedHdrs := mp.NotarizedHdrs()
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, notarizedHdrs)
 
 	//put the existing headers inside datapool
 
@@ -1947,8 +1947,8 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
-	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
+	notarizedHdrs := mp.NotarizedHdrs()
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, notarizedHdrs)
 
 	//put the existing headers inside datapool
 	currHdr := &block.Header{
@@ -2004,8 +2004,8 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
-	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	setLastNotarizedHdr(noOfShards, 0, 0, prevRandSeed, lastNotarizedHdrs)
+	notarizedHdrs := mp.NotarizedHdrs()
+	setLastNotarizedHdr(noOfShards, 0, 0, prevRandSeed, notarizedHdrs)
 
 	//put the existing headers inside datapool
 	currHdr := &block.Header{
@@ -2067,8 +2067,8 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
-	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
+	notarizedHdrs := mp.NotarizedHdrs()
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, notarizedHdrs)
 
 	//put the existing headers inside datapool
 
@@ -2179,8 +2179,8 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
-	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
+	notarizedHdrs := mp.NotarizedHdrs()
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, notarizedHdrs)
 
 	//put the existing headers inside datapool
 
@@ -2285,8 +2285,8 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
-	lastNotarizedHdrs := mp.LastNotarizedHdrs()
-	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, lastNotarizedHdrs)
+	notarizedHdrs := mp.NotarizedHdrs()
+	setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, notarizedHdrs)
 
 	//put the existing headers inside datapool
 

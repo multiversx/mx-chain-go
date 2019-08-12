@@ -148,8 +148,8 @@ func (mp *metaProcessor) RequestFinalMissingHeaders() uint32 {
 	return mp.requestFinalMissingHeaders()
 }
 
-func (bp *baseProcessor) LastNotarizedHdrs() map[uint32][]data.HeaderHandler {
-	return bp.lastNotarizedHdrs
+func (bp *baseProcessor) NotarizedHdrs() map[uint32][]data.HeaderHandler {
+	return bp.notarizedHdrs
 }
 
 func (bp *baseProcessor) LastNotarizedHdrForShard(shardId uint32) data.HeaderHandler {

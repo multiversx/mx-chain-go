@@ -5,9 +5,12 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -194,4 +197,24 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 	txc.mutex.Unlock()
 
 	return lines
+}
+
+func DisplayLastNotarized(
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	lastNotarizedHdrForShard data.HeaderHandler,
+	shardId uint32) {
+	lastNotarizedHdrHashForShard, errNotCritical := core.CalculateHash(
+		marshalizer,
+		hasher,
+		lastNotarizedHdrForShard)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+
+	log.Info(fmt.Sprintf("last notarized block from shard %d has: round = %d, nonce = %d, hash = %s\n",
+		shardId,
+		lastNotarizedHdrForShard.GetRound(),
+		lastNotarizedHdrForShard.GetNonce(),
+		core.ToB64(lastNotarizedHdrHashForShard)))
 }
