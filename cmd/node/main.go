@@ -750,7 +750,6 @@ func createNodesCoordinator(
 	for shardId, nodeInfoList := range initNodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
-			// TODO: the stake needs to be associated to the staking account
 			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
 			if err != nil {
 				return nil, err
