@@ -127,7 +127,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 			err := n.blkProcessor.ProcessBlock(
 				n.blkc,
 				n.headers[0],
-				getBlockBody(testMarshalizer, testHasher, n.headers[0], n.miniblocks),
+				createBlockBodyFromOrderedMiniblocks(testMarshalizer, testHasher, n.headers[0], n.miniblocks),
 				func() time.Duration {
 					//fair enough to process a few transactions
 					return time.Second * 2
@@ -382,7 +382,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 }
 
-func getBlockBody(
+func createBlockBodyFromOrderedMiniblocks(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	headerHandler data.HeaderHandler,
