@@ -80,6 +80,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	round = incrementAndPrintRound(round)
 
 	nodeDoesTopUp(nodes, idxNodeShard0, topUpValue, hardCodedScResultingAddress)
+	nodes[idxNodeShard0].OwnAccount.Nonce++
 
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
@@ -98,6 +99,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	)
 
 	nodeDoesWithdraw(nodes, idxNodeShard0, withdrawValue, hardCodedScResultingAddress)
+	nodes[idxNodeShard0].OwnAccount.Nonce++
 
 	roundsToWait = 12
 	for i := 0; i < roundsToWait; i++ {
@@ -192,6 +194,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	round = incrementAndPrintRound(round)
 
 	nodeJoinsGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
+	nodes[idxProposerShard0].OwnAccount.Nonce++
 
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
@@ -212,6 +215,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	)
 
 	nodeCallsRewardAndSend(nodes, idxProposerShard1, idxProposerShard0, withdrawValue, hardCodedScResultingAddress)
+	nodes[idxProposerShard0].OwnAccount.Nonce++
 
 	//TODO investigate why do we need 7 rounds here
 	roundsToWait = 7
@@ -309,6 +313,8 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	round = incrementAndPrintRound(round)
 
 	nodeJoinsGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
+	nodes[idxProposerShard0].OwnAccount.Nonce++
+
 	maxRoundsToWait := 10
 	for i := 0; i < maxRoundsToWait; i++ {
 		proposeBlockWithScTxs(nodes, round, idxProposersWithoutShard1)
@@ -694,7 +700,7 @@ func createTxTopUp(
 ) *transaction.Transaction {
 
 	tx := &transaction.Transaction{
-		Nonce:    0,
+		Nonce:    tn.OwnAccount.Nonce,
 		Value:    topUpVal,
 		RcvAddr:  scAddress,
 		SndAddr:  tn.OwnAccount.PkTxSignBytes,
@@ -715,7 +721,7 @@ func createTxJoinGame(
 ) *transaction.Transaction {
 
 	tx := &transaction.Transaction{
-		Nonce:    0,
+		Nonce:    tn.OwnAccount.Nonce,
 		Value:    joinGameVal,
 		RcvAddr:  scAddress,
 		SndAddr:  tn.OwnAccount.PkTxSignBytes,
@@ -736,7 +742,7 @@ func createTxWithdraw(
 ) *transaction.Transaction {
 
 	tx := &transaction.Transaction{
-		Nonce:    0,
+		Nonce:    tn.OwnAccount.Nonce,
 		Value:    big.NewInt(0),
 		RcvAddr:  scAddress,
 		SndAddr:  tn.OwnAccount.PkTxSignBytes,
@@ -758,7 +764,7 @@ func createTxRewardAndSendToWallet(
 ) *transaction.Transaction {
 
 	tx := &transaction.Transaction{
-		Nonce:    0,
+		Nonce:    tnOwner.OwnAccount.Nonce,
 		Value:    big.NewInt(0),
 		RcvAddr:  scAddress,
 		SndAddr:  tnOwner.OwnAccount.PkTxSignBytes,
