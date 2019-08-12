@@ -11,9 +11,13 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/node"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -85,8 +89,11 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 }
 
 // CreateTestShardDataPool creates a test data pool for shard nodes
-func CreateTestShardDataPool() dataRetriever.PoolsHolder {
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
+	if txPool == nil {
+		txPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	}
+
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -704,8 +711,8 @@ func GenerateAndDisseminateTxs(
 				&txArgs{
 					nonce:   incrementalNonce,
 					value:   valToTransfer,
-					rcvAddr: skToPk(receiverKey),
-					sndAddr: skToPk(senderKey),
+					rcvAddr: SkToPk(receiverKey),
+					sndAddr: SkToPk(senderKey),
 				},
 			)
 			_, _ = n.SendTransaction(tx)
@@ -744,7 +751,7 @@ func generateTx(
 	return tx
 }
 
-func skToPk(sk crypto.PrivateKey) []byte {
+func SkToPk(sk crypto.PrivateKey) []byte {
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
 	return pkBuff
 }
@@ -1025,4 +1032,108 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 	for i := 0; i < len(neededTxs); i++ {
 		_ = txResolver.RequestDataFromHash(neededTxs[i])
 	}
+}
+
+// CreateRequesterDataPool creates a datapool with a mock txPool
+func CreateRequesterDataPool(
+	t *testing.T,
+	recvTxs map[int]map[string]struct{},
+	mutRecvTxs *sync.Mutex,
+	nodeIndex int,
+) dataRetriever.PoolsHolder {
+
+	//not allowed to request data from the same shard
+	return CreateTestShardDataPool(
+		&mock.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				assert.Fail(t, "same-shard requesters should not be queried")
+				return nil, false
+			},
+			ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
+				assert.Fail(t, "same-shard requesters should not be queried")
+				return nil
+			},
+			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+				mutRecvTxs.Lock()
+				defer mutRecvTxs.Unlock()
+
+				txMap := recvTxs[nodeIndex]
+				if txMap == nil {
+					txMap = make(map[string]struct{})
+					recvTxs[nodeIndex] = txMap
+				}
+
+				txMap[string(key)] = struct{}{}
+			},
+			RegisterHandlerCalled: func(i func(key []byte)) {
+			},
+		},
+	)
+}
+
+// CreateResolversDataPool creates a datapool containing a given number of transactions
+func CreateResolversDataPool(
+	t *testing.T,
+	maxTxs int,
+	senderShardID uint32,
+	recvShardId uint32,
+	shardCoordinator sharding.Coordinator,
+) (dataRetriever.PoolsHolder, [][]byte) {
+
+	txHashes := make([][]byte, maxTxs)
+
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
+
+	for i := 0; i < maxTxs; i++ {
+		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
+		cacherIdentifier := process.ShardCacherIdentifier(1, 0)
+		txPool.AddData(txHash, tx, cacherIdentifier)
+		txHashes[i] = txHash
+	}
+
+	return CreateTestShardDataPool(txPool), txHashes
+}
+
+func generateValidTx(
+	t *testing.T,
+	shardCoordinator sharding.Coordinator,
+	senderShardId uint32,
+	receiverShardId uint32,
+) (*transaction.Transaction, []byte) {
+
+	skSender := GeneratePrivateKeyInShardId(shardCoordinator, senderShardId)
+	pkSender := skSender.GeneratePublic()
+	pkSenderBuff := SkToPk(skSender)
+
+	skRecv := GeneratePrivateKeyInShardId(shardCoordinator, receiverShardId)
+	pkRecvBuff := SkToPk(skRecv)
+
+	accnts, _, _ := CreateAccountsDB(shardCoordinator)
+	addrSender, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
+	_, _ = accnts.GetAccountWithJournal(addrSender)
+	_, _ = accnts.Commit()
+
+	mockNode, _ := node.NewNode(
+		node.WithMarshalizer(TestMarshalizer),
+		node.WithHasher(TestHasher),
+		node.WithAddressConverter(TestAddressConverter),
+		node.WithKeyGen(signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())),
+		node.WithTxSingleSigner(&singlesig.SchnorrSigner{}),
+		node.WithTxSignPrivKey(skSender),
+		node.WithTxSignPubKey(pkSender),
+		node.WithAccountsAdapter(accnts),
+	)
+
+	tx, err := mockNode.GenerateTransaction(
+		hex.EncodeToString(pkSenderBuff),
+		hex.EncodeToString(pkRecvBuff),
+		big.NewInt(1),
+		"",
+	)
+	assert.Nil(t, err)
+
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	txHash := TestHasher.Compute(string(txBuff))
+
+	return tx, txHash
 }

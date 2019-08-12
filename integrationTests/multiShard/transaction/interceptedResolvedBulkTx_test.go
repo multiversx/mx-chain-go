@@ -2,7 +2,6 @@ package transaction
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -11,18 +10,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/node"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -286,7 +278,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
-	nodes := make([]*testNode, 0)
+	nodes := make([]*integrationTests.TestProcessorNode, 0)
 	maxShards := 2
 	nodesPerShard := 2
 	txGenerated := 10
@@ -294,7 +286,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.node.Stop()
+			_ = n.Node.Stop()
 		}
 	}()
 
@@ -302,14 +294,14 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	recvTxs := make(map[int]map[string]struct{})
 	mutRecvTxs := sync.Mutex{}
 	for i := 0; i < nodesPerShard; i++ {
-		dPool := createRequesterDataPool(t, recvTxs, &mutRecvTxs, i)
+		dPool := integrationTests.CreateRequesterDataPool(t, recvTxs, &mutRecvTxs, i)
 
-		tn := createNode(
+		tn := integrationTests.NewTestProcessorNodeWithCustomDataPool(
+			uint32(maxShards),
 			0,
-			maxShards,
-			dPool,
 			0,
 			integrationTests.GetConnectableAddress(advertiser),
+			dPool,
 		)
 
 		nodes = append(nodes, tn)
@@ -318,32 +310,32 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	var txHashesGenerated [][]byte
 	var dPool dataRetriever.PoolsHolder
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), 0)
-	dPool, txHashesGenerated = createResolversDataPool(t, txGenerated, 0, 1, shardCoordinator)
+	dPool, txHashesGenerated = integrationTests.CreateResolversDataPool(t, txGenerated, 0, 1, shardCoordinator)
 	//shard 1, resolvers, same data pool, does not matter
 	for i := 0; i < nodesPerShard; i++ {
-		tn := createNode(
+		tn := integrationTests.NewTestProcessorNodeWithCustomDataPool(
+			uint32(maxShards),
 			1,
-			maxShards,
-			dPool,
 			1,
 			integrationTests.GetConnectableAddress(advertiser),
+			dPool,
 		)
 
-		atomic.StoreInt32(&tn.txRecv, int32(txGenerated))
+		atomic.StoreInt32(&tn.CounterTxRecv, int32(txGenerated))
 
 		nodes = append(nodes, tn)
 	}
 
-	displayAndStartNodes(nodes)
+	integrationTests.DisplayAndStartNodes(nodes)
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(time.Second * 5)
 
-	fmt.Println(makeDisplayTable(nodes))
+	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 	fmt.Println("Request nodes start asking the data...")
 	reqShardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), 0)
 	for i := 0; i < nodesPerShard; i++ {
-		resolver, _ := nodes[i].resFinder.Get(factory.TransactionTopic + reqShardCoordinator.CommunicationIdentifier(1))
+		resolver, _ := nodes[i].ResolverFinder.Get(factory.TransactionTopic + reqShardCoordinator.CommunicationIdentifier(1))
 		txResolver, ok := resolver.(*resolvers.TxResolver)
 		assert.True(t, ok)
 
@@ -360,108 +352,8 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 		txsReceived := len(recvTxs[i])
 		assert.Equal(t, txGenerated, txsReceived)
 
-		atomic.StoreInt32(&nodes[i].txRecv, int32(txsReceived))
+		atomic.StoreInt32(&nodes[i].CounterTxRecv, int32(txsReceived))
 	}
 
-	fmt.Println(makeDisplayTable(nodes))
-}
-
-func createRequesterDataPool(
-	t *testing.T,
-	recvTxs map[int]map[string]struct{},
-	mutRecvTxs *sync.Mutex,
-	nodeIndex int,
-) dataRetriever.PoolsHolder {
-
-	//not allowed to request data from the same shard
-	return createTestDataPool(
-		&mock.ShardedDataStub{
-			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-				assert.Fail(t, "same-shard requesters should not be queried")
-				return nil, false
-			},
-			ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-				assert.Fail(t, "same-shard requesters should not be queried")
-				return nil
-			},
-			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-				mutRecvTxs.Lock()
-				defer mutRecvTxs.Unlock()
-
-				txMap := recvTxs[nodeIndex]
-				if txMap == nil {
-					txMap = make(map[string]struct{})
-					recvTxs[nodeIndex] = txMap
-				}
-
-				txMap[string(key)] = struct{}{}
-			},
-			RegisterHandlerCalled: func(i func(key []byte)) {
-			},
-		},
-	)
-}
-
-func createResolversDataPool(
-	t *testing.T,
-	maxTxs int,
-	senderShardID uint32,
-	recvShardId uint32,
-	shardCoordinator sharding.Coordinator,
-) (dataRetriever.PoolsHolder, [][]byte) {
-
-	txHashes := make([][]byte, maxTxs)
-
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
-
-	for i := 0; i < maxTxs; i++ {
-		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
-		cacherIdentifier := process.ShardCacherIdentifier(1, 0)
-		txPool.AddData(txHash, tx, cacherIdentifier)
-		txHashes[i] = txHash
-	}
-
-	return createTestDataPool(txPool), txHashes
-}
-
-func generateValidTx(
-	t *testing.T,
-	shardCoordinator sharding.Coordinator,
-	senderShardId uint32,
-	receiverShardId uint32,
-) (*transaction.Transaction, []byte) {
-
-	skSender, pkSender := generateSkPkInShardAndCreateAccount(shardCoordinator, senderShardId, nil)
-	pkSenderBuff, _ := pkSender.ToByteArray()
-	_, pkRecv := generateSkPkInShardAndCreateAccount(shardCoordinator, receiverShardId, nil)
-	pkRecvBuff, _ := pkRecv.ToByteArray()
-
-	accnts, _, _ := integrationTests.CreateAccountsDB(shardCoordinator)
-	addrSender, _ := addrConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
-	_, _ = accnts.GetAccountWithJournal(addrSender)
-	_, _ = accnts.Commit()
-
-	mockNode, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer),
-		node.WithHasher(hasher),
-		node.WithAddressConverter(addrConverter),
-		node.WithKeyGen(keyGen),
-		node.WithTxSingleSigner(singleSigner),
-		node.WithTxSignPrivKey(skSender),
-		node.WithTxSignPubKey(pkSender),
-		node.WithAccountsAdapter(accnts),
-	)
-
-	tx, err := mockNode.GenerateTransaction(
-		hex.EncodeToString(pkSenderBuff),
-		hex.EncodeToString(pkRecvBuff),
-		big.NewInt(1),
-		"",
-	)
-	assert.Nil(t, err)
-
-	txBuff, _ := marshalizer.Marshal(tx)
-	txHash := hasher.Compute(string(txBuff))
-
-	return tx, txHash
+	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 }
