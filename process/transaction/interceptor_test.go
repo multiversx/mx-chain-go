@@ -68,7 +68,7 @@ func TestNewTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 	assert.Nil(t, txi)
 }
 
-func TestNewTxInterceptor_NilTxValidatorShouldErr(t *testing.T) {
+func TestNewTxInterceptor_NilTxHandlerValidatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txPool := &mock.ShardedDataStub{}
@@ -87,7 +87,7 @@ func TestNewTxInterceptor_NilTxValidatorShouldErr(t *testing.T) {
 		keyGen,
 		oneSharder)
 
-	assert.Equal(t, process.ErrNilTxValidator, err)
+	assert.Equal(t, process.ErrNilTxHandlerValidator, err)
 	assert.Nil(t, txi)
 }
 

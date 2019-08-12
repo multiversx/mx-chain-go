@@ -406,8 +406,8 @@ var ErrUnknownBlockType = errors.New("block type is unknown")
 // ErrMissingPreProcessor signals that required pre processor is missing
 var ErrMissingPreProcessor = errors.New("pre processor is missing")
 
-// ErrNilTxValidator signals that a nil tx handler validator has been provided
-var ErrNilTxValidator = errors.New("nil tx handler validator provided")
+// ErrNilTxHandlerValidator signals that a nil tx handler validator has been provided
+var ErrNilTxHandlerValidator = errors.New("nil tx handler validator provided")
 
 // ErrNilHeaderHandlerValidator signals that a nil header handler validator has been provided
 var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator provided")

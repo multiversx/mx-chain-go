@@ -46,7 +46,7 @@ func NewTxInterceptor(
 		return nil, process.ErrNilTxDataPool
 	}
 	if txValidator == nil {
-		return nil, process.ErrNilTxValidator
+		return nil, process.ErrNilTxHandlerValidator
 	}
 	if addrConverter == nil {
 		return nil, process.ErrNilAddressConverter
