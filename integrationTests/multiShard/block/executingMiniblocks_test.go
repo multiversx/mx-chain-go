@@ -48,10 +48,6 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		}
 	}()
 
-	// delay for bootstrapping and topic announcement
-	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(time.Second * 5)
-
 	fmt.Println("Step 2. Generating private keys for senders and receivers...")
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
 	txToGenerateInEachMiniBlock := 3

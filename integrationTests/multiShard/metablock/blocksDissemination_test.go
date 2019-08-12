@@ -37,6 +37,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 		integrationTests.GetConnectableAddress(advertiser),
 	)
 	integrationTests.DisplayAndStartNodes(nodes)
+	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 	defer func() {
 		_ = advertiser.Close()
@@ -44,11 +45,6 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 			_ = n.Node.Stop()
 		}
 	}()
-
-	// delay for bootstrapping and topic announcement
-	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(time.Second * 5)
-	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 	fmt.Println("Generating header and block body from shard 0 to metachain...")
 	body, hdr := integrationTests.GenerateDefaultHeaderAndBody(senderShard)
@@ -104,6 +100,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		integrationTests.GetConnectableAddress(advertiser),
 	)
 	integrationTests.DisplayAndStartNodes(nodes)
+	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 	defer func() {
 		_ = advertiser.Close()
@@ -111,11 +108,6 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 			_ = n.Node.Stop()
 		}
 	}()
-
-	// delay for bootstrapping and topic announcement
-	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(time.Second * 5)
-	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 	fmt.Println("Generating header and block body in shard 0, save it in datapool and metachain creates a request for it...")
 	_, hdr := integrationTests.GenerateDefaultHeaderAndBody(senderShard)

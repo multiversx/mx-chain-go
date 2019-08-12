@@ -50,10 +50,6 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 		}
 	}()
 
-	// delay for bootstrapping and topic announcement
-	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(time.Second * 5)
-
 	txToSend := 100
 
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 5)
@@ -120,10 +116,6 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 			_ = n.Node.Stop()
 		}
 	}()
-
-	// delay for bootstrapping and topic a0nnouncement
-	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(time.Second * 5)
 
 	txToSend := 100
 
@@ -202,10 +194,6 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 			_ = n.Node.Stop()
 		}
 	}()
-
-	// delay for bootstrapping and topic announcement
-	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(time.Second * 5)
 
 	txToSend := 100
 

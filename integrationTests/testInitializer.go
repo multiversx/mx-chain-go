@@ -57,6 +57,7 @@ import (
 )
 
 var stepDelay = time.Second
+var p2pBootstrapStepDelay = 5 * time.Second
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
@@ -473,12 +474,12 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 	for _, player := range players {
 		pShardId := shardCoordinator.ComputeId(player.Address)
 
-		for _, node := range nodes {
-			if pShardId != node.ShardCoordinator.SelfId() {
+		for _, n := range nodes {
+			if pShardId != n.ShardCoordinator.SelfId() {
 				continue
 			}
 
-			MintAddress(node.AccntState, player.Address.Bytes(), value)
+			MintAddress(n.AccntState, player.Address.Bytes(), value)
 			player.Balance = big.NewInt(0).Set(value)
 		}
 	}
@@ -567,14 +568,14 @@ func checkRootHashInShard(t *testing.T, nodes []*TestProcessorNode, idxProposer 
 	proposerRootHash, _ := proposerNode.AccntState.RootHash()
 
 	for i := 0; i < len(nodes); i++ {
-		node := nodes[i]
+		n := nodes[i]
 
-		if node.ShardCoordinator.SelfId() != proposerNode.ShardCoordinator.SelfId() {
+		if n.ShardCoordinator.SelfId() != proposerNode.ShardCoordinator.SelfId() {
 			continue
 		}
 
-		fmt.Printf("Testing roothash for node index %d, shard ID %d...\n", i, node.ShardCoordinator.SelfId())
-		nodeRootHash, _ := node.AccntState.RootHash()
+		fmt.Printf("Testing roothash for node index %d, shard ID %d...\n", i, n.ShardCoordinator.SelfId())
+		nodeRootHash, _ := n.AccntState.RootHash()
 		assert.Equal(t, proposerRootHash, nodeRootHash)
 	}
 }
@@ -660,9 +661,9 @@ func CreateNodes(
 	idx := 0
 	for shardId := 0; shardId < numOfShards; shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			node := NewTestProcessorNode(uint32(numOfShards), uint32(shardId), uint32(shardId), serviceID)
+			n := NewTestProcessorNode(uint32(numOfShards), uint32(shardId), uint32(shardId), serviceID)
 
-			nodes[idx] = node
+			nodes[idx] = n
 			idx++
 		}
 	}
@@ -690,6 +691,9 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 		_ = n.Node.Start()
 		_ = n.Node.P2PBootstrap()
 	}
+
+	fmt.Println("Delaying for node bootstrap and topic announcement...")
+	time.Sleep(p2pBootstrapStepDelay)
 }
 
 // GenerateAndDisseminateTxs generates and sends multiple txs
@@ -711,8 +715,8 @@ func GenerateAndDisseminateTxs(
 				&txArgs{
 					nonce:   incrementalNonce,
 					value:   valToTransfer,
-					rcvAddr: SkToPk(receiverKey),
-					sndAddr: SkToPk(senderKey),
+					rcvAddr: skToPk(receiverKey),
+					sndAddr: skToPk(senderKey),
 				},
 			)
 			_, _ = n.SendTransaction(tx)
@@ -751,7 +755,7 @@ func generateTx(
 	return tx
 }
 
-func SkToPk(sk crypto.PrivateKey) []byte {
+func skToPk(sk crypto.PrivateKey) []byte {
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
 	return pkBuff
 }
@@ -1103,10 +1107,10 @@ func generateValidTx(
 
 	skSender := GeneratePrivateKeyInShardId(shardCoordinator, senderShardId)
 	pkSender := skSender.GeneratePublic()
-	pkSenderBuff := SkToPk(skSender)
+	pkSenderBuff, _ := pkSender.ToByteArray()
 
 	skRecv := GeneratePrivateKeyInShardId(shardCoordinator, receiverShardId)
-	pkRecvBuff := SkToPk(skRecv)
+	pkRecvBuff := skToPk(skRecv)
 
 	accnts, _, _ := CreateAccountsDB(shardCoordinator)
 	addrSender, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)

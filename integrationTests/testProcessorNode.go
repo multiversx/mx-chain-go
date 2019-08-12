@@ -124,25 +124,7 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
-	tpn.initStorage()
-	tpn.AccntState, _, _ = CreateAccountsDB(tpn.ShardCoordinator)
-	tpn.initChainHandler()
-	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
-	tpn.initInterceptors()
-	tpn.initResolvers()
-	tpn.initInnerProcessors()
-	tpn.initBlockProcessor()
-	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
-		TestMarshalizer,
-		tpn.Messenger,
-		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.SingleSigner,
-	)
-	tpn.setGenesisBlock()
-	tpn.initNode()
-	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
-	tpn.addHandlersForCounters()
+	tpn.initTestNode()
 
 	return tpn
 }
@@ -158,13 +140,17 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	}
 
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
-
 	if tpn.ShardCoordinator.SelfId() != sharding.MetachainShardId {
 		tpn.ShardDataPool = dPool
 	} else {
 		tpn.initDataPools()
 	}
+	tpn.initTestNode()
 
+	return tpn
+}
+
+func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(tpn.ShardCoordinator)
 	tpn.initChainHandler()
@@ -184,8 +170,6 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	tpn.initNode()
 	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
 	tpn.addHandlersForCounters()
-
-	return tpn
 }
 
 func (tpn *TestProcessorNode) initDataPools() {

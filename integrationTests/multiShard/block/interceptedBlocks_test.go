@@ -8,9 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -48,10 +46,6 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 			_ = n.Node.Stop()
 		}
 	}()
-
-	// delay for bootstrapping and topic announcement
-	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(time.Second * 5)
 
 	fmt.Println("Generating header and block body...")
 	body, hdr := integrationTests.GenerateDefaultHeaderAndBody(senderShard, recvShards...)
