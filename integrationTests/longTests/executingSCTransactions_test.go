@@ -93,7 +93,6 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 		topUpValue,
 		hardCodedScResultingAddress,
 		round,
-		maxShards,
 		[]int{idxProposer},
 	)
 
@@ -174,7 +173,6 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		topUpValue,
 		hardCodedScResultingAddress,
 		round,
-		maxShards,
 		[]int{idxProposer},
 	)
 
@@ -267,7 +265,6 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		topUpValue,
 		hardCodedScResultingAddress,
 		round,
-		maxShards,
 		idxProposers,
 	)
 
@@ -363,7 +360,6 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		topUpValue,
 		hardCodedScResultingAddress,
 		round,
-		maxShards,
 		idxProposers,
 	)
 
@@ -392,7 +388,6 @@ func runMultipleRoundsOfTheGame(
 	topUpValue *big.Int,
 	hardCodedScResultingAddress []byte,
 	round uint64,
-	nrShards uint32,
 	idxProposers []int,
 ) {
 	rMonitor := &statistics.ResourceMonitor{}
@@ -407,11 +402,6 @@ func runMultipleRoundsOfTheGame(
 	withdrawValues[0] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, winnerRate))
 	for i := 1; i < numRewardedPlayers; i++ {
 		withdrawValues[i] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, 0.05))
-	}
-
-	nrRoundsToPropagateMultiShard := 5
-	if nrShards == 1 {
-		nrRoundsToPropagateMultiShard = 1
 	}
 
 	for rr := 0; rr < nrRounds; rr++ {
@@ -431,15 +421,7 @@ func runMultipleRoundsOfTheGame(
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-			startTime := time.Now()
-			integrationTests.ProposeBlock(nodes, idxProposers, round)
-			elapsedTime := time.Since(startTime)
-			fmt.Printf("Block Created in %s\n", elapsedTime)
-
-			integrationTests.SyncBlock(t, nodes, idxProposers, round)
-			round = integrationTests.IncrementAndPrintRound(round)
-		}
+		round = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round)
 
 		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
@@ -453,15 +435,7 @@ func runMultipleRoundsOfTheGame(
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-			startTime := time.Now()
-			integrationTests.ProposeBlock(nodes, idxProposers, round)
-			elapsedTime := time.Since(startTime)
-			fmt.Printf("Block Created in %s\n", elapsedTime)
-
-			integrationTests.SyncBlock(t, nodes, idxProposers, round)
-			round = integrationTests.IncrementAndPrintRound(round)
-		}
+		round = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round)
 
 		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
 			hardCodedScResultingAddress, idxProposers[0])
