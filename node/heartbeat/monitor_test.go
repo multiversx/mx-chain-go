@@ -347,3 +347,43 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 	assert.Equal(t, uint32(1), hbStatus[0].ShardID)
 	assert.Equal(t, 1, len(hbStatus))
 }
+
+func TestMonitor_MessageNotReceivedAnyMoreShouldUpdateDeadPeer(t *testing.T) {
+	//t.Parallel()
+	//
+	//pubKeys := []string{"pubKeyPeerDead", "pubKeyTrigger"}
+	//idxPeerDead := 0
+	//
+	//unresponsiveDuration := 2 * time.Second
+	//
+	//mon, _ := heartbeat.NewMonitor(
+	//	&mock.SinglesignStub{
+	//		VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+	//			return nil
+	//		},
+	//	},
+	//	&mock.KeyGenMock{
+	//		PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
+	//			return nil, nil
+	//		},
+	//	},
+	//	&mock.MarshalizerFake{},
+	//	unresponsiveDuration,
+	//	pubKeys,
+	//)
+
+	//monitor receives first messages from all peers
+	//for i := 0; i < len(pubKeys); i++{
+	//	hb := &heartbeat.Heartbeat{
+	//		Payload:
+	//		IsValidator: true,
+	//	}
+	//
+	//	p2pMes := mock.P2PMessageStub{
+	//		DataField:
+	//	}
+	//
+	//	mon.ProcessReceivedMessage()
+	//}
+
+}

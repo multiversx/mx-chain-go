@@ -109,9 +109,16 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		}
 
 		pe.HeartbeatReceived(hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
+		//m.updateAllHeartbeatMessages()
 	}(message, hbRecv)
 
 	return nil
+}
+
+func (m *Monitor) updateAllHeartbeatMessages() {
+	for _, v := range m.heartbeatMessages {
+		v.updateFields()
+	}
 }
 
 // GetHeartbeats returns the heartbeat status
