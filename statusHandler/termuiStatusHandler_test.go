@@ -9,15 +9,16 @@ import (
 func TestTermuiStatusHandler_NewTermuiStatusHandler(t *testing.T) {
 	t.Parallel()
 
-	termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
+	termuiStatusHandler, err := statusHandler.NewTermuiStatusHandler()
 	assert.NotNil(t, termuiStatusHandler)
+	assert.Nil(t, err)
 }
 
 func TestTermuiStatusHandler_TermuiShouldPass(t *testing.T) {
 	t.Parallel()
 
-	termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
-	termuiConsole, err := termuiStatusHandler.Termui()
+	termuiStatusHandler, err := statusHandler.NewTermuiStatusHandler()
+	termuiConsole := termuiStatusHandler.Termui()
 
 	assert.NotNil(t, termuiConsole)
 	assert.Nil(t, err)

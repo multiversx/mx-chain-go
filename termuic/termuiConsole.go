@@ -3,6 +3,7 @@ package termuic
 import (
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -17,10 +18,9 @@ const refreshInterval = time.Second
 
 // TermuiConsole data where is store data from handler
 type TermuiConsole struct {
-	rermuiConsoleMetrics *sync.Map
+	termuiConsoleMetrics *sync.Map
 	logLines             []string
 	mutLogLineWrite      sync.RWMutex
-	viewBigLog           bool
 	numLogLines          int
 	termuiConsoleWidgets *termuiConsoleGrid
 	grid                 *ui.Grid
@@ -28,10 +28,8 @@ type TermuiConsole struct {
 
 //NewTermuiConsole method is used to return a new TermuiConsole structure
 func NewTermuiConsole(metricData *sync.Map) *TermuiConsole {
-
 	tc := TermuiConsole{
-		rermuiConsoleMetrics: metricData,
-		viewBigLog:           false,
+		termuiConsoleMetrics: metricData,
 		numLogLines:          10,
 	}
 
@@ -39,7 +37,6 @@ func NewTermuiConsole(metricData *sync.Map) *TermuiConsole {
 }
 
 func (tc *TermuiConsole) Write(p []byte) (n int, err error) {
-
 	go func() {
 		logLine := string(p)
 		logLine = strings.Replace(logLine, "\n", "", len(logLine))
@@ -94,8 +91,6 @@ func (tc *TermuiConsole) eventLoop() {
 		case <-drawTicker:
 			tc.refreshDataForConsole()
 
-			ui.Clear()
-			ui.Render(tc.grid)
 		case <-sigTerm:
 			ui.Clear()
 
@@ -116,90 +111,87 @@ func (tc *TermuiConsole) processUiEvents(e ui.Event) {
 	case "q":
 		ui.Clear()
 		tc.grid = tc.changeConsoleDisplay()
-		ui.Render(tc.grid)
 
 	case "<C-c>":
-		ui.Clear()
+		ui.Close()
 		if p, err := os.FindProcess(os.Getpid()); err != nil {
-			//Error check
-			//TODO
+			return
 		} else {
-			p.Signal(syscall.SIGINT)
+			if runtime.GOOS == "windows" {
+				_ = p.Kill()
+			} else {
+				_ = p.Signal(syscall.SIGINT)
+			}
 		}
 		return
 	}
 }
 
 func (tc *TermuiConsole) refreshDataForConsole() {
-	if tc.viewBigLog == false {
+	if tc.numLogLines == 10 {
 		tc.prepareDataNormalWidgets()
-	} else {
-		tc.termuiConsoleWidgets.PrepareListWithLogsForDisplay(tc.logLines)
 	}
+	tc.termuiConsoleWidgets.PrepareListWithLogsForDisplay(tc.logLines)
+
+	ui.Clear()
+	ui.Render(tc.grid)
 }
 
 func (tc *TermuiConsole) prepareDataNormalWidgets() {
-	nonceI, _ := tc.rermuiConsoleMetrics.Load(core.MetricNonce)
+	nonceI, _ := tc.termuiConsoleMetrics.Load(core.MetricNonce)
 	nonce := nonceI.(int)
 
-	synchronizedRoundI, _ := tc.rermuiConsoleMetrics.Load(core.MetricSynchronizedRound)
+	synchronizedRoundI, _ := tc.termuiConsoleMetrics.Load(core.MetricSynchronizedRound)
 	synchronizedRound := synchronizedRoundI.(int)
 
-	currentRoundI, _ := tc.rermuiConsoleMetrics.Load(core.MetricCurrentRound)
+	currentRoundI, _ := tc.termuiConsoleMetrics.Load(core.MetricCurrentRound)
 	currentRound := currentRoundI.(int)
 
-	isSyncingI, _ := tc.rermuiConsoleMetrics.Load(core.MetricIsSyncing)
+	isSyncingI, _ := tc.termuiConsoleMetrics.Load(core.MetricIsSyncing)
 	isSyncing := isSyncingI.(int)
 
 	tc.termuiConsoleWidgets.PrepareSyncInfoForDisplay(nonce, currentRound, synchronizedRound, isSyncing)
 
-	publicKeyI, _ := tc.rermuiConsoleMetrics.Load(core.MetricPublicKey)
+	publicKeyI, _ := tc.termuiConsoleMetrics.Load(core.MetricPublicKey)
 	publicKey := publicKeyI.(string)
 	tc.termuiConsoleWidgets.PreparePublicKeyForDisplay(publicKey)
 
-	shardIdI, _ := tc.rermuiConsoleMetrics.Load(core.MetricShardId)
+	shardIdI, _ := tc.termuiConsoleMetrics.Load(core.MetricShardId)
 	shardId := shardIdI.(int)
 	tc.termuiConsoleWidgets.PrepareShardIdForDisplay(shardId)
 
-	numConnectedPeersI, _ := tc.rermuiConsoleMetrics.Load(core.MetricNumConnectedPeers)
+	numConnectedPeersI, _ := tc.termuiConsoleMetrics.Load(core.MetricNumConnectedPeers)
 	numConnectedPeers := numConnectedPeersI.(int)
 
-	txPoolLoadI, _ := tc.rermuiConsoleMetrics.Load(core.MetricTxPoolLoad)
+	txPoolLoadI, _ := tc.termuiConsoleMetrics.Load(core.MetricTxPoolLoad)
 	txPoolLoad := txPoolLoadI.(int)
 	tc.termuiConsoleWidgets.PrepareTxPoolLoadForDisplay(txPoolLoad)
 	tc.termuiConsoleWidgets.PrepareNumConnectedPeersForDisplay(numConnectedPeers)
 
-	countConsensusI, _ := tc.rermuiConsoleMetrics.Load(core.MetricCountConsensus)
+	countConsensusI, _ := tc.termuiConsoleMetrics.Load(core.MetricCountConsensus)
 	countConsensus := countConsensusI.(int)
 
-	countLeaderI, _ := tc.rermuiConsoleMetrics.Load(core.MetricCountLeader)
+	countLeaderI, _ := tc.termuiConsoleMetrics.Load(core.MetricCountLeader)
 	countLeader := countLeaderI.(int)
 
-	countAcceptedBlocksI, _ := tc.rermuiConsoleMetrics.Load(core.MetricCountAcceptedBlocks)
+	countAcceptedBlocksI, _ := tc.termuiConsoleMetrics.Load(core.MetricCountAcceptedBlocks)
 	countAcceptedBlocks := countAcceptedBlocksI.(int)
 
-	tc.termuiConsoleWidgets.PrepareConcensusInformationsForDisplay(countConsensus, countLeader, countAcceptedBlocks)
-
-	tc.termuiConsoleWidgets.PrepareListWithLogsForDisplay(tc.logLines)
+	tc.termuiConsoleWidgets.PrepareConsensusInformationsForDisplay(countConsensus, countLeader, countAcceptedBlocks)
 }
 
 func (tc *TermuiConsole) changeConsoleDisplay() *ui.Grid {
-	if tc.viewBigLog == false {
-		tc.viewBigLog = true
+	if tc.numLogLines == 10 {
 		tc.numLogLines = 50
 
 		return tc.configConsoleWithBigLog()
-
-	} else {
-		tc.viewBigLog = false
-		tc.numLogLines = 10
-
-		return tc.configConsoleWithNormalTermuiWidgets()
 	}
+	tc.numLogLines = 10
+
+	return tc.configConsoleWithNormalTermuiWidgets()
 }
 
 func (tc *TermuiConsole) configConsoleWithBigLog() *ui.Grid {
-
 	tc.termuiConsoleWidgets.SetupBigLogGrid()
 
 	grid := tc.termuiConsoleWidgets.Grid()

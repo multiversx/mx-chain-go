@@ -2,9 +2,13 @@ package termuic
 
 import (
 	"fmt"
+
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 )
+
+const completRow = 1.0
+const completCol = 1.0
 
 type termuiConsoleGrid struct {
 	grid       *ui.Grid
@@ -64,22 +68,21 @@ func (tcg *termuiConsoleGrid) setupGrid() {
 	tcg.grid = ui.NewGrid()
 
 	tcg.grid.Set(
-		ui.NewRow(1.0/7, tcg.pPublicKey),
-		ui.NewRow(1.0/10, tcg.tSyncInfo),
-		ui.NewRow(1.0/3,
-			ui.NewCol(1.0/2,
-				ui.NewRow(1.0/4, tcg.pShardId),
-				ui.NewRow(1.0/4, tcg.pCountConsensus),
-				ui.NewRow(1.0/4, tcg.pCountLeader),
-				ui.NewRow(1.0/4, tcg.pCountAcceptedBlocks),
+		ui.NewRow(completRow/7, tcg.pPublicKey),
+		ui.NewRow(completRow/10, tcg.tSyncInfo),
+		ui.NewRow(completRow/3,
+			ui.NewCol(completCol/2,
+				ui.NewRow(completRow/4, tcg.pShardId),
+				ui.NewRow(completRow/4, tcg.pCountConsensus),
+				ui.NewRow(completRow/4, tcg.pCountLeader),
+				ui.NewRow(completRow/4, tcg.pCountAcceptedBlocks),
 			),
-			ui.NewCol(1.0/2,
-				ui.NewRow(1.0/2, tcg.pTxPoolLoad),
-				ui.NewRow(1.0/2, tcg.pNumConnectedPeers),
+			ui.NewCol(completCol/2,
+				ui.NewRow(completRow/2, tcg.pTxPoolLoad),
+				ui.NewRow(completRow/2, tcg.pNumConnectedPeers),
 			),
 		),
-		//ui.NewRow(1.0/3, tcg.slgNode),
-		ui.NewRow(1.0/3, tcg.lLog),
+		ui.NewRow(completRow/3, tcg.lLog),
 	)
 }
 
@@ -97,7 +100,6 @@ func (tcg *termuiConsoleGrid) Grid() *ui.Grid {
 }
 
 func (tcg *termuiConsoleGrid) PrepareListWithLogsForDisplay(logData []string) {
-
 	tcg.lLog.Title = "Log info"
 	tcg.lLog.Rows = logData
 	tcg.lLog.TextStyle = ui.NewStyle(ui.ColorYellow)
@@ -137,7 +139,7 @@ func (tcg *termuiConsoleGrid) PrepareNumConnectedPeersForDisplay(numConnectedPee
 	return
 }
 
-func (tcg *termuiConsoleGrid) PrepareConcensusInformationsForDisplay(countConsensus int, countLeader int, acceptedBlocks int) {
+func (tcg *termuiConsoleGrid) PrepareConsensusInformationsForDisplay(countConsensus int, countLeader int, acceptedBlocks int) {
 	tcg.pCountConsensus.Text = fmt.Sprintf("Count consensus group: %v", countConsensus)
 	tcg.pCountLeader.Text = fmt.Sprintf("Count leader: %v", countLeader)
 	tcg.pCountAcceptedBlocks.Text = fmt.Sprintf("Accepted blocks: %v", acceptedBlocks)
