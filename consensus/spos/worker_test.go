@@ -32,7 +32,7 @@ func initWorker() *spos.Worker {
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
 	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 		return nil
 	}
 	keyGeneratorMock, _, _ := mock.InitKeys()
