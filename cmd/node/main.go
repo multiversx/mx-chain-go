@@ -255,13 +255,16 @@ var dbIndexer indexer.Indexer
 //  params depending on the type of node we are starting
 var coreServiceContainer serviceContainer.Core
 
+// appVersion should be populated at build time using ldflags
+var appVersion = "undefined"
+
 func main() {
 	log := logger.DefaultLogger()
 
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = fmt.Sprintf("v1.0.12/%s/%s-%s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	app.Version = fmt.Sprintf("%s/%s/%s-%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
