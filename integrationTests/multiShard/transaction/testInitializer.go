@@ -98,7 +98,7 @@ func createTestStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	return store
 }
 
-func createTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
+func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	if txPool == nil {
 		txPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	}
@@ -407,7 +407,7 @@ func createNodesWithNodeSkInShardExceptFirst(
 	idx := 0
 	for shardId := 0; shardId < numOfShards; shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			dPool := createTestDataPool(nil)
+			dPool := CreateTestDataPool(nil)
 
 			skShardId := uint32(shardId)
 			isFirstNodeGenerated := shardId == 0 && j == 0
