@@ -247,15 +247,12 @@ func (txProc *txProcessor) getAccountFromAddress(adrSrc state.AddressContainer) 
 }
 
 func (txProc *txProcessor) checkTxValues(acntSrc *state.Account, value *big.Int, nonce uint64) error {
-	// TODO order transactions - than uncomment this
-	//if acntSrc.Nonce < nonce {
-	//	return process.ErrHigherNonceInTransaction
-	//}
-
-	//if acntSrc.Nonce > nonce {
-	//	return process.ErrLowerNonceInTransaction
-	//}
-
+	if acntSrc.Nonce < nonce {
+		return process.ErrHigherNonceInTransaction
+	}
+	if acntSrc.Nonce > nonce {
+		return process.ErrLowerNonceInTransaction
+	}
 	//negative balance test is done in transaction interceptor as the transaction is invalid and thus shall not disseminate
 	if acntSrc.Balance.Cmp(value) < 0 {
 		return process.ErrInsufficientFunds
