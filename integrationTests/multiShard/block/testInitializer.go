@@ -291,7 +291,7 @@ func createNetNode(
 		accntAdapter,
 		shardCoordinator,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -686,7 +686,7 @@ func createMetaNetNode(
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {

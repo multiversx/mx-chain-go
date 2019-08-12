@@ -379,7 +379,7 @@ func createRequesterDataPool(
 ) dataRetriever.PoolsHolder {
 
 	//not allowed to request data from the same shard
-	return createTestDataPool(
+	return CreateTestDataPool(
 		&mock.ShardedDataStub{
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				assert.Fail(t, "same-shard requesters should not be queried")
@@ -426,7 +426,7 @@ func createResolversDataPool(
 		txHashes[i] = txHash
 	}
 
-	return createTestDataPool(txPool), txHashes
+	return CreateTestDataPool(txPool), txHashes
 }
 
 func generateValidTx(
