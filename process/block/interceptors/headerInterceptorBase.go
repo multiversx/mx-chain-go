@@ -8,13 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // HeaderInterceptorBase is the "abstract class" extended in HeaderInterceptor and ShardHeaderInterceptor
 type HeaderInterceptorBase struct {
 	marshalizer         marshal.Marshalizer
-	storer              storage.Storer
+	headerValidator     process.HeaderValidator
 	multiSigVerifier    crypto.MultiSigVerifier
 	hasher              hashing.Hasher
 	shardCoordinator    sharding.Coordinator
@@ -24,7 +23,7 @@ type HeaderInterceptorBase struct {
 // NewHeaderInterceptorBase creates a new HeaderIncterceptorBase instance
 func NewHeaderInterceptorBase(
 	marshalizer marshal.Marshalizer,
-	storer storage.Storer,
+	headerValidator process.HeaderValidator,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
@@ -33,8 +32,8 @@ func NewHeaderInterceptorBase(
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
 	}
-	if storer == nil {
-		return nil, process.ErrNilHeadersStorage
+	if headerValidator == nil {
+		return nil, process.ErrNilHeaderHandlerValidator
 	}
 	if multiSigVerifier == nil {
 		return nil, process.ErrNilMultiSigVerifier
@@ -51,7 +50,7 @@ func NewHeaderInterceptorBase(
 
 	hdrIntercept := &HeaderInterceptorBase{
 		marshalizer:         marshalizer,
-		storer:              storer,
+		headerValidator:     headerValidator,
 		multiSigVerifier:    multiSigVerifier,
 		hasher:              hasher,
 		shardCoordinator:    shardCoordinator,

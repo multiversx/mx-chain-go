@@ -3,13 +3,14 @@ package integrationTests
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"math/big"
 )
 
 // TestWalletAccount creates and account with balance and crypto necessary to sign transactions
@@ -21,6 +22,7 @@ type TestWalletAccount struct {
 	KeygenTxSign  crypto.KeyGenerator
 
 	Address state.AddressContainer
+	Nonce   uint64
 	Balance *big.Int
 }
 
