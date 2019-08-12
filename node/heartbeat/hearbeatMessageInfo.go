@@ -86,6 +86,7 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(shardID uint32, version stri
 	hbmi.timeStamp = crtTime
 	hbmi.versionNumber = version
 	hbmi.nodeDisplayName = nodeDisplayName
+	hbmi.updateFields()
 }
 
 func (hbmi *heartbeatMessageInfo) updateMaxInactiveTimeDuration() {
