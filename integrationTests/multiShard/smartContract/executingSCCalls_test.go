@@ -97,7 +97,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 
 	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
-	senderNonce := uint64(1)
+	senderNonce := uint64(0)
 	senderMintingValue := big.NewInt(100000000)
 
 	advertiser, nodes := createScCallsNodes()
@@ -127,9 +127,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(senderMintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	senderNonce++
 	assert.Equal(t, senderNonce, acc.Nonce)
 
-	senderNonce++
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
@@ -157,9 +157,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	// Substract the gas price another time
 	expectedValue.Sub(expectedValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	senderNonce++
 	assert.Equal(t, senderNonce, acc.Nonce)
 
-	senderNonce++
 	generalRoundNumber++
 }
 
@@ -276,7 +276,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber := uint64(1)
 	scShard := uint32(0)
 	accShard := uint32(1)
-	accNonce := uint64(1)
+	accNonce := uint64(0)
 	mintingValue := big.NewInt(100000000)
 	scNonce := uint64(0)
 
@@ -310,9 +310,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(mintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	accNonce++
 	assert.Equal(t, accNonce, acc.Nonce)
 
-	accNonce++
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)

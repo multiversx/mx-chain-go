@@ -188,6 +188,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	deployScTx(nodes, idxProposerShard1, string(scCode))
+	nodes[idxProposerShard1].OwnAccount.Nonce++
 
 	proposeBlockWithScTxs(nodes, round, idxProposers)
 	syncBlock(t, nodes, idxProposers, round)

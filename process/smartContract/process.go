@@ -354,33 +354,26 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 		return nil
 	}
 
-	if acntSnd.GetNonce() < tx.Nonce {
-		return process.ErrHigherNonceInTransaction
-	}
-	if acntSnd.GetNonce() > tx.Nonce {
-		return process.ErrLowerNonceInTransaction
+	err := acntSnd.SetNonceWithJournal(acntSnd.GetNonce() + 1)
+	if err != nil {
+		return err
 	}
 
 	cost := big.NewInt(0)
 	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
 	cost = cost.Add(cost, tx.Value)
 
+	if cost.Cmp(big.NewInt(0)) == 0 {
+		return nil
+	}
+
 	stAcc, ok := acntSnd.(*state.Account)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	if stAcc.Balance.Cmp(cost) < 0 {
-		return process.ErrInsufficientFunds
-	}
-
 	totalCost := big.NewInt(0)
-	err := stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, cost))
-	if err != nil {
-		return err
-	}
-
-	err = stAcc.SetNonceWithJournal(stAcc.GetNonce() + 1)
+	err = stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, cost))
 	if err != nil {
 		return err
 	}

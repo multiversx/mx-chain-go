@@ -75,6 +75,16 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return err
 	}
 
+	acntSnd, err := txProc.getAccountFromAddress(adrSrc)
+	if err != nil {
+		return err
+	}
+
+	err = txProc.checkTxValues(tx, acntSnd)
+	if err != nil {
+		return err
+	}
+
 	txType, err := txProc.scProcessor.ComputeTransactionType(tx)
 	if err != nil {
 		return err
@@ -105,13 +115,6 @@ func (txProc *txProcessor) processMoveBalance(
 	}
 
 	value := tx.Value
-	// is sender address in node shard
-	if acntSrc != nil {
-		err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
-		if err != nil {
-			return err
-		}
-	}
 
 	err = txProc.moveBalances(acntSrc, acntDst, value)
 	if err != nil {
@@ -246,15 +249,33 @@ func (txProc *txProcessor) getAccountFromAddress(adrSrc state.AddressContainer) 
 	return acnt, nil
 }
 
-func (txProc *txProcessor) checkTxValues(acntSrc *state.Account, value *big.Int, nonce uint64) error {
-	if acntSrc.Nonce < nonce {
+func (txProc *txProcessor) checkTxValues(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
+	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+		// transaction was already done at sender shard
+		return nil
+	}
+
+	if acntSnd.GetNonce() < tx.Nonce {
 		return process.ErrHigherNonceInTransaction
 	}
-	if acntSrc.Nonce > nonce {
+	if acntSnd.GetNonce() > tx.Nonce {
 		return process.ErrLowerNonceInTransaction
 	}
-	//negative balance test is done in transaction interceptor as the transaction is invalid and thus shall not disseminate
-	if acntSrc.Balance.Cmp(value) < 0 {
+
+	cost := big.NewInt(0)
+	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+	cost = cost.Add(cost, tx.Value)
+
+	if cost.Cmp(big.NewInt(0)) == 0 {
+		return nil
+	}
+
+	stAcc, ok := acntSnd.(*state.Account)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	if stAcc.Balance.Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
 

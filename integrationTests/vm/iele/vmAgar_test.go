@@ -219,6 +219,8 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	)
 	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
 
+	senderNonce++
+
 	defaultUserNonce := uint64(10)
 	defaultUserBalance := big.NewInt(100000000)
 
@@ -291,7 +293,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 			t,
 			senderAddressBytes,
 			scAddressBytes,
-			defaultUserNonce,
+			senderNonce,
 			big.NewInt(0),
 			gasPrice,
 			gasLimit,
@@ -300,6 +302,8 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 
 		err = txProc.ProcessTransaction(txRun, round)
 		assert.Nil(t, err)
+
+		senderNonce++
 	}
 
 	_, err = accnts.Commit()
