@@ -187,9 +187,9 @@ func (ns *NodesSetup) createInitialNodesInfo() {
 func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
 	allNodesPubKeys := make(map[uint32][]string, 0)
 	for shardId, nodesInfo := range ns.allNodesInfo {
-		pubKeys := make([]string, 0)
+		pubKeys := make([]string, len(nodesInfo))
 		for i := 0; i < len(nodesInfo); i++ {
-			pubKeys = append(pubKeys, string(nodesInfo[i].pubKey))
+			pubKeys[i] = string(nodesInfo[i].pubKey)
 		}
 
 		allNodesPubKeys[shardId] = pubKeys
@@ -213,9 +213,9 @@ func (ns *NodesSetup) InitialNodesPubKeysForShard(shardId uint32) ([]string, err
 	}
 
 	nodesInfo := ns.allNodesInfo[shardId]
-	pubKeys := make([]string, 0)
+	pubKeys := make([]string, len(nodesInfo))
 	for i := 0; i < len(nodesInfo); i++ {
-		pubKeys = append(pubKeys, string(nodesInfo[i].pubKey))
+		pubKeys[i] = string(nodesInfo[i].pubKey)
 	}
 
 	return pubKeys, nil
