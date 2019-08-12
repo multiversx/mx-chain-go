@@ -28,7 +28,7 @@ func createTxDeploy(twa *TestWalletAccount, scCode string) *transaction.Transact
 		SndAddr:  twa.PkTxSignBytes,
 		Data:     scCode,
 		GasPrice: 0,
-		GasLimit: 1000000000000,
+		GasLimit: 100000,
 	}
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
@@ -44,7 +44,7 @@ func createTxJoinGame(twa *TestWalletAccount, joinGameVal *big.Int, round int, s
 		SndAddr:  twa.Address.Bytes(),
 		Data:     fmt.Sprintf("joinGame@%d", round),
 		GasPrice: 0,
-		GasLimit: 1000000000000,
+		GasLimit: 5000,
 	}
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
@@ -82,7 +82,7 @@ func createTxRewardAndSendToWallet(
 		SndAddr:  tnOwner.PkTxSignBytes,
 		Data:     fmt.Sprintf("rewardAndSendToWallet@%d@%s@%X", round, hex.EncodeToString(winnerAddress), prizeVal),
 		GasPrice: 0,
-		GasLimit: 100000,
+		GasLimit: 30000,
 	}
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tnOwner.SingleSigner.Sign(tnOwner.SkTxSign, txBuff)
