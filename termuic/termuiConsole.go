@@ -12,25 +12,28 @@ import (
 	ui "github.com/gizak/termui/v3"
 )
 
+//refreshInterval is used for a ticker that refresh termui console at a specific interval
+const refreshInterval = time.Second
+
 // TermuiConsole data where is store data from handler
 type TermuiConsole struct {
-	TermuiConsoleMetrics sync.Map
+	rermuiConsoleMetrics *sync.Map
 	logLines             []string
 	mutLogLineWrite      sync.RWMutex
 	viewBigLog           bool
 	numLogLines          int
 	termuiConsoleWidgets *termuiConsoleGrid
+	grid                 *ui.Grid
 }
 
 //NewTermuiConsole method is used to return a new TermuiConsole structure
-func NewTermuiConsole() *TermuiConsole {
+func NewTermuiConsole(metricData *sync.Map) *TermuiConsole {
 
-	tc := TermuiConsole{}
-
-	tc.initMetricsMap()
-
-	tc.viewBigLog = false
-	tc.numLogLines = 10
+	tc := TermuiConsole{
+		rermuiConsoleMetrics: metricData,
+		viewBigLog:           false,
+		numLogLines:          10,
+	}
 
 	return &tc
 }
@@ -39,98 +42,36 @@ func (tc *TermuiConsole) Write(p []byte) (n int, err error) {
 
 	go func() {
 		logLine := string(p)
+		logLine = strings.Replace(logLine, "\n", "", len(logLine))
+		logLine = strings.Replace(logLine, "\r", "", len(logLine))
 
 		tc.mutLogLineWrite.Lock()
 		if len(tc.logLines) >= tc.numLogLines {
 			tc.logLines = tc.logLines[1:tc.numLogLines]
 		}
-		tc.mutLogLineWrite.Unlock()
-
-		logLine = strings.Replace(logLine, "\n", "", len(logLine))
-
-		logLine = strings.Replace(logLine, "\r", "", len(logLine))
-
 		if logLine != "" {
-			tc.mutLogLineWrite.Lock()
 			tc.logLines = append(tc.logLines, logLine)
-			tc.mutLogLineWrite.Unlock()
 		}
+		tc.mutLogLineWrite.Unlock()
 	}()
 
 	return len(p), nil
 }
 
-// InitMetricsMap will init the map of prometheus metrics
-func (tc *TermuiConsole) initMetricsMap() {
-	tc.TermuiConsoleMetrics = sync.Map{}
-
-	tc.TermuiConsoleMetrics.Store(core.MetricCurrentRound, 0)
-	tc.TermuiConsoleMetrics.Store(core.MetricIsSyncing, 0)
-	tc.TermuiConsoleMetrics.Store(core.MetricNonce, 0)
-	tc.TermuiConsoleMetrics.Store(core.MetricNumConnectedPeers, 0)
-	tc.TermuiConsoleMetrics.Store(core.MetricSynchronizedRound, 0)
-
-	tc.TermuiConsoleMetrics.Store(core.MetricPublicKey, "")
-	tc.TermuiConsoleMetrics.Store(core.MetricShardId, 0)
-	tc.TermuiConsoleMetrics.Store(core.MetricTxPoolLoad, 0)
-
-	tc.TermuiConsoleMetrics.Store(core.MetricCountConsensus, 0)
-	tc.TermuiConsoleMetrics.Store(core.MetricCountLeader, 0)
-	tc.TermuiConsoleMetrics.Store(core.MetricCountAcceptedBlocks, 0)
-}
-
-// SetInt64Value method - will update the value for a key
-func (tc *TermuiConsole) SetInt64Value(key string, value int64) {
-	if _, ok := tc.TermuiConsoleMetrics.Load(key); ok {
-		tc.TermuiConsoleMetrics.Store(key, int(value))
-	}
-}
-
-// SetUInt64Value method - will update the value for a key
-func (tc *TermuiConsole) SetUInt64Value(key string, value uint64) {
-	if _, ok := tc.TermuiConsoleMetrics.Load(key); ok {
-		tc.TermuiConsoleMetrics.Store(key, int(value))
-	}
-}
-
-// SetStringValue method - will update the value of a key
-func (tc *TermuiConsole) SetStringValue(key string, value string) {
-	if _, ok := tc.TermuiConsoleMetrics.Load(key); ok {
-		tc.TermuiConsoleMetrics.Store(key, value)
-	}
-}
-
-// Increment - will increment the value of a key
-func (tc *TermuiConsole) Increment(key string) {
-	if keyValueI, ok := tc.TermuiConsoleMetrics.Load(key); ok {
-
-		keyValue := keyValueI.(int)
-		keyValue++
-		tc.TermuiConsoleMetrics.Store(key, keyValue)
-	}
-}
-
-// Decrement method - will decrement the value for a key
-func (tc *TermuiConsole) Decrement(key string) {
-	return
-}
-
-// Close method - won't do anything
-func (tc *TermuiConsole) Close() {
-	return
-}
-
 // Start method - will start termui console
-func (tc *TermuiConsole) Start() {
-	go func() {
-		if err := ui.Init(); err != nil {
+func (tc *TermuiConsole) Start() error {
 
-		}
+	if err := ui.Init(); err != nil {
+		return err
+	}
+
+	go func() {
 		defer ui.Close()
 
 		tc.eventLoop()
 	}()
 
+	return nil
 }
 
 func (tc *TermuiConsole) eventLoop() {
@@ -139,14 +80,14 @@ func (tc *TermuiConsole) eventLoop() {
 
 	time.Sleep(1 * time.Second)
 
-	grid := tc.configConsoleWithNormalTermuiWidgets()
+	tc.grid = tc.configConsoleWithNormalTermuiWidgets()
 
 	uiEvents := ui.PollEvents()
 	// handles kill signal sent to gotop
 	sigTerm := make(chan os.Signal, 2)
 	signal.Notify(sigTerm, os.Interrupt, syscall.SIGTERM)
 
-	drawTicker := time.NewTicker(time.Second).C
+	drawTicker := time.NewTicker(refreshInterval).C
 
 	for {
 		select {
@@ -154,29 +95,38 @@ func (tc *TermuiConsole) eventLoop() {
 			tc.refreshDataForConsole()
 
 			ui.Clear()
-			ui.Render(grid)
+			ui.Render(tc.grid)
 		case <-sigTerm:
 			ui.Clear()
 
 			return
 		case e := <-uiEvents:
-			switch e.ID {
-			case "<Resize>":
-				payload := e.Payload.(ui.Resize)
-				grid.SetRect(0, 0, payload.Width, payload.Height)
-				ui.Clear()
-				ui.Render(grid)
-			case "q":
-				ui.Clear()
-				grid = tc.changeConsoleDisplay()
-
-			case "<C-c>":
-				ui.Clear()
-				_ = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
-
-				return
-			}
+			tc.processUiEvents(e)
 		}
+	}
+}
+
+func (tc *TermuiConsole) processUiEvents(e ui.Event) {
+	switch e.ID {
+	case "<Resize>":
+		payload := e.Payload.(ui.Resize)
+		tc.grid.SetRect(0, 0, payload.Width, payload.Height)
+		ui.Clear()
+		ui.Render(tc.grid)
+	case "q":
+		ui.Clear()
+		tc.grid = tc.changeConsoleDisplay()
+		ui.Render(tc.grid)
+
+	case "<C-c>":
+		ui.Clear()
+		if p, err := os.FindProcess(os.Getpid()); err != nil {
+			//Error check
+			//TODO
+		} else {
+			p.Signal(syscall.SIGINT)
+		}
+		return
 	}
 }
 
@@ -184,56 +134,52 @@ func (tc *TermuiConsole) refreshDataForConsole() {
 	if tc.viewBigLog == false {
 		tc.prepareDataNormalWidgets()
 	} else {
-		tc.prepareDataBigLog()
+		tc.termuiConsoleWidgets.PrepareListWithLogsForDisplay(tc.logLines)
 	}
 }
 
 func (tc *TermuiConsole) prepareDataNormalWidgets() {
-	nonceI, _ := tc.TermuiConsoleMetrics.Load(core.MetricNonce)
+	nonceI, _ := tc.rermuiConsoleMetrics.Load(core.MetricNonce)
 	nonce := nonceI.(int)
 
-	synchronizedRoundI, _ := tc.TermuiConsoleMetrics.Load(core.MetricSynchronizedRound)
+	synchronizedRoundI, _ := tc.rermuiConsoleMetrics.Load(core.MetricSynchronizedRound)
 	synchronizedRound := synchronizedRoundI.(int)
 
-	currentRoundI, _ := tc.TermuiConsoleMetrics.Load(core.MetricCurrentRound)
+	currentRoundI, _ := tc.rermuiConsoleMetrics.Load(core.MetricCurrentRound)
 	currentRound := currentRoundI.(int)
 
-	isSyncingI, _ := tc.TermuiConsoleMetrics.Load(core.MetricIsSyncing)
+	isSyncingI, _ := tc.rermuiConsoleMetrics.Load(core.MetricIsSyncing)
 	isSyncing := isSyncingI.(int)
 
 	tc.termuiConsoleWidgets.PrepareSyncInfoForDisplay(nonce, currentRound, synchronizedRound, isSyncing)
 
-	publicKeyI, _ := tc.TermuiConsoleMetrics.Load(core.MetricPublicKey)
+	publicKeyI, _ := tc.rermuiConsoleMetrics.Load(core.MetricPublicKey)
 	publicKey := publicKeyI.(string)
 	tc.termuiConsoleWidgets.PreparePublicKeyForDisplay(publicKey)
 
-	shardIdI, _ := tc.TermuiConsoleMetrics.Load(core.MetricShardId)
+	shardIdI, _ := tc.rermuiConsoleMetrics.Load(core.MetricShardId)
 	shardId := shardIdI.(int)
 	tc.termuiConsoleWidgets.PrepareShardIdForDisplay(shardId)
 
-	numConnectedPeersI, _ := tc.TermuiConsoleMetrics.Load(core.MetricNumConnectedPeers)
+	numConnectedPeersI, _ := tc.rermuiConsoleMetrics.Load(core.MetricNumConnectedPeers)
 	numConnectedPeers := numConnectedPeersI.(int)
 
-	txPoolLoadI, _ := tc.TermuiConsoleMetrics.Load(core.MetricTxPoolLoad)
+	txPoolLoadI, _ := tc.rermuiConsoleMetrics.Load(core.MetricTxPoolLoad)
 	txPoolLoad := txPoolLoadI.(int)
 	tc.termuiConsoleWidgets.PrepareTxPoolLoadForDisplay(txPoolLoad)
 	tc.termuiConsoleWidgets.PrepareNumConnectedPeersForDisplay(numConnectedPeers)
 
-	countConsensusI, _ := tc.TermuiConsoleMetrics.Load(core.MetricCountConsensus)
+	countConsensusI, _ := tc.rermuiConsoleMetrics.Load(core.MetricCountConsensus)
 	countConsensus := countConsensusI.(int)
 
-	countLeaderI, _ := tc.TermuiConsoleMetrics.Load(core.MetricCountLeader)
+	countLeaderI, _ := tc.rermuiConsoleMetrics.Load(core.MetricCountLeader)
 	countLeader := countLeaderI.(int)
 
-	countAcceptedBlocksI, _ := tc.TermuiConsoleMetrics.Load(core.MetricCountAcceptedBlocks)
+	countAcceptedBlocksI, _ := tc.rermuiConsoleMetrics.Load(core.MetricCountAcceptedBlocks)
 	countAcceptedBlocks := countAcceptedBlocksI.(int)
 
 	tc.termuiConsoleWidgets.PrepareConcensusInformationsForDisplay(countConsensus, countLeader, countAcceptedBlocks)
 
-	tc.termuiConsoleWidgets.PrepareListWithLogsForDisplay(tc.logLines)
-}
-
-func (tc *TermuiConsole) prepareDataBigLog() {
 	tc.termuiConsoleWidgets.PrepareListWithLogsForDisplay(tc.logLines)
 }
 

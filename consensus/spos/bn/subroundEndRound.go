@@ -5,10 +5,21 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 type subroundEndRound struct {
 	*spos.Subround
+
+	appStatusHandler core.AppStatusHandler
+}
+
+// SetAppStatusHandler method set appStatusHandler
+func (sr *subroundEndRound) SetAppStatusHandler(handler core.AppStatusHandler) {
+	if handler != nil {
+		sr.appStatusHandler = handler
+	}
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -25,6 +36,7 @@ func NewSubroundEndRound(
 
 	srEndRound := subroundEndRound{
 		baseSubround,
+		statusHandler.NewNilStatusHandler(),
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -107,6 +119,8 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 
 	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.Header.GetNonce())
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
+
+	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
 
 	return true
 }

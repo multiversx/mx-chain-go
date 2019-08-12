@@ -7,6 +7,3 @@ var ErrHandlersSliceIsNil = errors.New("no AppStatusHandler provided")
 
 // ErrNilHandlerInSlice will be returned when one of the handlers passed to the Facade is nil
 var ErrNilHandlerInSlice = errors.New("nil AppStatusHandler")
-
-// ErrNilTermuiConsole will be returned when TermuiConsole is nil
-var ErrNilTermuiConsole = errors.New("nil TermuiConsole")

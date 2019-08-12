@@ -3,12 +3,12 @@ package commonSubround
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var log = logger.DefaultLogger()
@@ -77,7 +77,9 @@ func checkNewSubroundStartRoundParams(
 
 // SetAppStatusHandler method set appStatusHandler
 func (sr *SubroundStartRound) SetAppStatusHandler(handler core.AppStatusHandler) {
-	sr.appStatusHandler = handler
+	if handler != nil {
+		sr.appStatusHandler = handler
+	}
 }
 
 // doStartRoundJob method does the job of the subround StartRound
@@ -172,9 +174,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	if leader == sr.SelfPubKey() {
-		if sr.appStatusHandler != nil {
-			sr.appStatusHandler.Increment(core.MetricCountLeader)
-		}
+		sr.appStatusHandler.Increment(core.MetricCountLeader)
 		//TODO: Should be analyzed if call of sr.broadcastUnnotarisedBlocks() is still necessary
 	}
 

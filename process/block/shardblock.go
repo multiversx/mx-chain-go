@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"sort"
 	"sync"
 	"time"
@@ -46,7 +47,9 @@ type shardProcessor struct {
 
 // SetAppStatusHandler method is used to set appStatusHandler
 func (sp *shardProcessor) SetAppStatusHandler(handler core.AppStatusHandler) {
-	sp.appStatusHandler = handler
+	if handler != nil {
+		sp.appStatusHandler = handler
+	}
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -113,12 +116,13 @@ func NewShardProcessor(
 	}
 
 	sp := shardProcessor{
-		core:          core,
-		baseProcessor: base,
-		dataPool:      dataPool,
-		blocksTracker: blocksTracker,
-		txCoordinator: txCoordinator,
-		txCounter:     NewTransactionCounter(),
+		core:             core,
+		baseProcessor:    base,
+		dataPool:         dataPool,
+		blocksTracker:    blocksTracker,
+		txCoordinator:    txCoordinator,
+		txCounter:        NewTransactionCounter(),
+		appStatusHandler: statusHandler.NewNilStatusHandler(),
 	}
 
 	sp.chRcvAllMetaHdrs = make(chan bool)
@@ -178,10 +182,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	numTxWithDst := sp.txCounter.getNumTxsWithDst(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())
 
-	if sp.appStatusHandler != nil {
-
-		sp.appStatusHandler.SetInt64Value(core.MetricTxPoolLoad, int64(numTxWithDst))
-	}
+	sp.appStatusHandler.SetInt64Value(core.MetricTxPoolLoad, int64(numTxWithDst))
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", numTxWithDst))
 

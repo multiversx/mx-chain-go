@@ -489,21 +489,17 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	useTermuiBool := ctx.GlobalBool(useTermui.Name)
 
 	if useTermuiBool {
-		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
-
-		termuiConsole, err := termuiStatusHandler.Termui()
-
+		termuiStatusHandler, err := statusHandler.NewTermuiStatusHandler()
 		if err != nil {
-			log.Warn("Nil termui console", err)
+			return err
 		}
+
+		termuiConsole := termuiStatusHandler.Termui()
 
 		err = log.ChangePrinterHookWriter(termuiConsole)
 		if err != nil {
-			log.Warn("Cannot change hook writer ", err)
+			return err
 		}
-
-		termuiStatusHandler.SetStringValue(core.MetricPublicKey, factory.GetPkEncoded(pubKey))
-		termuiStatusHandler.SetInt64Value(core.MetricShardId, int64(shardCoordinator.SelfId()))
 
 		appStatusHandlers = append(appStatusHandlers, termuiStatusHandler)
 	}
@@ -517,6 +513,9 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		coreComponents.StatusHandler = statusHandler.NewNilStatusHandler()
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
+
+	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKey, factory.GetPkEncoded(pubKey))
+	coreComponents.StatusHandler.SetInt64Value(core.MetricShardId, int64(shardCoordinator.SelfId()))
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)

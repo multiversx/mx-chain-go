@@ -2,8 +2,6 @@ package termuic
 
 import (
 	"fmt"
-	"strconv"
-
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 )
@@ -18,10 +16,13 @@ type termuiConsoleGrid struct {
 	pCountConsensus      *widgets.Paragraph
 	pCountAcceptedBlocks *widgets.Paragraph
 
-	gTxPoolLoad        *widgets.Gauge
+	pTxPoolLoad        *widgets.Paragraph
 	pNumConnectedPeers *widgets.Paragraph
 
 	tSyncInfo *widgets.Table
+
+	lInstanceInfo *widgets.List
+	lChainInfo    *widgets.List
 }
 
 //NewtermuiConsoleGrid initialize struct termuiConsoleGrid
@@ -45,12 +46,15 @@ func (tcg *termuiConsoleGrid) initWidgets() {
 	tcg.pCountConsensus = widgets.NewParagraph()
 	tcg.pCountAcceptedBlocks = widgets.NewParagraph()
 
-	tcg.gTxPoolLoad = widgets.NewGauge()
+	tcg.pTxPoolLoad = widgets.NewParagraph()
 	tcg.pNumConnectedPeers = widgets.NewParagraph()
 
 	tcg.lLog = widgets.NewList()
 
 	tcg.tSyncInfo = widgets.NewTable()
+
+	tcg.lInstanceInfo = widgets.NewList()
+	tcg.lChainInfo = widgets.NewList()
 }
 
 func (tcg *termuiConsoleGrid) setupGrid() {
@@ -67,7 +71,7 @@ func (tcg *termuiConsoleGrid) setupGrid() {
 				ui.NewRow(1.0/4, tcg.pCountAcceptedBlocks),
 			),
 			ui.NewCol(1.0/2,
-				ui.NewRow(1.0/2, tcg.gTxPoolLoad),
+				ui.NewRow(1.0/2, tcg.pTxPoolLoad),
 				ui.NewRow(1.0/2, tcg.pNumConnectedPeers),
 			),
 		),
@@ -100,23 +104,26 @@ func (tcg *termuiConsoleGrid) PrepareListWithLogsForDisplay(logData []string) {
 }
 
 func (tcg *termuiConsoleGrid) PreparePublicKeyForDisplay(publicKey string) {
-	tcg.pPublicKey.Title = fmt.Sprintf("PubicKey")
+	tcg.pPublicKey.Title = fmt.Sprintf("PublicKey")
 	tcg.pPublicKey.Text = fmt.Sprintf(publicKey)
 
 	return
 }
 
 func (tcg *termuiConsoleGrid) PrepareShardIdForDisplay(shardId int) {
-	tcg.pShardId.Text = "ShardId: " + strconv.Itoa(shardId)
+	//Check if node is in meta chain
+	//Node is in meta chain if shardId is equals with max uint32 value
+	if shardId == int(^uint32(0)) {
+		tcg.pShardId.Text = "ShardId: meta"
+	} else {
+		tcg.pShardId.Text = fmt.Sprintf("ShardId: %v", shardId)
+	}
 
 	return
 }
 
 func (tcg *termuiConsoleGrid) PrepareTxPoolLoadForDisplay(txPoolLoad int) {
-
-	tcg.gTxPoolLoad.Title = fmt.Sprintf("Tx pool load: %v", txPoolLoad)
-	tcg.gTxPoolLoad.Percent = 100 * txPoolLoad / 250000
-	tcg.gTxPoolLoad.Label = fmt.Sprintf("%v%% ", tcg.gTxPoolLoad.Percent)
+	tcg.pTxPoolLoad.Text = fmt.Sprintf("Tx pool load: %v", txPoolLoad)
 
 	return
 }
@@ -129,18 +136,14 @@ func (tcg *termuiConsoleGrid) PrepareNumConnectedPeersForDisplay(numConnectedPee
 
 func (tcg *termuiConsoleGrid) PrepareConcensusInformationsForDisplay(countConsensus int, countLeader int, acceptedBlocks int) {
 	tcg.pCountConsensus.Text = fmt.Sprintf("Count consensus group: %v", countConsensus)
-
 	tcg.pCountLeader.Text = fmt.Sprintf("Count leader: %v", countLeader)
-
 	tcg.pCountAcceptedBlocks.Text = fmt.Sprintf("Accepted blocks: %v", acceptedBlocks)
 
 	return
 }
 
 func (tcg *termuiConsoleGrid) PrepareSyncInfoForDisplay(nonce, currentRound, synchronizedRound, isSyncing int) {
-
 	isSyncingS := "Synchronized"
-
 	tcg.tSyncInfo.TextStyle = ui.NewStyle(ui.ColorWhite)
 	tcg.tSyncInfo.RowSeparator = true
 	tcg.tSyncInfo.BorderStyle = ui.NewStyle(ui.ColorWhite)

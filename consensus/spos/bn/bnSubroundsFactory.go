@@ -1,12 +1,12 @@
 package bn
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
@@ -69,7 +69,9 @@ func checkNewFactoryParams(
 
 // SetAppStatusHandler method set appStatusHandler
 func (fct *factory) SetAppStatusHandler(handler core.AppStatusHandler) {
-	fct.appStatusHandler = handler
+	if handler != nil {
+		fct.appStatusHandler = handler
+	}
 }
 
 // GenerateSubrounds will generate the subrounds used in Belare & Naveen Cns
