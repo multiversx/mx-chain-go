@@ -52,6 +52,9 @@ func (tcg *termuiConsoleGrid) initWidgets() {
 	tcg.lLog = widgets.NewList()
 
 	tcg.tSyncInfo = widgets.NewTable()
+	tcg.tSyncInfo.Rows = [][]string{
+		{"", "", "", ""},
+	}
 
 	tcg.lInstanceInfo = widgets.NewList()
 	tcg.lChainInfo = widgets.NewList()
