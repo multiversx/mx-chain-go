@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
@@ -17,10 +18,9 @@ import (
 func TestNewHeaderInterceptorBase_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	storer := &mock.StorerStub{}
 	hi, err := interceptors.NewHeaderInterceptorBase(
 		nil,
-		storer,
+		&mock.HeaderValidatorStub{},
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -31,7 +31,7 @@ func TestNewHeaderInterceptorBase_NilMarshalizerShouldErr(t *testing.T) {
 	assert.Nil(t, hi)
 }
 
-func TestNewHeaderInterceptorBase_NilStorerShouldErr(t *testing.T) {
+func TestNewHeaderInterceptorBase_NilHeaderHandlerValidatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hi, err := interceptors.NewHeaderInterceptorBase(
@@ -43,17 +43,16 @@ func TestNewHeaderInterceptorBase_NilStorerShouldErr(t *testing.T) {
 		&mock.ChronologyValidatorStub{},
 	)
 
-	assert.Equal(t, process.ErrNilHeadersStorage, err)
+	assert.Equal(t, process.ErrNilHeaderHandlerValidator, err)
 	assert.Nil(t, hi)
 }
 
 func TestNewHeaderInterceptorBase_NilMultiSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	storer := &mock.StorerStub{}
 	hi, err := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
-		storer,
+		&mock.HeaderValidatorStub{},
 		nil,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -67,10 +66,10 @@ func TestNewHeaderInterceptorBase_NilMultiSignerShouldErr(t *testing.T) {
 func TestNewHeaderInterceptorBase_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hi, err := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		nil,
 		mock.NewOneShardCoordinatorMock(),
@@ -84,10 +83,10 @@ func TestNewHeaderInterceptorBase_NilHasherShouldErr(t *testing.T) {
 func TestNewHeaderInterceptorBase_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hi, err := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		nil,
@@ -101,10 +100,10 @@ func TestNewHeaderInterceptorBase_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewHeaderInterceptorBase_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hib, err := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -120,10 +119,10 @@ func TestNewHeaderInterceptorBase_OkValsShouldWork(t *testing.T) {
 func TestHeaderInterceptorBase_ParseReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -139,10 +138,10 @@ func TestHeaderInterceptorBase_ParseReceivedMessageNilMessageShouldErr(t *testin
 func TestHeaderInterceptorBase_ParseReceivedMessageNilDataToProcessShouldErr(t *testing.T) {
 	t.Parallel()
 
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerMock{},
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -161,14 +160,14 @@ func TestHeaderInterceptorBase_ParseReceivedMessageMarshalizerErrorsAtUnmarshali
 
 	errMarshalizer := errors.New("marshalizer error")
 
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		&mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return errMarshalizer
 			},
 		},
-		storer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -187,7 +186,7 @@ func TestHeaderInterceptorBase_ParseReceivedMessageMarshalizerErrorsAtUnmarshali
 func TestHeaderInterceptorBase_ParseReceivedMessageSanityCheckFailedShouldErr(t *testing.T) {
 	t.Parallel()
 
-	storer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	multisigner := mock.NewMultiSigner()
 	chronologyValidator := &mock.ChronologyValidatorStub{
@@ -197,7 +196,7 @@ func TestHeaderInterceptorBase_ParseReceivedMessageSanityCheckFailedShouldErr(t 
 	}
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		marshalizer,
-		storer,
+		headerValidator,
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -226,13 +225,14 @@ func TestHeaderInterceptorBase_ParseReceivedMessageValsOkShouldWork(t *testing.T
 			return nil
 		},
 	}
-	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) error {
-		return errors.New("key not found")
+	headerValidator := &mock.HeaderValidatorStub{
+		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
+			return true
+		},
 	}
 	hib, _ := interceptors.NewHeaderInterceptorBase(
 		marshalizer,
-		storer,
+		headerValidator,
 		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
