@@ -405,3 +405,6 @@ var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
 
 // ErrUnknownBlockType signals that block type is not correct
 var ErrUnknownBlockType = errors.New("block type is unknown")
+
+// ErrMissingPreProcessor signals that required pre processor is missing
+var ErrMissingPreProcessor = errors.New("pre processor is missing")
