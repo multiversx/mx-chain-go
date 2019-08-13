@@ -118,8 +118,6 @@ func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (proc
 		return 0, err
 	}
 
-	//
-
 	if acntDst == nil {
 		return process.MoveBalance, nil
 	}
