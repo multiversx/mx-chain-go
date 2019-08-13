@@ -188,6 +188,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	deployScTx(nodes, idxProposerShard1, string(scCode))
+	nodes[idxProposerShard1].OwnAccount.Nonce++
 
 	proposeBlockWithScTxs(nodes, round, idxProposers)
 	syncBlock(t, nodes, idxProposers, round)
@@ -706,7 +707,7 @@ func createTxTopUp(
 		SndAddr:  tn.OwnAccount.PkTxSignBytes,
 		Data:     fmt.Sprintf("topUp"),
 		GasPrice: 0,
-		GasLimit: 100000,
+		GasLimit: 5000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tn.OwnAccount.SingleSigner.Sign(tn.OwnAccount.SkTxSign, txBuff)
@@ -727,7 +728,7 @@ func createTxJoinGame(
 		SndAddr:  tn.OwnAccount.PkTxSignBytes,
 		Data:     fmt.Sprintf("joinGame@aaaa"),
 		GasPrice: 0,
-		GasLimit: 100000,
+		GasLimit: 5000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tn.OwnAccount.SingleSigner.Sign(tn.OwnAccount.SkTxSign, txBuff)
@@ -748,7 +749,7 @@ func createTxWithdraw(
 		SndAddr:  tn.OwnAccount.PkTxSignBytes,
 		Data:     fmt.Sprintf("withdraw@%X", withdrawVal),
 		GasPrice: 0,
-		GasLimit: 100000,
+		GasLimit: 5000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tn.OwnAccount.SingleSigner.Sign(tn.OwnAccount.SkTxSign, txBuff)
@@ -770,7 +771,7 @@ func createTxRewardAndSendToWallet(
 		SndAddr:  tnOwner.OwnAccount.PkTxSignBytes,
 		Data:     fmt.Sprintf("rewardAndSendToWallet@aaaa@%s@%X", hex.EncodeToString(tnUser.OwnAccount.PkTxSignBytes), prizeVal),
 		GasPrice: 0,
-		GasLimit: 100000,
+		GasLimit: 5000,
 	}
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tnOwner.OwnAccount.SingleSigner.Sign(tnOwner.OwnAccount.SkTxSign, txBuff)
