@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -98,16 +97,8 @@ type TestProcessorNode struct {
 	Node         *node.Node
 	ScDataGetter external.ScDataGetter
 
-	MutHeaders     sync.Mutex
 	CounterHdrRecv int32
-	HeadersHashes  [][]byte
-	Headers        []data.HeaderHandler
-
-	MutMiniBlocks    sync.Mutex
-	CounterMbRecv    int32
-	MiniBlocksHashes [][]byte
-	MiniBlocks       []*dataBlock.MiniBlock
-
+	CounterMbRecv  int32
 	CounterTxRecv  int32
 	CounterMetaRcv int32
 }
@@ -482,33 +473,19 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 	metaHandlers := func(key []byte) {
 		atomic.AddInt32(&tpn.CounterMetaRcv, 1)
 	}
+	hdrHandlers := func(key []byte) {
+		atomic.AddInt32(&tpn.CounterHdrRecv, 1)
+	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		hdrHandlers := func(key []byte) {
-			atomic.AddInt32(&tpn.CounterHdrRecv, 1)
-		}
-
 		tpn.MetaDataPool.ShardHeaders().RegisterHandler(hdrHandlers)
 		tpn.MetaDataPool.MetaChainBlocks().RegisterHandler(metaHandlers)
 	} else {
-		hdrHandlers := func(key []byte) {
-			atomic.AddInt32(&tpn.CounterHdrRecv, 1)
-			tpn.MutHeaders.Lock()
-			tpn.HeadersHashes = append(tpn.HeadersHashes, key)
-			header, _ := tpn.ShardDataPool.Headers().Peek(key)
-			tpn.Headers = append(tpn.Headers, header.(data.HeaderHandler))
-			tpn.MutHeaders.Unlock()
-		}
 		txHandler := func(key []byte) {
 			atomic.AddInt32(&tpn.CounterTxRecv, 1)
 		}
 		mbHandlers := func(key []byte) {
 			atomic.AddInt32(&tpn.CounterMbRecv, 1)
-			tpn.MutMiniBlocks.Lock()
-			tpn.MiniBlocksHashes = append(tpn.MiniBlocksHashes, key)
-			miniblock, _ := tpn.ShardDataPool.MiniBlocks().Peek(key)
-			tpn.MiniBlocks = append(tpn.MiniBlocks, miniblock.(*dataBlock.MiniBlock))
-			tpn.MutMiniBlocks.Unlock()
 		}
 
 		tpn.ShardDataPool.UnsignedTransactions().RegisterHandler(txHandler)
@@ -753,4 +730,17 @@ func (tpn *TestProcessorNode) SetAccountNonce(nonce uint64) error {
 	}
 
 	return nil
+}
+
+// MiniBlocksPresent checks if the all the miniblocks are present in the pool
+func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
+	mbCacher := tpn.ShardDataPool.MiniBlocks()
+	for i := 0; i < len(hashes); i++ {
+		ok := mbCacher.Has(hashes[i])
+		if !ok {
+			return false
+		}
+	}
+
+	return true
 }

@@ -28,7 +28,6 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 	numOfShards := 1
 	nodesPerShard := 1
 	numMetaNodes := 10
-	senderShard := uint32(0)
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
@@ -47,11 +46,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 	}()
 
 	fmt.Println("Generating header and block body from shard 0 to metachain...")
-	body, hdr := integrationTests.GenerateDefaultHeaderAndBody(senderShard)
-	err := nodes[0].BroadcastMessenger.BroadcastBlock(body, hdr)
-	assert.Nil(t, err)
-	err = nodes[0].BroadcastMessenger.BroadcastHeader(hdr)
-	assert.Nil(t, err)
+	integrationTests.ProposeBlockSignalsEmptyBlock(nodes[0], 1)
 
 	for i := 0; i < 5; i++ {
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
@@ -64,8 +59,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 	}
 
 	fmt.Println("Generating metaheader from metachain to any other shards...")
-	metaHdr := integrationTests.GenerateDefaultMetaHeader()
-	_ = nodes[1].BroadcastMessenger.BroadcastBlock(nil, metaHdr)
+	integrationTests.ProposeBlockSignalsEmptyBlock(nodes[1], 1)
 
 	for i := 0; i < 5; i++ {
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
@@ -110,7 +104,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	}()
 
 	fmt.Println("Generating header and block body in shard 0, save it in datapool and metachain creates a request for it...")
-	_, hdr := integrationTests.GenerateDefaultHeaderAndBody(senderShard)
+	_, hdr, _ := nodes[0].ProposeBlock(1)
 	shardHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(hdr)
 	shardHeaderHash := integrationTests.TestHasher.Compute(string(shardHeaderBytes))
 	nodes[0].ShardDataPool.Headers().HasOrAdd(shardHeaderHash, hdr)
@@ -134,7 +128,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	}
 
 	fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its hash...")
-	metaHdr := integrationTests.GenerateDefaultMetaHeader()
+	_, metaHdr, _ := nodes[1].ProposeBlock(1)
 	metaHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(metaHdr)
 	metaHeaderHash := integrationTests.TestHasher.Compute(string(metaHeaderBytes))
 	for i := 0; i < numMetaNodes; i++ {
@@ -157,7 +151,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	}
 
 	fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its nonce...")
-	metaHdr2 := integrationTests.GenerateDefaultMetaHeader()
+	_, metaHdr2, _ := nodes[1].ProposeBlock(2)
 	metaHdr2.SetNonce(64)
 	metaHeaderBytes2, _ := integrationTests.TestMarshalizer.Marshal(metaHdr2)
 	metaHeaderHash2 := integrationTests.TestHasher.Compute(string(metaHeaderBytes2))

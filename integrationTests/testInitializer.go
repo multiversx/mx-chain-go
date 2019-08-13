@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -16,14 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go/node"
-
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -36,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
@@ -784,42 +781,6 @@ func GetMiniBlocksHashesFromShardIds(body dataBlock.Body, shardIds ...uint32) []
 	return hashes
 }
 
-// EqualSlices checks if two slices are equal
-func EqualSlices(slice1 [][]byte, slice2 [][]byte) bool {
-	if len(slice1) != len(slice2) {
-		return false
-	}
-
-	//check slice1 has all elements in slice2
-	for _, buff1 := range slice1 {
-		found := false
-		for _, buff2 := range slice2 {
-			if bytes.Equal(buff1, buff2) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-
-	//check slice2 has all elements in slice1
-	for _, buff2 := range slice2 {
-		found := false
-		for _, buff1 := range slice1 {
-			if bytes.Equal(buff1, buff2) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
-}
-
 // GenerateSkAndPkInShard generates and returns a private and a public key that reside in a given shard.
 // It also returns the key generator
 func GenerateSkAndPkInShard(
@@ -840,22 +801,6 @@ func GenerateSkAndPkInShard(
 	}
 
 	return sk, pk, keyGen
-}
-
-// GenerateRandomHexAddressInShard generates a random address in the given shard
-func GenerateRandomHexAddressInShard(
-	coordinator sharding.Coordinator,
-	addrConv state.AddressConverter,
-) string {
-
-	addrBytes := []byte(CreateRandomHexString(32))
-	for {
-		addr, _ := addrConv.CreateAddressFromPublicKeyBytes(addrBytes)
-		if coordinator.ComputeId(addr) == coordinator.SelfId() {
-			return hex.EncodeToString(addrBytes)
-		}
-		addrBytes = []byte(CreateRandomHexString(32))
-	}
 }
 
 // CreateMintingForSenders creates account with balances for every node in a given shard
@@ -883,69 +828,6 @@ func CreateMintingForSenders(
 	}
 }
 
-// GenerateDefaultHeaderAndBody creates a default header and body
-func GenerateDefaultHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyHandler, data.HeaderHandler) {
-	hdr := block.Header{
-		Nonce:            0,
-		PubKeysBitmap:    []byte{255, 0},
-		Signature:        []byte("signature"),
-		PrevHash:         []byte("prev hash"),
-		TimeStamp:        uint64(time.Now().Unix()),
-		Round:            1,
-		Epoch:            2,
-		ShardId:          senderShard,
-		BlockBodyType:    block.TxBlock,
-		RootHash:         []byte{255, 255},
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
-	}
-
-	body := block.Body{
-		&block.MiniBlock{
-			SenderShardID:   senderShard,
-			ReceiverShardID: senderShard,
-			TxHashes: [][]byte{
-				TestHasher.Compute("tx1"),
-			},
-		},
-	}
-
-	for i, recvShard := range recvShards {
-		body = append(
-			body,
-			&block.MiniBlock{
-				SenderShardID:   senderShard,
-				ReceiverShardID: recvShard,
-				TxHashes: [][]byte{
-					TestHasher.Compute(fmt.Sprintf("tx%d", i)),
-				},
-			},
-		)
-	}
-
-	return body, &hdr
-}
-
-// GenerateDefaultMetaHeader creates a metaHeader with default values
-func GenerateDefaultMetaHeader() data.HeaderHandler {
-	hdr := block.MetaBlock{
-		Nonce:         0,
-		PubKeysBitmap: []byte{255, 0},
-		Signature:     []byte("signature"),
-		PrevHash:      []byte("prev hash"),
-		TimeStamp:     uint64(time.Now().Unix()),
-		Round:         1,
-		Epoch:         2,
-		RootHash:      []byte{255, 255},
-		PrevRandSeed:  make([]byte, 0),
-		RandSeed:      make([]byte, 0),
-		ShardInfo:     make([]block.ShardData, 0),
-	}
-
-	return &hdr
-}
-
 // ProposeBlockSignalsEmptyBlock proposes and broadcasts a block
 func ProposeBlockSignalsEmptyBlock(
 	node *TestProcessorNode,
@@ -962,27 +844,6 @@ func ProposeBlockSignalsEmptyBlock(
 	time.Sleep(stepDelay)
 
 	return header, body, isEmptyBlock
-}
-
-// ProposeBroadcastAndCommitBlock proposes and commits block, and broadcasts block, header, miniblocks and transactions
-func ProposeBroadcastAndCommitBlock(node *TestProcessorNode, round uint64) {
-	blockBody, blockHeader, _ := node.ProposeBlock(round)
-	_ = node.BroadcastMessenger.BroadcastBlock(blockBody, blockHeader)
-	_ = node.BroadcastMessenger.BroadcastHeader(blockHeader)
-	miniBlocks, transactions, _ := node.BlockProcessor.MarshalizedDataToBroadcast(blockHeader, blockBody)
-	_ = node.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
-	_ = node.BroadcastMessenger.BroadcastTransactions(transactions)
-	_ = node.BlockProcessor.CommitBlock(node.BlockChain, blockHeader, blockBody)
-}
-
-// ProposeBroadcastAndCommitMetaBlock proposes, broadcasts and commits block
-func ProposeBroadcastAndCommitMetaBlock(nodes []*TestProcessorNode, metaNode *TestProcessorNode, round uint64) {
-	_, metaHeader, _ := metaNode.ProposeBlock(round)
-	_ = metaNode.BroadcastMessenger.BroadcastBlock(nil, metaHeader)
-	_ = metaNode.BlockProcessor.CommitBlock(metaNode.BlockChain, metaHeader, &block.MetaBlockBody{})
-	fmt.Println("Delaying for disseminating meta header...")
-	time.Sleep(time.Second * 5)
-	fmt.Println(MakeDisplayTable(nodes))
 }
 
 // CreateAccountForNodes creates accounts for each node and commits the accounts state
@@ -1105,12 +966,11 @@ func generateValidTx(
 	receiverShardId uint32,
 ) (*transaction.Transaction, []byte) {
 
-	skSender, _, _ := GenerateSkAndPkInShard(shardCoordinator, senderShardId)
-	pkSender := skSender.GeneratePublic()
+	skSender, pkSender, _ := GenerateSkAndPkInShard(shardCoordinator, senderShardId)
 	pkSenderBuff, _ := pkSender.ToByteArray()
 
-	skRecv, _, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
-	pkRecvBuff := skToPk(skRecv)
+	_, pkRecv, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
+	pkRecvBuff, _ := pkRecv.ToByteArray()
 
 	accnts, _, _ := CreateAccountsDB(shardCoordinator)
 	addrSender, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)

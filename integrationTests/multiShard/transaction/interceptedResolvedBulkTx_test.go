@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -9,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -55,7 +55,9 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 5)
 
 	fmt.Println("Generating and broadcasting transactions...")
-	addrInShardFive := integrationTests.GenerateRandomHexAddressInShard(generateCoordinator, integrationTests.TestAddressConverter)
+	_, pkInShardFive, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, 5)
+	pkBytes, _ := pkInShardFive.ToByteArray()
+	addrInShardFive := hex.EncodeToString(pkBytes)
 	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 	time.Sleep(time.Second * 10)
 
@@ -120,9 +122,10 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	txToSend := 100
 
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 5)
-	generateAddrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
-	addrInShardFive := integrationTests.GenerateRandomHexAddressInShard(generateCoordinator, generateAddrConverter)
+	_, pkInShardFive, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, 5)
+	pkBytes, _ := pkInShardFive.ToByteArray()
+	addrInShardFive := hex.EncodeToString(pkBytes)
 
 	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 
@@ -201,9 +204,10 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	randomShard := uint32(2)
 
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), shardRequester)
-	generateAddrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 
-	addrInShardFive := integrationTests.GenerateRandomHexAddressInShard(generateCoordinator, generateAddrConverter)
+	_, pkInShardFive, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, 5)
+	pkBytes, _ := pkInShardFive.ToByteArray()
+	addrInShardFive := hex.EncodeToString(pkBytes)
 
 	mutGeneratedTxHashes := sync.Mutex{}
 	generatedTxHashes := make([][]byte, 0)

@@ -48,12 +48,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	}()
 
 	fmt.Println("Generating header and block body...")
-	body, hdr := integrationTests.GenerateDefaultHeaderAndBody(senderShard, recvShards...)
-	err := nodes[0].BroadcastMessenger.BroadcastBlock(body, hdr)
-	assert.Nil(t, err)
-	miniBlocks, _, _ := nodes[0].BlockProcessor.MarshalizedDataToBroadcast(hdr, body)
-	err = nodes[0].BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
-	assert.Nil(t, err)
+	_, body, _ := integrationTests.ProposeBlockSignalsEmptyBlock(nodes[0], 1)
 
 	time.Sleep(time.Second * 10)
 
@@ -71,14 +66,13 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 			shards = append(shards, recvShards...)
 
 			expectedMiniblocks := integrationTests.GetMiniBlocksHashesFromShardIds(body.(block.Body), shards...)
-
-			assert.True(t, integrationTests.EqualSlices(expectedMiniblocks, n.MiniBlocksHashes))
+			assert.True(t, n.MiniBlocksPresent(expectedMiniblocks))
 		}
 
 		if isRecvShard && !isSenderShard {
 			assert.Equal(t, int32(0), atomic.LoadInt32(&n.CounterHdrRecv))
 			expectedMiniblocks := integrationTests.GetMiniBlocksHashesFromShardIds(body.(block.Body), n.ShardCoordinator.SelfId())
-			assert.True(t, integrationTests.EqualSlices(expectedMiniblocks, n.MiniBlocksHashes))
+			assert.True(t, n.MiniBlocksPresent(expectedMiniblocks))
 		}
 
 		if !isSenderShard && !isRecvShard && !isRecvMetachain {
