@@ -59,7 +59,7 @@ func (tsh *TermuiStatusHandler) initMetricsMap() {
 	tsh.termuiConsoleMetrics.Store(core.MetricCpuLoadPercent, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricMemLoadPercent, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricNetworkLoadPercent, uint64(0))
-	tsh.termuiConsoleMetrics.Store(core.MetricTxPoolLoad, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricTxPoolLoad, int64(0))
 
 }
 

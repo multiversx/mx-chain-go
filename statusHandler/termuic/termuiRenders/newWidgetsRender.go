@@ -257,7 +257,7 @@ func (wr *WidgetsRender2) prepareLoads() {
 	wr.networkLoad.Percent = int(networkLoadPercent)
 
 	txPoolLoadI, _ := wr.termuiConsoleMetrics.Load(core.MetricTxPoolLoad)
-	txPoolLoad := txPoolLoadI.(uint64)
+	txPoolLoad := txPoolLoadI.(int64)
 	wr.txPoolLoad.Title = "Transation Pool Load"
 	wr.txPoolLoad.Percent = int(txPoolLoad)
 }
