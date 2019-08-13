@@ -33,11 +33,6 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 	}
 
 	idxProposer := 0
-	numPlayers := 10
-	players := make([]*integrationTests.TestWalletAccount, numPlayers)
-	for i := 0; i < numPlayers; i++ {
-		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
-	}
 
 	defer func() {
 		_ = advertiser.Close()
@@ -57,7 +52,9 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 	nonce := uint64(1)
 	round = integrationTests.IncrementAndPrintRound(round)
 
-	proposeBlock(nodes[idxProposer], round, nonce)
+	err := proposeAndCommitBlock(nodes[idxProposer], round, nonce)
+	assert.Nil(t, err)
+
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, nonce)
 
 	time.Sleep(stepDelay)
@@ -67,7 +64,9 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 	//only nonce increases, round stays the same
 	nonce++
 
-	proposeBlock(nodes[idxProposer], round, nonce)
+	err = proposeAndCommitBlock(nodes[idxProposer], round, nonce)
+	assert.Nil(t, err)
+
 	//mockTestingT is used as in normal case SyncBlock would fail as it doesn't find the header with nonce 2
 	mockTestingT := &testing.T{}
 	integrationTests.SyncBlock(mockTestingT, nodes, []int{idxProposer}, nonce)
@@ -77,14 +76,16 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 	checkCurrentBlockHeight(t, nodes, nonce-1)
 }
 
-func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce uint64) {
+func proposeAndCommitBlock(node *integrationTests.TestProcessorNode, round uint64, nonce uint64) error {
 	body, hdr, _ := node.ProposeBlock(round, nonce)
 	err := node.BlockProcessor.CommitBlock(node.BlockChain, hdr, body)
-	if err == nil {
-		node.BroadcastBlock(body, hdr)
+	if err != nil {
+		return err
 	}
 
+	node.BroadcastBlock(body, hdr)
 	time.Sleep(stepDelay)
+	return nil
 }
 
 func checkCurrentBlockHeight(t *testing.T, nodes []*integrationTests.TestProcessorNode, nonce uint64) {

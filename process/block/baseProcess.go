@@ -91,7 +91,9 @@ func (bp *baseProcessor) checkBlockValidity(
 		return err
 	}
 
-	if chainHandler.GetCurrentBlockHeader() == nil {
+	currentBlockHeader := chainHandler.GetCurrentBlockHeader()
+
+	if currentBlockHeader == nil {
 		if headerHandler.GetNonce() == 1 { // first block after genesis
 			if bytes.Equal(headerHandler.GetPrevHash(), chainHandler.GetGenesisHeaderHash()) {
 				// TODO: add genesis block verification
@@ -111,28 +113,28 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrWrongNonceInBlock
 	}
 
-	if chainHandler.GetCurrentBlockHeader().GetRound() >= headerHandler.GetRound() {
+	if currentBlockHeader.GetRound() >= headerHandler.GetRound() {
 		log.Info(fmt.Sprintf("round not match: local block round is %d and node received block with round %d\n",
-			chainHandler.GetCurrentBlockHeader().GetRound(), headerHandler.GetRound()))
+			currentBlockHeader.GetRound(), headerHandler.GetRound()))
 
 		return process.ErrLowerRoundInBlock
 	}
 
-	if headerHandler.GetNonce() != chainHandler.GetCurrentBlockHeader().GetNonce()+1 {
+	if headerHandler.GetNonce() != currentBlockHeader.GetNonce()+1 {
 		log.Info(fmt.Sprintf("nonce not match: local block nonce is %d and node received block with nonce %d\n",
-			chainHandler.GetCurrentBlockHeader().GetNonce(), headerHandler.GetNonce()))
+			currentBlockHeader.GetNonce(), headerHandler.GetNonce()))
 
 		return process.ErrWrongNonceInBlock
 	}
 
-	prevHeaderHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, chainHandler.GetCurrentBlockHeader())
+	prevHeaderHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, currentBlockHeader)
 	if err != nil {
 		return err
 	}
 
-	if !bytes.Equal(headerHandler.GetPrevRandSeed(), chainHandler.GetCurrentBlockHeader().GetRandSeed()) {
+	if !bytes.Equal(headerHandler.GetPrevRandSeed(), currentBlockHeader.GetRandSeed()) {
 		log.Info(fmt.Sprintf("random seed not match: local block random seed is %s and node received block with previous random seed %s\n",
-			core.ToB64(chainHandler.GetCurrentBlockHeader().GetRandSeed()), core.ToB64(headerHandler.GetPrevRandSeed())))
+			core.ToB64(currentBlockHeader.GetRandSeed()), core.ToB64(headerHandler.GetPrevRandSeed())))
 
 		return process.ErrRandSeedMismatch
 	}

@@ -74,7 +74,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	if sr.Rounder().Index() <= sr.getRoundInLastBlockCommitted() {
+	if sr.Rounder().Index() <= sr.getRoundInLastCommittedBlock() {
 		return false
 	}
 
@@ -390,11 +390,11 @@ func (sr *SubroundBlock) isBlockReceived(threshold int) bool {
 	return n >= threshold
 }
 
-func (sr *SubroundBlock) getRoundInLastBlockCommitted() int64 {
-	roundInLastBlockCommitted := int64(0)
+func (sr *SubroundBlock) getRoundInLastCommittedBlock() int64 {
+	roundInLastCommittedBlock := int64(0)
 	if sr.Blockchain().GetCurrentBlockHeader() != nil {
-		roundInLastBlockCommitted = int64(sr.Blockchain().GetCurrentBlockHeader().GetRound())
+		roundInLastCommittedBlock = int64(sr.Blockchain().GetCurrentBlockHeader().GetRound())
 	}
 
-	return roundInLastBlockCommitted
+	return roundInLastCommittedBlock
 }

@@ -103,8 +103,8 @@ func createTestShardChain() *blockchain.BlockChain {
 	)
 	blockChain.GenesisHeader = &dataBlock.Header{}
 	genisisHeaderM, _ := testMarshalizer.Marshal(blockChain.GenesisHeader)
-
 	blockChain.SetGenesisHeaderHash(testHasher.Compute(string(genisisHeaderM)))
+
 	return blockChain
 }
 
@@ -594,8 +594,8 @@ func createTestMetaChain() data.ChainHandler {
 	)
 	metaChain.GenesisBlock = &dataBlock.MetaBlock{}
 	genisisHeaderM, _ := testMarshalizer.Marshal(metaChain.GenesisBlock)
-
 	metaChain.SetGenesisHeaderHash(testHasher.Compute(string(genisisHeaderM)))
+
 	return metaChain
 }
 
