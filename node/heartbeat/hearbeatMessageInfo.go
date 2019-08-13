@@ -13,17 +13,17 @@ type heartbeatMessageInfo struct {
 	totalUpTime                 Duration
 	totalDownTime               Duration
 
-	getTimeHandler         func() time.Time
-	timeStamp              time.Time
-	isActive               bool
-	shardID                uint32
-	versionNumber          string
-	nodeDisplayName        string
-	isValidator            bool
-	lastTimeUptimeDowntime time.Time
+	getTimeHandler     func() time.Time
+	timeStamp          time.Time
+	isActive           bool
+	shardID            uint32
+	versionNumber      string
+	nodeDisplayName    string
+	isValidator        bool
+	lastUptimeDowntime time.Time
 }
 
-// newHeartbeatMessageInfo returns a new instance of a PubkeyElement
+// newHeartbeatMessageInfo returns a new instance of a heartbeatMessageInfo
 func newHeartbeatMessageInfo(
 	maxDurationPeerUnresponsive time.Duration,
 	isValidator bool,
@@ -38,7 +38,7 @@ func newHeartbeatMessageInfo(
 		maxInactiveTime:             Duration{0},
 		isActive:                    false,
 		timeStamp:                   emptyTimestamp,
-		lastTimeUptimeDowntime:      time.Now(),
+		lastUptimeDowntime:          time.Now(),
 		totalUpTime:                 Duration{0},
 		totalDownTime:               Duration{0},
 		versionNumber:               "",
@@ -65,7 +65,7 @@ func (hbmi *heartbeatMessageInfo) updateFields() {
 
 // Wil update the total time a node was up and down
 func (hbmi *heartbeatMessageInfo) updateUpAndDownTime() {
-	lastDuration := hbmi.clockTime().Sub(hbmi.lastTimeUptimeDowntime)
+	lastDuration := hbmi.clockTime().Sub(hbmi.lastUptimeDowntime)
 	lastDuration = maxDuration(0, lastDuration)
 
 	if hbmi.isActive {
@@ -74,7 +74,7 @@ func (hbmi *heartbeatMessageInfo) updateUpAndDownTime() {
 		hbmi.totalDownTime.Duration += lastDuration
 	}
 
-	hbmi.lastTimeUptimeDowntime = time.Now()
+	hbmi.lastUptimeDowntime = time.Now()
 }
 
 // HeartbeatReceived processes a new message arrived from a peer
