@@ -1,6 +1,9 @@
 package transaction
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -9,14 +12,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // TxInterceptor is used for intercepting transaction and storing them into a datapool
 type TxInterceptor struct {
 	marshalizer              marshal.Marshalizer
 	txPool                   dataRetriever.ShardedDataCacherNotifier
-	txStorer                 storage.Storer
+	txValidator              process.TxValidator
 	addrConverter            state.AddressConverter
 	hasher                   hashing.Hasher
 	singleSigner             crypto.SingleSigner
@@ -29,7 +31,7 @@ type TxInterceptor struct {
 func NewTxInterceptor(
 	marshalizer marshal.Marshalizer,
 	txPool dataRetriever.ShardedDataCacherNotifier,
-	txStorer storage.Storer,
+	txValidator process.TxValidator,
 	addrConverter state.AddressConverter,
 	hasher hashing.Hasher,
 	singleSigner crypto.SingleSigner,
@@ -43,8 +45,8 @@ func NewTxInterceptor(
 	if txPool == nil {
 		return nil, process.ErrNilTxDataPool
 	}
-	if txStorer == nil {
-		return nil, process.ErrNilTxStorage
+	if txValidator == nil {
+		return nil, process.ErrNilTxHandlerValidator
 	}
 	if addrConverter == nil {
 		return nil, process.ErrNilAddressConverter
@@ -65,7 +67,7 @@ func NewTxInterceptor(
 	txIntercept := &TxInterceptor{
 		marshalizer:      marshalizer,
 		txPool:           txPool,
-		txStorer:         txStorer,
+		txValidator:      txValidator,
 		hasher:           hasher,
 		addrConverter:    addrConverter,
 		singleSigner:     singleSigner,
@@ -146,11 +148,9 @@ func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte))
 }
 
 func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
-	//TODO should remove this as it is expensive
-	err := txi.txStorer.Has(tx.Hash())
-	isTxInStorage := err == nil
-	if isTxInStorage {
-		log.Debug("intercepted tx already processed")
+	isTxValid := txi.txValidator.IsTxValidForProcessing(tx.Transaction())
+	if !isTxValid {
+		log.Debug(fmt.Sprintf("intercepted tx with hash %s is not valid", hex.EncodeToString(tx.hash)))
 		return
 	}
 

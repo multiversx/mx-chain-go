@@ -122,7 +122,6 @@ func createMockPools() *mock.PoolsHolderStub {
 				return nil, false
 			},
 			RegisterHandlerCalled: func(handler func(nonce uint64, shardId uint32, hash []byte)) {},
-			RemoveNonceCalled:     func(u uint64) {},
 		}
 		return hnc
 	}
@@ -232,12 +231,7 @@ func createHeadersNoncesDataPool(
 
 			return nil, false
 		},
-		RemoveNonceCalled: func(u uint64) {
-			if u == removedNonce {
-				remFlags.flagHdrRemovedFromNonces = true
-			}
-		},
-		RemoveShardIdCalled: func(nonce uint64, providedShardId uint32) {
+		RemoveCalled: func(nonce uint64, providedShardId uint32) {
 			if nonce == removedNonce && shardId == providedShardId {
 				remFlags.flagHdrRemovedFromNonces = true
 			}
@@ -1075,7 +1069,6 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 
 			return nil, false
 		}
-		hnc.RemoveNonceCalled = func(u uint64) {}
 
 		return hnc
 	}
@@ -1440,7 +1433,6 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.RemoveNonceCalled = func(u uint64) {}
 		hnc.GetCalled = func(u uint64) (dataRetriever.ShardIdHashMap, bool) {
 			if u == 2 {
 				syncMap := &dataPool.ShardIdHashSyncMap{}
@@ -1451,7 +1443,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 			return nil, false
 		}
-		hnc.RemoveShardIdCalled = func(nonce uint64, shardId uint32) {}
+		hnc.RemoveCalled = func(nonce uint64, shardId uint32) {}
 		return hnc
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
@@ -1725,8 +1717,8 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 		math.MaxUint32,
 	)
 
-	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed)
-	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived)
+	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
+	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
 
 	shouldSync := bs.ShouldSync()
 	assert.True(t, shouldSync)
@@ -1735,7 +1727,7 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 	if shouldSync && bs.IsForkDetected() {
 		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(hash1)
-		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed)
+		_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
 	}
 
 	shouldSync = bs.ShouldSync()
@@ -1786,8 +1778,8 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 		math.MaxUint32,
 	)
 
-	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed)
-	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived)
+	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
+	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
 
 	shouldSync := bs.ShouldSync()
 	assert.True(t, shouldSync)
@@ -1796,7 +1788,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 	if shouldSync && bs.IsForkDetected() {
 		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(hash2)
-		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed)
+		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil, nil)
 	}
 
 	shouldSync = bs.ShouldSync()
@@ -1989,7 +1981,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
@@ -2044,7 +2036,7 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t *te
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
@@ -3028,7 +3020,7 @@ func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 			return nil
 		},
 	}
@@ -3095,7 +3087,6 @@ func TestBootstrap_LoadBlocksShouldWorkAfterRemoveInvalidBlocks(t *testing.T) {
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.RemoveNonceCalled = func(u uint64) {}
 
 		return hnc
 	}
@@ -3117,7 +3108,7 @@ func TestBootstrap_LoadBlocksShouldWorkAfterRemoveInvalidBlocks(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 			return nil
 		},
 	}
@@ -3273,7 +3264,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenBodyIsNotFound(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 			return nil
 		},
 	}
@@ -3346,7 +3337,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenSetCurrentBlockBodyFails(t *testing.T)
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 			return nil
 		},
 	}
@@ -3417,7 +3408,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenSetCurrentBlockHeaderFails(t *testing.
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 			return nil
 		},
 	}
@@ -3483,7 +3474,7 @@ func TestBootstrap_ApplyBlockShouldWork(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 			return nil
 		},
 	}
@@ -3889,7 +3880,6 @@ func TestBootstrap_RemoveBlockHeaderShouldWork(t *testing.T) {
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.RemoveNonceCalled = func(u uint64) {}
 
 		return hnc
 	}
@@ -4033,13 +4023,13 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
-		SetLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
+		AddLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
 		},
 	}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 			return nil
 		},
 	}
@@ -4303,7 +4293,7 @@ func TestBootstrap_ApplyNotarizedBlockShouldErrWhenGetLastNotarizedMetaHeaderFro
 	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
-		SetLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
+		AddLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
 		},
 	}
 	hasher := &mock.HasherMock{}
@@ -4405,7 +4395,7 @@ func TestBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
-		SetLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
+		AddLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {
 		},
 	}
 	hasher := &mock.HasherMock{}
@@ -4783,7 +4773,6 @@ func TestBootstrap_RemoveNotarizedBlockShouldWork(t *testing.T) {
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-		hnc.RemoveNonceCalled = func(u uint64) {}
 
 		return hnc
 	}

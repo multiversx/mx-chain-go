@@ -22,7 +22,7 @@ type ShardHeaderInterceptor struct {
 	hdrInterceptorBase *interceptors.HeaderInterceptorBase
 	headers            storage.Cacher
 	hdrsNonces         dataRetriever.Uint64SyncMapCacher
-	storer             storage.Storer
+	headerValidator    process.HeaderValidator
 }
 
 // NewShardHeaderInterceptor hooks a new interceptor for shard block headers by metachain nodes
@@ -31,7 +31,7 @@ func NewShardHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	headers storage.Cacher,
 	hdrsNonces dataRetriever.Uint64SyncMapCacher,
-	storer storage.Storer,
+	headerValidator process.HeaderValidator,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
@@ -47,7 +47,7 @@ func NewShardHeaderInterceptor(
 
 	hdrBaseInterceptor, err := interceptors.NewHeaderInterceptorBase(
 		marshalizer,
-		storer,
+		headerValidator,
 		multiSigVerifier,
 		hasher,
 		shardCoordinator,
@@ -61,7 +61,7 @@ func NewShardHeaderInterceptor(
 		hdrInterceptorBase: hdrBaseInterceptor,
 		headers:            headers,
 		hdrsNonces:         hdrsNonces,
-		storer:             storer,
+		headerValidator:    headerValidator,
 	}, nil
 }
 
@@ -83,10 +83,9 @@ func (shi *ShardHeaderInterceptor) processHeader(hdrIntercepted *block.Intercept
 		return
 	}
 
-	err := shi.storer.Has(hdrIntercepted.Hash())
-	isHeaderInStorage := err == nil
-	if isHeaderInStorage {
-		log.Debug("intercepted block header already processed")
+	isHeaderOkForProcessing := shi.headerValidator.IsHeaderValidForProcessing(hdrIntercepted.Header)
+	if !isHeaderOkForProcessing {
+		log.Debug("intercepted block header is not valid for processing")
 		return
 	}
 

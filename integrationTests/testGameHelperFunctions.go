@@ -18,12 +18,14 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 		nodes[senderIdx].OwnAccount.SkTxSign,
 		nodes[senderIdx].OwnAccount.SingleSigner,
 		&txArgs{
+			nonce: nodes[senderIdx].OwnAccount.Nonce,
 			value:    big.NewInt(0),
 			rcvAddr:  make([]byte, 32),
 			sndAddr:  nodes[senderIdx].OwnAccount.PkTxSignBytes,
 			data:     scCode,
 			gasLimit: 1000000000000,
 		})
+	nodes[senderIdx].OwnAccount.Nonce++
 	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
 	fmt.Println("Delaying for disseminating the deploy tx...")
 	time.Sleep(stepDelay)
@@ -45,12 +47,14 @@ func PlayerJoinsGame(
 		player.SkTxSign,
 		player.SingleSigner,
 		&txArgs{
+			nonce: player.Nonce,
 			value:    joinGameVal,
 			rcvAddr:  scAddress,
 			sndAddr:  player.Address.Bytes(),
 			data:     fmt.Sprintf("joinGame@%s", round),
 			gasLimit: 1000000000000,
 		})
+	player.Nonce++
 	fmt.Printf("Join %s\n", hex.EncodeToString(player.Address.Bytes()))
 	_, _ = txDispatcherNode.SendTransaction(txScCall)
 }
@@ -70,12 +74,14 @@ func NodeCallsRewardAndSend(
 		nodes[idxNodeOwner].OwnAccount.SkTxSign,
 		nodes[idxNodeOwner].OwnAccount.SingleSigner,
 		&txArgs{
+			nonce:    nodes[idxNodeOwner].OwnAccount.Nonce,
 			value:    big.NewInt(0),
 			rcvAddr:  scAddress,
 			sndAddr:  nodes[idxNodeOwner].OwnAccount.PkTxSignBytes,
 			data:     fmt.Sprintf("rewardAndSendToWallet@%s@%s@%X", round, hex.EncodeToString(winnerAddress), prize),
 			gasLimit: 100000,
 		})
+	nodes[idxNodeOwner].OwnAccount.Nonce++
 	fmt.Printf("Reward %s\n", hex.EncodeToString(winnerAddress))
 	_, _ = nodes[idxNodeOwner].SendTransaction(txScCall)
 

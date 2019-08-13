@@ -154,29 +154,9 @@ func TestNonceSyncMapGet_RegisterHandlerShouldAddHandler(t *testing.T) {
 	assert.NotNil(t, handlers[0])
 }
 
-//------- RemoveNonce
+//------- Remove
 
-func TestNonceSyncMapCacher_RemoveNonce(t *testing.T) {
-	t.Parallel()
-
-	wasCalled := false
-	nsmc, _ := dataPool.NewNonceSyncMapCacher(
-		&mock.CacherStub{
-			RemoveCalled: func(key []byte) {
-				wasCalled = true
-			},
-		},
-		mock.NewNonceHashConverterMock())
-
-	nonce := uint64(40)
-	nsmc.RemoveNonce(nonce)
-
-	assert.True(t, wasCalled)
-}
-
-//------- RemoveShardId
-
-func TestNonceSyncMapCacher_RemoveShardIdWhenSyncMapDoesNotExistsShouldNotPanic(t *testing.T) {
+func TestNonceSyncMapCacher_RemoveWhenSyncMapDoesNotExistsShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -197,7 +177,7 @@ func TestNonceSyncMapCacher_RemoveShardIdWhenSyncMapDoesNotExistsShouldNotPanic(
 		},
 		mock.NewNonceHashConverterMock())
 
-	nsmc.RemoveShardId(nonce, shardId)
+	nsmc.Remove(nonce, shardId)
 }
 
 func TestNonceSyncMapCacher_RemoveShardIdWhenExists(t *testing.T) {
@@ -216,7 +196,7 @@ func TestNonceSyncMapCacher_RemoveShardIdWhenExists(t *testing.T) {
 		},
 		mock.NewNonceHashConverterMock())
 
-	nsmc.RemoveShardId(nonce, shardId)
+	nsmc.Remove(nonce, shardId)
 
 	syncMap.Range(func(shardId uint32, hash []byte) bool {
 		assert.Fail(t, "should have not found the existing key")

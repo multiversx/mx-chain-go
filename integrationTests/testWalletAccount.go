@@ -20,6 +20,7 @@ type TestWalletAccount struct {
 	KeygenTxSign  crypto.KeyGenerator
 
 	Address state.AddressContainer
+	Nonce   uint64
 	Balance *big.Int
 }
 

@@ -494,7 +494,7 @@ func IncrementAndPrintRound(round uint64) uint64 {
 func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64) {
 	fmt.Println("All shards propose blocks...")
 	for idx, n := range nodes {
-		if !isIntInSlice(idx, idxProposers) {
+		if !IsIntInSlice(idx, idxProposers) {
 			continue
 		}
 
@@ -518,7 +518,7 @@ func SyncBlock(
 
 	fmt.Println("All other shard nodes sync the proposed block...")
 	for idx, n := range nodes {
-		if isIntInSlice(idx, idxProposers) {
+		if IsIntInSlice(idx, idxProposers) {
 			continue
 		}
 
@@ -533,7 +533,8 @@ func SyncBlock(
 	fmt.Println(MakeDisplayTable(nodes))
 }
 
-func isIntInSlice(idx int, slice []int) bool {
+// IsIntInSlice returns true if idx is found on any position in the provided slice
+func IsIntInSlice(idx int, slice []int) bool {
 	for _, value := range slice {
 		if value == idx {
 			return true
@@ -1000,4 +1001,79 @@ func generateValidTx(
 	txHash := TestHasher.Compute(string(txBuff))
 
 	return tx, txHash
+}
+
+func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
+	txPool := dataPool.Transactions()
+	if txPool == nil {
+		return 0
+	}
+
+	sumTxs := 0
+
+	for i := uint32(0); i < nrShards; i++ {
+		strCache := process.ShardCacherIdentifier(i, dstShardId)
+		txStore := txPool.ShardDataStore(strCache)
+		if txStore == nil {
+			continue
+		}
+		sumTxs += txStore.Len()
+	}
+
+	return sumTxs
+}
+
+func ProposeAndSyncBlocks(
+	t *testing.T,
+	numInTxs int,
+	nodes []*TestProcessorNode,
+	idxProposers []int,
+	round uint64,
+) uint64 {
+
+	// propose and sync block until all the transaction pools are empty
+	// if there are many transactions, they might not fit into the block body in only one round
+	for numTxsInPool := numInTxs; numTxsInPool != 0; {
+		round = ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
+
+		for _, idProposer := range idxProposers {
+			proposerNode := nodes[idProposer]
+			numTxsInPool = GetNumTxsWithDst(
+				proposerNode.ShardCoordinator.SelfId(),
+				proposerNode.ShardDataPool,
+				proposerNode.ShardCoordinator.NumberOfShards(),
+			)
+
+			if numTxsInPool > 0 {
+				break
+			}
+		}
+	}
+
+	if nodes[0].ShardCoordinator.NumberOfShards() == 1 {
+		return round
+	}
+
+	// cross shard smart contract call is first processed at sender shard, notarized by metachain, processed at
+	// shard with smart contract, smart contract result is notarized by metachain, then finally processed at the
+	// sender shard
+	numberToPropagateToEveryShard := 5
+	for i := 0; i < numberToPropagateToEveryShard; i++ {
+		round = ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
+	}
+
+	return round
+}
+
+func ProposeAndSyncOneBlock(
+	t *testing.T,
+	nodes []*TestProcessorNode,
+	idxProposers []int,
+	round uint64,
+) uint64 {
+	ProposeBlock(nodes, idxProposers, round)
+	SyncBlock(t, nodes, idxProposers, round)
+	round = IncrementAndPrintRound(round)
+
+	return round
 }
