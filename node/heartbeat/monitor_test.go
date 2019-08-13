@@ -347,3 +347,71 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 	assert.Equal(t, uint32(1), hbStatus[0].ShardID)
 	assert.Equal(t, 1, len(hbStatus))
 }
+
+func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
+	t.Parallel()
+
+	pubKey1 := "pk1"
+	pubKey2 := "pk2"
+
+	mon, _ := heartbeat.NewMonitor(
+		&mock.SinglesignStub{
+			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+				return nil
+			},
+		},
+		&mock.KeyGenMock{
+			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
+				return nil, nil
+			},
+		},
+		&mock.MarshalizerMock{
+			UnmarshalHandler: func(obj interface{}, buff []byte) error {
+				var rcvdHb heartbeat.Heartbeat
+				_ = json.Unmarshal(buff, &rcvdHb)
+				(obj.(*heartbeat.Heartbeat)).Pubkey = rcvdHb.Pubkey
+				(obj.(*heartbeat.Heartbeat)).ShardID = rcvdHb.ShardID
+				return nil
+			},
+		},
+		time.Millisecond*5,
+		[]string{pubKey1, pubKey2},
+	)
+
+	// First send from pk1
+	err := sendHbMessageFromPubKey(pubKey1, mon)
+	assert.Nil(t, err)
+
+	// Send from pk2
+	err = sendHbMessageFromPubKey(pubKey2, mon)
+	assert.Nil(t, err)
+
+	// set pk2 to inactive as max inactive time is lower
+	time.Sleep(6 * time.Millisecond)
+
+	// Check that both are added
+	hbStatus := mon.GetHeartbeats()
+	assert.Equal(t, 2, len(hbStatus))
+
+	// Now send a message from pk1 in order to see that pk2 is not active anymore
+	err = sendHbMessageFromPubKey(pubKey1, mon)
+	assert.Nil(t, err)
+
+	time.Sleep(5 * time.Millisecond)
+
+	hbStatus = mon.GetHeartbeats()
+
+	// check if pk1 is still on
+	assert.True(t, hbStatus[0].IsActive)
+	// check if pk2 was set to offline by pk1
+	assert.False(t, hbStatus[1].IsActive)
+}
+
+func sendHbMessageFromPubKey(pubKey string, mon *heartbeat.Monitor) error {
+	hb := &heartbeat.Heartbeat{
+		Pubkey: []byte(pubKey),
+	}
+	buffToSend, _ := json.Marshal(hb)
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend})
+	return err
+}

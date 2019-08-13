@@ -11,7 +11,6 @@ type Heartbeat struct {
 	Signature       []byte
 	ShardID         uint32
 	VersionNumber   string
-	IsValidator     bool
 	NodeDisplayName string
 }
 
