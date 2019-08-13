@@ -16,7 +16,7 @@ import (
 const refreshInterval = time.Second
 
 //maxLogLines is used to specify how many lines of logs need to store in slice
-const maxLogLines = 50
+const maxLogLines = 100
 
 // TermuiConsole data where is store data from handler
 type TermuiConsole struct {
@@ -24,7 +24,7 @@ type TermuiConsole struct {
 	logLines             []string
 	mutLogLineWrite      sync.RWMutex
 	consoleRender        TermuiRender
-	grid                 *ui.Grid
+	grid                 *termuiRenders.DrawableContainer
 }
 
 //NewTermuiConsole method is used to return a new TermuiConsole structure
@@ -73,8 +73,8 @@ func (tc *TermuiConsole) Start() error {
 
 func (tc *TermuiConsole) eventLoop() {
 
-	tc.grid = ui.NewGrid()
-	tc.consoleRender = termuiRenders.NewWidgetsRender(tc.termuiConsoleMetrics, tc.grid)
+	tc.grid = termuiRenders.NewDrawableContainer()
+	tc.consoleRender = termuiRenders.NewWidgetsRender2(tc.termuiConsoleMetrics, tc.grid)
 
 	termWidth, termHeight := ui.TerminalDimensions()
 	tc.grid.SetRect(0, 0, termWidth, termHeight)
@@ -92,8 +92,8 @@ func (tc *TermuiConsole) eventLoop() {
 		select {
 		case <-drawTicker:
 			tc.consoleRender.RefreshData(tc.logLines)
-
-			ui.Render(tc.grid)
+			ui.Clear()
+			ui.Render(tc.grid.GetTopLeft(), tc.grid.GetTopRight(), tc.grid.GetBottom())
 
 		case <-sigTerm:
 			ui.Clear()
@@ -111,9 +111,9 @@ func (tc *TermuiConsole) processUiEvents(e ui.Event) {
 		payload := e.Payload.(ui.Resize)
 		tc.grid.SetRect(0, 0, payload.Width, payload.Height)
 		ui.Clear()
-		ui.Render(tc.grid)
-	case "q":
-		tc.changeConsoleDisplay()
+		ui.Render(tc.grid.GetTopLeft(), tc.grid.GetTopRight(), tc.grid.GetBottom())
+	//case "q":
+	//	tc.changeConsoleDisplay()
 
 	case "<C-c>":
 		ui.Close()
@@ -123,17 +123,18 @@ func (tc *TermuiConsole) processUiEvents(e ui.Event) {
 }
 
 func (tc *TermuiConsole) changeConsoleDisplay() {
-	tc.grid = ui.NewGrid()
+	tc.grid = termuiRenders.NewDrawableContainer()
 
 	if _, ok := tc.consoleRender.(*termuiRenders.LogRender); ok {
-		tc.consoleRender = termuiRenders.NewWidgetsRender(tc.termuiConsoleMetrics, tc.grid)
+		tc.consoleRender = termuiRenders.NewWidgetsRender2(tc.termuiConsoleMetrics, tc.grid)
 	} else {
-		tc.consoleRender = termuiRenders.NewLogRender(tc.grid)
+		bottomGrid := tc.grid.GetBottom()
+		tc.consoleRender = termuiRenders.NewLogRender(bottomGrid.(*ui.Grid))
 	}
 
 	termWidth, termHeight := ui.TerminalDimensions()
 	tc.grid.SetRect(0, 0, termWidth, termHeight)
 
 	ui.Clear()
-	ui.Render(tc.grid)
+	ui.Render(tc.grid.GetTopLeft(), tc.grid.GetTopRight(), tc.grid.GetBottom())
 }
