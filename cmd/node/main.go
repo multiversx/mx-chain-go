@@ -523,7 +523,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
 
-	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKey, factory.GetPkEncoded(pubKey))
+	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyTxSign, factory.GetPkEncoded(pubKey))
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricShardId, uint64(shardCoordinator.SelfId()))
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)

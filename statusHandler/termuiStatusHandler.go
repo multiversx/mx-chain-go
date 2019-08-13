@@ -38,19 +38,29 @@ func (tsh *TermuiStatusHandler) Termui() *termuic.TermuiConsole {
 func (tsh *TermuiStatusHandler) initMetricsMap() {
 	tsh.termuiConsoleMetrics = &sync.Map{}
 
-	tsh.termuiConsoleMetrics.Store(core.MetricNonce, uint64(0))
-	tsh.termuiConsoleMetrics.Store(core.MetricCurrentRound, int64(0))
-	tsh.termuiConsoleMetrics.Store(core.MetricIsSyncing, uint64(0))
-	tsh.termuiConsoleMetrics.Store(core.MetricNumConnectedPeers, int64(0))
-	tsh.termuiConsoleMetrics.Store(core.MetricSynchronizedRound, uint64(0))
-
-	tsh.termuiConsoleMetrics.Store(core.MetricPublicKey, "")
+	tsh.termuiConsoleMetrics.Store(core.MetricPublicKeyTxSign, "")
+	tsh.termuiConsoleMetrics.Store(core.MetricPublicKeyBlockSign, "")
 	tsh.termuiConsoleMetrics.Store(core.MetricShardId, uint64(0))
-	tsh.termuiConsoleMetrics.Store(core.MetricTxPoolLoad, int64(0))
 
+	tsh.termuiConsoleMetrics.Store(core.MetricNodeType, "")
 	tsh.termuiConsoleMetrics.Store(core.MetricCountConsensus, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricCountLeader, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricCountAcceptedBlocks, uint64(0))
+
+	tsh.termuiConsoleMetrics.Store(core.MetricIsSyncing, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricNonce, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricProbableHighestNonce, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricCurrentRound, int64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricSynchronizedRound, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricRoundTime, int64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricLiveValidatorNodes, int64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricNumConnectedPeers, int64(0))
+
+	tsh.termuiConsoleMetrics.Store(core.MetricCpuLoadPercent, int64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricMemLoadPercent, int64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricNetworkLoadPercent, int64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricTxPoolLoad, int64(0))
+
 }
 
 // SetInt64Value method - will update the value for a key
