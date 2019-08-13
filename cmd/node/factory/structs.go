@@ -344,12 +344,12 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 		return nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
-	currentShardPubKeys, err := args.nodesConfig.InitialNodesPubKeysForShard(args.shardCoordinator.SelfId())
+	currentShardNodesPubKeys, err := args.nodesConfig.InitialNodesPubKeysForShard(args.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, errors.New("could not start creation of multiSigner: " + err.Error())
 	}
 
-	multiSigner, err := createMultiSigner(args.config, multisigHasher, currentShardPubKeys, args.privKey, args.keyGen)
+	multiSigner, err := createMultiSigner(args.config, multisigHasher, currentShardNodesPubKeys, args.privKey, args.keyGen)
 	if err != nil {
 		return nil, err
 	}

@@ -744,14 +744,13 @@ func createNodesCoordinator(
 	nbShards := nodesConfig.NumberOfShards()
 	shardConsensusGroupSize := int(nodesConfig.MetaChainConsensusGroupSize)
 	metaConsensusGroupSize := int(nodesConfig.ConsensusGroupSize)
-	initNodesPubKeys := nodesConfig.InitialNodesPubKeys()
+	initNodesInfo := nodesConfig.InitialNodesInfo()
 	initValidators := make(map[uint32][]sharding.Validator)
 
-	for shardId, pubKeyList := range initNodesPubKeys {
+	for shardId, nodeInfoList := range initNodesInfo {
 		validators := make([]sharding.Validator, 0)
-		for _, pubKey := range pubKeyList {
-			// TODO: the stake needs to be associated to the staking account
-			validator, err := sharding.NewValidator(big.NewInt(0), 0, []byte(pubKey))
+		for _, nodeInfo := range nodeInfoList {
+			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
 			if err != nil {
 				return nil, err
 			}
