@@ -7,8 +7,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHuIRVZn+QFnCBlE=
 github.com/ElrondNetwork/concurrent-map v0.1.2/go.mod h1:3XwSwn4JHI0lrKxWLZvtp53Emr8BXYTmNQGwcukHJEE=
-github.com/ElrondNetwork/elrond-vm v0.0.14 h1:yHNqjurqHhlELIBg+OhiagoaZIYhdInOvKNdnmdKnHw=
-github.com/ElrondNetwork/elrond-vm v0.0.14/go.mod h1:azik/Nvb92eJP4ttXHtXfWKLG1zlFMaqZGdJgefJ7mM=
+github.com/ElrondNetwork/elrond-vm v0.0.15 h1:45J+/wyD3YoOqkuImqmlaZuX7YtXIM9hK1aC2ofW8CY=
+github.com/ElrondNetwork/elrond-vm v0.0.15/go.mod h1:azik/Nvb92eJP4ttXHtXfWKLG1zlFMaqZGdJgefJ7mM=
 github.com/ElrondNetwork/elrond-vm-common v0.0.5 h1:AOWJyMYDPtGbwsd2+BpDBYkEQE+QBvsKF0acozrNCko=
 github.com/ElrondNetwork/elrond-vm-common v0.0.5/go.mod h1:VqCCN0cX0e4D/KDc7MGNV9ElrOsfnjuJnGvcODVjzbk=
 github.com/ElrondNetwork/elrond-vm-common v0.0.6 h1:gYWWNCyjRQMy2GMNJ+p7MopJS11zi4pI2bPq0riDUvs=

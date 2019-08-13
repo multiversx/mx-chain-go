@@ -21,7 +21,7 @@ var agarioFile = "../agar_min_v1.hex"
 var stepDelay = time.Second
 
 func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRounds(t *testing.T) {
-	t.Skip("this is a stress test for VM and AGAR.IO")
+	//t.Skip("this is a stress test for VM and AGAR.IO")
 
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
@@ -44,7 +44,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	}
 
 	idxProposer := 0
-	numPlayers := 100
+	numPlayers := 1000
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
@@ -82,7 +82,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
 	round = integrationTests.IncrementAndPrintRound(round)
 
-	numRounds := 100
+	numRounds := 10
 	runMultipleRoundsOfTheGame(
 		t,
 		numRounds,
@@ -468,7 +468,11 @@ func runMultipleRoundsOfTheGame(
 		integrationTests.ProposeBlock(nodes, idxProposers, round)
 		elapsedTime := time.Since(startTime)
 		fmt.Printf("Block Created in %s\n", elapsedTime)
+		round = integrationTests.IncrementAndPrintRound(round)
 
 		fmt.Println(rMonitor.GenerateStatistics())
 	}
+
+	integrationTests.CheckRewardsDistribution(t, nodes, players, big.NewInt(0), big.NewInt(0),
+		hardCodedScResultingAddress, idxProposers[0])
 }
