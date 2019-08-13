@@ -450,32 +450,37 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	txSpaceRemained := int(maxTxSpaceRemained)
-	for i := 0; i < int(tc.shardCoordinator.NumberOfShards()); i++ {
-		if txSpaceRemained <= 0 {
-			break
-		}
+	newMBAdded := true
+	for newMBAdded == true {
+		newMBAdded = false
 
-		mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
-		if mbSpaceRemained <= 0 {
-			break
-		}
+		for i := 0; i < int(tc.shardCoordinator.NumberOfShards()); i++ {
+			if txSpaceRemained <= 0 {
+				break
+			}
 
-		miniBlock, err := txPreProc.CreateAndProcessMiniBlock(
-			tc.shardCoordinator.SelfId(),
-			uint32(i),
-			txSpaceRemained,
-			haveTime,
-			round)
-		if err != nil {
-			continue
-		}
+			mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
+			if mbSpaceRemained <= 0 {
+				break
+			}
 
-		if len(miniBlock.TxHashes) > 0 {
-			txSpaceRemained -= len(miniBlock.TxHashes)
-			miniBlocks = append(miniBlocks, miniBlock)
+			miniBlock, err := txPreProc.CreateAndProcessMiniBlock(
+				tc.shardCoordinator.SelfId(),
+				uint32(i),
+				txSpaceRemained,
+				haveTime,
+				round)
+			if err != nil {
+				continue
+			}
+
+			if len(miniBlock.TxHashes) > 0 {
+				txSpaceRemained -= len(miniBlock.TxHashes)
+				miniBlocks = append(miniBlocks, miniBlock)
+				newMBAdded = true
+			}
 		}
 	}
-
 	interMBs := tc.processAddedInterimTransactions()
 	if len(interMBs) > 0 {
 		miniBlocks = append(miniBlocks, interMBs...)
