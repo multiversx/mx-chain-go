@@ -2,7 +2,6 @@ package block
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"sort"
 	"sync"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
@@ -46,10 +46,13 @@ type shardProcessor struct {
 }
 
 // SetAppStatusHandler method is used to set appStatusHandler
-func (sp *shardProcessor) SetAppStatusHandler(handler core.AppStatusHandler) {
+func (sp *shardProcessor) SetAppStatusHandler(handler core.AppStatusHandler) error {
 	if handler != nil {
 		sp.appStatusHandler = handler
+
+		return nil
 	}
+	return process.ErrNilAppStatusHandler
 }
 
 // NewShardProcessor creates a new shardProcessor object

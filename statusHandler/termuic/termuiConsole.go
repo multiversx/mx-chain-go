@@ -1,23 +1,22 @@
 package termuic
 
 import (
-	"github.com/ElrondNetwork/elrond-go/statusHandler/termuic/termuiRenders"
 	"os"
 	"os/signal"
-	"runtime"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/statusHandler/termuic/termuiRenders"
 	ui "github.com/gizak/termui/v3"
 )
 
 //refreshInterval is used for a ticker that refresh termui console at a specific interval
 const refreshInterval = time.Second
 
-//numLogLines is used to specify how many lines of logs need to store in slice
-const numLogLines = 50
+//maxLogLines is used to specify how many lines of logs need to store in slice
+const maxLogLines = 50
 
 // TermuiConsole data where is store data from handler
 type TermuiConsole struct {
@@ -44,8 +43,8 @@ func (tc *TermuiConsole) Write(p []byte) (n int, err error) {
 		logLine = strings.Replace(logLine, "\r", "", len(logLine))
 
 		tc.mutLogLineWrite.Lock()
-		if len(tc.logLines) >= numLogLines {
-			tc.logLines = tc.logLines[1:numLogLines]
+		if len(tc.logLines) >= maxLogLines {
+			tc.logLines = tc.logLines[1:maxLogLines]
 		}
 		if logLine != "" {
 			tc.logLines = append(tc.logLines, logLine)
@@ -118,15 +117,7 @@ func (tc *TermuiConsole) processUiEvents(e ui.Event) {
 
 	case "<C-c>":
 		ui.Close()
-		if p, err := os.FindProcess(os.Getpid()); err != nil {
-			return
-		} else {
-			if runtime.GOOS == "windows" {
-				_ = p.Kill()
-			} else {
-				_ = p.Signal(syscall.SIGINT)
-			}
-		}
+		StopApplication()
 		return
 	}
 }

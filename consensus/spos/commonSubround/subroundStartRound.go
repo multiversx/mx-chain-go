@@ -76,10 +76,13 @@ func checkNewSubroundStartRoundParams(
 }
 
 // SetAppStatusHandler method set appStatusHandler
-func (sr *SubroundStartRound) SetAppStatusHandler(handler core.AppStatusHandler) {
+func (sr *SubroundStartRound) SetAppStatusHandler(handler core.AppStatusHandler) error {
 	if handler != nil {
 		sr.appStatusHandler = handler
+
+		return nil
 	}
+	return spos.ErrNilAppStatusHandler
 }
 
 // doStartRoundJob method does the job of the subround StartRound
@@ -178,9 +181,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 		//TODO: Should be analyzed if call of sr.broadcastUnnotarisedBlocks() is still necessary
 	}
 
-	if sr.appStatusHandler != nil {
-		sr.appStatusHandler.Increment(core.MetricCountConsensus)
-	}
+	sr.appStatusHandler.Increment(core.MetricCountConsensus)
 
 	//TODO rollback decrement
 

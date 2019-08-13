@@ -68,10 +68,13 @@ func checkNewFactoryParams(
 }
 
 // SetAppStatusHandler method set appStatusHandler
-func (fct *factory) SetAppStatusHandler(handler core.AppStatusHandler) {
+func (fct *factory) SetAppStatusHandler(handler core.AppStatusHandler) error {
 	if handler != nil {
 		fct.appStatusHandler = handler
+
+		return nil
 	}
+	return spos.ErrNilAppStatusHandler
 }
 
 // GenerateSubrounds will generate the subrounds used in Belare & Naveen Cns
@@ -339,6 +342,11 @@ func (fct *factory) generateEndRoundSubround() error {
 		subround,
 		fct.worker.Extend,
 	)
+	if err != nil {
+		return err
+	}
+
+	err = subroundEndRound.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}

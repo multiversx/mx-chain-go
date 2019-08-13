@@ -64,8 +64,13 @@ func checkNewFactoryParams(
 }
 
 // SetAppStatusHandler method set appStatusHandler
-func (fct *factory) SetAppStatusHandler(handler core.AppStatusHandler) {
-	fct.appStatusHandler = handler
+func (fct *factory) SetAppStatusHandler(handler core.AppStatusHandler) error {
+	if handler != nil {
+		fct.appStatusHandler = handler
+
+		return nil
+	}
+	return spos.ErrNilAppStatusHandler
 }
 
 // GenerateSubrounds will generate the subrounds used in BLS Cns
@@ -130,7 +135,10 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
-	subroundStartRound.SetAppStatusHandler(fct.appStatusHandler)
+	err = subroundStartRound.SetAppStatusHandler(fct.appStatusHandler)
+	if err != nil {
+		return err
+	}
 
 	fct.consensusCore.Chronology().AddSubround(subroundStartRound)
 
@@ -229,7 +237,10 @@ func (fct *factory) generateEndRoundSubround() error {
 		return err
 	}
 
-	subroundEndRound.SetAppStatusHandler(fct.appStatusHandler)
+	err = subroundEndRound.SetAppStatusHandler(fct.appStatusHandler)
+	if err != nil {
+		return err
+	}
 
 	fct.consensusCore.Chronology().AddSubround(subroundEndRound)
 

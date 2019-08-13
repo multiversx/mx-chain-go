@@ -25,14 +25,14 @@ func GetSubroundsFactory(
 	case blsConsensusType:
 		subRoundFactoryBls, err := bls.NewSubroundsFactory(consensusDataContainer, consensusState, worker)
 		if err == nil {
-			subRoundFactoryBls.SetAppStatusHandler(appStatusHandler)
+			_ = subRoundFactoryBls.SetAppStatusHandler(appStatusHandler)
 		}
 
 		return subRoundFactoryBls, err
 	case bnConsensusType:
 		subRoundFactoryBn, err := bn.NewSubroundsFactory(consensusDataContainer, consensusState, worker)
 		if err == nil {
-			subRoundFactoryBn.SetAppStatusHandler(appStatusHandler)
+			_ = subRoundFactoryBn.SetAppStatusHandler(appStatusHandler)
 		}
 
 		return subRoundFactoryBn, err

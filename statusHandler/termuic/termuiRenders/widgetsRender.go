@@ -5,12 +5,13 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 )
 
-const completRow = 1.0
-const completCol = 1.0
+const completeRow = 1.0
+const completeCol = 1.0
 
 const numLogLinesSmallLog = 10
 
@@ -70,71 +71,87 @@ func (wr *WidgetsRender) initWidgets() {
 }
 
 func (wr *WidgetsRender) setGrid() {
+
+	publicKeyHeight := completeRow / 7
+	syncInfoHeight := completeRow / 10
+	consensusInfoHeight := completeRow / 3
+	consensusInfoWidth := completeCol / 2
+	consensusRowInfoWidth := completeRow / 4
+	logHeight := completeRow / 3
+	txPoolLoadColWidth := completeCol / 2
+	txPoolLoadRowHeight := completeRow / 2
+	numConnectedPeersRowHeight := completeRow / 2
+
 	wr.grid.Set(
-		ui.NewRow(completRow/7, wr.pPublicKey),
-		ui.NewRow(completRow/10, wr.tSyncInfo),
-		ui.NewRow(completRow/3,
-			ui.NewCol(completCol/2,
-				ui.NewRow(completRow/4, wr.pShardId),
-				ui.NewRow(completRow/4, wr.pCountConsensus),
-				ui.NewRow(completRow/4, wr.pCountLeader),
-				ui.NewRow(completRow/4, wr.pCountAcceptedBlocks),
+		ui.NewRow(publicKeyHeight, wr.pPublicKey),
+		ui.NewRow(syncInfoHeight, wr.tSyncInfo),
+		ui.NewRow(consensusInfoHeight,
+			ui.NewCol(consensusInfoWidth,
+				ui.NewRow(consensusRowInfoWidth, wr.pShardId),
+				ui.NewRow(consensusRowInfoWidth, wr.pCountConsensus),
+				ui.NewRow(consensusRowInfoWidth, wr.pCountLeader),
+				ui.NewRow(consensusRowInfoWidth, wr.pCountAcceptedBlocks),
 			),
-			ui.NewCol(completCol/2,
-				ui.NewRow(completRow/2, wr.pTxPoolLoad),
-				ui.NewRow(completRow/2, wr.pNumConnectedPeers),
+			ui.NewCol(txPoolLoadColWidth,
+				ui.NewRow(txPoolLoadRowHeight, wr.pTxPoolLoad),
+				ui.NewRow(numConnectedPeersRowHeight, wr.pNumConnectedPeers),
 			),
 		),
-		ui.NewRow(completRow/3, wr.lLog),
+		ui.NewRow(logHeight, wr.lLog),
 	)
 }
 
 //RefreshData method is used to prepare data that are displayed on grid
 func (wr *WidgetsRender) RefreshData(logLines []string) {
-	nonceI, _ := wr.termuiConsoleMetrics.Load(core.MetricNonce)
-	nonce := nonceI.(int)
-
-	synchronizedRoundI, _ := wr.termuiConsoleMetrics.Load(core.MetricSynchronizedRound)
-	synchronizedRound := synchronizedRoundI.(int)
-
-	currentRoundI, _ := wr.termuiConsoleMetrics.Load(core.MetricCurrentRound)
-	currentRound := currentRoundI.(int)
-
-	isSyncingI, _ := wr.termuiConsoleMetrics.Load(core.MetricIsSyncing)
-	isSyncing := isSyncingI.(int)
-
-	wr.prepareSyncInfoForDisplay(nonce, currentRound, synchronizedRound, isSyncing)
-
-	publicKeyI, _ := wr.termuiConsoleMetrics.Load(core.MetricPublicKey)
-	publicKey := publicKeyI.(string)
-	wr.preparePublicKeyForDisplay(publicKey)
-
-	shardIdI, _ := wr.termuiConsoleMetrics.Load(core.MetricShardId)
-	shardId := shardIdI.(int)
-	wr.prepareShardIdForDisplay(shardId)
-
-	numConnectedPeersI, _ := wr.termuiConsoleMetrics.Load(core.MetricNumConnectedPeers)
-	numConnectedPeers := numConnectedPeersI.(int)
-
-	txPoolLoadI, _ := wr.termuiConsoleMetrics.Load(core.MetricTxPoolLoad)
-	txPoolLoad := txPoolLoadI.(int)
-	wr.prepareTxPoolLoadForDisplay(txPoolLoad)
-	wr.prepareNumConnectedPeersForDisplay(numConnectedPeers)
-
-	countConsensusI, _ := wr.termuiConsoleMetrics.Load(core.MetricCountConsensus)
-	countConsensus := countConsensusI.(int)
-
-	countLeaderI, _ := wr.termuiConsoleMetrics.Load(core.MetricCountLeader)
-	countLeader := countLeaderI.(int)
-
-	countAcceptedBlocksI, _ := wr.termuiConsoleMetrics.Load(core.MetricCountAcceptedBlocks)
-	countAcceptedBlocks := countAcceptedBlocksI.(int)
-
-	wr.prepareConsensusInformationsForDisplay(countConsensus, countLeader, countAcceptedBlocks)
-
+	wr.prepareSyncData()
+	wr.preparePkData()
+	wr.prepareShardIdData()
+	wr.prepareNumConnectedPeersData()
+	wr.prepareTxPoolLoadData()
+	wr.prepareConsensusDataForDisplay()
 	wr.prepareListWithLogsForDisplay(logLines)
 
 	return
+}
+
+func (wr *WidgetsRender) prepareSyncData() {
+	nonceI, _ := wr.termuiConsoleMetrics.Load(core.MetricNonce)
+	nonce := nonceI.(uint64)
+
+	synchronizedRoundI, _ := wr.termuiConsoleMetrics.Load(core.MetricSynchronizedRound)
+	synchronizedRound := synchronizedRoundI.(uint64)
+
+	currentRoundI, _ := wr.termuiConsoleMetrics.Load(core.MetricCurrentRound)
+	currentRound := currentRoundI.(int64)
+
+	isSyncingI, _ := wr.termuiConsoleMetrics.Load(core.MetricIsSyncing)
+	isSyncing := isSyncingI.(uint64)
+
+	wr.prepareSyncInfoForDisplay(nonce, currentRound, synchronizedRound, isSyncing)
+}
+
+func (wr *WidgetsRender) preparePkData() {
+	publicKeyI, _ := wr.termuiConsoleMetrics.Load(core.MetricPublicKey)
+	publicKey := publicKeyI.(string)
+	wr.preparePublicKeyForDisplay(publicKey)
+}
+
+func (wr *WidgetsRender) prepareShardIdData() {
+	shardIdI, _ := wr.termuiConsoleMetrics.Load(core.MetricShardId)
+	shardId := shardIdI.(uint64)
+	wr.prepareShardIdForDisplay(shardId)
+}
+
+func (wr *WidgetsRender) prepareNumConnectedPeersData() {
+	numConnectedPeersI, _ := wr.termuiConsoleMetrics.Load(core.MetricNumConnectedPeers)
+	numConnectedPeers := numConnectedPeersI.(int64)
+	wr.prepareNumConnectedPeersForDisplay(numConnectedPeers)
+}
+
+func (wr *WidgetsRender) prepareTxPoolLoadData() {
+	txPoolLoadI, _ := wr.termuiConsoleMetrics.Load(core.MetricTxPoolLoad)
+	txPoolLoad := txPoolLoadI.(int64)
+	wr.prepareTxPoolLoadForDisplay(txPoolLoad)
 }
 
 func (wr *WidgetsRender) prepareListWithLogsForDisplay(logData []string) {
@@ -146,6 +163,19 @@ func (wr *WidgetsRender) prepareListWithLogsForDisplay(logData []string) {
 	return
 }
 
+func (wr *WidgetsRender) prepareConsensusDataForDisplay() {
+	countConsensusI, _ := wr.termuiConsoleMetrics.Load(core.MetricCountConsensus)
+	countConsensus := countConsensusI.(uint64)
+
+	countLeaderI, _ := wr.termuiConsoleMetrics.Load(core.MetricCountLeader)
+	countLeader := countLeaderI.(uint64)
+
+	countAcceptedBlocksI, _ := wr.termuiConsoleMetrics.Load(core.MetricCountAcceptedBlocks)
+	countAcceptedBlocks := countAcceptedBlocksI.(uint64)
+
+	wr.prepareConsensusInformationsForDisplay(countConsensus, countLeader, countAcceptedBlocks)
+}
+
 func (wr *WidgetsRender) preparePublicKeyForDisplay(publicKey string) {
 	wr.pPublicKey.Title = fmt.Sprintf("PublicKey")
 	wr.pPublicKey.Text = fmt.Sprintf(publicKey)
@@ -153,10 +183,10 @@ func (wr *WidgetsRender) preparePublicKeyForDisplay(publicKey string) {
 	return
 }
 
-func (wr *WidgetsRender) prepareShardIdForDisplay(shardId int) {
+func (wr *WidgetsRender) prepareShardIdForDisplay(shardId uint64) {
 	//Check if node is in meta chain
 	//Node is in meta chain if shardId is equals with max uint32 value
-	if shardId == int(^uint32(0)) {
+	if shardId == uint64(sharding.MetachainShardId) {
 		wr.pShardId.Text = "ShardId: meta"
 	} else {
 		wr.pShardId.Text = fmt.Sprintf("ShardId: %v", shardId)
@@ -165,35 +195,35 @@ func (wr *WidgetsRender) prepareShardIdForDisplay(shardId int) {
 	return
 }
 
-func (wr *WidgetsRender) prepareTxPoolLoadForDisplay(txPoolLoad int) {
-	wr.pTxPoolLoad.Text = fmt.Sprintf("Tx pool load: %v", txPoolLoad)
+func (wr *WidgetsRender) prepareTxPoolLoadForDisplay(txPoolLoad int64) {
+	wr.pTxPoolLoad.Text = fmt.Sprintf("Number of tx in pool: %v", txPoolLoad)
 
 	return
 }
 
-func (wr *WidgetsRender) prepareNumConnectedPeersForDisplay(numConnectedPeers int) {
+func (wr *WidgetsRender) prepareNumConnectedPeersForDisplay(numConnectedPeers int64) {
 	wr.pNumConnectedPeers.Text = fmt.Sprintf("Num connected peers: %v", numConnectedPeers)
 
 	return
 }
 
-func (wr *WidgetsRender) prepareConsensusInformationsForDisplay(countConsensus int, countLeader int, acceptedBlocks int) {
+func (wr *WidgetsRender) prepareConsensusInformationsForDisplay(countConsensus uint64, countLeader uint64, acceptedBlocks uint64) {
 	wr.pCountConsensus.Text = fmt.Sprintf("Count consensus group: %v", countConsensus)
 	wr.pCountLeader.Text = fmt.Sprintf("Count leader: %v", countLeader)
-	wr.pCountAcceptedBlocks.Text = fmt.Sprintf("Accepted blocks: %v", acceptedBlocks)
+	wr.pCountAcceptedBlocks.Text = fmt.Sprintf("Number of accepted blocks: %v", acceptedBlocks)
 
 	return
 }
 
-func (wr *WidgetsRender) prepareSyncInfoForDisplay(nonce, currentRound, synchronizedRound, isSyncing int) {
+func (wr *WidgetsRender) prepareSyncInfoForDisplay(nonce uint64, currentRound int64, synchronizedRound, syncStatus uint64) {
 	isSyncingS := "Synchronized"
 	wr.tSyncInfo.TextStyle = ui.NewStyle(ui.ColorWhite)
 	wr.tSyncInfo.RowSeparator = true
 	wr.tSyncInfo.BorderStyle = ui.NewStyle(ui.ColorWhite)
 	wr.tSyncInfo.RowStyles[0] = ui.NewStyle(ui.ColorWhite, ui.ColorGreen, ui.ModifierBold)
 
-	if isSyncing == 1 {
-		isSyncingS = "IsSyncing"
+	if syncStatus == 1 {
+		isSyncingS = "Is syncing"
 		wr.tSyncInfo.RowStyles[0] = ui.NewStyle(ui.ColorWhite, ui.ColorRed, ui.ModifierBold)
 
 	}
@@ -207,6 +237,7 @@ func (wr *WidgetsRender) prepareSyncInfoForDisplay(nonce, currentRound, synchron
 	}
 }
 
+//TODO duplicate code next pull request refactor
 func (wr *WidgetsRender) prepareLogLines(logData []string) []string {
 	logDataLen := len(logData)
 

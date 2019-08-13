@@ -1375,7 +1375,7 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
-	blockProcessor.SetAppStatusHandler(core.StatusHandler)
+	_ = blockProcessor.SetAppStatusHandler(core.StatusHandler)
 
 	return blockProcessor, blockTracker, nil
 }

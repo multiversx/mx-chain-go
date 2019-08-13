@@ -30,7 +30,10 @@ func TestTermuiStatusHandler_TestIfMetricsAreInitialized(t *testing.T) {
 	termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
 
 	// check if nonce metric for example was initialized
-	_, err := termuiStatusHandler.GetTermuiMetricByKey(core.MetricNonce)
+	nonceI, err := termuiStatusHandler.GetTermuiMetricByKey(core.MetricNonce)
+	nonce := nonceI.(int)
+
+	assert.Equal(t, 0, nonce)
 	assert.Nil(t, err)
 }
 

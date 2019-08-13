@@ -199,7 +199,7 @@ VERSION:
 	}
 
 	//useTermui
-	useTermui = cli.BoolFlag{
+	useTermui = cli.BoolTFlag{
 		Name:  "use-termui",
 		Usage: "will change your terminal view with one more user-friendly",
 	}
@@ -505,7 +505,6 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 
 		termuiConsole := termuiStatusHandler.Termui()
-
 		err = log.ChangePrinterHookWriter(termuiConsole)
 		if err != nil {
 			return err
@@ -525,7 +524,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKey, factory.GetPkEncoded(pubKey))
-	coreComponents.StatusHandler.SetInt64Value(core.MetricShardId, int64(shardCoordinator.SelfId()))
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricShardId, uint64(shardCoordinator.SelfId()))
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
