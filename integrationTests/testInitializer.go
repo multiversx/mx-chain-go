@@ -482,7 +482,7 @@ func IncrementAndPrintRound(round uint64) uint64 {
 func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64) {
 	fmt.Println("All shards propose blocks...")
 	for idx, n := range nodes {
-		if !isIntInSlice(idx, idxProposers) {
+		if !IsIntInSlice(idx, idxProposers) {
 			continue
 		}
 
@@ -506,7 +506,7 @@ func SyncBlock(
 
 	fmt.Println("All other shard nodes sync the proposed block...")
 	for idx, n := range nodes {
-		if isIntInSlice(idx, idxProposers) {
+		if IsIntInSlice(idx, idxProposers) {
 			continue
 		}
 
@@ -521,7 +521,8 @@ func SyncBlock(
 	fmt.Println(MakeDisplayTable(nodes))
 }
 
-func isIntInSlice(idx int, slice []int) bool {
+// IsIntInSlice returns true if idx is found on any position in the provided slice
+func IsIntInSlice(idx int, slice []int) bool {
 	for _, value := range slice {
 		if value == idx {
 			return true
