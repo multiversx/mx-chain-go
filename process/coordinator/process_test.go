@@ -2,7 +2,9 @@ package coordinator
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"math/big"
 	"reflect"
@@ -837,11 +839,16 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 
 	assert.Equal(t, 0, len(mbs))
 }
-
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing.T) {
 	t.Parallel()
+
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	tdp := initDataPool([]byte("tx_hash1"))
+	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return txPool
+	}
 	nrShards := uint32(5)
+
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(nrShards),
 		&mock.AccountsStub{},
@@ -859,17 +866,88 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 		return true
 	}
 
+	marshalizer := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
+	for i := uint32(0); i < nrShards; i++ {
+		strCache := process.ShardCacherIdentifier(0, i)
+		newTx := &transaction.Transaction{GasLimit: uint64(i)}
+
+		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
+		txPool.AddData(txHash, newTx, strCache)
+	}
+
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, int(nrShards), len(mbs))
 }
 
+func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMiniblocks(t *testing.T) {
+	t.Parallel()
+
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	tdp := initDataPool([]byte("tx_hash1"))
+	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return txPool
+	}
+	nrShards := uint32(5)
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(nrShards),
+		&mock.AccountsStub{},
+		tdp,
+		&mock.RequestHandlerMock{},
+		createPreProcessorContainerWithDataPool(tdp),
+		&mock.InterimProcessorContainerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	maxTxRemaining := uint32(15000)
+	maxMbRemaining := uint32(15000)
+	haveTime := func() bool {
+		return true
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
+
+	sndShardId := uint32(0)
+	dstShardId := uint32(1)
+	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+
+	numTxsToAdd := 5
+	gasLimit := process.MaxAddedGasLimitInMiniblock / uint64(numTxsToAdd)
+
+	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	addedTxs := make([]*transaction.Transaction, 0)
+
+	allTxs := 100
+	for i := 0; i < allTxs; i++ {
+		newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
+
+		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
+		txPool.AddData(txHash, newTx, strCache)
+
+		addedTxs = append(addedTxs, newTx)
+	}
+
+	// we have one tx per shard.
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
+
+	assert.Equal(t, allTxs/numTxsToAdd, len(mbs))
+}
+
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	t.Parallel()
 
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	tdp := initDataPool([]byte("tx_hash1"))
+	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return txPool
+	}
 	nrShards := uint32(5)
+
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(nrShards),
 		&mock.AccountsStub{},
@@ -890,11 +968,22 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	haveTime := func() bool {
 		return true
 	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
+	for i := uint32(0); i < nrShards; i++ {
+		strCache := process.ShardCacherIdentifier(0, i)
+		newTx := &transaction.Transaction{GasLimit: uint64(i)}
+
+		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
+		txPool.AddData(txHash, newTx, strCache)
+	}
+
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
 	assert.Equal(t, int(nrShards), len(mbs))
 
 	usedTxs = tc.GetAllCurrentUsedTxs(block.TxBlock)
-	assert.Equal(t, 1, len(usedTxs))
+	assert.Equal(t, 5, len(usedTxs))
 }
 
 func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
