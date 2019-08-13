@@ -419,7 +419,7 @@ func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 
 	acnt1.Nonce = 6
 
-	err = execTx.CheckTxValues(acnt1, big.NewInt(0), 7)
+	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 7}, acnt1)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -434,7 +434,7 @@ func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
 
 	acnt1.Nonce = 6
 
-	err = execTx.CheckTxValues(acnt1, big.NewInt(0), 5)
+	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 5}, acnt1)
 	assert.Equal(t, process.ErrLowerNonceInTransaction, err)
 }
 
@@ -449,7 +449,7 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 
 	acnt1.Balance = big.NewInt(67)
 
-	err = execTx.CheckTxValues(acnt1, big.NewInt(68), 0)
+	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(68)}, acnt1)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
 }
 
@@ -464,7 +464,7 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 
 	acnt1.Balance = big.NewInt(67)
 
-	err = execTx.CheckTxValues(acnt1, big.NewInt(67), 0)
+	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(67)}, acnt1)
 	assert.Nil(t, err)
 }
 

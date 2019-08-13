@@ -349,12 +349,21 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 
 // taking money from sender, as VM might not have access to him because of state sharding
 func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
+	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+		// transaction was already done at sender shard
+		return nil
+	}
+
+	err := acntSnd.SetNonceWithJournal(acntSnd.GetNonce() + 1)
+	if err != nil {
+		return err
+	}
+
 	cost := big.NewInt(0)
 	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
 	cost = cost.Add(cost, tx.Value)
 
-	if acntSnd == nil || acntSnd.IsInterfaceNil() {
-		// transaction was already done at sender shard
+	if cost.Cmp(big.NewInt(0)) == 0 {
 		return nil
 	}
 
@@ -363,17 +372,8 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 		return process.ErrWrongTypeAssertion
 	}
 
-	if stAcc.Balance.Cmp(cost) < 0 {
-		return process.ErrInsufficientFunds
-	}
-
 	totalCost := big.NewInt(0)
-	err := stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, cost))
-	if err != nil {
-		return err
-	}
-
-	err = stAcc.SetNonceWithJournal(stAcc.GetNonce() + 1)
+	err = stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, cost))
 	if err != nil {
 		return err
 	}
