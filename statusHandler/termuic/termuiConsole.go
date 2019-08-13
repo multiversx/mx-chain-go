@@ -112,8 +112,8 @@ func (tc *TermuiConsole) processUiEvents(e ui.Event) {
 		tc.grid.SetRect(0, 0, payload.Width, payload.Height)
 		ui.Clear()
 		ui.Render(tc.grid.GetTopLeft(), tc.grid.GetTopRight(), tc.grid.GetBottom())
-	case "q":
-		tc.changeConsoleDisplay()
+	//case "q":
+	//	tc.changeConsoleDisplay()
 
 	case "<C-c>":
 		ui.Close()

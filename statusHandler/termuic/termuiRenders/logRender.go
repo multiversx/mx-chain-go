@@ -26,7 +26,7 @@ func NewLogRender(grid *ui.Grid) *LogRender {
 	return self
 }
 
-//RefreshData method is used to prepare data that are displayed on grid
+//RefreshData method is used to prepare data that are displayed on container
 func (lr *LogRender) RefreshData(logData []string) {
 	lr.lLog.Title = "Log info"
 	lr.lLog.Rows = lr.prepareLogLines(logData)

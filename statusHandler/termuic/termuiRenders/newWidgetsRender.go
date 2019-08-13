@@ -15,7 +15,7 @@ const numLogLinesSmallLog = 10
 
 //WidgetsRender will define termui widgets that need to display a termui console
 type WidgetsRender2 struct {
-	grid         *DrawableContainer
+	container    *DrawableContainer
 	lLog         *widgets.List
 	canvas       *ui.Canvas
 	instanceInfo *widgets.Paragraph
@@ -37,7 +37,7 @@ type WidgetsRender2 struct {
 func NewWidgetsRender2(metricData *sync.Map, grid *DrawableContainer) *WidgetsRender2 {
 	self := &WidgetsRender2{
 		termuiConsoleMetrics: metricData,
-		grid:                 grid,
+		container:            grid,
 	}
 	self.initWidgets()
 	self.setGrid()
@@ -87,12 +87,12 @@ func (wr *WidgetsRender2) setGrid() {
 	gridBottom := ui.NewGrid()
 	gridBottom.Set(ui.NewRow(1.0, wr.lLog))
 
-	wr.grid.SetTopLeft(gridLeft)
-	wr.grid.SetTopRight(gridRight)
-	wr.grid.SetBottom(gridBottom)
+	wr.container.SetTopLeft(gridLeft)
+	wr.container.SetTopRight(gridRight)
+	wr.container.SetBottom(gridBottom)
 }
 
-//RefreshData method is used to prepare data that are displayed on grid
+//RefreshData method is used to prepare data that are displayed on container
 func (wr *WidgetsRender2) RefreshData(logLines []string) {
 	title, rows := wr.prepareInstanceInfo()
 	wr.instanceInfo.Title = title
@@ -182,6 +182,10 @@ func (wr *WidgetsRender2) prepareChainInfo() (string, string) {
 	currentRound := currentRoundI.(int64)
 	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("Current consensus round: %v/%v", synchronizedRound, currentRound))
 
+	consensusRoundTimeI, _ := wr.termuiConsoleMetrics.Load(core.MetricRoundTime)
+	consensusRoundTime := consensusRoundTimeI.(uint64)
+	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("Consensus round time: %vs", consensusRoundTime))
+
 	rows = fmt.Sprintf("%s\n", rows)
 
 	numLiveNodesI, _ := wr.termuiConsoleMetrics.Load(core.MetricLiveValidatorNodes)
@@ -238,23 +242,23 @@ func (wr *WidgetsRender2) prepareLogLines(logData []string, size int) []string {
 
 func (wr *WidgetsRender2) prepareLoads() {
 	cpuLoadPercentI, _ := wr.termuiConsoleMetrics.Load(core.MetricCpuLoadPercent)
-	cpuLoadPercent := cpuLoadPercentI.(int64)
+	cpuLoadPercent := cpuLoadPercentI.(uint64)
 	wr.cpuLoad.Title = "CPU Load"
 	wr.cpuLoad.Percent = int(cpuLoadPercent)
 
 	memLoadPercentI, _ := wr.termuiConsoleMetrics.Load(core.MetricMemLoadPercent)
-	memLoadPercent := memLoadPercentI.(int64)
+	memLoadPercent := memLoadPercentI.(uint64)
 	wr.memoryLoad.Title = "Memory Load"
 	wr.memoryLoad.Percent = int(memLoadPercent)
 
 	networkLoadPercentI, _ := wr.termuiConsoleMetrics.Load(core.MetricNetworkLoadPercent)
-	networkLoadPercent := networkLoadPercentI.(int64)
+	networkLoadPercent := networkLoadPercentI.(uint64)
 	wr.networkLoad.Title = "Network Load"
 	wr.networkLoad.Percent = int(networkLoadPercent)
 
 	txPoolLoadI, _ := wr.termuiConsoleMetrics.Load(core.MetricTxPoolLoad)
-	txPoolLoad := txPoolLoadI.(int64)
+	txPoolLoad := txPoolLoadI.(uint64)
 	wr.txPoolLoad.Title = "Transation Pool Load"
 	wr.txPoolLoad.Percent = int(txPoolLoad)
-	wr.txPoolLoad.Percent = 65
+	wr.txPoolLoad.Percent = int(txPoolLoad)
 }
