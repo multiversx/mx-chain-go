@@ -318,6 +318,8 @@ func createNetNode(
 	)
 
 	_ = blkc.SetGenesisHeader(genesisBlocks[shardCoordinator.SelfId()])
+	genisisHeaderM, _ := testMarshalizer.Marshal(blkc.GenesisHeader)
+	blkc.SetGenesisHeaderHash(testHasher.Compute(string(genisisHeaderM)))
 
 	n, err := node.NewNode(
 		node.WithMessenger(messenger),
@@ -591,7 +593,9 @@ func createTestMetaChain() data.ChainHandler {
 		badBlockCache,
 	)
 	metaChain.GenesisBlock = &dataBlock.MetaBlock{}
+	genisisHeaderM, _ := testMarshalizer.Marshal(metaChain.GenesisBlock)
 
+	metaChain.SetGenesisHeaderHash(testHasher.Compute(string(genisisHeaderM)))
 	return metaChain
 }
 
@@ -706,6 +710,8 @@ func createMetaNetNode(
 	)
 
 	_ = tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])
+	genisisHeaderM, _ := testMarshalizer.Marshal(genesisBlocks[sharding.MetachainShardId])
+	tn.blkc.SetGenesisHeaderHash(testHasher.Compute(string(genisisHeaderM)))
 
 	tn.blkProcessor = blkProc
 

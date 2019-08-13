@@ -1814,7 +1814,6 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 		Nonce:         1,
 		Round:         1,
 		PubKeysBitmap: []byte("0100101"),
-		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		RootHash:      rootHash,
 	}
@@ -1870,7 +1869,6 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		Nonce:         1,
 		Round:         1,
 		PubKeysBitmap: []byte("0100101"),
-		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		RootHash:      rootHash,
 	}
@@ -1947,7 +1945,6 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 		Nonce:         1,
 		Round:         1,
 		PubKeysBitmap: []byte("0100101"),
-		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		RootHash:      rootHash,
 	}
@@ -2022,7 +2019,6 @@ func TestShardProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		Nonce:         1,
 		Round:         1,
 		PubKeysBitmap: []byte("0100101"),
-		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		RootHash:      rootHash,
 	}
@@ -2091,7 +2087,6 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		Nonce:         1,
 		Round:         1,
 		PubKeysBitmap: []byte("0100101"),
-		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		RootHash:      rootHash,
 	}
