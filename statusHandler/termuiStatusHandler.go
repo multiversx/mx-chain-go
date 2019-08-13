@@ -44,7 +44,7 @@ func (tsh *TermuiStatusHandler) initMetricsMap() {
 	tsh.termuiConsoleMetrics.Store(core.MetricNumConnectedPeers, int64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricSynchronizedRound, uint64(0))
 
-	tsh.termuiConsoleMetrics.Store(core.MetricPublicKey, "")
+	tsh.termuiConsoleMetrics.Store(core.MetricPublicKeyBlockSign, "")
 	tsh.termuiConsoleMetrics.Store(core.MetricShardId, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricTxPoolLoad, int64(0))
 

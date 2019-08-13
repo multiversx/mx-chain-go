@@ -131,7 +131,7 @@ func (wr *WidgetsRender) prepareSyncData() {
 }
 
 func (wr *WidgetsRender) preparePkData() {
-	publicKeyI, _ := wr.termuiConsoleMetrics.Load(core.MetricPublicKey)
+	publicKeyI, _ := wr.termuiConsoleMetrics.Load(core.MetricPublicKeyBlockSign)
 	publicKey := publicKeyI.(string)
 	wr.preparePublicKeyForDisplay(publicKey)
 }
@@ -186,7 +186,7 @@ func (wr *WidgetsRender) preparePublicKeyForDisplay(publicKey string) {
 func (wr *WidgetsRender) prepareShardIdForDisplay(shardId uint64) {
 	//Check if node is in meta chain
 	//Node is in meta chain if shardId is equals with max uint32 value
-	if shardId == uint64(sharding.MetachainShardId) {
+	if uint32(shardId) == sharding.MetachainShardId {
 		wr.pShardId.Text = "ShardId: meta"
 	} else {
 		wr.pShardId.Text = fmt.Sprintf("ShardId: %v", shardId)

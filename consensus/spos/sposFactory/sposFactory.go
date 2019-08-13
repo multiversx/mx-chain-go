@@ -24,18 +24,28 @@ func GetSubroundsFactory(
 	switch consensusType {
 	case blsConsensusType:
 		subRoundFactoryBls, err := bls.NewSubroundsFactory(consensusDataContainer, consensusState, worker)
-		if err == nil {
-			_ = subRoundFactoryBls.SetAppStatusHandler(appStatusHandler)
+		if err != nil {
+			return nil, err
 		}
 
-		return subRoundFactoryBls, err
+		err = subRoundFactoryBls.SetAppStatusHandler(appStatusHandler)
+		if err != nil {
+			return nil, err
+		}
+
+		return subRoundFactoryBls, nil
 	case bnConsensusType:
 		subRoundFactoryBn, err := bn.NewSubroundsFactory(consensusDataContainer, consensusState, worker)
-		if err == nil {
-			_ = subRoundFactoryBn.SetAppStatusHandler(appStatusHandler)
+		if err != nil {
+			return nil, err
 		}
 
-		return subRoundFactoryBn, err
+		err = subRoundFactoryBn.SetAppStatusHandler(appStatusHandler)
+		if err != nil {
+			return nil, err
+		}
+
+		return subRoundFactoryBn, nil
 	}
 
 	return nil, ErrInvalidConsensusType

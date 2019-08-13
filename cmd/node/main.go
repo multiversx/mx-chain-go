@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -429,7 +430,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		generalConfig.GeneralSettings.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
 	}
 
-	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
+	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
 	}
@@ -523,8 +524,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
 
-	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKey, factory.GetPkEncoded(pubKey))
+	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricShardId, uint64(shardCoordinator.SelfId()))
+	coreComponents.StatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricRoundTime, nodesConfig.RoundDuration/1000)
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -547,6 +550,9 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		"AppVersion", version,
 		"OsVersion", "TestOs",
 	)
+
+	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
+	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
 
 	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
 	log.LogIfError(err)
@@ -619,11 +625,19 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	err = startStatusPolling(currentNode.GetAppStatusHandler(), generalConfig.GeneralSettings.StatusPollingIntervalSec,
-		networkComponents)
-
+	err = startStatusPolling(
+		currentNode.GetAppStatusHandler(),
+		generalConfig.GeneralSettings.StatusPollingIntervalSec,
+		networkComponents,
+		processComponents,
+	)
 	if err != nil {
 		log.Info("Error creating status polling: ", err)
+	}
+
+	_, err = machine.NewMachineStatistics(coreComponents.StatusHandler, time.Second)
+	if err != nil {
+		return err
 	}
 
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
@@ -670,7 +684,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	return nil
 }
 
-func startStatusPolling(ash core.AppStatusHandler, pollingInterval int, networkComponents *factory.Network) error {
+func startStatusPolling(
+	ash core.AppStatusHandler,
+	pollingInterval int,
+	networkComponents *factory.Network,
+	processComponents *factory.Process,
+) error {
+
 	if ash == nil {
 		return errors.New("nil AppStatusHandler")
 	}
@@ -681,17 +701,53 @@ func startStatusPolling(ash core.AppStatusHandler, pollingInterval int, networkC
 		return errors.New("cannot init AppStatusPolling")
 	}
 
+	err = registerPollConnectedPeers(appStatusPollingHandler, networkComponents)
+	if err != nil {
+		return err
+	}
+
+	err = registerPollProbableHighestNonce(appStatusPollingHandler, processComponents)
+	if err != nil {
+		return err
+	}
+
+	appStatusPollingHandler.Poll()
+
+	return nil
+}
+
+func registerPollConnectedPeers(
+	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
+	networkComponents *factory.Network,
+) error {
+
 	numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
 		numOfConnectedPeers := int64(len(networkComponents.NetMessenger.ConnectedAddresses()))
 		appStatusHandler.SetInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
 	}
-	err = appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
 
+	err := appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
 	if err != nil {
 		return errors.New("cannot register handler func for num of connected peers")
 	}
 
-	appStatusPollingHandler.Poll()
+	return nil
+}
+
+func registerPollProbableHighestNonce(
+	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
+	processComponents *factory.Process,
+) error {
+
+	probableHighestNonceHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
+		probableHigherNonce := processComponents.ForkDetector.ProbableHighestNonce()
+		appStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, probableHigherNonce)
+	}
+
+	err := appStatusPollingHandler.RegisterPollingFunc(probableHighestNonceHandlerFunc)
+	if err != nil {
+		return errors.New("cannot register handler func for forkdetector's probable higher nonce")
+	}
 
 	return nil
 }
@@ -752,25 +808,27 @@ func createShardCoordinator(
 	pubKey crypto.PublicKey,
 	settingsConfig config.GeneralSettingsConfig,
 	log *logger.Logger,
-) (shardCoordinator sharding.Coordinator,
-	err error) {
+) (sharding.Coordinator, core.NodeType, error) {
+
 	if pubKey == nil {
-		return nil, errors.New("nil public key, could not create shard coordinator")
+		return nil, "", errors.New("nil public key, could not create shard coordinator")
 	}
 
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
+	nodeType := core.NodeTypeValidator
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
+		nodeType = core.NodeTypeObserver
 		log.Info("Starting as observer node...")
 
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
 	}
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	var shardName string
@@ -781,12 +839,12 @@ func createShardCoordinator(
 	}
 	log.Info(fmt.Sprintf("Starting in shard: %s", shardName))
 
-	shardCoordinator, err = sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return shardCoordinator, nil
+	return shardCoordinator, nodeType, nil
 }
 
 func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {

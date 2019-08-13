@@ -109,7 +109,7 @@ func (bc *BlockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	}
 
 	bc.appStatusHandler.SetUInt64Value(core.MetricNonce, h.Nonce)
-	bc.appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, uint64(h.Round))
+	bc.appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, h.Round)
 
 	bc.CurrentBlockHeader = h
 	return nil

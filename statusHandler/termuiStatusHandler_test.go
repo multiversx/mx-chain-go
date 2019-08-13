@@ -1,10 +1,11 @@
 package statusHandler_test
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestTermuiStatusHandler_NewTermuiStatusHandler(t *testing.T) {
@@ -30,11 +31,10 @@ func TestTermuiStatusHandler_TestIfMetricsAreInitialized(t *testing.T) {
 	termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
 
 	// check if nonce metric for example was initialized
-	nonceI, err := termuiStatusHandler.GetTermuiMetricByKey(core.MetricNonce)
-	nonce := nonceI.(int)
+	_, err := termuiStatusHandler.GetTermuiMetricByKey(core.MetricNonce)
 
-	assert.Equal(t, 0, nonce)
 	assert.Nil(t, err)
+	assert.Equal(t, 11, termuiStatusHandler.GetMetricsCount())
 }
 
 func TestTermuiStatusHandler_TestIncrement(t *testing.T) {
@@ -48,23 +48,23 @@ func TestTermuiStatusHandler_TestIncrement(t *testing.T) {
 	valueI, err := termuiStatusHandler.GetTermuiMetricByKey(metricKey)
 	assert.Nil(t, err)
 
-	result := valueI.(int)
-	assert.Equal(t, 1, result)
+	result := valueI.(uint64)
+	assert.Equal(t, uint64(1), result)
 }
 
 func TestTermuiStatusHandler_TestSetInt64(t *testing.T) {
 	t.Parallel()
 
 	var metricKey = core.MetricNonce
-	var intValue = 100
+	var intValue = int64(100)
 
 	termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
 
-	termuiStatusHandler.SetInt64Value(metricKey, int64(intValue))
+	termuiStatusHandler.SetInt64Value(metricKey, intValue)
 	valueI, err := termuiStatusHandler.GetTermuiMetricByKey(metricKey)
 	assert.Nil(t, err)
 
-	result := valueI.(int)
+	result := valueI.(int64)
 	assert.Equal(t, intValue, result)
 
 }
@@ -73,15 +73,15 @@ func TestTermuiStatusHandler_TestSetUInt64(t *testing.T) {
 	t.Parallel()
 
 	var metricKey = core.MetricNonce
-	var intValue = 200
+	var intValue = uint64(200)
 
 	termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
 
-	termuiStatusHandler.SetUInt64Value(metricKey, uint64(intValue))
+	termuiStatusHandler.SetUInt64Value(metricKey, intValue)
 	valueI, err := termuiStatusHandler.GetTermuiMetricByKey(metricKey)
 	assert.Nil(t, err)
 
-	result := valueI.(int)
+	result := valueI.(uint64)
 	assert.Equal(t, intValue, result)
 
 }
@@ -89,7 +89,7 @@ func TestTermuiStatusHandler_TestSetUInt64(t *testing.T) {
 func TestTermuiStatusHandler_TestSetString(t *testing.T) {
 	t.Parallel()
 
-	var metricKey = core.MetricPublicKey
+	var metricKey = core.MetricPublicKeyBlockSign
 	var stringValue = "KEY"
 
 	termuiStatusHandler := statusHandler.NewTermuiStatusHandler()

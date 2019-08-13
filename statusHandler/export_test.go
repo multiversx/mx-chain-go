@@ -2,6 +2,7 @@ package statusHandler
 
 import (
 	"errors"
+
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -19,4 +20,15 @@ func (tsh *TermuiStatusHandler) GetTermuiMetricByKey(key string) (interface{}, e
 		return value, nil
 	}
 	return nil, errors.New("metric does not exist")
+}
+
+func (tsh *TermuiStatusHandler) GetMetricsCount() int {
+	count := 0
+	tsh.termuiConsoleMetrics.Range(func(key, value interface{}) bool {
+		count++
+
+		return true
+	})
+
+	return count
 }
