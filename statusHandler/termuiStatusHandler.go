@@ -1,9 +1,10 @@
 package statusHandler
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/termuic"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/termuic"
 )
 
 // TermuiStatusHandler will be used when an AppStatusHandler is required, but another one isn't necessary or available
@@ -13,14 +14,18 @@ type TermuiStatusHandler struct {
 }
 
 // NewTermuiStatusHandler will return an instance of the struct
-func NewTermuiStatusHandler() (*TermuiStatusHandler, error) {
+func NewTermuiStatusHandler() *TermuiStatusHandler {
 	tsh := new(TermuiStatusHandler)
 	tsh.initMetricsMap()
 	tsh.tui = termuic.NewTermuiConsole(tsh.termuiConsoleMetrics)
 
+	return tsh
+}
+
+func (tsh *TermuiStatusHandler) StartTermuiConsole() error {
 	err := tsh.tui.Start()
 
-	return tsh, err
+	return err
 }
 
 //Termui method - returns address of TermuiConsole structure from TermuiStatusHandler

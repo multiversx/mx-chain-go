@@ -498,7 +498,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	useTermuiBool := ctx.GlobalBool(useTermui.Name)
 
 	if useTermuiBool {
-		termuiStatusHandler, err := statusHandler.NewTermuiStatusHandler()
+		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
+		err = termuiStatusHandler.StartTermuiConsole()
 		if err != nil {
 			return err
 		}
