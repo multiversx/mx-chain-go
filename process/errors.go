@@ -292,8 +292,11 @@ var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 // ErrNilRequestHeaderHandlerByNonce signals that a nil header request handler by nonce func was provided
 var ErrNilRequestHeaderHandlerByNonce = errors.New("nil request header handler by nonce")
 
-// ErrLowShardHeaderRound signals that shard header round is too low for processing
-var ErrLowShardHeaderRound = errors.New("shard header round is lower than last committed for this shard")
+// ErrLowerRoundInNotarizedBlock signals that a notarized header round is too low for processing
+var ErrLowerRoundInNotarizedBlock = errors.New("notarized header round is lower than last committed for this shard")
+
+// ErrLowerRoundInBlock signals that a header round is too low for processing
+var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
 
 // ErrRandSeedMismatch signals that random seeds are not equal
 var ErrRandSeedMismatch = errors.New("random seeds do not match")

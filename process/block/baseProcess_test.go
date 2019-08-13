@@ -328,6 +328,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	body := &block.Body{}
 	hdr := &block.Header{}
 	hdr.Nonce = 1
+	hdr.Round = 1
 	hdr.TimeStamp = 0
 	hdr.PrevHash = []byte("X")
 	err := bp.CheckBlockValidity(blkc, hdr, body)
@@ -341,17 +342,25 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
-	hdr.Nonce = 1
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &block.Header{Nonce: 1}
+		return &block.Header{Round: 1, Nonce: 1}
 	}
 	hdr = &block.Header{}
+
+	err = bp.CheckBlockValidity(blkc, hdr, body)
+	assert.Equal(t, process.ErrLowerRoundInBlock, err)
+
+	hdr.Round = 2
 	hdr.Nonce = 1
-	hdr.TimeStamp = 0
 	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 2
+	hdr.PrevRandSeed = []byte("X")
+	err = bp.CheckBlockValidity(blkc, hdr, body)
+	assert.Equal(t, process.ErrRandSeedMismatch, err)
+
+	hdr.PrevRandSeed = []byte("")
 	hdr.PrevHash = []byte("X")
 	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)

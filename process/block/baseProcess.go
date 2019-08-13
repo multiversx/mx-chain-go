@@ -111,6 +111,13 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrWrongNonceInBlock
 	}
 
+	if chainHandler.GetCurrentBlockHeader().GetRound() >= headerHandler.GetRound() {
+		log.Info(fmt.Sprintf("round not match: local block round is %d and node received block with round %d\n",
+			chainHandler.GetCurrentBlockHeader().GetRound(), headerHandler.GetRound()))
+
+		return process.ErrLowerRoundInBlock
+	}
+
 	if headerHandler.GetNonce() != chainHandler.GetCurrentBlockHeader().GetNonce()+1 {
 		log.Info(fmt.Sprintf("nonce not match: local block nonce is %d and node received block with nonce %d\n",
 			chainHandler.GetCurrentBlockHeader().GetNonce(), headerHandler.GetNonce()))
@@ -121,6 +128,13 @@ func (bp *baseProcessor) checkBlockValidity(
 	prevHeaderHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, chainHandler.GetCurrentBlockHeader())
 	if err != nil {
 		return err
+	}
+
+	if !bytes.Equal(headerHandler.GetPrevRandSeed(), chainHandler.GetCurrentBlockHeader().GetRandSeed()) {
+		log.Info(fmt.Sprintf("random seed not match: local block random seed is %s and node received block with previous random seed %s\n",
+			core.ToB64(chainHandler.GetCurrentBlockHeader().GetRandSeed()), core.ToB64(headerHandler.GetPrevRandSeed())))
+
+		return process.ErrRandSeedMismatch
 	}
 
 	if !bytes.Equal(headerHandler.GetPrevHash(), prevHeaderHash) {
@@ -182,7 +196,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	//TODO: add verification if rand seed was correctly computed add other verification
 	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
 	if prevHdr.GetRound() >= currHdr.GetRound() {
-		return process.ErrLowShardHeaderRound
+		return process.ErrLowerRoundInNotarizedBlock
 	}
 
 	if currHdr.GetNonce() != prevHdr.GetNonce()+1 {
