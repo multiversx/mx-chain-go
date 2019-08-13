@@ -453,7 +453,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	txSpaceRemained := int(maxTxSpaceRemained)
 
 	newMBAdded := true
-	for newMBAdded == true {
+	for newMBAdded {
 		newMBAdded = false
 
 		for i := 0; i < int(tc.shardCoordinator.NumberOfShards()); i++ {
