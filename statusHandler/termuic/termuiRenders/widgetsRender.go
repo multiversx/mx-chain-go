@@ -208,27 +208,27 @@ func (wr *WidgetsRender) prepareNumConnectedPeersForDisplay(numConnectedPeers in
 }
 
 func (wr *WidgetsRender) prepareConsensusInformationsForDisplay(countConsensus uint64, countLeader uint64, acceptedBlocks uint64) {
-	wr.pCountConsensus.Text = fmt.Sprintf("Count consensus group: %v", countConsensus)
-	wr.pCountLeader.Text = fmt.Sprintf("Count leader: %v", countLeader)
-	wr.pCountAcceptedBlocks.Text = fmt.Sprintf("Number of accepted blocks: %v", acceptedBlocks)
+	wr.pCountConsensus.Text = fmt.Sprintf("Consensus group participant count: %v", countConsensus)
+	wr.pCountLeader.Text = fmt.Sprintf("Elected consensus leader count: %v", countLeader)
+	wr.pCountAcceptedBlocks.Text = fmt.Sprintf("Consensus proposed & accepted blocks: %v", acceptedBlocks)
 
 	return
 }
 
 func (wr *WidgetsRender) prepareSyncInfoForDisplay(nonce uint64, currentRound int64, synchronizedRound, syncStatus uint64) {
-	isSyncingS := "Synchronized"
+	isSyncingS := "Status: synchronized"
 	wr.tSyncInfo.TextStyle = ui.NewStyle(ui.ColorWhite)
 	wr.tSyncInfo.RowSeparator = true
 	wr.tSyncInfo.BorderStyle = ui.NewStyle(ui.ColorWhite)
 	wr.tSyncInfo.RowStyles[0] = ui.NewStyle(ui.ColorWhite, ui.ColorGreen, ui.ModifierBold)
 
 	if syncStatus == 1 {
-		isSyncingS = "Is syncing"
+		isSyncingS = "Status: syncing"
 		wr.tSyncInfo.RowStyles[0] = ui.NewStyle(ui.ColorWhite, ui.ColorRed, ui.ModifierBold)
 
 	}
 
-	nonceS := fmt.Sprintf("Nonce: %v", nonce)
+	nonceS := fmt.Sprintf("Current node block nonce: %v", nonce)
 	currentRoundS := fmt.Sprintf("Current round: %v", currentRound)
 	synchronizedRoundS := fmt.Sprintf("Syncronized round: %v", synchronizedRound)
 

@@ -76,12 +76,19 @@ func (tsh *TermuiStatusHandler) SetStringValue(key string, value string) {
 
 // Increment - will increment the value of a key
 func (tsh *TermuiStatusHandler) Increment(key string) {
-	if keyValueI, ok := tsh.termuiConsoleMetrics.Load(key); ok {
-
-		keyValue := keyValueI.(uint64)
-		keyValue++
-		tsh.termuiConsoleMetrics.Store(key, keyValue)
+	keyValueI, ok := tsh.termuiConsoleMetrics.Load(key)
+	if !ok {
+		return
 	}
+
+	keyValue, ok := keyValueI.(uint64)
+	if !ok {
+		return
+	}
+
+	keyValue++
+	tsh.termuiConsoleMetrics.Store(key, keyValue)
+
 }
 
 // Decrement - will decrement the value of a key

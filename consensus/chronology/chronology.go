@@ -134,12 +134,12 @@ func (chr *chronology) startRound() {
 	msg := fmt.Sprintf("SUBROUND %s BEGINS", sr.Name())
 	log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
 
+	chr.ash.SetInt64Value(core.MetricCurrentRound, int64(chr.rounder.Index()))
+
 	if !sr.DoWork(chr.rounder) {
 		chr.subroundId = srBeforeStartRound
 		return
 	}
-
-	chr.ash.SetInt64Value(core.MetricCurrentRound, int64(chr.rounder.Index()))
 
 	chr.subroundId = sr.Next()
 }
