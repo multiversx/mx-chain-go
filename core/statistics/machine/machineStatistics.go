@@ -27,9 +27,21 @@ func NewMachineStatistics(
 		metricsUpdateInterval: metricsUpdateInterval,
 	}
 
-	go ms.cpu.getCpuStatistics()
-	go ms.mem.getMemStatistics()
-	go ms.net.getNetStatistics()
+	go func() {
+		for {
+			ms.cpu.getCpuStatistics()
+		}
+	}()
+	go func() {
+		for {
+			ms.mem.getMemStatistics()
+		}
+	}()
+	go func() {
+		for {
+			ms.net.getNetStatistics()
+		}
+	}()
 	go ms.updateStatistics()
 
 	return ms, nil

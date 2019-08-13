@@ -260,5 +260,4 @@ func (wr *WidgetsRender2) prepareLoads() {
 	txPoolLoad := txPoolLoadI.(uint64)
 	wr.txPoolLoad.Title = "Transation Pool Load"
 	wr.txPoolLoad.Percent = int(txPoolLoad)
-	wr.txPoolLoad.Percent = int(txPoolLoad)
 }
