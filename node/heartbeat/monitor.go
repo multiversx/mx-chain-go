@@ -83,12 +83,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return err
 	}
 
-	senderPubkey, err := m.keygen.PublicKeyFromByteArray(hbRecv.Pubkey)
-	if err != nil {
-		return err
-	}
-
-	err = m.singleSigner.Verify(senderPubkey, hbRecv.Payload, hbRecv.Signature)
+	err = m.verifySignature(hbRecv)
 	if err != nil {
 		return err
 	}
@@ -109,9 +104,32 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		}
 
 		pe.HeartbeatReceived(hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
+		m.updateAllHeartbeatMessages()
 	}(message, hbRecv)
 
 	return nil
+}
+
+func (m *Monitor) verifySignature(hbRecv *Heartbeat) error {
+	senderPubKey, err := m.keygen.PublicKeyFromByteArray(hbRecv.Pubkey)
+	if err != nil {
+		return err
+	}
+
+	copiedHeartbeat := *hbRecv
+	copiedHeartbeat.Signature = nil
+	buffCopiedHeartbeat, err := m.marshalizer.Marshal(copiedHeartbeat)
+	if err != nil {
+		return err
+	}
+
+	return m.singleSigner.Verify(senderPubKey, buffCopiedHeartbeat, hbRecv.Signature)
+}
+
+func (m *Monitor) updateAllHeartbeatMessages() {
+	for _, v := range m.heartbeatMessages {
+		v.updateFields()
+	}
 }
 
 // GetHeartbeats returns the heartbeat status

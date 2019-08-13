@@ -76,7 +76,12 @@ func (s *Sender) SendHeartbeat() error {
 		return err
 	}
 
-	hb.Signature, err = s.singleSigner.Sign(s.privKey, hb.Payload)
+	hbBytes, err := s.marshalizer.Marshal(hb)
+	if err != nil {
+		return err
+	}
+
+	hb.Signature, err = s.singleSigner.Sign(s.privKey, hbBytes)
 	if err != nil {
 		return err
 	}
