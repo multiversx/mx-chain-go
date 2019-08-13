@@ -820,26 +820,26 @@ func EqualSlices(slice1 [][]byte, slice2 [][]byte) bool {
 	return true
 }
 
-// GeneratePrivateKeyInShardId generates a private key that is in a given shard
-func GeneratePrivateKeyInShardId(
+// GenerateSkAndPkInShard generates and returns a private and a public key that reside in a given shard.
+// It also returns the key generator
+func GenerateSkAndPkInShard(
 	coordinator sharding.Coordinator,
 	shardId uint32,
-) crypto.PrivateKey {
-
+) (crypto.PrivateKey, crypto.PublicKey, crypto.KeyGenerator) {
 	suite := kyber.NewBlakeSHA256Ed25519()
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 
 	for {
-		buff, _ := pk.ToByteArray()
-		addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(buff)
-
+		pkBytes, _ := pk.ToByteArray()
+		addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBytes)
 		if coordinator.ComputeId(addr) == shardId {
-			return sk
+			break
 		}
-
 		sk, pk = keyGen.GeneratePair()
 	}
+
+	return sk, pk, keyGen
 }
 
 // GenerateRandomHexAddressInShard generates a random address in the given shard
@@ -985,15 +985,15 @@ func ProposeBroadcastAndCommitMetaBlock(nodes []*TestProcessorNode, metaNode *Te
 	fmt.Println(MakeDisplayTable(nodes))
 }
 
-// CreateAccForNodes creates accounts for each node and commits the accounts state
-func CreateAccForNodes(nodes []*TestProcessorNode) {
+// CreateAccountForNodes creates accounts for each node and commits the accounts state
+func CreateAccountForNodes(nodes []*TestProcessorNode) {
 	for i := 0; i < len(nodes); i++ {
-		CreateAccForNode(nodes[i])
+		CreateAccountForNode(nodes[i])
 	}
 }
 
-// CreateAccForNode creates an account for the given node
-func CreateAccForNode(node *TestProcessorNode) {
+// CreateAccountForNode creates an account for the given node
+func CreateAccountForNode(node *TestProcessorNode) {
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(node.OwnAccount.PkTxSignBytes)
 	_, _ = node.AccntState.GetAccountWithJournal(addr)
 	_, _ = node.AccntState.Commit()
@@ -1105,11 +1105,11 @@ func generateValidTx(
 	receiverShardId uint32,
 ) (*transaction.Transaction, []byte) {
 
-	skSender := GeneratePrivateKeyInShardId(shardCoordinator, senderShardId)
+	skSender, _, _ := GenerateSkAndPkInShard(shardCoordinator, senderShardId)
 	pkSender := skSender.GeneratePublic()
 	pkSenderBuff, _ := pkSender.ToByteArray()
 
-	skRecv := GeneratePrivateKeyInShardId(shardCoordinator, receiverShardId)
+	skRecv, _, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
 	pkRecvBuff := skToPk(skRecv)
 
 	accnts, _, _ := CreateAccountsDB(shardCoordinator)

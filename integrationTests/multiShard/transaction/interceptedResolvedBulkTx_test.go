@@ -40,7 +40,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 		numMetachainNodes,
 		integrationTests.GetConnectableAddress(advertiser),
 	)
-	integrationTests.CreateAccForNodes(nodes)
+	integrationTests.CreateAccountForNodes(nodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
@@ -107,7 +107,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 		integrationTests.GetConnectableAddress(advertiser),
 	)
 	nodes[0] = integrationTests.NewTestProcessorNode(uint32(numOfShards), 0, firstSkInShard, integrationTests.GetConnectableAddress(advertiser))
-	integrationTests.CreateAccForNodes(nodes)
+	integrationTests.CreateAccountForNodes(nodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
@@ -185,7 +185,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 		integrationTests.GetConnectableAddress(advertiser),
 	)
 	nodes[0] = integrationTests.NewTestProcessorNode(uint32(numOfShards), 0, firstSkInShard, integrationTests.GetConnectableAddress(advertiser))
-	integrationTests.CreateAccForNodes(nodes)
+	integrationTests.CreateAccountForNodes(nodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {

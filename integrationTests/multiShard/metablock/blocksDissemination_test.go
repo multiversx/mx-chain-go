@@ -115,8 +115,8 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	shardHeaderHash := integrationTests.TestHasher.Compute(string(shardHeaderBytes))
 	nodes[0].ShardDataPool.Headers().HasOrAdd(shardHeaderHash, hdr)
 
-	for i := 0; i < 5; i++ {
-		//continuously request
+	maxNumRequests := 5
+	for i := 0; i < maxNumRequests; i++ {
 		for j := 0; j < numMetaNodes; j++ {
 			resolver, err := nodes[j+1].ResolverFinder.CrossShardResolver(factory.ShardHeadersForMetachainTopic, senderShard)
 			assert.Nil(t, err)
@@ -141,8 +141,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		nodes[i+1].MetaDataPool.MetaChainBlocks().HasOrAdd(metaHeaderHash, metaHdr)
 	}
 
-	for i := 0; i < 5; i++ {
-		//continuously request
+	for i := 0; i < maxNumRequests; i++ {
 		resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
 		assert.Nil(t, err)
 		_ = resolver.RequestDataFromHash(metaHeaderHash)
@@ -170,8 +169,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		nodes[i+1].MetaDataPool.HeadersNonces().Merge(metaHdr2.GetNonce(), syncMap)
 	}
 
-	for i := 0; i < 5; i++ {
-		//continuously request
+	for i := 0; i < maxNumRequests; i++ {
 		resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
 		assert.Nil(t, err)
 		_ = resolver.(*resolvers.HeaderResolver).RequestDataFromNonce(metaHdr2.GetNonce())

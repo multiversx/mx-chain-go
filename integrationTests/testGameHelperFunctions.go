@@ -164,8 +164,9 @@ func CheckPlayerBalanceTheSameWithBlockchain(
 	}
 }
 
-// CheckBalanceIsDoneCorrectlySCSide verifies is smart contract balance is correct according to topup and withdraw
-func CheckBalanceIsDoneCorrectlySCSide(
+// CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal verifies is smart contract balance is correct according
+// to top-up and withdraw and returns the expected value
+func CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(
 	t *testing.T,
 	nodes []*TestProcessorNode,
 	idxNodeScExists int,
@@ -208,7 +209,7 @@ func CheckJoinGame(
 
 	numPlayers := len(players)
 	allTopUpValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(numPlayers))
-	CheckBalanceIsDoneCorrectlySCSide(
+	CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(
 		t,
 		nodes,
 		idxProposer,
@@ -238,7 +239,7 @@ func CheckRewardsDistribution(
 
 	numPlayers := len(players)
 	allTopUpValue := big.NewInt(0).SetUint64(topUpValue.Uint64() * uint64(numPlayers))
-	CheckBalanceIsDoneCorrectlySCSide(
+	CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(
 		t,
 		nodes,
 		idxProposer,
@@ -248,8 +249,8 @@ func CheckRewardsDistribution(
 	)
 }
 
-// CheckSenderOkBalanceAfterTopUpAndWithdraw checks if sender balance is ok after top-up and withdraw
-func CheckSenderOkBalanceAfterTopUpAndWithdraw(
+// CheckSenderBalanceOkAfterTopUpAndWithdraw checks if sender balance is ok after top-up and withdraw
+func CheckSenderBalanceOkAfterTopUpAndWithdraw(
 	t *testing.T,
 	nodeWithCaller *TestProcessorNode,
 	initialVal *big.Int,
@@ -265,8 +266,8 @@ func CheckSenderOkBalanceAfterTopUpAndWithdraw(
 	assert.Equal(t, expectedSender, accnt.(*state.Account).Balance)
 }
 
-// CheckSenderOkBalanceAfterTopUp checks if sender balance is ok after top-up
-func CheckSenderOkBalanceAfterTopUp(
+// CheckSenderBalanceOkAfterTopUp checks if sender balance is ok after top-up
+func CheckSenderBalanceOkAfterTopUp(
 	t *testing.T,
 	nodeWithCaller *TestProcessorNode,
 	initialVal *big.Int,

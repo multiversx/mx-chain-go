@@ -89,7 +89,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 
 	integrationTests.CheckScTopUp(t, nodeWithSc, topUpValue, hardCodedScResultingAddress)
 	integrationTests.CheckScBalanceOf(t, nodeWithSc, nodeWithCaller, topUpValue, hardCodedScResultingAddress)
-	integrationTests.CheckSenderOkBalanceAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
+	integrationTests.CheckSenderBalanceOkAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
 
 	integrationTests.NodeDoesWithdraw(nodes, idxNodeShard0, withdrawValue, hardCodedScResultingAddress)
 
@@ -99,9 +99,9 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 		round = integrationTests.IncrementAndPrintRound(round)
 	}
 
-	expectedSC := integrationTests.CheckBalanceIsDoneCorrectlySCSide(t, nodes, idxNodeShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
+	expectedSC := integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxNodeShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
 	integrationTests.CheckScBalanceOf(t, nodeWithSc, nodeWithCaller, expectedSC, hardCodedScResultingAddress)
-	integrationTests.CheckSenderOkBalanceAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
+	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
 }
 
 // TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndRewardProposersAndValidators tests the following scenario:
@@ -197,7 +197,8 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	nodeWithCaller := nodes[idxProposerShard0]
 
 	integrationTests.CheckScTopUp(t, nodeWithSc, topUpValue, hardCodedScResultingAddress)
-	integrationTests.CheckSenderOkBalanceAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
+	integrationTests.CheckSenderBalanceOkAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
+
 	integrationTests.NodeCallsRewardAndSend(
 		nodes,
 		idxProposerShard1,
@@ -216,8 +217,8 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
 
-	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSide(t, nodes, idxProposerShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
-	integrationTests.CheckSenderOkBalanceAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
+	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxProposerShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
+	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
 	integrationTests.CheckRootHashes(t, nodes, idxProposers)
 }
 
@@ -325,5 +326,5 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	nodeWithCaller := nodes[idxProposerShard0]
 
 	integrationTests.CheckScTopUp(t, nodeWithSc, topUpValue, hardCodedScResultingAddress)
-	integrationTests.CheckSenderOkBalanceAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
+	integrationTests.CheckSenderBalanceOkAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
 }

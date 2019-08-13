@@ -134,13 +134,13 @@ func runMultipleRoundsOfTheGame(
 		withdrawValues[i] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, 0.05))
 	}
 
-	for rr := 0; rr < nrRounds; rr++ {
+	for currentRound := 0; currentRound < nrRounds; currentRound++ {
 		for _, player := range players {
 			integrationTests.PlayerJoinsGame(
 				nodes,
 				player,
 				topUpValue,
-				strconv.Itoa(rr),
+				strconv.Itoa(currentRound),
 				hardCodedScResultingAddress,
 			)
 			newBalance := big.NewInt(0)
@@ -162,7 +162,7 @@ func runMultipleRoundsOfTheGame(
 		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
 		for i := 0; i < numRewardedPlayers; i++ {
-			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], strconv.Itoa(rr), hardCodedScResultingAddress)
+			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], strconv.Itoa(currentRound), hardCodedScResultingAddress)
 			newBalance := big.NewInt(0)
 			newBalance = newBalance.Add(players[i].Balance, withdrawValues[i])
 			players[i].Balance = players[i].Balance.Set(newBalance)

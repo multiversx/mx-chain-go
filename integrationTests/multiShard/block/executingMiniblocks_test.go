@@ -19,7 +19,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	fmt.Println("Step 1. Setup nodes...")
+	fmt.Println("Setup nodes...")
 	numOfShards := 6
 	nodesPerShard := 3
 	numMetachainNodes := 1
@@ -58,27 +58,27 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	sendersPrivateKeys := make([]crypto.PrivateKey, 3)
 	receiversPrivateKeys := make(map[uint32][]crypto.PrivateKey)
 	for i := 0; i < txToGenerateInEachMiniBlock; i++ {
-		sendersPrivateKeys[i] = integrationTests.GeneratePrivateKeyInShardId(generateCoordinator, senderShard)
+		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
 
 		//receivers in same shard with the sender
-		sk := integrationTests.GeneratePrivateKeyInShardId(generateCoordinator, senderShard)
+		sk, _, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
 		receiversPrivateKeys[senderShard] = append(receiversPrivateKeys[senderShard], sk)
 		//receivers in other shards
 		for _, shardId := range recvShards {
-			sk = integrationTests.GeneratePrivateKeyInShardId(generateCoordinator, shardId)
+			sk, _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, shardId)
 			receiversPrivateKeys[shardId] = append(receiversPrivateKeys[shardId], sk)
 		}
 	}
 
-	fmt.Println("Step 3. Generating transactions...")
+	fmt.Println("Generating transactions...")
 	integrationTests.GenerateAndDisseminateTxs(proposerNode, sendersPrivateKeys, receiversPrivateKeys, valToTransferPerTx)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
 
-	fmt.Println("Step 4. Minting sender addresses...")
+	fmt.Println("Minting sender addresses...")
 	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
 
-	fmt.Println("Step 5. Proposer creates block body and header with all available transactions...")
+	fmt.Println("Proposer creates block body and header with all available transactions...")
 	integrationTests.ProposeBroadcastAndCommitBlock(proposerNode, 1)
 	fmt.Println("Delaying for disseminating miniblocks and header...")
 	time.Sleep(time.Second * 5)
@@ -89,7 +89,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	time.Sleep(time.Second * 5)
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
-	fmt.Println("Step 7. Nodes from proposer's shard will have to successfully process the block sent by the proposer...")
+	fmt.Println("Nodes from proposer's shard will have to successfully process the block sent by the proposer...")
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 	for _, n := range nodes {
 		isNodeInSenderShardAndNotProposer := n.ShardCoordinator.SelfId() == senderShard && n != proposerNode
@@ -109,7 +109,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		}
 	}
 
-	fmt.Println("Step 7. Metachain processes the received header...")
+	fmt.Println("Metachain processes the received header...")
 	metaNode := nodes[len(nodes)-1]
 
 	integrationTests.ProposeBroadcastAndCommitMetaBlock(nodes, metaNode, 1)
@@ -117,7 +117,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	integrationTests.ProposeBroadcastAndCommitMetaBlock(nodes, metaNode, 3)
 	integrationTests.ProposeBroadcastAndCommitMetaBlock(nodes, metaNode, 3)
 
-	fmt.Println("Step 8. Test nodes from proposer shard to have the correct balances...")
+	fmt.Println("Test nodes from proposer shard to have the correct balances...")
 	for _, n := range nodes {
 		isNodeInSenderShard := n.ShardCoordinator.SelfId() == senderShard
 		if !isNodeInSenderShard {
@@ -136,7 +136,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		}
 	}
 
-	fmt.Println("Step 9. First nodes from receiver shards assemble header/body blocks and broadcast them...")
+	fmt.Println("First nodes from receiver shards assemble header/body blocks and broadcast them...")
 	firstReceiverNodes := make([]*integrationTests.TestProcessorNode, 0)
 	//get first nodes from receiver shards
 	for _, shardId := range recvShards {
@@ -146,7 +146,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		integrationTests.ProposeBroadcastAndCommitBlock(receiverProposer, 1)
 	}
 	fmt.Println("Delaying for disseminating miniblocks and headers...")
-	time.Sleep(time.Second * 5)
+	time.Sleep(stepDelay)
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 	for _, shardId := range recvShards {
@@ -155,7 +155,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		integrationTests.ProposeBroadcastAndCommitBlock(receiverProposer, 2)
 	}
 	fmt.Println("Delaying for disseminating miniblocks and headers...")
-	time.Sleep(time.Second * 5)
+	time.Sleep(stepDelay)
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 	for _, shardId := range recvShards {
@@ -164,7 +164,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		integrationTests.ProposeBroadcastAndCommitBlock(receiverProposer, 3)
 	}
 	fmt.Println("Delaying for disseminating miniblocks and headers...")
-	time.Sleep(time.Second * 5)
+	time.Sleep(stepDelay)
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 	for _, shardId := range recvShards {
@@ -173,10 +173,10 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		integrationTests.ProposeBroadcastAndCommitBlock(receiverProposer, 4)
 	}
 	fmt.Println("Delaying for disseminating miniblocks and headers...")
-	time.Sleep(time.Second * 5)
+	time.Sleep(stepDelay)
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
-	fmt.Println("Step 10. NodesSetup from receivers shards will have to successfully process the block sent by their proposer...")
+	fmt.Println("NodesSetup from receivers shards will have to successfully process the block sent by their proposer...")
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -286,7 +286,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		}
 	}
 
-	fmt.Println("Step 11. Test nodes from receiver shards to have the correct balances...")
+	fmt.Println("Test nodes from receiver shards to have the correct balances...")
 	for _, n := range nodes {
 		isNodeInReceiverShardAndNotProposer := false
 		for _, shardId := range recvShards {
