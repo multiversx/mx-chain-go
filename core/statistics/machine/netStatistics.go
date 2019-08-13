@@ -68,6 +68,8 @@ func (ns *netStatistics) getNetStatistics() {
 		sentPercent = bpsSent * 100 / sentPeak
 	}
 	atomic.StoreUint64(&ns.percentSent, sentPercent)
+
+	time.Sleep(durationSecond)
 }
 
 func (ns *netStatistics) setZeroStatsAndWait() {

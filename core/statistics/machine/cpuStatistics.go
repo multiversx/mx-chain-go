@@ -25,6 +25,7 @@ func (cs *cpuStatistics) getCpuStatistics() {
 	}
 
 	atomic.StoreUint64(&cs.cpuPercentUsage, uint64(cpuUsagePercent[0]))
+	time.Sleep(durationSecond)
 }
 
 func (cs *cpuStatistics) setZeroStatsAndWait() {

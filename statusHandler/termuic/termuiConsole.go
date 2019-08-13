@@ -86,11 +86,9 @@ func (tc *TermuiConsole) eventLoop() {
 	sigTerm := make(chan os.Signal, 2)
 	signal.Notify(sigTerm, os.Interrupt, syscall.SIGTERM)
 
-	drawTicker := time.NewTicker(refreshInterval).C
-
 	for {
 		select {
-		case <-drawTicker:
+		case <-time.After(refreshInterval):
 			tc.consoleRender.RefreshData(tc.logLines)
 			ui.Clear()
 			ui.Render(tc.grid.GetTopLeft(), tc.grid.GetTopRight(), tc.grid.GetBottom())
