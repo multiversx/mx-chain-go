@@ -31,6 +31,9 @@ var ErrNilAddressConverter = errors.New("trying to set nil address converter")
 // ErrCouldNotParsePubKey signals that a given public key could not be parsed
 var ErrCouldNotParsePubKey = errors.New("could not parse node's public key")
 
+// ErrCouldNotParseAddress signals that a given address could not be parsed
+var ErrCouldNotParseAddress = errors.New("could not parse node's address")
+
 // ErrNegativeOrZeroConsensusGroupSize signals that an invalid consensus group size has been provided
 var ErrNegativeOrZeroConsensusGroupSize = errors.New("negative or zero consensus group size")
 
@@ -72,3 +75,9 @@ var ErrNilStake = errors.New("nil stake")
 
 // ErrNegativeStake signals that the stake is negative
 var ErrNegativeStake = errors.New("negative stake")
+
+// ErrNilAddress signals that the address is nil
+var ErrNilAddress = errors.New("nil address")
+
+// ErrValidatorNotFound signals that the validator has not been found
+var ErrValidatorNotFound = errors.New("validator not found")

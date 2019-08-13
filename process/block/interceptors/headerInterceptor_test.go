@@ -28,7 +28,8 @@ func generateValidatorsMap(shardSize, metachainSize, nbShards uint32) map[uint32
 		shardNodes := make([]sharding.Validator, 0)
 		for valIdx := uint32(0); valIdx < shardSize; valIdx++ {
 			pk := fmt.Sprintf("pubKey_sh%d_node%d", shard, valIdx)
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(pk))
+			addr := fmt.Sprintf("address_sh%d_node%d", shard, valIdx)
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(pk), []byte(addr))
 			shardNodes = append(shardNodes, v)
 		}
 		nodes[shard] = shardNodes
@@ -37,7 +38,8 @@ func generateValidatorsMap(shardSize, metachainSize, nbShards uint32) map[uint32
 	metaNodes := make([]sharding.Validator, 0)
 	for mValIdx := uint32(0); mValIdx < metachainSize; mValIdx++ {
 		pk := fmt.Sprintf("pubKey_meta_node%d", mValIdx)
-		v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(pk))
+		addr := fmt.Sprintf("address_meta_node%d", mValIdx)
+		v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(pk), []byte(addr))
 		metaNodes = append(metaNodes, v)
 	}
 	nodes[sharding.MetachainShardId] = metaNodes
@@ -331,10 +333,10 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 	shardCoordinator.SetNoShards(5)
 
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		NbShards:      5,
+		NbShards:           5,
 		ShardConsensusSize: 1,
-		MetaConsensusSize: 1,
-		ShardId:       2,
+		MetaConsensusSize:  1,
+		ShardId:            2,
 	}
 
 	nodes := generateValidatorsMap(3, 3, 5)

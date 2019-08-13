@@ -240,13 +240,15 @@ func createNodesCoordinator() sharding.NodesCoordinator {
 	shardValidators := make([]sharding.Validator, 0)
 	for i := 0; i < 16; i++ {
 		pubKeyStr := fmt.Sprintf("pk_shard0_%d", i)
-		v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(pubKeyStr))
+		addrStr := fmt.Sprintf("addr_shard0_%d", i)
+		v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(pubKeyStr), []byte(addrStr))
 		shardValidators = append(shardValidators, v)
 	}
 
 	//metachain
 	pubKeyBytes := []byte("pk_meta")
-	v, _ := sharding.NewValidator(big.NewInt(0), 1, pubKeyBytes)
+	addrBytes := []byte("addr_meta")
+	v, _ := sharding.NewValidator(big.NewInt(0), 1, pubKeyBytes, addrBytes)
 
 	validators[0] = shardValidators
 	validators[sharding.MetachainShardId] = []sharding.Validator{v}

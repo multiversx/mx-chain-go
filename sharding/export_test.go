@@ -24,8 +24,8 @@ func (ns *NodesSetup) ProcessMetaChainAssigment() {
 	ns.processMetaChainAssigment()
 }
 
-func (ns *NodesSetup) CreateInitialNodesPubKeys() {
-	ns.createInitialNodesPubKeys()
+func (ns *NodesSetup) CreateInitialNodesInfo() {
+	ns.createInitialNodesInfo()
 }
 
 func CommunicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) string {

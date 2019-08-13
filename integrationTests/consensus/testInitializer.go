@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -44,7 +46,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"math/big"
 )
 
 const blsConsensusType = "bls"
@@ -91,7 +92,8 @@ func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 	for shardId, shardNodesPks := range pubKeysMap {
 		shardValidators := make([]sharding.Validator, 0)
 		for i := 0; i < len(shardNodesPks); i++ {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]))
+			address := fmt.Sprintf("addr_%d_%d", shardId, i)
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]), []byte(address))
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators
