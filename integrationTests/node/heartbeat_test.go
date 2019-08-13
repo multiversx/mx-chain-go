@@ -71,6 +71,7 @@ func prepareNodes(
 	monitor *heartbeat.Monitor,
 ) ([]p2p.Messenger, []*heartbeat.Sender, []crypto.PublicKey) {
 
+	senderIdxs := []int{0, 1}
 	interactingNodes := 3
 	nodes := make([]p2p.Messenger, interactingNodes)
 	topicHeartbeat := "topic"
@@ -81,7 +82,7 @@ func prepareNodes(
 		nodes[i] = integrationTests.CreateMessengerWithKadDht(context.Background(), advertiserAddr)
 		_ = nodes[i].CreateTopic(topicHeartbeat, true)
 
-		isSender := i < 2
+		isSender := integrationTests.IsIntInSlice(i, senderIdxs)
 		if isSender {
 			sender, pk := createSender(nodes[i], topicHeartbeat)
 			senders = append(senders, sender)
@@ -169,5 +170,6 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 		maxDurationPeerUnresponsive,
 		[]string{""},
 	)
+
 	return monitor
 }
