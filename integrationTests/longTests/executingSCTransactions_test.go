@@ -17,12 +17,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var agarioFile = "../../agarioV3.hex"
+var agarioFile = "../agar_min_v1.hex"
 var stepDelay = time.Second
 
 func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRounds(t *testing.T) {
-	t.Skip("this is a stress test for VM and AGAR.IO")
-
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
 
@@ -33,7 +31,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	assert.Nil(t, err)
 
 	maxShards := uint32(1)
-	numOfNodes := 4
+	numOfNodes := 1
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
@@ -46,11 +44,10 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	idxProposer := 0
 	numPlayers := 100
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
-	players[0] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
-	for i := 1; i < numPlayers; i++ {
-		players[i] = players[0]
+	for i := 0; i < numPlayers; i++ {
+		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
 	}
-	numPlayers = 1
+
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
@@ -437,11 +434,9 @@ func runMultipleRoundsOfTheGame(
 			elapsedTime := time.Since(startTime)
 			fmt.Printf("Block Created in %s\n", elapsedTime)
 
-			integrationTests.SyncBlock(t, nodes, idxProposers, round)
+			//integrationTests.SyncBlock(t, nodes, idxProposers, round)
 			round = integrationTests.IncrementAndPrintRound(round)
 		}
-
-		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
 		for i := 0; i < numRewardedPlayers; i++ {
 			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], rr, hardCodedScResultingAddress)
@@ -459,12 +454,18 @@ func runMultipleRoundsOfTheGame(
 			elapsedTime := time.Since(startTime)
 			fmt.Printf("Block Created in %s\n", elapsedTime)
 
-			integrationTests.SyncBlock(t, nodes, idxProposers, round)
+			//integrationTests.SyncBlock(t, nodes, idxProposers, round)
 			round = integrationTests.IncrementAndPrintRound(round)
 		}
 
-		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
-			hardCodedScResultingAddress, idxProposers[0])
+		fmt.Println(rMonitor.GenerateStatistics())
+	}
+
+	for i := 0; i < nrRounds*10; i++ {
+		startTime := time.Now()
+		integrationTests.ProposeBlock(nodes, idxProposers, round)
+		elapsedTime := time.Since(startTime)
+		fmt.Printf("Block Created in %s\n", elapsedTime)
 
 		fmt.Println(rMonitor.GenerateStatistics())
 	}

@@ -474,14 +474,22 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
-	haveTime := func() bool { return true }
+	startTime := time.Now()
+	maxTime := time.Duration(time.Second)
+	haveTime := func() bool {
+		elapsedTime := time.Since(startTime)
+		remainingTime := maxTime - elapsedTime
+		return remainingTime > 0
+	}
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil
 	}
-	blockHeader, err := tpn.BlockProcessor.CreateBlockHeader(blockBody, round, haveTime)
+	blockHeader, err := tpn.BlockProcessor.CreateBlockHeader(blockBody, round, func() bool {
+		return true
+	})
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil

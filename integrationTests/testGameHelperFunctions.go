@@ -13,7 +13,6 @@ import (
 
 // DeployScTx creates and sends a SC tx
 func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
-	fmt.Println("Deploying SC...")
 	txDeploy := createTxDeploy(nodes[senderIdx].OwnAccount, scCode)
 	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
 
@@ -49,8 +48,6 @@ func createTxJoinGame(twa *TestWalletAccount, joinGameVal *big.Int, round int, s
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
 
-	fmt.Printf("Join %s\n", hex.EncodeToString(twa.Address.Bytes()))
-
 	return tx
 }
 
@@ -63,7 +60,6 @@ func PlayerJoinsGame(
 	scAddress []byte,
 ) {
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address.Bytes())
-	fmt.Println("Calling SC.joinGame...")
 	txScCall := createTxJoinGame(player, joinGameVal, round, scAddress)
 	_, _ = txDispatcherNode.SendTransaction(txScCall)
 }
@@ -87,8 +83,6 @@ func createTxRewardAndSendToWallet(
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = tnOwner.SingleSigner.Sign(tnOwner.SkTxSign, txBuff)
 
-	fmt.Printf("Reward %s\n", hex.EncodeToString(winnerAddress))
-
 	return tx
 }
 
@@ -101,8 +95,6 @@ func NodeCallsRewardAndSend(
 	round int,
 	scAddress []byte,
 ) {
-
-	fmt.Println("Calling SC.rewardAndSendToWallet...")
 	txScCall := createTxRewardAndSendToWallet(nodes[idxNodeOwner].OwnAccount, winnerAddress, prize, round, scAddress)
 	_, _ = nodes[idxNodeOwner].SendTransaction(txScCall)
 }
