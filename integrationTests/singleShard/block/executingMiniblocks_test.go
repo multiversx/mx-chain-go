@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,7 +66,7 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 	nonce++
 
 	err = proposeAndCommitBlock(nodes[idxProposer], round, nonce)
-	assert.Nil(t, err)
+	assert.Equal(t, process.ErrLowerRoundInBlock, err)
 
 	//mockTestingT is used as in normal case SyncBlock would fail as it doesn't find the header with nonce 2
 	mockTestingT := &testing.T{}
