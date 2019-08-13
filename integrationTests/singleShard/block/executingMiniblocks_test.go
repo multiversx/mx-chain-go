@@ -1,0 +1,94 @@
+package block
+
+import (
+	"context"
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/stretchr/testify/assert"
+)
+
+// TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound tests that a shard can not continue building on a
+// chain with 2 blocks in the same round
+func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	log := logger.DefaultLogger()
+	log.SetLevel(logger.LogDebug)
+
+	maxShards := uint32(1)
+	numOfNodes := 4
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
+
+	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
+	for i := 0; i < numOfNodes; i++ {
+		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	}
+
+	idxProposer := 0
+	numPlayers := 10
+	players := make([]*integrationTests.TestWalletAccount, numPlayers)
+	for i := 0; i < numPlayers; i++ {
+		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	for _, n := range nodes {
+		_ = n.Messenger.Bootstrap()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(stepDelay)
+
+	round := uint64(0)
+	nonce := uint64(1)
+	round = integrationTests.IncrementAndPrintRound(round)
+
+	proposeBlock(nodes[idxProposer], round, nonce)
+	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, nonce)
+
+	time.Sleep(stepDelay)
+
+	checkCurrentBlockHeight(t, nodes, nonce)
+
+	//only nonce increases, round stays the same
+	nonce++
+
+	proposeBlock(nodes[idxProposer], round, nonce)
+	//mockTestingT is used as in normal case SyncBlock would fail as it doesn't find the header with nonce 2
+	mockTestingT := &testing.T{}
+	integrationTests.SyncBlock(mockTestingT, nodes, []int{idxProposer}, nonce)
+
+	time.Sleep(stepDelay)
+
+	checkCurrentBlockHeight(t, nodes, nonce-1)
+}
+
+func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce uint64) {
+	body, hdr, _ := node.ProposeBlock(round, nonce)
+	err := node.BlockProcessor.CommitBlock(node.BlockChain, hdr, body)
+	if err == nil {
+		node.BroadcastBlock(body, hdr)
+	}
+
+	time.Sleep(stepDelay)
+}
+
+func checkCurrentBlockHeight(t *testing.T, nodes []*integrationTests.TestProcessorNode, nonce uint64) {
+	for _, n := range nodes {
+		assert.Equal(t, nonce, n.BlockChain.GetCurrentBlockHeader().GetNonce())
+	}
+}

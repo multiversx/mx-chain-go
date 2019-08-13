@@ -486,7 +486,7 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64) 
 			continue
 		}
 
-		body, header, _ := n.ProposeBlock(round)
+		body, header, _ := n.ProposeBlock(round, round)
 		n.BroadcastBlock(body, header)
 		n.CommitBlock(body, header)
 	}

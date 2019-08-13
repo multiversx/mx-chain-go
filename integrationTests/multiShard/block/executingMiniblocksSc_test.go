@@ -383,7 +383,7 @@ func proposeBlockWithScTxs(
 			continue
 		}
 
-		body, header, _ := n.ProposeBlock(round)
+		body, header, _ := n.ProposeBlock(round, round)
 		n.BroadcastBlock(body, header)
 		n.CommitBlock(body, header)
 	}
@@ -466,7 +466,7 @@ func proposeBlockSignalsEmptyBlock(
 
 	fmt.Println("Proposing block without commit...")
 
-	body, header, txHashes := node.ProposeBlock(round)
+	body, header, txHashes := node.ProposeBlock(round, round)
 	node.BroadcastBlock(body, header)
 	isEmptyBlock := len(txHashes) == 0
 
