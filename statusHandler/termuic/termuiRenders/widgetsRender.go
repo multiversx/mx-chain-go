@@ -225,7 +225,7 @@ func (wr *WidgetsRender) prepareLoads() {
 	memTotalMemoryBytes := memTotalMemoryBytesObj.(uint64)
 	wr.memoryLoad.Title = "Memory load"
 	wr.memoryLoad.Percent = int(memLoadPercent)
-	wr.memoryLoad.Label = fmt.Sprintf("%d%% / T: %s", memLoadPercent, core.ConvertBytes(memTotalMemoryBytes))
+	wr.memoryLoad.Label = fmt.Sprintf("%d%% / total: %s", memLoadPercent, core.ConvertBytes(memTotalMemoryBytes))
 
 	recvLoad := wr.getFromCacheAsUint64(core.MetricNetworkRecvPercent)
 	recvBps := wr.getFromCacheAsUint64(core.MetricNetworkRecvBps)
