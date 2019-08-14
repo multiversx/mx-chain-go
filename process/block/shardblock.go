@@ -189,7 +189,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	numTxWithDst := sp.txCounter.getNumTxsWithDst(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())
 
-	sp.appStatusHandler.SetInt64Value(core.MetricTxPoolLoad, int64(numTxWithDst))
+	sp.appStatusHandler.SetUInt64Value(core.MetricTxPoolLoad, uint64(numTxWithDst))
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", numTxWithDst))
 
