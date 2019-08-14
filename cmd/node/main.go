@@ -270,7 +270,7 @@ var coreServiceContainer serviceContainer.Core
 // windows:
 //            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
 //            go build -i -v -ldflags="-X main.appVersion=%VERS%"
-var appVersion = "undefined"
+var appVersion = core.UnVersionedAppString
 
 func main() {
 	log := logger.DefaultLogger()
@@ -529,6 +529,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricShardId, uint64(shardCoordinator.SelfId()))
 	coreComponents.StatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricRoundTime, nodesConfig.RoundDuration/milisecondsInSecond)
+	coreComponents.StatusHandler.SetStringValue(core.MetricAppVersion, version)
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -642,7 +643,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
+	restAPIServerDebugMode := !useTermui
+	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{
 		RestApiPort:       ctx.GlobalString(restApiPort.Name),

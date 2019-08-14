@@ -82,12 +82,12 @@ func (tc *TermuiConsole) eventLoop() {
 	termWidth, termHeight := ui.TerminalDimensions()
 	tc.grid.SetRectangle(0, 0, termWidth, termHeight)
 
-	time.Sleep(1 * time.Second)
-
 	uiEvents := ui.PollEvents()
 	// handles kill signal sent to gotop
 	sigTerm := make(chan os.Signal, 2)
 	signal.Notify(sigTerm, os.Interrupt, syscall.SIGTERM)
+
+	tc.consoleRender.RefreshData(tc.logLines)
 
 	for {
 		select {

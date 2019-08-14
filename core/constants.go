@@ -1,5 +1,9 @@
 package core
 
+// UnVersionedAppString represents the default app version that indicate that the binary wasn't build by setting
+// the appVersion flag
+const UnVersionedAppString = "undefined"
+
 // NodeType represents the node's role in the network
 type NodeType string
 
@@ -100,3 +104,6 @@ const MetricNetworkSentBpsPeak = "erd_network_sent_bps_peak"
 
 // MetricRoundTime is the metric for round time in seconds
 const MetricRoundTime = "erd_round_time"
+
+// MetricAppVersion is the metric for the current app version
+const MetricAppVersion = "erd_app_version"
