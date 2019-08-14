@@ -1451,7 +1451,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 	sp.mutUsedMetaHdrsHashes.Unlock()
 
 	sp.blockSizeThrottler.Add(
-		uint64(round),
+		round,
 		core.Max(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil

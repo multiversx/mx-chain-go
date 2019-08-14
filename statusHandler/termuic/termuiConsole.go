@@ -110,29 +110,10 @@ func (tc *TermuiConsole) processUiEvents(e ui.Event) {
 		tc.grid.SetRectangle(0, 0, payload.Width, payload.Height)
 		ui.Clear()
 		ui.Render(tc.grid.TopLeft(), tc.grid.TopRight(), tc.grid.Bottom())
-	//case "q":
-	//	tc.changeConsoleDisplay()
 
 	case "<C-c>":
 		ui.Close()
 		StopApplication()
 		return
 	}
-}
-
-func (tc *TermuiConsole) changeConsoleDisplay() {
-	tc.grid = termuiRenders.NewDrawableContainer()
-
-	if _, ok := tc.consoleRender.(*termuiRenders.LogRender); ok {
-		tc.consoleRender = termuiRenders.NewWidgetsRender2(tc.termuiConsoleMetrics, tc.grid)
-	} else {
-		bottomGrid := tc.grid.Bottom()
-		tc.consoleRender = termuiRenders.NewLogRender(bottomGrid.(*ui.Grid))
-	}
-
-	termWidth, termHeight := ui.TerminalDimensions()
-	tc.grid.SetRectangle(0, 0, termWidth, termHeight)
-
-	ui.Clear()
-	ui.Render(tc.grid.TopLeft(), tc.grid.TopRight(), tc.grid.Bottom())
 }

@@ -1,5 +1,6 @@
 package core
 
+// NodeType represents the node's role in the network
 type NodeType string
 
 // NodeTypeObserver signals that a node is running as observer node

@@ -334,7 +334,7 @@ func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 		syncTimerMock)
 
 	err := chr.SetAppStatusHandler(&mock.AppStatusHandlerStub{
-		SetInt64ValueHandler: func(key string, value int64) {
+		SetUInt64ValueHandler: func(key string, value uint64) {
 			chanDone <- true
 		},
 	})

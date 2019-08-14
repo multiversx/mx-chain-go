@@ -100,7 +100,7 @@ func (mc *MetaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	}
 
 	mc.appStatusHandler.SetUInt64Value(core.MetricNonce, currHead.Nonce)
-	mc.appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, uint64(currHead.Round))
+	mc.appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, currHead.Round)
 
 	mc.CurrentBlock = currHead
 

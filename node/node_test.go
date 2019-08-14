@@ -1446,33 +1446,21 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	assert.Equal(t, accnt, recovAccnt)
 }
 
-func TestNode_AppStatusHandlerWithFacadeIncrement(t *testing.T) {
+func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 	t.Parallel()
 
 	metricKey := core.MetricCurrentRound
 	incrementCalled := make(chan bool, 1)
 
 	// create a prometheus status handler which will be passed to the facade
-	prometheusStub := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		IncrementHandler: func(key string) {
 			incrementCalled <- true
 		},
 	}
 
-	appStatusFacade := mock.AppStatusFacadeStub{
-		ListOfAphs: []core.AppStatusHandler{&prometheusStub},
-	}
-
-	listOfHandlers := appStatusFacade.ListOfAphs
-
-	appStatusFacade.IncrementHandler = func(key string) {
-		for _, ash := range listOfHandlers {
-			ash.Increment(key)
-		}
-	}
-
 	n, _ := node.NewNode(
-		node.WithAppStatusHandler(&appStatusFacade))
+		node.WithAppStatusHandler(&appStatusHandlerStub))
 	asf := n.GetAppStatusHandler()
 
 	asf.Increment(metricKey)
@@ -1484,33 +1472,21 @@ func TestNode_AppStatusHandlerWithFacadeIncrement(t *testing.T) {
 	}
 }
 
-func TestNode_AppStatusHandlerWithFacadeDecrement(t *testing.T) {
+func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 	t.Parallel()
 
 	metricKey := core.MetricCurrentRound
 	decrementCalled := make(chan bool, 1)
 
 	// create a prometheus status handler which will be passed to the facade
-	prometheusStub := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		DecrementHandler: func(key string) {
 			decrementCalled <- true
 		},
 	}
 
-	appStatusFacade := mock.AppStatusFacadeStub{
-		ListOfAphs: []core.AppStatusHandler{&prometheusStub},
-	}
-
-	listOfHandlers := appStatusFacade.ListOfAphs
-
-	appStatusFacade.DecrementHandler = func(key string) {
-		for _, ash := range listOfHandlers {
-			ash.Decrement(key)
-		}
-	}
-
 	n, _ := node.NewNode(
-		node.WithAppStatusHandler(&appStatusFacade))
+		node.WithAppStatusHandler(&appStatusHandlerStub))
 	asf := n.GetAppStatusHandler()
 
 	asf.Decrement(metricKey)
@@ -1522,33 +1498,21 @@ func TestNode_AppStatusHandlerWithFacadeDecrement(t *testing.T) {
 	}
 }
 
-func TestNode_AppStatusHandlerWithFacadeSetInt64Value(t *testing.T) {
+func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 	t.Parallel()
 
 	metricKey := core.MetricCurrentRound
 	setInt64ValueCalled := make(chan bool, 1)
 
 	// create a prometheus status handler which will be passed to the facade
-	prometheusStub := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		SetInt64ValueHandler: func(key string, value int64) {
 			setInt64ValueCalled <- true
 		},
 	}
 
-	appStatusFacade := mock.AppStatusFacadeStub{
-		ListOfAphs: []core.AppStatusHandler{&prometheusStub},
-	}
-
-	listOfHandlers := appStatusFacade.ListOfAphs
-
-	appStatusFacade.SetInt64ValueHandler = func(key string, value int64) {
-		for _, ash := range listOfHandlers {
-			ash.SetInt64Value(key, value)
-		}
-	}
-
 	n, _ := node.NewNode(
-		node.WithAppStatusHandler(&appStatusFacade))
+		node.WithAppStatusHandler(&appStatusHandlerStub))
 	asf := n.GetAppStatusHandler()
 
 	asf.SetInt64Value(metricKey, int64(1))
@@ -1560,33 +1524,21 @@ func TestNode_AppStatusHandlerWithFacadeSetInt64Value(t *testing.T) {
 	}
 }
 
-func TestNode_AppStatusHandlerWithFacadeSetUInt64Value(t *testing.T) {
+func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 	t.Parallel()
 
 	metricKey := core.MetricCurrentRound
 	setUInt64ValueCalled := make(chan bool, 1)
 
 	// create a prometheus status handler which will be passed to the facade
-	prometheusStub := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
 			setUInt64ValueCalled <- true
 		},
 	}
 
-	appStatusFacade := mock.AppStatusFacadeStub{
-		ListOfAphs: []core.AppStatusHandler{&prometheusStub},
-	}
-
-	listOfHandlers := appStatusFacade.ListOfAphs
-
-	appStatusFacade.SetUInt64ValueHandler = func(key string, value uint64) {
-		for _, ash := range listOfHandlers {
-			ash.SetUInt64Value(key, value)
-		}
-	}
-
 	n, _ := node.NewNode(
-		node.WithAppStatusHandler(&appStatusFacade))
+		node.WithAppStatusHandler(&appStatusHandlerStub))
 	asf := n.GetAppStatusHandler()
 
 	asf.SetUInt64Value(metricKey, uint64(1))

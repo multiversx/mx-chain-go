@@ -74,8 +74,10 @@ func NewMonitor(
 func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 	if ash != nil {
 		m.appStatusHandler = ash
+
 		return nil
 	}
+
 	return ErrNilAppStatusHandler
 }
 
