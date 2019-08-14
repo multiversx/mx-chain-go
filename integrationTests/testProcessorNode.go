@@ -115,6 +115,33 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
+	tpn.initTestNode()
+
+	return tpn
+}
+
+// NewTestProcessorNodeWithCustomDataPool returns a new TestProcessorNode instance with the given data pool
+func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string, dPool dataRetriever.PoolsHolder) *TestProcessorNode {
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
+
+	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	tpn := &TestProcessorNode{
+		ShardCoordinator: shardCoordinator,
+		Messenger:        messenger,
+	}
+
+	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
+	if tpn.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+		tpn.ShardDataPool = dPool
+	} else {
+		tpn.initDataPools()
+	}
+	tpn.initTestNode()
+
+	return tpn
+}
+
+func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(tpn.ShardCoordinator)
 	tpn.initChainHandler()
@@ -134,15 +161,13 @@ func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeySha
 	tpn.initNode()
 	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
 	tpn.addHandlersForCounters()
-
-	return tpn
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		tpn.MetaDataPool = CreateTestMetaDataPool()
 	} else {
-		tpn.ShardDataPool = CreateTestShardDataPool()
+		tpn.ShardDataPool = CreateTestShardDataPool(nil)
 	}
 }
 
@@ -445,11 +470,11 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 }
 
 func (tpn *TestProcessorNode) addHandlersForCounters() {
-	hdrHandlers := func(key []byte) {
-		atomic.AddInt32(&tpn.CounterHdrRecv, 1)
-	}
 	metaHandlers := func(key []byte) {
 		atomic.AddInt32(&tpn.CounterMetaRcv, 1)
+	}
+	hdrHandlers := func(key []byte) {
+		atomic.AddInt32(&tpn.CounterHdrRecv, 1)
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -705,4 +730,17 @@ func (tpn *TestProcessorNode) SetAccountNonce(nonce uint64) error {
 	}
 
 	return nil
+}
+
+// MiniBlocksPresent checks if the all the miniblocks are present in the pool
+func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
+	mbCacher := tpn.ShardDataPool.MiniBlocks()
+	for i := 0; i < len(hashes); i++ {
+		ok := mbCacher.Has(hashes[i])
+		if !ok {
+			return false
+		}
+	}
+
+	return true
 }
