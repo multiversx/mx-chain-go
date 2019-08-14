@@ -16,7 +16,7 @@ import (
 const refreshInterval = time.Second
 
 //maxLogLines is used to specify how many lines of logs need to store in slice
-const maxLogLines = 100
+var maxLogLines = 100
 
 // TermuiConsole data where is store data from handler
 type TermuiConsole struct {
@@ -39,26 +39,23 @@ func NewTermuiConsole(metricData *sync.Map) *TermuiConsole {
 func (tc *TermuiConsole) Write(p []byte) (n int, err error) {
 	go func() {
 		logLine := string(p)
-		//logLine = strings.Replace(logLine, "\n", "", len(logLine))
-		//logLine = strings.Replace(logLine, "\r", "", len(logLine))
 
 		stringSlice := strings.Split(logLine, "\n")
 
 		tc.mutLogLineWrite.Lock()
-
-		if len(tc.logLines) >= maxLogLines {
-			tc.logLines = tc.logLines[len(stringSlice):maxLogLines]
-		}
-
-		if len(stringSlice) > 0 {
-			for _, line := range stringSlice {
-				//line = strings.Replace(line, "\n", "", len(line))
-				line = strings.Replace(line, "\r", "", len(line))
-				if line != "" {
-					tc.logLines = append(tc.logLines, line)
-				}
+		for _, line := range stringSlice {
+			line = strings.Replace(line, "\r", "", len(line))
+			if line != "" {
+				tc.logLines = append(tc.logLines, line)
 			}
 		}
+
+		startPos := len(tc.logLines) - maxLogLines
+		if startPos < 0 {
+			startPos = 0
+		}
+		tc.logLines = tc.logLines[startPos:len(tc.logLines)]
+
 		tc.mutLogLineWrite.Unlock()
 	}()
 

@@ -34,7 +34,7 @@ func TestTermuiStatusHandler_TestIfMetricsAreInitialized(t *testing.T) {
 	_, err := termuiStatusHandler.GetTermuiMetricByKey(core.MetricNonce)
 
 	assert.Nil(t, err)
-	assert.Equal(t, 11, termuiStatusHandler.GetMetricsCount())
+	assert.Equal(t, 26, termuiStatusHandler.GetMetricsCount())
 }
 
 func TestTermuiStatusHandler_TestIncrement(t *testing.T) {

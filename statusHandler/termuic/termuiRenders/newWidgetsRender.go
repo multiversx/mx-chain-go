@@ -199,9 +199,10 @@ func (wr *WidgetsRender2) prepareChainInfo() (string, string) {
 }
 
 func (wr *WidgetsRender2) prepareListWithLogsForDisplay(logData []string) {
+	bordersHeight := 2
 	wr.lLog.Title = "Log info"
 	wr.lLog.TextStyle = ui.NewStyle(ui.ColorWhite)
-	wr.lLog.Rows = wr.prepareLogLines(logData, wr.lLog.Size().Y)
+	wr.lLog.Rows = wr.prepareLogLines(logData, wr.lLog.Size().Y-bordersHeight)
 	wr.lLog.WrapText = true
 	return
 }
@@ -232,7 +233,9 @@ func (wr *WidgetsRender2) prepareSyncInfoForDisplay(nonce uint64, currentRound i
 //TODO duplicate code next pull request refactor
 func (wr *WidgetsRender2) prepareLogLines(logData []string, size int) []string {
 	logDataLen := len(logData)
-
+	if size < 0 {
+		size = 0
+	}
 	if logDataLen > size {
 		return logData[logDataLen-size : logDataLen]
 	}
