@@ -2,6 +2,7 @@ package termuiRenders
 
 import (
 	"fmt"
+	"math"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -23,8 +24,8 @@ type WidgetsRender2 struct {
 
 	cpuLoad     *widgets.Gauge
 	memoryLoad  *widgets.Gauge
-	networkLoad *widgets.Gauge
-	txPoolLoad  *widgets.Gauge
+	networkRecv *widgets.Gauge
+	networkSent *widgets.Gauge
 
 	tSyncInfo *widgets.Table
 
@@ -54,8 +55,8 @@ func (wr *WidgetsRender2) initWidgets() {
 
 	wr.cpuLoad = widgets.NewGauge()
 	wr.memoryLoad = widgets.NewGauge()
-	wr.networkLoad = widgets.NewGauge()
-	wr.txPoolLoad = widgets.NewGauge()
+	wr.networkRecv = widgets.NewGauge()
+	wr.networkSent = widgets.NewGauge()
 
 	wr.lLog = widgets.NewList()
 
@@ -79,10 +80,10 @@ func (wr *WidgetsRender2) setGrid() {
 		ui.NewRow(1.0/2, wr.chainInfo))
 
 	gridRight := ui.NewGrid()
-	gridRight.Set(ui.NewRow(1.0/4, wr.cpuLoad),
-		ui.NewRow(1.0/4, wr.memoryLoad),
-		ui.NewRow(1.0/4, wr.networkLoad),
-		ui.NewRow(1.0/4, wr.txPoolLoad))
+	gridRight.Set(ui.NewRow(1.0/6, wr.cpuLoad),
+		ui.NewRow(1.0/6, wr.memoryLoad),
+		ui.NewRow(1.0/6, wr.networkRecv),
+		ui.NewRow(1.0/6, wr.networkSent))
 
 	gridBottom := ui.NewGrid()
 	gridBottom.Set(ui.NewRow(1.0, wr.lLog))
@@ -157,44 +158,42 @@ func (wr *WidgetsRender2) prepareInstanceInfo() (string, string) {
 func (wr *WidgetsRender2) prepareChainInfo() (string, string) {
 	rows := ""
 
-	isSyncingI, _ := wr.termuiConsoleMetrics.Load(core.MetricIsSyncing)
-	isSyncing := isSyncingI.(uint64)
-	isSyncingStr := "synchronized"
-	if isSyncing == 1 {
-		isSyncingStr = "currently synching"
+	syncStatus := wr.getFromCacheAsUint64(core.MetricIsSyncing)
+	syncingStr := fmt.Sprintf("undefined %d", syncStatus)
+	switch syncStatus {
+	case 1:
+		syncingStr = "currently synching"
+	case 0:
+		syncingStr = "synchronized"
 	}
+	rows = fmt.Sprintf("Status: %s\n", syncingStr)
 
-	rows = fmt.Sprintf("%s", fmt.Sprintf("Status: %s", isSyncingStr))
-
-	rows = fmt.Sprintf("%s\n", rows)
-
-	nonceI, _ := wr.termuiConsoleMetrics.Load(core.MetricNonce)
-	nonce := nonceI.(uint64)
-
-	probableHighestNonceI, _ := wr.termuiConsoleMetrics.Load(core.MetricProbableHighestNonce)
-	probableHighestNonce := probableHighestNonceI.(uint64)
-	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("Current synchronized block nonce: %v/%v", nonce, probableHighestNonce))
-
-	synchronizedRoundI, _ := wr.termuiConsoleMetrics.Load(core.MetricSynchronizedRound)
-	synchronizedRound := synchronizedRoundI.(uint64)
-
-	currentRoundI, _ := wr.termuiConsoleMetrics.Load(core.MetricCurrentRound)
-	currentRound := currentRoundI.(int64)
-	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("Current consensus round: %v/%v", synchronizedRound, currentRound))
-
-	consensusRoundTimeI, _ := wr.termuiConsoleMetrics.Load(core.MetricRoundTime)
-	consensusRoundTime := consensusRoundTimeI.(uint64)
-	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("Consensus round time: %vs", consensusRoundTime))
+	memTxPoolSize := wr.getFromCacheAsUint64(core.MetricTxPoolLoad)
+	rows = fmt.Sprintf("%sMem tx pool size: %d\n", rows, memTxPoolSize)
 
 	rows = fmt.Sprintf("%s\n", rows)
 
-	numLiveNodesI, _ := wr.termuiConsoleMetrics.Load(core.MetricLiveValidatorNodes)
-	numLiveNodes := numLiveNodesI.(int64)
-	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("Live validator nodes: %v", numLiveNodes))
+	nonce := wr.getFromCacheAsUint64(core.MetricNonce)
+	probableHighestNonce := wr.getFromCacheAsUint64(core.MetricProbableHighestNonce)
+	rows = fmt.Sprintf("%sCurrent synchronized block nonce: %v / %v\n", rows, nonce, probableHighestNonce)
 
-	numConnectedPeersI, _ := wr.termuiConsoleMetrics.Load(core.MetricNumConnectedPeers)
-	numConnectedPeers := numConnectedPeersI.(int64)
-	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("Connected peers: %v", numConnectedPeers))
+	synchronizedRound := wr.getFromCacheAsUint64(core.MetricSynchronizedRound)
+	currentRound := wr.getFromCacheAsUint64(core.MetricCurrentRound)
+	rows = fmt.Sprintf("%sCurrent consensus round: %v / %v\n", rows, synchronizedRound, currentRound)
+
+	consensusRoundTime := wr.getFromCacheAsUint64(core.MetricRoundTime)
+	rows = fmt.Sprintf("%sConsensus round time: %ds\n", rows, consensusRoundTime)
+
+	rows = fmt.Sprintf("%s\n", rows)
+
+	numLiveValidators := wr.getFromCacheAsUint64(core.MetricLiveValidatorNodes)
+	rows = fmt.Sprintf("%sLive validator nodes: %v\n", rows, numLiveValidators)
+
+	numConnectedNodes := wr.getFromCacheAsUint64(core.MetricConnectedNodes)
+	rows = fmt.Sprintf("%sNetwork connected nodes: %v\n", rows, numConnectedNodes)
+
+	numConnectedPeers := wr.getFromCacheAsUint64(core.MetricNumConnectedPeers)
+	rows = fmt.Sprintf("%sThis node is connected to %v peers\n", rows, numConnectedPeers)
 
 	return "Chain info", rows
 }
@@ -248,16 +247,43 @@ func (wr *WidgetsRender2) prepareLoads() {
 
 	memLoadPercentI, _ := wr.termuiConsoleMetrics.Load(core.MetricMemLoadPercent)
 	memLoadPercent := memLoadPercentI.(uint64)
-	wr.memoryLoad.Title = "Memory Load"
+	memTotalMemoryBytesObj, _ := wr.termuiConsoleMetrics.Load(core.MetricTotalMem)
+	memTotalMemoryBytes := memTotalMemoryBytesObj.(uint64)
+	wr.memoryLoad.Title = "Memory load"
 	wr.memoryLoad.Percent = int(memLoadPercent)
+	wr.memoryLoad.Label = fmt.Sprintf("%d%% / T: %s", memLoadPercent, core.ConvertBytes(memTotalMemoryBytes))
 
-	networkLoadPercentI, _ := wr.termuiConsoleMetrics.Load(core.MetricNetworkLoadPercent)
-	networkLoadPercent := networkLoadPercentI.(uint64)
-	wr.networkLoad.Title = "Network Load"
-	wr.networkLoad.Percent = int(networkLoadPercent)
+	recvLoad := wr.getFromCacheAsUint64(core.MetricNetworkRecvPercent)
+	recvBps := wr.getFromCacheAsUint64(core.MetricNetworkRecvBps)
+	recvBpsPeak := wr.getFromCacheAsUint64(core.MetricNetworkRecvBpsPeak)
+	wr.networkRecv.Title = "Network - recv:"
+	wr.networkRecv.Percent = int(recvLoad)
+	wr.networkRecv.Label = fmt.Sprintf("%d%% / rate: %s/s / peak rate: %s/s",
+		recvLoad, core.ConvertBytes(recvBps), core.ConvertBytes(recvBpsPeak))
 
-	txPoolLoadI, _ := wr.termuiConsoleMetrics.Load(core.MetricTxPoolLoad)
-	txPoolLoad := txPoolLoadI.(int64)
-	wr.txPoolLoad.Title = "Transation Pool Load"
-	wr.txPoolLoad.Percent = int(txPoolLoad)
+	sentLoad := wr.getFromCacheAsUint64(core.MetricNetworkSentPercent)
+	sentBps := wr.getFromCacheAsUint64(core.MetricNetworkSentBps)
+	sentBpsPeak := wr.getFromCacheAsUint64(core.MetricNetworkSentBpsPeak)
+	wr.networkSent.Title = "Network - sent:"
+	wr.networkSent.Percent = int(sentLoad)
+	wr.networkSent.Label = fmt.Sprintf("%d%% / rate: %s/s / peak rate: %s/s",
+		sentLoad, core.ConvertBytes(sentBps), core.ConvertBytes(sentBpsPeak))
+}
+
+func (wr *WidgetsRender2) getFromCacheAsUint64(metric string) uint64 {
+	val, ok := wr.termuiConsoleMetrics.Load(metric)
+	if !ok {
+		return math.MaxUint64
+	}
+
+	valUint64, ok := val.(uint64)
+	if !ok {
+		return math.MaxUint64
+	}
+
+	return valUint64
+}
+
+func (wr *WidgetsRender2) getNetworkRecvStats() {
+
 }

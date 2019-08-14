@@ -77,7 +77,7 @@ func (tc *TermuiConsole) eventLoop() {
 	tc.consoleRender = termuiRenders.NewWidgetsRender2(tc.termuiConsoleMetrics, tc.grid)
 
 	termWidth, termHeight := ui.TerminalDimensions()
-	tc.grid.SetRect(0, 0, termWidth, termHeight)
+	tc.grid.SetRectangle(0, 0, termWidth, termHeight)
 
 	time.Sleep(1 * time.Second)
 
@@ -91,7 +91,7 @@ func (tc *TermuiConsole) eventLoop() {
 		case <-time.After(refreshInterval):
 			tc.consoleRender.RefreshData(tc.logLines)
 			ui.Clear()
-			ui.Render(tc.grid.GetTopLeft(), tc.grid.GetTopRight(), tc.grid.GetBottom())
+			ui.Render(tc.grid.TopLeft(), tc.grid.TopRight(), tc.grid.Bottom())
 
 		case <-sigTerm:
 			ui.Clear()
@@ -107,9 +107,9 @@ func (tc *TermuiConsole) processUiEvents(e ui.Event) {
 	switch e.ID {
 	case "<Resize>":
 		payload := e.Payload.(ui.Resize)
-		tc.grid.SetRect(0, 0, payload.Width, payload.Height)
+		tc.grid.SetRectangle(0, 0, payload.Width, payload.Height)
 		ui.Clear()
-		ui.Render(tc.grid.GetTopLeft(), tc.grid.GetTopRight(), tc.grid.GetBottom())
+		ui.Render(tc.grid.TopLeft(), tc.grid.TopRight(), tc.grid.Bottom())
 	//case "q":
 	//	tc.changeConsoleDisplay()
 
@@ -126,13 +126,13 @@ func (tc *TermuiConsole) changeConsoleDisplay() {
 	if _, ok := tc.consoleRender.(*termuiRenders.LogRender); ok {
 		tc.consoleRender = termuiRenders.NewWidgetsRender2(tc.termuiConsoleMetrics, tc.grid)
 	} else {
-		bottomGrid := tc.grid.GetBottom()
+		bottomGrid := tc.grid.Bottom()
 		tc.consoleRender = termuiRenders.NewLogRender(bottomGrid.(*ui.Grid))
 	}
 
 	termWidth, termHeight := ui.TerminalDimensions()
-	tc.grid.SetRect(0, 0, termWidth, termHeight)
+	tc.grid.SetRectangle(0, 0, termWidth, termHeight)
 
 	ui.Clear()
-	ui.Render(tc.grid.GetTopLeft(), tc.grid.GetTopRight(), tc.grid.GetBottom())
+	ui.Render(tc.grid.TopLeft(), tc.grid.TopRight(), tc.grid.Bottom())
 }

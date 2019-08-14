@@ -722,8 +722,8 @@ func registerPollConnectedPeers(
 ) error {
 
 	numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
-		numOfConnectedPeers := int64(len(networkComponents.NetMessenger.ConnectedAddresses()))
-		appStatusHandler.SetInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
+		numOfConnectedPeers := uint64(len(networkComponents.NetMessenger.ConnectedAddresses()))
+		appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
 	}
 
 	err := appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)

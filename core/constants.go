@@ -76,8 +76,26 @@ const MetricCpuLoadPercent = "erd_cpu_load_percent"
 // MetricMemLoadPercent is the metric for monitoring memory load [%]
 const MetricMemLoadPercent = "erd_mem_load_percent"
 
-// MetricNetworkLoadPercent is the metric for monitoring network load [%]
-const MetricNetworkLoadPercent = "erd_network_load_percent"
+// MetricTotalMem is the metric for monitoring total memory bytes
+const MetricTotalMem = "erd_total_mem"
+
+// MetricNetworkRecvPercent is the metric for monitoring network receive load [%]
+const MetricNetworkRecvPercent = "erd_network_recv_percent"
+
+// MetricNetworkRecvBps is the metric for monitoring network received bytes per second
+const MetricNetworkRecvBps = "erd_network_recv_bps"
+
+// MetricNetworkRecvBpsPeak is the metric for monitoring network received peak bytes per second
+const MetricNetworkRecvBpsPeak = "erd_network_recv_bps_peak"
+
+// MetricNetworkSentPercent is the metric for monitoring network sent load [%]
+const MetricNetworkSentPercent = "erd_network_sent_percent"
+
+// MetricNetworkSentBps is the metric for monitoring network sent bytes per second
+const MetricNetworkSentBps = "erd_network_sent_bps"
+
+// MetricNetworkSentBpsPeak is the metric for monitoring network sent peak bytes per second
+const MetricNetworkSentBpsPeak = "erd_network_sent_bps_peak"
 
 // MetricRoundTime is the metric for round time in seconds
 const MetricRoundTime = "erd_round_time"

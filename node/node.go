@@ -730,6 +730,11 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber strin
 		return err
 	}
 
+	err = n.heartbeatMonitor.SetAppStatusHandler(n.appStatusHandler)
+	if err != nil {
+		return err
+	}
+
 	err = n.messenger.RegisterMessageProcessor(HeartbeatTopic, n.heartbeatMonitor)
 	if err != nil {
 		return err

@@ -53,12 +53,20 @@ func (tsh *TermuiStatusHandler) initMetricsMap() {
 	tsh.termuiConsoleMetrics.Store(core.MetricCurrentRound, int64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricSynchronizedRound, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricRoundTime, uint64(0))
-	tsh.termuiConsoleMetrics.Store(core.MetricLiveValidatorNodes, int64(0))
-	tsh.termuiConsoleMetrics.Store(core.MetricNumConnectedPeers, int64(0))
+
+	tsh.termuiConsoleMetrics.Store(core.MetricLiveValidatorNodes, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricConnectedNodes, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricNumConnectedPeers, uint64(0))
 
 	tsh.termuiConsoleMetrics.Store(core.MetricCpuLoadPercent, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricMemLoadPercent, uint64(0))
-	tsh.termuiConsoleMetrics.Store(core.MetricNetworkLoadPercent, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricTotalMem, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricNetworkRecvBps, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricNetworkRecvBpsPeak, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricNetworkRecvPercent, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricNetworkSentBps, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricNetworkSentBpsPeak, uint64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricNetworkSentPercent, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricTxPoolLoad, int64(0))
 
 }

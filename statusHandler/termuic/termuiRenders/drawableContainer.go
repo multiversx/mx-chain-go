@@ -4,6 +4,7 @@ import (
 	"github.com/gizak/termui/v3"
 )
 
+// DrawableContainer defines a container of drawable object with position and dimensions
 type DrawableContainer struct {
 	topLeft   termui.Drawable
 	topRight  termui.Drawable
@@ -21,9 +22,19 @@ func NewDrawableContainer() *DrawableContainer {
 	return &dc
 }
 
+// TopLeft gets the topLeft drawable
+func (imh *DrawableContainer) TopLeft() termui.Drawable {
+	return imh.topLeft
+}
+
 // SetTopLeft sets the topLeft drawable
 func (imh *DrawableContainer) SetTopLeft(drawable termui.Drawable) {
 	imh.topLeft = drawable
+}
+
+// TopRight sets the topRight drawable
+func (imh *DrawableContainer) TopRight() termui.Drawable {
+	return imh.topRight
 }
 
 // SetTopRight sets the topRight drawable
@@ -31,28 +42,18 @@ func (imh *DrawableContainer) SetTopRight(drawable termui.Drawable) {
 	imh.topRight = drawable
 }
 
+// Bottom sets the bottom drawable
+func (imh *DrawableContainer) Bottom() termui.Drawable {
+	return imh.bottom
+}
+
 // SetBottom sets the bottom drawable
 func (imh *DrawableContainer) SetBottom(drawable termui.Drawable) {
 	imh.bottom = drawable
 }
 
-// SetTopLeft sets the topLeft drawable
-func (imh *DrawableContainer) GetTopLeft() termui.Drawable {
-	return imh.topLeft
-}
-
-// SetTopRight sets the topRight drawable
-func (imh *DrawableContainer) GetTopRight() termui.Drawable {
-	return imh.topRight
-}
-
-// SetBottom sets the bottom drawable
-func (imh *DrawableContainer) GetBottom() termui.Drawable {
-	return imh.bottom
-}
-
-// SetBottom sets the bottom drawable
-func (imh *DrawableContainer) GetItems() []termui.Drawable {
+// Items returns the containing items list
+func (imh *DrawableContainer) Items() []termui.Drawable {
 	items := make([]termui.Drawable, 0)
 	items = append(items, imh.topLeft)
 	items = append(items, imh.topRight)
@@ -60,18 +61,19 @@ func (imh *DrawableContainer) GetItems() []termui.Drawable {
 	return items
 }
 
-func (imh *DrawableContainer) SetRect(startWidth, startHeight, termWidth, termHeight int) {
+// SetRectangle sets the rectangle of this drawable object
+func (imh *DrawableContainer) SetRectangle(startWidth, startHeight, termWidth, termHeight int) {
 	imh.maxWidth = termWidth
 	imh.maxHeight = termHeight
 	imh.minWidth = startWidth
 	imh.minHeight = startHeight
 
 	if imh.topLeft != nil {
-		imh.topLeft.SetRect(startWidth, startHeight, imh.maxWidth/2, 20)
+		imh.topLeft.SetRect(startWidth, startHeight, imh.maxWidth/2, 22)
 	}
 
 	if imh.topRight != nil {
-		imh.topRight.SetRect(imh.maxWidth/2, startHeight, imh.maxWidth, 20)
+		imh.topRight.SetRect(imh.maxWidth/2, startHeight, imh.maxWidth, 22)
 	}
 
 	if imh.bottom != nil {
