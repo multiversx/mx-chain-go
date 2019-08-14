@@ -456,7 +456,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	for newMBAdded {
 		newMBAdded = false
 
-		for i := 0; i < int(tc.shardCoordinator.NumberOfShards()); i++ {
+		for shardId := uint32(0); shardId < tc.shardCoordinator.NumberOfShards(); shardId++ {
 			if txSpaceRemained <= 0 {
 				break
 			}
@@ -468,7 +468,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 
 			miniBlock, err := txPreProc.CreateAndProcessMiniBlock(
 				tc.shardCoordinator.SelfId(),
-				uint32(i),
+				shardId,
 				txSpaceRemained,
 				haveTime,
 				round)

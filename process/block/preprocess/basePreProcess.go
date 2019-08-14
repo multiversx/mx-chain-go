@@ -226,12 +226,8 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 
 func (bpp *basePreProcess) isTxAlreadyProcessed(txHash []byte, forBlock *txsForBlock) bool {
 	forBlock.mutTxsForBlock.RLock()
-	txInfo := forBlock.txHashAndInfo[string(txHash)]
+	_, txAlreadyProcessed := forBlock.txHashAndInfo[string(txHash)]
 	forBlock.mutTxsForBlock.RUnlock()
 
-	if txInfo == nil {
-		return false
-	}
-
-	return true
+	return txAlreadyProcessed
 }

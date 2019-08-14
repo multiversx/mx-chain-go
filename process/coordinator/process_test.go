@@ -869,9 +869,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
-	for i := uint32(0); i < nrShards; i++ {
-		strCache := process.ShardCacherIdentifier(0, i)
-		newTx := &transaction.Transaction{GasLimit: uint64(i)}
+	for shId := uint32(0); shId < nrShards; shId++ {
+		strCache := process.ShardCacherIdentifier(0, shId)
+		newTx := &transaction.Transaction{GasLimit: uint64(shId)}
 
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(txHash, newTx, strCache)
