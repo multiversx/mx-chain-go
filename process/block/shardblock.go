@@ -567,6 +567,11 @@ func (sp *shardProcessor) CommitBlock(
 		headerHandler.GetRound(),
 		headerHandler.GetNonce()))
 
+	err = sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
+	if err != nil {
+		return err
+	}
+
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
 		err = process.ErrWrongTypeAssertion

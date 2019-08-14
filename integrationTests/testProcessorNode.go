@@ -503,7 +503,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 }
 
 // ProposeBlock proposes a new block
-func (tpn *TestProcessorNode) ProposeBlock(round uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
+func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	haveTime := func() bool { return true }
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
@@ -518,7 +518,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64) (data.BodyHandler, data
 	}
 
 	blockHeader.SetRound(round)
-	blockHeader.SetNonce(round)
+	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap(make([]byte, 0))
 	sig, _ := TestMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)

@@ -684,7 +684,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	snapshot := tc.accounts.JournalLen()
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug(err.Error())
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
 			// TODO: evaluate if reloading the trie from disk will might solve the problem
