@@ -406,7 +406,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T) {
 
 	headerValidator := &mock.HeaderValidatorStub{
 		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
-			return false
+			return true
 		},
 	}
 
