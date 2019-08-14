@@ -113,7 +113,7 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrWrongNonceInBlock
 	}
 
-	if currentBlockHeader.GetRound() >= headerHandler.GetRound() {
+	if headerHandler.GetRound() <= currentBlockHeader.GetRound() {
 		log.Info(fmt.Sprintf("round not match: local block round is %d and node received block with round %d\n",
 			currentBlockHeader.GetRound(), headerHandler.GetRound()))
 

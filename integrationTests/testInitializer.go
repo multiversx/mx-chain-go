@@ -479,14 +479,14 @@ func IncrementAndPrintRound(round uint64) uint64 {
 }
 
 // ProposeBlock proposes a block with SC txs for every shard
-func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64) {
+func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, nonce uint64) {
 	fmt.Println("All shards propose blocks...")
 	for idx, n := range nodes {
 		if !IsIntInSlice(idx, idxProposers) {
 			continue
 		}
 
-		body, header, _ := n.ProposeBlock(round, round)
+		body, header, _ := n.ProposeBlock(round, nonce)
 		n.BroadcastBlock(body, header)
 		n.CommitBlock(body, header)
 	}
@@ -650,12 +650,13 @@ func ProposeAndSyncBlocks(
 	nodes []*TestProcessorNode,
 	idxProposers []int,
 	round uint64,
-) uint64 {
+	nonce uint64,
+) (uint64, uint64) {
 
 	// propose and sync block until all the transaction pools are empty
 	// if there are many transactions, they might not fit into the block body in only one round
 	for numTxsInPool := numInTxs; numTxsInPool != 0; {
-		round = ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
+		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 		for _, idProposer := range idxProposers {
 			proposerNode := nodes[idProposer]
@@ -672,7 +673,7 @@ func ProposeAndSyncBlocks(
 	}
 
 	if nodes[0].ShardCoordinator.NumberOfShards() == 1 {
-		return round
+		return round, nonce
 	}
 
 	// cross shard smart contract call is first processed at sender shard, notarized by metachain, processed at
@@ -680,10 +681,10 @@ func ProposeAndSyncBlocks(
 	// sender shard
 	numberToPropagateToEveryShard := 5
 	for i := 0; i < numberToPropagateToEveryShard; i++ {
-		round = ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
+		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
 
-	return round
+	return round, nonce
 }
 
 func ProposeAndSyncOneBlock(
@@ -691,10 +692,17 @@ func ProposeAndSyncOneBlock(
 	nodes []*TestProcessorNode,
 	idxProposers []int,
 	round uint64,
-) uint64 {
-	ProposeBlock(nodes, idxProposers, round)
+	nonce uint64,
+) (uint64, uint64) {
+	ProposeBlock(nodes, idxProposers, round, nonce)
 	SyncBlock(t, nodes, idxProposers, round)
 	round = IncrementAndPrintRound(round)
+	nonce = IncrementNonce(nonce)
 
-	return round
+	return round, nonce
+}
+
+func IncrementNonce(nonce uint64) uint64 {
+	nonce++
+	return nonce
 }

@@ -66,7 +66,9 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
+	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce = integrationTests.IncrementNonce(nonce)
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -79,9 +81,10 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 
 	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
-	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round)
+	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round, nonce)
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce = integrationTests.IncrementNonce(nonce)
 
 	numRounds := 100
 	runMultipleRoundsOfTheGame(
@@ -93,6 +96,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 		topUpValue,
 		hardCodedScResultingAddress,
 		round,
+		nonce,
 		[]int{idxProposer},
 	)
 
@@ -146,7 +150,9 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
+	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce = integrationTests.IncrementNonce(nonce)
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -159,9 +165,10 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 
 	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
-	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round)
+	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round, nonce)
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce = integrationTests.IncrementNonce(nonce)
 
 	numRounds := 100
 	runMultipleRoundsOfTheGame(
@@ -173,6 +180,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		topUpValue,
 		hardCodedScResultingAddress,
 		round,
+		nonce,
 		[]int{idxProposer},
 	)
 
@@ -231,7 +239,9 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
+	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce = integrationTests.IncrementNonce(nonce)
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -250,9 +260,10 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		integrationTests.ProposeBlock(nodes, idxProposers, round)
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
+		nonce = integrationTests.IncrementNonce(nonce)
 	}
 
 	numRounds := 100
@@ -265,6 +276,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		topUpValue,
 		hardCodedScResultingAddress,
 		round,
+		nonce,
 		idxProposers,
 	)
 
@@ -321,7 +333,9 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
+	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce = integrationTests.IncrementNonce(nonce)
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -345,9 +359,10 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		integrationTests.ProposeBlock(nodes, idxProposers, round)
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
+		nonce = integrationTests.IncrementNonce(nonce)
 	}
 
 	numRounds := 100
@@ -360,6 +375,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		topUpValue,
 		hardCodedScResultingAddress,
 		round,
+		nonce,
 		idxProposers,
 	)
 
@@ -388,6 +404,7 @@ func runMultipleRoundsOfTheGame(
 	topUpValue *big.Int,
 	hardCodedScResultingAddress []byte,
 	round uint64,
+	nonce uint64,
 	idxProposers []int,
 ) {
 	rMonitor := &statistics.ResourceMonitor{}
@@ -421,7 +438,7 @@ func runMultipleRoundsOfTheGame(
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		round = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round)
+		round, nonce = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round, nonce)
 
 		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
@@ -435,7 +452,7 @@ func runMultipleRoundsOfTheGame(
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		round = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round)
+		round, nonce = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round, nonce)
 
 		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
 			hardCodedScResultingAddress, idxProposers[0])

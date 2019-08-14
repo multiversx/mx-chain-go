@@ -67,7 +67,9 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
+	nonce := uint64(0)
 	round = incrementAndPrintRound(round)
+	nonce = integrationTests.IncrementNonce(nonce)
 
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
@@ -76,16 +78,18 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 
 	deployScTx(nodes, idxNodeShard1, string(scCode))
 
-	proposeBlockWithScTxs(nodes, round, idxProposers)
+	proposeBlockWithScTxs(nodes, round, nonce, idxProposers)
 	round = incrementAndPrintRound(round)
+	nonce = integrationTests.IncrementNonce(nonce)
 
 	nodeDoesTopUp(nodes, idxNodeShard0, topUpValue, hardCodedScResultingAddress)
 	nodes[idxNodeShard0].OwnAccount.Nonce++
 
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
-		proposeBlockWithScTxs(nodes, round, idxProposers)
+		proposeBlockWithScTxs(nodes, round, nonce, idxProposers)
 		round = incrementAndPrintRound(round)
+		nonce = integrationTests.IncrementNonce(nonce)
 	}
 
 	checkTopUpIsDoneCorrectly(
@@ -103,8 +107,9 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 
 	roundsToWait = 12
 	for i := 0; i < roundsToWait; i++ {
-		proposeBlockWithScTxs(nodes, round, idxProposers)
+		proposeBlockWithScTxs(nodes, round, nonce, idxProposers)
 		round = incrementAndPrintRound(round)
+		nonce = integrationTests.IncrementNonce(nonce)
 	}
 
 	checkWithdrawIsDoneCorrectly(
@@ -180,7 +185,9 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
+	nonce := uint64(0)
 	round = incrementAndPrintRound(round)
+	nonce = integrationTests.IncrementNonce(nonce)
 
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
@@ -190,18 +197,20 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	deployScTx(nodes, idxProposerShard1, string(scCode))
 	nodes[idxProposerShard1].OwnAccount.Nonce++
 
-	proposeBlockWithScTxs(nodes, round, idxProposers)
+	proposeBlockWithScTxs(nodes, round, nonce, idxProposers)
 	syncBlock(t, nodes, idxProposers, round)
 	round = incrementAndPrintRound(round)
+	nonce = integrationTests.IncrementNonce(nonce)
 
 	nodeJoinsGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
 	nodes[idxProposerShard0].OwnAccount.Nonce++
 
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
-		proposeBlockWithScTxs(nodes, round, idxProposers)
+		proposeBlockWithScTxs(nodes, round, nonce, idxProposers)
 		syncBlock(t, nodes, idxProposers, round)
 		round = incrementAndPrintRound(round)
+		nonce = integrationTests.IncrementNonce(nonce)
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
 
@@ -221,9 +230,10 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	//TODO investigate why do we need 7 rounds here
 	roundsToWait = 7
 	for i := 0; i < roundsToWait; i++ {
-		proposeBlockWithScTxs(nodes, round, idxProposers)
+		proposeBlockWithScTxs(nodes, round, nonce, idxProposers)
 		syncBlock(t, nodes, idxProposers, round)
 		round = incrementAndPrintRound(round)
+		nonce = integrationTests.IncrementNonce(nonce)
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
 
@@ -302,14 +312,16 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
+	nonce := uint64(0)
 	round = incrementAndPrintRound(round)
+	nonce = integrationTests.IncrementNonce(nonce)
 
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	deployScTx(nodes, idxProposerShard1, string(scCode))
-	proposeBlockWithScTxs(nodes, round, idxProposers)
+	proposeBlockWithScTxs(nodes, round, nonce, idxProposers)
 	syncBlock(t, nodes, idxProposers, round)
 	round = incrementAndPrintRound(round)
 
@@ -318,7 +330,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 
 	maxRoundsToWait := 10
 	for i := 0; i < maxRoundsToWait; i++ {
-		proposeBlockWithScTxs(nodes, round, idxProposersWithoutShard1)
+		proposeBlockWithScTxs(nodes, round, nonce, idxProposersWithoutShard1)
 
 		hdr, body, isBodyEmpty := proposeBlockSignalsEmptyBlock(nodes[idxProposerShard1], round)
 		if isBodyEmpty {
@@ -374,6 +386,7 @@ func deployScTx(
 func proposeBlockWithScTxs(
 	nodes []*integrationTests.TestProcessorNode,
 	round uint64,
+	nonce uint64,
 	idxProposers []int,
 ) {
 
@@ -383,7 +396,7 @@ func proposeBlockWithScTxs(
 			continue
 		}
 
-		body, header, _ := n.ProposeBlock(round, round)
+		body, header, _ := n.ProposeBlock(round, nonce)
 		n.BroadcastBlock(body, header)
 		n.CommitBlock(body, header)
 	}
