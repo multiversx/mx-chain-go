@@ -85,6 +85,115 @@ func TestNewHeaderInterceptor_NilHeadersNoncesShouldErr(t *testing.T) {
 	assert.Nil(t, hi)
 }
 
+func TestNewHeaderInterceptor_NilHeaderHandlerValidatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	headers := &mock.CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
+
+	hi, err := interceptors.NewHeaderInterceptor(
+		&mock.MarshalizerMock{},
+		headers,
+		headersNonces,
+		nil,
+		mock.NewMultiSigner(),
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
+
+	assert.Equal(t, process.ErrNilHeaderHandlerValidator, err)
+	assert.Nil(t, hi)
+}
+
+func TestNewHeaderInterceptor_NilMultiSignerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	headers := &mock.CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
+
+	hi, err := interceptors.NewHeaderInterceptor(
+		&mock.MarshalizerMock{},
+		headers,
+		headersNonces,
+		headerValidator,
+		nil,
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
+
+	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
+	assert.Nil(t, hi)
+}
+
+func TestNewHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	headers := &mock.CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
+
+	hi, err := interceptors.NewHeaderInterceptor(
+		&mock.MarshalizerMock{},
+		headers,
+		headersNonces,
+		headerValidator,
+		mock.NewMultiSigner(),
+		nil,
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
+
+	assert.Equal(t, process.ErrNilHasher, err)
+	assert.Nil(t, hi)
+}
+
+func TestNewHeaderInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	headers := &mock.CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
+
+	hi, err := interceptors.NewHeaderInterceptor(
+		&mock.MarshalizerMock{},
+		headers,
+		headersNonces,
+		headerValidator,
+		mock.NewMultiSigner(),
+		mock.HasherMock{},
+		nil,
+		&mock.ChronologyValidatorStub{},
+	)
+
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
+	assert.Nil(t, hi)
+}
+
+func TestNewHeaderInterceptor_NilChronologyValidatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	headers := &mock.CacherStub{}
+	headersNonces := &mock.Uint64SyncMapCacherStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
+
+	hi, err := interceptors.NewHeaderInterceptor(
+		&mock.MarshalizerMock{},
+		headers,
+		headersNonces,
+		headerValidator,
+		mock.NewMultiSigner(),
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock(),
+		nil,
+	)
+
+	assert.Equal(t, process.ErrNilChronologyValidator, err)
+	assert.Nil(t, hi)
+}
+
 func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
