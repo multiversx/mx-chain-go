@@ -1388,7 +1388,7 @@ func newShardBlockProcessorAndTracker(
 
 	err = blockProcessor.SetAppStatusHandler(core.StatusHandler)
 	if err != nil {
-		return nil, nil, errors.New("could not create block processor's appStatusHandler: " + err.Error())
+		return nil, nil, err
 	}
 
 	return blockProcessor, blockTracker, nil

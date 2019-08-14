@@ -4,6 +4,8 @@ import (
 	"github.com/gizak/termui/v3"
 )
 
+const topHeight = 22
+
 // DrawableContainer defines a container of drawable object with position and dimensions
 type DrawableContainer struct {
 	topLeft   termui.Drawable
@@ -67,8 +69,6 @@ func (imh *DrawableContainer) SetRectangle(startWidth, startHeight, termWidth, t
 	imh.maxHeight = termHeight
 	imh.minWidth = startWidth
 	imh.minHeight = startHeight
-
-	topHeight := 22
 
 	if imh.topLeft != nil {
 		imh.topLeft.SetRect(startWidth, startHeight, imh.maxWidth/2, topHeight)

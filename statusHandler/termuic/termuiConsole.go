@@ -37,9 +37,8 @@ func NewTermuiConsole(metricData *sync.Map) *TermuiConsole {
 }
 
 func (tc *TermuiConsole) Write(p []byte) (n int, err error) {
-	go func() {
+	go func(p []byte) {
 		logLine := string(p)
-
 		stringSlice := strings.Split(logLine, "\n")
 
 		tc.mutLogLineWrite.Lock()
@@ -64,14 +63,12 @@ func (tc *TermuiConsole) Write(p []byte) (n int, err error) {
 
 // Start method - will start termui console
 func (tc *TermuiConsole) Start() error {
-
 	if err := ui.Init(); err != nil {
 		return err
 	}
 
 	go func() {
 		defer ui.Close()
-
 		tc.eventLoop()
 	}()
 
@@ -79,7 +76,6 @@ func (tc *TermuiConsole) Start() error {
 }
 
 func (tc *TermuiConsole) eventLoop() {
-
 	tc.grid = termuiRenders.NewDrawableContainer()
 	tc.consoleRender = termuiRenders.NewWidgetsRender(tc.termuiConsoleMetrics, tc.grid)
 
@@ -102,7 +98,6 @@ func (tc *TermuiConsole) eventLoop() {
 
 		case <-sigTerm:
 			ui.Clear()
-
 			return
 		case e := <-uiEvents:
 			tc.processUiEvents(e)

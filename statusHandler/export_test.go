@@ -26,7 +26,6 @@ func (tsh *TermuiStatusHandler) GetMetricsCount() int {
 	count := 0
 	tsh.termuiConsoleMetrics.Range(func(key, value interface{}) bool {
 		count++
-
 		return true
 	})
 
