@@ -33,7 +33,7 @@ type prometheus struct {
 // MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
 type MainApiHandler interface {
 	RestApiPort() string
-	GinDebugMode() bool
+	RestAPIServerDebugMode() bool
 	PprofEnabled() bool
 	PrometheusMonitoring() bool
 	PrometheusJoinURL() string
@@ -43,7 +43,7 @@ type MainApiHandler interface {
 // Start will boot up the api and appropriate routes, handlers and validators
 func Start(elrondFacade MainApiHandler) error {
 	var ws *gin.Engine
-	if elrondFacade.GinDebugMode() {
+	if elrondFacade.RestAPIServerDebugMode() {
 		ws = gin.Default()
 	} else {
 		ws = gin.New()

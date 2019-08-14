@@ -643,7 +643,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, !useTermui)
+	restAPIServerDebugMode := !useTermui
+	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{
 		RestApiPort:       ctx.GlobalString(restApiPort.Name),
