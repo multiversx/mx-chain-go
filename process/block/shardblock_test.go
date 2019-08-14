@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	poolMock "github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/transaction"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
@@ -4622,7 +4622,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainNothingToProcess(t 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHdr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := poolMock.CreateTestDataPool(nil)
+	dataPool := integrationTests.CreateTestShardDataPool(nil)
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -4685,7 +4685,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrButNotStored(t *testing.T) {
 	t.Parallel()
 
-	dataPool := poolMock.CreateTestDataPool(nil)
+	dataPool := integrationTests.CreateTestShardDataPool(nil)
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -4748,7 +4748,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrStored(t *testing.T) {
 	t.Parallel()
 
-	dataPool := poolMock.CreateTestDataPool(nil)
+	dataPool := integrationTests.CreateTestShardDataPool(nil)
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
