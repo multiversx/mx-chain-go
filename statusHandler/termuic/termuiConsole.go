@@ -81,7 +81,7 @@ func (tc *TermuiConsole) Start() error {
 func (tc *TermuiConsole) eventLoop() {
 
 	tc.grid = termuiRenders.NewDrawableContainer()
-	tc.consoleRender = termuiRenders.NewWidgetsRender2(tc.termuiConsoleMetrics, tc.grid)
+	tc.consoleRender = termuiRenders.NewWidgetsRender(tc.termuiConsoleMetrics, tc.grid)
 
 	termWidth, termHeight := ui.TerminalDimensions()
 	tc.grid.SetRectangle(0, 0, termWidth, termHeight)

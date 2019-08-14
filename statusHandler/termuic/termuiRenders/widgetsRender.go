@@ -15,10 +15,9 @@ const completeRow = 1.0
 const numLogLinesSmallLog = 10
 
 //WidgetsRender will define termui widgets that need to display a termui console
-type WidgetsRender2 struct {
+type WidgetsRender struct {
 	container    *DrawableContainer
 	lLog         *widgets.List
-	canvas       *ui.Canvas
 	instanceInfo *widgets.Paragraph
 	chainInfo    *widgets.Paragraph
 
@@ -27,16 +26,12 @@ type WidgetsRender2 struct {
 	networkRecv *widgets.Gauge
 	networkSent *widgets.Gauge
 
-	tSyncInfo *widgets.Table
-
-	lInstanceInfo        *widgets.List
-	lChainInfo           *widgets.List
 	termuiConsoleMetrics *sync.Map
 }
 
 //NewWidgetsRender method will create new WidgetsRender that display termui console
-func NewWidgetsRender2(metricData *sync.Map, grid *DrawableContainer) *WidgetsRender2 {
-	self := &WidgetsRender2{
+func NewWidgetsRender(metricData *sync.Map, grid *DrawableContainer) *WidgetsRender {
+	self := &WidgetsRender{
 		termuiConsoleMetrics: metricData,
 		container:            grid,
 	}
@@ -46,7 +41,7 @@ func NewWidgetsRender2(metricData *sync.Map, grid *DrawableContainer) *WidgetsRe
 	return self
 }
 
-func (wr *WidgetsRender2) initWidgets() {
+func (wr *WidgetsRender) initWidgets() {
 	wr.instanceInfo = widgets.NewParagraph()
 	wr.instanceInfo.Text = ""
 
@@ -60,18 +55,9 @@ func (wr *WidgetsRender2) initWidgets() {
 
 	wr.lLog = widgets.NewList()
 
-	wr.tSyncInfo = widgets.NewTable()
-	wr.tSyncInfo.Rows = [][]string{
-		{"", "", "", ""},
-	}
-
-	wr.lInstanceInfo = widgets.NewList()
-	wr.lChainInfo = widgets.NewList()
-
-	wr.canvas = ui.NewCanvas()
 }
 
-func (wr *WidgetsRender2) setGrid() {
+func (wr *WidgetsRender) setGrid() {
 
 	gridLeft := ui.NewGrid()
 
@@ -94,7 +80,7 @@ func (wr *WidgetsRender2) setGrid() {
 }
 
 //RefreshData method is used to prepare data that are displayed on container
-func (wr *WidgetsRender2) RefreshData(logLines []string) {
+func (wr *WidgetsRender) RefreshData(logLines []string) {
 	title, rows := wr.prepareInstanceInfo()
 	wr.instanceInfo.Title = title
 	wr.instanceInfo.WrapText = true
@@ -112,7 +98,7 @@ func (wr *WidgetsRender2) RefreshData(logLines []string) {
 	return
 }
 
-func (wr *WidgetsRender2) prepareInstanceInfo() (string, string) {
+func (wr *WidgetsRender) prepareInstanceInfo() (string, string) {
 	rows := ""
 
 	publicKeyI, _ := wr.termuiConsoleMetrics.Load(core.MetricPublicKeyTxSign)
@@ -155,7 +141,7 @@ func (wr *WidgetsRender2) prepareInstanceInfo() (string, string) {
 	return "Instance info", rows
 }
 
-func (wr *WidgetsRender2) prepareChainInfo() (string, string) {
+func (wr *WidgetsRender) prepareChainInfo() (string, string) {
 	rows := ""
 
 	syncStatus := wr.getFromCacheAsUint64(core.MetricIsSyncing)
@@ -198,51 +184,25 @@ func (wr *WidgetsRender2) prepareChainInfo() (string, string) {
 	return "Chain info", rows
 }
 
-func (wr *WidgetsRender2) prepareListWithLogsForDisplay(logData []string) {
-	bordersHeight := 2
+func (wr *WidgetsRender) prepareListWithLogsForDisplay(logData []string) {
 	wr.lLog.Title = "Log info"
 	wr.lLog.TextStyle = ui.NewStyle(ui.ColorWhite)
-	wr.lLog.Rows = wr.prepareLogLines(logData, wr.lLog.Size().Y-bordersHeight)
+	wr.lLog.Rows = wr.prepareLogLines(logData, wr.lLog.Size().Y)
 	wr.lLog.WrapText = true
 	return
 }
 
-func (wr *WidgetsRender2) prepareSyncInfoForDisplay(nonce uint64, currentRound int64, synchronizedRound,
-	syncStatus uint64) {
-	isSyncingS := "Status: synchronized"
-	wr.tSyncInfo.TextStyle = ui.NewStyle(ui.ColorWhite)
-	wr.tSyncInfo.RowSeparator = true
-	wr.tSyncInfo.BorderStyle = ui.NewStyle(ui.ColorWhite)
-	wr.tSyncInfo.RowStyles[0] = ui.NewStyle(ui.ColorWhite, ui.ColorGreen, ui.ModifierBold)
-
-	if syncStatus == 1 {
-		isSyncingS = "Status: syncing"
-		wr.tSyncInfo.RowStyles[0] = ui.NewStyle(ui.ColorWhite, ui.ColorRed, ui.ModifierBold)
-
-	}
-
-	nonceS := fmt.Sprintf("Current node block nonce: %v", nonce)
-	currentRoundS := fmt.Sprintf("Current round: %v", currentRound)
-	synchronizedRoundS := fmt.Sprintf("Syncronized round: %v", synchronizedRound)
-
-	wr.tSyncInfo.Rows = [][]string{
-		{isSyncingS, nonceS, synchronizedRoundS, currentRoundS},
-	}
-}
-
 //TODO duplicate code next pull request refactor
-func (wr *WidgetsRender2) prepareLogLines(logData []string, size int) []string {
+func (wr *WidgetsRender) prepareLogLines(logData []string, size int) []string {
 	logDataLen := len(logData)
-	if size < 0 {
-		size = 0
-	}
+
 	if logDataLen > size {
 		return logData[logDataLen-size : logDataLen]
 	}
 	return logData
 }
 
-func (wr *WidgetsRender2) prepareLoads() {
+func (wr *WidgetsRender) prepareLoads() {
 	cpuLoadPercentI, _ := wr.termuiConsoleMetrics.Load(core.MetricCpuLoadPercent)
 	cpuLoadPercent := cpuLoadPercentI.(uint64)
 	wr.cpuLoad.Title = "CPU Load"
@@ -273,7 +233,7 @@ func (wr *WidgetsRender2) prepareLoads() {
 		sentLoad, core.ConvertBytes(sentBps), core.ConvertBytes(sentBpsPeak))
 }
 
-func (wr *WidgetsRender2) getFromCacheAsUint64(metric string) uint64 {
+func (wr *WidgetsRender) getFromCacheAsUint64(metric string) uint64 {
 	val, ok := wr.termuiConsoleMetrics.Load(metric)
 	if !ok {
 		return math.MaxUint64
@@ -287,6 +247,6 @@ func (wr *WidgetsRender2) getFromCacheAsUint64(metric string) uint64 {
 	return valUint64
 }
 
-func (wr *WidgetsRender2) getNetworkRecvStats() {
+func (wr *WidgetsRender) getNetworkRecvStats() {
 
 }
