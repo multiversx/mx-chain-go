@@ -68,16 +68,18 @@ func (imh *DrawableContainer) SetRectangle(startWidth, startHeight, termWidth, t
 	imh.minWidth = startWidth
 	imh.minHeight = startHeight
 
+	topHeight := 22
+
 	if imh.topLeft != nil {
-		imh.topLeft.SetRect(startWidth, startHeight, imh.maxWidth/2, 22)
+		imh.topLeft.SetRect(startWidth, startHeight, imh.maxWidth/2, topHeight)
 	}
 
 	if imh.topRight != nil {
-		imh.topRight.SetRect(imh.maxWidth/2, startHeight, imh.maxWidth, 22)
+		imh.topRight.SetRect(imh.maxWidth/2, startHeight, imh.maxWidth, topHeight)
 	}
 
 	if imh.bottom != nil {
-		imh.bottom.SetRect(startWidth, 20, imh.maxWidth, imh.maxHeight)
+		imh.bottom.SetRect(startWidth, topHeight, imh.maxWidth, imh.maxHeight)
 	}
 
 }

@@ -76,8 +76,8 @@ func (wr *WidgetsRender2) setGrid() {
 	gridLeft := ui.NewGrid()
 
 	gridLeft.Set(
-		ui.NewRow(1.0/2, wr.instanceInfo),
-		ui.NewRow(1.0/2, wr.chainInfo))
+		ui.NewRow(10.0/22, wr.instanceInfo),
+		ui.NewRow(12.0/22, wr.chainInfo))
 
 	gridRight := ui.NewGrid()
 	gridRight.Set(ui.NewRow(1.0/6, wr.cpuLoad),
@@ -169,7 +169,7 @@ func (wr *WidgetsRender2) prepareChainInfo() (string, string) {
 	rows = fmt.Sprintf("Status: %s\n", syncingStr)
 
 	memTxPoolSize := wr.getFromCacheAsUint64(core.MetricTxPoolLoad)
-	rows = fmt.Sprintf("%sMem tx pool size: %d\n", rows, memTxPoolSize)
+	rows = fmt.Sprintf("%sNumber of transactions in pool: %d\n", rows, memTxPoolSize)
 
 	rows = fmt.Sprintf("%s\n", rows)
 

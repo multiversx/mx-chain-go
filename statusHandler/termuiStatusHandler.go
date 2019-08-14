@@ -50,7 +50,7 @@ func (tsh *TermuiStatusHandler) initMetricsMap() {
 	tsh.termuiConsoleMetrics.Store(core.MetricIsSyncing, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricNonce, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricProbableHighestNonce, uint64(0))
-	tsh.termuiConsoleMetrics.Store(core.MetricCurrentRound, int64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricCurrentRound, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricSynchronizedRound, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricRoundTime, uint64(0))
 
@@ -67,7 +67,7 @@ func (tsh *TermuiStatusHandler) initMetricsMap() {
 	tsh.termuiConsoleMetrics.Store(core.MetricNetworkSentBps, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricNetworkSentBpsPeak, uint64(0))
 	tsh.termuiConsoleMetrics.Store(core.MetricNetworkSentPercent, uint64(0))
-	tsh.termuiConsoleMetrics.Store(core.MetricTxPoolLoad, int64(0))
+	tsh.termuiConsoleMetrics.Store(core.MetricTxPoolLoad, uint64(0))
 
 }
 
