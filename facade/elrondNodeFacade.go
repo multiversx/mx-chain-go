@@ -31,10 +31,11 @@ type ElrondNodeFacade struct {
 	log          *logger.Logger
 	tpsBenchmark *statistics.TpsBenchmark
 	config       *config.FacadeConfig
+	ginDebugMode bool
 }
 
 // NewElrondNodeFacade creates a new Facade with a NodeWrapper
-func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver) *ElrondNodeFacade {
+func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver, ginDebugMode bool) *ElrondNodeFacade {
 	if node == nil {
 		return nil
 	}
@@ -43,8 +44,9 @@ func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver) *ElrondNodeF
 	}
 
 	return &ElrondNodeFacade{
-		node:        node,
-		apiResolver: apiResolver,
+		node:         node,
+		apiResolver:  apiResolver,
+		ginDebugMode: ginDebugMode,
 	}
 }
 
@@ -98,6 +100,10 @@ func (ef *ElrondNodeFacade) StartBackgroundServices(wg *sync.WaitGroup) {
 // IsNodeRunning gets if the underlying node is running
 func (ef *ElrondNodeFacade) IsNodeRunning() bool {
 	return ef.node.IsRunning()
+}
+
+func (ef *ElrondNodeFacade) GinDebugMode() bool {
+	return ef.ginDebugMode
 }
 
 // RestApiPort returns the port on which the api should start on, based on the config file provided.

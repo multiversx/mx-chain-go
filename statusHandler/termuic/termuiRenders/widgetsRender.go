@@ -2,7 +2,6 @@ package termuiRenders
 
 import (
 	"fmt"
-	"math"
 	"strings"
 	"sync"
 
@@ -19,7 +18,7 @@ const statusSynchronized = "synchronized"
 type WidgetsRender struct {
 	container    *DrawableContainer
 	lLog         *widgets.List
-	instanceInfo *widgets.Paragraph
+	instanceInfo *widgets.Table
 	chainInfo    *widgets.Table
 
 	cpuLoad     *widgets.Gauge
@@ -43,8 +42,8 @@ func NewWidgetsRender(metricData *sync.Map, grid *DrawableContainer) *WidgetsRen
 }
 
 func (wr *WidgetsRender) initWidgets() {
-	wr.instanceInfo = widgets.NewParagraph()
-	wr.instanceInfo.Text = ""
+	wr.instanceInfo = widgets.NewTable()
+	wr.instanceInfo.Rows = [][]string{{""}}
 
 	wr.chainInfo = widgets.NewTable()
 	wr.chainInfo.Rows = [][]string{{"", "", "", ""}}
@@ -80,73 +79,61 @@ func (wr *WidgetsRender) setGrid() {
 
 //RefreshData method is used to prepare data that are displayed on container
 func (wr *WidgetsRender) RefreshData(logLines []string) {
-	title, rows := wr.prepareInstanceInfo()
-	wr.instanceInfo.Title = title
-	wr.instanceInfo.WrapText = true
-	wr.instanceInfo.Text = rows
-
-	title2, rows2 := wr.prepareChainInfo()
-	wr.chainInfo.Title = title2
-	wr.instanceInfo.WrapText = false
-	wr.chainInfo.RowSeparator = false
-	wr.chainInfo.Rows = rows2
-
-	status := rows2[0][0]
-	if strings.Contains(status, statusSynchronized) {
-		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorWhite, ui.ColorGreen)
-	} else {
-		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorWhite, ui.ColorYellow)
-	}
-
+	wr.prepareInstanceInfo()
+	wr.prepareChainInfo()
 	wr.prepareListWithLogsForDisplay(logLines)
 	wr.prepareLoads()
 }
 
-func (wr *WidgetsRender) prepareInstanceInfo() (string, string) {
-	rows := ""
+func (wr *WidgetsRender) prepareInstanceInfo() {
+	//8 rows and one column
+	numRows := 8
+	rows := make([][]string, numRows)
 
-	publicKeyI, _ := wr.termuiConsoleMetrics.Load(core.MetricPublicKeyTxSign)
-	publicKey := publicKeyI.(string)
-	rows = fmt.Sprintf("%s", fmt.Sprintf("Public key TxSign: "+publicKey))
+	appVersion := wr.getFromCacheAsString(core.MetricAppVersion)
+	rows[0] = []string{fmt.Sprintf("App version: %s", appVersion)}
+	if strings.Contains(appVersion, core.UnVersionedAppString) {
+		wr.instanceInfo.RowStyles[0] = ui.NewStyle(ui.ColorRed)
+	} else {
+		wr.instanceInfo.RowStyles[0] = ui.NewStyle(ui.ColorGreen)
+	}
 
-	publicKeyI, _ = wr.termuiConsoleMetrics.Load(core.MetricPublicKeyBlockSign)
-	publicKey = publicKeyI.(string)
-	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("%s", fmt.Sprintf("Public key BlockSign: "+publicKey)))
+	pkTxSign := wr.getFromCacheAsString(core.MetricPublicKeyTxSign)
+	rows[1] = []string{fmt.Sprintf("Public key TxSign: %s", pkTxSign)}
 
-	shardIdI, _ := wr.termuiConsoleMetrics.Load(core.MetricShardId)
-	shardId := shardIdI.(uint64)
+	pkBlockSign := wr.getFromCacheAsString(core.MetricPublicKeyBlockSign)
+	rows[2] = []string{fmt.Sprintf("Public key BlockSign: %s", pkBlockSign)}
+
+	shardId := wr.getFromCacheAsUint64(core.MetricShardId)
 	shardIdStr := ""
 	if shardId == uint64(sharding.MetachainShardId) {
 		shardIdStr = "meta"
 	} else {
-		shardIdStr = fmt.Sprintf("%v", shardId)
+		shardIdStr = fmt.Sprintf("%d", shardId)
 	}
+	rows[3] = []string{fmt.Sprintf("ShardID: %s", shardIdStr)}
 
-	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("ShardID: "+shardIdStr))
+	instanceType := wr.getFromCacheAsString(core.MetricNodeType)
+	rows[4] = []string{fmt.Sprintf("Instance type: %s", instanceType)}
 
-	rows = fmt.Sprintf("%s\n", rows)
+	countConsensus := wr.getFromCacheAsUint64(core.MetricCountConsensus)
+	rows[5] = []string{fmt.Sprintf("Consensus group participation count: %d", countConsensus)}
 
-	instanceTypeI, _ := wr.termuiConsoleMetrics.Load(core.MetricNodeType)
-	instanceType := instanceTypeI.(string)
-	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("Instance type: %s", instanceType))
+	countLeader := wr.getFromCacheAsUint64(core.MetricCountLeader)
+	rows[6] = []string{fmt.Sprintf("Elected consensus leader count: %d", countLeader)}
 
-	countConsensusI, _ := wr.termuiConsoleMetrics.Load(core.MetricCountConsensus)
-	countConsensus := countConsensusI.(uint64)
-	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("Consensus group participation count: %v", countConsensus))
+	countAcceptedBlocks := wr.getFromCacheAsUint64(core.MetricCountAcceptedBlocks)
+	rows[7] = []string{fmt.Sprintf("Consensus proposed & accepted blocks: %v", countAcceptedBlocks)}
 
-	countLeaderI, _ := wr.termuiConsoleMetrics.Load(core.MetricCountLeader)
-	countLeader := countLeaderI.(uint64)
-	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("Elected consensus leader count: %v", countLeader))
-
-	countAcceptedBlocksI, _ := wr.termuiConsoleMetrics.Load(core.MetricCountAcceptedBlocks)
-	countAcceptedBlocks := countAcceptedBlocksI.(uint64)
-	rows = fmt.Sprintf("%s\n%s", rows, fmt.Sprintf("Consensus proposed & accepted blocks: %v", countAcceptedBlocks))
-
-	return "Instance info", rows
+	wr.instanceInfo.Title = "Instance info"
+	wr.instanceInfo.RowSeparator = false
+	wr.instanceInfo.Rows = rows
 }
 
-func (wr *WidgetsRender) prepareChainInfo() (string, [][]string) {
-	rows := make([][]string, 0)
+func (wr *WidgetsRender) prepareChainInfo() {
+	//10 rows and one column
+	numRows := 10
+	rows := make([][]string, numRows)
 
 	syncStatus := wr.getFromCacheAsUint64(core.MetricIsSyncing)
 	syncingStr := fmt.Sprintf("undefined %d", syncStatus)
@@ -156,39 +143,45 @@ func (wr *WidgetsRender) prepareChainInfo() (string, [][]string) {
 	case 0:
 		syncingStr = statusSynchronized
 	}
-
-	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Status: %s", syncingStr)))
+	rows[0] = []string{fmt.Sprintf("Status: %s", syncingStr)}
+	if strings.Contains(syncingStr, statusSynchronized) {
+		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorGreen)
+	} else {
+		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorBlue)
+	}
 
 	memTxPoolSize := wr.getFromCacheAsUint64(core.MetricTxPoolLoad)
-	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Number of transactions in pool: %d", memTxPoolSize)))
+	rows[1] = []string{fmt.Sprintf("Number of transactions in pool: %d", memTxPoolSize)}
 
-	rows = append(rows, append(make([]string, 0)))
+	rows[2] = make([]string, 0)
 
 	nonce := wr.getFromCacheAsUint64(core.MetricNonce)
 	probableHighestNonce := wr.getFromCacheAsUint64(core.MetricProbableHighestNonce)
-	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Current synchronized block nonce: %v / %v",
-		nonce, probableHighestNonce)))
+	rows[3] = []string{fmt.Sprintf("Current synchronized block nonce: %v / %v",
+		nonce, probableHighestNonce)}
 
 	synchronizedRound := wr.getFromCacheAsUint64(core.MetricSynchronizedRound)
 	currentRound := wr.getFromCacheAsUint64(core.MetricCurrentRound)
-	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Current consensus round: %v / %v",
-		synchronizedRound, currentRound)))
+	rows[4] = []string{fmt.Sprintf("Current consensus round: %v / %v",
+		synchronizedRound, currentRound)}
 
 	consensusRoundTime := wr.getFromCacheAsUint64(core.MetricRoundTime)
-	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Consensus round time: %ds", consensusRoundTime)))
+	rows[5] = []string{fmt.Sprintf("Consensus round time: %ds", consensusRoundTime)}
 
-	rows = append(rows, append(make([]string, 0)))
+	rows[6] = make([]string, 0)
 
 	numLiveValidators := wr.getFromCacheAsUint64(core.MetricLiveValidatorNodes)
-	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Live validator nodes: %v", numLiveValidators)))
+	rows[7] = []string{fmt.Sprintf("Live validator nodes: %v", numLiveValidators)}
 
 	numConnectedNodes := wr.getFromCacheAsUint64(core.MetricConnectedNodes)
-	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Network connected nodes: %v", numConnectedNodes)))
+	rows[8] = []string{fmt.Sprintf("Network connected nodes: %v", numConnectedNodes)}
 
 	numConnectedPeers := wr.getFromCacheAsUint64(core.MetricNumConnectedPeers)
-	rows = append(rows, append(make([]string, 0), fmt.Sprintf("This node is connected to %v peers", numConnectedPeers)))
+	rows[9] = []string{fmt.Sprintf("This node is connected to %v peers", numConnectedPeers)}
 
-	return "Chain info", rows
+	wr.chainInfo.Title = "Chain info"
+	wr.chainInfo.RowSeparator = false
+	wr.chainInfo.Rows = rows
 }
 
 func (wr *WidgetsRender) prepareListWithLogsForDisplay(logData []string) {
@@ -209,15 +202,12 @@ func (wr *WidgetsRender) prepareLogLines(logData []string, size int) []string {
 }
 
 func (wr *WidgetsRender) prepareLoads() {
-	cpuLoadPercentI, _ := wr.termuiConsoleMetrics.Load(core.MetricCpuLoadPercent)
-	cpuLoadPercent := cpuLoadPercentI.(uint64)
+	cpuLoadPercent := wr.getFromCacheAsUint64(core.MetricCpuLoadPercent)
 	wr.cpuLoad.Title = "CPU Load"
 	wr.cpuLoad.Percent = int(cpuLoadPercent)
 
-	memLoadPercentI, _ := wr.termuiConsoleMetrics.Load(core.MetricMemLoadPercent)
-	memLoadPercent := memLoadPercentI.(uint64)
-	memTotalMemoryBytesObj, _ := wr.termuiConsoleMetrics.Load(core.MetricTotalMem)
-	memTotalMemoryBytes := memTotalMemoryBytesObj.(uint64)
+	memLoadPercent := wr.getFromCacheAsUint64(core.MetricMemLoadPercent)
+	memTotalMemoryBytes := wr.getFromCacheAsUint64(core.MetricTotalMem)
 	wr.memoryLoad.Title = "Memory load"
 	wr.memoryLoad.Percent = int(memLoadPercent)
 	wr.memoryLoad.Label = fmt.Sprintf("%d%% / total: %s", memLoadPercent, core.ConvertBytes(memTotalMemoryBytes))
@@ -242,15 +232,29 @@ func (wr *WidgetsRender) prepareLoads() {
 func (wr *WidgetsRender) getFromCacheAsUint64(metric string) uint64 {
 	val, ok := wr.termuiConsoleMetrics.Load(metric)
 	if !ok {
-		return math.MaxUint64
+		return 0
 	}
 
 	valUint64, ok := val.(uint64)
 	if !ok {
-		return math.MaxUint64
+		return 0
 	}
 
 	return valUint64
+}
+
+func (wr *WidgetsRender) getFromCacheAsString(metric string) string {
+	val, ok := wr.termuiConsoleMetrics.Load(metric)
+	if !ok {
+		return "[invalid key]"
+	}
+
+	valStr, ok := val.(string)
+	if !ok {
+		return "[not a string]"
+	}
+
+	return valStr
 }
 
 func (wr *WidgetsRender) getNetworkRecvStats() {

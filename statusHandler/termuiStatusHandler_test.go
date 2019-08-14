@@ -25,18 +25,6 @@ func TestTermuiStatusHandler_TermuiShouldPass(t *testing.T) {
 	assert.NotNil(t, termuiConsole)
 }
 
-func TestTermuiStatusHandler_TestIfMetricsAreInitialized(t *testing.T) {
-	t.Parallel()
-
-	termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
-
-	// check if nonce metric for example was initialized
-	_, err := termuiStatusHandler.GetTermuiMetricByKey(core.MetricNonce)
-
-	assert.Nil(t, err)
-	assert.Equal(t, 26, termuiStatusHandler.GetMetricsCount())
-}
-
 func TestTermuiStatusHandler_TestIncrement(t *testing.T) {
 	t.Parallel()
 
@@ -44,6 +32,7 @@ func TestTermuiStatusHandler_TestIncrement(t *testing.T) {
 
 	termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
 
+	termuiStatusHandler.SetUInt64Value(metricKey, 0)
 	termuiStatusHandler.Increment(metricKey)
 	valueI, err := termuiStatusHandler.GetTermuiMetricByKey(metricKey)
 	assert.Nil(t, err)
