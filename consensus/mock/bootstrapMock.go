@@ -23,7 +23,7 @@ func (boot *BootstrapperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint
 	return bb, &block.Header{}, nil
 }
 
-func (boot *BootstrapperMock) AddSyncStateListener(syncStateNotifier func(bool)) {
+func (boot *BootstrapperMock) AddSyncStateListener(syncStateNotifier func(isSyncing bool)) {
 	if boot.AddSyncStateListenerCalled != nil {
 		boot.AddSyncStateListenerCalled(syncStateNotifier)
 		return

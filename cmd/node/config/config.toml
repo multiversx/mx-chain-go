@@ -8,7 +8,7 @@
    NetworkID = "undefined"
 
    # StatusPollingIntervalSec represents the no of seconds between multiple polling for the status for AppStatusHandler
-   StatusPollingIntervalSec = 10
+   StatusPollingIntervalSec = 2
 
    # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor
    NodeDisplayName = ""
