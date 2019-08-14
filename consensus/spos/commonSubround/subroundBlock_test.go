@@ -300,6 +300,9 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		},
 	}
 	container.SetBroadcastMessenger(bm)
+	container.SetRounder(&mock.RounderMock{
+		RoundIndex: 1,
+	})
 	r = sr.DoBlockJob()
 	assert.True(t, r)
 	assert.Equal(t, uint64(1), sr.Header.GetNonce())

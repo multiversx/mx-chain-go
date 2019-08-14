@@ -409,10 +409,12 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
+			Round: 1,
 			Nonce: 1,
 		},
 	}
 	hdr := &block.MetaBlock{
+		Round: 3,
 		Nonce: 3,
 	}
 	body := &block.MetaBlockBody{}
@@ -428,10 +430,12 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 	mp, _ := blproc.NewMetaProcessorBasicSingleShard(mdp, genesisBlocks)
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
+			Round: 1,
 			Nonce: 1,
 		},
 	}
 	hdr := &block.MetaBlock{
+		Round:    2,
 		Nonce:    2,
 		PrevHash: []byte("X"),
 	}
@@ -2230,7 +2234,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.Nonce = 45
 	prevHdr.Round = currHdr.Round + 1
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrLowShardHeaderRound)
+	assert.Equal(t, err, process.ErrLowerRoundInOtherChainBlock)
 
 	prevHdr.Round = currHdr.Round - 1
 	currHdr.Nonce = prevHdr.Nonce + 2
@@ -2245,7 +2249,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.RandSeed = currRandSeed
 	currHdr.PrevHash = []byte("wronghash")
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrNotarizedBlockHashDoesNotMatch)
+	assert.Equal(t, err, process.ErrHashDoesNotMatchInOtherChainBlock)
 
 	currHdr.PrevHash = prevHash
 	prevHdr.RootHash = []byte("prevRootHash")
