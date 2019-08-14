@@ -3,6 +3,7 @@ package termuiRenders
 import (
 	"fmt"
 	"math"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -11,15 +12,15 @@ import (
 	"github.com/gizak/termui/v3/widgets"
 )
 
-const completeRow = 1.0
-const numLogLinesSmallLog = 10
+const statusSynching = "currently synching"
+const statusSynchronized = "synchronized"
 
 //WidgetsRender will define termui widgets that need to display a termui console
 type WidgetsRender struct {
 	container    *DrawableContainer
 	lLog         *widgets.List
 	instanceInfo *widgets.Paragraph
-	chainInfo    *widgets.Paragraph
+	chainInfo    *widgets.Table
 
 	cpuLoad     *widgets.Gauge
 	memoryLoad  *widgets.Gauge
@@ -45,8 +46,8 @@ func (wr *WidgetsRender) initWidgets() {
 	wr.instanceInfo = widgets.NewParagraph()
 	wr.instanceInfo.Text = ""
 
-	wr.chainInfo = widgets.NewParagraph()
-	wr.chainInfo.Text = ""
+	wr.chainInfo = widgets.NewTable()
+	wr.chainInfo.Rows = [][]string{{"", "", "", ""}}
 
 	wr.cpuLoad = widgets.NewGauge()
 	wr.memoryLoad = widgets.NewGauge()
@@ -86,13 +87,20 @@ func (wr *WidgetsRender) RefreshData(logLines []string) {
 	wr.instanceInfo.WrapText = true
 	wr.instanceInfo.Text = rows
 
-	title, rows = wr.prepareChainInfo()
-	wr.chainInfo.Title = title
+	title2, rows2 := wr.prepareChainInfo()
+	wr.chainInfo.Title = title2
 	wr.instanceInfo.WrapText = false
-	wr.chainInfo.Text = rows
+	wr.chainInfo.RowSeparator = false
+	wr.chainInfo.Rows = rows2
+
+	status := rows2[0][0]
+	if strings.Contains(status, statusSynchronized) {
+		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorWhite, ui.ColorGreen)
+	} else {
+		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorWhite, ui.ColorYellow)
+	}
 
 	wr.prepareListWithLogsForDisplay(logLines)
-
 	wr.prepareLoads()
 
 	return
@@ -141,45 +149,48 @@ func (wr *WidgetsRender) prepareInstanceInfo() (string, string) {
 	return "Instance info", rows
 }
 
-func (wr *WidgetsRender) prepareChainInfo() (string, string) {
-	rows := ""
+func (wr *WidgetsRender) prepareChainInfo() (string, [][]string) {
+	rows := make([][]string, 0)
 
 	syncStatus := wr.getFromCacheAsUint64(core.MetricIsSyncing)
 	syncingStr := fmt.Sprintf("undefined %d", syncStatus)
 	switch syncStatus {
 	case 1:
-		syncingStr = "currently synching"
+		syncingStr = statusSynching
 	case 0:
-		syncingStr = "synchronized"
+		syncingStr = statusSynchronized
 	}
-	rows = fmt.Sprintf("Status: %s\n", syncingStr)
+
+	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Status: %s", syncingStr)))
 
 	memTxPoolSize := wr.getFromCacheAsUint64(core.MetricTxPoolLoad)
-	rows = fmt.Sprintf("%sNumber of transactions in pool: %d\n", rows, memTxPoolSize)
+	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Number of transactions in pool: %d", memTxPoolSize)))
 
-	rows = fmt.Sprintf("%s\n", rows)
+	rows = append(rows, append(make([]string, 0)))
 
 	nonce := wr.getFromCacheAsUint64(core.MetricNonce)
 	probableHighestNonce := wr.getFromCacheAsUint64(core.MetricProbableHighestNonce)
-	rows = fmt.Sprintf("%sCurrent synchronized block nonce: %v / %v\n", rows, nonce, probableHighestNonce)
+	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Current synchronized block nonce: %v / %v",
+		nonce, probableHighestNonce)))
 
 	synchronizedRound := wr.getFromCacheAsUint64(core.MetricSynchronizedRound)
 	currentRound := wr.getFromCacheAsUint64(core.MetricCurrentRound)
-	rows = fmt.Sprintf("%sCurrent consensus round: %v / %v\n", rows, synchronizedRound, currentRound)
+	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Current consensus round: %v / %v",
+		synchronizedRound, currentRound)))
 
 	consensusRoundTime := wr.getFromCacheAsUint64(core.MetricRoundTime)
-	rows = fmt.Sprintf("%sConsensus round time: %ds\n", rows, consensusRoundTime)
+	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Consensus round time: %ds", consensusRoundTime)))
 
-	rows = fmt.Sprintf("%s\n", rows)
+	rows = append(rows, append(make([]string, 0)))
 
 	numLiveValidators := wr.getFromCacheAsUint64(core.MetricLiveValidatorNodes)
-	rows = fmt.Sprintf("%sLive validator nodes: %v\n", rows, numLiveValidators)
+	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Live validator nodes: %v", numLiveValidators)))
 
 	numConnectedNodes := wr.getFromCacheAsUint64(core.MetricConnectedNodes)
-	rows = fmt.Sprintf("%sNetwork connected nodes: %v\n", rows, numConnectedNodes)
+	rows = append(rows, append(make([]string, 0), fmt.Sprintf("Network connected nodes: %v", numConnectedNodes)))
 
 	numConnectedPeers := wr.getFromCacheAsUint64(core.MetricNumConnectedPeers)
-	rows = fmt.Sprintf("%sThis node is connected to %v peers\n", rows, numConnectedPeers)
+	rows = append(rows, append(make([]string, 0), fmt.Sprintf("This node is connected to %v peers", numConnectedPeers)))
 
 	return "Chain info", rows
 }
