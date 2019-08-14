@@ -77,7 +77,6 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 
 	integrationTests.NodeDoesTopUp(nodes, idxNodeShard0, topUpValue, hardCodedScResultingAddress)
-	nodes[idxNodeShard0].OwnAccount.Nonce++
 
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
@@ -93,7 +92,6 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	integrationTests.CheckSenderBalanceOkAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
 
 	integrationTests.NodeDoesWithdraw(nodes, idxNodeShard0, withdrawValue, hardCodedScResultingAddress)
-	nodes[idxNodeShard0].OwnAccount.Nonce++
 
 	roundsToWait = 12
 	for i := 0; i < roundsToWait; i++ {
@@ -175,11 +173,8 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode))
-	nodes[idxProposerShard1].OwnAccount.Nonce++
 
-	integrationTests.ProposeBlock(nodes, idxProposers, round)
-	integrationTests.SyncBlock(t, nodes, idxProposers, round)
-	round = integrationTests.IncrementAndPrintRound(round)
+	round = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
 
 	integrationTests.PlayerJoinsGame(
 		nodes,
@@ -188,13 +183,10 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		"aaaa",
 		hardCodedScResultingAddress,
 	)
-	nodes[idxProposerShard0].OwnAccount.Nonce++
 
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
-		integrationTests.ProposeBlock(nodes, idxProposers, round)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
+		round = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
 
@@ -212,14 +204,11 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		"aaaa",
 		hardCodedScResultingAddress,
 	)
-	nodes[idxProposerShard0].OwnAccount.Nonce++
 
 	//TODO investigate why do we need 7 rounds here
 	roundsToWait = 7
 	for i := 0; i < roundsToWait; i++ {
-		integrationTests.ProposeBlock(nodes, idxProposers, round)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
+		round = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
 
@@ -296,9 +285,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode))
-	integrationTests.ProposeBlock(nodes, idxProposers, round)
-	integrationTests.SyncBlock(t, nodes, idxProposers, round)
-	round = integrationTests.IncrementAndPrintRound(round)
+	round = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
 
 	integrationTests.PlayerJoinsGame(
 		nodes,
@@ -307,7 +294,6 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 		"aaaa",
 		hardCodedScResultingAddress,
 	)
-	nodes[idxProposerShard0].OwnAccount.Nonce++
 
 	maxRoundsToWait := 10
 	for i := 0; i < maxRoundsToWait; i++ {

@@ -704,7 +704,7 @@ func GenerateAndDisseminateTxs(
 
 	for i := 0; i < len(senders); i++ {
 		senderKey := senders[i]
-		incrementalNonce := 0
+		incrementalNonce := uint64(0)
 		for _, recvPrivateKeys := range receiversPrivateKeys {
 			receiverKey := recvPrivateKeys[i]
 			tx := generateTx(
@@ -724,7 +724,7 @@ func GenerateAndDisseminateTxs(
 }
 
 type txArgs struct {
-	nonce    int
+	nonce    uint64
 	value    *big.Int
 	rcvAddr  []byte
 	sndAddr  []byte
@@ -739,7 +739,7 @@ func generateTx(
 	args *txArgs,
 ) *transaction.Transaction {
 	tx := &transaction.Transaction{
-		Nonce:    uint64(args.nonce),
+		Nonce:    args.nonce,
 		Value:    args.value,
 		RcvAddr:  args.rcvAddr,
 		SndAddr:  args.sndAddr,
@@ -1003,6 +1003,7 @@ func generateValidTx(
 	return tx, txHash
 }
 
+// GetNumTxsWithDst returns the total number of transactions that have a certain destination shard
 func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
 	txPool := dataPool.Transactions()
 	if txPool == nil {
@@ -1023,6 +1024,7 @@ func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrS
 	return sumTxs
 }
 
+// ProposeAndSyncBlocks proposes and syncs blocks until all transaction pools are empty
 func ProposeAndSyncBlocks(
 	t *testing.T,
 	numInTxs int,
@@ -1031,7 +1033,6 @@ func ProposeAndSyncBlocks(
 	round uint64,
 ) uint64 {
 
-	// propose and sync block until all the transaction pools are empty
 	// if there are many transactions, they might not fit into the block body in only one round
 	for numTxsInPool := numInTxs; numTxsInPool != 0; {
 		round = ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
@@ -1065,6 +1066,7 @@ func ProposeAndSyncBlocks(
 	return round
 }
 
+// ProposeAndSyncOneBlock proposes a block, syncs the block and then increments the round
 func ProposeAndSyncOneBlock(
 	t *testing.T,
 	nodes []*TestProcessorNode,

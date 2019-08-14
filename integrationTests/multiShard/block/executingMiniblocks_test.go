@@ -81,10 +81,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
-		integrationTests.ProposeBlock(nodes, idxProposers, round)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-
-		round = integrationTests.IncrementAndPrintRound(round)
+		round = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
 	}
 
 	fmt.Println("Test nodes from proposer shard to have the correct balances...")
