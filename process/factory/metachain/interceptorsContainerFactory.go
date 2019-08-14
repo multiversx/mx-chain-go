@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/process/metablock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -180,7 +179,7 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identif
 		return nil, err
 	}
 
-	interceptor, err := metablock.NewShardHeaderInterceptor(
+	interceptor, err := interceptors.NewHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.ShardHeaders(),
 		icf.dataPool.HeadersNonces(),
