@@ -198,7 +198,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	//TODO: add verification if rand seed was correctly computed add other verification
 	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
 	if prevHdr.GetRound() >= currHdr.GetRound() {
-		return process.ErrLowerRoundInNotarizedBlock
+		return process.ErrLowerRoundInOtherChainBlock
 	}
 
 	if currHdr.GetNonce() != prevHdr.GetNonce()+1 {
@@ -215,7 +215,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		return process.ErrNotarizedBlockHashDoesNotMatch
+		return process.ErrHashDoesNotMatchInOtherChainBlock
 	}
 
 	return nil

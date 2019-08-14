@@ -482,7 +482,7 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 	}
 }
 
-// IncrementAndPrintRound increments the given variable, and prints the message for teh beginning of the round
+// IncrementAndPrintRound increments the given variable, and prints the message for the beginning of the round
 func IncrementAndPrintRound(round uint64) uint64 {
 	round++
 	fmt.Printf("#################################### ROUND %d BEGINS ####################################\n\n", round)
@@ -833,11 +833,12 @@ func CreateMintingForSenders(
 func ProposeBlockSignalsEmptyBlock(
 	node *TestProcessorNode,
 	round uint64,
+	nonce uint64,
 ) (data.HeaderHandler, data.BodyHandler, bool) {
 
 	fmt.Println("Proposing block without commit...")
 
-	body, header, txHashes := node.ProposeBlock(round)
+	body, header, txHashes := node.ProposeBlock(round, nonce)
 	node.BroadcastBlock(body, header)
 	isEmptyBlock := len(txHashes) == 0
 
@@ -1078,12 +1079,7 @@ func ProposeAndSyncOneBlock(
 	ProposeBlock(nodes, idxProposers, round, nonce)
 	SyncBlock(t, nodes, idxProposers, round)
 	round = IncrementAndPrintRound(round)
-	nonce = IncrementNonce(nonce)
+	nonce++
 
 	return round, nonce
-}
-
-func IncrementNonce(nonce uint64) uint64 {
-	nonce++
-	return nonce
 }

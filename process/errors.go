@@ -94,8 +94,8 @@ var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 // ErrBlockHashDoesNotMatch signals the hash of the block is not matching with the previous one
 var ErrBlockHashDoesNotMatch = errors.New("block hash does not match")
 
-// ErrNotarizedBlockHashDoesNotMatch signals the hash of the notarized block is not matching with the previous one
-var ErrNotarizedBlockHashDoesNotMatch = errors.New("notarized block hash does not match")
+// ErrHashDoesNotMatchInOtherChainBlock signals that header hash for one shard is not match with the previous one
+var ErrHashDoesNotMatchInOtherChainBlock = errors.New("block hash does not match with the last committed for this shard")
 
 // ErrMissingTransaction signals that one transaction is missing
 var ErrMissingTransaction = errors.New("missing transaction")
@@ -292,8 +292,8 @@ var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 // ErrNilRequestHeaderHandlerByNonce signals that a nil header request handler by nonce func was provided
 var ErrNilRequestHeaderHandlerByNonce = errors.New("nil request header handler by nonce")
 
-// ErrLowerRoundInNotarizedBlock signals that a notarized header round is too low for processing
-var ErrLowerRoundInNotarizedBlock = errors.New("notarized header round is lower than last committed for this shard")
+// ErrLowerRoundInOtherChainBlock signals that header round for one shard is too low for processing it
+var ErrLowerRoundInOtherChainBlock = errors.New("header round is lower than last committed for this shard")
 
 // ErrLowerRoundInBlock signals that a header round is too low for processing
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
