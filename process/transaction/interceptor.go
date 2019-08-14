@@ -162,7 +162,7 @@ func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
 	err := txi.txStorer.Has(tx.Hash())
 	isTxInStorage := err == nil
 	if isTxInStorage {
-		log.Info("intercepted tx already processed")
+		//log.Info("intercepted tx already processed")
 		return
 	}
 

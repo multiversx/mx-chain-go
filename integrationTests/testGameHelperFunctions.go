@@ -35,6 +35,30 @@ func createTxDeploy(twa *TestWalletAccount, scCode string) *transaction.Transact
 	return tx
 }
 
+// TopUpScTx creates and sends topUp tx
+func TopUpScTx(nodes []*TestProcessorNode, senderIdx int, joinGameVal *big.Int, scAddress []byte) {
+	topUp := createTxTopUp(nodes[senderIdx].OwnAccount, joinGameVal, scAddress)
+	_, _ = nodes[senderIdx].SendTransaction(topUp)
+
+	fmt.Println(MakeDisplayTable(nodes))
+}
+
+func createTxTopUp(twa *TestWalletAccount, joinGameVal *big.Int, scAddress []byte) *transaction.Transaction {
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    joinGameVal,
+		RcvAddr:  scAddress,
+		SndAddr:  twa.Address.Bytes(),
+		Data:     fmt.Sprintf("topUp"),
+		GasPrice: 0,
+		GasLimit: 5000,
+	}
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = twa.SingleSigner.Sign(twa.SkTxSign, txBuff)
+
+	return tx
+}
+
 func createTxJoinGame(twa *TestWalletAccount, joinGameVal *big.Int, round int, scAddress []byte) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    0,

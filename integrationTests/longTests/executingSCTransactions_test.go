@@ -21,7 +21,7 @@ var agarioFile = "../agar_min_v1.hex"
 var stepDelay = time.Second
 
 func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRounds(t *testing.T) {
-	//t.Skip("this is a stress test for VM and AGAR.IO")
+	t.Skip("this is a stress test for VM and AGAR.IO")
 
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
@@ -32,16 +32,17 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
-	maxShards := uint32(1)
-	numOfNodes := 1
+	maxShards := uint32(2)
+	numOfNodes := 3
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
-	for i := 0; i < numOfNodes; i++ {
-		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	for i := 0; i < numOfNodes-1; i++ {
+		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, uint32(i), uint32(i), advertiserAddr)
 	}
+	nodes[numOfNodes-1] = integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 1, advertiserAddr)
 
 	idxProposer := 0
 	numPlayers := 1000
@@ -76,10 +77,14 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
+	idxProposers := []int{0, 1, 2}
+
 	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
-	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round)
-	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
+	integrationTests.TopUpScTx(nodes, idxProposer, big.NewInt(1000000), hardCodedScResultingAddress)
+	time.Sleep(stepDelay)
+
+	integrationTests.ProposeBlock(nodes, idxProposers, round)
 	round = integrationTests.IncrementAndPrintRound(round)
 
 	numRounds := 10
@@ -93,7 +98,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 		hardCodedScResultingAddress,
 		round,
 		maxShards,
-		[]int{idxProposer},
+		idxProposers,
 	)
 
 	integrationTests.CheckRootHashes(t, nodes, []int{idxProposer})
@@ -346,6 +351,8 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 
 	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
+	integrationTests.TopUpScTx(nodes, idxProposer, big.NewInt(1000000), hardCodedScResultingAddress)
+	time.Sleep(stepDelay)
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
@@ -408,7 +415,7 @@ func runMultipleRoundsOfTheGame(
 		withdrawValues[i] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, 0.05))
 	}
 
-	nrRoundsToPropagateMultiShard := 5
+	nrRoundsToPropagateMultiShard := 1
 	if nrShards == 1 {
 		nrRoundsToPropagateMultiShard = 1
 	}
