@@ -324,6 +324,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	proposeBlockWithScTxs(nodes, round, nonce, idxProposers)
 	syncBlock(t, nodes, idxProposers, round)
 	round = incrementAndPrintRound(round)
+	nonce = integrationTests.IncrementNonce(nonce)
 
 	nodeJoinsGame(nodes, idxProposerShard0, topUpValue, hardCodedScResultingAddress)
 	nodes[idxProposerShard0].OwnAccount.Nonce++
@@ -337,6 +338,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 			nodes[idxProposerShard1].CommitBlock(body, hdr)
 			syncBlock(t, nodes, idxProposers, round)
 			round = incrementAndPrintRound(round)
+			nonce = integrationTests.IncrementNonce(nonce)
 			continue
 		}
 
@@ -345,6 +347,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 
 		syncBlock(t, nodes, idxProposers, round)
 		round = incrementAndPrintRound(round)
+		nonce = integrationTests.IncrementNonce(nonce)
 		checkRootHashes(t, nodes, idxProposers)
 		break
 	}
