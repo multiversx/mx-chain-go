@@ -233,9 +233,8 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 		},
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 			cs := &mock.Uint64SyncMapCacherStub{}
-			cs.RemoveNonceCalled = func(u uint64) {}
 			cs.MergeCalled = func(u uint64, syncMap dataRetriever.ShardIdHashMap) {}
-			cs.RemoveShardIdCalled = func(nonce uint64, shardId uint32) {}
+			cs.RemoveCalled = func(nonce uint64, shardId uint32) {}
 			return cs
 		},
 	}
@@ -329,6 +328,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	body := &block.Body{}
 	hdr := &block.Header{}
 	hdr.Nonce = 1
+	hdr.Round = 1
 	hdr.TimeStamp = 0
 	hdr.PrevHash = []byte("X")
 	err := bp.CheckBlockValidity(blkc, hdr, body)
@@ -342,17 +342,25 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
-	hdr.Nonce = 1
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &block.Header{Nonce: 1}
+		return &block.Header{Round: 1, Nonce: 1}
 	}
 	hdr = &block.Header{}
+
+	err = bp.CheckBlockValidity(blkc, hdr, body)
+	assert.Equal(t, process.ErrLowerRoundInBlock, err)
+
+	hdr.Round = 2
 	hdr.Nonce = 1
-	hdr.TimeStamp = 0
 	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 2
+	hdr.PrevRandSeed = []byte("X")
+	err = bp.CheckBlockValidity(blkc, hdr, body)
+	assert.Equal(t, process.ErrRandSeedMismatch, err)
+
+	hdr.PrevRandSeed = []byte("")
 	hdr.PrevHash = []byte("X")
 	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
@@ -743,8 +751,8 @@ func TestBaseProcessor_SaveLastNoterizedHdrShardWrongProcessed(t *testing.T) {
 	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 
-	lastNodesHdrs := base.LastNotarizedHdrs()
-	assert.Equal(t, uint64(0), lastNodesHdrs[shardId].GetNonce())
+	notarizedHdrs := base.NotarizedHdrs()
+	assert.Equal(t, uint64(0), notarizedHdrs[shardId][0].GetNonce())
 }
 
 func TestBaseProcessor_SaveLastNoterizedHdrMetaWrongProcessed(t *testing.T) {
@@ -761,8 +769,8 @@ func TestBaseProcessor_SaveLastNoterizedHdrMetaWrongProcessed(t *testing.T) {
 	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 
-	lastNodesHdrs := base.LastNotarizedHdrs()
-	assert.Equal(t, uint64(0), lastNodesHdrs[sharding.MetachainShardId].GetNonce())
+	notarizedHdrs := base.NotarizedHdrs()
+	assert.Equal(t, uint64(0), notarizedHdrs[sharding.MetachainShardId][0].GetNonce())
 }
 
 func TestBaseProcessor_SaveLastNoterizedHdrShardGood(t *testing.T) {
@@ -784,8 +792,7 @@ func TestBaseProcessor_SaveLastNoterizedHdrShardGood(t *testing.T) {
 	err := base.SaveLastNotarizedHeader(shardId, prHdrs)
 	assert.Nil(t, err)
 
-	lastNodesHdrs := base.LastNotarizedHdrs()
-	assert.Equal(t, highestNonce, lastNodesHdrs[shardId].GetNonce())
+	assert.Equal(t, highestNonce, base.LastNotarizedHdrForShard(shardId).GetNonce())
 }
 
 func TestBaseProcessor_SaveLastNoterizedHdrMetaGood(t *testing.T) {
@@ -806,6 +813,5 @@ func TestBaseProcessor_SaveLastNoterizedHdrMetaGood(t *testing.T) {
 	err := base.SaveLastNotarizedHeader(sharding.MetachainShardId, prHdrs)
 	assert.Nil(t, err)
 
-	lastNodesHdrs := base.LastNotarizedHdrs()
-	assert.Equal(t, highestNonce, lastNodesHdrs[sharding.MetachainShardId].GetNonce())
+	assert.Equal(t, highestNonce, base.LastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce())
 }

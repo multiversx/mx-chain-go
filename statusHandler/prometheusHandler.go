@@ -51,6 +51,15 @@ func NewPrometheusStatusHandler() *PrometheusStatusHandler {
 	return psh
 }
 
+// IsInterfaceNil return if there is no value under the interface
+func (psh *PrometheusStatusHandler) IsInterfaceNil() bool {
+	if psh == nil {
+		return true
+	}
+
+	return false
+}
+
 // Increment will be used for incrementing the value for a key
 func (psh *PrometheusStatusHandler) Increment(key string) {
 	if metric, ok := psh.prometheusGaugeMetrics.Load(key); ok {
@@ -77,6 +86,10 @@ func (psh *PrometheusStatusHandler) SetUInt64Value(key string, value uint64) {
 	if metric, ok := psh.prometheusGaugeMetrics.Load(key); ok {
 		metric.(prometheus.Gauge).Set(float64(value))
 	}
+}
+
+// SetStringValue method - will update the value for a key
+func (psh *PrometheusStatusHandler) SetStringValue(key string, value string) {
 }
 
 // Close will unregister Prometheus metrics

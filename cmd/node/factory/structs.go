@@ -598,7 +598,12 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 		if err != nil {
 			return nil, err
 		}
-		_ = blockChain.SetAppStatusHandler(ash)
+
+		err = blockChain.SetAppStatusHandler(ash)
+		if err != nil {
+			return nil, err
+		}
+
 		return blockChain, nil
 	}
 	if coordinator.SelfId() == sharding.MetachainShardId {
@@ -606,6 +611,12 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 		if err != nil {
 			return nil, err
 		}
+
+		err = blockChain.SetAppStatusHandler(ash)
+		if err != nil {
+			return nil, err
+		}
+
 		return blockChain, nil
 	}
 	return nil, errors.New("can not create blockchain")
@@ -1373,6 +1384,11 @@ func newShardBlockProcessorAndTracker(
 	)
 	if err != nil {
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
+	}
+
+	err = blockProcessor.SetAppStatusHandler(core.StatusHandler)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return blockProcessor, blockTracker, nil

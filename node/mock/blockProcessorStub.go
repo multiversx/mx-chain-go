@@ -20,7 +20,7 @@ type BlockProcessorStub struct {
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
-	SetLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
+	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 }
 
 // ProcessBlock mocks pocessing a block
@@ -68,6 +68,6 @@ func (blProcMock BlockProcessorStub) DecodeBlockHeader(dta []byte) data.HeaderHa
 	return blProcMock.DecodeBlockHeaderCalled(dta)
 }
 
-func (blProcMock BlockProcessorStub) SetLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
-	blProcMock.SetLastNotarizedHdrCalled(shardId, processedHdr)
+func (blProcMock BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
+	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }

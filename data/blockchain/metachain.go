@@ -1,8 +1,10 @@
 package blockchain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -11,13 +13,14 @@ import (
 // The MetaChain also holds pointers to the Genesis block, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type MetaChain struct {
-	GenesisBlock     *block.MetaBlock // Genesys Block pointer
-	genesisBlockHash []byte           // Genesis Block hash
-	CurrentBlock     *block.MetaBlock // Current Block pointer
-	currentBlockHash []byte           // Current Block hash
-	localHeight      int64            // Height of the local chain
-	networkHeight    int64            // Percieved height of the network chain
-	badBlocks        storage.Cacher   // Bad blocks cache
+	GenesisBlock     *block.MetaBlock      // Genesys Block pointer
+	genesisBlockHash []byte                // Genesis Block hash
+	CurrentBlock     *block.MetaBlock      // Current Block pointer
+	currentBlockHash []byte                // Current Block hash
+	localHeight      int64                 // Height of the local chain
+	networkHeight    int64                 // Percieved height of the network chain
+	badBlocks        storage.Cacher        // Bad blocks cache
+	appStatusHandler core.AppStatusHandler // AppStatusHandler used for monitoring
 }
 
 // NewMetaChain will initialize a new metachain instance
@@ -29,8 +32,19 @@ func NewMetaChain(
 	}
 
 	return &MetaChain{
-		badBlocks: badBlocksCache,
+		badBlocks:        badBlocksCache,
+		appStatusHandler: statusHandler.NewNilStatusHandler(),
 	}, nil
+}
+
+// SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
+func (mc *MetaChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return ErrNilAppStatusHandler
+	}
+
+	mc.appStatusHandler = ash
+	return nil
 }
 
 // GetGenesisHeader returns the genesis block header pointer
@@ -85,6 +99,9 @@ func (mc *MetaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	if !ok {
 		return ErrWrongTypeInSet
 	}
+
+	mc.appStatusHandler.SetUInt64Value(core.MetricNonce, currHead.Nonce)
+	mc.appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, currHead.Round)
 
 	mc.CurrentBlock = currHead
 

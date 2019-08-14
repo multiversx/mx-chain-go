@@ -38,7 +38,7 @@ import (
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
-const WaitTime = time.Duration(2000 * time.Millisecond)
+const WaitTime = 2000 * time.Millisecond
 
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
@@ -314,7 +314,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType)
+	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType, n.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -723,9 +723,14 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber strin
 		n.singleSigner,
 		n.keyGen,
 		n.marshalizer,
-		time.Duration(time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive)),
+		time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive),
 		allPubKeys,
 	)
+	if err != nil {
+		return err
+	}
+
+	err = n.heartbeatMonitor.SetAppStatusHandler(n.appStatusHandler)
 	if err != nil {
 		return err
 	}

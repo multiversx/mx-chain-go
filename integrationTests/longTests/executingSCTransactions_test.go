@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/pkg/profile"
 	"io/ioutil"
 	"math/big"
+	"strconv"
 	"testing"
 	"time"
 
@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/pkg/profile"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -66,7 +67,9 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
+	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -79,9 +82,10 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 
 	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
-	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round)
+	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round, nonce)
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
 
 	numRounds := 100
 	runMultipleRoundsOfTheGame(
@@ -93,7 +97,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 		topUpValue,
 		hardCodedScResultingAddress,
 		round,
-		maxShards,
+		nonce,
 		[]int{idxProposer},
 	)
 
@@ -147,7 +151,9 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
+	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -160,9 +166,10 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 
 	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
-	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round)
+	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round, nonce)
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, round)
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
 
 	numRounds := 100
 	runMultipleRoundsOfTheGame(
@@ -174,7 +181,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		topUpValue,
 		hardCodedScResultingAddress,
 		round,
-		maxShards,
+		nonce,
 		[]int{idxProposer},
 	)
 
@@ -233,7 +240,9 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
+	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -252,9 +261,10 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		integrationTests.ProposeBlock(nodes, idxProposers, round)
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
 	}
 
 	numRounds := 100
@@ -267,7 +277,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		topUpValue,
 		hardCodedScResultingAddress,
 		round,
-		maxShards,
+		nonce,
 		idxProposers,
 	)
 
@@ -324,7 +334,9 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	time.Sleep(stepDelay)
 
 	round := uint64(0)
+	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -348,9 +360,10 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	integrationTests.DeployScTx(nodes, idxProposer, string(scCode))
 	time.Sleep(stepDelay)
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		integrationTests.ProposeBlock(nodes, idxProposers, round)
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
 	}
 
 	numRounds := 100
@@ -363,7 +376,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 		topUpValue,
 		hardCodedScResultingAddress,
 		round,
-		maxShards,
+		nonce,
 		idxProposers,
 	)
 
@@ -392,7 +405,7 @@ func runMultipleRoundsOfTheGame(
 	topUpValue *big.Int,
 	hardCodedScResultingAddress []byte,
 	round uint64,
-	nrShards uint32,
+	nonce uint64,
 	idxProposers []int,
 ) {
 	rMonitor := &statistics.ResourceMonitor{}
@@ -409,18 +422,13 @@ func runMultipleRoundsOfTheGame(
 		withdrawValues[i] = big.NewInt(0).Set(getPercentageOfValue(totalWithdrawValue, 0.05))
 	}
 
-	nrRoundsToPropagateMultiShard := 5
-	if nrShards == 1 {
-		nrRoundsToPropagateMultiShard = 1
-	}
-
-	for rr := 0; rr < nrRounds; rr++ {
+	for currentRound := 0; currentRound < nrRounds; currentRound++ {
 		for _, player := range players {
 			integrationTests.PlayerJoinsGame(
 				nodes,
 				player,
 				topUpValue,
-				rr,
+				strconv.Itoa(currentRound),
 				hardCodedScResultingAddress,
 			)
 			newBalance := big.NewInt(0)
@@ -431,20 +439,12 @@ func runMultipleRoundsOfTheGame(
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-			startTime := time.Now()
-			integrationTests.ProposeBlock(nodes, idxProposers, round)
-			elapsedTime := time.Since(startTime)
-			fmt.Printf("Block Created in %s\n", elapsedTime)
-
-			integrationTests.SyncBlock(t, nodes, idxProposers, round)
-			round = integrationTests.IncrementAndPrintRound(round)
-		}
+		round, nonce = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round, nonce)
 
 		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
 		for i := 0; i < numRewardedPlayers; i++ {
-			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], rr, hardCodedScResultingAddress)
+			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], strconv.Itoa(currentRound), hardCodedScResultingAddress)
 			newBalance := big.NewInt(0)
 			newBalance = newBalance.Add(players[i].Balance, withdrawValues[i])
 			players[i].Balance = players[i].Balance.Set(newBalance)
@@ -453,15 +453,7 @@ func runMultipleRoundsOfTheGame(
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-			startTime := time.Now()
-			integrationTests.ProposeBlock(nodes, idxProposers, round)
-			elapsedTime := time.Since(startTime)
-			fmt.Printf("Block Created in %s\n", elapsedTime)
-
-			integrationTests.SyncBlock(t, nodes, idxProposers, round)
-			round = integrationTests.IncrementAndPrintRound(round)
-		}
+		round, nonce = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round, nonce)
 
 		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
 			hardCodedScResultingAddress, idxProposers[0])

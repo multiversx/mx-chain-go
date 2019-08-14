@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -97,6 +98,7 @@ func TestMetaChain_SetCurrentBlockHeader(t *testing.T) {
 
 	bl := &block.MetaBlock{}
 	m := blockchain.MetaChain{}
+	_ = m.SetAppStatusHandler(statusHandler.NewNilStatusHandler())
 	err := m.SetCurrentBlockHeader(bl)
 
 	assert.Nil(t, err)

@@ -16,15 +16,16 @@ type AppStatusPolling struct {
 }
 
 // NewAppStatusPolling will return an instance of AppStatusPolling
-func NewAppStatusPolling(appStatusHandler core.AppStatusHandler, pollingDuration time.Duration) (*AppStatusPolling, error) {
+func NewAppStatusPolling(appStatusHandler core.AppStatusHandler, pollingDurationSec int) (*AppStatusPolling, error) {
 	if appStatusHandler == nil {
 		return nil, ErrNilAppStatusHandler
 	}
-	if pollingDuration < 0 {
+	//TODO: maybe add pollingDuration min
+	if pollingDurationSec < 1 {
 		return nil, ErrPollingDurationNegative
 	}
 	return &AppStatusPolling{
-		pollingDuration:  pollingDuration,
+		pollingDuration:  time.Duration(pollingDurationSec) * time.Second,
 		appStatusHandler: appStatusHandler,
 	}, nil
 }

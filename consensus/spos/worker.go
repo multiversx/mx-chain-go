@@ -251,7 +251,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	if wrk.consensusService.IsMessageWithBlockHeader(msgType) {
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
-		errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed)
+		errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 		}

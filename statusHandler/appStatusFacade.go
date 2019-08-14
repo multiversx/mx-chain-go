@@ -24,6 +24,15 @@ func NewAppStatusFacadeWithHandlers(aphs ...core.AppStatusHandler) (*AppStatusFa
 	}, nil
 }
 
+// IsInterfaceNil return if there is no value under the interface
+func (asf *AppStatusFacade) IsInterfaceNil() bool {
+	if asf == nil {
+		return true
+	}
+
+	return false
+}
+
 // Increment method - will increment the value for a key for every handler
 func (asf *AppStatusFacade) Increment(key string) {
 	go func() {
@@ -56,6 +65,15 @@ func (asf *AppStatusFacade) SetUInt64Value(key string, value uint64) {
 	go func() {
 		for _, ash := range asf.handlers {
 			ash.SetUInt64Value(key, value)
+		}
+	}()
+}
+
+// SetStringValue method - will update the value for a key for every handler
+func (asf *AppStatusFacade) SetStringValue(key string, value string) {
+	go func() {
+		for _, ash := range asf.handlers {
+			ash.SetStringValue(key, value)
 		}
 	}()
 }

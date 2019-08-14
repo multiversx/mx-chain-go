@@ -29,7 +29,7 @@ type chronology struct {
 	subrounds        map[int]int
 	subroundHandlers []consensus.SubroundHandler
 	mutSubrounds     sync.RWMutex
-	ash              core.AppStatusHandler
+	appStatusHandler core.AppStatusHandler
 }
 
 // NewChronology creates a new chronology object
@@ -49,10 +49,10 @@ func NewChronology(
 	}
 
 	chr := chronology{
-		genesisTime: genesisTime,
-		rounder:     rounder,
-		syncTimer:   syncTimer,
-		ash:         statusHandler.NewNilStatusHandler()}
+		genesisTime:      genesisTime,
+		rounder:          rounder,
+		syncTimer:        syncTimer,
+		appStatusHandler: statusHandler.NewNilStatusHandler()}
 
 	chr.subroundId = srBeforeStartRound
 
@@ -80,10 +80,11 @@ func checkNewChronologyParams(
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
 func (chr *chronology) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil {
-		return ErrNilStatusHandler
+	if ash == nil || ash.IsInterfaceNil() {
+		return ErrNilAppStatusHandler
 	}
-	chr.ash = ash
+
+	chr.appStatusHandler = ash
 	return nil
 }
 
@@ -134,12 +135,12 @@ func (chr *chronology) startRound() {
 	msg := fmt.Sprintf("SUBROUND %s BEGINS", sr.Name())
 	log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
 
+	chr.appStatusHandler.SetUInt64Value(core.MetricCurrentRound, uint64(chr.rounder.Index()))
+
 	if !sr.DoWork(chr.rounder) {
 		chr.subroundId = srBeforeStartRound
 		return
 	}
-
-	chr.ash.SetInt64Value(core.MetricCurrentRound, int64(chr.rounder.Index()))
 
 	chr.subroundId = sr.Next()
 }

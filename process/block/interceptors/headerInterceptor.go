@@ -22,6 +22,7 @@ type HeaderInterceptor struct {
 	chronologyValidator process.ChronologyValidator
 	headers             storage.Cacher
 	headersNonces       dataRetriever.Uint64SyncMapCacher
+	headerValidator     process.HeaderValidator
 	shardCoordinator    sharding.Coordinator
 }
 
@@ -31,7 +32,7 @@ func NewHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	headers storage.Cacher,
 	headersNonces dataRetriever.Uint64SyncMapCacher,
-	storer storage.Storer,
+	headerValidator process.HeaderValidator,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
@@ -47,8 +48,8 @@ func NewHeaderInterceptor(
 	if headers == nil {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if storer == nil {
-		return nil, process.ErrNilHeadersStorage
+	if headerValidator == nil {
+		return nil, process.ErrNilHeaderHandlerValidator
 	}
 	if multiSigVerifier == nil {
 		return nil, process.ErrNilMultiSigVerifier
@@ -65,13 +66,13 @@ func NewHeaderInterceptor(
 
 	hdrInterceptor := &HeaderInterceptor{
 		marshalizer:         marshalizer,
-		storer:              storer,
 		multiSigVerifier:    multiSigVerifier,
 		hasher:              hasher,
 		shardCoordinator:    shardCoordinator,
 		chronologyValidator: chronologyValidator,
 		headers:             headers,
 		headersNonces:       headersNonces,
+		headerValidator:     headerValidator,
 	}
 
 	return hdrInterceptor, nil
@@ -135,10 +136,9 @@ func (hi *HeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHead
 		return
 	}
 
-	err := hi.storer.Has(hdrIntercepted.Hash())
-	isHeaderInStorage := err == nil
-	if isHeaderInStorage {
-		log.Debug("intercepted block header already processed")
+	isHeaderOkForProcessing := hi.headerValidator.IsHeaderValidForProcessing(hdrIntercepted.Header)
+	if !isHeaderOkForProcessing {
+		log.Debug("intercepted block header can not be processed")
 		return
 	}
 

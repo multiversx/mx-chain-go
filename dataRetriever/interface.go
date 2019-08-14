@@ -175,8 +175,7 @@ type Uint64SyncMapCacher interface {
 	Clear()
 	Get(nonce uint64) (ShardIdHashMap, bool)
 	Merge(nonce uint64, src ShardIdHashMap)
-	RemoveNonce(nonce uint64)
-	RemoveShardId(nonce uint64, shardId uint32)
+	Remove(nonce uint64, shardId uint32)
 	RegisterHandler(handler func(nonce uint64, shardId uint32, value []byte))
 	Has(nonce uint64, shardId uint32) bool
 }
