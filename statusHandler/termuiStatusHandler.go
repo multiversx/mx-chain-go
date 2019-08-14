@@ -120,7 +120,6 @@ func (tsh *TermuiStatusHandler) Increment(key string) {
 
 // Decrement - will decrement the value of a key
 func (tsh *TermuiStatusHandler) Decrement(key string) {
-
 }
 
 // Close method - won't do anything

@@ -414,6 +414,11 @@ func (mp *metaProcessor) CommitBlock(
 		headerHandler.GetRound(),
 		headerHandler.GetNonce()))
 
+	err = mp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
+	if err != nil {
+		return err
+	}
+
 	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		err = process.ErrWrongTypeAssertion

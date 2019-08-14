@@ -47,12 +47,13 @@ import (
 )
 
 const (
-	defaultLogPath     = "logs"
-	defaultStatsPath   = "stats"
-	defaultDBPath      = "db"
-	defaultEpochString = "Epoch"
-	defaultShardString = "Shard"
-	metachainShardName = "metachain"
+	defaultLogPath      = "logs"
+	defaultStatsPath    = "stats"
+	defaultDBPath       = "db"
+	defaultEpochString  = "Epoch"
+	defaultShardString  = "Shard"
+	metachainShardName  = "metachain"
+	milisecondsInSecond = 1000
 )
 
 var (
@@ -496,8 +497,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
 		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
 	}
-	useTermui := !ctx.GlobalBool(useLogView.Name)
 
+	useTermui := !ctx.GlobalBool(useLogView.Name)
 	if useTermui {
 		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
 		err = termuiStatusHandler.StartTermuiConsole()
@@ -527,7 +528,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricShardId, uint64(shardCoordinator.SelfId()))
 	coreComponents.StatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricRoundTime, nodesConfig.RoundDuration/1000)
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricRoundTime, nodesConfig.RoundDuration/milisecondsInSecond)
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -734,6 +735,7 @@ func registerPollConnectedPeers(
 	return nil
 }
 
+//TODO: move out of main
 func registerPollProbableHighestNonce(
 	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
 	processComponents *factory.Process,

@@ -482,7 +482,7 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 	}
 }
 
-// IncrementAndPrintRound increments the given variable, and prints the message for teh beginning of the round
+// IncrementAndPrintRound increments the given variable, and prints the message for the beginning of the round
 func IncrementAndPrintRound(round uint64) uint64 {
 	round++
 	fmt.Printf("#################################### ROUND %d BEGINS ####################################\n\n", round)
@@ -491,14 +491,14 @@ func IncrementAndPrintRound(round uint64) uint64 {
 }
 
 // ProposeBlock proposes a block with SC txs for every shard
-func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64) {
+func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, nonce uint64) {
 	fmt.Println("All shards propose blocks...")
 	for idx, n := range nodes {
 		if !IsIntInSlice(idx, idxProposers) {
 			continue
 		}
 
-		body, header, _ := n.ProposeBlock(round)
+		body, header, _ := n.ProposeBlock(round, nonce)
 		n.BroadcastBlock(body, header)
 		n.CommitBlock(body, header)
 	}
@@ -833,11 +833,12 @@ func CreateMintingForSenders(
 func ProposeBlockSignalsEmptyBlock(
 	node *TestProcessorNode,
 	round uint64,
+	nonce uint64,
 ) (data.HeaderHandler, data.BodyHandler, bool) {
 
 	fmt.Println("Proposing block without commit...")
 
-	body, header, txHashes := node.ProposeBlock(round)
+	body, header, txHashes := node.ProposeBlock(round, nonce)
 	node.BroadcastBlock(body, header)
 	isEmptyBlock := len(txHashes) == 0
 
@@ -1031,11 +1032,12 @@ func ProposeAndSyncBlocks(
 	nodes []*TestProcessorNode,
 	idxProposers []int,
 	round uint64,
-) uint64 {
+	nonce uint64,
+) (uint64, uint64) {
 
 	// if there are many transactions, they might not fit into the block body in only one round
 	for numTxsInPool := numInTxs; numTxsInPool != 0; {
-		round = ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
+		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 		for _, idProposer := range idxProposers {
 			proposerNode := nodes[idProposer]
@@ -1052,7 +1054,7 @@ func ProposeAndSyncBlocks(
 	}
 
 	if nodes[0].ShardCoordinator.NumberOfShards() == 1 {
-		return round
+		return round, nonce
 	}
 
 	// cross shard smart contract call is first processed at sender shard, notarized by metachain, processed at
@@ -1060,10 +1062,10 @@ func ProposeAndSyncBlocks(
 	// sender shard
 	numberToPropagateToEveryShard := 5
 	for i := 0; i < numberToPropagateToEveryShard; i++ {
-		round = ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
+		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
 
-	return round
+	return round, nonce
 }
 
 // ProposeAndSyncOneBlock proposes a block, syncs the block and then increments the round
@@ -1072,10 +1074,12 @@ func ProposeAndSyncOneBlock(
 	nodes []*TestProcessorNode,
 	idxProposers []int,
 	round uint64,
-) uint64 {
-	ProposeBlock(nodes, idxProposers, round)
+	nonce uint64,
+) (uint64, uint64) {
+	ProposeBlock(nodes, idxProposers, round, nonce)
 	SyncBlock(t, nodes, idxProposers, round)
 	round = IncrementAndPrintRound(round)
+	nonce++
 
-	return round
+	return round, nonce
 }

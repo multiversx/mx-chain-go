@@ -67,7 +67,7 @@ func (ns *NetStatistics) ComputeStatistics() {
 	atomic.StoreUint64(&ns.percentRecv, recvPercent)
 
 	sentPercent := uint64(0)
-	if recvPeak != 0 {
+	if sentPeak != 0 {
 		sentPercent = bpsSent * 100 / sentPeak
 	}
 	atomic.StoreUint64(&ns.percentSent, sentPercent)

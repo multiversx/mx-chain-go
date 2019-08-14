@@ -26,6 +26,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	senderShard := uint32(0)
 	recvShards := []uint32{1, 2}
 	round := uint64(0)
+	nonce := uint64(0)
 
 	valMinting := big.NewInt(100)
 	valToTransferPerTx := big.NewInt(2)
@@ -79,9 +80,10 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
 
 	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
-		round = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
 
 	fmt.Println("Test nodes from proposer shard to have the correct balances...")

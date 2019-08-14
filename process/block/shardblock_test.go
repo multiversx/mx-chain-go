@@ -48,6 +48,7 @@ func initBasicTestData() (*mock.PoolsHolderFake, *blockchain.BlockChain, []byte,
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
 	blkc := &blockchain.BlockChain{
 		CurrentBlockHeader: &block.Header{
+			Round: 1,
 			Nonce: 1,
 		},
 	}
@@ -71,6 +72,7 @@ func initBasicTestData() (*mock.PoolsHolderFake, *blockchain.BlockChain, []byte,
 func initBlockHeader(prevHash []byte, rootHash []byte, mbHdrs []block.MiniBlockHeader) block.Header {
 	hdr := block.Header{
 		Nonce:            2,
+		Round:            2,
 		PrevHash:         prevHash,
 		Signature:        []byte("signature"),
 		PubKeysBitmap:    []byte("00110"),
@@ -806,6 +808,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	mbHdrs = append(mbHdrs, mbHdr)
 
 	hdr := block.Header{
+		Round:            1,
 		Nonce:            1,
 		PrevHash:         []byte(""),
 		Signature:        []byte("signature"),
@@ -925,6 +928,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	mbHdrs = append(mbHdrs, mbHdr)
 
 	hdr := block.Header{
+		Round:            1,
 		Nonce:            1,
 		PrevHash:         []byte(""),
 		Signature:        []byte("signature"),
@@ -1011,6 +1015,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	mbHdrs = append(mbHdrs, mbHdr)
 
 	hdr := block.Header{
+		Round:            1,
 		Nonce:            1,
 		PrevHash:         []byte(""),
 		Signature:        []byte("signature"),
@@ -1093,6 +1098,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	mbHdrs = append(mbHdrs, mbHdr)
 
 	hdr := block.Header{
+		Round:            1,
 		Nonce:            1,
 		PrevHash:         []byte(""),
 		Signature:        []byte("signature"),
@@ -1258,6 +1264,7 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 	currHdr := blkc.GetCurrentBlockHeader()
 	preHash, _ := core.CalculateHash(marshalizer, hasher, currHdr)
 	hdr := block.Header{
+		Round:            2,
 		Nonce:            2,
 		PrevHash:         preHash,
 		Signature:        []byte("signature"),
@@ -1807,7 +1814,6 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 		Nonce:         1,
 		Round:         1,
 		PubKeysBitmap: []byte("0100101"),
-		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		RootHash:      rootHash,
 	}
@@ -1863,7 +1869,6 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		Nonce:         1,
 		Round:         1,
 		PubKeysBitmap: []byte("0100101"),
-		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		RootHash:      rootHash,
 	}
@@ -1940,7 +1945,6 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 		Nonce:         1,
 		Round:         1,
 		PubKeysBitmap: []byte("0100101"),
-		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		RootHash:      rootHash,
 	}
@@ -2015,7 +2019,6 @@ func TestShardProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		Nonce:         1,
 		Round:         1,
 		PubKeysBitmap: []byte("0100101"),
-		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		RootHash:      rootHash,
 	}
@@ -2084,7 +2087,6 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		Nonce:         1,
 		Round:         1,
 		PubKeysBitmap: []byte("0100101"),
-		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		RootHash:      rootHash,
 	}
@@ -3814,7 +3816,7 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.Nonce = 45
 	prevHdr.Round = currHdr.Round + 1
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrLowShardHeaderRound)
+	assert.Equal(t, err, process.ErrLowerRoundInOtherChainBlock)
 
 	prevHdr.Round = currHdr.Round - 1
 	currHdr.Nonce = prevHdr.Nonce + 2
@@ -3829,7 +3831,7 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.RandSeed = currRandSeed
 	currHdr.PrevHash = []byte("wronghash")
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrNotarizedBlockHashDoesNotMatch)
+	assert.Equal(t, err, process.ErrHashDoesNotMatchInOtherChainBlock)
 
 	currHdr.PrevHash = prevHash
 	prevHdr.RootHash = []byte("prevRootHash")

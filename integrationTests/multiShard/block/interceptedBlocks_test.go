@@ -48,7 +48,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	}()
 
 	fmt.Println("Generating header and block body...")
-	_, body, _ := integrationTests.ProposeBlockSignalsEmptyBlock(nodes[0], 1)
+	_, body, _ := integrationTests.ProposeBlockSignalsEmptyBlock(nodes[0], 1, 1)
 
 	time.Sleep(time.Second * 10)
 

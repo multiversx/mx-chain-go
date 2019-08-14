@@ -55,11 +55,9 @@ func (wr *WidgetsRender) initWidgets() {
 	wr.networkSent = widgets.NewGauge()
 
 	wr.lLog = widgets.NewList()
-
 }
 
 func (wr *WidgetsRender) setGrid() {
-
 	gridLeft := ui.NewGrid()
 
 	gridLeft.Set(
@@ -102,8 +100,6 @@ func (wr *WidgetsRender) RefreshData(logLines []string) {
 
 	wr.prepareListWithLogsForDisplay(logLines)
 	wr.prepareLoads()
-
-	return
 }
 
 func (wr *WidgetsRender) prepareInstanceInfo() (string, string) {
@@ -200,16 +196,15 @@ func (wr *WidgetsRender) prepareListWithLogsForDisplay(logData []string) {
 	wr.lLog.TextStyle = ui.NewStyle(ui.ColorWhite)
 	wr.lLog.Rows = wr.prepareLogLines(logData, wr.lLog.Size().Y)
 	wr.lLog.WrapText = true
-	return
 }
 
 //TODO duplicate code next pull request refactor
 func (wr *WidgetsRender) prepareLogLines(logData []string, size int) []string {
 	logDataLen := len(logData)
-
 	if logDataLen > size {
 		return logData[logDataLen-size : logDataLen]
 	}
+
 	return logData
 }
 
@@ -259,5 +254,4 @@ func (wr *WidgetsRender) getFromCacheAsUint64(metric string) uint64 {
 }
 
 func (wr *WidgetsRender) getNetworkRecvStats() {
-
 }

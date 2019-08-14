@@ -20,6 +20,7 @@ func NewAppStatusPolling(appStatusHandler core.AppStatusHandler, pollingDuration
 	if appStatusHandler == nil {
 		return nil, ErrNilAppStatusHandler
 	}
+	//TODO: maybe add pollingDuration min
 	if pollingDurationSec < 1 {
 		return nil, ErrPollingDurationNegative
 	}
