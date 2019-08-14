@@ -9,11 +9,14 @@ import (
 
 var durationSecond = time.Second
 
-type cpuStatistics struct {
+// CpuStatistics can compute the cpu usage percent
+type CpuStatistics struct {
 	cpuPercentUsage uint64
 }
 
-func (cs *cpuStatistics) getCpuStatistics() {
+// ComputeStatistics computes the current cpu usage. It should be called on a go routine as it is a blocking
+// call for a bounded time (1 second)
+func (cs *CpuStatistics) ComputeStatistics() {
 	cpuUsagePercent, err := cpu.Percent(durationSecond, false)
 	if err != nil {
 		cs.setZeroStatsAndWait()
@@ -28,12 +31,12 @@ func (cs *cpuStatistics) getCpuStatistics() {
 	time.Sleep(durationSecond)
 }
 
-func (cs *cpuStatistics) setZeroStatsAndWait() {
+func (cs *CpuStatistics) setZeroStatsAndWait() {
 	atomic.StoreUint64(&cs.cpuPercentUsage, 0)
 	time.Sleep(durationSecond)
 }
 
 // CpuPercentUsage will return the cpu percent usage. Concurrent safe.
-func (cs *cpuStatistics) CpuPercentUsage() uint64 {
+func (cs *CpuStatistics) CpuPercentUsage() uint64 {
 	return atomic.LoadUint64(&cs.cpuPercentUsage)
 }

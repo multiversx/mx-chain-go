@@ -11,9 +11,9 @@ import (
 func TestMemStatisticsUsagePercent(t *testing.T) {
 	t.Parallel()
 
-	mem := &memStatistics{}
+	mem := &MemStatistics{}
 
-	mem.getMemStatistics()
+	mem.ComputeStatistics()
 	memUsagePercentValue := mem.MemPercentUsage()
 	fmt.Printf("Memory usage: %d%%\n", memUsagePercentValue)
 	totalMem := mem.TotalMemory()

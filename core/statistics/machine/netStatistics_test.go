@@ -10,9 +10,9 @@ import (
 func TestNetStatistics(t *testing.T) {
 	t.Parallel()
 
-	net := &netStatistics{}
+	net := &NetStatistics{}
 
-	net.getNetStatistics()
+	net.ComputeStatistics()
 	bpsRecv := net.BpsRecv()
 	bpsSent := net.BpsSent()
 	bpsRecvPeak := net.BpsRecvPeak()

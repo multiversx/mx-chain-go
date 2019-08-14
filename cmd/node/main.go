@@ -199,10 +199,10 @@ VERSION:
 		Usage: "Will make the node available for prometheus and grafana monitoring",
 	}
 
-	//useTermui
-	useTermui = cli.BoolTFlag{
-		Name:  "use-termui",
-		Usage: "will change your terminal view with one more user-friendly",
+	//useLogView is used when termui interface is not needed.
+	useLogView = cli.BoolFlag{
+		Name:  "use-log-view",
+		Usage: "will not enable the user-friendly terminal view of the node",
 	}
 
 	// initialBalancesSkPemFile defines a flag for the path to the ...
@@ -301,7 +301,7 @@ func main() {
 		restApiPort,
 		logLevel,
 		usePrometheus,
-		useTermui,
+		useLogView,
 		bootstrapRoundIndex,
 		enableTxIndexing,
 		workingDirectory,
@@ -496,9 +496,9 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
 		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
 	}
-	useTermuiBool := ctx.GlobalBool(useTermui.Name)
+	useTermui := !ctx.GlobalBool(useLogView.Name)
 
-	if useTermuiBool {
+	if useTermui {
 		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
 		err = termuiStatusHandler.StartTermuiConsole()
 		if err != nil {
@@ -635,7 +635,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Info("Error creating status polling: ", err)
 	}
 
-	_, err = machine.NewMachineStatistics(coreComponents.StatusHandler, time.Second)
+	updateMachineStatisticsDurationSec := 1
+	err = startMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDurationSec)
 	if err != nil {
 		return err
 	}
@@ -695,8 +696,7 @@ func startStatusPolling(
 		return errors.New("nil AppStatusHandler")
 	}
 
-	pollingIntervalDuration := time.Duration(pollingInterval) * time.Second
-	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingIntervalDuration)
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingInterval)
 	if err != nil {
 		return errors.New("cannot init AppStatusPolling")
 	}
@@ -750,6 +750,82 @@ func registerPollProbableHighestNonce(
 	}
 
 	return nil
+}
+
+func startMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval int) error {
+	if ash == nil {
+		return errors.New("nil AppStatusHandler")
+	}
+
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingInterval)
+	if err != nil {
+		return errors.New("cannot init AppStatusPolling")
+	}
+
+	err = registerCpuStatistics(appStatusPollingHandler)
+	if err != nil {
+		return err
+	}
+
+	err = registerMemStatistics(appStatusPollingHandler)
+	if err != nil {
+		return err
+	}
+
+	err = registeNetStatistics(appStatusPollingHandler)
+	if err != nil {
+		return err
+	}
+
+	appStatusPollingHandler.Poll()
+
+	return nil
+}
+
+func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
+	memStats := &machine.MemStatistics{}
+	go func() {
+		for {
+			memStats.ComputeStatistics()
+		}
+	}()
+
+	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
+		appStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, memStats.MemPercentUsage())
+		appStatusHandler.SetUInt64Value(core.MetricTotalMem, memStats.TotalMemory())
+	})
+}
+
+func registeNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
+	netStats := &machine.NetStatistics{}
+	go func() {
+		for {
+			netStats.ComputeStatistics()
+		}
+	}()
+
+	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
+		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBps, netStats.BpsRecv())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBpsPeak, netStats.BpsRecvPeak())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvPercent, netStats.PercentRecv())
+
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBps, netStats.BpsSent())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBpsPeak, netStats.BpsSentPeak())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSentPercent, netStats.PercentSent())
+	})
+}
+
+func registerCpuStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
+	cpuStats := &machine.CpuStatistics{}
+	go func() {
+		for {
+			cpuStats.ComputeStatistics()
+		}
+	}()
+
+	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
+		appStatusHandler.SetUInt64Value(core.MetricCpuLoadPercent, cpuStats.CpuPercentUsage())
+	})
 }
 
 func getPrometheusJoinURLIfAvailable(ctx *cli.Context) (string, bool) {

@@ -7,7 +7,8 @@ import (
 	"github.com/shirou/gopsutil/net"
 )
 
-type netStatistics struct {
+// NetStatistics can compute the network statistics
+type NetStatistics struct {
 	bpsSent     uint64
 	bpsRecv     uint64
 	bpsSentPeak uint64
@@ -16,7 +17,9 @@ type netStatistics struct {
 	percentRecv uint64
 }
 
-func (ns *netStatistics) getNetStatistics() {
+// ComputeStatistics computes the current network statistics usage.
+// It should be called on a go routine as it is a blocking call for a bounded time (1 second)
+func (ns *NetStatistics) ComputeStatistics() {
 	nStart, err := net.IOCounters(false)
 	if err != nil {
 		ns.setZeroStatsAndWait()
@@ -72,7 +75,7 @@ func (ns *netStatistics) getNetStatistics() {
 	time.Sleep(durationSecond)
 }
 
-func (ns *netStatistics) setZeroStatsAndWait() {
+func (ns *NetStatistics) setZeroStatsAndWait() {
 	atomic.StoreUint64(&ns.bpsSent, 0)
 	atomic.StoreUint64(&ns.bpsRecv, 0)
 	atomic.StoreUint64(&ns.percentSent, 0)
@@ -81,31 +84,31 @@ func (ns *netStatistics) setZeroStatsAndWait() {
 }
 
 // BpsSent bytes sent per second on all interfaces
-func (ns *netStatistics) BpsSent() uint64 {
+func (ns *NetStatistics) BpsSent() uint64 {
 	return atomic.LoadUint64(&ns.bpsSent)
 }
 
 // BpsRecv bytes received per second on all interfaces
-func (ns *netStatistics) BpsRecv() uint64 {
+func (ns *NetStatistics) BpsRecv() uint64 {
 	return atomic.LoadUint64(&ns.bpsRecv)
 }
 
 // BpsSentPeak peak bytes sent per second on all interfaces
-func (ns *netStatistics) BpsSentPeak() uint64 {
+func (ns *NetStatistics) BpsSentPeak() uint64 {
 	return atomic.LoadUint64(&ns.bpsSentPeak)
 }
 
 // BpsRecvPeak peak bytes received per second on all interfaces
-func (ns *netStatistics) BpsRecvPeak() uint64 {
+func (ns *NetStatistics) BpsRecvPeak() uint64 {
 	return atomic.LoadUint64(&ns.bpsRecvPeak)
 }
 
 // PercentSent BpsSent / BpsSentPeak * 100
-func (ns *netStatistics) PercentSent() uint64 {
+func (ns *NetStatistics) PercentSent() uint64 {
 	return atomic.LoadUint64(&ns.percentSent)
 }
 
 // PercentRecv BpsRecv / BpsRecvPeak * 100
-func (ns *netStatistics) PercentRecv() uint64 {
+func (ns *NetStatistics) PercentRecv() uint64 {
 	return atomic.LoadUint64(&ns.percentRecv)
 }

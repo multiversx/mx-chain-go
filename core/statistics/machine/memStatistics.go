@@ -7,12 +7,14 @@ import (
 	"github.com/shirou/gopsutil/mem"
 )
 
-type memStatistics struct {
+// MemStatistics can compute the mem usage percent and other mem statistics
+type MemStatistics struct {
 	memPercentUsage uint64
 	totalMemory     uint64
 }
 
-func (ms *memStatistics) getMemStatistics() {
+// ComputeStatistics computes the current memory usage.
+func (ms *MemStatistics) ComputeStatistics() {
 	vms, err := mem.VirtualMemory()
 	if err != nil {
 		ms.setZeroStatsAndWait()
@@ -24,18 +26,18 @@ func (ms *memStatistics) getMemStatistics() {
 	time.Sleep(durationSecond)
 }
 
-func (ms *memStatistics) setZeroStatsAndWait() {
+func (ms *MemStatistics) setZeroStatsAndWait() {
 	atomic.StoreUint64(&ms.memPercentUsage, 0)
 	atomic.StoreUint64(&ms.totalMemory, 0)
 	time.Sleep(durationSecond)
 }
 
 // MemPercentUsage will return the memory percent usage. Concurrent safe.
-func (ms *memStatistics) MemPercentUsage() uint64 {
+func (ms *MemStatistics) MemPercentUsage() uint64 {
 	return atomic.LoadUint64(&ms.memPercentUsage)
 }
 
 // TotalMemory will return the total memory available in bytes. Concurrent safe.
-func (ms *memStatistics) TotalMemory() uint64 {
+func (ms *MemStatistics) TotalMemory() uint64 {
 	return atomic.LoadUint64(&ms.totalMemory)
 }

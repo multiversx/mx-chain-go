@@ -10,9 +10,9 @@ import (
 func TestCpuStatisticsUsagePercent(t *testing.T) {
 	t.Parallel()
 
-	cs := &cpuStatistics{}
+	cs := &CpuStatistics{}
 
-	cs.getCpuStatistics()
+	cs.ComputeStatistics()
 	cpuUsagePercentValue := cs.CpuPercentUsage()
 	fmt.Printf("CPU usage: %d%%\n", cpuUsagePercentValue)
 
