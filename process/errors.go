@@ -414,3 +414,6 @@ var ErrNilTxHandlerValidator = errors.New("nil tx handler validator provided")
 
 // ErrNilHeaderHandlerValidator signals that a nil header handler validator has been provided
 var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator provided")
+
+// ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
+var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")

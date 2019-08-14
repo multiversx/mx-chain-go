@@ -40,13 +40,13 @@ func TestAppStatusFacade_IncrementShouldPass(t *testing.T) {
 	var metricKey = core.MetricSynchronizedRound
 
 	// we create a new facade which contains a prometheus handler in order to test
-	promStatusHandler := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		IncrementHandler: func(key string) {
 			chanDone <- true
 		},
 	}
 
-	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(&promStatusHandler)
+	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(&appStatusHandlerStub)
 	assert.Nil(t, err)
 
 	asf.Increment(metricKey)
@@ -65,13 +65,13 @@ func TestAppStatusFacade_DecrementShouldPass(t *testing.T) {
 	var metricKey = core.MetricSynchronizedRound
 
 	// we create a new facade which contains a prometheus handler in order to test
-	promStatusHandler := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		DecrementHandler: func(key string) {
 			chanDone <- true
 		},
 	}
 
-	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(&promStatusHandler)
+	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(&appStatusHandlerStub)
 	assert.Nil(t, err)
 
 	asf.Decrement(metricKey)
@@ -90,13 +90,13 @@ func TestAppStatusFacade_SetInt64ValueShouldPass(t *testing.T) {
 	var metricKey = core.MetricSynchronizedRound
 
 	// we create a new facade which contains a prometheus handler in order to test
-	promStatusHandler := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		SetInt64ValueHandler: func(key string, value int64) {
 			chanDone <- true
 		},
 	}
 
-	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(&promStatusHandler)
+	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(&appStatusHandlerStub)
 	assert.Nil(t, err)
 
 	asf.SetInt64Value(metricKey, int64(0))
@@ -115,13 +115,13 @@ func TestAppStatusFacade_SetUint64ValueShouldPass(t *testing.T) {
 	var metricKey = core.MetricSynchronizedRound
 
 	// we create a new facade which contains a prometheus handler in order to test
-	promStatusHandler := mock.AppStatusHandlerStub{
+	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
 			chanDone <- true
 		},
 	}
 
-	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(&promStatusHandler)
+	asf, err := statusHandler.NewAppStatusFacadeWithHandlers(&appStatusHandlerStub)
 	assert.Nil(t, err)
 
 	asf.SetUInt64Value(metricKey, uint64(0))

@@ -28,3 +28,6 @@ var ErrNilDataToProcess = errors.New("nil data to process")
 
 // ErrInvalidMaxDurationPeerUnresponsive signals that the duration provided is invalid
 var ErrInvalidMaxDurationPeerUnresponsive = errors.New("invalid max duration to declare the peer unresponsive")
+
+// ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
+var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")

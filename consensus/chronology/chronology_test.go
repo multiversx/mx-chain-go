@@ -304,7 +304,7 @@ func TestChronology_SetAppStatusHandlerWithNilValueShouldErr(t *testing.T) {
 		syncTimerMock)
 	err := chr.SetAppStatusHandler(nil)
 
-	assert.Equal(t, err, chronology.ErrNilStatusHandler)
+	assert.Equal(t, err, chronology.ErrNilAppStatusHandler)
 }
 
 func TestChronology_SetAppStatusHandlerWithOkValueShouldPass(t *testing.T) {
@@ -317,7 +317,7 @@ func TestChronology_SetAppStatusHandlerWithOkValueShouldPass(t *testing.T) {
 		rounderMock,
 		syncTimerMock)
 
-	err := chr.SetAppStatusHandler(mock.AppStatusHandlerMock{})
+	err := chr.SetAppStatusHandler(&mock.AppStatusHandlerMock{})
 
 	assert.Nil(t, err)
 }
@@ -334,7 +334,7 @@ func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 		syncTimerMock)
 
 	err := chr.SetAppStatusHandler(&mock.AppStatusHandlerStub{
-		SetInt64ValueHandler: func(key string, value int64) {
+		SetUInt64ValueHandler: func(key string, value uint64) {
 			chanDone <- true
 		},
 	})

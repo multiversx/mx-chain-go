@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
@@ -40,6 +41,18 @@ type shardProcessor struct {
 	core          serviceContainer.Core
 	txCoordinator process.TransactionCoordinator
 	txCounter     *transactionCounter
+
+	appStatusHandler core.AppStatusHandler
+}
+
+// SetAppStatusHandler method is used to set appStatusHandler
+func (sp *shardProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return process.ErrNilAppStatusHandler
+	}
+
+	sp.appStatusHandler = ash
+	return nil
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -106,12 +119,13 @@ func NewShardProcessor(
 	}
 
 	sp := shardProcessor{
-		core:          core,
-		baseProcessor: base,
-		dataPool:      dataPool,
-		blocksTracker: blocksTracker,
-		txCoordinator: txCoordinator,
-		txCounter:     NewTransactionCounter(),
+		core:             core,
+		baseProcessor:    base,
+		dataPool:         dataPool,
+		blocksTracker:    blocksTracker,
+		txCoordinator:    txCoordinator,
+		txCounter:        NewTransactionCounter(),
+		appStatusHandler: statusHandler.NewNilStatusHandler(),
 	}
 
 	sp.chRcvAllMetaHdrs = make(chan bool)
@@ -173,7 +187,11 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	log.Info(fmt.Sprintf("Total txs in pool: %d\n", sp.txCounter.getNumTxsWithDst(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())))
+	numTxWithDst := sp.txCounter.getNumTxsWithDst(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())
+
+	sp.appStatusHandler.SetUInt64Value(core.MetricTxPoolLoad, uint64(numTxWithDst))
+
+	log.Info(fmt.Sprintf("Total txs in pool: %d\n", numTxWithDst))
 
 	sp.txCoordinator.CreateBlockStarted()
 	sp.txCoordinator.RequestBlockTransactions(body)
@@ -1438,7 +1456,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 	sp.mutUsedMetaHdrsHashes.Unlock()
 
 	sp.blockSizeThrottler.Add(
-		uint64(round),
+		round,
 		core.Max(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil

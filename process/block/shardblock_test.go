@@ -1276,7 +1276,7 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 	sp, _ := blproc.NewShardProcessorEmptyWith3shards(tdp, genesisBlocks)
 	haveTimeLessThanZero := func() time.Duration {
-		return time.Duration(-1 * time.Millisecond)
+		return -1 * time.Millisecond
 	}
 
 	// should return err
@@ -2091,7 +2091,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		RootHash:      rootHash,
 	}
 	mb := block.MiniBlock{
-		TxHashes: [][]byte{[]byte(txHash)},
+		TxHashes: [][]byte{txHash},
 	}
 	body := block.Body{&mb}
 	accounts := &mock.AccountsStub{
@@ -2188,7 +2188,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		RootHash:      rootHash,
 	}
 	mb := block.MiniBlock{
-		TxHashes: [][]byte{[]byte(txHash)},
+		TxHashes: [][]byte{txHash},
 	}
 	body := block.Body{&mb}
 
@@ -2290,7 +2290,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 		RootHash:      rootHash,
 	}
 	mb := block.MiniBlock{
-		TxHashes: [][]byte{[]byte(txHash)},
+		TxHashes: [][]byte{txHash},
 	}
 	body := block.Body{&mb}
 
@@ -2757,13 +2757,13 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	mb0 := block.MiniBlock{
 		ReceiverShardID: 0,
 		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash0)},
+		TxHashes:        [][]byte{txHash0},
 	}
 	txHash1 := []byte("txHash1")
 	mb1 := block.MiniBlock{
 		ReceiverShardID: 1,
 		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash1)},
+		TxHashes:        [][]byte{txHash1},
 	}
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
@@ -2891,7 +2891,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	mb0 := block.MiniBlock{
 		ReceiverShardID: 1,
 		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash0)},
+		TxHashes:        [][]byte{txHash0},
 	}
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
@@ -4616,9 +4616,10 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainNothingToProcess(t 
 	)
 
 	hdr, _, err := sp.GetHighestHdrForOwnShardFromMetachain(0)
+
+	assert.Nil(t, err)
 	assert.NotNil(t, hdr)
 	assert.Equal(t, uint64(0), hdr.GetNonce())
-	assert.Nil(t, err)
 }
 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHdr(t *testing.T) {
@@ -4679,9 +4680,10 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
 
 	hdr, _, err := sp.GetHighestHdrForOwnShardFromMetachain(4)
+
+	assert.Nil(t, err)
 	assert.NotNil(t, hdr)
 	assert.Equal(t, uint64(0), hdr.GetNonce())
-	assert.Nil(t, err)
 }
 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrButNotStored(t *testing.T) {
@@ -4742,9 +4744,9 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 
 	hdr, _, err := sp.GetHighestHdrForOwnShardFromMetachain(4)
 
+	assert.Nil(t, err)
 	assert.NotNil(t, hdr)
 	assert.Equal(t, uint64(0), hdr.GetNonce())
-	assert.Nil(t, err)
 }
 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrStored(t *testing.T) {
@@ -4835,7 +4837,8 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
 
 	hdr, _, err := sp.GetHighestHdrForOwnShardFromMetachain(4)
+
+	assert.Nil(t, err)
 	assert.NotNil(t, hdr)
 	assert.Equal(t, ownHdr.GetNonce(), hdr.GetNonce())
-	assert.Nil(t, err)
 }

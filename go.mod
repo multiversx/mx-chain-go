@@ -17,6 +17,7 @@ require (
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
 	github.com/gin-contrib/pprof v1.2.0
 	github.com/gin-gonic/gin v1.3.0
+	github.com/gizak/termui/v3 v3.1.0
 	github.com/glycerine/go-capnproto v0.0.0-20190118050403-2d07de3aa7fc
 	github.com/glycerine/goconvey v0.0.0-20190410193231-58a59202ab31 // indirect
 	github.com/glycerine/rbtree v0.0.0-20180524195614-80eebfe947f7 // indirect
@@ -42,6 +43,7 @@ require (
 	github.com/pkg/profile v1.3.0
 	github.com/prometheus/client_golang v1.0.0
 	github.com/satori/go.uuid v1.2.0
+	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
 	github.com/sirupsen/logrus v1.4.0
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965

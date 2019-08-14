@@ -7,10 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var log = logger.DefaultLogger()
@@ -23,6 +25,7 @@ type Monitor struct {
 	marshalizer                 marshal.Marshalizer
 	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutHeartbeatMessages        sync.RWMutex
+	appStatusHandler            core.AppStatusHandler
 }
 
 // NewMonitor returns a new monitor instance
@@ -53,6 +56,7 @@ func NewMonitor(
 		marshalizer:                 marshalizer,
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
+		appStatusHandler:            &statusHandler.NilStatusHandler{},
 	}
 
 	var err error
@@ -64,6 +68,16 @@ func NewMonitor(
 	}
 
 	return mon, nil
+}
+
+// SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
+func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return ErrNilAppStatusHandler
+	}
+
+	m.appStatusHandler = ash
+	return nil
 }
 
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
@@ -127,9 +141,22 @@ func (m *Monitor) verifySignature(hbRecv *Heartbeat) error {
 }
 
 func (m *Monitor) updateAllHeartbeatMessages() {
+	counterActiveValidators := 0
+	counterConnectedNodes := 0
 	for _, v := range m.heartbeatMessages {
 		v.updateFields()
+
+		if v.isActive {
+			counterConnectedNodes++
+
+			if v.isValidator {
+				counterActiveValidators++
+			}
+		}
 	}
+
+	m.appStatusHandler.SetUInt64Value(core.MetricLiveValidatorNodes, uint64(counterActiveValidators))
+	m.appStatusHandler.SetUInt64Value(core.MetricConnectedNodes, uint64(counterConnectedNodes))
 }
 
 // GetHeartbeats returns the heartbeat status
