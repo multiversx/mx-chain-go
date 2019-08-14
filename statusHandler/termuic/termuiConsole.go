@@ -56,7 +56,7 @@ func (tc *TermuiConsole) Write(p []byte) (n int, err error) {
 		tc.logLines = tc.logLines[startPos:len(tc.logLines)]
 
 		tc.mutLogLineWrite.Unlock()
-	}()
+	}(p)
 
 	return len(p), nil
 }
