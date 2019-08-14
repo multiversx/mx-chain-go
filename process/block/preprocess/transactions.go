@@ -435,6 +435,10 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 			break
 		}
 
+		if txs.isTxAlreadyProcessed(orderedTxHashes[index], &txs.txsForCurrBlock) {
+			continue
+		}
+
 		currTxGasLimit := minGasLimitForTx
 		if isSmartContractAddress(orderedTxes[index].RcvAddr) {
 			currTxGasLimit = orderedTxes[index].GasLimit
