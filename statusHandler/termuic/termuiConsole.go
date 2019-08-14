@@ -39,15 +39,25 @@ func NewTermuiConsole(metricData *sync.Map) *TermuiConsole {
 func (tc *TermuiConsole) Write(p []byte) (n int, err error) {
 	go func() {
 		logLine := string(p)
-		logLine = strings.Replace(logLine, "\n", "", len(logLine))
-		logLine = strings.Replace(logLine, "\r", "", len(logLine))
+		//logLine = strings.Replace(logLine, "\n", "", len(logLine))
+		//logLine = strings.Replace(logLine, "\r", "", len(logLine))
+
+		stringSlice := strings.Split(logLine, "\n")
 
 		tc.mutLogLineWrite.Lock()
+
 		if len(tc.logLines) >= maxLogLines {
-			tc.logLines = tc.logLines[1:maxLogLines]
+			tc.logLines = tc.logLines[len(stringSlice):maxLogLines]
 		}
-		if logLine != "" {
-			tc.logLines = append(tc.logLines, logLine)
+
+		if len(stringSlice) > 0 {
+			for _, line := range stringSlice {
+				//line = strings.Replace(line, "\n", "", len(line))
+				line = strings.Replace(line, "\r", "", len(line))
+				if line != "" {
+					tc.logLines = append(tc.logLines, line)
+				}
+			}
 		}
 		tc.mutLogLineWrite.Unlock()
 	}()

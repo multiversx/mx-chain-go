@@ -80,10 +80,10 @@ func (wr *WidgetsRender2) setGrid() {
 		ui.NewRow(12.0/22, wr.chainInfo))
 
 	gridRight := ui.NewGrid()
-	gridRight.Set(ui.NewRow(1.0/6, wr.cpuLoad),
-		ui.NewRow(1.0/6, wr.memoryLoad),
-		ui.NewRow(1.0/6, wr.networkRecv),
-		ui.NewRow(1.0/6, wr.networkSent))
+	gridRight.Set(ui.NewRow(1.0/4, wr.cpuLoad),
+		ui.NewRow(1.0/4, wr.memoryLoad),
+		ui.NewRow(1.0/4, wr.networkRecv),
+		ui.NewRow(1.0/4, wr.networkSent))
 
 	gridBottom := ui.NewGrid()
 	gridBottom.Set(ui.NewRow(1.0, wr.lLog))
@@ -202,7 +202,7 @@ func (wr *WidgetsRender2) prepareListWithLogsForDisplay(logData []string) {
 	wr.lLog.Title = "Log info"
 	wr.lLog.TextStyle = ui.NewStyle(ui.ColorWhite)
 	wr.lLog.Rows = wr.prepareLogLines(logData, wr.lLog.Size().Y)
-	wr.lLog.WrapText = false
+	wr.lLog.WrapText = true
 	return
 }
 
