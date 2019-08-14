@@ -72,13 +72,12 @@ func NewMonitor(
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
 func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash != nil {
-		m.appStatusHandler = ash
-
-		return nil
+	if ash == nil || ash.IsInterfaceNil() {
+		return ErrNilAppStatusHandler
 	}
 
-	return ErrNilAppStatusHandler
+	m.appStatusHandler = ash
+	return nil
 }
 
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called

@@ -16,13 +16,13 @@ type subroundEndRound struct {
 }
 
 // SetAppStatusHandler method set appStatusHandler
-func (sr *subroundEndRound) SetAppStatusHandler(handler core.AppStatusHandler) error {
-	if handler != nil {
-		sr.appStatusHandler = handler
-
-		return nil
+func (sr *subroundEndRound) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return spos.ErrNilAppStatusHandler
 	}
-	return spos.ErrNilAppStatusHandler
+
+	sr.appStatusHandler = ash
+	return nil
 }
 
 // NewSubroundEndRound creates a subroundEndRound object

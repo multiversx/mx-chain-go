@@ -46,13 +46,13 @@ type shardProcessor struct {
 }
 
 // SetAppStatusHandler method is used to set appStatusHandler
-func (sp *shardProcessor) SetAppStatusHandler(handler core.AppStatusHandler) error {
-	if handler != nil {
-		sp.appStatusHandler = handler
-
-		return nil
+func (sp *shardProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return process.ErrNilAppStatusHandler
 	}
-	return process.ErrNilAppStatusHandler
+
+	sp.appStatusHandler = ash
+	return nil
 }
 
 // NewShardProcessor creates a new shardProcessor object

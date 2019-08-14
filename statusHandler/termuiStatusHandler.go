@@ -22,6 +22,15 @@ func NewTermuiStatusHandler() *TermuiStatusHandler {
 	return tsh
 }
 
+// IsInterfaceNil return if there is no value under the interface
+func (tsh *TermuiStatusHandler) IsInterfaceNil() bool {
+	if tsh == nil {
+		return true
+	}
+
+	return false
+}
+
 // StartTermuiConsole method will start termui console
 func (tsh *TermuiStatusHandler) StartTermuiConsole() error {
 	err := tsh.tui.Start()

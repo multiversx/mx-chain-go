@@ -96,11 +96,11 @@ func (hi *headerInfo) GetBlockHeaderState() process.BlockHeaderState {
 }
 
 func (boot *ShardBootstrap) NotifySyncStateListeners() {
-	boot.notifySyncStateListeners()
+	boot.notifySyncStateListeners(boot.isNodeSynchronized)
 }
 
 func (boot *MetaBootstrap) NotifySyncStateListeners() {
-	boot.notifySyncStateListeners()
+	boot.notifySyncStateListeners(boot.isNodeSynchronized)
 }
 
 func (boot *ShardBootstrap) SyncStateListeners() []func(bool) {

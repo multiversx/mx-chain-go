@@ -39,11 +39,12 @@ func NewMetaChain(
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
 func (mc *MetaChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash != nil {
-		mc.appStatusHandler = ash
-		return nil
+	if ash == nil || ash.IsInterfaceNil() {
+		return ErrNilAppStatusHandler
 	}
-	return ErrNilAppStatusHandler
+
+	mc.appStatusHandler = ash
+	return nil
 }
 
 // GetGenesisHeader returns the genesis block header pointer

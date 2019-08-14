@@ -48,11 +48,12 @@ func NewBlockChain(
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
 func (bc *BlockChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash != nil {
-		bc.appStatusHandler = ash
-		return nil
+	if ash == nil || ash.IsInterfaceNil() {
+		return ErrNilAppStatusHandler
 	}
-	return ErrNilAppStatusHandler
+
+	bc.appStatusHandler = ash
+	return nil
 }
 
 // GetGenesisHeader returns the genesis block header pointer

@@ -76,13 +76,13 @@ func checkNewSubroundStartRoundParams(
 }
 
 // SetAppStatusHandler method set appStatusHandler
-func (sr *SubroundStartRound) SetAppStatusHandler(handler core.AppStatusHandler) error {
-	if handler != nil {
-		sr.appStatusHandler = handler
-
-		return nil
+func (sr *SubroundStartRound) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return spos.ErrNilAppStatusHandler
 	}
-	return spos.ErrNilAppStatusHandler
+
+	sr.appStatusHandler = ash
+	return nil
 }
 
 // doStartRoundJob method does the job of the subround StartRound

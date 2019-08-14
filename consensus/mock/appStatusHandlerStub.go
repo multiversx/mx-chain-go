@@ -10,6 +10,14 @@ type AppStatusHandlerStub struct {
 	CloseHandler          func()
 }
 
+func (ashs *AppStatusHandlerStub) IsInterfaceNil() bool {
+	if ashs == nil {
+		return true
+	}
+
+	return false
+}
+
 // Increment will call the handler of the stub for incrementing
 func (ashs *AppStatusHandlerStub) Increment(key string) {
 	ashs.IncrementHandler(key)

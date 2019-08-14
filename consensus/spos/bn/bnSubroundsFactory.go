@@ -68,13 +68,13 @@ func checkNewFactoryParams(
 }
 
 // SetAppStatusHandler method set appStatusHandler
-func (fct *factory) SetAppStatusHandler(handler core.AppStatusHandler) error {
-	if handler != nil {
-		fct.appStatusHandler = handler
-
-		return nil
+func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return spos.ErrNilAppStatusHandler
 	}
-	return spos.ErrNilAppStatusHandler
+
+	fct.appStatusHandler = ash
+	return nil
 }
 
 // GenerateSubrounds will generate the subrounds used in Belare & Naveen Cns
