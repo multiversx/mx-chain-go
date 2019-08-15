@@ -75,9 +75,15 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 	vm.GasForOperation = opGas
+
+	vmContainer := &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return vm, nil
+		}}
+
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
-		vm,
+		vmContainer,
 		argsParser,
 		testHasher,
 		testMarshalizer,
@@ -130,9 +136,14 @@ func CreateTxProcessorWithOneSCExecutorIeleVM(
 ) (process.TransactionProcessor, vmcommon.BlockchainHook) {
 
 	vm, blockChainHook := CreateVMAndBlockchainHook(accnts)
+	vmContainer := &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return vm, nil
+		}}
+
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
-		vm,
+		vmContainer,
 		argsParser,
 		testHasher,
 		testMarshalizer,

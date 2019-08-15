@@ -6,17 +6,24 @@ import (
 
 // Heartbeat represents the heartbeat message that is sent between peers
 type Heartbeat struct {
-	Payload   []byte
-	Pubkey    []byte
-	Signature []byte
-	ShardID   uint32
+	Payload         []byte
+	Pubkey          []byte
+	Signature       []byte
+	ShardID         uint32
+	VersionNumber   string
+	NodeDisplayName string
 }
 
-// PubKeyHeartbeat returns the heartbeat status for the public key
+// PubKeyHeartbeat returns the heartbeat status for a public key
 type PubKeyHeartbeat struct {
-	HexPublicKey    string
-	TimeStamp       time.Time
-	MaxInactiveTime Duration
-	IsActive        bool
-	ShardID         uint32
+	HexPublicKey    string    `json:"hexPublicKey"`
+	TimeStamp       time.Time `json:"timeStamp"`
+	MaxInactiveTime Duration  `json:"maxInactiveTime"`
+	IsActive        bool      `json:"isActive"`
+	ShardID         uint32    `json:"shardID"`
+	TotalUpTime     Duration  `json:"totalUpTime"`
+	TotalDownTime   Duration  `json:"totalDownTime"`
+	VersionNumber   string    `json:"versionNumber"`
+	IsValidator     bool      `json:"isValidator"`
+	NodeDisplayName string    `json:"nodeDisplayName"`
 }

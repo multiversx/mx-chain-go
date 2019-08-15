@@ -98,20 +98,18 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 
 	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
-	senderNonce := uint64(1)
+	senderNonce := uint64(0)
 	senderMintingValue := big.NewInt(100000000)
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
 		_ = advertiser.Close()
-		for _, nodeList := range nodes {
-			for _, n := range nodeList {
-				_ = n.node.Stop()
-			}
+		for _, n := range nodes {
+			_ = n.node.Stop()
 		}
 	}()
 
-	proposerNodeShard1 := nodes[0][0]
+	proposerNodeShard1 := nodes[0]
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -120,7 +118,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 
 	// Minting sender account
-	createMintingForSenders(nodes[0], senderShard, [][]byte{senderAddressBytes}, senderMintingValue)
+	createMintingForSenders(nodes, senderShard, [][]byte{senderAddressBytes}, senderMintingValue)
 
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
 	deploySmartContract(t, proposerNodeShard1, generalRoundNumber, senderAddressBytes, senderNonce)
@@ -130,9 +128,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(senderMintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	senderNonce++
 	assert.Equal(t, senderNonce, acc.Nonce)
 
-	senderNonce++
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
@@ -160,9 +158,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	// Substract the gas price another time
 	expectedValue.Sub(expectedValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	senderNonce++
 	assert.Equal(t, senderNonce, acc.Nonce)
 
-	senderNonce++
 	generalRoundNumber++
 }
 
@@ -180,22 +178,20 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
 	receiverShard := uint32(1)
-	senderNonce := uint64(1)
+	senderNonce := uint64(0)
 	mintingValue := big.NewInt(100000000)
-	receiverNonce := uint64(1)
+	receiverNonce := uint64(0)
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
 		_ = advertiser.Close()
-		for _, nodeList := range nodes {
-			for _, n := range nodeList {
-				_ = n.node.Stop()
-			}
+		for _, n := range nodes {
+			_ = n.node.Stop()
 		}
 	}()
 
-	proposerNodeShard1 := nodes[0][0]
-	proposerNodeShard2 := nodes[1][0]
+	proposerNodeShard1 := nodes[0]
+	proposerNodeShard2 := nodes[1]
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -216,9 +212,10 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(mintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
-	assert.Equal(t, senderNonce, acc.Nonce)
 
 	senderNonce++
+	assert.Equal(t, senderNonce, acc.Nonce)
+
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
@@ -250,6 +247,8 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	assert.Equal(t, receiverNonce, acc.Nonce)
 
 	receiverNonce++
+	assert.Equal(t, receiverNonce, acc.Nonce)
+
 	generalRoundNumber++
 
 	// After second shard processed the transaction, tx should get into the first shard where the SC resides
@@ -279,22 +278,20 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber := uint64(1)
 	scShard := uint32(0)
 	accShard := uint32(1)
-	accNonce := uint64(1)
+	accNonce := uint64(0)
 	mintingValue := big.NewInt(100000000)
-	scNonce := uint64(1)
+	scNonce := uint64(0)
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
 		_ = advertiser.Close()
-		for _, nodeList := range nodes {
-			for _, n := range nodeList {
-				_ = n.node.Stop()
-			}
+		for _, n := range nodes {
+			_ = n.node.Stop()
 		}
 	}()
 
-	proposerNodeShardSC := nodes[0][0]
-	proposerNodeShardAccount := nodes[1][0]
+	proposerNodeShardSC := nodes[0]
+	proposerNodeShardAccount := nodes[1]
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -304,8 +301,8 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	accountShardAddressBytes := []byte("12345678901234567890123456789011")
 
 	// Minting sender account
-	createMintingForSenders(nodes[0], scShard, [][]byte{scAccountAddressBytes}, mintingValue)
-	createMintingForSenders(nodes[1], accShard, [][]byte{accountShardAddressBytes}, mintingValue)
+	createMintingForSenders(nodes, scShard, [][]byte{scAccountAddressBytes}, mintingValue)
+	createMintingForSenders(nodes, accShard, [][]byte{accountShardAddressBytes}, mintingValue)
 
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
 	deploySmartContract(t, proposerNodeShardSC, generalRoundNumber, scAccountAddressBytes, accNonce)
@@ -315,16 +312,16 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(mintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	accNonce++
 	assert.Equal(t, accNonce, acc.Nonce)
 
-	accNonce++
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
 	scDeploymentAdddress, _ := hex.DecodeString("ca26d3e6152af91949295cc89f419413e08aa04ba2d5e1ed2b199b2ca8aabc2a")
 
 	// Update the SC account balance so we can call withdraw function
-	createMintingForSenders(nodes[0], scShard, [][]byte{scDeploymentAdddress}, mintingValue)
+	createMintingForSenders(nodes, scShard, [][]byte{scDeploymentAdddress}, mintingValue)
 
 	// Now that the SC is deployed, we test a call from an account located in the second shard
 	withdrawValue := uint64(100)
@@ -339,6 +336,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	)
 
 	// The account shard should process this tx as MoveBalance
+	scNonce++
 	processAndTestSmartContractCallInSender(
 		t,
 		contractCallTx,
@@ -348,7 +346,6 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 		mintingValue,
 		scNonce,
 	)
-	scNonce++
 	generalRoundNumber++
 
 	// After second shard processed the transaction, tx should get into the first shard where the SC resides

@@ -1,7 +1,6 @@
 package statistics
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -10,8 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 )
-
-var errNilFileToWriteStats = errors.New("nil file to write statistics")
 
 // ResourceMonitor outputs statistics about resources used by the binary
 type ResourceMonitor struct {
@@ -23,7 +20,7 @@ type ResourceMonitor struct {
 // NewResourceMonitor creates a new ResourceMonitor instance
 func NewResourceMonitor(file *os.File) (*ResourceMonitor, error) {
 	if file == nil {
-		return nil, errNilFileToWriteStats
+		return nil, ErrNilFileToWriteStats
 	}
 
 	return &ResourceMonitor{
@@ -53,7 +50,7 @@ func (rm *ResourceMonitor) SaveStatistics() error {
 	rm.mutFile.RLock()
 	defer rm.mutFile.RUnlock()
 	if rm.file == nil {
-		return errNilFileToWriteStats
+		return ErrNilFileToWriteStats
 	}
 
 	stats := rm.GenerateStatistics()

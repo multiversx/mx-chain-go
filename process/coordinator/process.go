@@ -1,6 +1,7 @@
 package coordinator
 
 import (
+	"sort"
 	"sync"
 	"time"
 
@@ -20,11 +21,13 @@ type transactionCoordinator struct {
 	accounts         state.AccountsAdapter
 	miniBlockPool    storage.Cacher
 
-	mutPreprocessor sync.RWMutex
-	txPreprocessors map[block.Type]process.PreProcessor
+	mutPreProcessor sync.RWMutex
+	txPreProcessors map[block.Type]process.PreProcessor
+	keysTxPreProcs  []block.Type
 
 	mutInterimProcessors sync.RWMutex
 	interimProcessors    map[block.Type]process.IntermediateTransactionHandler
+	keysInterimProcs     []block.Type
 
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
@@ -75,20 +78,26 @@ func NewTransactionCoordinator(
 
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
 	tc.requestedTxs = make(map[block.Type]int)
-	tc.txPreprocessors = make(map[block.Type]process.PreProcessor)
+	tc.txPreProcessors = make(map[block.Type]process.PreProcessor)
 	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)
 
-	keys := preProcessors.Keys()
-	for _, value := range keys {
-		preproc, err := preProcessors.Get(value)
+	tc.keysTxPreProcs = preProcessors.Keys()
+	sort.Slice(tc.keysTxPreProcs, func(i, j int) bool {
+		return tc.keysTxPreProcs[i] < tc.keysTxPreProcs[j]
+	})
+	for _, value := range tc.keysTxPreProcs {
+		preProc, err := preProcessors.Get(value)
 		if err != nil {
 			return nil, err
 		}
-		tc.txPreprocessors[value] = preproc
+		tc.txPreProcessors[value] = preProc
 	}
 
-	keys = interProcessors.Keys()
-	for _, value := range keys {
+	tc.keysInterimProcs = interProcessors.Keys()
+	sort.Slice(tc.keysInterimProcs, func(i, j int) bool {
+		return tc.keysInterimProcs[i] < tc.keysInterimProcs[j]
+	})
+	for _, value := range tc.keysInterimProcs {
 		interProc, err := interProcessors.Get(value)
 		if err != nil {
 			return nil, err
@@ -134,7 +143,7 @@ func (tc *transactionCoordinator) RequestBlockTransactions(body block.Body) {
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
-			preproc := tc.getPreprocessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
 				return
@@ -164,7 +173,7 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 
 	for key, value := range tc.requestedTxs {
 		go func(blockType block.Type, requestedTxs int) {
-			preproc := tc.getPreprocessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
 
@@ -202,7 +211,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
-			preproc := tc.getPreprocessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
 				return
@@ -256,7 +265,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 		go func(blockType block.Type, blockBody block.Body) {
 			restoredMbs := make(map[int][]byte)
 
-			preproc := tc.getPreprocessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
 				return
@@ -301,7 +310,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
-			preproc := tc.getPreprocessor(blockType)
+			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
 				return
@@ -325,39 +334,31 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 }
 
 // ProcessBlockTransaction processes transactions and updates state tries
-func (tc *transactionCoordinator) ProcessBlockTransaction(body block.Body, round uint64, haveTime func() time.Duration) error {
+func (tc *transactionCoordinator) ProcessBlockTransaction(
+	body block.Body,
+	round uint64,
+	haveTime func() time.Duration,
+) error {
 	separatedBodies := tc.separateBodyByType(body)
 
-	var errFound error
-	errMutex := sync.Mutex{}
+	// processing has to be done in order, as the order of different type of transactions over the same account is strict
+	for _, blockType := range tc.keysTxPreProcs {
+		if separatedBodies[blockType] == nil {
+			continue
+		}
 
-	// TODO: think if it is good in parallel or it is needed in sequences
-	wg := sync.WaitGroup{}
-	wg.Add(len(separatedBodies))
+		preproc := tc.getPreProcessor(blockType)
+		if preproc == nil {
+			return process.ErrMissingPreProcessor
+		}
 
-	for key, value := range separatedBodies {
-		go func(blockType block.Type, blockBody block.Body) {
-			preproc := tc.getPreprocessor(blockType)
-			if preproc == nil {
-				wg.Done()
-				return
-			}
-
-			err := preproc.ProcessBlockTransactions(blockBody, round, haveTime)
-			if err != nil {
-				log.Debug(err.Error())
-
-				errMutex.Lock()
-				errFound = err
-				errMutex.Unlock()
-			}
-			wg.Done()
-		}(key, value)
+		err := preproc.ProcessBlockTransactions(separatedBodies[blockType], round, haveTime)
+		if err != nil {
+			return err
+		}
 	}
 
-	wg.Wait()
-
-	return errFound
+	return nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe creates miniblocks and processes cross shard transaction
@@ -399,7 +400,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		preproc := tc.getPreprocessor(miniBlock.Type)
+		preproc := tc.getPreProcessor(miniBlock.Type)
 		if preproc == nil {
 			continue
 		}
@@ -443,36 +444,43 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	haveTime func() bool,
 ) block.MiniBlockSlice {
 
-	txPreProc := tc.getPreprocessor(block.TxBlock)
+	txPreProc := tc.getPreProcessor(block.TxBlock)
 	if txPreProc == nil {
 		return nil
 	}
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	txSpaceRemained := int(maxTxSpaceRemained)
-	for i := 0; i < int(tc.shardCoordinator.NumberOfShards()); i++ {
-		if txSpaceRemained <= 0 {
-			break
-		}
 
-		mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
-		if mbSpaceRemained <= 0 {
-			break
-		}
+	newMBAdded := true
+	for newMBAdded {
+		newMBAdded = false
 
-		miniBlock, err := txPreProc.CreateAndProcessMiniBlock(
-			tc.shardCoordinator.SelfId(),
-			uint32(i),
-			txSpaceRemained,
-			haveTime,
-			round)
-		if err != nil {
-			continue
-		}
+		for shardId := uint32(0); shardId < tc.shardCoordinator.NumberOfShards(); shardId++ {
+			if txSpaceRemained <= 0 {
+				break
+			}
 
-		if len(miniBlock.TxHashes) > 0 {
-			txSpaceRemained -= len(miniBlock.TxHashes)
-			miniBlocks = append(miniBlocks, miniBlock)
+			mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
+			if mbSpaceRemained <= 0 {
+				break
+			}
+
+			miniBlock, err := txPreProc.CreateAndProcessMiniBlock(
+				tc.shardCoordinator.SelfId(),
+				shardId,
+				txSpaceRemained,
+				haveTime,
+				round)
+			if err != nil {
+				continue
+			}
+
+			if len(miniBlock.TxHashes) > 0 {
+				txSpaceRemained -= len(miniBlock.TxHashes)
+				miniBlocks = append(miniBlocks, miniBlock)
+				newMBAdded = true
+			}
 		}
 	}
 
@@ -520,7 +528,13 @@ func (tc *transactionCoordinator) addTxFeeToMatchingMiniBlocks(miniBlocks *block
 func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
-	tc.mutInterimProcessors.RLock()
+	// processing has to be done in order, as the order of different type of transactions over the same account is strict
+	for _, blockType := range tc.keysInterimProcs {
+		interimProc := tc.getInterimProcessor(blockType)
+		if interimProc == nil {
+			// this will never be reached as keysInterimProcs are the actual keys from the interimMap
+			continue
+		}
 
 	resMutex := sync.Mutex{}
 	// TODO: think if it is good in parallel or it is needed in sequences
@@ -553,11 +567,11 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 
 // CreateBlockStarted initializes necessary data for preprocessors at block create or block process
 func (tc *transactionCoordinator) CreateBlockStarted() {
-	tc.mutPreprocessor.RLock()
-	for _, value := range tc.txPreprocessors {
+	tc.mutPreProcessor.RLock()
+	for _, value := range tc.txPreProcessors {
 		value.CreateBlockStarted()
 	}
-	tc.mutPreprocessor.RUnlock()
+	tc.mutPreProcessor.RUnlock()
 
 	tc.mutInterimProcessors.RLock()
 	for _, value := range tc.interimProcessors {
@@ -566,10 +580,10 @@ func (tc *transactionCoordinator) CreateBlockStarted() {
 	tc.mutInterimProcessors.RUnlock()
 }
 
-func (tc *transactionCoordinator) getPreprocessor(blockType block.Type) process.PreProcessor {
-	tc.mutPreprocessor.RLock()
-	preprocessor, exists := tc.txPreprocessors[blockType]
-	tc.mutPreprocessor.RUnlock()
+func (tc *transactionCoordinator) getPreProcessor(blockType block.Type) process.PreProcessor {
+	tc.mutPreProcessor.RLock()
+	preprocessor, exists := tc.txPreProcessors[blockType]
+	tc.mutPreProcessor.RUnlock()
 
 	if !exists {
 		return nil
@@ -628,7 +642,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 			continue
 		}
 
-		preproc := tc.getPreprocessor(miniblock.Type)
+		preproc := tc.getPreProcessor(miniblock.Type)
 		if preproc == nil {
 			continue
 		}
@@ -666,14 +680,14 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 // GetAllCurrentUsedTxs returns the cached transaction data for current round
 func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler {
-	tc.mutPreprocessor.RLock()
-	defer tc.mutPreprocessor.RUnlock()
+	tc.mutPreProcessor.RLock()
+	defer tc.mutPreProcessor.RUnlock()
 
-	if _, ok := tc.txPreprocessors[blockType]; !ok {
+	if _, ok := tc.txPreProcessors[blockType]; !ok {
 		return nil
 	}
 
-	return tc.txPreprocessors[blockType].GetAllCurrentUsedTxs()
+	return tc.txPreProcessors[blockType].GetAllCurrentUsedTxs()
 }
 
 // RequestMiniBlocks request miniblocks if missing
@@ -704,7 +718,7 @@ func (tc *transactionCoordinator) receivedMiniBlock(miniBlockHash []byte) {
 		return
 	}
 
-	preproc := tc.getPreprocessor(miniBlock.Type)
+	preproc := tc.getPreProcessor(miniBlock.Type)
 	if preproc == nil {
 		return
 	}
@@ -723,7 +737,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	snapshot := tc.accounts.JournalLen()
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug(err.Error())
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
 			// TODO: evaluate if reloading the trie from disk will might solve the problem

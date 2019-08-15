@@ -7,19 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
-	"github.com/whyrusleeping/go-logging"
 )
-
-func init() {
-	logging.SetLevel(logging.ERROR, "pubsub")
-}
 
 // TestHeadersAreReceivedByMetachainAndShard tests if interceptors between shard and metachain work as expected
 // (metachain receives shard headers and shard and metachain receive metablocks)
@@ -28,62 +22,53 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := createMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
+	numOfShards := 1
+	nodesPerShard := 1
 	numMetaNodes := 10
-	senderShard := uint32(0)
 
-	nodes := createNodes(
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
 		numMetaNodes,
-		senderShard,
-		getConnectableAddress(advertiser),
-		testHasher,
+		integrationTests.GetConnectableAddress(advertiser),
 	)
-	displayAndStartNodes(nodes)
+	integrationTests.DisplayAndStartNodes(nodes)
+	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.node.Stop()
+			_ = n.Node.Stop()
 		}
 	}()
 
-	// delay for bootstrapping and topic announcement
-	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(time.Second * 5)
-	fmt.Println(makeDisplayTable(nodes))
-
 	fmt.Println("Generating header and block body from shard 0 to metachain...")
-	body, hdr := generateHeaderAndBody(senderShard)
-	err := nodes[0].broadcastMessenger.BroadcastBlock(body, hdr)
-	assert.Nil(t, err)
-	err = nodes[0].broadcastMessenger.BroadcastHeader(hdr)
-	assert.Nil(t, err)
+	integrationTests.ProposeBlockSignalsEmptyBlock(nodes[0], 1, 1)
 
 	for i := 0; i < 5; i++ {
-		fmt.Println(makeDisplayTable(nodes))
-
+		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 		time.Sleep(time.Second)
 	}
 
 	//all node should have received the shard header
 	for _, n := range nodes {
-		assert.Equal(t, int32(1), atomic.LoadInt32(&n.shardHdrRecv))
+		assert.Equal(t, int32(1), atomic.LoadInt32(&n.CounterHdrRecv))
 	}
 
 	fmt.Println("Generating metaheader from metachain to any other shards...")
-	metaHdr := generateMetaHeader()
-	_ = nodes[1].broadcastMessenger.BroadcastBlock(nil, metaHdr)
+	integrationTests.ProposeBlockSignalsEmptyBlock(nodes[1], 1, 1)
 
 	for i := 0; i < 5; i++ {
-		fmt.Println(makeDisplayTable(nodes))
+		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 		time.Sleep(time.Second)
 	}
 
 	//all node should have received the meta header
 	for _, n := range nodes {
-		assert.Equal(t, int32(1), atomic.LoadInt32(&n.metachainHdrRecv))
+		assert.Equal(t, int32(1), atomic.LoadInt32(&n.CounterMetaRcv))
 	}
 }
 
@@ -94,167 +79,102 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := createMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
+	numOfShards := 1
+	nodesPerShard := 1
 	numMetaNodes := 2
 	senderShard := uint32(0)
 
-	nodes := createNodes(
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
 		numMetaNodes,
-		senderShard,
-		getConnectableAddress(advertiser),
-		testHasher,
+		integrationTests.GetConnectableAddress(advertiser),
 	)
-	displayAndStartNodes(nodes)
+	integrationTests.DisplayAndStartNodes(nodes)
+	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.node.Stop()
+			_ = n.Node.Stop()
 		}
 	}()
 
-	// delay for bootstrapping and topic announcement
-	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(time.Second * 5)
-	fmt.Println(makeDisplayTable(nodes))
-
 	fmt.Println("Generating header and block body in shard 0, save it in datapool and metachain creates a request for it...")
-	_, hdr := generateHeaderAndBody(senderShard)
-	shardHeaderBytes, _ := testMarshalizer.Marshal(hdr)
-	shardHeaderHash := testHasher.Compute(string(shardHeaderBytes))
-	nodes[0].shardDataPool.Headers().HasOrAdd(shardHeaderHash, hdr)
+	_, hdr, _ := nodes[0].ProposeBlock(1, 1)
+	shardHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(hdr)
+	shardHeaderHash := integrationTests.TestHasher.Compute(string(shardHeaderBytes))
+	nodes[0].ShardDataPool.Headers().HasOrAdd(shardHeaderHash, hdr)
 
-	for i := 0; i < 5; i++ {
-		//continuously request
+	maxNumRequests := 5
+	for i := 0; i < maxNumRequests; i++ {
 		for j := 0; j < numMetaNodes; j++ {
-			resolver, err := nodes[j+1].resolvers.CrossShardResolver(factory.ShardHeadersForMetachainTopic, senderShard)
+			resolver, err := nodes[j+1].ResolverFinder.CrossShardResolver(factory.ShardHeadersForMetachainTopic, senderShard)
 			assert.Nil(t, err)
 			_ = resolver.RequestDataFromHash(shardHeaderHash)
 		}
 
-		fmt.Println(makeDisplayTable(nodes))
+		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 		time.Sleep(time.Second)
 	}
 
 	//all node should have received the shard header
 	for _, n := range nodes {
-		assert.Equal(t, int32(1), atomic.LoadInt32(&n.shardHdrRecv))
+		assert.Equal(t, int32(1), atomic.LoadInt32(&n.CounterHdrRecv))
 	}
 
 	fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its hash...")
-	metaHdr := generateMetaHeader()
-	metaHeaderBytes, _ := testMarshalizer.Marshal(metaHdr)
-	metaHeaderHash := testHasher.Compute(string(metaHeaderBytes))
+	_, metaHdr, _ := nodes[1].ProposeBlock(1, 1)
+	metaHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(metaHdr)
+	metaHeaderHash := integrationTests.TestHasher.Compute(string(metaHeaderBytes))
 	for i := 0; i < numMetaNodes; i++ {
-		nodes[i+1].metaDataPool.MetaChainBlocks().HasOrAdd(metaHeaderHash, metaHdr)
+		nodes[i+1].MetaDataPool.MetaChainBlocks().HasOrAdd(metaHeaderHash, metaHdr)
 	}
 
-	for i := 0; i < 5; i++ {
-		//continuously request
-		resolver, err := nodes[0].resolvers.MetaChainResolver(factory.MetachainBlocksTopic)
+	for i := 0; i < maxNumRequests; i++ {
+		resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
 		assert.Nil(t, err)
 		_ = resolver.RequestDataFromHash(metaHeaderHash)
 
-		fmt.Println(makeDisplayTable(nodes))
+		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 		time.Sleep(time.Second)
 	}
 
 	//all node should have received the meta header
 	for _, n := range nodes {
-		assert.Equal(t, int32(1), atomic.LoadInt32(&n.metachainHdrRecv))
+		assert.Equal(t, int32(1), atomic.LoadInt32(&n.CounterMetaRcv))
 	}
 
 	fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its nonce...")
-	metaHdr2 := generateMetaHeader()
+	_, metaHdr2, _ := nodes[1].ProposeBlock(2, 2)
 	metaHdr2.SetNonce(64)
-	metaHeaderBytes2, _ := testMarshalizer.Marshal(metaHdr2)
-	metaHeaderHash2 := testHasher.Compute(string(metaHeaderBytes2))
+	metaHeaderBytes2, _ := integrationTests.TestMarshalizer.Marshal(metaHdr2)
+	metaHeaderHash2 := integrationTests.TestHasher.Compute(string(metaHeaderBytes2))
 	for i := 0; i < numMetaNodes; i++ {
-		nodes[i+1].metaDataPool.MetaChainBlocks().HasOrAdd(metaHeaderHash2, metaHdr2)
+		nodes[i+1].MetaDataPool.MetaChainBlocks().HasOrAdd(metaHeaderHash2, metaHdr2)
 
 		syncMap := &dataPool.ShardIdHashSyncMap{}
 		syncMap.Store(sharding.MetachainShardId, metaHeaderHash2)
-		nodes[i+1].metaDataPool.HeadersNonces().Merge(metaHdr2.GetNonce(), syncMap)
+		nodes[i+1].MetaDataPool.HeadersNonces().Merge(metaHdr2.GetNonce(), syncMap)
 	}
 
-	for i := 0; i < 5; i++ {
-		//continuously request
-		resolver, err := nodes[0].resolvers.MetaChainResolver(factory.MetachainBlocksTopic)
+	for i := 0; i < maxNumRequests; i++ {
+		resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
 		assert.Nil(t, err)
 		_ = resolver.(*resolvers.HeaderResolver).RequestDataFromNonce(metaHdr2.GetNonce())
 
-		fmt.Println(makeDisplayTable(nodes))
+		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 		time.Sleep(time.Second)
 	}
 
 	//all node should have received the meta header
 	for _, n := range nodes {
-		assert.Equal(t, int32(2), atomic.LoadInt32(&n.metachainHdrRecv))
+		assert.Equal(t, int32(2), atomic.LoadInt32(&n.CounterMetaRcv))
 	}
-}
-
-func generateHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyHandler, data.HeaderHandler) {
-	hdr := block.Header{
-		Nonce:            0,
-		PubKeysBitmap:    []byte{1, 0, 0},
-		Signature:        []byte("signature"),
-		PrevHash:         []byte("prev hash"),
-		TimeStamp:        uint64(time.Now().Unix()),
-		Round:            1,
-		Epoch:            2,
-		ShardId:          senderShard,
-		BlockBodyType:    block.TxBlock,
-		RootHash:         []byte{255, 255},
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
-	}
-
-	body := block.Body{
-		&block.MiniBlock{
-			SenderShardID:   senderShard,
-			ReceiverShardID: senderShard,
-			TxHashes: [][]byte{
-				testHasher.Compute("tx1"),
-			},
-		},
-	}
-
-	for i, recvShard := range recvShards {
-		body = append(
-			body,
-			&block.MiniBlock{
-				SenderShardID:   senderShard,
-				ReceiverShardID: recvShard,
-				TxHashes: [][]byte{
-					testHasher.Compute(fmt.Sprintf("tx%d", i)),
-				},
-			},
-		)
-	}
-
-	return body, &hdr
-}
-
-func generateMetaHeader() data.HeaderHandler {
-	hdr := block.MetaBlock{
-		Nonce:         0,
-		PubKeysBitmap: []byte{1, 0, 0},
-		Signature:     []byte("signature"),
-		PrevHash:      []byte("prev hash"),
-		TimeStamp:     uint64(time.Now().Unix()),
-		Round:         1,
-		Epoch:         2,
-		RootHash:      []byte{255, 255},
-		PrevRandSeed:  make([]byte, 0),
-		RandSeed:      make([]byte, 0),
-		ShardInfo:     make([]block.ShardData, 0),
-	}
-
-	return &hdr
 }

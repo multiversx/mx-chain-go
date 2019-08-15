@@ -17,11 +17,11 @@ import (
 )
 
 func createElrondNodeFacadeWithMockNodeAndResolver() *ElrondNodeFacade {
-	return NewElrondNodeFacade(&mock.NodeMock{}, &mock.ApiResolverStub{})
+	return NewElrondNodeFacade(&mock.NodeMock{}, &mock.ApiResolverStub{}, false)
 }
 
 func createElrondNodeFacadeWithMockResolver(node *mock.NodeMock) *ElrondNodeFacade {
-	return NewElrondNodeFacade(node, &mock.ApiResolverStub{})
+	return NewElrondNodeFacade(node, &mock.ApiResolverStub{}, false)
 }
 
 func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
@@ -30,12 +30,12 @@ func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
 }
 
 func TestNewElrondFacade_FromNilNodeShouldReturnNil(t *testing.T) {
-	ef := NewElrondNodeFacade(nil, &mock.ApiResolverStub{})
+	ef := NewElrondNodeFacade(nil, &mock.ApiResolverStub{}, false)
 	assert.Nil(t, ef)
 }
 
 func TestNewElrondFacade_FromNilApiResolverShouldReturnNil(t *testing.T) {
-	ef := NewElrondNodeFacade(&mock.NodeMock{}, nil)
+	ef := NewElrondNodeFacade(&mock.NodeMock{}, nil, false)
 	assert.Nil(t, ef)
 }
 
@@ -507,6 +507,7 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 				return make([]byte, 0), nil
 			},
 		},
+		false,
 	)
 
 	_, _ = ef.GetVmValue("", "")

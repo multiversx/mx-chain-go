@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -128,13 +128,22 @@ func testInterceptedTxFromFrontendGeneratedParams(
 
 	chDone := make(chan struct{})
 
-	var err error
+	maxShards := uint32(1)
+	nodeShardId := uint32(0)
+	txSignPrivKeyShardId := uint32(0)
+	initialNodeAddr := "nodeAddr"
+
+	node := integrationTests.NewTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+
 	txHexHash := ""
 
-	dPool.Transactions().RegisterHandler(func(key []byte) {
+	err := node.SetAccountNonce(uint64(0))
+	assert.Nil(t, err)
+
+	node.ShardDataPool.Transactions().RegisterHandler(func(key []byte) {
 		assert.Equal(t, txHexHash, hex.EncodeToString(key))
 
-		dataRecovered, _ := dPool.Transactions().SearchFirstData(key)
+		dataRecovered, _ := node.ShardDataPool.Transactions().SearchFirstData(key)
 		assert.NotNil(t, dataRecovered)
 
 		txRecovered, ok := dataRecovered.(*transaction.Transaction)
@@ -156,9 +165,21 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		chDone <- struct{}{}
 	})
 
-	sig, _ := hex.DecodeString(frontendSignature)
-	txHexHash, err = n.SendTransaction(frontendNonce, frontendSenderHex, frontendReceiverHex,
-		frontendValue, frontendGasPrice, frontendGasLimit, frontendData, sig)
+	rcvAddrBytes, _ := hex.DecodeString(frontendReceiverHex)
+	sndAddrBytes, _ := hex.DecodeString(frontendSenderHex)
+	signatureBytes, _ := hex.DecodeString(frontendSignature)
+
+	txHexHash, err = node.SendTransaction(&transaction.Transaction{
+		Nonce:     frontendNonce,
+		Value:     frontendValue,
+		RcvAddr:   rcvAddrBytes,
+		SndAddr:   sndAddrBytes,
+		GasPrice:  frontendGasPrice,
+		GasLimit:  frontendGasLimit,
+		Data:      frontendData,
+		Signature: signatureBytes,
+	})
+
 	assert.Nil(t, err)
 
 	select {

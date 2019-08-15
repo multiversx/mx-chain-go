@@ -32,10 +32,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
-const WaitTime = time.Duration(2000 * time.Millisecond)
+const WaitTime = 2000 * time.Millisecond
 
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
@@ -72,6 +73,7 @@ type Node struct {
 	resolversFinder          dataRetriever.ResolversFinder
 	heartbeatMonitor         *heartbeat.Monitor
 	heartbeatSender          *heartbeat.Sender
+	appStatusHandler         core.AppStatusHandler
 
 	txSignPrivKey  crypto.PrivateKey
 	txSignPubKey   crypto.PublicKey
@@ -120,6 +122,7 @@ func NewNode(opts ...Option) (*Node, error) {
 		ctx:                      context.Background(),
 		isMetachainActive:        true,
 		currentSendingGoRoutines: 0,
+		appStatusHandler:         statusHandler.NewNilStatusHandler(),
 	}
 	for _, opt := range opts {
 		err := opt(node)
@@ -129,6 +132,11 @@ func NewNode(opts ...Option) (*Node, error) {
 	}
 
 	return node, nil
+}
+
+// GetAppStatusHandler will return the current status handler
+func (n *Node) GetAppStatusHandler() core.AppStatusHandler {
+	return n.appStatusHandler
 }
 
 // IsRunning will return the current state of the node
@@ -211,7 +219,7 @@ func (n *Node) StartConsensus() error {
 		return ErrGenesisBlockNotInitialized
 	}
 
-	chronologyHandler, err := n.createChronologyHandler(n.rounder)
+	chronologyHandler, err := n.createChronologyHandler(n.rounder, n.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -219,6 +227,18 @@ func (n *Node) StartConsensus() error {
 	bootstrapper, err := n.createBootstrapper(n.rounder)
 	if err != nil {
 		return err
+	}
+
+	if n.appStatusHandler != nil {
+		bootstrapper.AddSyncStateListener(func(b bool) {
+			var result uint64
+			if b {
+				result = uint64(0)
+			} else {
+				result = uint64(1)
+			}
+			n.appStatusHandler.SetUInt64Value(core.MetricIsSyncing, result)
+		})
 	}
 
 	bootstrapper.StartSync()
@@ -289,7 +309,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType)
+	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType, n.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -382,12 +402,17 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 }
 
 // createChronologyHandler method creates a chronology object
-func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.ChronologyHandler, error) {
+func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandler core.AppStatusHandler) (consensus.ChronologyHandler, error) {
 	chr, err := chronology.NewChronology(
 		n.genesisTime,
 		rounder,
 		n.syncTimer)
 
+	if err != nil {
+		return nil, err
+	}
+
+	err = chr.SetAppStatusHandler(appStatusHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -618,7 +643,7 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module
-func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
+func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber string, nodeDisplayName string) error {
 	if !config.Enabled {
 		return nil
 	}
@@ -646,6 +671,8 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 		n.marshalizer,
 		HeartbeatTopic,
 		n.shardCoordinator,
+		versionNumber,
+		nodeDisplayName,
 	)
 	if err != nil {
 		return err
@@ -660,9 +687,14 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig) error {
 		n.singleSigner,
 		n.keyGen,
 		n.marshalizer,
-		time.Duration(time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive)),
+		time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive),
 		allPubKeys,
 	)
+	if err != nil {
+		return err
+	}
+
+	err = n.heartbeatMonitor.SetAppStatusHandler(n.appStatusHandler)
 	if err != nil {
 		return err
 	}

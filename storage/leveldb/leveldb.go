@@ -116,6 +116,9 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	if err == leveldb.ErrNotFound {
 		return nil, storage.ErrKeyNotFound
 	}
+	if err != nil {
+		return nil, err
+	}
 
 	return data, nil
 }

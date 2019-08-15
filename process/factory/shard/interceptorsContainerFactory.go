@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptors"
+	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -210,12 +211,16 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 }
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
-	txStorer := icf.store.GetStorer(dataRetriever.TransactionUnit)
+	//TODO implement other TxHandlerProcessValidator that will check the tx nonce against account's nonce
+	txValidator, err := dataValidators.NewNilTxValidator()
+	if err != nil {
+		return nil, err
+	}
 
 	interceptor, err := transaction.NewTxInterceptor(
 		icf.marshalizer,
 		icf.dataPool.Transactions(),
-		txStorer,
+		txValidator,
 		icf.addrConverter,
 		icf.hasher,
 		icf.singleSigner,
@@ -285,15 +290,20 @@ func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(identifi
 
 func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
+	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
+	// against blockchain's latest nonce - k finality
+	hdrValidator, err := dataValidators.NewNilHeaderValidator()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	//only one intrashard header topic
 	identifierHdr := factory.HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-	headerStorer := icf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 	interceptor, err := interceptors.NewHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.Headers(),
 		icf.dataPool.HeadersNonces(),
-		headerStorer,
+		hdrValidator,
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
@@ -382,13 +392,18 @@ func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptor() ([
 
 func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([]string, []process.Interceptor, error) {
 	identifierHdr := factory.MetachainBlocksTopic
-	metachainHeaderStorer := icf.store.GetStorer(dataRetriever.MetaBlockUnit)
+	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
+	// against blockchain's latest nonce - k finality
+	hdrValidator, err := dataValidators.NewNilHeaderValidator()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.MetaBlocks(),
 		icf.dataPool.HeadersNonces(),
-		metachainHeaderStorer,
+		hdrValidator,
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,

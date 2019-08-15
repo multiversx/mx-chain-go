@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var agarioFile = "agarioV2.hex"
+var agarioFile = "../../agarioV3.hex"
 
 func TestDeployAgarioContract(t *testing.T) {
 	scCode, err := ioutil.ReadFile(agarioFile)
@@ -118,7 +118,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	senderBalance := big.NewInt(100000000)
 	round := uint64(444)
 	gasPrice := uint64(1)
-	gasLimit := uint64(1000000)
+	gasLimit := uint64(100000)
 
 	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
@@ -158,6 +158,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 		data,
 	)
 
+	userNonce++
 	err = txProc.ProcessTransaction(txRun, round)
 	assert.Nil(t, err)
 
@@ -201,7 +202,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	senderBalance := big.NewInt(100000000)
 	round := uint64(444)
 	gasPrice := uint64(0)
-	gasLimit := uint64(1000000)
+	gasLimit := uint64(100000)
 
 	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
@@ -217,6 +218,8 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 		accnts,
 	)
 	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+
+	senderNonce++
 
 	defaultUserNonce := uint64(10)
 	defaultUserBalance := big.NewInt(100000000)
@@ -273,6 +276,8 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
+	defaultUserNonce++
+
 	balanceOfSC, _ := blockchainHook.GetBalance(scAddressBytes)
 	fmt.Printf("balance of SC: %v\n", balanceOfSC)
 	computedBalance := big.NewInt(0).Set(transfer)
@@ -288,7 +293,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 			t,
 			senderAddressBytes,
 			scAddressBytes,
-			defaultUserNonce,
+			senderNonce,
 			big.NewInt(0),
 			gasPrice,
 			gasLimit,
@@ -297,6 +302,8 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 
 		err = txProc.ProcessTransaction(txRun, round)
 		assert.Nil(t, err)
+
+		senderNonce++
 	}
 
 	_, err = accnts.Commit()

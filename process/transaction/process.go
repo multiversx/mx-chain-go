@@ -90,6 +90,17 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return err
 	}
 
+	acntSnd, err := txProc.getAccountFromAddress(adrSrc)
+	if err != nil {
+		return err
+	}
+
+	err = txProc.checkTxValues(tx, acntSnd)
+	if err != nil {
+		return err
+	}
+
+	txType, err := txProc.scProcessor.ComputeTransactionType(tx)
 	txType, err := txProc.txTypeHandler.ComputeTransactionType(tx)
 	if err != nil {
 		return err
@@ -192,13 +203,6 @@ func (txProc *txProcessor) processMoveBalance(
 	}
 
 	value := tx.Value
-	// is sender address in node shard
-	if acntSrc != nil {
-		err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
-		if err != nil {
-			return err
-		}
-	}
 
 	err = txProc.moveBalances(acntSrc, acntDst, value)
 	if err != nil {
@@ -250,18 +254,28 @@ func (txProc *txProcessor) processSCInvoking(
 	return err
 }
 
-func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
+func (txProc *txProcessor) getAddresses(
+	tx *transaction.Transaction,
+) (state.AddressContainer, state.AddressContainer, error) {
 	//for now we assume that the address = public key
-	adrSrc, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
+	adrSrc, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
 	if err != nil {
-		return
+		return nil, nil, err
 	}
-	adrDst, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
-	return
+
+	adrDst, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return adrSrc, adrDst, nil
 }
 
-func (txProc *txProcessor) getAccounts(adrSrc, adrDst state.AddressContainer,
-) (acntSrc, acntDst *state.Account, err error) {
+func (txProc *txProcessor) getAccounts(
+	adrSrc, adrDst state.AddressContainer,
+) (*state.Account, *state.Account, error) {
+
+	var acntSrc, acntDst *state.Account
 
 	shardForCurrentNode := txProc.shardCoordinator.SelfId()
 	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
@@ -317,7 +331,7 @@ func (txProc *txProcessor) getAccounts(adrSrc, adrDst state.AddressContainer,
 		acntDst = account
 	}
 
-	return
+	return acntSrc, acntDst, nil
 }
 
 func (txProc *txProcessor) getAccountFromAddress(adrSrc state.AddressContainer) (state.AccountHandler, error) {
@@ -335,18 +349,33 @@ func (txProc *txProcessor) getAccountFromAddress(adrSrc state.AddressContainer) 
 	return acnt, nil
 }
 
-func (txProc *txProcessor) checkTxValues(acntSrc *state.Account, value *big.Int, nonce uint64) error {
-	// TODO order transactions - than uncomment this
-	//if acntSrc.Nonce < nonce {
-	//	return process.ErrHigherNonceInTransaction
-	//}
+func (txProc *txProcessor) checkTxValues(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
+	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+		// transaction was already done at sender shard
+		return nil
+	}
 
-	//if acntSrc.Nonce > nonce {
-	//	return process.ErrLowerNonceInTransaction
-	//}
+	if acntSnd.GetNonce() < tx.Nonce {
+		return process.ErrHigherNonceInTransaction
+	}
+	if acntSnd.GetNonce() > tx.Nonce {
+		return process.ErrLowerNonceInTransaction
+	}
 
-	//negative balance test is done in transaction interceptor as the transaction is invalid and thus shall not disseminate
-	if acntSrc.Balance.Cmp(value) < 0 {
+	cost := big.NewInt(0)
+	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+	cost = cost.Add(cost, tx.Value)
+
+	if cost.Cmp(big.NewInt(0)) == 0 {
+		return nil
+	}
+
+	stAcc, ok := acntSnd.(*state.Account)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	if stAcc.Balance.Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
 

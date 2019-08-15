@@ -5,6 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
@@ -13,6 +15,8 @@ type factory struct {
 	consensusCore  spos.ConsensusCoreHandler
 	consensusState *spos.ConsensusState
 	worker         spos.WorkerHandler
+
+	appStatusHandler core.AppStatusHandler
 }
 
 // NewSubroundsFactory creates a new factory for BN subrounds
@@ -33,9 +37,10 @@ func NewSubroundsFactory(
 	}
 
 	fct := factory{
-		consensusCore:  consensusDataContainer,
-		consensusState: consensusState,
-		worker:         worker,
+		consensusCore:    consensusDataContainer,
+		consensusState:   consensusState,
+		worker:           worker,
+		appStatusHandler: statusHandler.NewNilStatusHandler(),
 	}
 
 	return &fct, nil
@@ -59,6 +64,16 @@ func checkNewFactoryParams(
 		return spos.ErrNilWorker
 	}
 
+	return nil
+}
+
+// SetAppStatusHandler method set appStatusHandler
+func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return spos.ErrNilAppStatusHandler
+	}
+
+	fct.appStatusHandler = ash
 	return nil
 }
 
@@ -327,6 +342,11 @@ func (fct *factory) generateEndRoundSubround() error {
 		subround,
 		fct.worker.Extend,
 	)
+	if err != nil {
+		return err
+	}
+
+	err = subroundEndRound.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}

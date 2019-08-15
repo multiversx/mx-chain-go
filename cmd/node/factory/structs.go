@@ -59,15 +59,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -98,6 +97,7 @@ type Core struct {
 	Marshalizer              marshal.Marshalizer
 	Trie                     data.Trie
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	StatusHandler            core.AppStatusHandler
 }
 
 // State struct holds the state components of the Elrond protocol
@@ -172,6 +172,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		Marshalizer:              marshalizer,
 		Trie:                     merkleTrie,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
+		StatusHandler:            statusHandler.NewNilStatusHandler(),
 	}, nil
 }
 
@@ -256,7 +257,7 @@ func NewDataComponentsFactoryArgs(
 func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 	var datapool dataRetriever.PoolsHolder
 	var metaDatapool dataRetriever.MetaPoolsHolder
-	blkc, err := createBlockChainFromConfig(args.config, args.shardCoordinator)
+	blkc, err := createBlockChainFromConfig(args.config, args.shardCoordinator, args.core.StatusHandler)
 	if err != nil {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
@@ -589,7 +590,7 @@ func getTrie(
 	return trie.NewTrie(accountsTrieStorage, marshalizer, hasher)
 }
 
-func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator) (data.ChainHandler, error) {
+func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
 	badBlockCache, err := storageUnit.NewCache(
 		storageUnit.CacheType(config.BadBlocksCache.Type),
 		config.BadBlocksCache.Size,
@@ -607,6 +608,12 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 		if err != nil {
 			return nil, err
 		}
+
+		err = blockChain.SetAppStatusHandler(ash)
+		if err != nil {
+			return nil, err
+		}
+
 		return blockChain, nil
 	}
 	if coordinator.SelfId() == sharding.MetachainShardId {
@@ -614,6 +621,12 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 		if err != nil {
 			return nil, err
 		}
+
+		err = blockChain.SetAppStatusHandler(ash)
+		if err != nil {
+			return nil, err
+		}
+
 		return blockChain, nil
 	}
 	return nil, errors.New("can not create blockchain")
@@ -1253,7 +1266,6 @@ func newBlockProcessorAndTracker(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 
@@ -1294,7 +1306,6 @@ func newShardBlockProcessorAndTracker(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
@@ -1302,7 +1313,12 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(state.AccountsAdapter, state.AddressConverter)
+	vmFactory, err := shard.NewVMContainerFactory(state.AccountsAdapter, state.AddressConverter)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	vmContainer, err := vmFactory.Create()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1354,12 +1370,12 @@ func newShardBlockProcessorAndTracker(
 	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.ElrondTestnet)
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(
-		ieleVM,
+		vmContainer,
 		argsParser,
 		core.Hasher,
 		core.Marshalizer,
 		state.AccountsAdapter,
-		vmAccountsDB,
+		vmFactory.VMAccountsDB(),
 		state.AddressConverter,
 		shardCoordinator,
 		scResults,
@@ -1455,13 +1471,17 @@ func newShardBlockProcessorAndTracker(
 		forkDetector,
 		blockTracker,
 		shardsGenesisBlocks,
-		nodesConfig.MetaChainActive,
 		requestHandler,
 		txCoordinator,
 		core.Uint64ByteSliceConverter,
 	)
 	if err != nil {
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
+	}
+
+	err = blockProcessor.SetAppStatusHandler(core.StatusHandler)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return blockProcessor, blockTracker, nil
