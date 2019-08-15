@@ -168,7 +168,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 		keyGen,
 		integrationTests.TestMarshalizer,
 		maxDurationPeerUnresponsive,
-		[]string{""},
+		map[uint32][]string{0: {""}},
 	)
 
 	return monitor
