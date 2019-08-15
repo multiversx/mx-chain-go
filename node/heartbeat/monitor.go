@@ -34,7 +34,7 @@ func NewMonitor(
 	keygen crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 	maxDurationPeerUnresponsive time.Duration,
-	pubKeyList []string,
+	pubKeysMap map[uint32][]string,
 ) (*Monitor, error) {
 
 	if singleSigner == nil {
@@ -46,8 +46,8 @@ func NewMonitor(
 	if marshalizer == nil {
 		return nil, ErrNilMarshalizer
 	}
-	if len(pubKeyList) == 0 {
-		return nil, ErrEmptyPublicKeyList
+	if len(pubKeysMap) == 0 {
+		return nil, ErrEmptyPublicKeysMap
 	}
 
 	mon := &Monitor{
@@ -59,11 +59,15 @@ func NewMonitor(
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
 	}
 
-	var err error
-	for _, pubkey := range pubKeyList {
-		mon.heartbeatMessages[pubkey], err = newHeartbeatMessageInfo(maxDurationPeerUnresponsive, true)
-		if err != nil {
-			return nil, err
+	for shardId, pubKeys := range pubKeysMap {
+		for _, pubkey := range pubKeys {
+			mhbi, err := newHeartbeatMessageInfo(maxDurationPeerUnresponsive, true)
+			if err != nil {
+				return nil, err
+			}
+
+			mhbi.shardID = shardId
+			mon.heartbeatMessages[pubkey] = mhbi
 		}
 	}
 

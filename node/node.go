@@ -714,17 +714,12 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber strin
 		return err
 	}
 
-	allPubKeys := make([]string, 0)
-	for _, shardPubKeys := range n.initialNodesPubkeys {
-		allPubKeys = append(allPubKeys, shardPubKeys...)
-	}
-
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		n.singleSigner,
 		n.keyGen,
 		n.marshalizer,
 		time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive),
-		allPubKeys,
+		n.initialNodesPubkeys,
 	)
 	if err != nil {
 		return err
