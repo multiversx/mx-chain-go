@@ -160,16 +160,14 @@ func CheckPlayerBalanceTheSameWithBlockchain(
 func CheckBalanceIsDoneCorrectlySCSide(
 	t *testing.T,
 	nodes []*TestProcessorNode,
-	idxNodeScExists int,
 	topUpVal *big.Int,
 	withdraw *big.Int,
 	scAddressBytes []byte,
 ) {
-
-	nodeWithSc := nodes[idxNodeScExists]
+	nodeWithCaller := getNodeWithinSameShardAsPlayer(nodes, scAddressBytes)
 
 	fmt.Println("Checking SC account has topUp-withdraw val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(scAddressBytes))
 	assert.NotNil(t, accnt)
 	expectedSC := big.NewInt(0).Set(topUpVal)
 	expectedSC.Sub(expectedSC, withdraw)
@@ -201,7 +199,6 @@ func CheckJoinGame(
 	CheckBalanceIsDoneCorrectlySCSide(
 		t,
 		nodes,
-		idxProposer,
 		allTopUpValue,
 		big.NewInt(0),
 		hardCodedScResultingAddress,
@@ -231,7 +228,6 @@ func CheckRewardsDistribution(
 	CheckBalanceIsDoneCorrectlySCSide(
 		t,
 		nodes,
-		idxProposer,
 		allTopUpValue,
 		withdrawValue,
 		hardCodedScResultingAddress,

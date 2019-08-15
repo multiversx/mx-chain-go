@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/pkg/profile"
 	"io/ioutil"
 	"math/big"
@@ -21,7 +23,7 @@ var agarioFile = "../agar_min_v1.hex"
 var stepDelay = time.Second
 
 func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRounds(t *testing.T) {
-	t.Skip("this is a stress test for VM and AGAR.IO")
+	//t.Skip("this is a stress test for VM and AGAR.IO")
 
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
@@ -87,7 +89,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	integrationTests.ProposeBlock(nodes, idxProposers, round)
 	round = integrationTests.IncrementAndPrintRound(round)
 
-	numRounds := 10
+	numRounds := 100
 	runMultipleRoundsOfTheGame(
 		t,
 		numRounds,
@@ -470,16 +472,61 @@ func runMultipleRoundsOfTheGame(
 		fmt.Println(rMonitor.GenerateStatistics())
 	}
 
-	for i := 0; i < nrRounds*10; i++ {
+	numTxsInPool := 1
+	for numTxsInPool > 0 {
 		startTime := time.Now()
 		integrationTests.ProposeBlock(nodes, idxProposers, round)
 		elapsedTime := time.Since(startTime)
 		fmt.Printf("Block Created in %s\n", elapsedTime)
 		round = integrationTests.IncrementAndPrintRound(round)
 
+		for idxProposer := range idxProposers {
+			numTxsInPool = GetNumTxsWithDst(
+				nodes[idxProposer].ShardCoordinator.SelfId(),
+				nodes[idxProposer].ShardDataPool,
+				nodes[idxProposer].ShardCoordinator.NumberOfShards(),
+			)
+
+			if numTxsInPool > 0 {
+				break
+			}
+		}
 		fmt.Println(rMonitor.GenerateStatistics())
+	}
+
+	for i := 0; i < 10; i++ {
+		startTime := time.Now()
+		integrationTests.ProposeBlock(nodes, idxProposers, round)
+		elapsedTime := time.Since(startTime)
+		fmt.Printf("Block Created in %s\n", elapsedTime)
+		round = integrationTests.IncrementAndPrintRound(round)
 	}
 
 	integrationTests.CheckRewardsDistribution(t, nodes, players, big.NewInt(0), big.NewInt(0),
 		hardCodedScResultingAddress, idxProposers[0])
+}
+
+// GetNumTxsWithDst returns the total number of transactions that have a certain destination shard
+func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
+	if dataPool == nil {
+		return 0
+	}
+
+	txPool := dataPool.Transactions()
+	if txPool == nil {
+		return 0
+	}
+
+	sumTxs := 0
+
+	for i := uint32(0); i < nrShards; i++ {
+		strCache := process.ShardCacherIdentifier(i, dstShardId)
+		txStore := txPool.ShardDataStore(strCache)
+		if txStore == nil {
+			continue
+		}
+		sumTxs += txStore.Len()
+	}
+
+	return sumTxs
 }
