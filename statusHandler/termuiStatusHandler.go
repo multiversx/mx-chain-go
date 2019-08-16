@@ -72,7 +72,6 @@ func (tsh *TermuiStatusHandler) Increment(key string) {
 
 	keyValue++
 	tsh.termuiConsoleMetrics.Store(key, keyValue)
-
 }
 
 // Decrement - will decrement the value of a key
