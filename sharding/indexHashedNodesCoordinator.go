@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
@@ -111,14 +111,14 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	}
 
 	tempList := make([]Validator, 0)
-	cSize := ihgs.consensusGroupSize(shardId)
+	consensusSize := ihgs.consensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
 
 	// TODO: pre-compute eligible list and update only on rating change.
 	expandedList := ihgs.expandEligibleList(shardId)
 	lenExpandedList := len(expandedList)
 
-	for startIdx := 0; startIdx < cSize; startIdx++ {
+	for startIdx := 0; startIdx < consensusSize; startIdx++ {
 		proposedIndex := ihgs.computeListIndex(startIdx, lenExpandedList, string(randomness))
 		checkedIndex := ihgs.checkIndex(proposedIndex, expandedList, tempList)
 		tempList = append(tempList, expandedList[checkedIndex])
@@ -176,8 +176,8 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(selection []byte,
 		return nil, ErrEligibleSelectionMismatch
 	}
 
-	cSize := ihgs.consensusGroupSize(shardId)
-	publicKeys = make([]string, cSize)
+	consensusSize := ihgs.consensusGroupSize(shardId)
+	publicKeys = make([]string, consensusSize)
 	cnt := 0
 
 	for i := uint16(0); i < shardEligibleLen; i++ {
@@ -190,12 +190,12 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(selection []byte,
 		publicKeys[cnt] = string(ihgs.nodesMap[shardId][i].PubKey())
 		cnt++
 
-		if cnt > cSize {
+		if cnt > consensusSize {
 			return nil, ErrEligibleTooManySelections
 		}
 	}
 
-	if cnt < cSize {
+	if cnt < consensusSize {
 		return nil, ErrEligibleTooFewSelections
 	}
 
