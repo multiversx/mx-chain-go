@@ -23,7 +23,7 @@ func TestNewMonitor_NilSingleSignerShouldErr(t *testing.T) {
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
 		0,
-		[]string{""},
+		map[uint32][]string{0: {""}},
 	)
 
 	assert.Nil(t, mon)
@@ -38,7 +38,7 @@ func TestNewMonitor_NilKeygenShouldErr(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		0,
-		[]string{""},
+		map[uint32][]string{0: {""}},
 	)
 
 	assert.Nil(t, mon)
@@ -53,7 +53,7 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.KeyGenMock{},
 		nil,
 		0,
-		[]string{""},
+		map[uint32][]string{0: {""}},
 	)
 
 	assert.Nil(t, mon)
@@ -68,11 +68,11 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
 		0,
-		make([]string, 0),
+		make(map[uint32][]string),
 	)
 
 	assert.Nil(t, mon)
-	assert.Equal(t, heartbeat.ErrEmptyPublicKeyList, err)
+	assert.Equal(t, heartbeat.ErrEmptyPublicKeysMap, err)
 }
 
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
@@ -83,7 +83,7 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
 		1,
-		[]string{"pk1", "pk2"},
+		map[uint32][]string{0: {"pk1", "pk2"}},
 	)
 
 	assert.NotNil(t, mon)
@@ -102,7 +102,7 @@ func TestMonitor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
 		1,
-		[]string{"pk1"},
+		map[uint32][]string{0: {"pk1"}},
 	)
 
 	err := mon.ProcessReceivedMessage(nil)
@@ -118,7 +118,7 @@ func TestMonitor_ProcessReceivedMessageNilDataShouldErr(t *testing.T) {
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
 		0,
-		[]string{"pk1"},
+		map[uint32][]string{0: {"pk1"}},
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{})
@@ -140,7 +140,7 @@ func TestMonitor_ProcessReceivedMessageMarshalFailsShouldErr(t *testing.T) {
 			},
 		},
 		1,
-		[]string{"pk1"},
+		map[uint32][]string{0: {"pk1"}},
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -166,7 +166,7 @@ func TestMonitor_ProcessReceivedMessageWrongPubkeyShouldErr(t *testing.T) {
 			},
 		},
 		1,
-		[]string{"pk1"},
+		map[uint32][]string{0: {"pk1"}},
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -196,7 +196,7 @@ func TestMonitor_ProcessReceivedMessageVerifyFailsShouldErr(t *testing.T) {
 			},
 		},
 		1,
-		[]string{"pk1"},
+		map[uint32][]string{0: {"pk1"}},
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -227,7 +227,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 			},
 		},
 		time.Second*1000,
-		[]string{pubKey},
+		map[uint32][]string{0: {pubKey}},
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -264,7 +264,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 			},
 		},
 		time.Second*1000,
-		[]string{"pk2"},
+		map[uint32][]string{0: {"pk2"}},
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -305,7 +305,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 			},
 		},
 		time.Second*1000,
-		[]string{"pk1"},
+		map[uint32][]string{0: {"pk1"}},
 	)
 
 	// First send from pk1 from shard 0
@@ -375,7 +375,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 			},
 		},
 		time.Millisecond*5,
-		[]string{pubKey1, pubKey2},
+		map[uint32][]string{0: {pubKey1, pubKey2}},
 	)
 
 	// First send from pk1
