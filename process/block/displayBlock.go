@@ -30,8 +30,8 @@ func NewTransactionCounter() *transactionCounter {
 	}
 }
 
-// getNumTxsForOrFromShard returns the number of transactions for or from a certain shard
-func (txc *transactionCounter) getNumTxsForOrFromShard(shardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
+// getNumTxsFromPool returns the number of transactions from pool for a given shard
+func (txc *transactionCounter) getNumTxsFromPool(shardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
 	txPool := dataPool.Transactions()
 	if txPool == nil {
 		return 0
@@ -97,7 +97,7 @@ func (txc *transactionCounter) displayLogInfo(
 		core.ToB64(headerHash),
 		txc.totalTxs,
 		txc.currentBlockTxs,
-		txc.getNumTxsForOrFromShard(selfId, dataPool, numShards),
+		txc.getNumTxsFromPool(selfId, dataPool, numShards),
 		numShards,
 		selfId)
 	txc.mutex.RUnlock()
