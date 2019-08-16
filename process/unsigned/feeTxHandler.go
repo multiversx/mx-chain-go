@@ -128,7 +128,7 @@ func (ftxh *feeTxHandler) CleanProcessedUTxs() {
 func (ftxh *feeTxHandler) AddTxFeeFromBlock(tx data.TransactionHandler) {
 	currFeeTx, ok := tx.(*feeTx.FeeTx)
 	if !ok {
-		log.Debug(process.ErrWrongTypeAssertion.Error())
+		log.Error(process.ErrWrongTypeAssertion.Error())
 		return
 	}
 
@@ -235,7 +235,7 @@ func (ftxh *feeTxHandler) VerifyCreatedUTxs() error {
 
 		txFromBlock, ok := ftxh.feeTxsFromBlock[string(value.GetRecvAddress())]
 		if !ok {
-			return process.ErrTxsFeesDoesNotMatch
+			return process.ErrTxsFeesNotFound
 		}
 		if txFromBlock.Value.Cmp(value.GetValue()) != 0 {
 			return process.ErrTxsFeesDoesNotMatch
@@ -243,7 +243,7 @@ func (ftxh *feeTxHandler) VerifyCreatedUTxs() error {
 	}
 
 	if totalCalculatedFees.Cmp(totalFeesFromBlock) != 0 {
-		return process.ErrTxsFeesDoesNotMatch
+		return process.ErrTotalTxsFeesDoNotMatch
 	}
 
 	return nil

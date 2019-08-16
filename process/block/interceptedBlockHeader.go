@@ -53,7 +53,7 @@ func (inHdr *InterceptedHeader) Shard() uint32 {
 	return inHdr.ShardId
 }
 
-// GetShardHeader returns the Header pointer that holds the data
+// GetHeader returns the Header pointer that holds the data
 func (inHdr *InterceptedHeader) GetHeader() *block.Header {
 	return inHdr.Header
 }
@@ -129,7 +129,7 @@ func (inHdr *InterceptedHeader) VerifySig() error {
 
 	}
 
-	consensusPubKeys, err := inHdr.nodesCoordinator.GetValidatorsPublicKeys(randSeed)
+	consensusPubKeys, err := inHdr.nodesCoordinator.GetValidatorsPublicKeys(randSeed, inHdr.Round, inHdr.ShardId)
 	if err != nil {
 		return err
 	}

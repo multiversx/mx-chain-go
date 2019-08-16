@@ -5,16 +5,18 @@ import (
 )
 
 type NodesCoordinatorMock struct {
-	ComputeValidatorsGroupCalled  func([]byte) ([]sharding.Validator, error)
-	GetValidatorsPublicKeysCalled func(randomness []byte) ([]string, error)
+	ComputeValidatorsGroupCalled  func(randomness []byte, round uint64, shardId uint32) ([]sharding.Validator, error)
+	GetValidatorsPublicKeysCalled func(randomness []byte, round uint64, shardId uint32) ([]string, error)
 }
 
 func (ncm NodesCoordinatorMock) ComputeValidatorsGroup(
 	randomness []byte,
+	round uint64,
+	shardId uint32,
 ) (validatorsGroup []sharding.Validator, err error) {
 
 	if ncm.ComputeValidatorsGroupCalled != nil {
-		return ncm.ComputeValidatorsGroupCalled(randomness)
+		return ncm.ComputeValidatorsGroupCalled(randomness, round, shardId)
 	}
 
 	list := []sharding.Validator{}
@@ -22,12 +24,16 @@ func (ncm NodesCoordinatorMock) ComputeValidatorsGroup(
 	return list, nil
 }
 
-func (ncm NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte) ([]string, error) {
+func (ncm NodesCoordinatorMock) GetValidatorsPublicKeys(
+	randomness []byte,
+	round uint64,
+	shardId uint32,
+) ([]string, error) {
 	if ncm.GetValidatorsPublicKeysCalled != nil {
-		return ncm.GetValidatorsPublicKeysCalled(randomness)
+		return ncm.GetValidatorsPublicKeysCalled(randomness, round, shardId)
 	}
 
-	validators, err := ncm.ComputeValidatorsGroup(randomness)
+	validators, err := ncm.ComputeValidatorsGroup(randomness, round, shardId)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +47,7 @@ func (ncm NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte) ([]st
 	return pubKeys, nil
 }
 
-func (ncm NodesCoordinatorMock) ConsensusGroupSize() int {
+func (ncm NodesCoordinatorMock) ConsensusGroupSize(shardId uint32) int {
 	panic("implement me")
 }
 
@@ -53,7 +59,7 @@ func (ncm NodesCoordinatorMock) SetConsensusGroupSize(int) error {
 	panic("implement me")
 }
 
-func (ncm NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error) {
+func (ncm NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId uint32) (publicKeys []string, err error) {
 	panic("implement me")
 }
 

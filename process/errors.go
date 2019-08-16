@@ -421,6 +421,12 @@ var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
 // ErrTxsFeesDoesNotMatch signals that txs fees do not match
 var ErrTxsFeesDoesNotMatch = errors.New("calculated tx fees with block tx fee does not match")
 
+// ErrTxsFeesNotFound signals that the tx fee not found
+var ErrTxsFeesNotFound = errors.New("tx fees not found")
+
+// ErrTotalTxsFeesDoNotMatch signals that the total tx fee do not match
+var ErrTotalTxsFeesDoNotMatch = errors.New("total tx fees do not match")
+
 // ErrNilTxTypeHandler signals that tx type handler is nil
 var ErrNilTxTypeHandler = errors.New("nil tx type handler")
 

@@ -39,7 +39,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	validatorsMap := genValidatorsFromPubKeys(keysMap)
 
 	nodesCoordinator1, _ := sharding.NewIndexHashedNodesCoordinator(
-		1,
+		2,
 		1,
 		hasher,
 		0,
@@ -47,7 +47,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 		validatorsMap,
 	)
 	nodesCoordinator2, _ := sharding.NewIndexHashedNodesCoordinator(
-		1,
+		2,
 		1,
 		hasher,
 		0,
@@ -56,7 +56,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	)
 
 	fmt.Println("Requester:")
-	nRequester, mesRequester, multiSigner, resolversFinder := createNetNode(
+	nRequester, mesRequester, multiSigner1, resolversFinder := createNetNode(
 		dPoolRequester,
 		storeRequester,
 		createAccountsDB(),
@@ -67,7 +67,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	)
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := createNetNode(
+	nResolver, mesResolver, multiSigner2, _ := createNetNode(
 		dPoolResolver,
 		storeResolver,
 		createAccountsDB(),
@@ -122,10 +122,13 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	hdrBuff, _ := marshalizer.Marshal(&hdr1)
 	hdrHash := hasher.Compute(string(hdrBuff))
-	msig, _ := multiSigner.Create(keysMap[0], 0)
-	bitmap := []byte{1}
-	_, _ = msig.CreateSignatureShare(hdrHash, bitmap)
-	aggSig, _ := msig.AggregateSigs(bitmap)
+	msig0, _ := multiSigner1.Create(keysMap[0], 0)
+	msig1, _ := multiSigner2.Create(keysMap[0], 1)
+	bitmap := []byte{3}
+	_, _ = msig0.CreateSignatureShare(hdrHash, bitmap)
+	sig1, _ := msig1.CreateSignatureShare(hdrHash, bitmap)
+	_ = msig0.StoreSignatureShare(1, sig1)
+	aggSig, _ := msig0.AggregateSigs(bitmap)
 
 	hdr1.PubKeysBitmap = bitmap
 	hdr1.Signature = aggSig

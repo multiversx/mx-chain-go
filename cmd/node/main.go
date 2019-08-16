@@ -912,10 +912,7 @@ func createNode(
 		if err != nil {
 			return nil, err
 		}
-		err = nd.StartHeartbeat(config.Heartbeat)
-		if err != nil {
-			return nil, err
-		}
+
 		err = nd.CreateShardGenesisBlock()
 		if err != nil {
 			return nil, err
