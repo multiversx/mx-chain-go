@@ -45,6 +45,7 @@ func NewSender(
 	if marshalizer == nil {
 		return nil, ErrNilMarshalizer
 	}
+	//TODO add test for shardCoordinator
 
 	sender := &Sender{
 		peerMessenger:    peerMessenger,
