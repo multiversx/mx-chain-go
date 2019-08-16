@@ -192,13 +192,13 @@ func TestFeeTxHandler_VerifyCreatedUTxs(t *testing.T) {
 	th.AddProcessedUTx(&feeTx.FeeTx{Value: currTxFee})
 
 	err = th.VerifyCreatedUTxs()
-	assert.Equal(t, process.ErrTxsFeesDoesNotMatch, err)
+	assert.Equal(t, process.ErrTxsFeesNotFound, err)
 
 	badValue := big.NewInt(100)
 	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: badValue})
 
 	err = th.VerifyCreatedUTxs()
-	assert.Equal(t, process.ErrTxsFeesDoesNotMatch, err)
+	assert.Equal(t, process.ErrTotalTxsFeesDoNotMatch, err)
 
 	th.CleanProcessedUTxs()
 
@@ -208,7 +208,7 @@ func TestFeeTxHandler_VerifyCreatedUTxs(t *testing.T) {
 	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: halfCurrTxFee})
 
 	err = th.VerifyCreatedUTxs()
-	assert.Equal(t, process.ErrTxsFeesDoesNotMatch, err)
+	assert.Equal(t, process.ErrTxsFeesNotFound, err)
 
 	th.CleanProcessedUTxs()
 
@@ -264,13 +264,13 @@ func TestFeeTxHandler_VerifyInterMiniBlocks(t *testing.T) {
 	th.AddProcessedUTx(&feeTx.FeeTx{Value: currTxFee})
 
 	err = th.VerifyInterMiniBlocks(nil)
-	assert.Equal(t, process.ErrTxsFeesDoesNotMatch, err)
+	assert.Equal(t, process.ErrTxsFeesNotFound, err)
 
 	badValue := big.NewInt(100)
 	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: badValue})
 
 	err = th.VerifyInterMiniBlocks(nil)
-	assert.Equal(t, process.ErrTxsFeesDoesNotMatch, err)
+	assert.Equal(t, process.ErrTotalTxsFeesDoNotMatch, err)
 
 	th.CleanProcessedUTxs()
 
@@ -280,7 +280,7 @@ func TestFeeTxHandler_VerifyInterMiniBlocks(t *testing.T) {
 	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: halfCurrTxFee})
 
 	err = th.VerifyInterMiniBlocks(nil)
-	assert.Equal(t, process.ErrTxsFeesDoesNotMatch, err)
+	assert.Equal(t, process.ErrTxsFeesNotFound, err)
 
 	th.CleanProcessedUTxs()
 
