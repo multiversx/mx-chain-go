@@ -529,38 +529,24 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
+	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysInterimProcs {
+		if blockType == block.TxFeeBlock {
+			// this has to be processed last
+			continue
+		}
+
 		interimProc := tc.getInterimProcessor(blockType)
 		if interimProc == nil {
 			// this will never be reached as keysInterimProcs are the actual keys from the interimMap
 			continue
 		}
 
-	resMutex := sync.Mutex{}
-	// TODO: think if it is good in parallel or it is needed in sequences
-	wg := sync.WaitGroup{}
-	wg.Add(len(tc.interimProcessors))
-
-	for key, interimProc := range tc.interimProcessors {
-		if key == block.TxFeeBlock {
-			// this has to be processed last
-			wg.Done()
-			continue
+		currMbs := interimProc.CreateAllInterMiniBlocks()
+		for _, value := range currMbs {
+			miniBlocks = append(miniBlocks, value)
 		}
-
-		go func(intermediateProcessor process.IntermediateTransactionHandler) {
-			currMbs := intermediateProcessor.CreateAllInterMiniBlocks()
-			resMutex.Lock()
-			for _, value := range currMbs {
-				miniBlocks = append(miniBlocks, value)
-			}
-			resMutex.Unlock()
-			wg.Done()
-		}(interimProc)
 	}
-
-	wg.Wait()
-	tc.mutInterimProcessors.RUnlock()
 
 	return miniBlocks
 }

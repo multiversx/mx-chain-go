@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"math/big"
 	"strings"
 	"sync"
@@ -189,20 +190,15 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(shardCoordinator sharding.Coordinator) (*state.AccountsDB, data.Trie, storage.Storer) {
-
-	var accountFactory state.AccountFactory
-	if shardCoordinator == nil {
-		accountFactory = factory.NewAccountCreator()
-	} else {
-		accountFactory, _ = factory.NewAccountFactoryCreator(shardCoordinator)
-	}
-
+func CreateAccountsDB(accountType factory.Type) *state.AccountsDB {
+	hasher := sha256.Sha256{}
 	store := CreateMemUnit()
-	tr, _ := trie.NewTrie(store, TestMarshalizer, TestHasher)
-	adb, _ := state.NewAccountsDB(tr, TestHasher, TestMarshalizer, accountFactory)
 
-	return adb, tr, store
+	tr, _ := trie.NewTrie(store, TestMarshalizer, hasher)
+	accountFactory, _ := factory.NewAccountFactoryCreator(accountType)
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
+
+	return adb
 }
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
@@ -366,7 +362,7 @@ func CreateRandomHexString(chars int) string {
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
 func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
-	adb, _, _ := CreateAccountsDB(nil)
+	adb := CreateAccountsDB(factory.UserAccount)
 	account, _ := state.NewAccount(adr, adb)
 
 	return adr, account, adb
@@ -421,7 +417,8 @@ func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.I
 // CreateSimpleTxProcessor returns a transaction processor
 func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionProcessor {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	txProcessor, _ := txProc.NewTxProcessor(accnts, TestHasher, TestAddressConverter, TestMarshalizer, shardCoordinator, &mock.SCProcessorMock{})
+	txProcessor, _ := txProc.NewTxProcessor(accnts, TestHasher, TestAddressConverter, TestMarshalizer,
+		shardCoordinator, &mock.SCProcessorMock{}, &mock.UnsignedTxHandlerMock{}, &mock.TxTypeHandlerMock{})
 
 	return txProcessor
 }
@@ -656,18 +653,54 @@ func CreateNodes(
 	//first node generated will have is pk belonging to firstSkShardId
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 
+	cp := CreateCryptoParams(nodesPerShard, numMetaChainNodes, uint32(numOfShards))
+	keysMap := PubKeysMapFromKeysMap(cp.Keys)
+	validatorsMap := GenValidatorsFromPubKeys(keysMap)
+
 	idx := 0
 	for shardId := 0; shardId < numOfShards; shardId++ {
+		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
+			1,
+			1,
+			TestHasher,
+			uint32(shardId),
+			uint32(numOfShards),
+			validatorsMap,
+		)
+
 		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNode(uint32(numOfShards), uint32(shardId), uint32(shardId), serviceID)
+			n := NewTestProcessorNodeWithCustomNodesCoordinator(
+				uint32(numOfShards),
+				uint32(shardId),
+				serviceID,
+				nodesCoordinator,
+				cp,
+				j,
+			)
 
 			nodes[idx] = n
 			idx++
 		}
 	}
 
+	nodesCoordinatorMeta, _ := sharding.NewIndexHashedNodesCoordinator(
+		1,
+		1,
+		TestHasher,
+		uint32(sharding.MetachainShardId),
+		uint32(numOfShards),
+		validatorsMap,
+	)
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNode(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID)
+		metaNode := NewTestProcessorNodeWithCustomNodesCoordinator(
+			uint32(numOfShards),
+			sharding.MetachainShardId,
+			serviceID,
+			nodesCoordinatorMeta,
+			cp,
+			i,
+		)
+
 		idx := i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}
@@ -700,6 +733,8 @@ func GenerateAndDisseminateTxs(
 	senders []crypto.PrivateKey,
 	receiversPrivateKeys map[uint32][]crypto.PrivateKey,
 	valToTransfer *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
 ) {
 
 	for i := 0; i < len(senders); i++ {
@@ -707,16 +742,7 @@ func GenerateAndDisseminateTxs(
 		incrementalNonce := uint64(0)
 		for _, recvPrivateKeys := range receiversPrivateKeys {
 			receiverKey := recvPrivateKeys[i]
-			tx := generateTx(
-				senderKey,
-				n.OwnAccount.SingleSigner,
-				&txArgs{
-					nonce:   incrementalNonce,
-					value:   valToTransfer,
-					rcvAddr: skToPk(receiverKey),
-					sndAddr: skToPk(senderKey),
-				},
-			)
+			tx := generateTransferTx(incrementalNonce, senderKey, receiverKey, valToTransfer, gasPrice, gasLimit)
 			_, _ = n.SendTransaction(tx)
 			incrementalNonce++
 		}
@@ -731,6 +757,31 @@ type txArgs struct {
 	data     string
 	gasPrice int
 	gasLimit int
+}
+
+func generateTransferTx(
+	nonce uint64,
+	sender crypto.PrivateKey,
+	receiver crypto.PrivateKey,
+	valToTransfer *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
+) *transaction.Transaction {
+
+	tx := transaction.Transaction{
+		Nonce:    nonce,
+		Value:    valToTransfer,
+		RcvAddr:  skToPk(receiver),
+		SndAddr:  skToPk(sender),
+		Data:     "",
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+	}
+	txBuff, _ := TestMarshalizer.Marshal(&tx)
+	signer := &singlesig.SchnorrSigner{}
+	tx.Signature, _ = signer.Sign(sender, txBuff)
+
+	return &tx
 }
 
 func generateTx(
@@ -974,7 +1025,7 @@ func generateValidTx(
 	_, pkRecv, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
-	accnts, _, _ := CreateAccountsDB(shardCoordinator)
+	accnts := CreateAccountsDB(factory.UserAccount)
 	addrSender, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
 	_, _ = accnts.GetAccountWithJournal(addrSender)
 	_, _ = accnts.Commit()
@@ -1111,7 +1162,7 @@ func CreateValidatorKeys(nodesPerShard int, nbMetaNodes int, nbShards int) map[u
 	return keysMap
 }
 
-func pubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]string {
+func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]string {
 	keysMap := make(map[uint32][]string, 0)
 
 	for shardId, pairList := range keyPairMap {
@@ -1126,7 +1177,7 @@ func pubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]st
 	return keysMap
 }
 
-func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
+func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
 	validatorsMap := make(map[uint32][]sharding.Validator)
 
 	for shardId, shardNodesPks := range pubKeysMap {
@@ -1139,4 +1190,37 @@ func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 	}
 
 	return validatorsMap
+}
+
+func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
+	suite := kyber.NewBlakeSHA256Ed25519()
+	singleSigner := &singlesig.SchnorrSigner{}
+	keyGen := signing.NewKeyGenerator(suite)
+
+	keysMap := make(map[uint32][]*TestKeyPair)
+	keyPairs := make([]*TestKeyPair, nodesPerShard)
+	for shardId := uint32(0); shardId < nbShards; shardId++ {
+		for n := 0; n < nodesPerShard; n++ {
+			kp := &TestKeyPair{}
+			kp.sk, kp.pk = keyGen.GeneratePair()
+			keyPairs[n] = kp
+		}
+		keysMap[uint32(shardId)] = keyPairs
+	}
+
+	keyPairs = make([]*TestKeyPair, nbMetaNodes)
+	for n := 0; n < nbMetaNodes; n++ {
+		kp := &TestKeyPair{}
+		kp.sk, kp.pk = keyGen.GeneratePair()
+		keyPairs[n] = kp
+	}
+	keysMap[sharding.MetachainShardId] = keyPairs
+
+	params := &CryptoParams{
+		Keys:         keysMap,
+		KeyGen:       keyGen,
+		SingleSigner: singleSigner,
+	}
+
+	return params
 }

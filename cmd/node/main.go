@@ -1165,7 +1165,7 @@ func createNode(
 		if err != nil {
 			return nil, err
 		}
-		err = nd.StartHeartbeat(config.Heartbeat)
+		err = nd.StartHeartbeat(config.Heartbeat, version, config.GeneralSettings.NodeDisplayName)
 		if err != nil {
 			return nil, err
 		}

@@ -1266,6 +1266,7 @@ func newBlockProcessorAndTracker(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
+	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 
@@ -1306,6 +1307,7 @@ func newShardBlockProcessorAndTracker(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
+	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
@@ -1364,10 +1366,6 @@ func newShardBlockProcessorAndTracker(
 	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
-
-	//TODO replace this with a vm factory
-	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.ElrondTestnet)
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		vmContainer,

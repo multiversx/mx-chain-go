@@ -104,12 +104,14 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
 		_ = advertiser.Close()
-		for _, n := range nodes {
-			_ = n.node.Stop()
+		for _, nodeList := range nodes {
+			for _, n := range nodeList {
+				_ = n.node.Stop()
+			}
 		}
 	}()
 
-	proposerNodeShard1 := nodes[0]
+	proposerNodeShard1 := nodes[0][0]
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -118,7 +120,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 
 	// Minting sender account
-	createMintingForSenders(nodes, senderShard, [][]byte{senderAddressBytes}, senderMintingValue)
+	createMintingForSenders(nodes[0], senderShard, [][]byte{senderAddressBytes}, senderMintingValue)
 
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
 	deploySmartContract(t, proposerNodeShard1, generalRoundNumber, senderAddressBytes, senderNonce)
@@ -178,20 +180,22 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
 	receiverShard := uint32(1)
-	senderNonce := uint64(0)
+	senderNonce := uint64(1)
 	mintingValue := big.NewInt(100000000)
-	receiverNonce := uint64(0)
+	receiverNonce := uint64(1)
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
 		_ = advertiser.Close()
-		for _, n := range nodes {
-			_ = n.node.Stop()
+		for _, nodeList := range nodes {
+			for _, n := range nodeList {
+				_ = n.node.Stop()
+			}
 		}
 	}()
 
-	proposerNodeShard1 := nodes[0]
-	proposerNodeShard2 := nodes[1]
+	proposerNodeShard1 := nodes[0][0]
+	proposerNodeShard2 := nodes[1][0]
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -212,7 +216,6 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(mintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
-
 	senderNonce++
 	assert.Equal(t, senderNonce, acc.Nonce)
 
@@ -244,8 +247,6 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	afterFee := big.NewInt(0).Sub(mintingValue, big.NewInt(0).SetUint64(contractCallTx.GasLimit*contractCallTx.GasPrice))
 	assert.Equal(t, afterFee, acc.Balance)
-	assert.Equal(t, receiverNonce, acc.Nonce)
-
 	receiverNonce++
 	assert.Equal(t, receiverNonce, acc.Nonce)
 
@@ -261,7 +262,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	storedVal, _ := scAccount.DataTrieTracker().RetrieveValue([]byte("a"))
 	storedValBI := big.NewInt(0).SetBytes(storedVal)
 
-	assert.Equal(t, big.NewInt(int64(initialValueForInternalVariable + addValue)), storedValBI)
+	assert.Equal(t, big.NewInt(int64(initialValueForInternalVariable+addValue)), storedValBI)
 }
 
 // Test within a network of two shards the following situation
@@ -278,20 +279,22 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber := uint64(1)
 	scShard := uint32(0)
 	accShard := uint32(1)
-	accNonce := uint64(0)
+	accNonce := uint64(1)
 	mintingValue := big.NewInt(100000000)
-	scNonce := uint64(0)
+	scNonce := uint64(1)
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
 		_ = advertiser.Close()
-		for _, n := range nodes {
-			_ = n.node.Stop()
+		for _, nodeList := range nodes {
+			for _, n := range nodeList {
+				_ = n.node.Stop()
+			}
 		}
 	}()
 
-	proposerNodeShardSC := nodes[0]
-	proposerNodeShardAccount := nodes[1]
+	proposerNodeShardSC := nodes[0][0]
+	proposerNodeShardAccount := nodes[1][0]
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -301,8 +304,8 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	accountShardAddressBytes := []byte("12345678901234567890123456789011")
 
 	// Minting sender account
-	createMintingForSenders(nodes, scShard, [][]byte{scAccountAddressBytes}, mintingValue)
-	createMintingForSenders(nodes, accShard, [][]byte{accountShardAddressBytes}, mintingValue)
+	createMintingForSenders(nodes[0], scShard, [][]byte{scAccountAddressBytes}, mintingValue)
+	createMintingForSenders(nodes[1], accShard, [][]byte{accountShardAddressBytes}, mintingValue)
 
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
 	deploySmartContract(t, proposerNodeShardSC, generalRoundNumber, scAccountAddressBytes, accNonce)
@@ -312,16 +315,16 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(mintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
-	accNonce++
 	assert.Equal(t, accNonce, acc.Nonce)
 
+	accNonce++
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
 	scDeploymentAdddress, _ := hex.DecodeString("ca26d3e6152af91949295cc89f419413e08aa04ba2d5e1ed2b199b2ca8aabc2a")
 
 	// Update the SC account balance so we can call withdraw function
-	createMintingForSenders(nodes, scShard, [][]byte{scDeploymentAdddress}, mintingValue)
+	createMintingForSenders(nodes[0], scShard, [][]byte{scDeploymentAdddress}, mintingValue)
 
 	// Now that the SC is deployed, we test a call from an account located in the second shard
 	withdrawValue := uint64(100)
@@ -336,7 +339,6 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	)
 
 	// The account shard should process this tx as MoveBalance
-	scNonce++
 	processAndTestSmartContractCallInSender(
 		t,
 		contractCallTx,
@@ -346,6 +348,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 		mintingValue,
 		scNonce,
 	)
+	scNonce++
 	generalRoundNumber++
 
 	// After second shard processed the transaction, tx should get into the first shard where the SC resides

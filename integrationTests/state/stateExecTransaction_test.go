@@ -3,6 +3,9 @@ package state
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"math/big"
 	"testing"
 
@@ -122,7 +125,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts, _, _ := integrationTests.CreateAccountsDB(nil)
+	accnts := integrationTests.CreateAccountsDB(0)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
@@ -217,7 +220,7 @@ func testExecTransactionsMoreTxWithRevert(
 func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts, _, _ := integrationTests.CreateAccountsDB(nil)
+	accnts := integrationTests.CreateAccountsDB(0)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)

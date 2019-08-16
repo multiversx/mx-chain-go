@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"sync/atomic"
 	"time"
 
@@ -15,7 +16,6 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
-	accountfactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -58,10 +58,17 @@ var TestMultiSig = mock.NewMultiSigner(1)
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
-// TestKeyPair holds a pair of private/public keys
+// TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	sk crypto.PrivateKey
 	pk crypto.PublicKey
+}
+
+//CryptoParams holds crypto parametres
+type CryptoParams struct {
+	KeyGen       crypto.KeyGenerator
+	Keys         map[uint32][]*TestKeyPair
+	SingleSigner crypto.SingleSigner
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -136,6 +143,35 @@ func NewTestProcessorNode(
 	return tpn
 }
 
+// NewTestProcessorNodeWithCustomNodesCoordinator returns a new TestProcessorNode instance with custom NodesCoordinator
+func NewTestProcessorNodeWithCustomNodesCoordinator(
+	maxShards uint32,
+	nodeShardId uint32,
+	initialNodeAddr string,
+	nodesCoordinator sharding.NodesCoordinator,
+	cp *CryptoParams,
+	keyIndex int,
+) *TestProcessorNode {
+
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
+
+	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	tpn := &TestProcessorNode{
+		ShardCoordinator: shardCoordinator,
+		Messenger:        messenger,
+		NodesCoordinator: nodesCoordinator,
+	}
+
+	sk := cp.Keys[nodeShardId][keyIndex].sk
+	pk := cp.Keys[nodeShardId][keyIndex].pk
+
+	tpn.OwnAccount = CreateTestWalletAccountWithSkPk(sk, pk, cp.KeyGen)
+	tpn.initDataPools()
+	tpn.initTestNode()
+
+	return tpn
+}
+
 // NewTestProcessorNodeWithCustomDataPool returns a new TestProcessorNode instance with the given data pool
 func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string, dPool dataRetriever.PoolsHolder) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
@@ -159,7 +195,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 
 func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initStorage()
-	tpn.AccntState, _, _ = CreateAccountsDB(tpn.ShardCoordinator)
+	tpn.AccntState = CreateAccountsDB(0)
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initInterceptors()
@@ -541,7 +577,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(nonce)
-	blockHeader.SetPubKeysBitmap(make([]byte, 0))
+	blockHeader.SetPubKeysBitmap([]byte{1})
 	sig, _ := TestMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
