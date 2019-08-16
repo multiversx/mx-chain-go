@@ -135,8 +135,6 @@ func (chr *chronology) startRound() {
 	msg := fmt.Sprintf("SUBROUND %s BEGINS", sr.Name())
 	log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
 
-	chr.appStatusHandler.SetUInt64Value(core.MetricCurrentRound, uint64(chr.rounder.Index()))
-
 	if !sr.DoWork(chr.rounder) {
 		chr.subroundId = srBeforeStartRound
 		return
@@ -168,6 +166,7 @@ func (chr *chronology) initRound() {
 
 	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
+		chr.appStatusHandler.SetUInt64Value(core.MetricCurrentRound, uint64(chr.rounder.Index()))
 	}
 
 	chr.mutSubrounds.RUnlock()
