@@ -121,7 +121,7 @@ func (imh *InterceptedMetaHeader) VerifySig() error {
 
 	}
 
-	consensusPubKeys, err := imh.nodesCoordinator.GetValidatorsPublicKeys(randSeed)
+	consensusPubKeys, err := imh.nodesCoordinator.GetValidatorsPublicKeys(randSeed, imh.Round, imh.GetShardID())
 	if err != nil {
 		return err
 	}

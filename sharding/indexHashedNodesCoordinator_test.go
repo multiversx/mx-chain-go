@@ -2,6 +2,8 @@ package sharding_test
 
 import (
 	"encoding/binary"
+	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"math/big"
 	"strconv"
 	"testing"
@@ -38,6 +40,10 @@ func createDummyNodesMap() map[uint32][]sharding.Validator {
 	nodesMap[sharding.MetachainShardId] = listMeta
 
 	return nodesMap
+}
+
+func genRandSource(round uint64, randomness string) string {
+	return fmt.Sprintf("%d-%s", round, core.ToB64([]byte(randomness)))
 }
 
 //------- NewIndexHashedNodesCoordinator
@@ -178,10 +184,29 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t
 		nodesMap,
 	)
 
-	list2, err := ihgs.ComputeValidatorsGroup(nil)
+	list2, err := ihgs.ComputeValidatorsGroup(nil, 0, 0)
 
 	assert.Nil(t, list2)
 	assert.Equal(t, sharding.ErrNilRandomness, err)
+}
+
+func TestIndexHashedGroupSelector_ComputeValidatorsGroupInvalidShardIdShouldErr(t *testing.T) {
+	t.Parallel()
+
+	nodesMap := createDummyNodesMap()
+	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
+		2,
+		1,
+		mock.HasherMock{},
+		0,
+		1,
+		nodesMap,
+	)
+
+	list2, err := ihgs.ComputeValidatorsGroup([]byte("radomness"), 0, 5)
+
+	assert.Nil(t, list2)
+	assert.Equal(t, sharding.ErrInvalidShardId, err)
 }
 
 //------- functionality tests
@@ -204,7 +229,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup1ValidatorShouldReturnSa
 		nodesMap,
 	)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte("randomness"))
+	list2, err := ihgs.ComputeValidatorsGroup([]byte("randomness"), 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, list, list2)
@@ -241,7 +266,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2Validators(t *testi
 		1,
 		nodesMap)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness))
+	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, nodesMap[0], list2)
@@ -253,16 +278,17 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrd
 	hasher := &mock.HasherStub{}
 
 	randomness := "randomness"
+	randSource := genRandSource(0, randomness)
 
 	//this will return the list in reverse order:
 	//element 0 will be the second
 	//element 1 will be the first
 	hasher.ComputeCalled = func(s string) []byte {
-		if string(uint64ToBytes(0))+randomness == s {
+		if string(uint64ToBytes(0))+randSource == s {
 			return convertBigIntToBytes(big.NewInt(1))
 		}
 
-		if string(uint64ToBytes(1))+randomness == s {
+		if string(uint64ToBytes(1))+randSource == s {
 			return convertBigIntToBytes(big.NewInt(0))
 		}
 
@@ -290,7 +316,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrd
 		nodesMap,
 	)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness))
+	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, validator0, list2[1])
@@ -329,7 +355,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsSameIndex
 		nodesMap,
 	)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness))
+	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, nodesMap[0], list2)
@@ -341,6 +367,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 	hasher := &mock.HasherStub{}
 
 	randomness := "randomness"
+	randomnessWithRound := genRandSource(0, randomness)
 
 	//script:
 	// for index 0, hasher will return 11 which will translate to 1, so 1 is the first element
@@ -350,14 +377,14 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 	// for index 4, hasher will return 0 which will translate to 0, 0 is already picked, 1 is already picked, 2 is already picked,
 	//      3 is the 4-th element
 	// for index 5, hasher will return 9 which will translate to 9, so 9, 0, 1, 2, 3 are already picked, 4 is the 5-th element
-
 	script := make(map[string]*big.Int)
-	script[string(uint64ToBytes(0))+randomness] = big.NewInt(11) //will translate to 1, add 1
-	script[string(uint64ToBytes(1))+randomness] = big.NewInt(1)  //will translate to 1, add 2
-	script[string(uint64ToBytes(2))+randomness] = big.NewInt(9)  //will translate to 9, add 9
-	script[string(uint64ToBytes(3))+randomness] = big.NewInt(9)  //will translate to 9, add 0
-	script[string(uint64ToBytes(4))+randomness] = big.NewInt(0)  //will translate to 0, add 3
-	script[string(uint64ToBytes(5))+randomness] = big.NewInt(9)  //will translate to 9, add 4
+
+	script[string(uint64ToBytes(0))+randomnessWithRound] = big.NewInt(11) //will translate to 1, add 1
+	script[string(uint64ToBytes(1))+randomnessWithRound] = big.NewInt(1)  //will translate to 1, add 2
+	script[string(uint64ToBytes(2))+randomnessWithRound] = big.NewInt(9)  //will translate to 9, add 9
+	script[string(uint64ToBytes(3))+randomnessWithRound] = big.NewInt(9)  //will translate to 9, add 0
+	script[string(uint64ToBytes(4))+randomnessWithRound] = big.NewInt(0)  //will translate to 0, add 3
+	script[string(uint64ToBytes(5))+randomnessWithRound] = big.NewInt(9)  //will translate to 9, add 4
 
 	hasher.ComputeCalled = func(s string) []byte {
 		val, ok := script[s]
@@ -406,7 +433,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 		nodesMap,
 	)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness))
+	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 6, len(list2))
@@ -444,7 +471,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 
 	for i := 0; i < b.N; i++ {
 		randomness := strconv.Itoa(i)
-		list2, _ := ihgs.ComputeValidatorsGroup([]byte(randomness))
+		list2, _ := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0)
 
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}

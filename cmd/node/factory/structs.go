@@ -1307,15 +1307,23 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
+	//TODO: replace with valid address
+	communityAddress, _ := hex.DecodeString("1bedf9f1db526aa98eb61f251e6eb29df64c0a4d96261b6fe9d4df1bc2cf5420")
+	burnAddress := communityAddress
+	leaderAddress := communityAddress
+
 	// TODO: construct this correctly on the PR
 	specialAddressHolder, err := address.NewSpecialAddressHolder(
-		[]byte("elrond"),
-		[]byte("own"),
+		communityAddress,
+		burnAddress,
 		state.AddressConverter,
 		shardCoordinator)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// TODO: remove when valid leader address is set in each round
+	specialAddressHolder.SetLeaderAddress(leaderAddress)
 
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,

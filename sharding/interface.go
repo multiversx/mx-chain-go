@@ -31,12 +31,12 @@ type Validator interface {
 type NodesCoordinator interface {
 	PublicKeysSelector
 	SetNodesPerShards(nodes map[uint32][]Validator) error
-	ComputeValidatorsGroup(randomness []byte) (validatorsGroup []Validator, err error)
+	ComputeValidatorsGroup(randomness []byte, round uint64, shardId uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
 }
 
 // PublicKeysSelector allows retrieval of eligible validators public keys
 type PublicKeysSelector interface {
-	GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error)
-	GetValidatorsPublicKeys(randomness []byte) ([]string, error)
+	GetSelectedPublicKeys(selection []byte, shardId uint32) (publicKeys []string, err error)
+	GetValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32) ([]string, error)
 }
