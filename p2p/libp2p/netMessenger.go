@@ -164,7 +164,7 @@ func createMessenger(
 	}(pb, netMes.outgoingPLB)
 
 	for _, address := range netMes.ctxProvider.Host().Addrs() {
-		fmt.Println(address.String() + "/p2p/" + netMes.ID().Pretty())
+		log.Info(address.String() + "/p2p/" + netMes.ID().Pretty())
 	}
 
 	return &netMes, nil
