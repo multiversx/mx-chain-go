@@ -117,11 +117,9 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 			wg.Done()
 		}
 
-		if reflect.DeepEqual(hdrStored, &hdr2) {
-			if hdr2.Signature != nil {
-				fmt.Printf("Recieved header with hash %v\n", base64.StdEncoding.EncodeToString(key))
-				wg.Done()
-			}
+		if reflect.DeepEqual(hdrStored, &hdr2) && hdr2.Signature != nil {
+			fmt.Printf("Recieved header with hash %v\n", base64.StdEncoding.EncodeToString(key))
+			wg.Done()
 		}
 	})
 
