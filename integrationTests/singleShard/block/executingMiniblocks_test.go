@@ -3,7 +3,6 @@ package block
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"testing"
 	"time"
 
@@ -73,7 +72,6 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 	mockTestingT := &testing.T{}
 	integrationTests.SyncBlock(mockTestingT, nodes, []int{idxProposer}, nonce)
 
-	runtime.Gosched()
 	time.Sleep(stepDelay)
 
 	checkCurrentBlockHeight(t, nodes, nonce-1)
