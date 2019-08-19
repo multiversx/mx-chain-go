@@ -417,3 +417,12 @@ var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator prov
 
 // ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrNilInterceptedDataFactory signals that a nil intercepted data factory was provided
+var ErrNilInterceptedDataFactory = errors.New("nil intercepted data factory")
+
+// ErrNilInterceptedDataProcessor signals that a nil intercepted data processor was provided
+var ErrNilInterceptedDataProcessor = errors.New("nil intercepted data processor")
+
+// ErrNilInterceptorThrottler signals that a nil interceptor throttler was provided
+var ErrNilInterceptorThrottler = errors.New("nil interceptor throttler")
