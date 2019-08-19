@@ -205,7 +205,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 		CheckValidCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardCalled: func() bool {
+		IsAddressedToOtherShardsCalled: func() bool {
 			return false
 		},
 	}
@@ -269,7 +269,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 		CheckValidCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardCalled: func() bool {
+		IsAddressedToOtherShardsCalled: func() bool {
 			return true
 		},
 	}
@@ -313,7 +313,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 		CheckValidCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardCalled: func() bool {
+		IsAddressedToOtherShardsCalled: func() bool {
 			return false
 		},
 	}

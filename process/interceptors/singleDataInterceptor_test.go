@@ -155,7 +155,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldN
 		CheckValidCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardCalled: func() bool {
+		IsAddressedToOtherShardsCalled: func() bool {
 			return true
 		},
 	}
@@ -195,7 +195,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		CheckValidCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardCalled: func() bool {
+		IsAddressedToOtherShardsCalled: func() bool {
 			return false
 		},
 	}
