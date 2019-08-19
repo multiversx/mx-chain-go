@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.DefaultLogger()
@@ -19,7 +18,6 @@ type MultiDataInterceptor struct {
 	processor                process.InterceptorProcessor
 	throttler                process.InterceptorThrottler
 	broadcastCallbackHandler func(buffToSend []byte)
-	shardCoordinator         sharding.Coordinator
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -28,7 +26,6 @@ func NewMultiDataInterceptor(
 	factory process.InterceptedDataFactory,
 	processor process.InterceptorProcessor,
 	throttler process.InterceptorThrottler,
-	shardCoordinator sharding.Coordinator,
 ) (*MultiDataInterceptor, error) {
 
 	if marshalizer == nil {
@@ -43,16 +40,12 @@ func NewMultiDataInterceptor(
 	if throttler == nil {
 		return nil, process.ErrNilInterceptorThrottler
 	}
-	if shardCoordinator == nil {
-		return nil, process.ErrNilShardCoordinator
-	}
 
 	multiDataIntercept := &MultiDataInterceptor{
-		marshalizer:      marshalizer,
-		factory:          factory,
-		processor:        processor,
-		throttler:        throttler,
-		shardCoordinator: shardCoordinator,
+		marshalizer: marshalizer,
+		factory:     factory,
+		processor:   processor,
+		throttler:   throttler,
 	}
 
 	return multiDataIntercept, nil
@@ -94,7 +87,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) 
 
 		//data is validated, add it to filtered out buff
 		filteredMultiDataBuff = append(filteredMultiDataBuff, dataBuff)
-		if interceptedData.IsAddressedToOtherShard(mdi.shardCoordinator) {
+		if interceptedData.IsAddressedToOtherShard() {
 			log.Debug("intercepted data is for other shards")
 			wgProcess.Done()
 			continue

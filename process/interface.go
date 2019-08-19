@@ -49,7 +49,7 @@ type InterceptedDataFactory interface {
 // InterceptedData represents the interceptor's view of the received data
 type InterceptedData interface {
 	CheckValid() error
-	IsAddressedToOtherShard(shardCoordinator sharding.Coordinator) bool
+	IsAddressedToOtherShard() bool
 }
 
 // InterceptorProcessor processes received data

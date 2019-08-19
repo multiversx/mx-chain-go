@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,7 +56,6 @@ func TestNewSingleDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.
 		nil,
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	assert.Nil(t, sdi)
@@ -71,7 +69,6 @@ func TestNewSingleDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testin
 		&mock.InterceptedDataFactoryStub{},
 		nil,
 		&mock.InterceptorThrottlerStub{},
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	assert.Nil(t, sdi)
@@ -85,25 +82,10 @@ func TestNewSingleDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T)
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		nil,
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	assert.Nil(t, sdi)
 	assert.Equal(t, process.ErrNilInterceptorThrottler, err)
-}
-
-func TestNewSingleDataInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	sdi, err := interceptors.NewSingleDataInterceptor(
-		&mock.InterceptedDataFactoryStub{},
-		&mock.InterceptorProcessorStub{},
-		&mock.InterceptorThrottlerStub{},
-		nil,
-	)
-
-	assert.Nil(t, sdi)
-	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
 func TestNewSingleDataInterceptor(t *testing.T) {
@@ -113,7 +95,6 @@ func TestNewSingleDataInterceptor(t *testing.T) {
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	assert.NotNil(t, sdi)
@@ -129,7 +110,6 @@ func TestSingleDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *test
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	err := sdi.ProcessReceivedMessage(nil)
@@ -154,7 +134,6 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 			},
 			StartMessageProcessingCalled: func() {},
 		},
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -176,7 +155,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldN
 		CheckValidCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardCalled: func(shardCoordinator sharding.Coordinator) bool {
+		IsAddressedToOtherShardCalled: func() bool {
 			return true
 		},
 	}
@@ -189,7 +168,6 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldN
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -217,7 +195,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		CheckValidCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardCalled: func(shardCoordinator sharding.Coordinator) bool {
+		IsAddressedToOtherShardCalled: func() bool {
 			return false
 		},
 	}
@@ -230,7 +208,6 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	msg := &mock.P2PMessageMock{

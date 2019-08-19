@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +21,6 @@ func TestNewMultiDataInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	assert.Nil(t, mdi)
@@ -37,7 +35,6 @@ func TestNewMultiDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.T
 		nil,
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	assert.Nil(t, mdi)
@@ -52,7 +49,6 @@ func TestNewMultiDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testing
 		&mock.InterceptedDataFactoryStub{},
 		nil,
 		&mock.InterceptorThrottlerStub{},
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	assert.Nil(t, mdi)
@@ -67,26 +63,10 @@ func TestNewMultiDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T) 
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		nil,
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	assert.Nil(t, mdi)
 	assert.Equal(t, process.ErrNilInterceptorThrottler, err)
-}
-
-func TestNewMultiDataInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	mdi, err := interceptors.NewMultiDataInterceptor(
-		&mock.MarshalizerMock{},
-		&mock.InterceptedDataFactoryStub{},
-		&mock.InterceptorProcessorStub{},
-		&mock.InterceptorThrottlerStub{},
-		nil,
-	)
-
-	assert.Nil(t, mdi)
-	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
 func TestNewMultiDataInterceptor(t *testing.T) {
@@ -97,7 +77,6 @@ func TestNewMultiDataInterceptor(t *testing.T) {
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	assert.NotNil(t, mdi)
@@ -114,7 +93,6 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testi
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	err := mdi.ProcessReceivedMessage(nil)
@@ -135,7 +113,6 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *t
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		createMockThrottler(nil, nil),
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -158,7 +135,6 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceSh
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		createMockThrottler(nil, nil),
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -190,7 +166,6 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldNotResend(t *testi
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
-		mock.NewOneShardCoordinatorMock(),
 	)
 	mdi.SetBroadcastCallback(func(buffToSend []byte) {
 		atomic.AddInt32(&broadcastNum, 1)
@@ -230,7 +205,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 		CheckValidCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardCalled: func(shardCoordinator sharding.Coordinator) bool {
+		IsAddressedToOtherShardCalled: func() bool {
 			return false
 		},
 	}
@@ -247,7 +222,6 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
-		mock.NewOneShardCoordinatorMock(),
 	)
 	mdi.SetBroadcastCallback(func(buffToSend []byte) {
 		unmarshalledBuffs := make([][]byte, 0)
@@ -295,7 +269,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 		CheckValidCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardCalled: func(shardCoordinator sharding.Coordinator) bool {
+		IsAddressedToOtherShardCalled: func() bool {
 			return true
 		},
 	}
@@ -308,7 +282,6 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	dataField, _ := marshalizer.Marshal(buffData)
@@ -340,7 +313,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 		CheckValidCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardCalled: func(shardCoordinator sharding.Coordinator) bool {
+		IsAddressedToOtherShardCalled: func() bool {
 			return false
 		},
 	}
@@ -353,7 +326,6 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	dataField, _ := marshalizer.Marshal(buffData)
