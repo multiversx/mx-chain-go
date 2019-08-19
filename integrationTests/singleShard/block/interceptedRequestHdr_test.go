@@ -136,7 +136,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	select {
 	case <-chanDone:
-	case <-time.After(time.Second * 1000):
+	case <-time.After(time.Second * 10):
 		assert.Fail(t, "timeout")
 	}
 }

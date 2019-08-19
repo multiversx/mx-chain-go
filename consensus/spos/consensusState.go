@@ -95,9 +95,15 @@ func (cns *ConsensusState) GetLeader() (string, error) {
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random
 // source for the new selection
-func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs sharding.NodesCoordinator) ([]string,
+func (cns *ConsensusState) GetNextConsensusGroup(
+	randomSource []byte,
+	round uint64,
+	shardId uint32,
+	nodesCoordinator sharding.NodesCoordinator,
+) ([]string,
 	error) {
-	validatorsGroup, err := vgs.ComputeValidatorsGroup([]byte(randomSource))
+
+	validatorsGroup, err := nodesCoordinator.ComputeValidatorsGroup(randomSource, round, shardId)
 
 	if err != nil {
 		return nil, err

@@ -939,17 +939,7 @@ func createShardCoordinator(
 	settingsConfig config.GeneralSettingsConfig,
 	log *logger.Logger,
 ) (sharding.Coordinator, core.NodeType, error) {
-
-	if pubKey == nil {
-		return nil, "", errors.New("nil public key, could not create shard coordinator")
-	}
-
-	publicKey, err := pubKey.ToByteArray()
-	if err != nil {
-		return nil, "", err
-	}
-
-	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
+	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	nodeType := core.NodeTypeValidator
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
 		nodeType = core.NodeTypeObserver

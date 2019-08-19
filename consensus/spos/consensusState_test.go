@@ -138,13 +138,17 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 
 	cns := internalInitConsensusState()
 
-	vgs := mock.NodesCoordinatorMock{}
+	nodesCoordinator := mock.NodesCoordinatorMock{}
 	err := errors.New("error")
-	vgs.ComputeValidatorsGroupCalled = func(randomness []byte) ([]sharding.Validator, error) {
+	nodesCoordinator.ComputeValidatorsGroupCalled = func(
+		randomness []byte,
+		round uint64,
+		shardId uint32,
+	) ([]sharding.Validator, error) {
 		return nil, err
 	}
 
-	_, err2 := cns.GetNextConsensusGroup("", vgs)
+	_, err2 := cns.GetNextConsensusGroup([]byte(""), 0, 0, nodesCoordinator)
 	assert.Equal(t, err, err2)
 }
 
@@ -153,9 +157,9 @@ func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	vgs := mock.NodesCoordinatorMock{}
+	nodesCoordinator := mock.NodesCoordinatorMock{}
 
-	nextConsensusGroup, err := cns.GetNextConsensusGroup("", vgs)
+	nextConsensusGroup, err := cns.GetNextConsensusGroup(nil, 0, 0, nodesCoordinator)
 	assert.Nil(t, err)
 	assert.NotNil(t, nextConsensusGroup)
 }

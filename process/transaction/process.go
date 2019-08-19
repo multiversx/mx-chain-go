@@ -216,6 +216,10 @@ func (txProc *txProcessor) processMoveBalance(
 		}
 	}
 
+	if currFeeTx == nil || currFeeTx.IsInterfaceNil() {
+		return nil
+	}
+
 	txProc.txFeeHandler.AddProcessedUTx(currFeeTx)
 
 	return nil

@@ -200,11 +200,20 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 		}
 	}
 
-	randomSource := fmt.Sprintf("%d-%s", roundIndex, core.ToB64(currentHeader.GetRandSeed()))
+	randomSeed := currentHeader.GetRandSeed()
 
-	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n", randomSource))
+	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n",
+		core.ToB64(randomSeed)),
+	)
 
-	nextConsensusGroup, err := sr.GetNextConsensusGroup(randomSource, sr.NodesCoordinator())
+	shardId := sr.ShardCoordinator().SelfId()
+
+	nextConsensusGroup, err := sr.GetNextConsensusGroup(
+		randomSeed,
+		uint64(sr.RoundIndex),
+		shardId,
+		sr.NodesCoordinator(),
+	)
 	if err != nil {
 		return err
 	}
