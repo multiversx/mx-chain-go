@@ -166,13 +166,13 @@ func TestNewMetachainHeaderInterceptor_NilNodesCoordinatorShouldErr(t *testing.T
 	t.Parallel()
 
 	metachainHeaders := &mock.CacherStub{}
-	metachainStorer := &mock.StorerStub{}
+	headerValidator := &mock.HeaderValidatorStub{}
 
 	mhi, err := interceptors.NewMetachainHeaderInterceptor(
 		&mock.MarshalizerMock{},
 		metachainHeaders,
 		&mock.Uint64SyncMapCacherStub{},
-		metachainStorer,
+		headerValidator,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
@@ -322,7 +322,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 		},
 	}
 	multisigner := mock.NewMultiSigner()
-	nodesCoordinator := createNodesCoordinator()
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
 
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		marshalizer,
@@ -406,7 +406,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsNotValidShouldNotAdd
 		},
 	}
 
-	nodesCoordinator := createNodesCoordinator()
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
 
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		marshalizer,

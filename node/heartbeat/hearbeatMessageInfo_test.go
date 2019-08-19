@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -72,10 +73,12 @@ func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpTime(t *testing.T) {
 
 	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10), false)
 	incrementalTime := int64(0)
+	mut := sync.Mutex{}
 	hbmi.getTimeHandler = func() time.Time {
+		mut.Lock()
 		tReturned := time.Unix(0, incrementalTime)
 		incrementalTime += 1
-
+		mut.Unlock()
 		return tReturned
 	}
 
@@ -83,6 +86,7 @@ func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpTime(t *testing.T) {
 
 	// send heartbeat twice in order to calculate the duration between thm
 	hbmi.HeartbeatReceived(uint32(1), "v0.1", "undefined")
+	time.Sleep(10 * time.Millisecond)
 	hbmi.HeartbeatReceived(uint32(2), "v0.1", "undefined")
 
 	assert.True(t, hbmi.totalUpTime.Duration > time.Duration(0))

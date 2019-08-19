@@ -352,6 +352,10 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 		return process.ErrWrongTypeAssertion
 	}
 
+	if stAcc.Balance.Cmp(cost) < 0 {
+		return process.ErrInsufficientFunds
+	}
+
 	totalCost := big.NewInt(0)
 	err = stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, cost))
 	if err != nil {

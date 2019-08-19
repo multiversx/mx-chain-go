@@ -177,9 +177,12 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
+
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
+		NodesCoordinator: nodesCoordinator,
 	}
 
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
@@ -195,7 +198,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 
 func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initStorage()
-	tpn.AccntState = CreateAccountsDB(0)
+	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initInterceptors()

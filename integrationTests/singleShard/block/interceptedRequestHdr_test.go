@@ -70,6 +70,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	hdr2 := block.Header{
 		Nonce:            0,
+		PubKeysBitmap:    []byte{255, 0},
+		Signature:        []byte("signature"),
 		PrevHash:         []byte("prev hash"),
 		TimeStamp:        uint64(time.Now().Unix()),
 		Round:            1,
@@ -115,9 +117,11 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 			wg.Done()
 		}
 
-		if reflect.DeepEqual(hdrStored, &hdr2) && hdr2.Signature != nil {
-			fmt.Printf("Recieved header with hash %v\n", base64.StdEncoding.EncodeToString(key))
-			wg.Done()
+		if reflect.DeepEqual(hdrStored, &hdr2) {
+			if hdr2.Signature != nil {
+				fmt.Printf("Recieved header with hash %v\n", base64.StdEncoding.EncodeToString(key))
+				wg.Done()
+			}
 		}
 	})
 
@@ -132,7 +136,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	select {
 	case <-chanDone:
-	case <-time.After(time.Second * 10):
+	case <-time.After(time.Second * 1000):
 		assert.Fail(t, "timeout")
 	}
 }

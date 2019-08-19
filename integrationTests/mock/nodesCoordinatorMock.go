@@ -41,16 +41,8 @@ func (ncm NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte) ([]st
 	return pubKeys, nil
 }
 
-func (ncm NodesCoordinatorMock) ConsensusGroupSize() int {
-	panic("implement me")
-}
-
 func (ncm NodesCoordinatorMock) SetNodesPerShards(map[uint32][]sharding.Validator) error {
 	return nil
-}
-
-func (ncm NodesCoordinatorMock) SetConsensusGroupSize(int) error {
-	panic("implement me")
 }
 
 func (ncm NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error) {

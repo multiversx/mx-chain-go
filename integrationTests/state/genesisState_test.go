@@ -299,7 +299,7 @@ func printTestDebugLines(
 }
 
 func getRootHashByRunningInitialBalances(initialBalances []*sharding.InitialBalance) ([]byte, state.AccountsAdapter) {
-	adb := integrationTests.CreateAccountsDB(0)
+	adb, _, _ := integrationTests.CreateAccountsDB(0)
 
 	uniformIndexes := make([]int, len(initialBalances))
 	for i := 0; i < len(initialBalances); i++ {

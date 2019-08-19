@@ -3,9 +3,6 @@ package state
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"math/big"
 	"testing"
 
@@ -22,26 +19,8 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	accnts, _ := adbCreateAccountsDBWithStorage()
-
-	pubKeyBuff := createDummyHexAddress(64)
-
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-
-	txProcessor, _ := transaction.NewTxProcessor(
-		accnts,
-		hasher,
-		addrConv,
-		marshalizer,
-		shardCoordinator,
-		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
-		&mock.TxTypeHandlerMock{},
-	)
-
+	accnts, _, _ := integrationTests.CreateAccountsDB(0)
+	txProcessor := integrationTests.CreateSimpleTxProcessor(accnts)
 	nonce := uint64(6)
 	balance := big.NewInt(10000)
 
@@ -50,7 +29,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	hashCreated, _ := accnts.Commit()
 
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
-	tx := &transaction2.Transaction{
+	tx := &transaction.Transaction{
 		Nonce:    nonce,
 		Value:    big.NewInt(1),
 		GasLimit: 2,
@@ -75,25 +54,8 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts, _ := adbCreateAccountsDBWithStorage()
-
-	pubKeyBuff := createDummyHexAddress(64)
-
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-
-	txProcessor, _ := transaction.NewTxProcessor(
-		accnts,
-		hasher,
-		addrConv,
-		marshalizer,
-		shardCoordinator,
-		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
-		&mock.TxTypeHandlerMock{},
-	)
+	accnts, _, _ := integrationTests.CreateAccountsDB(0)
+	txProcessor := integrationTests.CreateSimpleTxProcessor(accnts)
 
 	nonce := uint64(6)
 	balance := big.NewInt(10000)
@@ -103,7 +65,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	_, _ = accnts.Commit()
 
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
-	tx := &transaction2.Transaction{
+	tx := &transaction.Transaction{
 		Nonce:    nonce,
 		Value:    big.NewInt(1),
 		SndAddr:  address.Bytes(),
@@ -125,7 +87,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts := integrationTests.CreateAccountsDB(0)
+	accnts, _, _ := integrationTests.CreateAccountsDB(0)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
@@ -150,16 +112,7 @@ func testExecTransactionsMoreTxWithRevert(
 	initialBalance int64,
 ) {
 
-	txProcessor, _ := transaction.NewTxProcessor(
-		accnts,
-		hasher,
-		addrConv,
-		marshalizer,
-		shardCoordinator,
-		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
-		&mock.TxTypeHandlerMock{},
-	)
+	txProcessor := integrationTests.CreateSimpleTxProcessor(accnts)
 
 	txToGenerate := 15000
 	gasPrice := uint64(2)
@@ -167,7 +120,7 @@ func testExecTransactionsMoreTxWithRevert(
 	value := uint64(1)
 	//Step 1. execute a lot moving transactions from pubKeyBuff to another pubKeyBuff
 	for i := 0; i < txToGenerate; i++ {
-		tx := &transaction2.Transaction{
+		tx := &transaction.Transaction{
 			Nonce:    initialNonce + uint64(i),
 			Value:    big.NewInt(int64(value)),
 			GasPrice: gasPrice,
@@ -220,7 +173,7 @@ func testExecTransactionsMoreTxWithRevert(
 func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts := integrationTests.CreateAccountsDB(0)
+	accnts, _, _ := integrationTests.CreateAccountsDB(0)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)

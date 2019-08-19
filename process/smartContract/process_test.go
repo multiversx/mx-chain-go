@@ -1426,7 +1426,7 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 	t.Parallel()
 
 	sc, err := NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},

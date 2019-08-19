@@ -58,7 +58,7 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 
 	integrationTests.SyncBlock(t, nodes, []int{idxProposer}, nonce)
 
-	time.Sleep(stepDelay)
+	time.Sleep(20 * stepDelay)
 
 	checkCurrentBlockHeight(t, nodes, nonce)
 

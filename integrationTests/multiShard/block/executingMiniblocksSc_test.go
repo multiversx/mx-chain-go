@@ -36,57 +36,15 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
-	numMetaChainNodes := 1
-	cp := integrationTests.CreateCryptoParams(1, numMetaChainNodes, maxShards)
-	keysMap := integrationTests.PubKeysMapFromKeysMap(cp.Keys)
-	validatorsMap := integrationTests.GenValidatorsFromPubKeys(keysMap)
-
-	nodesCoordinator0, _ := sharding.NewIndexHashedNodesCoordinator(
-		1,
-		1,
-		integrationTests.TestHasher,
-		0,
-		maxShards,
-		validatorsMap,
-	)
-
-	nodeShard0 := integrationTests.NewTestProcessorNodeWithCustomNodesCoordinator(
-		maxShards,
-		0,
-		advertiserAddr,
-		nodesCoordinator0,
-		cp,
-		0,
-	)
-
-	nodesCoordinator1, _ := sharding.NewIndexHashedNodesCoordinator(
-		1,
-		1,
-		integrationTests.TestHasher,
-		1,
-		maxShards,
-		validatorsMap,
-	)
-
-	nodeShard1 := integrationTests.NewTestProcessorNodeWithCustomNodesCoordinator(
-		maxShards,
-		1,
-		advertiserAddr,
-		nodesCoordinator1,
-		cp,
-		0,
-	)
+	nodeShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	nodeShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	nodeShard1.LoadTxSignSkBytes(hardCodedSk)
-	nodeMeta := integrationTests.NewTestProcessorNode(
-		maxShards,
-		sharding.MetachainShardId,
-		0,
-		advertiserAddr,
-	)
+	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
 
 	nodes := []*integrationTests.TestProcessorNode{nodeShard0, nodeShard1, nodeMeta}
+
 	idxNodeShard0 := 0
 	idxNodeShard1 := 1
 	idxNodeMeta := 2

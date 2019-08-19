@@ -128,7 +128,7 @@ func TestNewHeaderInterceptor_NilHeaderHandlerValidatorShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		&mock.NodesCoordinatorMock{},
 	)
 
 	assert.Equal(t, process.ErrNilHeaderHandlerValidator, err)
@@ -150,7 +150,7 @@ func TestNewHeaderInterceptor_NilMultiSignerShouldErr(t *testing.T) {
 		nil,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		&mock.NodesCoordinatorMock{},
 	)
 
 	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
@@ -172,7 +172,7 @@ func TestNewHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		nil,
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		&mock.NodesCoordinatorMock{},
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -194,7 +194,7 @@ func TestNewHeaderInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		nil,
-		&mock.ChronologyValidatorStub{},
+		&mock.NodesCoordinatorMock{},
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -219,7 +219,7 @@ func TestNewHeaderInterceptor_NilChronologyValidatorShouldErr(t *testing.T) {
 		nil,
 	)
 
-	assert.Equal(t, process.ErrNilChronologyValidator, err)
+	assert.Equal(t, process.ErrNilNodesCoordinator, err)
 	assert.Nil(t, hi)
 }
 
@@ -263,7 +263,7 @@ func TestHeaderInterceptor_ParseReceivedMessageNilMessageShouldErr(t *testing.T)
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		&mock.NodesCoordinatorMock{},
 	)
 
 	hdr, err := hi.ParseReceivedMessage(nil)
@@ -287,7 +287,7 @@ func TestHeaderInterceptor_ParseReceivedMessageNilDataToProcessShouldErr(t *test
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		&mock.NodesCoordinatorMock{},
 	)
 
 	msg := &mock.P2PMessageMock{}
@@ -318,7 +318,7 @@ func TestHeaderInterceptor_ParseReceivedMessageMarshalizerErrorsAtUnmarshalingSh
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ChronologyValidatorStub{},
+		&mock.NodesCoordinatorMock{},
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -338,11 +338,9 @@ func TestHeaderInterceptor_ParseReceivedMessageSanityCheckFailedShouldErr(t *tes
 	multisigner := mock.NewMultiSigner()
 	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
-			return nil
-		},
-	}
+
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	hasher := mock.HasherMock{}
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
@@ -350,12 +348,12 @@ func TestHeaderInterceptor_ParseReceivedMessageSanityCheckFailedShouldErr(t *tes
 		headersNonces,
 		headerValidator,
 		multisigner,
-		mock.HasherMock{},
+		hasher,
 		mock.NewOneShardCoordinatorMock(),
-		chronologyValidator,
+		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, hasher)
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
@@ -381,11 +379,9 @@ func TestHeaderInterceptor_ParseReceivedMessageValsOkShouldWork(t *testing.T) {
 	multisigner := mock.NewMultiSigner()
 	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64SyncMapCacherStub{}
-	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
-			return nil
-		},
-	}
+
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	hasher := mock.HasherMock{}
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
@@ -393,16 +389,16 @@ func TestHeaderInterceptor_ParseReceivedMessageValsOkShouldWork(t *testing.T) {
 		headersNonces,
 		headerValidator,
 		multisigner,
-		mock.HasherMock{},
+		hasher,
 		mock.NewOneShardCoordinatorMock(),
-		chronologyValidator,
+		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, hasher)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
-	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.PubKeysBitmap = []byte{1}
 	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
@@ -536,11 +532,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T) {
 	testedNonce := uint64(67)
 	headers := &mock.CacherStub{}
 	multisigner := mock.NewMultiSigner()
-	chronologyValidator := &mock.ChronologyValidatorStub{
-		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
-			return nil
-		},
-	}
 
 	headerValidator := &mock.HeaderValidatorStub{
 		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
@@ -549,6 +540,8 @@ func TestHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T) {
 	}
 
 	hdrsNonces := &mock.Uint64SyncMapCacherStub{}
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	hasher := mock.HasherMock{}
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
@@ -556,16 +549,16 @@ func TestHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T) {
 		hdrsNonces,
 		headerValidator,
 		multisigner,
-		mock.HasherMock{},
-		mock.NewMultiShardsCoordinatorMock(2),
-		chronologyValidator,
+		hasher,
+		mock.NewOneShardCoordinatorMock(),
+		nodesCoordinator,
 	)
 
-	hdr := block.NewInterceptedHeader(multisigner, chronologyValidator)
+	hdr := block.NewInterceptedHeader(multisigner, nodesCoordinator, marshalizer, hasher)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
-	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.PubKeysBitmap = []byte{1}
 	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))

@@ -89,6 +89,10 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
 
+	gasPricePerTxBigInt := big.NewInt(int64(gasPricePerTx))
+	gasLimitPerTxBigInt := big.NewInt(int64(gasLimitPerTx))
+	gasValue := big.NewInt(0).Mul(gasPricePerTxBigInt, gasLimitPerTxBigInt)
+	totalValuePerTx := big.NewInt(0).Add(gasValue, valToTransferPerTx)
 	fmt.Println("Test nodes from proposer shard to have the correct balances...")
 	for _, n := range nodes {
 		isNodeInSenderShard := n.ShardCoordinator.SelfId() == senderShard
@@ -98,7 +102,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 		//test sender balances
 		for _, sk := range sendersPrivateKeys {
-			valTransferred := big.NewInt(0).Mul(valToTransferPerTx, big.NewInt(int64(len(receiversPrivateKeys))))
+			valTransferred := big.NewInt(0).Mul(totalValuePerTx, big.NewInt(int64(len(receiversPrivateKeys))))
 			valRemaining := big.NewInt(0).Sub(valMinting, valTransferred)
 			integrationTests.TestPrivateKeyHasBalance(t, n, sk, valRemaining)
 		}

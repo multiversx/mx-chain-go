@@ -190,7 +190,7 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(accountType factory.Type) *state.AccountsDB {
+func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, storage.Storer) {
 	hasher := sha256.Sha256{}
 	store := CreateMemUnit()
 
@@ -198,7 +198,7 @@ func CreateAccountsDB(accountType factory.Type) *state.AccountsDB {
 	accountFactory, _ := factory.NewAccountFactoryCreator(accountType)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
 
-	return adb
+	return adb, tr, store
 }
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
@@ -362,7 +362,7 @@ func CreateRandomHexString(chars int) string {
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
 func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
-	adb := CreateAccountsDB(factory.UserAccount)
+	adb, _, _ := CreateAccountsDB(factory.UserAccount)
 	account, _ := state.NewAccount(adr, adb)
 
 	return adr, account, adb
@@ -653,54 +653,18 @@ func CreateNodes(
 	//first node generated will have is pk belonging to firstSkShardId
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 
-	cp := CreateCryptoParams(nodesPerShard, numMetaChainNodes, uint32(numOfShards))
-	keysMap := PubKeysMapFromKeysMap(cp.Keys)
-	validatorsMap := GenValidatorsFromPubKeys(keysMap)
-
 	idx := 0
 	for shardId := 0; shardId < numOfShards; shardId++ {
-		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
-			1,
-			1,
-			TestHasher,
-			uint32(shardId),
-			uint32(numOfShards),
-			validatorsMap,
-		)
-
 		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNodeWithCustomNodesCoordinator(
-				uint32(numOfShards),
-				uint32(shardId),
-				serviceID,
-				nodesCoordinator,
-				cp,
-				j,
-			)
+			n := NewTestProcessorNode(uint32(numOfShards), uint32(shardId), uint32(shardId), serviceID)
 
 			nodes[idx] = n
 			idx++
 		}
 	}
 
-	nodesCoordinatorMeta, _ := sharding.NewIndexHashedNodesCoordinator(
-		1,
-		1,
-		TestHasher,
-		uint32(sharding.MetachainShardId),
-		uint32(numOfShards),
-		validatorsMap,
-	)
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNodeWithCustomNodesCoordinator(
-			uint32(numOfShards),
-			sharding.MetachainShardId,
-			serviceID,
-			nodesCoordinatorMeta,
-			cp,
-			i,
-		)
-
+		metaNode := NewTestProcessorNode(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID)
 		idx := i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}
@@ -1025,7 +989,7 @@ func generateValidTx(
 	_, pkRecv, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
-	accnts := CreateAccountsDB(factory.UserAccount)
+	accnts, _, _ := CreateAccountsDB(factory.UserAccount)
 	addrSender, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
 	_, _ = accnts.GetAccountWithJournal(addrSender)
 	_, _ = accnts.Commit()
