@@ -277,6 +277,9 @@ var ErrRollbackFromGenesis = errors.New("roll back from genesis is not supported
 // ErrNoTransactionInMessage signals that no transaction was found after parsing received p2p message
 var ErrNoTransactionInMessage = errors.New("no transaction found in received message")
 
+// ErrNoDataInMessage signals that no data was found after parsing received p2p message
+var ErrNoDataInMessage = errors.New("no data found in received message")
+
 // ErrNilBuffer signals that a provided byte buffer is nil
 var ErrNilBuffer = errors.New("provided byte buffer is nil")
 
@@ -417,3 +420,12 @@ var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator prov
 
 // ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrNilInterceptedDataFactory signals that a nil intercepted data factory was provided
+var ErrNilInterceptedDataFactory = errors.New("nil intercepted data factory")
+
+// ErrNilInterceptedDataProcessor signals that a nil intercepted data processor was provided
+var ErrNilInterceptedDataProcessor = errors.New("nil intercepted data processor")
+
+// ErrNilInterceptorThrottler signals that a nil interceptor throttler was provided
+var ErrNilInterceptorThrottler = errors.New("nil interceptor throttler")
