@@ -8,9 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptors"
+	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/process/metablock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -118,13 +118,19 @@ func (icf *interceptorsContainerFactory) createTopicAndAssignHandler(
 
 func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]string, []process.Interceptor, error) {
 	identifierHdr := factory.MetachainBlocksTopic
-	metachainHeaderStorer := icf.store.GetStorer(dataRetriever.MetaBlockUnit)
+
+	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
+	// against blockchain's latest nonce - k finality
+	hdrValidator, err := dataValidators.NewNilHeaderValidator()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.MetaChainBlocks(),
 		icf.dataPool.HeadersNonces(),
-		metachainHeaderStorer,
+		hdrValidator,
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
@@ -166,12 +172,18 @@ func (icf *interceptorsContainerFactory) generateShardHeaderInterceptors() ([]st
 }
 
 func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identifier string) (process.Interceptor, error) {
-	hdrStorer := icf.store.GetStorer(dataRetriever.BlockHeaderUnit)
-	interceptor, err := metablock.NewShardHeaderInterceptor(
+	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
+	// against blockchain's latest nonce - k finality
+	hdrValidator, err := dataValidators.NewNilHeaderValidator()
+	if err != nil {
+		return nil, err
+	}
+
+	interceptor, err := interceptors.NewHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.ShardHeaders(),
 		icf.dataPool.HeadersNonces(),
-		hdrStorer,
+		hdrValidator,
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,

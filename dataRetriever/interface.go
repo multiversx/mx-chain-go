@@ -140,6 +140,11 @@ type Notifier interface {
 	RegisterHandler(func(key []byte))
 }
 
+// PeerListCreator is used to create a peer list
+type PeerListCreator interface {
+	PeerList() []p2p.PeerID
+}
+
 // ShardedDataCacherNotifier defines what a sharded-data structure can perform
 type ShardedDataCacherNotifier interface {
 	Notifier
@@ -170,8 +175,7 @@ type Uint64SyncMapCacher interface {
 	Clear()
 	Get(nonce uint64) (ShardIdHashMap, bool)
 	Merge(nonce uint64, src ShardIdHashMap)
-	RemoveNonce(nonce uint64)
-	RemoveShardId(nonce uint64, shardId uint32)
+	Remove(nonce uint64, shardId uint32)
 	RegisterHandler(handler func(nonce uint64, shardId uint32, value []byte))
 	Has(nonce uint64, shardId uint32) bool
 }

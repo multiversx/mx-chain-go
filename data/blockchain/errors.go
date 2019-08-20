@@ -12,3 +12,6 @@ var ErrHeaderUnitNil = errors.New("header unit nil")
 
 // ErrWrongTypeInSet defines the error for trying to set the wrong type
 var ErrWrongTypeInSet = errors.New("wrong type in setter")
+
+// ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
+var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")

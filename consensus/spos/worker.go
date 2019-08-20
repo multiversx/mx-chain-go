@@ -251,7 +251,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	if wrk.consensusService.IsMessageWithBlockHeader(msgType) {
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
-		errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed)
+		errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 		}
@@ -398,8 +398,8 @@ func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 func (wrk *Worker) BroadcastUnnotarisedBlocks() {
 	headers := wrk.blockTracker.UnnotarisedBlocks()
 	for _, header := range headers {
-		brodcastRound := wrk.blockTracker.BlockBroadcastRound(header.GetNonce())
-		if brodcastRound >= wrk.consensusState.RoundIndex-MaxRoundsGap {
+		broadcastRound := wrk.blockTracker.BlockBroadcastRound(header.GetNonce())
+		if broadcastRound >= wrk.consensusState.RoundIndex-MaxRoundsGap {
 			continue
 		}
 

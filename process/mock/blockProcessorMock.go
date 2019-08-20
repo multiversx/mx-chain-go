@@ -12,15 +12,15 @@ type BlockProcessorMock struct {
 	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func()
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
-	CreateBlockCalled                func(round uint32, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockCalled                func(round uint64, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	noShards                         uint32
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	CreateBlockHeaderCalled          func(body data.BodyHandler, round uint32, haveTime func() bool) (data.HeaderHandler, error)
-	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
+	CreateBlockHeaderCalled          func(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
+	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
-	SetLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
+	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 }
 
 func (bpm *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
@@ -39,7 +39,7 @@ func (blProcMock BlockProcessorMock) CreateGenesisBlock(balances map[string]*big
 	return blProcMock.CreateGenesisBlockCalled(balances)
 }
 
-func (blProcMock BlockProcessorMock) CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error) {
+func (blProcMock BlockProcessorMock) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
 	return blProcMock.CreateBlockCalled(round, haveTime)
 }
 
@@ -47,11 +47,11 @@ func (blProcMock BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHan
 	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
 }
 
-func (blProcMock BlockProcessorMock) CreateBlockHeader(body data.BodyHandler, round uint32, haveTime func() bool) (data.HeaderHandler, error) {
+func (blProcMock BlockProcessorMock) CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
 	return blProcMock.CreateBlockHeaderCalled(body, round, haveTime)
 }
 
-func (blProcMock BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
+func (blProcMock BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return blProcMock.MarshalizedDataToBroadcastCalled(header, body)
 }
 
@@ -63,6 +63,6 @@ func (blProcMock BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHa
 	return blProcMock.DecodeBlockHeaderCalled(dta)
 }
 
-func (blProcMock BlockProcessorMock) SetLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
-	blProcMock.SetLastNotarizedHdrCalled(shardId, processedHdr)
+func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
+	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }

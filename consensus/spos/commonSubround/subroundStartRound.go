@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var log = logger.DefaultLogger()
@@ -19,6 +20,8 @@ type SubroundStartRound struct {
 	getSubroundName               func(subroundId int) string
 	executeStoredMessages         func()
 	broadcastUnnotarisedBlocks    func()
+
+	appStatusHandler core.AppStatusHandler
 }
 
 // NewSubroundStartRound creates a SubroundStartRound object
@@ -44,6 +47,7 @@ func NewSubroundStartRound(
 		getSubroundName,
 		executeStoredMessages,
 		broadcastUnnotarisedBlocks,
+		statusHandler.NewNilStatusHandler(),
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -69,6 +73,16 @@ func checkNewSubroundStartRoundParams(
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
+}
+
+// SetAppStatusHandler method set appStatusHandler
+func (sr *SubroundStartRound) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return spos.ErrNilAppStatusHandler
+	}
+
+	sr.appStatusHandler = ash
+	return nil
 }
 
 // doStartRoundJob method does the job of the subround StartRound
@@ -121,6 +135,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	msg := ""
 	if leader == sr.SelfPubKey() {
+		sr.appStatusHandler.Increment(core.MetricCountLeader)
 		msg = " (my turn)"
 	}
 
@@ -138,6 +153,8 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 		return false
 	}
+
+	sr.appStatusHandler.Increment(core.MetricCountConsensus)
 
 	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))
 	if err != nil {
@@ -172,7 +189,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	return true
 }
 
-func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error {
+func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error {
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
 	if currentHeader == nil {
 		currentHeader = sr.Blockchain().GetGenesisHeader()
@@ -181,7 +198,7 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 		}
 	}
 
-	randomSource := fmt.Sprintf("%d-%s", roundIndex, toB64(currentHeader.GetRandSeed()))
+	randomSource := fmt.Sprintf("%d-%s", roundIndex, core.ToB64(currentHeader.GetRandSeed()))
 
 	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n", randomSource))
 

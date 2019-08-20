@@ -1,14 +1,27 @@
 package preprocess
 
 import (
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
+
+func haveTime() time.Duration {
+	return time.Duration(2000 * time.Millisecond)
+}
+
+func haveTimeTrue() bool {
+	return true
+}
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T) {
 	t.Parallel()
@@ -170,6 +183,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilRequestFunc(t *te
 
 func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 	t.Parallel()
+
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, _ := NewSmartContractResultPreprocessor(
@@ -182,26 +196,31 @@ func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 	)
+
 	txHash := []byte("tx1_hash")
-	tx := txs.getTransactionFromPool(1, 1, txHash, tdp.UnsignedTransactions())
+	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, tdp.UnsignedTransactions())
+	assert.NotNil(t, txs)
 	assert.NotNil(t, tx)
 	assert.Equal(t, uint64(10), tx.(*smartContractResult.SmartContractResult).Nonce)
 }
 
-func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
+func TestScrsPreprocessor_RequestTransactionNothingToRequestAsGeneratedAtProcessing(t *testing.T) {
 	t.Parallel()
+
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	txs, _ := NewSmartContractResultPreprocessor(
 		tdp.Transactions(),
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
+		shardCoord,
 		&mock.AccountsStub{},
 		requestTransaction,
 	)
+
 	shardId := uint32(1)
 	txHash1 := []byte("tx_hash1")
 	txHash2 := []byte("tx_hash2")
@@ -209,14 +228,49 @@ func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
-	mBlk := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
+	mBlk := block.MiniBlock{SenderShardID: shardCoord.SelfId(), ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
 	body = append(body, &mBlk)
+
 	txsRequested := txs.RequestBlockTransactions(body)
+
+	assert.Equal(t, 0, txsRequested)
+}
+
+func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
+	txs, _ := NewSmartContractResultPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		shardCoord,
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+
+	shardId := uint32(1)
+	txHash1 := []byte("tx_hash1")
+	txHash2 := []byte("tx_hash2")
+	body := make(block.Body, 0)
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash1)
+	txHashes = append(txHashes, txHash2)
+	mBlk := block.MiniBlock{SenderShardID: shardCoord.SelfId() + 1, ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
+	body = append(body, &mBlk)
+
+	txsRequested := txs.RequestBlockTransactions(body)
+
 	assert.Equal(t, 2, txsRequested)
 }
 
 func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testing.T) {
 	t.Parallel()
+
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, _ := NewSmartContractResultPreprocessor(
@@ -237,7 +291,9 @@ func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *tes
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
 	mb := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
+
 	txsRequested := txs.RequestTransactionsForMiniBlock(mb)
+
 	assert.Equal(t, 2, txsRequested)
 }
 
@@ -345,11 +401,12 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		Type:            block.SmartContractResultBlock,
 	}
 
-	txsRetrieved, txHashesRetrieved, err := txs.getAllScrsFromMiniBlock(mb, func() bool { return true })
+	txsRetrieved, txHashesRetrieved, err := txs.getAllScrsFromMiniBlock(mb, haveTimeTrue)
 
 	assert.Nil(t, err)
 	assert.Equal(t, len(transactions), len(txsRetrieved))
 	assert.Equal(t, len(transactions), len(txHashesRetrieved))
+
 	for idx, tx := range transactions {
 		//txReceived should be all txs in the same order
 		assert.Equal(t, txsRetrieved[idx], tx)
@@ -360,6 +417,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 
 func TestScrsPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 	t.Parallel()
+
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, _ := NewSmartContractResultPreprocessor(
@@ -372,13 +430,16 @@ func TestScrsPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) 
 		&mock.AccountsStub{},
 		requestTransaction,
 	)
+
 	err := txs.RemoveTxBlockFromPools(nil, tdp.MiniBlocks())
+
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilTxBlockBody)
 }
 
 func TestScrsPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 	t.Parallel()
+
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txs, _ := NewSmartContractResultPreprocessor(
@@ -391,6 +452,7 @@ func TestScrsPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 	)
+
 	body := make(block.Body, 0)
 	txHash := []byte("txHash")
 	txHashes := make([][]byte, 0)
@@ -400,7 +462,365 @@ func TestScrsPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		SenderShardID:   0,
 		TxHashes:        txHashes,
 	}
+
 	body = append(body, &miniblock)
+
 	err := txs.RemoveTxBlockFromPools(body, tdp.MiniBlocks())
+
 	assert.Nil(t, err)
+
+}
+
+func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+
+	txs, _ := NewSmartContractResultPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+
+	err := txs.IsDataPrepared(1, haveTime)
+
+	assert.Equal(t, process.ErrTimeIsOut, err)
+}
+
+func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+
+	txs, _ := NewSmartContractResultPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		txs.chRcvAllScrs <- true
+	}()
+
+	err := txs.IsDataPrepared(1, haveTime)
+
+	assert.Nil(t, err)
+}
+
+func TestScrsPreprocessor_SaveTxBlockToStorage(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+
+	txs, _ := NewSmartContractResultPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+
+	body := make(block.Body, 0)
+
+	txHash := []byte("txHash")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        txHashes,
+	}
+
+	body = append(body, &miniblock)
+
+	err := txs.SaveTxBlockToStorage(body)
+	assert.Nil(t, err)
+}
+
+func TestScrsPreprocessor_SaveTxBlockToStorageMissingTransactionsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	txs, _ := NewSmartContractResultPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+
+	body := make(block.Body, 0)
+
+	txHash := []byte(nil)
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        txHashes,
+		Type:            block.SmartContractResultBlock,
+	}
+
+	body = append(body, &miniblock)
+
+	err := txs.SaveTxBlockToStorage(body)
+
+	assert.Equal(t, process.ErrMissingTransaction, err)
+}
+
+func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	scr, _ := NewSmartContractResultPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{
+			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) error {
+				return nil
+			},
+		},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+
+	body := make(block.Body, 0)
+
+	txHash := []byte("txHash")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        txHashes,
+		Type:            block.SmartContractResultBlock,
+	}
+
+	body = append(body, &miniblock)
+
+	scr.AddScrHashToRequestedList([]byte("txHash"))
+	txshardInfo := txShardInfo{0, 0}
+	smartcr := smartContractResult.SmartContractResult{
+		Nonce: 1,
+		Data:  "tx",
+	}
+
+	scr.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&smartcr, &txshardInfo}
+
+	err := scr.ProcessBlockTransactions(body, 1, haveTime)
+
+	assert.Nil(t, err)
+}
+
+func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+
+	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{
+			RegisterHandlerCalled: func(i func(key []byte)) {},
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+				return &mock.CacherStub{
+					PeekCalled: func(key []byte) (value interface{}, ok bool) {
+						if reflect.DeepEqual(key, []byte("tx1_hash")) {
+							return &smartContractResult.SmartContractResult{Nonce: 10}, true
+						}
+						return nil, false
+					},
+				}
+			},
+		}
+	}
+
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+
+	scr, _ := NewSmartContractResultPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{
+			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) error {
+				return nil
+			},
+		},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+
+	body := make(block.Body, 0)
+	txHash := []byte("tx1_hash")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        txHashes,
+		Type:            block.SmartContractResultBlock,
+	}
+
+	body = append(body, &miniblock)
+
+	err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, 1)
+
+	assert.Nil(t, err)
+}
+
+func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+
+	scr, _ := NewSmartContractResultPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+
+	body := make(block.Body, 0)
+
+	txHash := []byte("tx1_hash")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+	}
+
+	body = append(body, &miniblock)
+
+	err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, 1)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, err, process.ErrWrongTypeInMiniBlock)
+}
+
+func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("txHash")
+	scrstorage := mock.ChainStorerMock{}
+	scrstorage.AddStorer(1, &mock.StorerStub{})
+	err := scrstorage.Put(1, txHash, txHash)
+	assert.Nil(t, err)
+
+	scrstorage.GetAllCalled = func(unitType dataRetriever.UnitType, keys [][]byte) (bytes map[string][]byte, e error) {
+		par := make(map[string][]byte)
+		tx := smartContractResult.SmartContractResult{}
+		par["txHash"], _ = json.Marshal(tx)
+		return par, nil
+	}
+
+	dataPool := mock.NewPoolsHolderFake()
+
+	shardedDataStub := &mock.ShardedDataStub{
+		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+			return
+		},
+		RegisterHandlerCalled: func(i func(key []byte)) {
+		},
+	}
+
+	dataPool.SetUnsignedTransactions(shardedDataStub)
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+
+	scr, _ := NewSmartContractResultPreprocessor(
+		dataPool.UnsignedTransactions(),
+		&scrstorage,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+
+	body := make(block.Body, 0)
+
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        txHashes,
+		Type:            block.SmartContractResultBlock,
+	}
+
+	body = append(body, &miniblock)
+	miniblockPool := mock.NewCacherMock()
+	scrRestored, miniBlockHashes, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
+
+	assert.Equal(t, miniBlockHashes[0], []uint8([]byte(nil)))
+	assert.Equal(t, scrRestored, 1)
+	assert.Nil(t, err)
+}
+
+func TestScrsPreprocessor__RestoreTxBlockIntoPoolsNilMiniblockPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+
+	scr, _ := NewSmartContractResultPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+	)
+
+	body := make(block.Body, 0)
+
+	txHash := []byte("tx1_hash")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+
+	miniblockPool := storage.Cacher(nil)
+
+	_, _, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, err, process.ErrNilMiniBlockPool)
 }

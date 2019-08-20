@@ -163,10 +163,20 @@ func (tr *patriciaMerkleTrie) VerifyProof(proofs [][]byte, key []byte) (bool, er
 	tr.mutOperation.RLock()
 	defer tr.mutOperation.RUnlock()
 
+	wantHash, err := tr.Root()
+	if err != nil {
+		return false, err
+	}
+
 	key = keyBytesToHex(key)
 	for i := range proofs {
 		encNode := proofs[i]
 		if encNode == nil {
+			return false, nil
+		}
+
+		hash := tr.hasher.Compute(string(encNode))
+		if !bytes.Equal(wantHash, hash) {
 			return false, nil
 		}
 
@@ -180,7 +190,9 @@ func (tr *patriciaMerkleTrie) VerifyProof(proofs [][]byte, key []byte) (bool, er
 			return false, nil
 		case *extensionNode:
 			key = key[len(n.Key):]
+			wantHash = n.EncodedChild
 		case *branchNode:
+			wantHash = n.EncodedChildren[key[0]]
 			key = key[1:]
 		case *leafNode:
 			if bytes.Equal(key, n.Key) {
@@ -240,6 +252,25 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 
 	newTr.root = newRoot
 	return newTr, nil
+}
+
+// DeepClone returns a new trie with all nodes deeply copied
+func (tr *patriciaMerkleTrie) DeepClone() (data.Trie, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	clonedTrie, err := NewTrie(tr.db, tr.marshalizer, tr.hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	if tr.root == nil {
+		return clonedTrie, nil
+	}
+
+	clonedTrie.root = tr.root.deepClone()
+
+	return clonedTrie, nil
 }
 
 // String outputs a graphical view of the trie. Mainly used in tests/debugging

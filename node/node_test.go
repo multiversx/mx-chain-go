@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -747,7 +748,9 @@ func TestNode_StartHeartbeatDisabledShouldNotCreateObjects(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             false,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Nil(t, err)
 	assert.Nil(t, n.HeartbeatMonitor())
@@ -764,7 +767,9 @@ func TestNode_StartHeartbeatInvalidMinTimeShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, node.ErrNegativeMinTimeToWaitBetweenBroadcastsInSec, err)
 }
@@ -778,7 +783,9 @@ func TestNode_StartHeartbeatInvalidMaxTimeShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: -1,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, node.ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec, err)
 }
@@ -792,7 +799,9 @@ func TestNode_StartHeartbeatInvalidDurationShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 1,
 		DurationInSecToConsiderUnresponsive: -1,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, node.ErrNegativeDurationInSecToConsiderUnresponsive, err)
 }
@@ -806,7 +815,9 @@ func TestNode_StartHeartbeatInvalidMaxTimeMinTimeShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 1,
 		DurationInSecToConsiderUnresponsive: 2,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, node.ErrWrongValues, err)
 }
@@ -820,7 +831,9 @@ func TestNode_StartHeartbeatInvalidMaxTimeDurationShouldErr(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 2,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, node.ErrWrongValues, err)
 }
@@ -847,13 +860,16 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithPrivKey(&mock.PrivateKeyStub{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "marshalizer")
@@ -881,13 +897,16 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithPrivKey(&mock.PrivateKeyStub{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "key generator")
@@ -907,13 +926,16 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, node.ErrValidatorAlreadySet, err)
 }
@@ -939,13 +961,16 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, errExpected, err)
 }
@@ -974,13 +999,16 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 		}),
 		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
 		node.WithPrivKey(&mock.PrivateKeyStub{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Equal(t, errExpected, err)
 }
@@ -1028,13 +1056,16 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				}
 			},
 		}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 
 	assert.Nil(t, err)
 	time.Sleep(time.Second * 3)
@@ -1078,6 +1109,7 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 				}
 			},
 		}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1085,11 +1117,69 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 	assert.Nil(t, err)
 
 	elements := n.HeartbeatMonitor().GetHeartbeats()
 	assert.Equal(t, 3, len(elements))
+}
+
+func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(&mock.MarshalizerMock{
+			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
+				return make([]byte, 0), nil
+			},
+		}),
+		node.WithSingleSigner(&mock.SinglesignMock{}),
+		node.WithKeyGen(&mock.KeyGenMock{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicValidatorCalled: func(name string) bool {
+				return false
+			},
+			HasTopicCalled: func(name string) bool {
+				return false
+			},
+			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				return nil
+			},
+			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+				return nil
+			},
+			BroadcastCalled: func(topic string, buff []byte) {
+			},
+		}),
+		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1", "pk2"}, 1: {"pk3"}}),
+		node.WithPrivKey(&mock.PrivateKeyStub{
+			GeneratePublicHandler: func() crypto.PublicKey {
+				return &mock.PublicKeyMock{
+					ToByteArrayHandler: func() (i []byte, e error) {
+						return []byte("pk1"), nil
+					},
+				}
+			},
+		}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+	)
+
+	err := n.StartHeartbeat(config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+	}, "v0.1",
+		"undefined",
+	)
+	assert.Nil(t, err)
+
+	elements := n.HeartbeatMonitor().GetHeartbeats()
+	for _, status := range elements {
+		assert.True(t, status.IsValidator)
+	}
 }
 
 func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
@@ -1132,6 +1222,7 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 				}
 			},
 		}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1139,7 +1230,9 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
-	})
+	}, "v0.1",
+		"undefined",
+	)
 	assert.Nil(t, err)
 	assert.NotNil(t, registeredHandler)
 
@@ -1212,7 +1305,7 @@ func TestNode_CreateMetaGenesisBlockShouldCreateSaveAndStoreMetaBlock(t *testing
 	assert.NotNil(t, storedHeaderHash)
 
 	assert.Equal(t, uint64(0), savedHeader.Nonce)
-	assert.Equal(t, uint32(0), savedHeader.Round)
+	assert.Equal(t, uint64(0), savedHeader.Round)
 
 	//test saved data matches
 	marshalizedSavedHeader, _ := testMarshalizer.Marshal(savedHeader)
@@ -1351,4 +1444,108 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, accnt, recovAccnt)
+}
+
+func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
+	t.Parallel()
+
+	metricKey := core.MetricCurrentRound
+	incrementCalled := make(chan bool, 1)
+
+	// create a prometheus status handler which will be passed to the facade
+	appStatusHandlerStub := mock.AppStatusHandlerStub{
+		IncrementHandler: func(key string) {
+			incrementCalled <- true
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithAppStatusHandler(&appStatusHandlerStub))
+	asf := n.GetAppStatusHandler()
+
+	asf.Increment(metricKey)
+
+	select {
+	case <-incrementCalled:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Timeout - function not called")
+	}
+}
+
+func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
+	t.Parallel()
+
+	metricKey := core.MetricCurrentRound
+	decrementCalled := make(chan bool, 1)
+
+	// create a prometheus status handler which will be passed to the facade
+	appStatusHandlerStub := mock.AppStatusHandlerStub{
+		DecrementHandler: func(key string) {
+			decrementCalled <- true
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithAppStatusHandler(&appStatusHandlerStub))
+	asf := n.GetAppStatusHandler()
+
+	asf.Decrement(metricKey)
+
+	select {
+	case <-decrementCalled:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Timeout - function not called")
+	}
+}
+
+func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
+	t.Parallel()
+
+	metricKey := core.MetricCurrentRound
+	setInt64ValueCalled := make(chan bool, 1)
+
+	// create a prometheus status handler which will be passed to the facade
+	appStatusHandlerStub := mock.AppStatusHandlerStub{
+		SetInt64ValueHandler: func(key string, value int64) {
+			setInt64ValueCalled <- true
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithAppStatusHandler(&appStatusHandlerStub))
+	asf := n.GetAppStatusHandler()
+
+	asf.SetInt64Value(metricKey, int64(1))
+
+	select {
+	case <-setInt64ValueCalled:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Timeout - function not called")
+	}
+}
+
+func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
+	t.Parallel()
+
+	metricKey := core.MetricCurrentRound
+	setUInt64ValueCalled := make(chan bool, 1)
+
+	// create a prometheus status handler which will be passed to the facade
+	appStatusHandlerStub := mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			setUInt64ValueCalled <- true
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithAppStatusHandler(&appStatusHandlerStub))
+	asf := n.GetAppStatusHandler()
+
+	asf.SetUInt64Value(metricKey, uint64(1))
+
+	select {
+	case <-setUInt64ValueCalled:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Timeout - function not called")
+	}
 }

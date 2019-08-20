@@ -5,18 +5,33 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-var txCounterMutex = sync.RWMutex{}
-var txsCurrentBlockProcessed = 0
-var txsTotalProcessed = 0
+type transactionCounter struct {
+	mutex           sync.RWMutex
+	currentBlockTxs int
+	totalTxs        int
+}
 
-// GetNumTxsWithDst returns the number of transactions for a certain destination shard
-func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
+// NewTransactionCounter returns a new object that keeps track of how many transactions
+// were executed in total, and in the current block
+func NewTransactionCounter() *transactionCounter {
+	return &transactionCounter{
+		mutex:           sync.RWMutex{},
+		currentBlockTxs: 0,
+		totalTxs:        0,
+	}
+}
+
+// getNumTxsFromPool returns the number of transactions from pool for a given shard
+func (txc *transactionCounter) getNumTxsFromPool(shardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
 	txPool := dataPool.Transactions()
 	if txPool == nil {
 		return 0
@@ -24,27 +39,42 @@ func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrS
 
 	sumTxs := 0
 
+	strCache := process.ShardCacherIdentifier(shardId, shardId)
+	txStore := txPool.ShardDataStore(strCache)
+	if txStore != nil {
+		sumTxs += txStore.Len()
+	}
+
 	for i := uint32(0); i < nrShards; i++ {
-		strCache := process.ShardCacherIdentifier(i, dstShardId)
-		txStore := txPool.ShardDataStore(strCache)
-		if txStore == nil {
+		if i == shardId {
 			continue
 		}
-		sumTxs += txStore.Len()
+
+		strCache = process.ShardCacherIdentifier(i, shardId)
+		txStore = txPool.ShardDataStore(strCache)
+		if txStore != nil {
+			sumTxs += txStore.Len()
+		}
+
+		strCache = process.ShardCacherIdentifier(shardId, i)
+		txStore = txPool.ShardDataStore(strCache)
+		if txStore != nil {
+			sumTxs += txStore.Len()
+		}
 	}
 
 	return sumTxs
 }
 
-// SubstractRestoredTxs updated the total processed txs in case of restore
-func SubstractRestoredTxs(txsNr int) {
-	txCounterMutex.Lock()
-	txsTotalProcessed = txsTotalProcessed - txsNr
-	txCounterMutex.Unlock()
+// substractRestoredTxs updated the total processed txs in case of restore
+func (txc *transactionCounter) substractRestoredTxs(txsNr int) {
+	txc.mutex.Lock()
+	txc.totalTxs = txc.totalTxs - txsNr
+	txc.mutex.Unlock()
 }
 
-// DisplayLogInfo writes to the output information about the block and transactions
-func DisplayLogInfo(
+// displayLogInfo writes to the output information about the block and transactions
+func (txc *transactionCounter) displayLogInfo(
 	header *block.Header,
 	body block.Body,
 	headerHash []byte,
@@ -52,7 +82,7 @@ func DisplayLogInfo(
 	selfId uint32,
 	dataPool dataRetriever.PoolsHolder,
 ) {
-	dispHeader, dispLines := createDisplayableShardHeaderAndBlockBody(header, body)
+	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
@@ -60,21 +90,21 @@ func DisplayLogInfo(
 		return
 	}
 
-	txCounterMutex.RLock()
+	txc.mutex.RLock()
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\n"+
 		"Total txs processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n\n"+
 		"Total shards: %d. Current shard id: %d\n",
 		core.ToB64(headerHash),
-		txsTotalProcessed,
-		txsCurrentBlockProcessed,
-		GetNumTxsWithDst(selfId, dataPool, numShards),
+		txc.totalTxs,
+		txc.currentBlockTxs,
+		txc.getNumTxsFromPool(selfId, dataPool, numShards),
 		numShards,
 		selfId)
-	txCounterMutex.RUnlock()
+	txc.mutex.RUnlock()
 	log.Info(tblString)
 }
 
-func createDisplayableShardHeaderAndBlockBody(
+func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 	header *block.Header,
 	body block.Body,
 ) ([]string, []*display.LineData) {
@@ -95,7 +125,8 @@ func createDisplayableShardHeaderAndBlockBody(
 	shardLines = append(shardLines, lines...)
 
 	if header.BlockBodyType == block.TxBlock {
-		shardLines = displayTxBlockBody(shardLines, body)
+		shardLines = txc.displayMetaHashesIncluded(shardLines, header)
+		shardLines = txc.displayTxBlockBody(shardLines, body)
 
 		return tableHeader, shardLines
 	}
@@ -106,10 +137,41 @@ func createDisplayableShardHeaderAndBlockBody(
 	return tableHeader, shardLines
 }
 
-func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.LineData {
-	txCounterMutex.Lock()
-	txsCurrentBlockProcessed = 0
-	txCounterMutex.Unlock()
+func (txc *transactionCounter) displayMetaHashesIncluded(
+	lines []*display.LineData,
+	header *block.Header,
+) []*display.LineData {
+
+	if header.MetaBlockHashes == nil || len(header.MetaBlockHashes) == 0 {
+		return lines
+	}
+
+	part := fmt.Sprintf("MetaBlockHashes")
+	for i := 0; i < len(header.MetaBlockHashes); i++ {
+		if i == 0 || i >= len(header.MetaBlockHashes)-1 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part,
+				fmt.Sprintf("MetaBlockHash_%d", i+1),
+				core.ToB64(header.MetaBlockHashes[i])}))
+
+			part = ""
+		} else if i == 1 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part,
+				fmt.Sprintf("..."),
+				fmt.Sprintf("...")}))
+
+			part = ""
+		}
+	}
+
+	lines[len(lines)-1].HorizontalRuleAfter = true
+
+	return lines
+}
+
+func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.LineData {
+	currentBlockTxs := 0
 
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -121,10 +183,7 @@ func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.L
 				part, "", "<EMPTY>"}))
 		}
 
-		txCounterMutex.Lock()
-		txsCurrentBlockProcessed += len(miniBlock.TxHashes)
-		txsTotalProcessed += len(miniBlock.TxHashes)
-		txCounterMutex.Unlock()
+		currentBlockTxs += len(miniBlock.TxHashes)
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if j == 0 || j >= len(miniBlock.TxHashes)-1 {
@@ -147,5 +206,30 @@ func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.L
 		lines[len(lines)-1].HorizontalRuleAfter = true
 	}
 
+	txc.mutex.Lock()
+	txc.currentBlockTxs = currentBlockTxs
+	txc.totalTxs += currentBlockTxs
+	txc.mutex.Unlock()
+
 	return lines
+}
+
+func DisplayLastNotarized(
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	lastNotarizedHdrForShard data.HeaderHandler,
+	shardId uint32) {
+	lastNotarizedHdrHashForShard, errNotCritical := core.CalculateHash(
+		marshalizer,
+		hasher,
+		lastNotarizedHdrForShard)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+
+	log.Info(fmt.Sprintf("last notarized block from shard %d has: round = %d, nonce = %d, hash = %s\n",
+		shardId,
+		lastNotarizedHdrForShard.GetRound(),
+		lastNotarizedHdrForShard.GetNonce(),
+		core.ToB64(lastNotarizedHdrHashForShard)))
 }

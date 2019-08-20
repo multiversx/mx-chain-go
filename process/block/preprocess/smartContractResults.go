@@ -172,7 +172,7 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 }
 
 // ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state
-func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error {
+func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error {
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -274,7 +274,19 @@ func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
 
 // computeMissingAndExistingScrsForShards calculates what smartContractResults are available and what are missing from block.Body
 func (scr *smartContractResults) computeMissingAndExistingScrsForShards(body block.Body) map[uint32]*txsHashesInfo {
-	missingTxsForShard := scr.computeExistingAndMissing(body, &scr.scrForBlock, scr.chRcvAllScrs, block.SmartContractResultBlock, scr.scrPool)
+	onlyScrFromOthersBody := block.Body{}
+	for _, mb := range body {
+		if mb.Type != block.SmartContractResultBlock {
+			continue
+		}
+		if mb.SenderShardID == scr.shardCoordinator.SelfId() {
+			continue
+		}
+
+		onlyScrFromOthersBody = append(onlyScrFromOthersBody, mb)
+	}
+
+	missingTxsForShard := scr.computeExistingAndMissing(onlyScrFromOthersBody, &scr.scrForBlock, scr.chRcvAllScrs, block.SmartContractResultBlock, scr.scrPool)
 
 	return missingTxsForShard
 }
@@ -283,7 +295,7 @@ func (scr *smartContractResults) computeMissingAndExistingScrsForShards(body blo
 func (scr *smartContractResults) processSmartContractResult(
 	smartContractResultHash []byte,
 	smartContractResult *smartContractResult.SmartContractResult,
-	round uint32,
+	round uint64,
 	sndShardId uint32,
 	dstShardId uint32,
 ) error {
@@ -317,7 +329,12 @@ func (scr *smartContractResults) computeMissingScrsForMiniBlock(mb block.MiniBlo
 	}
 
 	for _, txHash := range mb.TxHashes {
-		tx := scr.getTransactionFromPool(mb.SenderShardID, mb.ReceiverShardID, txHash, scr.scrPool)
+		tx, _ := process.GetTransactionHandlerFromPool(
+			mb.SenderShardID,
+			mb.ReceiverShardID,
+			txHash,
+			scr.scrPool)
+
 		if tx == nil {
 			missingSmartContractResults = append(missingSmartContractResults, txHash)
 		}
@@ -364,12 +381,12 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the smartContractResults added into the miniblock
-func (scr *smartContractResults) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error) {
+func (scr *smartContractResults) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
 	return nil, nil
 }
 
 // ProcessMiniBlock processes all the smartContractResults from a and saves the processed smartContractResults in local cache complete miniblock
-func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error {
+func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {
 	if miniBlock.Type != block.SmartContractResultBlock {
 		return process.ErrWrongTypeInMiniBlock
 	}

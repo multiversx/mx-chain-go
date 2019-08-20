@@ -146,6 +146,8 @@ type HeartbeatConfig struct {
 type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
 	NetworkID                  string
+	StatusPollingIntervalSec   int
+	NodeDisplayName            string
 }
 
 // ExplorerConfig will hold the configuration for the explorer indexer
@@ -176,6 +178,8 @@ type ElasticSearchConfig struct {
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
 type FacadeConfig struct {
 	RestApiPort       string
+	PprofEnabled      bool
 	Prometheus        bool
 	PrometheusJoinURL string
+	PrometheusJobName string
 }

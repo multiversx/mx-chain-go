@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,15 +13,14 @@ import (
 func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
-	accDB := createInMemoryShardAccountsDB()
-	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "")
+	accDB, _, _ := integrationTests.CreateAccountsDB(nil)
 
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accDB),
-		node.WithAddressConverter(addrConv),
+		node.WithAddressConverter(integrationTests.TestAddressConverter),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, err := n.GetAccount(integrationTests.CreateRandomHexString(64))
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(0), recovAccnt.Nonce)
@@ -33,12 +32,11 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	accDB := createInMemoryShardAccountsDB()
-	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "")
+	accDB, _, _ := integrationTests.CreateAccountsDB(nil)
 
-	addressHex := createDummyHexAddress(64)
+	addressHex := integrationTests.CreateRandomHexString(64)
 	addressBytes, _ := hex.DecodeString(addressHex)
-	address, _ := addrConv.CreateAddressFromPublicKeyBytes(addressBytes)
+	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(addressBytes)
 
 	nonce := uint64(2233)
 	account, _ := accDB.GetAccountWithJournal(address)
@@ -48,7 +46,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accDB),
-		node.WithAddressConverter(addrConv),
+		node.WithAddressConverter(integrationTests.TestAddressConverter),
 	)
 
 	recovAccnt, err := n.GetAccount(addressHex)

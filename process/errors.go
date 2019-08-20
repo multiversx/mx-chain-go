@@ -94,8 +94,8 @@ var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 // ErrBlockHashDoesNotMatch signals the hash of the block is not matching with the previous one
 var ErrBlockHashDoesNotMatch = errors.New("block hash does not match")
 
-// ErrNotarizedBlockHashDoesNotMatch signals the hash of the notarized block is not matching with the previous one
-var ErrNotarizedBlockHashDoesNotMatch = errors.New("notarized block hash does not match")
+// ErrHashDoesNotMatchInOtherChainBlock signals that header hash for one shard is not match with the previous one
+var ErrHashDoesNotMatchInOtherChainBlock = errors.New("block hash does not match with the last committed for this shard")
 
 // ErrMissingTransaction signals that one transaction is missing
 var ErrMissingTransaction = errors.New("missing transaction")
@@ -154,6 +154,9 @@ var ErrNilMetaHeadersNoncesDataPool = errors.New("nil meta headers nonces cache"
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
+// ErrNilUint64SyncMapCacher signals that a nil Uint64SyncMapCache has been provided
+var ErrNilUint64SyncMapCacher = errors.New("nil Uint64SyncMapCacher")
+
 // ErrNilRcvAddr signals that an operation has been attempted to or with a nil receiver address
 var ErrNilRcvAddr = errors.New("nil receiver address")
 
@@ -196,6 +199,9 @@ var ErrNilTxStorage = errors.New("nil transaction storage")
 // ErrNilStorage signals that a nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
 
+// ErrNilShardedDataCacherNotifier signals that a nil sharded data cacher notifier has been provided
+var ErrNilShardedDataCacherNotifier = errors.New("nil sharded data cacher notifier")
+
 // ErrNilBlocksTracker signals that a nil blocks tracker has been provided
 var ErrNilBlocksTracker = errors.New("nil blocks tracker")
 
@@ -210,9 +216,6 @@ var ErrNilHeadersStorage = errors.New("nil headers storage")
 
 // ErrNilHeadersNonceHashStorage signals that a nil header nonce hash storage has been provided
 var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
-
-// ErrNilMetaHeadersStorage signals that a nil metachain header storage has been provided
-var ErrNilMetaHeadersStorage = errors.New("nil meta headers storage")
 
 // ErrNilBlockBodyStorage signals that a nil block body storage has been provided
 var ErrNilBlockBodyStorage = errors.New("nil block body storage")
@@ -289,8 +292,11 @@ var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 // ErrNilRequestHeaderHandlerByNonce signals that a nil header request handler by nonce func was provided
 var ErrNilRequestHeaderHandlerByNonce = errors.New("nil request header handler by nonce")
 
-// ErrLowShardHeaderRound signals that shard header round is too low for processing
-var ErrLowShardHeaderRound = errors.New("shard header round is lower than last committed for this shard")
+// ErrLowerRoundInOtherChainBlock signals that header round for one shard is too low for processing it
+var ErrLowerRoundInOtherChainBlock = errors.New("header round is lower than last committed for this shard")
+
+// ErrLowerRoundInBlock signals that a header round is too low for processing
+var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
 
 // ErrRandSeedMismatch signals that random seeds are not equal
 var ErrRandSeedMismatch = errors.New("random seeds do not match")
@@ -396,3 +402,18 @@ var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor co
 
 // ErrNilPreProcessorsContainer signals that preprocessors container is nil
 var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
+
+// ErrUnknownBlockType signals that block type is not correct
+var ErrUnknownBlockType = errors.New("block type is unknown")
+
+// ErrMissingPreProcessor signals that required pre processor is missing
+var ErrMissingPreProcessor = errors.New("pre processor is missing")
+
+// ErrNilTxHandlerValidator signals that a nil tx handler validator has been provided
+var ErrNilTxHandlerValidator = errors.New("nil tx handler validator provided")
+
+// ErrNilHeaderHandlerValidator signals that a nil header handler validator has been provided
+var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator provided")
+
+// ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
+var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")

@@ -6,21 +6,21 @@ import (
 	"github.com/cornelk/hashmap"
 )
 
-// PreProcessorsContainer is an PreProcessors holder organized by type
-type PreProcessorsContainer struct {
+// preProcessorsContainer is an PreProcessors holder organized by type
+type preProcessorsContainer struct {
 	objects *hashmap.HashMap
 }
 
 // NewPreProcessorsContainer will create a new instance of a container
-func NewPreProcessorsContainer() *PreProcessorsContainer {
-	return &PreProcessorsContainer{
+func NewPreProcessorsContainer() *preProcessorsContainer {
+	return &preProcessorsContainer{
 		objects: &hashmap.HashMap{},
 	}
 }
 
 // Get returns the object stored at a certain key.
 // Returns an error if the element does not exist
-func (ppc *PreProcessorsContainer) Get(key block.Type) (process.PreProcessor, error) {
+func (ppc *preProcessorsContainer) Get(key block.Type) (process.PreProcessor, error) {
 	value, ok := ppc.objects.Get(uint8(key))
 	if !ok {
 		return nil, process.ErrInvalidContainerKey
@@ -36,7 +36,7 @@ func (ppc *PreProcessorsContainer) Get(key block.Type) (process.PreProcessor, er
 
 // Add will add an object at a given key. Returns
 // an error if the element already exists
-func (ppc *PreProcessorsContainer) Add(key block.Type, preProcessor process.PreProcessor) error {
+func (ppc *preProcessorsContainer) Add(key block.Type, preProcessor process.PreProcessor) error {
 	if preProcessor == nil {
 		return process.ErrNilContainerElement
 	}
@@ -52,7 +52,7 @@ func (ppc *PreProcessorsContainer) Add(key block.Type, preProcessor process.PreP
 
 // AddMultiple will add objects with given keys. Returns
 // an error if one element already exists, lengths mismatch or an interceptor is nil
-func (ppc *PreProcessorsContainer) AddMultiple(keys []block.Type, PreProcessors []process.PreProcessor) error {
+func (ppc *preProcessorsContainer) AddMultiple(keys []block.Type, PreProcessors []process.PreProcessor) error {
 	if len(keys) != len(PreProcessors) {
 		return process.ErrLenMismatch
 	}
@@ -68,7 +68,7 @@ func (ppc *PreProcessorsContainer) AddMultiple(keys []block.Type, PreProcessors 
 }
 
 // Replace will add (or replace if it already exists) an object at a given key
-func (ppc *PreProcessorsContainer) Replace(key block.Type, preProcessor process.PreProcessor) error {
+func (ppc *preProcessorsContainer) Replace(key block.Type, preProcessor process.PreProcessor) error {
 	if preProcessor == nil {
 		return process.ErrNilContainerElement
 	}
@@ -78,16 +78,17 @@ func (ppc *PreProcessorsContainer) Replace(key block.Type, preProcessor process.
 }
 
 // Remove will remove an object at a given key
-func (ppc *PreProcessorsContainer) Remove(key block.Type) {
+func (ppc *preProcessorsContainer) Remove(key block.Type) {
 	ppc.objects.Del(uint8(key))
 }
 
 // Len returns the length of the added objects
-func (ppc *PreProcessorsContainer) Len() int {
+func (ppc *preProcessorsContainer) Len() int {
 	return ppc.objects.Len()
 }
 
-func (ppc *PreProcessorsContainer) Keys() []block.Type {
+// Keys returns all the keys from the container
+func (ppc *preProcessorsContainer) Keys() []block.Type {
 	keys := make([]block.Type, 0)
 	for key := range ppc.objects.Iter() {
 		uint8key, ok := key.Key.(uint8)

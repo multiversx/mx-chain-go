@@ -23,7 +23,7 @@ import (
 var log = logger.DefaultLogger()
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
-const sleepTime = time.Duration(5 * time.Millisecond)
+const sleepTime = 5 * time.Millisecond
 
 // maxRoundsToWait defines the maximum rounds to wait, when bootstrapping, after which the node will add an empty
 // block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
@@ -74,7 +74,7 @@ type baseBootstrap struct {
 
 	isNodeSynchronized bool
 	hasLastBlock       bool
-	roundIndex         int32
+	roundIndex         int64
 
 	isForkDetected bool
 	forkNonce      uint64
@@ -84,7 +84,7 @@ type baseBootstrap struct {
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	bootstrapRoundIndex   uint32
+	bootstrapRoundIndex   uint64
 	requestsWithTimeout   uint32
 }
 
@@ -223,7 +223,7 @@ func (boot *baseBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64)
 		return
 	}
 
-	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed)
+	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 		return
@@ -346,7 +346,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		core.ToB64(headerHash),
 		headerHandler.GetNonce()))
 
-	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived)
+	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil)
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -387,16 +387,16 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, has
 }
 
 // AddSyncStateListener adds a syncStateListener that get notified each time the sync status of the node changes
-func (boot *baseBootstrap) AddSyncStateListener(syncStateListener func(bool)) {
+func (boot *baseBootstrap) AddSyncStateListener(syncStateListener func(isSyncing bool)) {
 	boot.mutSyncStateListeners.Lock()
 	boot.syncStateListeners = append(boot.syncStateListeners, syncStateListener)
 	boot.mutSyncStateListeners.Unlock()
 }
 
-func (boot *baseBootstrap) notifySyncStateListeners() {
+func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
 	boot.mutSyncStateListeners.RLock()
 	for i := 0; i < len(boot.syncStateListeners); i++ {
-		go boot.syncStateListeners[i](boot.isNodeSynchronized)
+		go boot.syncStateListeners[i](isNodeSynchronized)
 	}
 	boot.mutSyncStateListeners.RUnlock()
 }
@@ -451,7 +451,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Info(fmt.Sprintf("node has changed its synchronized state to %v\n", isNodeSynchronized))
 		boot.isNodeSynchronized = isNodeSynchronized
-		boot.notifySyncStateListeners()
+		boot.notifySyncStateListeners(isNodeSynchronized)
 	}
 
 	boot.roundIndex = boot.rounder.Index()
@@ -460,7 +460,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 }
 
 func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []byte {
-	boot.headersNonces.RemoveShardId(header.GetNonce(), header.GetShardID())
+	boot.headersNonces.Remove(header.GetNonce(), header.GetShardID())
 
 	hash, err := core.CalculateHash(boot.marshalizer, boot.hasher, header)
 	if err != nil {

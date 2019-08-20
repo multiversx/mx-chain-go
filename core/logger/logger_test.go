@@ -170,7 +170,7 @@ func TestConcurrencyWithFileWriter(t *testing.T) {
 	wg.Add(1)
 	var str bytes.Buffer
 	go func() {
-		log.ApplyOptions(logger.WithFile(&str))
+		_ = log.ApplyOptions(logger.WithFile(&str))
 		wg.Done()
 	}()
 
@@ -189,7 +189,7 @@ func TestLazyFileWriter_WriteSomeLinesBeforeProvidingFile(t *testing.T) {
 	expectedString := "expectedString"
 	log := logger.NewElrondLogger(logger.WithStackTraceDepth(1))
 	log.Warn(expectedString)
-	log.ApplyOptions(logger.WithFile(&str))
+	_ = log.ApplyOptions(logger.WithFile(&str))
 	log.Warn("this is a warning")
 	assert.Contains(t, str.String(), expectedString)
 }
@@ -229,7 +229,7 @@ func TestRedirectStderr(t *testing.T) {
 	assert.Nil(t, err)
 
 	message := "redirect ok"
-	os.Stderr.WriteString(message)
+	_, _ = os.Stderr.WriteString(message)
 
 	data, err := ioutil.ReadFile(file.Name())
 	assert.Nil(t, err)

@@ -107,13 +107,8 @@ func (nspc *nonceSyncMapCacher) copySyncMap(nonce uint64, dest dataRetriever.Sha
 	})
 }
 
-// RemoveNonce removes the provided nonce from the cache.
-func (nspc *nonceSyncMapCacher) RemoveNonce(nonce uint64) {
-	nspc.cacher.Remove(nspc.nonceConverter.ToByteSlice(nonce))
-}
-
-// RemoveShardId removes the nonce-shardId-hash tuple using the nonce and shardId
-func (nspc *nonceSyncMapCacher) RemoveShardId(nonce uint64, shardId uint32) {
+// Remove removes the nonce-shardId-hash tuple using the nonce and shardId
+func (nspc *nonceSyncMapCacher) Remove(nonce uint64, shardId uint32) {
 	val, ok := nspc.cacher.Peek(nspc.nonceConverter.ToByteSlice(nonce))
 	if !ok {
 		return

@@ -9,9 +9,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,65 +20,57 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	dPoolRequester := createTestDataPool()
-	dPoolResolver := createTestDataPool()
+	var nrOfShards uint32 = 1
+	var shardID uint32 = 0
+	var txSignPrivKeyShardId uint32 = 0
+	requesterNodeAddr := "0"
+	resolverNodeAddr := "1"
 
-	shardCoordinator := &sharding.OneShardCoordinator{}
-
-	fmt.Println("Requester:")
-	nRequester, mesRequester, sk1, resolversFinder := createNetNode(
-		dPoolRequester,
-		createAccountsDB(),
-		shardCoordinator)
+	fmt.Println("Requester:	")
+	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := createNetNode(
-		dPoolResolver,
-		createAccountsDB(),
-		shardCoordinator)
-
-	_ = nRequester.Start()
-	_ = nResolver.Start()
+	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
+	_ = nRequester.Node.Start()
+	_ = nResolver.Node.Start()
 	defer func() {
-		_ = nRequester.Stop()
-		_ = nResolver.Stop()
+		_ = nRequester.Node.Stop()
+		_ = nResolver.Node.Stop()
 	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := mesRequester.ConnectToPeer(getConnectableAddress(mesResolver))
+	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
 
-	buffPk1, _ := sk1.GeneratePublic().ToByteArray()
+	buffPk1, _ := nRequester.OwnAccount.SkTxSign.GeneratePublic().ToByteArray()
 
 	//Step 1. Generate a signed transaction
 	tx := transaction.Transaction{
 		Nonce:   0,
 		Value:   big.NewInt(0),
-		RcvAddr: testHasher.Compute("receiver"),
+		RcvAddr: integrationTests.TestHasher.Compute("receiver"),
 		SndAddr: buffPk1,
 		Data:    "tx notarized data",
 	}
 
-	txBuff, _ := testMarshalizer.Marshal(&tx)
+	txBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
-
-	tx.Signature, _ = signer.Sign(sk1, txBuff)
-
-	signedTxBuff, _ := testMarshalizer.Marshal(&tx)
+	tx.Signature, _ = signer.Sign(nRequester.OwnAccount.SkTxSign, txBuff)
+	signedTxBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
 
 	fmt.Printf("Transaction: %v\n%v\n", tx, string(signedTxBuff))
 
 	chanDone := make(chan bool)
 
-	txHash := testHasher.Compute(string(signedTxBuff))
+	txHash := integrationTests.TestHasher.Compute(string(signedTxBuff))
 
 	//step 2. wire up a received handler for requester
-	dPoolRequester.Transactions().RegisterHandler(func(key []byte) {
-		txStored, _ := dPoolRequester.Transactions().ShardDataStore(
-			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+	nRequester.ShardDataPool.Transactions().RegisterHandler(func(key []byte) {
+		txStored, _ := nRequester.ShardDataPool.Transactions().ShardDataStore(
+			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
 		).Get(key)
 
 		if reflect.DeepEqual(txStored, &tx) && tx.Signature != nil {
@@ -90,14 +82,14 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	})
 
 	//Step 3. add the transaction in resolver pool
-	dPoolResolver.Transactions().AddData(
+	nResolver.ShardDataPool.Transactions().AddData(
 		txHash,
 		&tx,
-		process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
 	)
 
 	//Step 4. request tx
-	txResolver, _ := resolversFinder.IntraShardResolver(factory.TransactionTopic)
+	txResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.TransactionTopic)
 	err = txResolver.RequestDataFromHash(txHash)
 	assert.Nil(t, err)
 

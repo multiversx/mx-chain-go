@@ -1,23 +1,49 @@
 package heartbeat
 
-import "time"
+import (
+	"time"
+)
+
+var emptyTimestamp = time.Time{}
 
 // heartbeatMessageInfo retain the message info received from another node (identified by a public key)
 type heartbeatMessageInfo struct {
 	maxDurationPeerUnresponsive time.Duration
-	peerHeartbeats              map[string]*PeerHeartbeat
-	getTimeHandler              func() time.Time
+	maxInactiveTime             Duration
+	totalUpTime                 Duration
+	totalDownTime               Duration
+
+	getTimeHandler     func() time.Time
+	timeStamp          time.Time
+	isActive           bool
+	shardID            uint32
+	versionNumber      string
+	nodeDisplayName    string
+	isValidator        bool
+	lastUptimeDowntime time.Time
 }
 
-// newHeartbeatMessageInfo returns a new instance of a PubkeyElement
-func newHeartbeatMessageInfo(maxDurationPeerUnresponsive time.Duration) (*heartbeatMessageInfo, error) {
+// newHeartbeatMessageInfo returns a new instance of a heartbeatMessageInfo
+func newHeartbeatMessageInfo(
+	maxDurationPeerUnresponsive time.Duration,
+	isValidator bool,
+) (*heartbeatMessageInfo, error) {
+
 	if maxDurationPeerUnresponsive == 0 {
 		return nil, ErrInvalidMaxDurationPeerUnresponsive
 	}
 
 	hbmi := &heartbeatMessageInfo{
-		peerHeartbeats:              make(map[string]*PeerHeartbeat),
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
+		maxInactiveTime:             Duration{0},
+		isActive:                    false,
+		timeStamp:                   emptyTimestamp,
+		lastUptimeDowntime:          time.Now(),
+		totalUpTime:                 Duration{0},
+		totalDownTime:               Duration{0},
+		versionNumber:               "",
+		nodeDisplayName:             "",
+		isValidator:                 isValidator,
 	}
 	hbmi.getTimeHandler = hbmi.clockTime
 
@@ -28,51 +54,53 @@ func (hbmi *heartbeatMessageInfo) clockTime() time.Time {
 	return time.Now()
 }
 
-// Sweep updates all records
-func (hbmi *heartbeatMessageInfo) sweep() {
-	for _, phb := range hbmi.peerHeartbeats {
-		crtDuration := hbmi.getTimeHandler().Sub(phb.TimeStamp)
-		phb.IsActive = crtDuration < hbmi.maxDurationPeerUnresponsive
-		if phb.MaxInactiveTime.Duration < crtDuration {
-			phb.MaxInactiveTime.Duration = crtDuration
-		}
-	}
+func (hbmi *heartbeatMessageInfo) updateFields() {
+	crtDuration := hbmi.getTimeHandler().Sub(hbmi.timeStamp)
+	crtDuration = maxDuration(0, crtDuration)
+
+	hbmi.isActive = crtDuration < hbmi.maxDurationPeerUnresponsive
+	hbmi.updateUpAndDownTime()
+	hbmi.updateMaxInactiveTimeDuration()
 }
 
-// HeartbeatReceived processes a new message arrived from a p2p address
-func (hbmi *heartbeatMessageInfo) HeartbeatReceived(p2pAddress string) {
+// Wil update the total time a node was up and down
+func (hbmi *heartbeatMessageInfo) updateUpAndDownTime() {
+	lastDuration := hbmi.clockTime().Sub(hbmi.lastUptimeDowntime)
+	lastDuration = maxDuration(0, lastDuration)
+
+	if hbmi.isActive {
+		hbmi.totalUpTime.Duration += lastDuration
+	} else {
+		hbmi.totalDownTime.Duration += lastDuration
+	}
+
+	hbmi.lastUptimeDowntime = time.Now()
+}
+
+// HeartbeatReceived processes a new message arrived from a peer
+func (hbmi *heartbeatMessageInfo) HeartbeatReceived(shardID uint32, version string, nodeDisplayName string) {
 	crtTime := hbmi.getTimeHandler()
-	hbmi.sweep()
-
-	phb := hbmi.peerHeartbeats[p2pAddress]
-	if phb == nil {
-		hbmi.peerHeartbeats[p2pAddress] = &PeerHeartbeat{
-			P2PAddress:      p2pAddress,
-			TimeStamp:       crtTime,
-			MaxInactiveTime: Duration{Duration: 0},
-			IsActive:        true,
-		}
-		return
-	}
-
-	phb.IsActive = true
-	crtDuration := crtTime.Sub(phb.TimeStamp)
-	if phb.MaxInactiveTime.Duration < crtDuration {
-		phb.MaxInactiveTime.Duration = crtDuration
-	}
-	phb.TimeStamp = crtTime
+	hbmi.updateFields()
+	hbmi.shardID = shardID
+	hbmi.updateMaxInactiveTimeDuration()
+	hbmi.timeStamp = crtTime
+	hbmi.versionNumber = version
+	hbmi.nodeDisplayName = nodeDisplayName
 }
 
-// GetPeerHeartbeats returns the updated peer heart beats collection
-func (hbmi *heartbeatMessageInfo) GetPeerHeartbeats() []PeerHeartbeat {
-	hbmi.sweep()
-	heartbeats := make([]PeerHeartbeat, len(hbmi.peerHeartbeats))
+func (hbmi *heartbeatMessageInfo) updateMaxInactiveTimeDuration() {
+	crtDuration := hbmi.getTimeHandler().Sub(hbmi.timeStamp)
+	crtDuration = maxDuration(0, crtDuration)
 
-	idx := 0
-	for _, phb := range hbmi.peerHeartbeats {
-		heartbeats[idx] = *phb
-		idx++
+	if hbmi.maxInactiveTime.Duration < crtDuration && hbmi.timeStamp != emptyTimestamp {
+		hbmi.maxInactiveTime.Duration = crtDuration
+	}
+}
+
+func maxDuration(first, second time.Duration) time.Duration {
+	if first > second {
+		return first
 	}
 
-	return heartbeats
+	return second
 }

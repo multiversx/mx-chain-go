@@ -212,6 +212,8 @@ func TestTxProcessor_GetAddressOkValsShouldWork(t *testing.T) {
 //------- getAccounts
 
 func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
+	t.Parallel()
+
 	accounts := createAccountStub(nil, nil, nil, nil)
 
 	execTx, _ := txproc.NewTxProcessor(
@@ -234,6 +236,8 @@ func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
 }
 
 func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
+	t.Parallel()
+
 	accounts := createAccountStub(nil, nil, nil, nil)
 
 	execTx, _ := txproc.NewTxProcessor(
@@ -253,6 +257,8 @@ func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
+	t.Parallel()
+
 	accounts := mock.AccountsStub{}
 
 	adr1 := mock.NewAddressMock([]byte{65})
@@ -301,6 +307,8 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
+	t.Parallel()
+
 	accounts := mock.AccountsStub{}
 
 	adr1 := mock.NewAddressMock([]byte{65})
@@ -348,6 +356,8 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{67})
 
@@ -372,6 +382,8 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
+	t.Parallel()
+
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{65})
 
@@ -397,7 +409,7 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 //------- checkTxValues
 
 func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 
 	adr1 := mock.NewAddressMock([]byte{65})
 	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
@@ -407,12 +419,13 @@ func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 
 	acnt1.Nonce = 6
 
-	err = execTx.CheckTxValues(acnt1, big.NewInt(0), 7)
+	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 7}, acnt1)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
 func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
-	t.Skip()
+	t.Parallel()
+
 	adr1 := mock.NewAddressMock([]byte{65})
 	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -421,11 +434,13 @@ func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
 
 	acnt1.Nonce = 6
 
-	err = execTx.CheckTxValues(acnt1, big.NewInt(0), 5)
+	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 5}, acnt1)
 	assert.Equal(t, process.ErrLowerNonceInTransaction, err)
 }
 
 func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
+	t.Parallel()
+
 	adr1 := mock.NewAddressMock([]byte{65})
 	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -434,11 +449,13 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 
 	acnt1.Balance = big.NewInt(67)
 
-	err = execTx.CheckTxValues(acnt1, big.NewInt(68), 0)
+	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(68)}, acnt1)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
 }
 
 func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
+	t.Parallel()
+
 	adr1 := mock.NewAddressMock([]byte{65})
 	acnt1, err := state.NewAccount(adr1, &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -447,12 +464,14 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 
 	acnt1.Balance = big.NewInt(67)
 
-	err = execTx.CheckTxValues(acnt1, big.NewInt(67), 0)
+	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(67)}, acnt1)
 	assert.Nil(t, err)
 }
 
 //------- moveBalances
 func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *testing.T) {
+	t.Parallel()
+
 	adrDst := mock.NewAddressMock([]byte{67})
 	journalizeCalled := false
 	saveAccountCalled := false
@@ -474,6 +493,8 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *tes
 }
 
 func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntDstIsNotInNodeShard(t *testing.T) {
+	t.Parallel()
+
 	adrSrc := mock.NewAddressMock([]byte{65})
 	journalizeCalled := false
 	saveAccountCalled := false
@@ -495,6 +516,8 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntDstIsNotInNodeShard(t *tes
 }
 
 func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
 	journalizeCalled := 0
 	saveAccountCalled := 0
 	tracker := &mock.AccountTrackerStub{
@@ -529,6 +552,8 @@ func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
 	journalizeCalled := 0
 	saveAccountCalled := 0
 	tracker := &mock.AccountTrackerStub{
@@ -562,6 +587,8 @@ func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
 //------- increaseNonce
 
 func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
 	journalizeCalled := 0
 	saveAccountCalled := 0
 	tracker := &mock.AccountTrackerStub{
@@ -592,6 +619,8 @@ func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 //------- ProcessTransaction
 
 func TestTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
+	t.Parallel()
+
 	execTx := *createTxProcessor()
 
 	err := execTx.ProcessTransaction(nil, 4)
@@ -599,6 +628,8 @@ func TestTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
+	t.Parallel()
+
 	addressConv := &mock.AddressConverterMock{}
 
 	execTx, _ := txproc.NewTxProcessor(
@@ -617,6 +648,8 @@ func TestTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T) {
+	t.Parallel()
+
 	accounts := createAccountStub(nil, nil, nil, nil)
 
 	execTx, _ := txproc.NewTxProcessor(
@@ -639,7 +672,8 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 }
 
 func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
-	t.Skip()
+	t.Parallel()
+
 	//these values will trigger ErrHigherNonceInTransaction
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
@@ -668,6 +702,8 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
+	t.Parallel()
+
 	journalizeCalled := 0
 	saveAccountCalled := 0
 	tracker := &mock.AccountTrackerStub{
@@ -719,6 +755,8 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 }
 
 func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
+	t.Parallel()
+
 	journalizeCalled := 0
 	saveAccountCalled := 0
 	tracker := &mock.AccountTrackerStub{
@@ -760,6 +798,8 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
+	t.Parallel()
+
 	journalizeCalled := 0
 	saveAccountCalled := 0
 	tracker := &mock.AccountTrackerStub{
@@ -811,6 +851,8 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 }
 
 func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
+	t.Parallel()
+
 	journalizeCalled := 0
 	saveAccountCalled := 0
 	tracker := &mock.AccountTrackerStub{
@@ -862,6 +904,8 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 }
 
 func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
 	journalizeCalled := 0
 	saveAccountCalled := 0
 	tracker := &mock.AccountTrackerStub{
@@ -910,6 +954,8 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
+	t.Parallel()
+
 	journalizeCalled := 0
 	saveAccountCalled := 0
 	tracker := &mock.AccountTrackerStub{
@@ -942,7 +988,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -950,12 +996,13 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		&mock.TemporaryAccountsHandlerMock{},
 		addrConverter,
 		mock.NewOneShardCoordinatorMock(),
-		&mock.IntermediateTransactionHandlerMock{})
-	scProcessorMock := &mock.SCProcessorMock{}
+		&mock.IntermediateTransactionHandlerMock{},
+	)
 
+	scProcessorMock := &mock.SCProcessorMock{}
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error {
 		wasCalled = true
 		return nil
 	}
@@ -977,6 +1024,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *testing.T) {
+	t.Parallel()
+
 	journalizeCalled := 0
 	saveAccountCalled := 0
 	tracker := &mock.AccountTrackerStub{
@@ -1007,7 +1056,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1020,7 +1069,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}
@@ -1042,6 +1091,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 }
 
 func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNodeShard(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	journalizeCalled := 0
@@ -1082,7 +1133,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 		&mock.ArgumentParserMock{},
 		mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -1094,7 +1145,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	scProcessorMock := &mock.SCProcessorMock{}
 	scProcessorMock.ComputeTransactionTypeCalled = scProcessor.ComputeTransactionType
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error {
 		wasCalled = true
 		return process.ErrNoVM
 	}

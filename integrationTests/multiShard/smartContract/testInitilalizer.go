@@ -270,9 +270,13 @@ func createNetNode(
 	scForwarder, _ := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
 
 	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter)
+	vmContainer := &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return vm, nil
+		}}
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
-		vm,
+		vmContainer,
 		argsParser,
 		testHasher,
 		testMarshalizer,
@@ -326,7 +330,7 @@ func createNetNode(
 		accntAdapter,
 		shardCoordinator,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -347,7 +351,6 @@ func createNetNode(
 			},
 		},
 		genesisBlocks,
-		true,
 		requestHandler,
 		tc,
 		uint64Converter,
@@ -621,7 +624,7 @@ func createMetaNetNode(
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -637,6 +640,7 @@ func createMetaNetNode(
 		store,
 		genesisBlocks,
 		requestHandler,
+		uint64Converter,
 	)
 
 	_ = tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])

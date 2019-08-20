@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -20,10 +21,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -36,20 +39,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
-	"github.com/pkg/profile"
 	"github.com/urfave/cli"
 )
 
 const (
-	defaultLogPath     = "logs"
-	defaultStatsPath   = "stats"
-	defaultDBPath      = "db"
-	defaultEpochString = "Epoch"
-	defaultShardString = "Shard"
-	metachainShardName = "metachain"
+	defaultLogPath      = "logs"
+	defaultStatsPath    = "stats"
+	defaultDBPath       = "db"
+	defaultEpochString  = "Epoch"
+	defaultShardString  = "Shard"
+	metachainShardName  = "metachain"
+	milisecondsInSecond = 1000
 )
 
 var (
@@ -123,10 +127,20 @@ VERSION:
 		Value: 0,
 	}
 	// profileMode defines a flag for profiling the binary
-	profileMode = cli.StringFlag{
+	// If enabled, it will open the pprof routes over the default gin rest webserver.
+	// There are several routes that will be available for profiling (profiling can be analyzed with: go tool pprof):
+	//  /debug/pprof/ (can be accessed in the browser, will list the available options)
+	//  /debug/pprof/goroutine
+	//  /debug/pprof/heap
+	//  /debug/pprof/threadcreate
+	//  /debug/pprof/block
+	//  /debug/pprof/mutex
+	//  /debug/pprof/profile (CPU profile)
+	//  /debug/pprof/trace?seconds=5 (CPU trace) -> being a trace, can be analyzed with: go tool trace
+	// Usage: go tool pprof http(s)://ip.of.the.server/debug/pprof/xxxxx
+	profileMode = cli.BoolFlag{
 		Name:  "profile-mode",
-		Usage: "Profiling mode. Available options: cpu, mem, mutex, block",
-		Value: "",
+		Usage: "Boolean profiling mode option. If set to true, the /debug/pprof routes will be available on the node for profiling the application.",
 	}
 	// txSignSkIndex defines a flag that specifies the 0-th based index of the private key to be used from initialBalancesSk.pem file
 	txSignSkIndex = cli.IntFlag{
@@ -172,10 +186,24 @@ VERSION:
 		Value: "",
 	}
 
+	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools. If set, will override
+	// the NodeDisplayName from config.toml
+	nodeDisplayName = cli.StringFlag{
+		Name:  "display-name",
+		Usage: "This will represent the friendly name in the public monitoring tools. Will override the config.toml one",
+		Value: "",
+	}
+
 	// usePrometheus joins the node for prometheus monitoring if set
 	usePrometheus = cli.BoolFlag{
 		Name:  "use-prometheus",
 		Usage: "Will make the node available for prometheus and grafana monitoring",
+	}
+
+	//useLogView is used when termui interface is not needed.
+	useLogView = cli.BoolFlag{
+		Name:  "use-log-view",
+		Usage: "will not enable the user-friendly terminal view of the node",
 	}
 
 	// initialBalancesSkPemFile defines a flag for the path to the ...
@@ -201,7 +229,13 @@ VERSION:
 	bootstrapRoundIndex = cli.UintFlag{
 		Name:  "bootstrap-round-index",
 		Usage: "Bootstrap round index specifies the round index from which node should bootstrap from storage",
-		Value: math.MaxUint32,
+		Value: math.MaxUint64,
+	}
+	// enableTxIndexing enables transaction indexing. There can be cases when it's too expensive to index all transactions
+	//  so we provide the command line option to disable this behaviour
+	enableTxIndexing = cli.BoolTFlag{
+		Name:  "tx-indexing",
+		Usage: "Enables transaction indexing. There can be cases when it's too expensive to index all transactions so we provide the command line option to disable this behaviour",
 	}
 
 	// workingDirectory defines a flag for the path for the working directory.
@@ -229,13 +263,22 @@ var dbIndexer indexer.Indexer
 //  params depending on the type of node we are starting
 var coreServiceContainer serviceContainer.Core
 
+// appVersion should be populated at build time using ldflags
+// Usage examples:
+// linux/mac:
+//            go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
+// windows:
+//            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
+//            go build -i -v -ldflags="-X main.appVersion=%VERS%"
+var appVersion = core.UnVersionedAppString
+
 func main() {
 	log := logger.DefaultLogger()
 
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = "v1.0.11"
+	app.Version = fmt.Sprintf("%s/%s/%s-%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
@@ -255,10 +298,13 @@ func main() {
 		gopsEn,
 		serversConfigurationFile,
 		networkID,
+		nodeDisplayName,
 		restApiPort,
 		logLevel,
 		usePrometheus,
+		useLogView,
 		bootstrapRoundIndex,
+		enableTxIndexing,
 		workingDirectory,
 		destinationShardAsObserver,
 	}
@@ -298,22 +344,6 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	logLevel := ctx.GlobalString(logLevel.Name)
 	log.SetLevel(logLevel)
-
-	profileMode := ctx.GlobalString(profileMode.Name)
-	switch profileMode {
-	case "cpu":
-		p := profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-		defer p.Stop()
-	case "mem":
-		p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-		defer p.Stop()
-	case "mutex":
-		p := profile.Start(profile.MutexProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-		defer p.Stop()
-	case "block":
-		p := profile.Start(profile.BlockProfile, profile.ProfilePath("."), profile.NoShutdownHook)
-		defer p.Stop()
-	}
 
 	enableGopsIfNeeded(ctx, log)
 
@@ -397,7 +427,11 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		generalConfig.GeneralSettings.NetworkID = ctx.GlobalString(networkID.Name)
 	}
 
-	shardCoordinator, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
+	if ctx.IsSet(nodeDisplayName.Name) {
+		generalConfig.GeneralSettings.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
+	}
+
+	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
 	if err != nil {
 		return err
 	}
@@ -456,6 +490,50 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	var appStatusHandlers []core.AppStatusHandler
+
+	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
+	if usePrometheusBool {
+		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
+		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
+	}
+
+	useTermui := !ctx.GlobalBool(useLogView.Name)
+	if useTermui {
+		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
+		err = termuiStatusHandler.StartTermuiConsole()
+		if err != nil {
+			return err
+		}
+
+		termuiConsole := termuiStatusHandler.Termui()
+		err = log.ChangePrinterHookWriter(termuiConsole)
+		if err != nil {
+			return err
+		}
+
+		appStatusHandlers = append(appStatusHandlers, termuiStatusHandler)
+	}
+
+	if len(appStatusHandlers) > 0 {
+		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
+		if err != nil {
+			log.Warn("Cannot init AppStatusFacade", err)
+		}
+	} else {
+		coreComponents.StatusHandler = statusHandler.NewNilStatusHandler()
+		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
+	}
+
+	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricShardId, uint64(shardCoordinator.SelfId()))
+	coreComponents.StatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricRoundTime, nodesConfig.RoundDuration/milisecondsInSecond)
+	coreComponents.StatusHandler.SetStringValue(core.MetricAppVersion, version)
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountLeader, 0)
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, 0)
+
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
@@ -478,6 +556,9 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		"OsVersion", "TestOs",
 	)
 
+	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
+	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
+
 	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
 	log.LogIfError(err)
 
@@ -494,6 +575,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	if generalConfig.Explorer.Enabled {
 		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
 		dbIndexer, err = CreateElasticIndexer(
+			ctx,
 			serversConfigurationFileName,
 			generalConfig.Explorer.IndexerURL,
 			shardCoordinator,
@@ -531,7 +613,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		cryptoComponents,
 		processComponents,
 		networkComponents,
-		uint32(ctx.GlobalUint(bootstrapRoundIndex.Name)),
+		uint64(ctx.GlobalUint(bootstrapRoundIndex.Name)),
+		version,
 	)
 	if err != nil {
 		return err
@@ -547,18 +630,31 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	ef := facade.NewElrondNodeFacade(currentNode, apiResolver)
-
-	prometheusURLAvailable := true
-	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
-	if err != nil || prometheusJoinUrl == "" {
-		prometheusURLAvailable = false
+	err = startStatusPolling(
+		currentNode.GetAppStatusHandler(),
+		generalConfig.GeneralSettings.StatusPollingIntervalSec,
+		networkComponents,
+		processComponents,
+	)
+	if err != nil {
+		log.Info("Error creating status polling: ", err)
 	}
+
+	updateMachineStatisticsDurationSec := 1
+	err = startMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDurationSec)
+	if err != nil {
+		return err
+	}
+
+	restAPIServerDebugMode := !useTermui
+	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{
 		RestApiPort:       ctx.GlobalString(restApiPort.Name),
-		Prometheus:        ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable,
+		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
+		Prometheus:        usePrometheusBool,
 		PrometheusJoinURL: prometheusJoinUrl,
+		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
 
 	ef.SetLogger(log)
@@ -593,6 +689,161 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func startStatusPolling(
+	ash core.AppStatusHandler,
+	pollingInterval int,
+	networkComponents *factory.Network,
+	processComponents *factory.Process,
+) error {
+
+	if ash == nil {
+		return errors.New("nil AppStatusHandler")
+	}
+
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingInterval)
+	if err != nil {
+		return errors.New("cannot init AppStatusPolling")
+	}
+
+	err = registerPollConnectedPeers(appStatusPollingHandler, networkComponents)
+	if err != nil {
+		return err
+	}
+
+	err = registerPollProbableHighestNonce(appStatusPollingHandler, processComponents)
+	if err != nil {
+		return err
+	}
+
+	appStatusPollingHandler.Poll()
+
+	return nil
+}
+
+func registerPollConnectedPeers(
+	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
+	networkComponents *factory.Network,
+) error {
+
+	numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
+		numOfConnectedPeers := uint64(len(networkComponents.NetMessenger.ConnectedAddresses()))
+		appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
+	}
+
+	err := appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
+	if err != nil {
+		return errors.New("cannot register handler func for num of connected peers")
+	}
+
+	return nil
+}
+
+//TODO: move out of main
+func registerPollProbableHighestNonce(
+	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
+	processComponents *factory.Process,
+) error {
+
+	probableHighestNonceHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
+		probableHigherNonce := processComponents.ForkDetector.ProbableHighestNonce()
+		appStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, probableHigherNonce)
+	}
+
+	err := appStatusPollingHandler.RegisterPollingFunc(probableHighestNonceHandlerFunc)
+	if err != nil {
+		return errors.New("cannot register handler func for forkdetector's probable higher nonce")
+	}
+
+	return nil
+}
+
+func startMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval int) error {
+	if ash == nil {
+		return errors.New("nil AppStatusHandler")
+	}
+
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingInterval)
+	if err != nil {
+		return errors.New("cannot init AppStatusPolling")
+	}
+
+	err = registerCpuStatistics(appStatusPollingHandler)
+	if err != nil {
+		return err
+	}
+
+	err = registerMemStatistics(appStatusPollingHandler)
+	if err != nil {
+		return err
+	}
+
+	err = registeNetStatistics(appStatusPollingHandler)
+	if err != nil {
+		return err
+	}
+
+	appStatusPollingHandler.Poll()
+
+	return nil
+}
+
+func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
+	memStats := &machine.MemStatistics{}
+	go func() {
+		for {
+			memStats.ComputeStatistics()
+		}
+	}()
+
+	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
+		appStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, memStats.MemPercentUsage())
+		appStatusHandler.SetUInt64Value(core.MetricTotalMem, memStats.TotalMemory())
+	})
+}
+
+func registeNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
+	netStats := &machine.NetStatistics{}
+	go func() {
+		for {
+			netStats.ComputeStatistics()
+		}
+	}()
+
+	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
+		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBps, netStats.BpsRecv())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBpsPeak, netStats.BpsRecvPeak())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvPercent, netStats.PercentRecv())
+
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBps, netStats.BpsSent())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBpsPeak, netStats.BpsSentPeak())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSentPercent, netStats.PercentSent())
+	})
+}
+
+func registerCpuStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
+	cpuStats := &machine.CpuStatistics{}
+	go func() {
+		for {
+			cpuStats.ComputeStatistics()
+		}
+	}()
+
+	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
+		appStatusHandler.SetUInt64Value(core.MetricCpuLoadPercent, cpuStats.CpuPercentUsage())
+	})
+}
+
+func getPrometheusJoinURLIfAvailable(ctx *cli.Context) (string, bool) {
+	prometheusURLAvailable := true
+	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
+	if err != nil || prometheusJoinUrl == "" {
+		prometheusURLAvailable = false
+	}
+	usePrometheusBool := ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable
+
+	return prometheusJoinUrl, usePrometheusBool
 }
 
 func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
@@ -640,25 +891,27 @@ func createShardCoordinator(
 	pubKey crypto.PublicKey,
 	settingsConfig config.GeneralSettingsConfig,
 	log *logger.Logger,
-) (shardCoordinator sharding.Coordinator,
-	err error) {
+) (sharding.Coordinator, core.NodeType, error) {
+
 	if pubKey == nil {
-		return nil, errors.New("nil public key, could not create shard coordinator")
+		return nil, "", errors.New("nil public key, could not create shard coordinator")
 	}
 
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
+	nodeType := core.NodeTypeValidator
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
+		nodeType = core.NodeTypeObserver
 		log.Info("Starting as observer node...")
 
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
 	}
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	var shardName string
@@ -669,12 +922,12 @@ func createShardCoordinator(
 	}
 	log.Info(fmt.Sprintf("Starting in shard: %s", shardName))
 
-	shardCoordinator, err = sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return shardCoordinator, nil
+	return shardCoordinator, nodeType, nil
 }
 
 func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {
@@ -697,6 +950,7 @@ func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConf
 // CreateElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
 func CreateElasticIndexer(
+	ctx *cli.Context,
 	serversConfigurationFileName string,
 	url string,
 	coordinator sharding.Coordinator,
@@ -715,7 +969,9 @@ func CreateElasticIndexer(
 		serversConfig.ElasticSearch.Password,
 		coordinator,
 		marshalizer,
-		hasher, log)
+		hasher,
+		log,
+		&indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)})
 	if err != nil {
 		return nil, err
 	}
@@ -748,7 +1004,8 @@ func createNode(
 	crypto *factory.Crypto,
 	process *factory.Process,
 	network *factory.Network,
-	bootstrapRoundIndex uint32,
+	bootstrapRoundIndex uint64,
+	version string,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -787,9 +1044,15 @@ func createNode(
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
+		node.WithAppStatusHandler(core.StatusHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
+	}
+
+	err = nd.StartHeartbeat(config.Heartbeat, version, config.GeneralSettings.NodeDisplayName)
+	if err != nil {
+		return nil, err
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -801,10 +1064,6 @@ func createNode(
 			return nil, errors.New("error creating node: " + err.Error())
 		}
 		err = nd.CreateShardedStores()
-		if err != nil {
-			return nil, err
-		}
-		err = nd.StartHeartbeat(config.Heartbeat)
 		if err != nil {
 			return nil, err
 		}

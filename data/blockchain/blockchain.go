@@ -1,8 +1,10 @@
 package blockchain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -11,14 +13,15 @@ import (
 // The BlockChain also holds pointers to the Genesis block header, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
-	GenesisHeader          *block.Header  // Genesis Block Header pointer
-	genesisHeaderHash      []byte         // Genesis Block Header hash
-	CurrentBlockHeader     *block.Header  // Current Block Header pointer
-	currentBlockHeaderHash []byte         // Current Block Header hash
-	CurrentBlockBody       block.Body     // Current Block Body pointer
-	localHeight            int64          // Height of the local chain
-	networkHeight          int64          // Percieved height of the network chain
-	badBlocks              storage.Cacher // Bad blocks cache
+	GenesisHeader          *block.Header         // Genesis Block Header pointer
+	genesisHeaderHash      []byte                // Genesis Block Header hash
+	CurrentBlockHeader     *block.Header         // Current Block Header pointer
+	currentBlockHeaderHash []byte                // Current Block Header hash
+	CurrentBlockBody       block.Body            // Current Block Body pointer
+	localHeight            int64                 // Height of the local chain
+	networkHeight          int64                 // Perceived height of the network chain
+	badBlocks              storage.Cacher        // Bad blocks cache
+	appStatusHandler       core.AppStatusHandler // AppStatusHandler used for monitoring
 }
 
 // NewBlockChain returns an initialized blockchain
@@ -37,9 +40,20 @@ func NewBlockChain(
 		localHeight:        -1,
 		networkHeight:      -1,
 		badBlocks:          badBlocksCache,
+		appStatusHandler:   statusHandler.NewNilStatusHandler(),
 	}
 
 	return blockChain, nil
+}
+
+// SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
+func (bc *BlockChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return ErrNilAppStatusHandler
+	}
+
+	bc.appStatusHandler = ash
+	return nil
 }
 
 // GetGenesisHeader returns the genesis block header pointer
@@ -94,6 +108,10 @@ func (bc *BlockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	if !ok {
 		return data.ErrInvalidHeaderType
 	}
+
+	bc.appStatusHandler.SetUInt64Value(core.MetricNonce, h.Nonce)
+	bc.appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, h.Round)
+
 	bc.CurrentBlockHeader = h
 	return nil
 }

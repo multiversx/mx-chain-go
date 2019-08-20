@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
@@ -17,7 +18,7 @@ import (
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
-	ProcessTransaction(transaction *transaction.Transaction, round uint32) error
+	ProcessTransaction(transaction *transaction.Transaction, round uint64) error
 }
 
 // SmartContractResultProcessor is the main interface for smart contract result execution engine
@@ -30,6 +31,16 @@ type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
 }
 
+// TxValidator can determine if a provided transaction handler is valid or not from the process point of view
+type TxValidator interface {
+	IsTxValidForProcessing(txHandler data.TransactionHandler) bool
+}
+
+// HeaderValidator can determine if a provided header handler is valid or not from the process point of view
+type HeaderValidator interface {
+	IsHeaderValidForProcessing(headerHandler data.HeaderHandler) bool
+}
+
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
 type TransactionCoordinator interface {
 	RequestMiniBlocks(header data.HeaderHandler)
@@ -40,13 +51,13 @@ type TransactionCoordinator interface {
 	RestoreBlockDataFromStorage(body block.Body) (int, map[int][][]byte, error)
 	RemoveBlockDataFromPool(body block.Body) error
 
-	ProcessBlockTransaction(body block.Body, round uint32, haveTime func() time.Duration) error
+	ProcessBlockTransaction(body block.Body, round uint64, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, maxTxRemaining uint32, round uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
-	CreateMbsAndProcessTransactionsFromMe(maxTxRemaining uint32, round uint32, haveTime func() bool) block.MiniBlockSlice
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
+	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) block.MiniBlockSlice
 
-	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[uint32][][]byte)
+	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
 
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 
@@ -56,8 +67,8 @@ type TransactionCoordinator interface {
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
-	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint32) error
-	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint32) error
+	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error
+	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint64) error
 }
 
 // IntermediateTransactionHandler handles transactions which are not resolved in only one step
@@ -65,6 +76,7 @@ type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
 	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
 	VerifyInterMiniBlocks(body block.Body) error
+	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 	SaveCurrentIntermediateTxToStorage() error
 	CreateBlockStarted()
 }
@@ -78,14 +90,14 @@ type PreProcessor interface {
 	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, map[int][]byte, error)
 	SaveTxBlockToStorage(body block.Body) error
 
-	ProcessBlockTransactions(body block.Body, round uint32, haveTime func() time.Duration) error
+	ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error
 	RequestBlockTransactions(body block.Body) int
 
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 
 	RequestTransactionsForMiniBlock(mb block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint32) error
-	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint32) (*block.MiniBlock, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error
+	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 }
@@ -95,13 +107,13 @@ type BlockProcessor interface {
 	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
-	CreateBlockBody(round uint32, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	CreateBlockHeader(body data.BodyHandler, round uint32, haveTime func() bool) (data.HeaderHandler, error)
-	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
+	CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
+	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
-	SetLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
+	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -139,7 +151,7 @@ type InterceptedBlockBody interface {
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
-	AddSyncStateListener(func(bool))
+	AddSyncStateListener(func(isSyncing bool))
 	ShouldSync() bool
 	StopSync()
 	StartSync()
@@ -148,7 +160,7 @@ type Bootstrapper interface {
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header data.HeaderHandler, hash []byte, state BlockHeaderState) error
+	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error
 	RemoveHeaders(nonce uint64, hash []byte)
 	CheckFork() (forkDetected bool, nonce uint64, hash []byte)
 	GetHighestFinalBlockNonce() uint64
@@ -203,6 +215,23 @@ type IntermediateProcessorsContainerFactory interface {
 	Create() (IntermediateProcessorContainer, error)
 }
 
+// VirtualMachinesContainer defines a virtual machine holder data type with basic functionality
+type VirtualMachinesContainer interface {
+	Get(key []byte) (vmcommon.VMExecutionHandler, error)
+	Add(key []byte, val vmcommon.VMExecutionHandler) error
+	AddMultiple(keys [][]byte, vms []vmcommon.VMExecutionHandler) error
+	Replace(key []byte, val vmcommon.VMExecutionHandler) error
+	Remove(key []byte)
+	Len() int
+	Keys() [][]byte
+}
+
+// VirtualMachinesContainerFactory defines the functionality to create a virtual machine container
+type VirtualMachinesContainerFactory interface {
+	Create() (VirtualMachinesContainer, error)
+	VMAccountsDB() *hooks.VMAccountsDB
+}
+
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
@@ -232,7 +261,7 @@ type TopicMessageHandler interface {
 // ChronologyValidator defines the functionality needed to validate a received header block (shard or metachain)
 // from chronology point of view
 type ChronologyValidator interface {
-	ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint32) error
+	ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint64) error
 }
 
 // DataPacker can split a large slice of byte slices in smaller packets
@@ -245,8 +274,8 @@ type BlocksTracker interface {
 	UnnotarisedBlocks() []data.HeaderHandler
 	RemoveNotarisedBlocks(headerHandler data.HeaderHandler) error
 	AddBlock(headerHandler data.HeaderHandler)
-	SetBlockBroadcastRound(nonce uint64, round int32)
-	BlockBroadcastRound(nonce uint64) int32
+	SetBlockBroadcastRound(nonce uint64, round int64)
+	BlockBroadcastRound(nonce uint64) int64
 }
 
 // RequestHandler defines the methods through which request to data can be made
@@ -276,4 +305,13 @@ type TemporaryAccountsHandler interface {
 	AddTempAccount(address []byte, balance *big.Int, nonce uint64)
 	CleanTempAccounts()
 	TempAccount(address []byte) state.AccountHandler
+}
+
+// BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
+// block to its peers which should be received in a limited time frame
+type BlockSizeThrottler interface {
+	MaxItemsToAdd() uint32
+	Add(round uint64, items uint32)
+	Succeed(round uint64)
+	ComputeMaxItems()
 }

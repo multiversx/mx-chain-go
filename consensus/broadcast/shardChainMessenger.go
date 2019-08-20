@@ -150,14 +150,14 @@ func (scm *shardChainMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte
 }
 
 // BroadcastTransactions will send on transaction topic the transactions
-func (scm *shardChainMessenger) BroadcastTransactions(transactions map[uint32][][]byte) error {
+func (scm *shardChainMessenger) BroadcastTransactions(transactions map[string][][]byte) error {
 	dataPacker, err := partitioning.NewSizeDataPacker(scm.marshalizer)
 	if err != nil {
 		return err
 	}
 
 	txs := 0
-	for k, v := range transactions {
+	for topic, v := range transactions {
 		txs += len(v)
 		// forward txs to the destination shards in packets
 		packets, err := dataPacker.PackDataInChunks(v, core.MaxBulkTransactionSize)
@@ -166,10 +166,7 @@ func (scm *shardChainMessenger) BroadcastTransactions(transactions map[uint32][]
 		}
 
 		for _, buff := range packets {
-			transactionTopic := factory.TransactionTopic +
-				scm.shardCoordinator.CommunicationIdentifier(k)
-
-			go scm.messenger.Broadcast(transactionTopic, buff)
+			go scm.messenger.Broadcast(topic, buff)
 		}
 	}
 

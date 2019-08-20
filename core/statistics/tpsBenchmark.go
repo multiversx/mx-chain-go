@@ -22,7 +22,6 @@ type TpsBenchmark struct {
 	totalProcessedTxCount *big.Int
 	shardStatistics       map[uint32]ShardStatistic
 	missingNonces         map[uint64]struct{}
-	missingNoncesLock     sync.RWMutex
 }
 
 // ShardStatistics will hold the tps statistics for each shard
@@ -135,16 +134,12 @@ func (s *TpsBenchmark) isMissingNonce(nonce uint64) bool {
 		return false
 	}
 
-	s.missingNoncesLock.RLock()
 	_, isMissing := s.missingNonces[nonce]
-	s.missingNoncesLock.RUnlock()
 
 	return isMissing
 }
 
 func (s *TpsBenchmark) isMetaBlockRelevant(mb *block.MetaBlock) bool {
-	s.mut.RLock()
-	defer s.mut.RUnlock()
 	if mb == nil {
 		return false
 	}
@@ -169,32 +164,28 @@ func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
 		return
 	}
 
+	s.mut.Lock()
 	if !s.isMetaBlockRelevant(mb) {
+		s.mut.Unlock()
 		return
 	}
 
-	s.mut.RLock()
 	if mb.Nonce > s.blockNumber {
 		for i := s.blockNumber + 1; i < mb.Nonce; i++ {
 			s.addMissingNonce(i)
 		}
 	}
-	s.mut.RUnlock()
-
 	s.removeMissingNonce(mb.Nonce)
 	_ = s.updateStatistics(mb)
+	s.mut.Unlock()
 }
 
 func (s *TpsBenchmark) addMissingNonce(nonce uint64) {
-	s.missingNoncesLock.Lock()
 	s.missingNonces[nonce] = struct{}{}
-	s.missingNoncesLock.Unlock()
 }
 
 func (s *TpsBenchmark) removeMissingNonce(nonce uint64) {
-	s.missingNoncesLock.Lock()
 	delete(s.missingNonces, nonce)
-	s.missingNoncesLock.Unlock()
 }
 
 func (s *TpsBenchmark) setAverageTxCountForRound(round uint64) {
@@ -204,11 +195,8 @@ func (s *TpsBenchmark) setAverageTxCountForRound(round uint64) {
 }
 
 func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
-	s.mut.Lock()
-	defer s.mut.Unlock()
-
 	s.blockNumber = header.Nonce
-	s.roundNumber = uint64(header.Round)
+	s.roundNumber = header.Round
 	s.lastBlockTxCount = header.TxCount
 	s.totalProcessedTxCount.Add(s.totalProcessedTxCount, big.NewInt(int64(header.TxCount)))
 	s.averageBlockTxCount.Quo(s.totalProcessedTxCount, big.NewInt(int64(header.Nonce)))

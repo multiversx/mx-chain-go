@@ -14,16 +14,11 @@ type AccountsStub struct {
 	PutCodeCalled               func(accountHandler state.AccountHandler, code []byte) error
 	RemoveAccountCalled         func(addressContainer state.AddressContainer) error
 	RemoveCodeCalled            func(codeHash []byte) error
-	RetrieveDataTrieCalled      func(acountWrapper state.AccountHandler) error
 	RevertToSnapshotCalled      func(snapshot int) error
 	SaveAccountStateCalled      func(acountWrapper state.AccountHandler) error
 	SaveDataTrieCalled          func(acountWrapper state.AccountHandler) error
 	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
-}
-
-func NewAccountsStub() *AccountsStub {
-	return &AccountsStub{}
 }
 
 func (aam *AccountsStub) AddJournalEntry(je state.JournalEntry) {
@@ -60,10 +55,6 @@ func (aam *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) 
 
 func (aam *AccountsStub) RemoveCode(codeHash []byte) error {
 	return aam.RemoveCodeCalled(codeHash)
-}
-
-func (aam *AccountsStub) LoadDataTrie(accountHandler state.AccountHandler) error {
-	return aam.RetrieveDataTrieCalled(accountHandler)
 }
 
 func (aam *AccountsStub) RevertToSnapshot(snapshot int) error {

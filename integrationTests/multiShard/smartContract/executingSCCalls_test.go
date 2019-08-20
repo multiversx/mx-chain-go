@@ -23,7 +23,7 @@ var initialValueForInternalVariable = uint64(45)
 
 func createScCallsNodes() (p2p.Messenger, []*testNode) {
 	advertiser := createMessengerWithKadDht(context.Background(), "")
-	advertiser.Bootstrap()
+	_ = advertiser.Bootstrap()
 
 	nodes := createNodes(
 		2,
@@ -35,7 +35,7 @@ func createScCallsNodes() (p2p.Messenger, []*testNode) {
 	return advertiser, nodes
 }
 
-func deploySmartContract(t *testing.T, nodeToProcess *testNode, roundNumber uint32, senderAddressBytes []byte, senderNonce uint64) {
+func deploySmartContract(t *testing.T, nodeToProcess *testNode, roundNumber uint64, senderAddressBytes []byte, senderNonce uint64) {
 	scCode := "aaaa"
 
 	contractTx := createTx(
@@ -95,16 +95,16 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	generalRoundNumber := uint32(1)
+	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
-	senderNonce := uint64(1)
+	senderNonce := uint64(0)
 	senderMintingValue := big.NewInt(100000000)
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -127,9 +127,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(senderMintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	senderNonce++
 	assert.Equal(t, senderNonce, acc.Nonce)
 
-	senderNonce++
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
@@ -157,9 +157,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	// Substract the gas price another time
 	expectedValue.Sub(expectedValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	senderNonce++
 	assert.Equal(t, senderNonce, acc.Nonce)
 
-	senderNonce++
 	generalRoundNumber++
 }
 
@@ -174,18 +174,18 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	generalRoundNumber := uint32(1)
+	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
 	receiverShard := uint32(1)
-	senderNonce := uint64(1)
+	senderNonce := uint64(0)
 	mintingValue := big.NewInt(100000000)
-	receiverNonce := uint64(1)
+	receiverNonce := uint64(0)
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -211,9 +211,10 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(mintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
-	assert.Equal(t, senderNonce, acc.Nonce)
 
 	senderNonce++
+	assert.Equal(t, senderNonce, acc.Nonce)
+
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
@@ -242,9 +243,10 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	// TODO: Afrer fees are implemented, from mintingValue we should substract gasLimit + fees until the other shard executes
 	//  the smart contract and a refund can be made with the remaining value the following rounds
 	assert.Equal(t, mintingValue, acc.Balance)
-	assert.Equal(t, receiverNonce, acc.Nonce)
 
 	receiverNonce++
+	assert.Equal(t, receiverNonce, acc.Nonce)
+
 	generalRoundNumber++
 
 	// After second shard processed the transaction, tx should get into the first shard where the SC resides
@@ -257,7 +259,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	storedVal, _ := scAccount.DataTrieTracker().RetrieveValue([]byte("a"))
 	storedValBI := big.NewInt(0).SetBytes(storedVal)
 
-	assert.Equal(t, big.NewInt(int64(initialValueForInternalVariable + addValue)), storedValBI)
+	assert.Equal(t, big.NewInt(int64(initialValueForInternalVariable+addValue)), storedValBI)
 }
 
 // Test within a network of two shards the following situation
@@ -271,18 +273,18 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	generalRoundNumber := uint32(1)
+	generalRoundNumber := uint64(1)
 	scShard := uint32(0)
 	accShard := uint32(1)
-	accNonce := uint64(1)
+	accNonce := uint64(0)
 	mintingValue := big.NewInt(100000000)
-	scNonce := uint64(1)
+	scNonce := uint64(0)
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
-		advertiser.Close()
+		_ = advertiser.Close()
 		for _, n := range nodes {
-			n.node.Stop()
+			_ = n.node.Stop()
 		}
 	}()
 
@@ -308,9 +310,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(mintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	accNonce++
 	assert.Equal(t, accNonce, acc.Nonce)
 
-	accNonce++
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
@@ -332,6 +334,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	)
 
 	// The account shard should process this tx as MoveBalance
+	scNonce++
 	processAndTestSmartContractCallInSender(
 		t,
 		contractCallTx,
@@ -341,7 +344,6 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 		mintingValue,
 		scNonce,
 	)
-	scNonce++
 	generalRoundNumber++
 
 	// After second shard processed the transaction, tx should get into the first shard where the SC resides
@@ -374,7 +376,7 @@ func processAndTestSmartContractCallInSender(
 	contractCallTx *transaction.Transaction,
 	proposerNodeShardAccount *testNode,
 	accountShardAddressBytes []byte,
-	generalRoundNumber uint32,
+	generalRoundNumber uint64,
 	mintingValue *big.Int,
 	scNonce uint64,
 ) {
@@ -392,7 +394,7 @@ func processAndTestSmartContractCallInSender(
 }
 
 func processAndTestSmartContractCallInDestination(t *testing.T, contractCallTx *transaction.Transaction,
-	proposerNodeShardSC *testNode, scDeploymentAdddress []byte, scShard, accShard uint32, scNonce uint64, ) {
+	proposerNodeShardSC *testNode, scDeploymentAdddress []byte, scShard, accShard uint32, scNonce uint64) {
 	txBytes, _ := testMarshalizer.Marshal(contractCallTx)
 	txHash := testHasher.Compute(string(txBytes))
 	blockBody := block.Body{
@@ -400,14 +402,14 @@ func processAndTestSmartContractCallInDestination(t *testing.T, contractCallTx *
 			TxHashes:        [][]byte{txHash},
 			ReceiverShardID: scShard,
 			SenderShardID:   accShard,
-			Type: block.TxBlock,
+			Type:            block.TxBlock,
 		},
 	}
 	// Before processing make sure to add the tx into the pool of the scShard
 	strCache := process.ShardCacherIdentifier(accShard, scShard)
 	proposerNodeShardSC.dPool.Transactions().ShardDataStore(strCache).Put(txHash, contractCallTx)
 	proposerNodeShardSC.txCoordinator.RequestBlockTransactions(blockBody)
-	_ = proposerNodeShardSC.txCoordinator.ProcessBlockTransaction(blockBody, uint32(scNonce), haveTime)
+	_ = proposerNodeShardSC.txCoordinator.ProcessBlockTransaction(blockBody, scNonce, haveTime)
 	_ = proposerNodeShardSC.txCoordinator.SaveBlockDataToStorage(blockBody)
 
 	_, err := proposerNodeShardSC.accntState.Commit()
@@ -421,7 +423,7 @@ func processAndTestSmartContractCallInDestination(t *testing.T, contractCallTx *
 }
 
 func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNode, proposerNodeShardAccount *testNode,
-	accountShardAddressBytes []byte, accShard uint32, generalRoundNumber uint32, mintingValue *big.Int, withdrawValue uint64) {
+	accountShardAddressBytes []byte, accShard uint32, generalRoundNumber uint64, mintingValue *big.Int, withdrawValue uint64) {
 	mbs := proposerNodeShardSC.scrForwarder.CreateAllInterMiniBlocks()
 	mb, _ := mbs[accShard]
 	assert.NotNil(t, mb)
@@ -436,7 +438,7 @@ func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNo
 		_ = testMarshalizer.Unmarshal(tx, txBytes)
 
 		// Now execute transaction back into the account shard
-		proposerNodeShardAccount.txProcessor.ProcessTransaction(tx, generalRoundNumber)
+		_ = proposerNodeShardAccount.txProcessor.ProcessTransaction(tx, generalRoundNumber)
 		generalRoundNumber++
 	}
 	_, err := proposerNodeShardAccount.accntState.Commit()
@@ -446,7 +448,7 @@ func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNo
 	//  - Initial balance + withdraw value - fees
 	// TODO: Fees and gas should be taken into consideration when the fees are implemented - now we have extra money
 	//  from the gas returned since the gas was not substracted in the first place
-	finalValue := big.NewInt(0).Add(mintingValue, big.NewInt(int64(withdrawValue + uint64(gasLimit - 1*gasPrice))))
+	finalValue := big.NewInt(0).Add(mintingValue, big.NewInt(int64(withdrawValue+uint64(gasLimit-1*gasPrice))))
 	acc, _ := proposerNodeShardAccount.node.GetAccount(hex.EncodeToString(accountShardAddressBytes))
 	assert.Equal(t, finalValue, acc.Balance)
 }

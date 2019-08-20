@@ -2,12 +2,12 @@ package heartbeat_test
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,6 +22,9 @@ func TestNewSender_NilP2pMessengerShouldErr(t *testing.T) {
 		&mock.PrivateKeyStub{},
 		&mock.MarshalizerMock{},
 		"",
+		&mock.ShardCoordinatorMock{},
+		"v0.1",
+		"undefined",
 	)
 
 	assert.Nil(t, sender)
@@ -37,6 +40,9 @@ func TestNewSender_NilSingleSignerShouldErr(t *testing.T) {
 		&mock.PrivateKeyStub{},
 		&mock.MarshalizerMock{},
 		"",
+		&mock.ShardCoordinatorMock{},
+		"v0.1",
+		"undefined",
 	)
 
 	assert.Nil(t, sender)
@@ -52,6 +58,9 @@ func TestNewSender_NilPrivateKeyShouldErr(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		"",
+		&mock.ShardCoordinatorMock{},
+		"v0.1",
+		"undefined",
 	)
 
 	assert.Nil(t, sender)
@@ -67,6 +76,9 @@ func TestNewSender_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.PrivateKeyStub{},
 		nil,
 		"",
+		&mock.ShardCoordinatorMock{},
+		"v0.1",
+		"undefined",
 	)
 
 	assert.Nil(t, sender)
@@ -82,6 +94,9 @@ func TestNewSender_ShouldWork(t *testing.T) {
 		&mock.PrivateKeyStub{},
 		&mock.MarshalizerMock{},
 		"",
+		&mock.ShardCoordinatorMock{},
+		"v0.1",
+		"undefined",
 	)
 
 	assert.NotNil(t, sender)
@@ -121,6 +136,9 @@ func TestSender_SendHeartbeatGeneratePublicKeyErrShouldErr(t *testing.T) {
 			},
 		},
 		"",
+		&mock.ShardCoordinatorMock{},
+		"v0.1",
+		"undefined",
 	)
 
 	err := sender.SendHeartbeat()
@@ -159,6 +177,9 @@ func TestSender_SendHeartbeatSignErrShouldErr(t *testing.T) {
 			},
 		},
 		"",
+		&mock.ShardCoordinatorMock{},
+		"v0.1",
+		"undefined",
 	)
 
 	err := sender.SendHeartbeat()
@@ -197,6 +218,9 @@ func TestSender_SendHeartbeatMarshalizerErrShouldErr(t *testing.T) {
 			},
 		},
 		"",
+		&mock.ShardCoordinatorMock{},
+		"v0.1",
+		"undefined",
 	)
 
 	err := sender.SendHeartbeat()
@@ -257,6 +281,9 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 			},
 		},
 		testTopic,
+		&mock.ShardCoordinatorMock{},
+		"v0.1",
+		"undefined",
 	)
 
 	err := sender.SendHeartbeat()

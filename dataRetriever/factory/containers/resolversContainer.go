@@ -5,21 +5,21 @@ import (
 	"github.com/cornelk/hashmap"
 )
 
-// ResolversContainer is a resolvers holder organized by type
-type ResolversContainer struct {
+// resolversContainer is a resolvers holder organized by type
+type resolversContainer struct {
 	objects *hashmap.HashMap
 }
 
 // NewResolversContainer will create a new instance of a container
-func NewResolversContainer() *ResolversContainer {
-	return &ResolversContainer{
+func NewResolversContainer() *resolversContainer {
+	return &resolversContainer{
 		objects: &hashmap.HashMap{},
 	}
 }
 
 // Get returns the object stored at a certain key.
 // Returns an error if the element does not exist
-func (rc *ResolversContainer) Get(key string) (dataRetriever.Resolver, error) {
+func (rc *resolversContainer) Get(key string) (dataRetriever.Resolver, error) {
 	value, ok := rc.objects.Get(key)
 	if !ok {
 		return nil, dataRetriever.ErrInvalidContainerKey
@@ -35,7 +35,7 @@ func (rc *ResolversContainer) Get(key string) (dataRetriever.Resolver, error) {
 
 // Add will add an object at a given key. Returns
 // an error if the element already exists
-func (rc *ResolversContainer) Add(key string, resolver dataRetriever.Resolver) error {
+func (rc *resolversContainer) Add(key string, resolver dataRetriever.Resolver) error {
 	if resolver == nil {
 		return dataRetriever.ErrNilContainerElement
 	}
@@ -51,7 +51,7 @@ func (rc *ResolversContainer) Add(key string, resolver dataRetriever.Resolver) e
 
 // AddMultiple will add objects with given keys. Returns
 // an error if one element already exists, lengths mismatch or an interceptor is nil
-func (rc *ResolversContainer) AddMultiple(keys []string, resolvers []dataRetriever.Resolver) error {
+func (rc *resolversContainer) AddMultiple(keys []string, resolvers []dataRetriever.Resolver) error {
 	if len(keys) != len(resolvers) {
 		return dataRetriever.ErrLenMismatch
 	}
@@ -67,7 +67,7 @@ func (rc *ResolversContainer) AddMultiple(keys []string, resolvers []dataRetriev
 }
 
 // Replace will add (or replace if it already exists) an object at a given key
-func (rc *ResolversContainer) Replace(key string, resolver dataRetriever.Resolver) error {
+func (rc *resolversContainer) Replace(key string, resolver dataRetriever.Resolver) error {
 	if resolver == nil {
 		return dataRetriever.ErrNilContainerElement
 	}
@@ -77,11 +77,11 @@ func (rc *ResolversContainer) Replace(key string, resolver dataRetriever.Resolve
 }
 
 // Remove will remove an object at a given key
-func (rc *ResolversContainer) Remove(key string) {
+func (rc *resolversContainer) Remove(key string) {
 	rc.objects.Del(key)
 }
 
 // Len returns the length of the added objects
-func (rc *ResolversContainer) Len() int {
+func (rc *resolversContainer) Len() int {
 	return rc.objects.Len()
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -16,11 +17,11 @@ import (
 )
 
 func createElrondNodeFacadeWithMockNodeAndResolver() *ElrondNodeFacade {
-	return NewElrondNodeFacade(&mock.NodeMock{}, &mock.ApiResolverStub{})
+	return NewElrondNodeFacade(&mock.NodeMock{}, &mock.ApiResolverStub{}, false)
 }
 
 func createElrondNodeFacadeWithMockResolver(node *mock.NodeMock) *ElrondNodeFacade {
-	return NewElrondNodeFacade(node, &mock.ApiResolverStub{})
+	return NewElrondNodeFacade(node, &mock.ApiResolverStub{}, false)
 }
 
 func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
@@ -29,12 +30,12 @@ func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
 }
 
 func TestNewElrondFacade_FromNilNodeShouldReturnNil(t *testing.T) {
-	ef := NewElrondNodeFacade(nil, &mock.ApiResolverStub{})
+	ef := NewElrondNodeFacade(nil, &mock.ApiResolverStub{}, false)
 	assert.Nil(t, ef)
 }
 
 func TestNewElrondFacade_FromNilApiResolverShouldReturnNil(t *testing.T) {
-	ef := NewElrondNodeFacade(&mock.NodeMock{}, nil)
+	ef := NewElrondNodeFacade(&mock.NodeMock{}, nil, false)
 	assert.Nil(t, ef)
 }
 
@@ -470,28 +471,18 @@ func TestElrondNodeFacade_GetHeartbeats(t *testing.T) {
 		GetHeartbeatsHandler: func() []heartbeat.PubKeyHeartbeat {
 			return []heartbeat.PubKeyHeartbeat{
 				{
-					HexPublicKey: "pk1",
-					PeerHeartBeats: []heartbeat.PeerHeartbeat{
-						{
-							P2PAddress: "addr1",
-							IsActive:   true,
-						},
-						{
-							P2PAddress: "addr2",
-						},
-					},
+					HexPublicKey:    "pk1",
+					TimeStamp:       time.Now(),
+					MaxInactiveTime: heartbeat.Duration{Duration: 0},
+					IsActive:        true,
+					ShardID:         uint32(0),
 				},
 				{
-					HexPublicKey: "pk2",
-					PeerHeartBeats: []heartbeat.PeerHeartbeat{
-						{
-							P2PAddress: "addr3",
-							IsActive:   true,
-						},
-						{
-							P2PAddress: "addr4",
-						},
-					},
+					HexPublicKey:    "pk2",
+					TimeStamp:       time.Now(),
+					MaxInactiveTime: heartbeat.Duration{Duration: 0},
+					IsActive:        true,
+					ShardID:         uint32(0),
 				},
 			}
 		},
@@ -516,6 +507,7 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 				return make([]byte, 0), nil
 			},
 		},
+		false,
 	)
 
 	_, _ = ef.GetVmValue("", "")

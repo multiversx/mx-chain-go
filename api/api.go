@@ -1,19 +1,21 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"reflect"
-	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
+	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/gin-gonic/gin/json"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/go-playground/validator.v8"
 )
@@ -23,26 +25,42 @@ type validatorInput struct {
 	Validator validator.Func
 }
 
+type prometheus struct {
+	NodePort  string
+	NetworkID string
+}
+
 // MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
 type MainApiHandler interface {
 	RestApiPort() string
+	RestAPIServerDebugMode() bool
+	PprofEnabled() bool
 	PrometheusMonitoring() bool
 	PrometheusJoinURL() string
+	PrometheusNetworkID() string
 }
 
 // Start will boot up the api and appropriate routes, handlers and validators
 func Start(elrondFacade MainApiHandler) error {
-	ws := gin.Default()
+	var ws *gin.Engine
+	if elrondFacade.RestAPIServerDebugMode() {
+		ws = gin.Default()
+	} else {
+		ws = gin.New()
+		ws.Use(gin.Recovery())
+		gin.SetMode(gin.ReleaseMode)
+	}
 	ws.Use(cors.Default())
 
 	err := registerValidators()
 	if err != nil {
 		return err
 	}
+
 	registerRoutes(ws, elrondFacade)
 
 	if elrondFacade.PrometheusMonitoring() {
-		err = joinMonitoringSystem(elrondFacade.RestApiPort(), elrondFacade.PrometheusJoinURL())
+		err = joinMonitoringSystem(elrondFacade)
 		if err != nil {
 			return err
 		}
@@ -51,14 +69,29 @@ func Start(elrondFacade MainApiHandler) error {
 	return ws.Run(fmt.Sprintf(":%s", elrondFacade.RestApiPort()))
 }
 
-func joinMonitoringSystem(port string, prometheusJoinURL string) error {
-	req, err := http.NewRequest("POST", prometheusJoinURL, strings.NewReader(port))
+func joinMonitoringSystem(elrondFacade MainApiHandler) error {
+	prometheusJoinUrl := elrondFacade.PrometheusJoinURL()
+	structToSend := prometheus{
+		NodePort:  elrondFacade.RestApiPort(),
+		NetworkID: elrondFacade.PrometheusNetworkID(),
+	}
+
+	jsonValue, err := json.Marshal(structToSend)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", prometheusJoinUrl, bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return err
+	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
+
 	err = resp.Body.Close()
 	return err
 }
@@ -85,6 +118,9 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 		nodeRoutes.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	}
 
+	if apiHandler.PprofEnabled() {
+		pprof.Register(ws)
+	}
 }
 
 func registerValidators() error {
