@@ -5,9 +5,9 @@ import (
 )
 
 type MessageProcessorStub struct {
-	ProcessMessageCalled func(message p2p.MessageP2P) error
+	ProcessMessageCalled func(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 }
 
-func (mps *MessageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	return mps.ProcessMessageCalled(message)
+func (mps *MessageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
+	return mps.ProcessMessageCalled(message, broadcastHandler)
 }

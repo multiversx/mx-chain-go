@@ -417,7 +417,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.
 		&mock.ChronologyValidatorStub{},
 	)
 
-	assert.Equal(t, process.ErrNilMessage, hi.ProcessReceivedMessage(nil))
+	assert.Equal(t, process.ErrNilMessage, hi.ProcessReceivedMessage(nil, nil))
 }
 
 func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) {
@@ -491,7 +491,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 		chanDone <- struct{}{}
 	}()
 
-	assert.Nil(t, hi.ProcessReceivedMessage(msg))
+	assert.Nil(t, hi.ProcessReceivedMessage(msg, nil))
 	select {
 	case <-chanDone:
 	case <-time.After(durTimeout):
@@ -560,7 +560,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageTestHdrNonces(t *testing.T) {
 		}
 	}
 
-	assert.Nil(t, hi.ProcessReceivedMessage(msg))
+	assert.Nil(t, hi.ProcessReceivedMessage(msg, nil))
 	select {
 	case <-chanDone:
 	case <-time.After(durTimeout):
@@ -632,7 +632,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsNotValidShouldNotAdd(t *testi
 		return false, false
 	}
 
-	assert.Nil(t, hi.ProcessReceivedMessage(msg))
+	assert.Nil(t, hi.ProcessReceivedMessage(msg, nil))
 	select {
 	case <-chanDone:
 		assert.Fail(t, "should have not add block in pool")
@@ -707,6 +707,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 		return false, false
 	}
 
-	assert.Nil(t, hi.ProcessReceivedMessage(msg))
+	assert.Nil(t, hi.ProcessReceivedMessage(msg, nil))
 
 }

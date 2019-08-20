@@ -42,7 +42,7 @@ func prepareMessengerForMatchDataReceive(mes p2p.Messenger, matchData []byte, wg
 
 	_ = mes.RegisterMessageProcessor("test",
 		&mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message p2p.MessageP2P) error {
+			ProcessMessageCalled: func(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 				if bytes.Equal(matchData, message.Data()) {
 					fmt.Printf("%s got the message\n", mes.ID().Pretty())
 					wg.Done()
@@ -74,6 +74,30 @@ func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
 	_ = netw.LinkAll()
 
 	return netw, mes1, mes2
+}
+
+func createMockNetworkOfN(numOfPeers int) (mocknet.Mocknet, []p2p.Messenger) {
+	netw := mocknet.New(context.Background())
+	peers := make([]p2p.Messenger, numOfPeers)
+
+	for i := 0; i < numOfPeers; i++ {
+		peers[i], _ = libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+	}
+
+	_ = netw.LinkAll()
+
+	return netw, peers
+}
+
+func connectPeersFullMesh(peers []p2p.Messenger) {
+	for i := 0; i < len(peers); i++ {
+		for j := i + 1; j < len(peers); j++ {
+			err := peers[i].ConnectToPeer(peers[j].Addresses()[0])
+			if err != nil {
+				fmt.Printf("error connecting: %s\n", err.Error())
+			}
+		}
+	}
 }
 
 func createMockMessenger() p2p.Messenger {
@@ -1185,6 +1209,65 @@ func TestLibp2pMessenger_SendDataThrottlerShouldReturnCorrectObject(t *testing.T
 	assert.True(t, sdt == sdtReturned)
 
 	_ = mes.Close()
+}
+
+func TestLibp2pMessenger_SendDirectShouldNotBroadcastIfMessageIsPartiallyInvalid(t *testing.T) {
+	numOfPeers := 4
+	_, peers := createMockNetworkOfN(numOfPeers)
+	connectPeersFullMesh(peers)
+
+	broadcastMsgResolver := []byte("broadcast resolver msg")
+	directMsgResolver := []byte("resolver msg")
+	msgRequester := []byte("resolver msg is partially valid, mine is ok")
+	mesProcessorRequester := &mock.MessageProcessorStub{
+		ProcessMessageCalled: func(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
+			if !bytes.Equal(message.Data(), directMsgResolver) {
+				// pass through all other messages
+				return nil
+			}
+
+			if broadcastHandler != nil {
+				broadcastHandler(msgRequester)
+			}
+
+			return errors.New("resolver msg is partially valid")
+		},
+	}
+
+	mesProcessorResolverAndOtherPeers := &mock.MessageProcessorStub{
+		ProcessMessageCalled: func(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+			if bytes.Equal(message.Data(), msgRequester) {
+				assert.Fail(t, "other peers should have not received filtered out requester's message")
+			}
+			return nil
+		},
+	}
+
+	idxRequester := 0
+
+	topic := "testTopic"
+	for i := 0; i < numOfPeers; i++ {
+		_ = peers[i].CreateTopic(topic, true)
+		if i == idxRequester {
+			_ = peers[i].RegisterMessageProcessor(topic, mesProcessorRequester)
+		} else {
+			_ = peers[i].RegisterMessageProcessor(topic, mesProcessorResolverAndOtherPeers)
+		}
+	}
+
+	fmt.Println("Delaying for peer connections and topic broadcast...")
+	time.Sleep(time.Second * 5)
+
+	idxResolver := 1
+	fmt.Println("broadcasting a message")
+	peers[idxResolver].Broadcast(topic, broadcastMsgResolver)
+
+	time.Sleep(time.Second)
+
+	fmt.Println("sending a direct message")
+	_ = peers[idxResolver].SendToConnectedPeer(topic, directMsgResolver, peers[idxRequester].ID())
+
+	time.Sleep(time.Second * 2)
 }
 
 func TestLibp2pMessenger_SendDirectWithMockNetToConnectedPeerShouldWork(t *testing.T) {

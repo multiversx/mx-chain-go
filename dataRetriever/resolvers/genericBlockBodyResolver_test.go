@@ -97,7 +97,7 @@ func TestNewGenericBlockBodyResolver_ProcessReceivedMessageNilValueShouldErr(t *
 		&mock.MarshalizerMock{},
 	)
 
-	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil))
+	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), nil)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
 }
 
@@ -111,7 +111,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageWrongTypeShouldErr(t *te
 		&mock.MarshalizerMock{},
 	)
 
-	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, make([]byte, 0)))
+	err := gbbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, make([]byte, 0)), nil)
 	assert.Equal(t, dataRetriever.ErrInvalidRequestType, err)
 }
 
@@ -153,9 +153,10 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 		marshalizer,
 	)
 
-	err := gbbRes.ProcessReceivedMessage(createRequestMsg(
-		dataRetriever.HashArrayType,
-		requestedBuff))
+	err := gbbRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashArrayType, requestedBuff),
+		nil,
+	)
 
 	assert.Nil(t, err)
 	assert.True(t, wasResolved)
@@ -203,9 +204,10 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFa
 		marshalizer,
 	)
 
-	err := gbbRes.ProcessReceivedMessage(createRequestMsg(
-		dataRetriever.HashArrayType,
-		requestedBuff))
+	err := gbbRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashArrayType, requestedBuff),
+		nil,
+	)
 
 	assert.Equal(t, errExpected, err)
 
@@ -247,9 +249,10 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetF
 		marshalizer,
 	)
 
-	err := gbbRes.ProcessReceivedMessage(createRequestMsg(
-		dataRetriever.HashType,
-		requestedBuff))
+	err := gbbRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashType, requestedBuff),
+		nil,
+	)
 
 	assert.Nil(t, err)
 	assert.True(t, wasResolved)
@@ -289,9 +292,10 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 		marshalizer,
 	)
 
-	_ = gbbRes.ProcessReceivedMessage(createRequestMsg(
-		dataRetriever.HashType,
-		requestedBuff))
+	_ = gbbRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashType, requestedBuff),
+		nil,
+	)
 
 	assert.False(t, wasSent)
 }

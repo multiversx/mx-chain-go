@@ -1236,7 +1236,7 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, registeredHandler)
 
-	err = registeredHandler.ProcessReceivedMessage(nil)
+	err = registeredHandler.ProcessReceivedMessage(nil, nil)
 	assert.NotNil(t, err)
 	assert.Contains(t, "nil message", err.Error())
 }

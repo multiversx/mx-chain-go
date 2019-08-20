@@ -17,7 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
-const durationBetweenSends = time.Duration(time.Microsecond * 10)
+const durationBetweenSends = time.Microsecond * 10
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
 const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
@@ -401,24 +401,19 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
 	validator, found := netMes.topics[topic]
-
 	if !found {
 		return p2p.ErrNilTopic
 	}
-
 	if validator != nil {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 
-	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		broadcastCallbackHandler, ok := handler.(p2p.BroadcastCallbackHandler)
-		if ok {
-			broadcastCallbackHandler.SetBroadcastCallback(func(buffToSend []byte) {
-				netMes.Broadcast(topic, buffToSend)
-			})
-		}
+	broadcastHandler := func(buffToSend []byte) {
+		netMes.Broadcast(topic, buffToSend)
+	}
 
-		err := handler.ProcessReceivedMessage(NewMessage(message))
+	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+		err := handler.ProcessReceivedMessage(NewMessage(message), broadcastHandler)
 		if err != nil {
 			log.Debug(err.Error())
 		}
@@ -473,7 +468,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	}
 
 	go func(msg p2p.MessageP2P) {
-		err := processor.ProcessReceivedMessage(msg)
+		err := processor.ProcessReceivedMessage(msg, nil)
 
 		if err != nil {
 			log.Debug(err.Error())

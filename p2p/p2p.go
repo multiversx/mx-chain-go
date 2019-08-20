@@ -11,13 +11,7 @@ import (
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
 type MessageProcessor interface {
-	ProcessReceivedMessage(message MessageP2P) error
-}
-
-// BroadcastCallbackHandler will be implemented by those message processor instances that need to send back
-// a subset of received message (after filtering occurs)
-type BroadcastCallbackHandler interface {
-	SetBroadcastCallback(callback func(buffToSend []byte))
+	ProcessReceivedMessage(message MessageP2P, broadcastHandler func(buffToSend []byte)) error
 }
 
 // SendableData represents the struct used in data throttler implementation

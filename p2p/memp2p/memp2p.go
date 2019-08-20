@@ -293,11 +293,11 @@ func (messenger *Messenger) parametricBroadcast(topic string, data []byte, async
 	for _, peer := range messenger.Network.Peers() {
 		if async {
 			go func(receivingPeer *Messenger) {
-				err := receivingPeer.ReceiveMessage(topic, message)
+				err := receivingPeer.ReceiveMessage(topic, message, true)
 				log.LogIfError(err)
 			}(peer)
 		} else {
-			err = peer.ReceiveMessage(topic, message)
+			err = peer.ReceiveMessage(topic, message, true)
 		}
 		if err != nil {
 			break
@@ -323,7 +323,7 @@ func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerI
 			return ErrReceivingPeerNotConnected
 		}
 
-		return receivingPeer.ReceiveMessage(topic, message)
+		return receivingPeer.ReceiveMessage(topic, message, false)
 	}
 
 	return ErrNotConnectedToNetwork
@@ -334,7 +334,7 @@ func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerI
 // previously registered a message processor for that topic. The Network will
 // log the message only if the Network.LogMessages flag is set and only if the
 // Messenger has the requested topic and MessageProcessor.
-func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P) error {
+func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P, allowBroadcast bool) error {
 	messenger.TopicsMutex.Lock()
 	validator, found := messenger.Topics[topic]
 	messenger.TopicsMutex.Unlock()
@@ -351,7 +351,14 @@ func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P)
 		messenger.Network.LogMessage(message)
 	}
 
-	err := validator.ProcessReceivedMessage(message)
+	var handler func(buffToSend []byte)
+	if allowBroadcast {
+		handler = func(buffToSend []byte) {
+			messenger.Broadcast(topic, buffToSend)
+		}
+	}
+
+	err := validator.ProcessReceivedMessage(message, handler)
 
 	return err
 }

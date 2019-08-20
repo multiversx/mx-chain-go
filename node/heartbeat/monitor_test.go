@@ -105,7 +105,7 @@ func TestMonitor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 		map[uint32][]string{0: {"pk1"}},
 	)
 
-	err := mon.ProcessReceivedMessage(nil)
+	err := mon.ProcessReceivedMessage(nil, nil)
 
 	assert.Equal(t, heartbeat.ErrNilMessage, err)
 }
@@ -121,7 +121,7 @@ func TestMonitor_ProcessReceivedMessageNilDataShouldErr(t *testing.T) {
 		map[uint32][]string{0: {"pk1"}},
 	)
 
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{})
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{}, nil)
 
 	assert.Equal(t, heartbeat.ErrNilDataToProcess, err)
 }
@@ -143,7 +143,7 @@ func TestMonitor_ProcessReceivedMessageMarshalFailsShouldErr(t *testing.T) {
 		map[uint32][]string{0: {"pk1"}},
 	)
 
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")}, nil)
 
 	assert.Equal(t, errExpected, err)
 }
@@ -169,7 +169,7 @@ func TestMonitor_ProcessReceivedMessageWrongPubkeyShouldErr(t *testing.T) {
 		map[uint32][]string{0: {"pk1"}},
 	)
 
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")}, nil)
 
 	assert.Equal(t, errExpected, err)
 }
@@ -199,7 +199,7 @@ func TestMonitor_ProcessReceivedMessageVerifyFailsShouldErr(t *testing.T) {
 		map[uint32][]string{0: {"pk1"}},
 	)
 
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")}, nil)
 
 	assert.Equal(t, errExpected, err)
 }
@@ -230,7 +230,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		map[uint32][]string{0: {pubKey}},
 	)
 
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")}, nil)
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -267,7 +267,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 		map[uint32][]string{0: {"pk2"}},
 	)
 
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")}, nil)
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -317,7 +317,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 	buffToSend, err := json.Marshal(hb)
 	assert.Nil(t, err)
 
-	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend})
+	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, nil)
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -337,7 +337,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend})
+	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, nil)
 
 	time.Sleep(1 * time.Second)
 
@@ -412,6 +412,6 @@ func sendHbMessageFromPubKey(pubKey string, mon *heartbeat.Monitor) error {
 		Pubkey: []byte(pubKey),
 	}
 	buffToSend, _ := json.Marshal(hb)
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend})
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, nil)
 	return err
 }

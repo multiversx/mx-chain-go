@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durTimeout = time.Duration(time.Second)
+var durTimeout = time.Second
 
 //------- NewUnsignedTxInterceptor
 
@@ -173,7 +173,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageNilMesssageShouldErr(t *te
 		mock.HasherMock{},
 		oneSharder)
 
-	err := scri.ProcessReceivedMessage(nil)
+	err := scri.ProcessReceivedMessage(nil, nil)
 
 	assert.Equal(t, process.ErrNilMessage, err)
 }
@@ -196,7 +196,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageMilMessageDataShouldErr(t 
 
 	msg := &mock.P2PMessageMock{}
 
-	err := scri.ProcessReceivedMessage(msg)
+	err := scri.ProcessReceivedMessage(msg, nil)
 
 	assert.Equal(t, process.ErrNilDataToProcess, err)
 }
@@ -227,7 +227,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarsha
 		DataField: make([]byte, 0),
 	}
 
-	err := scri.ProcessReceivedMessage(msg)
+	err := scri.ProcessReceivedMessage(msg, nil)
 
 	assert.Equal(t, errMarshalizer, err)
 }
@@ -259,7 +259,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShou
 		DataField: make([]byte, 0),
 	}
 
-	err := scri.ProcessReceivedMessage(msg)
+	err := scri.ProcessReceivedMessage(msg, nil)
 
 	assert.Equal(t, process.ErrNoUnsignedTransactionInMessage, err)
 }
@@ -307,7 +307,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 		}
 	}
 
-	err := scri.ProcessReceivedMessage(msg)
+	err := scri.ProcessReceivedMessage(msg, nil)
 
 	assert.Nil(t, err)
 	select {
@@ -361,7 +361,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 		}
 	}
 
-	err := scri.ProcessReceivedMessage(msg)
+	err := scri.ProcessReceivedMessage(msg, nil)
 
 	assert.Nil(t, err)
 	select {
@@ -423,7 +423,7 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 		}
 	}
 
-	err := scri.ProcessReceivedMessage(msg)
+	err := scri.ProcessReceivedMessage(msg, nil)
 
 	assert.Nil(t, err)
 	select {
