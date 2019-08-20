@@ -36,12 +36,12 @@ func createMockThrottler(throttlerStartNum *int32, throttlerEndNum *int32) proce
 		CanProcessCalled: func() bool {
 			return true
 		},
-		StartToProcessCalled: func() {
+		StartProcessingCalled: func() {
 			if throttlerStartNum != nil {
 				atomic.AddInt32(throttlerStartNum, 1)
 			}
 		},
-		EndProcessCalled: func() {
+		EndProcessingCalled: func() {
 			if throttlerEndNum != nil {
 				atomic.AddInt32(throttlerEndNum, 1)
 			}
@@ -132,8 +132,8 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 			CanProcessCalled: func() bool {
 				return true
 			},
-			StartToProcessCalled: func() {},
-			EndProcessCalled:     func() {},
+			StartProcessingCalled: func() {},
+			EndProcessingCalled:   func() {},
 		},
 	)
 

@@ -56,7 +56,7 @@ func TestPreProcessMessage_CanProcessReturnsNilAndCallsStartProcessing(t *testin
 		CanProcessCalled: func() bool {
 			return true
 		},
-		StartToProcessCalled: func() {
+		StartProcessingCalled: func() {
 			startProcessingCalled = true
 		},
 	}

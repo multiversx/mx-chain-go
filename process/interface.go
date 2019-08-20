@@ -61,8 +61,8 @@ type InterceptorProcessor interface {
 // InterceptorThrottler can
 type InterceptorThrottler interface {
 	CanProcess() bool
-	StartToProcess()
-	EndProcess()
+	StartProcessing()
+	EndProcessing()
 }
 
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors

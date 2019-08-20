@@ -62,11 +62,11 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) 
 	multiDataBuff := make([][]byte, 0)
 	err = mdi.marshalizer.Unmarshal(&multiDataBuff, message.Data())
 	if err != nil {
-		mdi.throttler.EndProcess()
+		mdi.throttler.EndProcessing()
 		return err
 	}
 	if len(multiDataBuff) == 0 {
-		mdi.throttler.EndProcess()
+		mdi.throttler.EndProcessing()
 		return process.ErrNoDataInMessage
 	}
 
@@ -76,7 +76,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) 
 	wgProcess.Add(len(multiDataBuff))
 	go func() {
 		wgProcess.Wait()
-		mdi.throttler.EndProcess()
+		mdi.throttler.EndProcessing()
 	}()
 
 	for _, dataBuff := range multiDataBuff {

@@ -51,18 +51,18 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P)
 
 	interceptedData, err := sdi.factory.Create(message.Data())
 	if err != nil {
-		sdi.throttler.EndProcess()
+		sdi.throttler.EndProcessing()
 		return err
 	}
 
 	err = interceptedData.CheckValidity()
 	if err != nil {
-		sdi.throttler.EndProcess()
+		sdi.throttler.EndProcessing()
 		return err
 	}
 
 	if !interceptedData.IsForMyShard() {
-		sdi.throttler.EndProcess()
+		sdi.throttler.EndProcessing()
 		log.Debug("intercepted data is for other shards")
 		return nil
 	}
@@ -71,7 +71,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P)
 	wgProcess.Add(1)
 	go func() {
 		wgProcess.Wait()
-		sdi.throttler.EndProcess()
+		sdi.throttler.EndProcessing()
 	}()
 
 	go processInterceptedData(sdi.processor, interceptedData, wgProcess)

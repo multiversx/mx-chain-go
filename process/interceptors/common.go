@@ -21,7 +21,7 @@ func preProcessMesage(throttler process.InterceptorThrottler, message p2p.Messag
 		return nil
 	}
 
-	throttler.StartToProcess()
+	throttler.StartProcessing()
 	return nil
 }
 
