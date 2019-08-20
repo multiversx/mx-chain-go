@@ -16,3 +16,11 @@ func MakeDiffList(
 func FisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) ([]int, error) {
 	return fisherYatesShuffle(indexes, randomizer)
 }
+
+func (dplc *DiffPeerListCreator) MainTopic() string {
+	return dplc.mainTopic
+}
+
+func (dplc *DiffPeerListCreator) ExcludedPeersOnTopic() string {
+	return dplc.excludePeersFromTopic
+}

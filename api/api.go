@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/gin-gonic/gin/json"
@@ -32,6 +33,8 @@ type prometheus struct {
 // MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
 type MainApiHandler interface {
 	RestApiPort() string
+	RestAPIServerDebugMode() bool
+	PprofEnabled() bool
 	PrometheusMonitoring() bool
 	PrometheusJoinURL() string
 	PrometheusNetworkID() string
@@ -39,7 +42,14 @@ type MainApiHandler interface {
 
 // Start will boot up the api and appropriate routes, handlers and validators
 func Start(elrondFacade MainApiHandler) error {
-	ws := gin.Default()
+	var ws *gin.Engine
+	if elrondFacade.RestAPIServerDebugMode() {
+		ws = gin.Default()
+	} else {
+		ws = gin.New()
+		ws.Use(gin.Recovery())
+		gin.SetMode(gin.ReleaseMode)
+	}
 	ws.Use(cors.Default())
 
 	err := registerValidators()
@@ -108,6 +118,9 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 		nodeRoutes.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	}
 
+	if apiHandler.PprofEnabled() {
+		pprof.Register(ws)
+	}
 }
 
 func registerValidators() error {

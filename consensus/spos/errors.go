@@ -150,3 +150,6 @@ var ErrNilForkDetector = errors.New("fork detector is nil")
 
 // ErrNilExecuteStoredMessages is raised when a valid executeStoredMessages function is expected but nil used
 var ErrNilExecuteStoredMessages = errors.New("executeStoredMessages is nil")
+
+// ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
+var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")

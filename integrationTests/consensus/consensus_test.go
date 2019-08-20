@@ -91,7 +91,7 @@ func initNodesAndTest(
 	return nodes[0], advertiser, concMap
 }
 
-func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) {
+func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
 	for _, n := range nodes {
 		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 			n.blkProcessor.NrCommitBlockCalled++
@@ -105,8 +105,12 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 
 			return nil
 		}
-		_ = n.node.StartConsensus()
+		err := n.node.StartConsensus()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint64]uint64, mutex *sync.Mutex, chDone chan bool, t *testing.T) {
@@ -168,7 +172,8 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 
 	nonceForRoundMap := make(map[uint64]uint64)
 	totalCalled := 0
-	startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
+	err := startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
+	assert.Nil(t, err)
 
 	chDone := make(chan bool, 0)
 	go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
@@ -223,7 +228,8 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 
 	nonceForRoundMap := make(map[uint64]uint64)
 	totalCalled := 0
-	startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
+	err := startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
+	assert.Nil(t, err)
 
 	waitTime := time.Second * 60
 	fmt.Println("Run for 60 seconds...")

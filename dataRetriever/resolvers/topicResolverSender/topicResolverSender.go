@@ -1,8 +1,6 @@
 package topicResolverSender
 
 import (
-	"bytes"
-
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -15,19 +13,19 @@ const topicRequestSuffix = "_REQUEST"
 const NumPeersToQuery = 2
 
 type topicResolverSender struct {
-	messenger             dataRetriever.MessageHandler
-	marshalizer           marshal.Marshalizer
-	topicName             string
-	excludePeersFromTopic string
-	randomizer            dataRetriever.IntRandomizer
-	targetShardId         uint32
+	messenger       dataRetriever.MessageHandler
+	marshalizer     marshal.Marshalizer
+	topicName       string
+	peerListCreator dataRetriever.PeerListCreator
+	randomizer      dataRetriever.IntRandomizer
+	targetShardId   uint32
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
 func NewTopicResolverSender(
 	messenger dataRetriever.MessageHandler,
 	topicName string,
-	excludePeersFromTopic string,
+	peerListCreator dataRetriever.PeerListCreator,
 	marshalizer marshal.Marshalizer,
 	randomizer dataRetriever.IntRandomizer,
 	targetShardId uint32,
@@ -42,14 +40,17 @@ func NewTopicResolverSender(
 	if randomizer == nil {
 		return nil, dataRetriever.ErrNilRandomizer
 	}
+	if peerListCreator == nil {
+		return nil, dataRetriever.ErrNilPeerListCreator
+	}
 
 	resolver := &topicResolverSender{
-		messenger:             messenger,
-		topicName:             topicName,
-		excludePeersFromTopic: excludePeersFromTopic,
-		marshalizer:           marshalizer,
-		randomizer:            randomizer,
-		targetShardId:         targetShardId,
+		messenger:       messenger,
+		topicName:       topicName,
+		peerListCreator: peerListCreator,
+		marshalizer:     marshalizer,
+		randomizer:      randomizer,
+		targetShardId:   targetShardId,
 	}
 
 	return resolver, nil
@@ -63,26 +64,14 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 		return err
 	}
 
-	topicToSendRequest := trs.topicName + topicRequestSuffix
-	excludedTopicSendRequest := trs.excludePeersFromTopic + topicRequestSuffix
-	allConnectedPeers := trs.messenger.ConnectedPeersOnTopic(topicToSendRequest)
-	if len(allConnectedPeers) == 0 {
+	peerList := trs.peerListCreator.PeerList()
+	if len(peerList) == 0 {
 		return dataRetriever.ErrNoConnectedPeerToSendRequest
 	}
 
-	excludedConnectedPeers := make([]p2p.PeerID, 0)
-	isExcludedTopicSet := len(trs.excludePeersFromTopic) > 0
-	if isExcludedTopicSet {
-		excludedConnectedPeers = trs.messenger.ConnectedPeersOnTopic(excludedTopicSendRequest)
-	}
+	topicToSendRequest := trs.topicName + topicRequestSuffix
 
-	diffList := makeDiffList(allConnectedPeers, excludedConnectedPeers)
-	if len(diffList) == 0 {
-		//no differences: fallback to all connected peers
-		diffList = allConnectedPeers
-	}
-
-	indexes := createIndexList(len(diffList))
+	indexes := createIndexList(len(peerList))
 	shuffledIndexes, err := fisherYatesShuffle(indexes, trs.randomizer)
 	if err != nil {
 		return err
@@ -90,7 +79,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 
 	msgSentCounter := 0
 	for idx := range shuffledIndexes {
-		peer := diffList[idx]
+		peer := peerList[idx]
 
 		err = trs.messenger.SendToConnectedPeer(topicToSendRequest, buff, peer)
 		if err != nil {
@@ -149,32 +138,4 @@ func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) (
 	}
 
 	return newIndexes, nil
-}
-
-func makeDiffList(
-	allConnectedPeers []p2p.PeerID,
-	excludedConnectedPeers []p2p.PeerID,
-) []p2p.PeerID {
-
-	if len(excludedConnectedPeers) == 0 {
-		return allConnectedPeers
-	}
-
-	diff := make([]p2p.PeerID, 0)
-	for _, pid := range allConnectedPeers {
-		isPeerExcluded := false
-
-		for _, excluded := range excludedConnectedPeers {
-			if bytes.Equal(pid.Bytes(), excluded.Bytes()) {
-				isPeerExcluded = true
-				break
-			}
-		}
-
-		if !isPeerExcluded {
-			diff = append(diff, pid)
-		}
-	}
-
-	return diff
 }

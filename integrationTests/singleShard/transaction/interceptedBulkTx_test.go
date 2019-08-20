@@ -9,12 +9,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,41 +20,25 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	hasher := sha256.Sha256{}
-	dPool := createTestDataPool()
-
 	startingNonce := uint64(6)
+	var nrOfShards uint32 = 1
+	var shardID uint32 = 0
+	var txSignPrivKeyShardId uint32 = 0
+	nodeAddr := "0"
 
-	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	accntAdapter := createAccountsDB()
+	n := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, nodeAddr)
+	_ = n.Node.Start()
 
-	shardCoordinator := &sharding.OneShardCoordinator{}
-	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
-		1,
-		1,
-		hasher,
-		0,
-		1,
-		make(map[uint32][]sharding.Validator),
-	)
-	n, _, sk, _ := createNetNode(dPool, accntAdapter, shardCoordinator, nodesCoordinator)
-
-	_ = n.Start()
 	defer func() {
-		_ = n.Stop()
+		_ = n.Node.Stop()
 	}()
 
-	_ = n.P2PBootstrap()
+	_ = n.Node.P2PBootstrap()
 
 	time.Sleep(time.Second)
 
 	//set the account's nonce to startingNonce
-	nodePubKeyBytes, _ := sk.GeneratePublic().ToByteArray()
-	nodeAddress, _ := addrConverter.CreateAddressFromPublicKeyBytes(nodePubKeyBytes)
-	nodeAccount, _ := accntAdapter.GetAccountWithJournal(nodeAddress)
-	_ = nodeAccount.(*state.Account).SetNonceWithJournal(startingNonce)
-	_, _ = accntAdapter.Commit()
-
+	_ = n.SetAccountNonce(startingNonce)
 	noOfTx := 8000
 
 	time.Sleep(time.Second)
@@ -69,7 +50,6 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	go func() {
 		wg.Wait()
-
 		chanDone <- true
 	}()
 
@@ -78,14 +58,14 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	transactions := make([]data.TransactionHandler, 0)
 
 	//wire up handler
-	dPool.Transactions().RegisterHandler(func(key []byte) {
+	n.ShardDataPool.Transactions().RegisterHandler(func(key []byte) {
 		mut.Lock()
 		defer mut.Unlock()
 
 		txHashes = append(txHashes, key)
 
-		dataStore := dPool.Transactions().ShardDataStore(
-			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+		dataStore := n.ShardDataPool.Transactions().ShardDataStore(
+			process.ShardCacherIdentifier(n.ShardCoordinator.SelfId(), n.ShardCoordinator.SelfId()),
 		)
 		val, _ := dataStore.Get(key)
 
@@ -98,7 +78,11 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		wg.Done()
 	})
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), uint64(noOfTx))
+	err := n.Node.GenerateAndSendBulkTransactions(
+		integrationTests.CreateRandomHexString(64),
+		big.NewInt(1),
+		uint64(noOfTx),
+	)
 
 	assert.Nil(t, err)
 
@@ -109,5 +93,13 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		return
 	}
 
-	checkResults(t, startingNonce, noOfTx, txHashes, transactions, dPool.Transactions(), shardCoordinator)
+	integrationTests.CheckTxPresentAndRightNonce(
+		t,
+		startingNonce,
+		noOfTx,
+		txHashes,
+		transactions,
+		n.ShardDataPool.Transactions(),
+		n.ShardCoordinator,
+	)
 }
