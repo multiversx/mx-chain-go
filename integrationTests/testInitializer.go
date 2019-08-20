@@ -417,8 +417,16 @@ func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.I
 // CreateSimpleTxProcessor returns a transaction processor
 func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionProcessor {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	txProcessor, _ := txProc.NewTxProcessor(accnts, TestHasher, TestAddressConverter, TestMarshalizer,
-		shardCoordinator, &mock.SCProcessorMock{}, &mock.UnsignedTxHandlerMock{}, &mock.TxTypeHandlerMock{})
+	txProcessor, _ := txProc.NewTxProcessor(
+		accnts,
+		TestHasher,
+		TestAddressConverter,
+		TestMarshalizer,
+		shardCoordinator,
+		&mock.SCProcessorMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
+	)
 
 	return txProcessor
 }
@@ -654,9 +662,9 @@ func CreateNodes(
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 
 	idx := 0
-	for shardId := 0; shardId < numOfShards; shardId++ {
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNode(uint32(numOfShards), uint32(shardId), uint32(shardId), serviceID)
+			n := NewTestProcessorNode(uint32(numOfShards), shardId, shardId, serviceID)
 
 			nodes[idx] = n
 			idx++
