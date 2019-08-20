@@ -36,16 +36,22 @@ func NewSender(
 	if peerMessenger == nil {
 		return nil, ErrNilMessenger
 	}
+
 	if singleSigner == nil {
 		return nil, ErrNilSingleSigner
 	}
+
 	if privKey == nil {
 		return nil, ErrNilPrivateKey
 	}
+
 	if marshalizer == nil {
 		return nil, ErrNilMarshalizer
 	}
-	//TODO add test for shardCoordinator
+
+	if shardCoordinator == nil {
+		return nil, ErrNilShardCoordinator
+	}
 
 	sender := &Sender{
 		peerMessenger:    peerMessenger,
@@ -66,7 +72,7 @@ func (s *Sender) SendHeartbeat() error {
 
 	hb := &Heartbeat{
 		Payload:         []byte(fmt.Sprintf("%v", time.Now())),
-		ShardID:         s.shardCoordinator.SelfId(),
+		ReceivedShardID: s.shardCoordinator.SelfId(),
 		VersionNumber:   s.versionNumber,
 		NodeDisplayName: s.nodeDisplayName,
 	}

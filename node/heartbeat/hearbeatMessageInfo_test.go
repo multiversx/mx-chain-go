@@ -42,14 +42,14 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 
 	hbmi.HeartbeatReceived(uint32(0), "v0.1", "undefined")
 	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
-	assert.Equal(t, uint32(0), hbmi.shardID)
+	assert.Equal(t, uint32(0), hbmi.receivedShardID)
 
 	hbmi.HeartbeatReceived(uint32(1), "v0.1", "undefined")
 	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
-	assert.Equal(t, uint32(1), hbmi.shardID)
+	assert.Equal(t, uint32(1), hbmi.receivedShardID)
 }
 
-func TestHeartbeatMessageInfo_HeartbeatSweepShouldUpdate(t *testing.T) {
+func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hbmi, _ := newHeartbeatMessageInfo(time.Duration(1), false)

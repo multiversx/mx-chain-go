@@ -66,7 +66,7 @@ func NewMonitor(
 				return nil, err
 			}
 
-			mhbi.shardID = shardId
+			mhbi.computedShardID = shardId
 			mon.heartbeatMessages[pubkey] = mhbi
 		}
 	}
@@ -121,7 +121,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			m.heartbeatMessages[string(hb.Pubkey)] = pe
 		}
 
-		pe.HeartbeatReceived(hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
+		pe.HeartbeatReceived(hb.ReceivedShardID, hb.VersionNumber, hb.NodeDisplayName)
 		m.updateAllHeartbeatMessages()
 	}(message, hbRecv)
 
@@ -175,7 +175,8 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			TimeStamp:       v.timeStamp,
 			MaxInactiveTime: v.maxInactiveTime,
 			IsActive:        v.isActive,
-			ShardID:         v.shardID,
+			ReceivedShardID: v.receivedShardID,
+			ComputedShardID: v.computedShardID,
 			TotalUpTime:     v.totalUpTime,
 			TotalDownTime:   v.totalDownTime,
 			VersionNumber:   v.versionNumber,

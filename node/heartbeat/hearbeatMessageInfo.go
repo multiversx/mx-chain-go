@@ -16,7 +16,8 @@ type heartbeatMessageInfo struct {
 	getTimeHandler     func() time.Time
 	timeStamp          time.Time
 	isActive           bool
-	shardID            uint32
+	receivedShardID    uint32
+	computedShardID    uint32
 	versionNumber      string
 	nodeDisplayName    string
 	isValidator        bool
@@ -37,6 +38,7 @@ func newHeartbeatMessageInfo(
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
 		maxInactiveTime:             Duration{0},
 		isActive:                    false,
+		receivedShardID:             uint32(0),
 		timeStamp:                   emptyTimestamp,
 		lastUptimeDowntime:          time.Now(),
 		totalUpTime:                 Duration{0},
@@ -81,7 +83,7 @@ func (hbmi *heartbeatMessageInfo) updateUpAndDownTime() {
 func (hbmi *heartbeatMessageInfo) HeartbeatReceived(shardID uint32, version string, nodeDisplayName string) {
 	crtTime := hbmi.getTimeHandler()
 	hbmi.updateFields()
-	hbmi.shardID = shardID
+	hbmi.receivedShardID = shardID
 	hbmi.updateMaxInactiveTimeDuration()
 	hbmi.timeStamp = crtTime
 	hbmi.versionNumber = version
