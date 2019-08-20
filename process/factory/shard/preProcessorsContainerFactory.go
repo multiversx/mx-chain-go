@@ -146,3 +146,11 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 
 	return scrPreprocessor, err
 }
+
+// IsInterfaceNil return if there is no value under the interface
+func (ppcm *preProcessorsContainerFactory) IsInterfaceNil() bool {
+	if ppcm == nil {
+		return true
+	}
+	return false
+}

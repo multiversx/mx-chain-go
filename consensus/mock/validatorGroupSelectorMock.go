@@ -45,3 +45,8 @@ func (vgsm ValidatorGroupSelectorMock) SetConsensusGroupSize(int) error {
 func (vgsm ValidatorGroupSelectorMock) GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error) {
 	panic("implement me")
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (vgsm ValidatorGroupSelectorMock) IsInterfaceNil() bool {
+	panic("implement  me")
+}

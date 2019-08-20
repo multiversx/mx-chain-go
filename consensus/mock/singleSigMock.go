@@ -16,3 +16,12 @@ func (s *SingleSignerMock) Sign(private crypto.PrivateKey, msg []byte) ([]byte, 
 func (s *SingleSignerMock) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
 	return s.VerifyStub(public, msg, sig)
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (s *SingleSignerMock) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+
+	return false
+}

@@ -20,3 +20,12 @@ func (c *MetaAccountCreator) CreateAccount(address state.AddressContainer, track
 
 	return account, nil
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (c *MetaAccountCreator) IsInterfaceNil() bool {
+	if c == nil {
+		return true
+	}
+
+	return false
+}

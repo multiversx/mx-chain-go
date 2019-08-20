@@ -85,3 +85,11 @@ func (ic *interceptorsContainer) Remove(key string) {
 func (ic *interceptorsContainer) Len() int {
 	return ic.objects.Len()
 }
+
+// IsInterfaceNil return if there is no value under the interface
+func (ic *interceptorsContainer) IsInterfaceNil() bool {
+	if ic == nil {
+		return true
+	}
+	return false
+}

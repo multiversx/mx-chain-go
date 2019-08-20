@@ -42,3 +42,12 @@ func (phs *PoolsHolderStub) MetaBlocks() storage.Cacher {
 func (phs *PoolsHolderStub) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
 	return phs.UnsignedTransactionsCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (phs *PoolsHolderStub) IsInterfaceNil() bool {
+	if phs == nil {
+		return true
+	}
+
+	return false
+}

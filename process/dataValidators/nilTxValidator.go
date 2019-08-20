@@ -15,3 +15,12 @@ func NewNilTxValidator() (*nilTxValidator, error) {
 func (ntv *nilTxValidator) IsTxValidForProcessing(txHandler data.TransactionHandler) bool {
 	return true
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ntv *nilTxValidator) IsInterfaceNil() bool {
+	if ntv == nil {
+		return true
+	}
+
+	return false
+}

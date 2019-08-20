@@ -13,7 +13,7 @@ import (
 func TestMetaAccountCreator_CreateAccountNilAddress(t *testing.T) {
 	t.Parallel()
 
-	shardC := mock.ShardCoordinatorMock{
+	shardC := &mock.ShardCoordinatorMock{
 		SelfID:     sharding.MetachainShardId,
 		NrOfShards: 1,
 	}
@@ -32,7 +32,7 @@ func TestMetaAccountCreator_CreateAccountNilAddress(t *testing.T) {
 func TestMetaAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 	t.Parallel()
 
-	shardC := mock.ShardCoordinatorMock{
+	shardC := &mock.ShardCoordinatorMock{
 		SelfID:     sharding.MetachainShardId,
 		NrOfShards: 1,
 	}
@@ -51,7 +51,7 @@ func TestMetaAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 func TestMetaAccountCreator_CreateAccountOk(t *testing.T) {
 	t.Parallel()
 
-	shardC := mock.ShardCoordinatorMock{
+	shardC := &mock.ShardCoordinatorMock{
 		SelfID:     sharding.MetachainShardId,
 		NrOfShards: 1,
 	}

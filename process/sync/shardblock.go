@@ -870,3 +870,11 @@ func (boot *ShardBootstrap) getCurrentHeader() (*block.Header, error) {
 
 	return header, nil
 }
+
+// IsInterfaceNil return if there is no value under the interface
+func (boot *ShardBootstrap) IsInterfaceNil() bool {
+	if boot == nil {
+		return true
+	}
+	return false
+}

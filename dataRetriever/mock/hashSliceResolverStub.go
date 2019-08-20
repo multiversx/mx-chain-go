@@ -31,3 +31,12 @@ func (hsrs *HashSliceResolverStub) RequestDataFromHashArray(hashes [][]byte) err
 
 	return errNotImplemented
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (hsrs *HashSliceResolverStub) IsInterfaceNil() bool {
+	if hsrs == nil {
+		return true
+	}
+
+	return false
+}

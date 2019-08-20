@@ -27,3 +27,12 @@ func (hrm *MiniBlocksResolverMock) ProcessReceivedMessage(message p2p.MessageP2P
 func (hrm *MiniBlocksResolverMock) GetMiniBlocks(hashes [][]byte) block.MiniBlockSlice {
 	return hrm.GetMiniBlocksCalled(hashes)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hrm *MiniBlocksResolverMock) IsInterfaceNil() bool {
+	if hrm == nil {
+		return true
+	}
+
+	return false
+}

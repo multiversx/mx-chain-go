@@ -33,6 +33,15 @@ func (bjec *BaseJournalEntryCreation) Revert() (AccountHandler, error) {
 	return nil, bjec.updater.Update(bjec.key, nil)
 }
 
+// IsInterfaceNil returns if there is no value under the interface
+func (bjec *BaseJournalEntryCreation) IsInterfaceNil() bool {
+	if bjec == nil {
+		return true
+	}
+
+	return false
+}
+
 //------- BaseJournalEntryCodeHash
 
 // BaseJournalEntryCodeHash creates a code hash change in account
@@ -58,6 +67,15 @@ func (bjech *BaseJournalEntryCodeHash) Revert() (AccountHandler, error) {
 	bjech.account.SetCodeHash(bjech.oldCodeHash)
 
 	return bjech.account, nil
+}
+
+// IsInterfaceNil returns if there is no value under the interface
+func (bjech *BaseJournalEntryCodeHash) IsInterfaceNil() bool {
+	if bjech == nil {
+		return true
+	}
+
+	return false
 }
 
 //------- BaseJournalEntryRoot
@@ -88,6 +106,15 @@ func (bjer *BaseJournalEntryRootHash) Revert() (AccountHandler, error) {
 	bjer.account.SetDataTrie(bjer.oldTrie)
 
 	return bjer.account, nil
+}
+
+// IsInterfaceNil returns if there is no value under the interface
+func (bjer *BaseJournalEntryRootHash) IsInterfaceNil() bool {
+	if bjer == nil {
+		return true
+	}
+
+	return false
 }
 
 //------- BaseJournalEntryData
@@ -126,6 +153,15 @@ func (bjed *BaseJournalEntryData) Trie() data.Trie {
 	return bjed.trie
 }
 
+// IsInterfaceNil returns if there is no value under the interface
+func (bjed *BaseJournalEntryData) IsInterfaceNil() bool {
+	if bjed == nil {
+		return true
+	}
+
+	return false
+}
+
 //------- BaseJournalEntryNonce
 
 // BaseJournalEntryNonce is used to revert a nonce change
@@ -151,4 +187,13 @@ func (bjen *BaseJournalEntryNonce) Revert() (AccountHandler, error) {
 	bjen.account.SetNonce(bjen.oldNonce)
 
 	return bjen.account, nil
+}
+
+// IsInterfaceNil returns if there is no value under the interface
+func (bjen *BaseJournalEntryNonce) IsInterfaceNil() bool {
+	if bjen == nil {
+		return true
+	}
+
+	return false
 }

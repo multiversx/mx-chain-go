@@ -69,3 +69,12 @@ func (acf *AddressConverterFake) PrepareAddressBytes(addressBytes []byte) ([]byt
 func (acf *AddressConverterFake) AddressLen() int {
 	return acf.addressLen
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (acf *AddressConverterFake) IsInterfaceNil() bool {
+	if acf == nil {
+		return true
+	}
+
+	return false
+}

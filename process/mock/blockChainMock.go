@@ -146,3 +146,12 @@ func (bc *BlockChainMock) PutBadBlock(blockHash []byte) {
 		bc.PutBadBlockCalled(blockHash)
 	}
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (bc *BlockChainMock) IsInterfaceNil() bool {
+	if bc == nil {
+		return true
+	}
+
+	return false
+}

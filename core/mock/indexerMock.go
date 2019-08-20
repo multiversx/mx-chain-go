@@ -18,3 +18,12 @@ func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandle
 func (im *IndexerMock) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	panic("implement me")
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (im *IndexerMock) IsInterfaceNil() bool {
+	if im == nil {
+		return true
+	}
+
+	return false
+}

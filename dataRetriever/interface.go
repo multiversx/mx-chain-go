@@ -43,6 +43,7 @@ const (
 type Resolver interface {
 	RequestDataFromHash(hash []byte) error
 	ProcessReceivedMessage(message p2p.MessageP2P) error
+	IsInterfaceNil() bool
 }
 
 // HeaderResolver defines what a block header resolver should do
@@ -64,6 +65,7 @@ type TopicResolverSender interface {
 	Send(buff []byte, peer p2p.PeerID) error
 	TopicRequestSuffix() string
 	TargetShardID() uint32
+	IsInterfaceNil() bool
 }
 
 // ResolversContainer defines a resolvers holder data type with basic functionality
@@ -74,6 +76,7 @@ type ResolversContainer interface {
 	Replace(key string, val Resolver) error
 	Remove(key string)
 	Len() int
+	IsInterfaceNil() bool
 }
 
 // ResolversFinder extends a container resolver and have 2 additional functionality
@@ -87,12 +90,14 @@ type ResolversFinder interface {
 // ResolversContainerFactory defines the functionality to create a resolvers container
 type ResolversContainerFactory interface {
 	Create() (ResolversContainer, error)
+	IsInterfaceNil() bool
 }
 
 // MessageHandler defines the functionality needed by structs to send data to other peers
 type MessageHandler interface {
 	ConnectedPeersOnTopic(topic string) []p2p.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
+	IsInterfaceNil() bool
 }
 
 // TopicHandler defines the functionality needed by structs to manage topics and message processors
@@ -112,6 +117,7 @@ type TopicMessageHandler interface {
 // IntRandomizer interface provides functionality over generating integer numbers
 type IntRandomizer interface {
 	Intn(n int) (int, error)
+	IsInterfaceNil() bool
 }
 
 // StorageType defines the storage levels on a node
@@ -133,16 +139,20 @@ type DataRetriever interface {
 	Keys(identifier string, level StorageType)
 	// Request searches for data in specified storage level, if not present launches threads to search in network
 	Request(keys [][]byte, identifier string, level StorageType, haveTime func() time.Duration, callbackHandler func(key []byte)) (map[string]interface{}, [][]byte, error)
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 // Notifier defines a way to register funcs that get called when something useful happens
 type Notifier interface {
 	RegisterHandler(func(key []byte))
+	IsInterfaceNil() bool
 }
 
 // PeerListCreator is used to create a peer list
 type PeerListCreator interface {
 	PeerList() []p2p.PeerID
+	IsInterfaceNil() bool
 }
 
 // ShardedDataCacherNotifier defines what a sharded-data structure can perform
@@ -168,6 +178,7 @@ type ShardIdHashMap interface {
 	Store(shardId uint32, hash []byte)
 	Range(f func(shardId uint32, hash []byte) bool)
 	Delete(shardId uint32)
+	IsInterfaceNil() bool
 }
 
 // Uint64SyncMapCacher defines a cacher-type struct that uses uint64 keys and sync-maps values
@@ -178,6 +189,7 @@ type Uint64SyncMapCacher interface {
 	Remove(nonce uint64, shardId uint32)
 	RegisterHandler(handler func(nonce uint64, shardId uint32, value []byte))
 	Has(nonce uint64, shardId uint32) bool
+	IsInterfaceNil() bool
 }
 
 // PoolsHolder defines getters for data pools
@@ -189,6 +201,7 @@ type PoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 	MetaBlocks() storage.Cacher
+	IsInterfaceNil() bool
 }
 
 // MetaPoolsHolder defines getter for data pools for metachain
@@ -197,6 +210,7 @@ type MetaPoolsHolder interface {
 	MiniBlockHashes() ShardedDataCacherNotifier
 	ShardHeaders() storage.Cacher
 	HeadersNonces() Uint64SyncMapCacher
+	IsInterfaceNil() bool
 }
 
 // StorageService is the interface for data storage unit provided services
@@ -216,9 +230,12 @@ type StorageService interface {
 	GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error)
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
+	IsInterfaceNil() bool
 }

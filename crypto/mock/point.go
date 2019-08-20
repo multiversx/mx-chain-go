@@ -2,6 +2,7 @@ package mock
 
 import (
 	"crypto/cipher"
+
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
@@ -110,4 +111,13 @@ func (po *PointMock) UnmarshalBinary(point []byte) error {
 	po.Y = y
 
 	return err
+}
+
+// IsInterfaceNil returns if there is no value under the interface
+func (po *PointMock) IsInterfaceNil() bool {
+	if po == nil {
+		return true
+	}
+
+	return false
 }

@@ -30,3 +30,12 @@ func (jeb *JournalEntryBalance) Revert() (AccountHandler, error) {
 
 	return jeb.account, nil
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (jeb *JournalEntryBalance) IsInterfaceNil() bool {
+	if jeb == nil {
+		return true
+	}
+
+	return false
+}

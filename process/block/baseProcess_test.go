@@ -306,6 +306,15 @@ func (wr wrongBody) IntegrityAndValidity() error {
 	return nil
 }
 
+// IsInterfaceNil returns if there is no value under the interface
+func (wr *wrongBody) IsInterfaceNil() bool {
+	if wr == nil {
+		return true
+	}
+
+	return false
+}
+
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte(""))

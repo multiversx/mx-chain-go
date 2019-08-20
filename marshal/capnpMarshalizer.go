@@ -37,3 +37,12 @@ func (x *CapnpMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 
 	return err
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (x *CapnpMarshalizer) IsInterfaceNil() bool {
+	if x == nil {
+		return true
+	}
+
+	return false
+}

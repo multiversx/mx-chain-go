@@ -423,3 +423,12 @@ func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.executeStoredMessages()
 	wrk.mutReceivedMessages.Unlock()
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (wrk *Worker) IsInterfaceNil() bool {
+	if wrk == nil {
+		return true
+	}
+
+	return false
+}

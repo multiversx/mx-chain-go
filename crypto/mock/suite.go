@@ -49,3 +49,12 @@ func (s *SuiteMock) GetUnderlyingSuite() interface{} {
 func (s *SuiteMock) CreateKeyPair(c cipher.Stream) (crypto.Scalar, crypto.Point) {
 	return s.CreateKeyPairStub(c)
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (s *SuiteMock) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+
+	return false
+}

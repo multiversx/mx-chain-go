@@ -31,3 +31,12 @@ func (*nonceHashConverterMock) ToUint64(buff []byte) (uint64, error) {
 
 	return binary.BigEndian.Uint64(buff), nil
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (nhcm *nonceHashConverterMock) IsInterfaceNil() bool {
+	if nhcm == nil {
+		return true
+	}
+
+	return false
+}

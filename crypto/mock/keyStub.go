@@ -39,6 +39,15 @@ func (privKey *PrivateKeyStub) Scalar() crypto.Scalar {
 	return privKey.ScalarStub()
 }
 
+// IsInterfaceNil returns if there is no value under the interface
+func (privKey *PrivateKeyStub) IsInterfaceNil() bool {
+	if privKey == nil {
+		return true
+	}
+
+	return false
+}
+
 // ToByteArray returns the byte array representation of the public key
 func (pubKey *PublicKeyStub) ToByteArray() ([]byte, error) {
 	return pubKey.ToByteArrayStub()
@@ -52,4 +61,13 @@ func (pubKey *PublicKeyStub) Suite() crypto.Suite {
 // Point returns the Point corresponding to this Public Key
 func (pubKey *PublicKeyStub) Point() crypto.Point {
 	return pubKey.PointStub()
+}
+
+// IsInterfaceNil returns if there is no value under the interface
+func (pubKey *PublicKeyStub) IsInterfaceNil() bool {
+	if pubKey == nil {
+		return true
+	}
+
+	return false
 }

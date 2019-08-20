@@ -234,3 +234,11 @@ func (s *SerialDB) processLoop(ctx context.Context) {
 		}
 	}
 }
+
+// IsInterfaceNil return if there is no value under the interface
+func (s *SerialDB) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
+}

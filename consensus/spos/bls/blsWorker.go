@@ -65,3 +65,12 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 func (wrk *worker) IsMessageWithBlockHeader(msgType consensus.MessageType) bool {
 	return msgType == MtBlockHeader
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (wrk *worker) IsInterfaceNil() bool {
+	if wrk == nil {
+		return true
+	}
+
+	return false
+}

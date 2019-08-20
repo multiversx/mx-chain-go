@@ -70,3 +70,11 @@ func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, erro
 func (vmf *vmContainerFactory) VMAccountsDB() *hooks.VMAccountsDB {
 	return vmf.vmAccountsDB
 }
+
+// IsInterfaceNil return if there is no value under the interface
+func (vmf *vmContainerFactory) IsInterfaceNil() bool {
+	if vmf == nil {
+		return true
+	}
+	return false
+}

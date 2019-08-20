@@ -21,6 +21,7 @@ type TPSBenchmark interface {
 	NrOfShards() uint32
 	ShardStatistics() map[uint32]ShardStatistic
 	ShardStatistic(shardID uint32) ShardStatistic
+	IsInterfaceNil() bool
 }
 
 // ShardStatistic is an interface used to calculate statistics for the network activity of a specific shard
@@ -33,4 +34,5 @@ type ShardStatistic interface {
 	PeakTPS() float64
 	LastBlockTxCount() uint32
 	TotalProcessedTxCount() *big.Int
+	IsInterfaceNil() bool
 }

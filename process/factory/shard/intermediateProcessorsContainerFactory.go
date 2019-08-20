@@ -83,3 +83,11 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 
 	return irp, err
 }
+
+// IsInterfaceNil return if there is no value under the interface
+func (ppcm *intermediateProcessorsContainerFactory) IsInterfaceNil() bool {
+	if ppcm == nil {
+		return true
+	}
+	return false
+}

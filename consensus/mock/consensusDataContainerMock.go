@@ -136,3 +136,12 @@ func (cdc *ConsensusCoreMock) RandomnessPrivateKey() crypto.PrivateKey {
 func (cdc *ConsensusCoreMock) RandomnessSingleSigner() crypto.SingleSigner {
 	return cdc.blsSingleSigner
 }
+
+// IsInterfaceNil returns if there is no value under the interface
+func (cdc *ConsensusCoreMock) IsInterfaceNil() bool {
+	if cdc == nil {
+		return true
+	}
+
+	return false
+}

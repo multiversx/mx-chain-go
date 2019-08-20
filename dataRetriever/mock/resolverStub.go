@@ -16,3 +16,12 @@ func (rs *ResolverStub) RequestDataFromHash(hash []byte) error {
 func (rs *ResolverStub) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	return rs.ProcessReceivedMessageCalled(message)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rs *ResolverStub) IsInterfaceNil() bool {
+	if rs == nil {
+		return true
+	}
+
+	return false
+}

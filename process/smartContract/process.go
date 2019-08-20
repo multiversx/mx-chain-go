@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"math/big"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -771,4 +772,13 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	}
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sc *scProcessor) IsInterfaceNil() bool {
+	if sc == nil {
+		return true
+	}
+
+	return false
 }
