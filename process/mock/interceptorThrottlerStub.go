@@ -1,19 +1,19 @@
 package mock
 
 type InterceptorThrottlerStub struct {
-	CanProcessMessageCalled      func() bool
-	StartMessageProcessingCalled func()
-	EndMessageProcessingCalled   func()
+	CanProcessCalled     func() bool
+	StartToProcessCalled func()
+	EndProcessCalled     func()
 }
 
-func (its InterceptorThrottlerStub) CanProcessMessage() bool {
-	return its.CanProcessMessageCalled()
+func (its InterceptorThrottlerStub) CanProcess() bool {
+	return its.CanProcessCalled()
 }
 
-func (its InterceptorThrottlerStub) StartMessageProcessing() {
-	its.StartMessageProcessingCalled()
+func (its InterceptorThrottlerStub) StartToProcess() {
+	its.StartToProcessCalled()
 }
 
-func (its InterceptorThrottlerStub) EndMessageProcessing() {
-	its.EndMessageProcessingCalled()
+func (its InterceptorThrottlerStub) EndProcess() {
+	its.EndProcessCalled()
 }

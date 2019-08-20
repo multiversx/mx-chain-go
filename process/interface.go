@@ -48,21 +48,21 @@ type InterceptedDataFactory interface {
 
 // InterceptedData represents the interceptor's view of the received data
 type InterceptedData interface {
-	CheckValid() error
-	IsAddressedToOtherShards() bool
+	CheckValidity() error
+	IsForMyShard() bool
 }
 
-// InterceptorProcessor processes received data
+// InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
-	CheckValidForProcessing(data InterceptedData) error
-	ProcessInteceptedData(data InterceptedData) error
+	Validate(data InterceptedData) error
+	Save(data InterceptedData) error
 }
 
 // InterceptorThrottler can
 type InterceptorThrottler interface {
-	CanProcessMessage() bool
-	StartMessageProcessing()
-	EndMessageProcessing()
+	CanProcess() bool
+	StartToProcess()
+	EndProcess()
 }
 
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors

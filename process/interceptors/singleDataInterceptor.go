@@ -41,7 +41,7 @@ func NewSingleDataInterceptor(
 	return singleDataIntercept, nil
 }
 
-// ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
+// ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	err := preProcessMesage(sdi.throttler, message)
@@ -51,11 +51,18 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P)
 
 	interceptedData, err := sdi.factory.Create(message.Data())
 	if err != nil {
+		sdi.throttler.EndProcess()
 		return err
 	}
 
-	if interceptedData.IsAddressedToOtherShards() {
-		sdi.throttler.EndMessageProcessing()
+	err = interceptedData.CheckValidity()
+	if err != nil {
+		sdi.throttler.EndProcess()
+		return err
+	}
+
+	if !interceptedData.IsForMyShard() {
+		sdi.throttler.EndProcess()
 		log.Debug("intercepted data is for other shards")
 		return nil
 	}
@@ -64,7 +71,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P)
 	wgProcess.Add(1)
 	go func() {
 		wgProcess.Wait()
-		sdi.throttler.EndMessageProcessing()
+		sdi.throttler.EndProcess()
 	}()
 
 	go processInterceptedData(sdi.processor, interceptedData, wgProcess)

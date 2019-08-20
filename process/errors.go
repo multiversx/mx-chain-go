@@ -277,6 +277,9 @@ var ErrRollbackFromGenesis = errors.New("roll back from genesis is not supported
 // ErrNoTransactionInMessage signals that no transaction was found after parsing received p2p message
 var ErrNoTransactionInMessage = errors.New("no transaction found in received message")
 
+// ErrNoDataInMessage signals that no data was found after parsing received p2p message
+var ErrNoDataInMessage = errors.New("no data found in received message")
+
 // ErrNilBuffer signals that a provided byte buffer is nil
 var ErrNilBuffer = errors.New("provided byte buffer is nil")
 

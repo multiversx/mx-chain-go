@@ -142,7 +142,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceSh
 	}
 	err := mdi.ProcessReceivedMessage(msg)
 
-	assert.Equal(t, process.ErrNoTransactionInMessage, err)
+	assert.Equal(t, process.ErrNoDataInMessage, err)
 }
 
 func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldNotResend(t *testing.T) {
@@ -202,11 +202,11 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 	broadcastNum := int32(0)
 	errExpected := errors.New("expected err")
 	interceptedData := &mock.InterceptedDataStub{
-		CheckValidCalled: func() error {
+		CheckValidityCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardsCalled: func() bool {
-			return false
+		IsForMyShardCalled: func() bool {
+			return true
 		},
 	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(
@@ -215,9 +215,9 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
 				if bytes.Equal(buff, incorrectData) {
 					return nil, errExpected
-				} else {
-					return interceptedData, nil
 				}
+
+				return interceptedData, nil
 			},
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
@@ -255,6 +255,51 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 	assert.Equal(t, int32(1), atomic.LoadInt32(&broadcastNum))
 }
 
+func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProcess(t *testing.T) {
+	t.Parallel()
+
+	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
+
+	marshalizer := &mock.MarshalizerMock{}
+	checkCalledNum := int32(0)
+	processCalledNum := int32(0)
+	throttlerStartNum := int32(0)
+	throttlerEndNum := int32(0)
+	errExpected := errors.New("expected err")
+	interceptedData := &mock.InterceptedDataStub{
+		CheckValidityCalled: func() error {
+			return errExpected
+		},
+		IsForMyShardCalled: func() bool {
+			return true
+		},
+	}
+	mdi, _ := interceptors.NewMultiDataInterceptor(
+		marshalizer,
+		&mock.InterceptedDataFactoryStub{
+			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
+				return interceptedData, nil
+			},
+		},
+		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
+		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
+	)
+
+	dataField, _ := marshalizer.Marshal(buffData)
+	msg := &mock.P2PMessageMock{
+		DataField: dataField,
+	}
+	err := mdi.ProcessReceivedMessage(msg)
+
+	time.Sleep(time.Second)
+
+	assert.Equal(t, errExpected, err)
+	assert.Equal(t, int32(0), atomic.LoadInt32(&checkCalledNum))
+	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerStartNum))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerEndNum))
+}
+
 func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShouldRetNilAndNotProcess(t *testing.T) {
 	t.Parallel()
 
@@ -266,11 +311,11 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 	throttlerStartNum := int32(0)
 	throttlerEndNum := int32(0)
 	interceptedData := &mock.InterceptedDataStub{
-		CheckValidCalled: func() error {
+		CheckValidityCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardsCalled: func() bool {
-			return true
+		IsForMyShardCalled: func() bool {
+			return false
 		},
 	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(
@@ -310,11 +355,11 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 	throttlerStartNum := int32(0)
 	throttlerEndNum := int32(0)
 	interceptedData := &mock.InterceptedDataStub{
-		CheckValidCalled: func() error {
+		CheckValidityCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardsCalled: func() bool {
-			return false
+		IsForMyShardCalled: func() bool {
+			return true
 		},
 	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(

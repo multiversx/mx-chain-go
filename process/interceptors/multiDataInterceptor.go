@@ -51,7 +51,7 @@ func NewMultiDataInterceptor(
 	return multiDataIntercept, nil
 }
 
-// ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
+// ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	err := preProcessMesage(mdi.throttler, message)
@@ -62,10 +62,12 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) 
 	multiDataBuff := make([][]byte, 0)
 	err = mdi.marshalizer.Unmarshal(&multiDataBuff, message.Data())
 	if err != nil {
+		mdi.throttler.EndProcess()
 		return err
 	}
 	if len(multiDataBuff) == 0 {
-		return process.ErrNoTransactionInMessage
+		mdi.throttler.EndProcess()
+		return process.ErrNoDataInMessage
 	}
 
 	filteredMultiDataBuff := make([][]byte, 0)
@@ -74,7 +76,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) 
 	wgProcess.Add(len(multiDataBuff))
 	go func() {
 		wgProcess.Wait()
-		mdi.throttler.EndMessageProcessing()
+		mdi.throttler.EndProcess()
 	}()
 
 	for _, dataBuff := range multiDataBuff {
@@ -85,9 +87,16 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) 
 			continue
 		}
 
+		err = interceptedData.CheckValidity()
+		if err != nil {
+			lastErrEncountered = err
+			wgProcess.Done()
+			continue
+		}
+
 		//data is validated, add it to filtered out buff
 		filteredMultiDataBuff = append(filteredMultiDataBuff, dataBuff)
-		if interceptedData.IsAddressedToOtherShards() {
+		if !interceptedData.IsForMyShard() {
 			log.Debug("intercepted data is for other shards")
 			wgProcess.Done()
 			continue
@@ -97,23 +106,22 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) 
 	}
 
 	var buffToSend []byte
-	filteredOutDataNeedToBeSend := len(filteredMultiDataBuff) > 0 && lastErrEncountered != nil
-	if filteredOutDataNeedToBeSend {
+	haveDataForBroadcast := len(filteredMultiDataBuff) > 0 && lastErrEncountered != nil
+	if haveDataForBroadcast {
 		buffToSend, err = mdi.marshalizer.Marshal(filteredMultiDataBuff)
 		if err != nil {
 			return err
 		}
-	}
 
-	isValidDataToBroadcast := len(buffToSend) > 0
-	if mdi.broadcastCallbackHandler != nil && isValidDataToBroadcast {
-		mdi.broadcastCallbackHandler(buffToSend)
+		if mdi.broadcastCallbackHandler != nil {
+			mdi.broadcastCallbackHandler(buffToSend)
+		}
 	}
 
 	return lastErrEncountered
 }
 
-// SetBroadcastCallback sets the callback method to send filtered out message
+// SetBroadcastCallback sets the callback method to broadcast validated data
 func (mdi *MultiDataInterceptor) SetBroadcastCallback(callback func(buffToSend []byte)) {
 	mdi.broadcastCallbackHandler = callback
 }

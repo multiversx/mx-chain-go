@@ -16,12 +16,12 @@ func preProcessMesage(throttler process.InterceptorThrottler, message p2p.Messag
 		return process.ErrNilDataToProcess
 	}
 
-	if !throttler.CanProcessMessage() {
+	if !throttler.CanProcess() {
 		//can not process current message, send it to other peers
 		return nil
 	}
 
-	throttler.StartMessageProcessing()
+	throttler.StartToProcess()
 	return nil
 }
 
@@ -30,14 +30,14 @@ func processInterceptedData(
 	data process.InterceptedData,
 	wgProcess *sync.WaitGroup,
 ) {
-	err := processor.CheckValidForProcessing(data)
+	err := processor.Validate(data)
 	if err != nil {
 		log.Debug(fmt.Sprintf("intercepted data is not valid: %s", err.Error()))
 		wgProcess.Done()
 		return
 	}
 
-	err = processor.ProcessInteceptedData(data)
+	err = processor.Save(data)
 	if err != nil {
 		log.Debug(fmt.Sprintf("intercepted data can not be processed: %s", err.Error()))
 	}

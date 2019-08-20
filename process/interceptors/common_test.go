@@ -36,7 +36,7 @@ func TestPreProcessMessage_CanNotProcessReturnsNil(t *testing.T) {
 		DataField: []byte("data to process"),
 	}
 	throttler := &mock.InterceptorThrottlerStub{
-		CanProcessMessageCalled: func() bool {
+		CanProcessCalled: func() bool {
 			return false
 		},
 	}
@@ -53,10 +53,10 @@ func TestPreProcessMessage_CanProcessReturnsNilAndCallsStartProcessing(t *testin
 	}
 	startProcessingCalled := false
 	throttler := &mock.InterceptorThrottlerStub{
-		CanProcessMessageCalled: func() bool {
+		CanProcessCalled: func() bool {
 			return true
 		},
-		StartMessageProcessingCalled: func() {
+		StartToProcessCalled: func() {
 			startProcessingCalled = true
 		},
 	}
@@ -73,10 +73,10 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 
 	processCalled := false
 	processor := &mock.InterceptorProcessorStub{
-		CheckValidForProcessingCalled: func(data process.InterceptedData) error {
+		ValidateCalled: func(data process.InterceptedData) error {
 			return errors.New("not valid")
 		},
-		ProcessInteceptedDataCalled: func(data process.InterceptedData) error {
+		SaveCalled: func(data process.InterceptedData) error {
 			processCalled = true
 			return nil
 		},
@@ -94,10 +94,10 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 
 	select {
 	case <-chDone:
+		assert.False(t, processCalled)
 	case <-time.After(time.Second):
 		assert.Fail(t, "timeout while waiting for wait group object to be finished")
 	}
-	assert.False(t, processCalled)
 }
 
 func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T) {
@@ -105,10 +105,10 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 
 	processCalled := false
 	processor := &mock.InterceptorProcessorStub{
-		CheckValidForProcessingCalled: func(data process.InterceptedData) error {
+		ValidateCalled: func(data process.InterceptedData) error {
 			return nil
 		},
-		ProcessInteceptedDataCalled: func(data process.InterceptedData) error {
+		SaveCalled: func(data process.InterceptedData) error {
 			processCalled = true
 			return nil
 		},
@@ -126,10 +126,10 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 
 	select {
 	case <-chDone:
+		assert.True(t, processCalled)
 	case <-time.After(time.Second):
 		assert.Fail(t, "timeout while waiting for wait group object to be finished")
 	}
-	assert.True(t, processCalled)
 }
 
 func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
@@ -137,10 +137,10 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 
 	processCalled := false
 	processor := &mock.InterceptorProcessorStub{
-		CheckValidForProcessingCalled: func(data process.InterceptedData) error {
+		ValidateCalled: func(data process.InterceptedData) error {
 			return nil
 		},
-		ProcessInteceptedDataCalled: func(data process.InterceptedData) error {
+		SaveCalled: func(data process.InterceptedData) error {
 			processCalled = true
 			return errors.New("error while processing")
 		},
@@ -158,8 +158,8 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 
 	select {
 	case <-chDone:
+		assert.True(t, processCalled)
 	case <-time.After(time.Second):
 		assert.Fail(t, "timeout while waiting for wait group object to be finished")
 	}
-	assert.True(t, processCalled)
 }

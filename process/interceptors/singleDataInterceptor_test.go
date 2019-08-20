@@ -14,14 +14,14 @@ import (
 
 func createMockInterceptorStub(checkCalledNum *int32, processCalledNum *int32) process.InterceptorProcessor {
 	return &mock.InterceptorProcessorStub{
-		CheckValidForProcessingCalled: func(data process.InterceptedData) error {
+		ValidateCalled: func(data process.InterceptedData) error {
 			if checkCalledNum != nil {
 				atomic.AddInt32(checkCalledNum, 1)
 			}
 
 			return nil
 		},
-		ProcessInteceptedDataCalled: func(data process.InterceptedData) error {
+		SaveCalled: func(data process.InterceptedData) error {
 			if processCalledNum != nil {
 				atomic.AddInt32(processCalledNum, 1)
 			}
@@ -33,15 +33,15 @@ func createMockInterceptorStub(checkCalledNum *int32, processCalledNum *int32) p
 
 func createMockThrottler(throttlerStartNum *int32, throttlerEndNum *int32) process.InterceptorThrottler {
 	return &mock.InterceptorThrottlerStub{
-		CanProcessMessageCalled: func() bool {
+		CanProcessCalled: func() bool {
 			return true
 		},
-		StartMessageProcessingCalled: func() {
+		StartToProcessCalled: func() {
 			if throttlerStartNum != nil {
 				atomic.AddInt32(throttlerStartNum, 1)
 			}
 		},
-		EndMessageProcessingCalled: func() {
+		EndProcessCalled: func() {
 			if throttlerEndNum != nil {
 				atomic.AddInt32(throttlerEndNum, 1)
 			}
@@ -129,10 +129,11 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 		},
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{
-			CanProcessMessageCalled: func() bool {
+			CanProcessCalled: func() bool {
 				return true
 			},
-			StartMessageProcessingCalled: func() {},
+			StartToProcessCalled: func() {},
+			EndProcessCalled:     func() {},
 		},
 	)
 
@@ -144,6 +145,47 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 	assert.Equal(t, errExpected, err)
 }
 
+func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProcess(t *testing.T) {
+	t.Parallel()
+
+	checkCalledNum := int32(0)
+	processCalledNum := int32(0)
+	throttlerStartNum := int32(0)
+	throttlerEndNum := int32(0)
+	errExpected := errors.New("expected err")
+	interceptedData := &mock.InterceptedDataStub{
+		CheckValidityCalled: func() error {
+			return errExpected
+		},
+		IsForMyShardCalled: func() bool {
+			return true
+		},
+	}
+
+	sdi, _ := interceptors.NewSingleDataInterceptor(
+		&mock.InterceptedDataFactoryStub{
+			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
+				return interceptedData, nil
+			},
+		},
+		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
+		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
+	)
+
+	msg := &mock.P2PMessageMock{
+		DataField: []byte("data to be processed"),
+	}
+	err := sdi.ProcessReceivedMessage(msg)
+
+	time.Sleep(time.Second)
+
+	assert.Equal(t, errExpected, err)
+	assert.Equal(t, int32(0), atomic.LoadInt32(&checkCalledNum))
+	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerStartNum))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerEndNum))
+}
+
 func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldNotCallProcess(t *testing.T) {
 	t.Parallel()
 
@@ -152,11 +194,11 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldN
 	throttlerStartNum := int32(0)
 	throttlerEndNum := int32(0)
 	interceptedData := &mock.InterceptedDataStub{
-		CheckValidCalled: func() error {
+		CheckValidityCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardsCalled: func() bool {
-			return true
+		IsForMyShardCalled: func() bool {
+			return false
 		},
 	}
 
@@ -192,11 +234,11 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	throttlerStartNum := int32(0)
 	throttlerEndNum := int32(0)
 	interceptedData := &mock.InterceptedDataStub{
-		CheckValidCalled: func() error {
+		CheckValidityCalled: func() error {
 			return nil
 		},
-		IsAddressedToOtherShardsCalled: func() bool {
-			return false
+		IsForMyShardCalled: func() bool {
+			return true
 		},
 	}
 

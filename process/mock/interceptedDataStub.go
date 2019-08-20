@@ -1,14 +1,14 @@
 package mock
 
 type InterceptedDataStub struct {
-	CheckValidCalled               func() error
-	IsAddressedToOtherShardsCalled func() bool
+	CheckValidityCalled func() error
+	IsForMyShardCalled  func() bool
 }
 
-func (ids InterceptedDataStub) CheckValid() error {
-	return ids.CheckValidCalled()
+func (ids InterceptedDataStub) CheckValidity() error {
+	return ids.CheckValidityCalled()
 }
 
-func (ids InterceptedDataStub) IsAddressedToOtherShards() bool {
-	return ids.IsAddressedToOtherShardsCalled()
+func (ids InterceptedDataStub) IsForMyShard() bool {
+	return ids.IsForMyShardCalled()
 }
