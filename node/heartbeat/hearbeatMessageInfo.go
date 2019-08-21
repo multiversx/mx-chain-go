@@ -80,10 +80,12 @@ func (hbmi *heartbeatMessageInfo) updateUpAndDownTime() {
 }
 
 // HeartbeatReceived processes a new message arrived from a peer
-func (hbmi *heartbeatMessageInfo) HeartbeatReceived(shardID uint32, version string, nodeDisplayName string) {
+func (hbmi *heartbeatMessageInfo) HeartbeatReceived(computedShardID, receivedshardID uint32, version string,
+	nodeDisplayName string) {
 	crtTime := hbmi.getTimeHandler()
 	hbmi.updateFields()
-	hbmi.receivedShardID = shardID
+	hbmi.computedShardID = computedShardID
+	hbmi.receivedShardID = receivedshardID
 	hbmi.updateMaxInactiveTimeDuration()
 	hbmi.timeStamp = crtTime
 	hbmi.versionNumber = version

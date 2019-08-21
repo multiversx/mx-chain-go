@@ -9,7 +9,7 @@ type Heartbeat struct {
 	Payload         []byte
 	Pubkey          []byte
 	Signature       []byte
-	ReceivedShardID uint32
+	ShardID         uint32
 	VersionNumber   string
 	NodeDisplayName string
 }

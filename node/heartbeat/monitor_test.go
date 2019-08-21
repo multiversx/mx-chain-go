@@ -99,11 +99,13 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 		0: {"pk0"},
 		1: {"pk1"},
 	}
+
+	maxDuration := 1 * time.Millisecond
 	mon, err := heartbeat.NewMonitor(
 		&mock.SinglesignMock{},
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
-		1,
+		maxDuration,
 		pksPerShards,
 	)
 
@@ -323,7 +325,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 				var rcvdHb heartbeat.Heartbeat
 				_ = json.Unmarshal(buff, &rcvdHb)
 				(obj.(*heartbeat.Heartbeat)).Pubkey = rcvdHb.Pubkey
-				(obj.(*heartbeat.Heartbeat)).ReceivedShardID = rcvdHb.ReceivedShardID
+				(obj.(*heartbeat.Heartbeat)).ShardID = rcvdHb.ShardID
 				return nil
 			},
 		},
@@ -333,8 +335,8 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 
 	// First send from pk1 from shard 0
 	hb := &heartbeat.Heartbeat{
-		Pubkey:          pubKey,
-		ReceivedShardID: uint32(0),
+		Pubkey:  pubKey,
+		ShardID: uint32(0),
 	}
 
 	buffToSend, err := json.Marshal(hb)
@@ -352,8 +354,8 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 
 	// now we send a new heartbeat which will contain a new shard id
 	hb = &heartbeat.Heartbeat{
-		Pubkey:          pubKey,
-		ReceivedShardID: uint32(1),
+		Pubkey:  pubKey,
+		ShardID: uint32(1),
 	}
 
 	buffToSend, err = json.Marshal(hb)
@@ -393,7 +395,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 				var rcvdHb heartbeat.Heartbeat
 				_ = json.Unmarshal(buff, &rcvdHb)
 				(obj.(*heartbeat.Heartbeat)).Pubkey = rcvdHb.Pubkey
-				(obj.(*heartbeat.Heartbeat)).ReceivedShardID = rcvdHb.ReceivedShardID
+				(obj.(*heartbeat.Heartbeat)).ShardID = rcvdHb.ShardID
 				return nil
 			},
 		},

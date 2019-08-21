@@ -121,11 +121,18 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			m.heartbeatMessages[string(hb.Pubkey)] = pe
 		}
 
-		pe.HeartbeatReceived(hb.ReceivedShardID, hb.VersionNumber, hb.NodeDisplayName)
+		computedShardID := m.computeShardID(string(hb.Pubkey))
+		pe.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
 		m.updateAllHeartbeatMessages()
 	}(message, hbRecv)
 
 	return nil
+}
+
+func (m *Monitor) computeShardID(pubkey string) uint32 {
+	// TODO : the shard ID will be recomputed at the end of an epoch / beginning of a new one.
+	//  For the moment, just return the initial computed shard ID
+	return m.heartbeatMessages[pubkey].computedShardID
 }
 
 func (m *Monitor) verifySignature(hbRecv *Heartbeat) error {
