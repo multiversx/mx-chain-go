@@ -31,11 +31,6 @@ type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
 }
 
-// TxValidator can determine if a provided transaction handler is valid or not from the process point of view
-type TxValidator interface {
-	IsTxValidForProcessing(txHandler data.TransactionHandler) bool
-}
-
 // HeaderValidator can determine if a provided header handler is valid or not from the process point of view
 type HeaderValidator interface {
 	IsHeaderValidForProcessing(headerHandler data.HeaderHandler) bool

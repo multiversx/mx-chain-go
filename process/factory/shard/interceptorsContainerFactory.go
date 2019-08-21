@@ -7,27 +7,34 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptors"
+	blockInterceptors "github.com/ElrondNetwork/elrond-go/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors"
+	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors/throttler"
 	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const numGoRoutinesInTxInterceptors = 100
+
 type interceptorsContainerFactory struct {
-	shardCoordinator    sharding.Coordinator
-	messenger           process.TopicHandler
-	store               dataRetriever.StorageService
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	keyGen              crypto.KeyGenerator
-	singleSigner        crypto.SingleSigner
-	multiSigner         crypto.MultiSigner
-	dataPool            dataRetriever.PoolsHolder
-	addrConverter       state.AddressConverter
-	chronologyValidator process.ChronologyValidator
+	shardCoordinator      sharding.Coordinator
+	messenger             process.TopicHandler
+	store                 dataRetriever.StorageService
+	marshalizer           marshal.Marshalizer
+	hasher                hashing.Hasher
+	keyGen                crypto.KeyGenerator
+	singleSigner          crypto.SingleSigner
+	multiSigner           crypto.MultiSigner
+	dataPool              dataRetriever.PoolsHolder
+	addrConverter         state.AddressConverter
+	chronologyValidator   process.ChronologyValidator
+	argInterceptorFactory *interceptorFactory.InterceptedDataFactoryArgument
+	txGlobalThrottler     process.InterceptorThrottler
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -79,19 +86,37 @@ func NewInterceptorsContainerFactory(
 		return nil, process.ErrNilChronologyValidator
 	}
 
-	return &interceptorsContainerFactory{
-		shardCoordinator:    shardCoordinator,
-		messenger:           messenger,
-		store:               store,
-		marshalizer:         marshalizer,
-		hasher:              hasher,
-		keyGen:              keyGen,
-		singleSigner:        singleSigner,
-		multiSigner:         multiSigner,
-		dataPool:            dataPool,
-		addrConverter:       addrConverter,
-		chronologyValidator: chronologyValidator,
-	}, nil
+	argInterceptorFactory := &interceptorFactory.InterceptedDataFactoryArgument{
+		Marshalizer:      marshalizer,
+		Hasher:           hasher,
+		KeyGen:           keyGen,
+		Signer:           singleSigner,
+		AddrConv:         addrConverter,
+		ShardCoordinator: shardCoordinator,
+	}
+
+	icf := &interceptorsContainerFactory{
+		shardCoordinator:      shardCoordinator,
+		messenger:             messenger,
+		store:                 store,
+		marshalizer:           marshalizer,
+		hasher:                hasher,
+		keyGen:                keyGen,
+		singleSigner:          singleSigner,
+		multiSigner:           multiSigner,
+		dataPool:              dataPool,
+		addrConverter:         addrConverter,
+		chronologyValidator:   chronologyValidator,
+		argInterceptorFactory: argInterceptorFactory,
+	}
+
+	var err error
+	icf.txGlobalThrottler, err = throttler.NewNumThrottler(numGoRoutinesInTxInterceptors)
+	if err != nil {
+		return nil, err
+	}
+
+	return icf, nil
 }
 
 // Create returns an interceptor container that will hold all interceptors in the system
@@ -211,21 +236,28 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 }
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
-	//TODO implement other TxHandlerProcessValidator that will check the tx nonce against account's nonce
-	txValidator, err := dataValidators.NewNilTxValidator()
+	argProcessor := &processor.ArgTxInterceptorProcessor{
+		ShardedDataCache: icf.dataPool.Transactions(),
+	}
+	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
 		return nil, err
 	}
 
-	interceptor, err := transaction.NewTxInterceptor(
+	txFactory, err := interceptorFactory.NewInterceptedDataFactory(
+		icf.argInterceptorFactory,
+		interceptorFactory.InterceptedTx,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptor, err := interceptors.NewMultiDataInterceptor(
 		icf.marshalizer,
-		icf.dataPool.Transactions(),
-		txValidator,
-		icf.addrConverter,
-		icf.hasher,
-		icf.singleSigner,
-		icf.keyGen,
-		icf.shardCoordinator)
+		txFactory,
+		txProcessor,
+		icf.txGlobalThrottler,
+	)
 
 	if err != nil {
 		return nil, err
@@ -299,7 +331,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 
 	//only one intrashard header topic
 	identifierHdr := factory.HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-	interceptor, err := interceptors.NewHeaderInterceptor(
+	interceptor, err := blockInterceptors.NewHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.Headers(),
 		icf.dataPool.HeadersNonces(),
@@ -346,7 +378,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifier string) (process.Interceptor, error) {
 	txBlockBodyStorer := icf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
-	interceptor, err := interceptors.NewTxBlockBodyInterceptor(
+	interceptor, err := blockInterceptors.NewTxBlockBodyInterceptor(
 		icf.marshalizer,
 		icf.dataPool.MiniBlocks(),
 		txBlockBodyStorer,
@@ -370,7 +402,7 @@ func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptor() ([
 	identifierPeerCh := factory.PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 	peerBlockBodyStorer := icf.store.GetStorer(dataRetriever.PeerChangesUnit)
 
-	interceptor, err := interceptors.NewPeerBlockBodyInterceptor(
+	interceptor, err := blockInterceptors.NewPeerBlockBodyInterceptor(
 		icf.marshalizer,
 		icf.dataPool.PeerChangesBlocks(),
 		peerBlockBodyStorer,
@@ -399,7 +431,7 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 		return nil, nil, err
 	}
 
-	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
+	interceptor, err := blockInterceptors.NewMetachainHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.MetaBlocks(),
 		icf.dataPool.HeadersNonces(),

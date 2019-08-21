@@ -8,7 +8,7 @@ import (
 	"github.com/glycerine/go-capnproto"
 )
 
-// Transaction holds all the data needed for a value transfer
+// Transaction holds all the data needed for a value transfer or SC call
 type Transaction struct {
 	Nonce     uint64   `capid:"0" json:"nonce"`
 	Value     *big.Int `capid:"1" json:"value"`
