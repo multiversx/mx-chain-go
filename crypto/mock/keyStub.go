@@ -39,7 +39,7 @@ func (privKey *PrivateKeyStub) Scalar() crypto.Scalar {
 	return privKey.ScalarStub()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (privKey *PrivateKeyStub) IsInterfaceNil() bool {
 	if privKey == nil {
 		return true
@@ -63,7 +63,7 @@ func (pubKey *PublicKeyStub) Point() crypto.Point {
 	return pubKey.PointStub()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (pubKey *PublicKeyStub) IsInterfaceNil() bool {
 	if pubKey == nil {
 		return true

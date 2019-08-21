@@ -66,7 +66,7 @@ func (wrk *worker) IsMessageWithBlockHeader(msgType consensus.MessageType) bool 
 	return msgType == MtBlockHeader
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (wrk *worker) IsInterfaceNil() bool {
 	if wrk == nil {
 		return true

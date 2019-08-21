@@ -330,7 +330,7 @@ func (bms *blsMultiSigner) Verify(message []byte, bitmap []byte) error {
 	return bms.llSigner.VerifyAggregatedSig(bms.keyGen.Suite(), aggPointsBytes, bms.data.aggSig, message)
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (bms *blsMultiSigner) IsInterfaceNil() bool {
 	if bms == nil {
 		return true

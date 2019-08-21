@@ -60,5 +60,6 @@ func (scm *multipleShardsCoordinatorMock) IsInterfaceNil() bool {
 	if scm == nil {
 		return true
 	}
+
 	return false
 }

@@ -32,7 +32,7 @@ func (acs AddressConverterStub) AddressLen() int {
 	return acs.AddressLenHandler()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (acs *AddressConverterStub) IsInterfaceNil() bool {
 	if acs == nil {
 		return true

@@ -113,7 +113,7 @@ func (sm *ScalarMock) UnmarshalBinary(val []byte) error {
 	return err
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (sm *ScalarMock) IsInterfaceNil() bool {
 	if sm == nil {
 		return true

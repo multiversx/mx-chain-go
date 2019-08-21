@@ -34,7 +34,7 @@ type SubroundHandler interface {
 	EndTime() int64
 	// Name returns the name of the current rounder
 	Name() string
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 

@@ -76,7 +76,7 @@ func (s *SchnorrSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte) 
 	return schnorr.Verify(kSuite, kPoint, msg, sig)
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *SchnorrSigner) IsInterfaceNil() bool {
 	if s == nil {
 		return true

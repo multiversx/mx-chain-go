@@ -57,7 +57,7 @@ func (acm *AddressConverterMock) AddressLen() int {
 	return 32
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (acm *AddressConverterMock) IsInterfaceNil() bool {
 	if acm == nil {
 		return true

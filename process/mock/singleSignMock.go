@@ -32,7 +32,7 @@ func (sskgm *SingleSignKeyGenMock) Suite() crypto.Suite {
 	return sskgm.SuiteCalled()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (sskgm *SingleSignKeyGenMock) IsInterfaceNil() bool {
 	if sskgm == nil {
 		return true
@@ -55,7 +55,7 @@ func (sspk *SingleSignPublicKey) Point() crypto.Point {
 	return sspk.PointCalled()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (sspk *SingleSignPublicKey) IsInterfaceNil() bool {
 	if sspk == nil {
 		return true

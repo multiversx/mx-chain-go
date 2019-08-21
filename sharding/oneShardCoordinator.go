@@ -38,5 +38,6 @@ func (osc *OneShardCoordinator) IsInterfaceNil() bool {
 	if osc == nil {
 		return true
 	}
+
 	return false
 }

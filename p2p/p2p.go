@@ -155,7 +155,7 @@ type Messenger interface {
 	// peer, but reuses a connection and a stream if possible.
 	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error
 
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 

@@ -201,5 +201,6 @@ func (icf *interceptorsContainerFactory) IsInterfaceNil() bool {
 	if icf == nil {
 		return true
 	}
+
 	return false
 }

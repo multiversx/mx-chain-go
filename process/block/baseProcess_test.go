@@ -306,7 +306,7 @@ func (wr wrongBody) IntegrityAndValidity() error {
 	return nil
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (wr *wrongBody) IsInterfaceNil() bool {
 	if wr == nil {
 		return true

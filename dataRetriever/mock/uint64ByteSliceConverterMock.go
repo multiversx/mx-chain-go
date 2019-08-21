@@ -16,7 +16,7 @@ func (u *Uint64ByteSliceConverterMock) ToUint64(p []byte) (uint64, error) {
 	return u.ToUint64Called(p)
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (u *Uint64ByteSliceConverterMock) IsInterfaceNil() bool {
 	if u == nil {
 		return true

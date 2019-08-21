@@ -48,7 +48,7 @@ func (bmm *BroadcastMessengerMock) BroadcastConsensusMessage(message *consensus.
 	return nil
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (bmm *BroadcastMessengerMock) IsInterfaceNil() bool {
 	if bmm == nil {
 		return true

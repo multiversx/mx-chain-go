@@ -80,7 +80,7 @@ func (kg *keyGenerator) Suite() crypto.Suite {
 	return kg.suite
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (kg *keyGenerator) IsInterfaceNil() bool {
 	if kg == nil {
 		return true
@@ -126,7 +126,7 @@ func (spk *privateKey) Scalar() crypto.Scalar {
 	return spk.sk
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (spk *privateKey) IsInterfaceNil() bool {
 	if spk == nil {
 		return true
@@ -150,7 +150,7 @@ func (pk *publicKey) Point() crypto.Point {
 	return pk.pk
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (pk *publicKey) IsInterfaceNil() bool {
 	if pk == nil {
 		return true

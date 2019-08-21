@@ -25,7 +25,7 @@ func (s *SinglesignMock) Verify(public crypto.PublicKey, msg []byte, sig []byte)
 	return nil
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *SinglesignMock) IsInterfaceNil() bool {
 	if s == nil {
 		return true
@@ -47,7 +47,7 @@ func (s *SinglesignFailMock) Verify(public crypto.PublicKey, msg []byte, sig []b
 	return errors.New("signature verification failure")
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *SinglesignFailMock) IsInterfaceNil() bool {
 	if s == nil {
 		return true
@@ -71,7 +71,7 @@ func (s *SinglesignStub) Verify(public crypto.PublicKey, msg []byte, sig []byte)
 	return s.VerifyCalled(public, msg, sig)
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *SinglesignStub) IsInterfaceNil() bool {
 	if s == nil {
 		return true

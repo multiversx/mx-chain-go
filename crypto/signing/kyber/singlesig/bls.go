@@ -81,7 +81,7 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 	return bls.Verify(kSuite, kPoint, msg, sig)
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *BlsSingleSigner) IsInterfaceNil() bool {
 	if s == nil {
 		return true

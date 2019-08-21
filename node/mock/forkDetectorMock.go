@@ -49,5 +49,6 @@ func (fdm *ForkDetectorMock) IsInterfaceNil() bool {
 	if fdm == nil {
 		return true
 	}
+
 	return false
 }

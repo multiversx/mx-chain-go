@@ -139,7 +139,7 @@ func (aam *AccountsStub) RecreateTrie(rootHash []byte) error {
 	return errNotImplemented
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (aam *AccountsStub) IsInterfaceNil() bool {
 	if aam == nil {
 		return true

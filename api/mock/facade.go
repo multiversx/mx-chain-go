@@ -107,7 +107,7 @@ func (f *Facade) GetVmValue(address string, funcName string, argsBuff ...[]byte)
 	return f.GetDataValueHandler(address, funcName, argsBuff...)
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (f *Facade) IsInterfaceNil() bool {
 	if f == nil {
 		return true

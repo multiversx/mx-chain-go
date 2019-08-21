@@ -36,5 +36,6 @@ func (ics *InterceptorsContainerStub) IsInterfaceNil() bool {
 	if ics == nil {
 		return true
 	}
+
 	return false
 }

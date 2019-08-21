@@ -50,5 +50,6 @@ func (ppcm *InterimProcessorContainerMock) IsInterfaceNil() bool {
 	if ppcm == nil {
 		return true
 	}
+
 	return false
 }

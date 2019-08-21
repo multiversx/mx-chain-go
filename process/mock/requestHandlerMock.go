@@ -48,5 +48,6 @@ func (rrh *RequestHandlerMock) IsInterfaceNil() bool {
 	if rrh == nil {
 		return true
 	}
+
 	return false
 }

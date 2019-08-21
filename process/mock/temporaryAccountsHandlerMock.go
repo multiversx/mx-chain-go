@@ -41,5 +41,6 @@ func (tahm *TemporaryAccountsHandlerMock) IsInterfaceNil() bool {
 	if tahm == nil {
 		return true
 	}
+
 	return false
 }

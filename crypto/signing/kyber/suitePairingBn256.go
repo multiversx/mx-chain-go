@@ -77,7 +77,7 @@ func (s *suitePairingBn256) GetUnderlyingSuite() interface{} {
 	return s.suite
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *suitePairingBn256) IsInterfaceNil() bool {
 	if s == nil {
 		return true

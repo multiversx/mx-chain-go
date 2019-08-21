@@ -56,7 +56,7 @@ type NodeWrapper interface {
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 	GetHeartbeats() []heartbeat.PubKeyHeartbeat
 
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 

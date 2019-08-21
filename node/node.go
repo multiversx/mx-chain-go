@@ -784,10 +784,11 @@ func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 	return n.heartbeatMonitor.GetHeartbeats()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (n *Node) IsInterfaceNil() bool {
 	if n == nil {
 		return true
 	}
+
 	return false
 }

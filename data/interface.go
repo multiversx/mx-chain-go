@@ -44,7 +44,7 @@ type HeaderHandler interface {
 type BodyHandler interface {
 	// IntegrityAndValidity checks the integrity and validity of the block
 	IntegrityAndValidity() error
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 

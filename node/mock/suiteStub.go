@@ -50,7 +50,7 @@ func (s *SuiteMock) GetUnderlyingSuite() interface{} {
 	return s.GetUnderlyingSuiteStub()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *SuiteMock) IsInterfaceNil() bool {
 	if s == nil {
 		return true

@@ -253,7 +253,7 @@ func (fct *factory) initConsensusThreshold() {
 	fct.consensusState.SetThreshold(SrSignature, pbftThreshold)
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (fct *factory) IsInterfaceNil() bool {
 	if fct == nil {
 		return true

@@ -44,7 +44,7 @@ func (srm *SubroundHandlerMock) Name() string {
 	return srm.NameCalled()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (srm *SubroundHandlerMock) IsInterfaceNil() bool {
 	if srm == nil {
 		return true

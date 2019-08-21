@@ -53,6 +53,7 @@ func (a *MetaAccount) IsInterfaceNil() bool {
 	if a == nil {
 		return true
 	}
+
 	return false
 }
 

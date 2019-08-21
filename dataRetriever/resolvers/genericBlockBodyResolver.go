@@ -226,7 +226,7 @@ func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte)
 	return miniBlocks
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (gbbRes *GenericBlockBodyResolver) IsInterfaceNil() bool {
 	if gbbRes == nil {
 		return true

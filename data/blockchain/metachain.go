@@ -159,7 +159,7 @@ func (mc *MetaChain) PutBadBlock(blockHash []byte) {
 	mc.badBlocks.Put(blockHash, struct{}{})
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (mc *MetaChain) IsInterfaceNil() bool {
 	if mc == nil {
 		return true

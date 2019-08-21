@@ -78,7 +78,7 @@ func (s *suiteEd25519) GetUnderlyingSuite() interface{} {
 	return s.suite
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *suiteEd25519) IsInterfaceNil() bool {
 	if s == nil {
 		return true

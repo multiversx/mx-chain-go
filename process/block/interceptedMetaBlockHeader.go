@@ -124,5 +124,6 @@ func (imh *InterceptedMetaHeader) IsInterfaceNil() bool {
 	if imh == nil {
 		return true
 	}
+
 	return false
 }

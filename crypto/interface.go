@@ -44,7 +44,7 @@ type Scalar interface {
 	SetBytes([]byte) (Scalar, error)
 	// GetUnderlyingObj returns the object the implementation wraps
 	GetUnderlyingObj() interface{}
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
@@ -80,7 +80,7 @@ type Point interface {
 	Pick(rand cipher.Stream) (Point, error)
 	// GetUnderlyingObj returns the object the implementation wraps
 	GetUnderlyingObj() interface{}
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
@@ -97,7 +97,7 @@ type Group interface {
 	PointLen() int
 	// CreatePoint creates a new point
 	CreatePoint() Point
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
@@ -131,7 +131,7 @@ type KeyGenerator interface {
 	PublicKeyFromByteArray(b []byte) (PublicKey, error)
 	// Suite returns the crypto.Suite used by the KeyGenerator
 	Suite() Suite
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
@@ -141,7 +141,7 @@ type Key interface {
 	ToByteArray() ([]byte, error)
 	// Suite returns the suite used by this key
 	Suite() Suite
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
@@ -167,7 +167,7 @@ type SingleSigner interface {
 	Sign(private PrivateKey, msg []byte) ([]byte, error)
 	// Verify is used to verify a signed message
 	Verify(public PublicKey, msg []byte, sig []byte) error
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
@@ -197,7 +197,7 @@ type MultiSigVerifier interface {
 	SetAggregatedSig([]byte) error
 	// Verify verifies the aggregated signature
 	Verify(msg []byte, bitmap []byte) error
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
@@ -220,6 +220,6 @@ type LowLevelSignerBLS interface {
 	// ScalarMulSig provides the result of multiplying a scalar with a signature.
 	// This is used in the modified BLS multi-signature scheme
 	ScalarMulSig(suite Suite, scalar Scalar, sig []byte) ([]byte, error)
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

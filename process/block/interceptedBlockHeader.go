@@ -147,5 +147,6 @@ func (inHdr *InterceptedHeader) IsInterfaceNil() bool {
 	if inHdr == nil {
 		return true
 	}
+
 	return false
 }

@@ -70,7 +70,7 @@ func (acf *AddressConverterFake) AddressLen() int {
 	return acf.addressLen
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (acf *AddressConverterFake) IsInterfaceNil() bool {
 	if acf == nil {
 		return true

@@ -69,5 +69,6 @@ func (tim *TransactionInterceptorMock) IsInterfaceNil() bool {
 	if tim == nil {
 		return true
 	}
+
 	return false
 }

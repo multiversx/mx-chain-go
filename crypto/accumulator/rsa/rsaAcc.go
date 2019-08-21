@@ -170,7 +170,7 @@ func (acc *accumulator) AggregateProofs(proofs []*big.Int, data ...[]byte) (proo
 	return proof, nil
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (acc *accumulator) IsInterfaceNil() bool {
 	if acc == nil {
 		return true

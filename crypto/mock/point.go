@@ -113,7 +113,7 @@ func (po *PointMock) UnmarshalBinary(point []byte) error {
 	return err
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (po *PointMock) IsInterfaceNil() bool {
 	if po == nil {
 		return true

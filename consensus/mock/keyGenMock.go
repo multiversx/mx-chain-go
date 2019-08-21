@@ -45,7 +45,7 @@ func (privKey *PrivateKeyMock) Scalar() crypto.Scalar {
 	return privKey.ScalarMock()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (privKey *PrivateKeyMock) IsInterfaceNil() bool {
 	if privKey == nil {
 		return true
@@ -67,7 +67,7 @@ func (pubKey *PublicKeyMock) Point() crypto.Point {
 	return pubKey.PointMock()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (pubKey *PublicKeyMock) IsInterfaceNil() bool {
 	if pubKey == nil {
 		return true
@@ -95,7 +95,7 @@ func (keyGen *KeyGenMock) Suite() crypto.Suite {
 	return keyGen.SuiteMock()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (keyGen *KeyGenMock) IsInterfaceNil() bool {
 	if keyGen == nil {
 		return true

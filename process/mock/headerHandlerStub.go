@@ -113,6 +113,7 @@ func (hhs *HeaderHandlerStub) IsInterfaceNil() bool {
 	if hhs == nil {
 		return true
 	}
+
 	return false
 }
 

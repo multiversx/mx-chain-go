@@ -104,6 +104,7 @@ func (b *Bloom) IsInterfaceNil() bool {
 	if b == nil {
 		return true
 	}
+
 	return false
 }
 

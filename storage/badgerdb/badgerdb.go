@@ -213,5 +213,6 @@ func (s *DB) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
+
 	return false
 }

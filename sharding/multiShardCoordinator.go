@@ -97,6 +97,7 @@ func (msc *multiShardCoordinator) IsInterfaceNil() bool {
 	if msc == nil {
 		return true
 	}
+
 	return false
 }
 

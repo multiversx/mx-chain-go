@@ -188,7 +188,7 @@ func (bnm *BelNevMock) SignatureShare(index uint16) ([]byte, error) {
 	return bnm.SignatureShareMock(index)
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (bnm *BelNevMock) IsInterfaceNil() bool {
 	if bnm == nil {
 		return true

@@ -110,10 +110,11 @@ func (mcm *metaChainMessenger) BroadcastTransactions(transactions map[string][][
 	return nil
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (mcm *metaChainMessenger) IsInterfaceNil() bool {
 	if mcm == nil {
 		return true
 	}
+
 	return false
 }
