@@ -2,8 +2,8 @@ package heartbeat
 
 import "errors"
 
-// ErrEmptyPublicKeyList signals that a nil or empty public key list has been provided
-var ErrEmptyPublicKeyList = errors.New("nil or empty public key list")
+// ErrEmptyPublicKeysMap signals that a nil or empty public keys map has been provided
+var ErrEmptyPublicKeysMap = errors.New("nil or empty public keys map")
 
 // ErrNilMessenger signals that a nil p2p messenger has been provided
 var ErrNilMessenger = errors.New("nil P2P Messenger")
@@ -28,3 +28,9 @@ var ErrNilDataToProcess = errors.New("nil data to process")
 
 // ErrInvalidMaxDurationPeerUnresponsive signals that the duration provided is invalid
 var ErrInvalidMaxDurationPeerUnresponsive = errors.New("invalid max duration to declare the peer unresponsive")
+
+// ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
+var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrNilShardCoordinator signals that an operation has been attempted to or with a nil shard coordinator
+var ErrNilShardCoordinator = errors.New("nil shard coordinator")

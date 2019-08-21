@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -311,17 +312,25 @@ func TestTpsBenchmark_EmptyBlocksShouldNotUpdateMultipleTimes(t *testing.T) {
 func TestTpsBenchmark_Concurrent(t *testing.T) {
 	t.Parallel()
 
+	numOfTests := 25
+	for i := 0; i < numOfTests; i++ {
+		testTpsBenchmarkConcurrent(t)
+	}
+}
+
+func testTpsBenchmarkConcurrent(t *testing.T) {
 	nrOfShards := uint32(2)
 	roundDuration := uint64(6)
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(nrOfShards, roundDuration)
 	txCount := uint32(10)
-	nrGoroutines := 100000
+	nrGoroutines := 8000
 
 	wg := sync.WaitGroup{}
 	wg.Add(nrGoroutines)
 
 	for i := 0; i < nrGoroutines; i++ {
 		go func() {
+			time.Sleep(time.Millisecond)
 			updateTpsBenchmark(tpsBenchmark, txCount)
 			wg.Done()
 		}()

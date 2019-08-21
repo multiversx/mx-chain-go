@@ -47,28 +47,24 @@ func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	return newHeaders
 }
 
-func (bfd *basicForkDetector) CheckpointNonce() uint64 {
-	return bfd.fork.checkpointNonce
+func (bfd *basicForkDetector) LastCheckpointNonce() uint64 {
+	return bfd.lastCheckpoint().nonce
 }
 
-func (bfd *basicForkDetector) SetLastCheckpointNonce(nonce uint64) {
-	bfd.fork.lastCheckpointNonce = nonce
+func (bfd *basicForkDetector) LastCheckpointRound() uint64 {
+	return bfd.lastCheckpoint().round
 }
 
-func (bfd *basicForkDetector) SetCheckpointNonce(nonce uint64) {
-	bfd.fork.checkpointNonce = nonce
+func (bfd *basicForkDetector) SetFinalCheckpoint(nonce uint64, round uint64) {
+	bfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: round})
 }
 
-func (bfd *basicForkDetector) CheckpointRound() int64 {
-	return bfd.fork.checkpointRound
+func (bfd *basicForkDetector) FinalCheckpointNonce() uint64 {
+	return bfd.finalCheckpoint().nonce
 }
 
-func (bfd *basicForkDetector) SetLastCheckpointRound(round int64) {
-	bfd.fork.lastCheckpointRound = round
-}
-
-func (bfd *basicForkDetector) SetCheckpointRound(round int64) {
-	bfd.fork.checkpointRound = round
+func (bfd *basicForkDetector) FinalCheckpointRound() uint64 {
+	return bfd.finalCheckpoint().round
 }
 
 func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header, state process.BlockHeaderState) error {
@@ -100,11 +96,11 @@ func (hi *headerInfo) GetBlockHeaderState() process.BlockHeaderState {
 }
 
 func (boot *ShardBootstrap) NotifySyncStateListeners() {
-	boot.notifySyncStateListeners()
+	boot.notifySyncStateListeners(boot.isNodeSynchronized)
 }
 
 func (boot *MetaBootstrap) NotifySyncStateListeners() {
-	boot.notifySyncStateListeners()
+	boot.notifySyncStateListeners(boot.isNodeSynchronized)
 }
 
 func (boot *ShardBootstrap) SyncStateListeners() []func(bool) {

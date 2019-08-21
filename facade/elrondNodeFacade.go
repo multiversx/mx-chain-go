@@ -25,16 +25,17 @@ const DefaultRestPortOff = "off"
 
 // ElrondNodeFacade represents a facade for grouping the functionality for node, transaction and address
 type ElrondNodeFacade struct {
-	node         NodeWrapper
-	apiResolver  ApiResolver
-	syncer       ntp.SyncTimer
-	log          *logger.Logger
-	tpsBenchmark *statistics.TpsBenchmark
-	config       *config.FacadeConfig
+	node                   NodeWrapper
+	apiResolver            ApiResolver
+	syncer                 ntp.SyncTimer
+	log                    *logger.Logger
+	tpsBenchmark           *statistics.TpsBenchmark
+	config                 *config.FacadeConfig
+	restAPIServerDebugMode bool
 }
 
 // NewElrondNodeFacade creates a new Facade with a NodeWrapper
-func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver) *ElrondNodeFacade {
+func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver, restAPIServerDebugMode bool) *ElrondNodeFacade {
 	if node == nil {
 		return nil
 	}
@@ -43,8 +44,9 @@ func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver) *ElrondNodeF
 	}
 
 	return &ElrondNodeFacade{
-		node:        node,
-		apiResolver: apiResolver,
+		node:                   node,
+		apiResolver:            apiResolver,
+		restAPIServerDebugMode: restAPIServerDebugMode,
 	}
 }
 
@@ -98,6 +100,10 @@ func (ef *ElrondNodeFacade) StartBackgroundServices(wg *sync.WaitGroup) {
 // IsNodeRunning gets if the underlying node is running
 func (ef *ElrondNodeFacade) IsNodeRunning() bool {
 	return ef.node.IsRunning()
+}
+
+func (ef *ElrondNodeFacade) RestAPIServerDebugMode() bool {
+	return ef.restAPIServerDebugMode
 }
 
 // RestApiPort returns the port on which the api should start on, based on the config file provided.
@@ -231,4 +237,9 @@ func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 // GetVmValue retrieves data from existing SC trie
 func (ef *ElrondNodeFacade) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
 	return ef.apiResolver.GetVmValue(address, funcName, argsBuff...)
+}
+
+// PprofEnabled returns if profiling mode should be active or not on the application
+func (ef *ElrondNodeFacade) PprofEnabled() bool {
+	return ef.config.PprofEnabled
 }

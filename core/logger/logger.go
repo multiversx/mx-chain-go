@@ -62,13 +62,14 @@ func NewElrondLogger(opts ...Option) *Logger {
 	}
 
 	el.logger.SetOutput(el.file)
-	el.logger.AddHook(&printerHook{Writer: os.Stdout})
+	el.logger.AddHook(&defaultPrinterHook)
 	el.logger.SetFormatter(&log.JSONFormatter{})
 	el.logger.SetLevel(log.DebugLevel)
 
 	return el
 }
 
+var defaultPrinterHook printerHook
 var defaultLogger *Logger
 var defaultLoggerMutex = sync.RWMutex{}
 
@@ -78,12 +79,25 @@ func DefaultLogger() *Logger {
 	defaultLoggerMutex.Lock()
 	dl := defaultLogger
 	if dl == nil {
+		defaultPrinterHook = printerHook{Writer: os.Stdout}
+
 		defaultLogger = NewElrondLogger()
 		dl = defaultLogger
 	}
 	defaultLoggerMutex.Unlock()
 
 	return dl
+}
+
+//ChangePrinterHookWriter will change io writer of the hook
+func (el *Logger) ChangePrinterHookWriter(wr io.Writer) error {
+	if wr == nil {
+		return errors.New("nil io writer parameter")
+	}
+
+	defaultPrinterHook.Writer = wr
+
+	return nil
 }
 
 // ApplyOptions can set up different configurable options of a Logger instance

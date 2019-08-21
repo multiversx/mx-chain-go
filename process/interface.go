@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
@@ -28,6 +29,16 @@ type SmartContractResultProcessor interface {
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
+}
+
+// TxValidator can determine if a provided transaction handler is valid or not from the process point of view
+type TxValidator interface {
+	IsTxValidForProcessing(txHandler data.TransactionHandler) bool
+}
+
+// HeaderValidator can determine if a provided header handler is valid or not from the process point of view
+type HeaderValidator interface {
+	IsHeaderValidForProcessing(headerHandler data.HeaderHandler) bool
 }
 
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
@@ -125,7 +136,7 @@ type BlockProcessor interface {
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
-	SetLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
+	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -163,7 +174,7 @@ type InterceptedBlockBody interface {
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
-	AddSyncStateListener(func(bool))
+	AddSyncStateListener(func(isSyncing bool))
 	ShouldSync() bool
 	StopSync()
 	StartSync()
@@ -172,7 +183,7 @@ type Bootstrapper interface {
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header data.HeaderHandler, hash []byte, state BlockHeaderState) error
+	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error
 	RemoveHeaders(nonce uint64, hash []byte)
 	CheckFork() (forkDetected bool, nonce uint64, hash []byte)
 	GetHighestFinalBlockNonce() uint64
@@ -225,6 +236,23 @@ type IntermediateProcessorContainer interface {
 // IntermediateProcessorsContainerFactory defines the functionality to create an IntermediateProcessors container
 type IntermediateProcessorsContainerFactory interface {
 	Create() (IntermediateProcessorContainer, error)
+}
+
+// VirtualMachinesContainer defines a virtual machine holder data type with basic functionality
+type VirtualMachinesContainer interface {
+	Get(key []byte) (vmcommon.VMExecutionHandler, error)
+	Add(key []byte, val vmcommon.VMExecutionHandler) error
+	AddMultiple(keys [][]byte, vms []vmcommon.VMExecutionHandler) error
+	Replace(key []byte, val vmcommon.VMExecutionHandler) error
+	Remove(key []byte)
+	Len() int
+	Keys() [][]byte
+}
+
+// VirtualMachinesContainerFactory defines the functionality to create a virtual machine container
+type VirtualMachinesContainerFactory interface {
+	Create() (VirtualMachinesContainer, error)
+	VMAccountsDB() *hooks.VMAccountsDB
 }
 
 // Interceptor defines what a data interceptor should do

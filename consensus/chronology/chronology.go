@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var log = logger.DefaultLogger()
@@ -27,6 +29,7 @@ type chronology struct {
 	subrounds        map[int]int
 	subroundHandlers []consensus.SubroundHandler
 	mutSubrounds     sync.RWMutex
+	appStatusHandler core.AppStatusHandler
 }
 
 // NewChronology creates a new chronology object
@@ -46,9 +49,10 @@ func NewChronology(
 	}
 
 	chr := chronology{
-		genesisTime: genesisTime,
-		rounder:     rounder,
-		syncTimer:   syncTimer}
+		genesisTime:      genesisTime,
+		rounder:          rounder,
+		syncTimer:        syncTimer,
+		appStatusHandler: statusHandler.NewNilStatusHandler()}
 
 	chr.subroundId = srBeforeStartRound
 
@@ -71,6 +75,16 @@ func checkNewChronologyParams(
 		return ErrNilSyncTimer
 	}
 
+	return nil
+}
+
+// SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
+func (chr *chronology) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return ErrNilAppStatusHandler
+	}
+
+	chr.appStatusHandler = ash
 	return nil
 }
 
@@ -152,6 +166,7 @@ func (chr *chronology) initRound() {
 
 	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
+		chr.appStatusHandler.SetUInt64Value(core.MetricCurrentRound, uint64(chr.rounder.Index()))
 	}
 
 	chr.mutSubrounds.RUnlock()

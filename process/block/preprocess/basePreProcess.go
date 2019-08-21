@@ -223,3 +223,11 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 
 	return missingTxsForShard
 }
+
+func (bpp *basePreProcess) isTxAlreadyProcessed(txHash []byte, forBlock *txsForBlock) bool {
+	forBlock.mutTxsForBlock.RLock()
+	_, txAlreadyProcessed := forBlock.txHashAndInfo[string(txHash)]
+	forBlock.mutTxsForBlock.RUnlock()
+
+	return txAlreadyProcessed
+}

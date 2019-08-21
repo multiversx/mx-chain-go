@@ -98,7 +98,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 
 	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
-	senderNonce := uint64(1)
+	senderNonce := uint64(0)
 	senderMintingValue := big.NewInt(100000000)
 
 	advertiser, nodes := createScCallsNodes()
@@ -130,9 +130,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(senderMintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	senderNonce++
 	assert.Equal(t, senderNonce, acc.Nonce)
 
-	senderNonce++
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
@@ -160,9 +160,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	// Substract the gas price another time
 	expectedValue.Sub(expectedValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	senderNonce++
 	assert.Equal(t, senderNonce, acc.Nonce)
 
-	senderNonce++
 	generalRoundNumber++
 }
 
@@ -180,9 +180,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
 	receiverShard := uint32(1)
-	senderNonce := uint64(1)
+	senderNonce := uint64(0)
 	mintingValue := big.NewInt(100000000)
-	receiverNonce := uint64(1)
+	receiverNonce := uint64(0)
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
@@ -216,9 +216,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(mintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	senderNonce++
 	assert.Equal(t, senderNonce, acc.Nonce)
 
-	senderNonce++
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
@@ -247,9 +247,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	afterFee := big.NewInt(0).Sub(mintingValue, big.NewInt(0).SetUint64(contractCallTx.GasLimit*contractCallTx.GasPrice))
 	assert.Equal(t, afterFee, acc.Balance)
+	receiverNonce++
 	assert.Equal(t, receiverNonce, acc.Nonce)
 
-	receiverNonce++
 	generalRoundNumber++
 
 	// After second shard processed the transaction, tx should get into the first shard where the SC resides
@@ -262,7 +262,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	storedVal, _ := scAccount.DataTrieTracker().RetrieveValue([]byte("a"))
 	storedValBI := big.NewInt(0).SetBytes(storedVal)
 
-	assert.Equal(t, big.NewInt(int64(initialValueForInternalVariable + addValue)), storedValBI)
+	assert.Equal(t, big.NewInt(int64(initialValueForInternalVariable+addValue)), storedValBI)
 }
 
 // Test within a network of two shards the following situation
@@ -279,9 +279,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber := uint64(1)
 	scShard := uint32(0)
 	accShard := uint32(1)
-	accNonce := uint64(1)
+	accNonce := uint64(0)
 	mintingValue := big.NewInt(100000000)
-	scNonce := uint64(1)
+	scNonce := uint64(0)
 
 	advertiser, nodes := createScCallsNodes()
 	defer func() {
@@ -315,9 +315,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(mintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+	accNonce++
 	assert.Equal(t, accNonce, acc.Nonce)
 
-	accNonce++
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
@@ -338,6 +338,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 		withdrawValue,
 	)
 
+	scNonce++
 	// The account shard should process this tx as MoveBalance
 	processAndTestSmartContractCallInSender(
 		t,
@@ -348,7 +349,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 		mintingValue,
 		scNonce,
 	)
-	scNonce++
+
 	generalRoundNumber++
 
 	// After second shard processed the transaction, tx should get into the first shard where the SC resides

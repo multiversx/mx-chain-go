@@ -6,11 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/mock"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -101,40 +98,29 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		t.Skip("this is not a short test")
 	}
 
-	dPool := createTestDataPool()
-	startingNonce := uint64(0)
-
-	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	accntAdapter := createAccountsDB()
-
-	shardCoordinator := &sharding.OneShardCoordinator{}
-	nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
-		1,
-		1,
-		mock.HasherMock{},
-		0,
-		1,
-		make(map[uint32][]sharding.Validator),
-	)
-
-	n, _, sk, _ := createNetNode(dPool, accntAdapter, shardCoordinator, nodesCoordinator)
-
-	//set the account's nonce to startingNonce
-	nodePubKeyBytes, _ := sk.GeneratePublic().ToByteArray()
-	nodeAddress, _ := addrConverter.CreateAddressFromPublicKeyBytes(nodePubKeyBytes)
-	nodeAccount, _ := accntAdapter.GetAccountWithJournal(nodeAddress)
-	_ = nodeAccount.(*state.Account).SetNonceWithJournal(startingNonce)
-	_, _ = accntAdapter.Commit()
-
 	chDone := make(chan struct{})
 
-	var err error
+	maxShards := uint32(1)
+	nodeShardId := uint32(0)
+	txSignPrivKeyShardId := uint32(0)
+	initialNodeAddr := "nodeAddr"
+
+	node := integrationTests.NewTestProcessorNode(
+		maxShards,
+		nodeShardId,
+		txSignPrivKeyShardId,
+		initialNodeAddr,
+	)
+
 	txHexHash := ""
 
-	dPool.Transactions().RegisterHandler(func(key []byte) {
+	err := node.SetAccountNonce(uint64(0))
+	assert.Nil(t, err)
+
+	node.ShardDataPool.Transactions().RegisterHandler(func(key []byte) {
 		assert.Equal(t, txHexHash, hex.EncodeToString(key))
 
-		dataRecovered, _ := dPool.Transactions().SearchFirstData(key)
+		dataRecovered, _ := node.ShardDataPool.Transactions().SearchFirstData(key)
 		assert.NotNil(t, dataRecovered)
 
 		txRecovered, ok := dataRecovered.(*transaction.Transaction)
@@ -156,9 +142,21 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		chDone <- struct{}{}
 	})
 
-	sig, _ := hex.DecodeString(frontendSignature)
-	txHexHash, err = n.SendTransaction(frontendNonce, frontendSenderHex, frontendReceiverHex,
-		frontendValue, frontendGasPrice, frontendGasLimit, frontendData, sig)
+	rcvAddrBytes, _ := hex.DecodeString(frontendReceiverHex)
+	sndAddrBytes, _ := hex.DecodeString(frontendSenderHex)
+	signatureBytes, _ := hex.DecodeString(frontendSignature)
+
+	txHexHash, err = node.SendTransaction(&transaction.Transaction{
+		Nonce:     frontendNonce,
+		Value:     frontendValue,
+		RcvAddr:   rcvAddrBytes,
+		SndAddr:   sndAddrBytes,
+		GasPrice:  frontendGasPrice,
+		GasLimit:  frontendGasLimit,
+		Data:      frontendData,
+		Signature: signatureBytes,
+	})
+
 	assert.Nil(t, err)
 
 	select {

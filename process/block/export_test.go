@@ -3,6 +3,7 @@ package block
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -15,7 +16,7 @@ import (
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
-	return bp.computeHeaderHash(hdr)
+	return core.CalculateHash(bp.marshalizer, bp.hasher, hdr)
 }
 
 func (bp *baseProcessor) VerifyStateRoot(rootHash []byte) bool {
@@ -62,7 +63,6 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 		&mock.ForkDetectorMock{},
 		&mock.BlocksTrackerMock{},
 		genesisBlocks,
-		true,
 		&mock.RequestHandlerMock{},
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
@@ -148,8 +148,12 @@ func (mp *metaProcessor) RequestFinalMissingHeaders() uint32 {
 	return mp.requestFinalMissingHeaders()
 }
 
-func (bp *baseProcessor) LastNotarizedHdrs() map[uint32]data.HeaderHandler {
-	return bp.lastNotarizedHdrs
+func (bp *baseProcessor) NotarizedHdrs() map[uint32][]data.HeaderHandler {
+	return bp.notarizedHdrs
+}
+
+func (bp *baseProcessor) LastNotarizedHdrForShard(shardId uint32) data.HeaderHandler {
+	return bp.lastNotarizedHdrForShard(shardId)
 }
 
 func (bp *baseProcessor) SetMarshalizer(marshal marshal.Marshalizer) {
@@ -166,15 +170,15 @@ func (mp *metaProcessor) SetNextKValidity(val uint32) {
 	mp.mutRequestedShardHdrsHashes.Unlock()
 }
 
-func (mp *metaProcessor) CreateLastNotarizedHdrs(header *block.MetaBlock) error {
-	return mp.createLastNotarizedHdrs(header)
+func (mp *metaProcessor) SaveLastNotarizedHeader(header *block.MetaBlock) error {
+	return mp.saveLastNotarizedHeader(header)
 }
 
-func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (mapShardLastHeaders, error) {
+func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error) {
 	return mp.checkShardHeadersValidity(header)
 }
 
-func (mp *metaProcessor) CheckShardHeadersFinality(header *block.MetaBlock, highestNonceHdrs mapShardLastHeaders) error {
+func (mp *metaProcessor) CheckShardHeadersFinality(header *block.MetaBlock, highestNonceHdrs map[uint32]data.HeaderHandler) error {
 	return mp.checkShardHeadersFinality(header, highestNonceHdrs)
 }
 
@@ -202,8 +206,8 @@ func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body blo
 	return sp.checkHeaderBodyCorrelation(hdr, body)
 }
 
-func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
-	return bp.setLastNotarizedHeadersSlice(startHeaders, metaChainActive)
+func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler) error {
+	return bp.setLastNotarizedHeadersSlice(startHeaders)
 }
 
 func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint64) {
@@ -256,4 +260,22 @@ func (sp *shardProcessor) DisplayLogInfo(
 	dataPool dataRetriever.PoolsHolder,
 ) {
 	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool)
+}
+
+func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(round uint64) (*block.Header, []byte, error) {
+	return sp.getHighestHdrForOwnShardFromMetachain(round)
+}
+
+func (sp *shardProcessor) RestoreMetaBlockIntoPool(
+	miniBlockHashes map[int][][]byte,
+	metaBlockHashes [][]byte,
+) error {
+	return sp.restoreMetaBlockIntoPool(miniBlockHashes, metaBlockHashes)
+}
+
+func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
+	round uint64,
+	metaHashes [][]byte,
+) (map[string][]byte, error) {
+	return sp.getAllMiniBlockDstMeFromMeta(round, metaHashes)
 }

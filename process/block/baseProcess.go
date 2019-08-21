@@ -27,7 +27,7 @@ type hashAndHdr struct {
 	hash []byte
 }
 
-type mapShardLastHeaders map[uint32]data.HeaderHandler
+type mapShardHeaders map[uint32][]data.HeaderHandler
 
 type baseProcessor struct {
 	shardCoordinator   sharding.Coordinator
@@ -39,9 +39,8 @@ type baseProcessor struct {
 	uint64Converter    typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler process.BlockSizeThrottler
 
-	mutNotarizedHdrs   sync.RWMutex
-	lastNotarizedHdrs  mapShardLastHeaders
-	finalNotarizedHdrs mapShardLastHeaders
+	mutNotarizedHdrs sync.RWMutex
+	notarizedHdrs    mapShardHeaders
 
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
@@ -73,11 +72,10 @@ func (bp *baseProcessor) RevertAccountState() {
 	}
 }
 
-// SetLastNotarizedHdr sets the last notarized header
-func (bp *baseProcessor) SetLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
+// AddLastNotarizedHdr adds the last notarized header
+func (bp *baseProcessor) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	bp.mutNotarizedHdrs.Lock()
-	bp.finalNotarizedHdrs[shardId] = bp.lastNotarizedHdrs[shardId]
-	bp.lastNotarizedHdrs[shardId] = processedHdr
+	bp.notarizedHdrs[shardId] = append(bp.notarizedHdrs[shardId], processedHdr)
 	bp.mutNotarizedHdrs.Unlock()
 }
 
@@ -93,7 +91,9 @@ func (bp *baseProcessor) checkBlockValidity(
 		return err
 	}
 
-	if chainHandler.GetCurrentBlockHeader() == nil {
+	currentBlockHeader := chainHandler.GetCurrentBlockHeader()
+
+	if currentBlockHeader == nil {
 		if headerHandler.GetNonce() == 1 { // first block after genesis
 			if bytes.Equal(headerHandler.GetPrevHash(), chainHandler.GetGenesisHeaderHash()) {
 				// TODO: add genesis block verification
@@ -113,16 +113,30 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrWrongNonceInBlock
 	}
 
-	if headerHandler.GetNonce() != chainHandler.GetCurrentBlockHeader().GetNonce()+1 {
+	if headerHandler.GetRound() <= currentBlockHeader.GetRound() {
+		log.Info(fmt.Sprintf("round not match: local block round is %d and node received block with round %d\n",
+			currentBlockHeader.GetRound(), headerHandler.GetRound()))
+
+		return process.ErrLowerRoundInBlock
+	}
+
+	if headerHandler.GetNonce() != currentBlockHeader.GetNonce()+1 {
 		log.Info(fmt.Sprintf("nonce not match: local block nonce is %d and node received block with nonce %d\n",
-			chainHandler.GetCurrentBlockHeader().GetNonce(), headerHandler.GetNonce()))
+			currentBlockHeader.GetNonce(), headerHandler.GetNonce()))
 
 		return process.ErrWrongNonceInBlock
 	}
 
-	prevHeaderHash, err := bp.computeHeaderHash(chainHandler.GetCurrentBlockHeader())
+	prevHeaderHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, currentBlockHeader)
 	if err != nil {
 		return err
+	}
+
+	if !bytes.Equal(headerHandler.GetPrevRandSeed(), currentBlockHeader.GetRandSeed()) {
+		log.Info(fmt.Sprintf("random seed not match: local block random seed is %s and node received block with previous random seed %s\n",
+			core.ToB64(currentBlockHeader.GetRandSeed()), core.ToB64(headerHandler.GetPrevRandSeed())))
+
+		return process.ErrRandSeedMismatch
 	}
 
 	if !bytes.Equal(headerHandler.GetPrevHash(), prevHeaderHash) {
@@ -161,17 +175,6 @@ func (bp *baseProcessor) getRootHash() []byte {
 	return rootHash
 }
 
-func (bp *baseProcessor) computeHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
-	headerMarsh, err := bp.marshalizer.Marshal(headerHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	headerHash := bp.hasher.Compute(string(headerMarsh))
-
-	return headerHash, nil
-}
-
 func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
 	if prevHdr == nil {
 		return process.ErrNilBlockHeader
@@ -195,14 +198,14 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	//TODO: add verification if rand seed was correctly computed add other verification
 	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
 	if prevHdr.GetRound() >= currHdr.GetRound() {
-		return process.ErrLowShardHeaderRound
+		return process.ErrLowerRoundInOtherChainBlock
 	}
 
 	if currHdr.GetNonce() != prevHdr.GetNonce()+1 {
 		return process.ErrWrongNonceInBlock
 	}
 
-	prevHeaderHash, err := bp.computeHeaderHash(prevHdr)
+	prevHeaderHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, prevHdr)
 	if err != nil {
 		return err
 	}
@@ -212,7 +215,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		return process.ErrNotarizedBlockHashDoesNotMatch
+		return process.ErrHashDoesNotMatchInOtherChainBlock
 	}
 
 	return nil
@@ -240,23 +243,47 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 	return nil
 }
 
-func (bp *baseProcessor) restoreLastNotarized() {
+func (bp *baseProcessor) removeNotarizedHdrsBehindFinal(hdrsToAttestFinality uint32) {
 	bp.mutNotarizedHdrs.Lock()
-	for shardId := range bp.lastNotarizedHdrs {
-		bp.lastNotarizedHdrs[shardId] = bp.finalNotarizedHdrs[shardId]
+	for shardId := range bp.notarizedHdrs {
+		notarizedHdrsCount := uint32(len(bp.notarizedHdrs[shardId]))
+		if notarizedHdrsCount > hdrsToAttestFinality {
+			finalIndex := notarizedHdrsCount - 1 - hdrsToAttestFinality
+			bp.notarizedHdrs[shardId] = bp.notarizedHdrs[shardId][finalIndex:]
+		}
 	}
 	bp.mutNotarizedHdrs.Unlock()
+}
+
+func (bp *baseProcessor) removeLastNotarized() {
+	bp.mutNotarizedHdrs.Lock()
+	for shardId := range bp.notarizedHdrs {
+		notarizedHdrsCount := len(bp.notarizedHdrs[shardId])
+		if notarizedHdrsCount > 0 {
+			bp.notarizedHdrs[shardId] = bp.notarizedHdrs[shardId][:notarizedHdrsCount-1]
+		}
+	}
+	bp.mutNotarizedHdrs.Unlock()
+}
+
+func (bp *baseProcessor) lastNotarizedHdrForShard(shardId uint32) data.HeaderHandler {
+	notarizedHdrsCount := len(bp.notarizedHdrs[shardId])
+	if notarizedHdrsCount > 0 {
+		return bp.notarizedHdrs[shardId][notarizedHdrsCount-1]
+	}
+
+	return nil
 }
 
 func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
 	bp.mutNotarizedHdrs.Lock()
 	defer bp.mutNotarizedHdrs.Unlock()
 
-	if bp.lastNotarizedHdrs == nil || bp.finalNotarizedHdrs == nil {
+	if bp.notarizedHdrs == nil {
 		return process.ErrNotarizedHdrsSliceIsNil
 	}
 
-	err := bp.checkHeaderTypeCorrect(shardId, bp.lastNotarizedHdrs[shardId])
+	err := bp.checkHeaderTypeCorrect(shardId, bp.lastNotarizedHdrForShard(shardId))
 	if err != nil {
 		return err
 	}
@@ -265,19 +292,7 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 		return processedHdrs[i].GetNonce() < processedHdrs[j].GetNonce()
 	})
 
-	if len(processedHdrs) > 0 {
-		log.Debug(fmt.Sprintf("full processed metachain nonces for current header are between %d and %d\n",
-			processedHdrs[0].GetNonce(),
-			processedHdrs[len(processedHdrs)-1].GetNonce()))
-	}
-
-	tmpLastNotarized := bp.lastNotarizedHdrs[shardId]
-
-	defer func() {
-		if err != nil {
-			bp.lastNotarizedHdrs[shardId] = tmpLastNotarized
-		}
-	}()
+	tmpLastNotarizedHdrForShard := bp.lastNotarizedHdrForShard(shardId)
 
 	for i := 0; i < len(processedHdrs); i++ {
 		err = bp.checkHeaderTypeCorrect(shardId, processedHdrs[i])
@@ -285,15 +300,16 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 			return err
 		}
 
-		err = bp.isHdrConstructionValid(processedHdrs[i], bp.lastNotarizedHdrs[shardId])
+		err = bp.isHdrConstructionValid(processedHdrs[i], tmpLastNotarizedHdrForShard)
 		if err != nil {
 			return err
 		}
 
-		bp.lastNotarizedHdrs[shardId] = processedHdrs[i]
+		tmpLastNotarizedHdrForShard = processedHdrs[i]
 	}
 
-	bp.finalNotarizedHdrs[shardId] = tmpLastNotarized
+	bp.notarizedHdrs[shardId] = append(bp.notarizedHdrs[shardId], tmpLastNotarizedHdrForShard)
+	DisplayLastNotarized(bp.marshalizer, bp.hasher, tmpLastNotarizedHdrForShard, shardId)
 
 	return nil
 }
@@ -302,25 +318,24 @@ func (bp *baseProcessor) getLastNotarizedHdr(shardId uint32) (data.HeaderHandler
 	bp.mutNotarizedHdrs.RLock()
 	defer bp.mutNotarizedHdrs.RUnlock()
 
-	if bp.lastNotarizedHdrs == nil {
+	if bp.notarizedHdrs == nil {
 		return nil, process.ErrNotarizedHdrsSliceIsNil
 	}
 
-	err := bp.checkHeaderTypeCorrect(shardId, bp.lastNotarizedHdrs[shardId])
+	hdr := bp.lastNotarizedHdrForShard(shardId)
+
+	err := bp.checkHeaderTypeCorrect(shardId, hdr)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr := bp.lastNotarizedHdrs[shardId]
-
 	return hdr, nil
-
 }
 
-// SetLastNotarizedHeadersSlice sets the headers blocks in lastNotarizedHdrs for every shard
+// SetLastNotarizedHeadersSlice sets the headers blocks in notarizedHdrs for every shard
 // This is done when starting a new epoch so metachain can use it when validating next shard header blocks
 // and shard can validate the next meta header
-func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler, metaChainActive bool) error {
+func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler) error {
 	//TODO: protect this to be called only once at genesis time
 	//TODO: do this on constructor as it is a must to for blockprocessor to work
 	bp.mutNotarizedHdrs.Lock()
@@ -330,25 +345,20 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 		return process.ErrNotarizedHdrsSliceIsNil
 	}
 
-	bp.lastNotarizedHdrs = make(mapShardLastHeaders, bp.shardCoordinator.NumberOfShards())
-	bp.finalNotarizedHdrs = make(mapShardLastHeaders, bp.shardCoordinator.NumberOfShards())
+	bp.notarizedHdrs = make(mapShardHeaders, bp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < bp.shardCoordinator.NumberOfShards(); i++ {
 		hdr, ok := startHeaders[i].(*block.Header)
 		if !ok {
 			return process.ErrWrongTypeAssertion
 		}
-		bp.lastNotarizedHdrs[i] = hdr
-		bp.finalNotarizedHdrs[i] = hdr
+		bp.notarizedHdrs[i] = append(bp.notarizedHdrs[i], hdr)
 	}
 
-	if metaChainActive {
-		hdr, ok := startHeaders[sharding.MetachainShardId].(*block.MetaBlock)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-		bp.lastNotarizedHdrs[sharding.MetachainShardId] = hdr
-		bp.finalNotarizedHdrs[sharding.MetachainShardId] = hdr
+	hdr, ok := startHeaders[sharding.MetachainShardId].(*block.MetaBlock)
+	if !ok {
+		return process.ErrWrongTypeAssertion
 	}
+	bp.notarizedHdrs[sharding.MetachainShardId] = append(bp.notarizedHdrs[sharding.MetachainShardId], hdr)
 
 	return nil
 }
