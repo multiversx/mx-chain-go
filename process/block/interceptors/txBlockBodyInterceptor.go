@@ -58,7 +58,7 @@ func NewTxBlockBodyInterceptor(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (tbbi *TxBlockBodyInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (tbbi *TxBlockBodyInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	err := tbbi.checkMessage(message)
 	if err != nil {
 		return err

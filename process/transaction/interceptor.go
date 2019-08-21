@@ -16,15 +16,14 @@ import (
 
 // TxInterceptor is used for intercepting transaction and storing them into a datapool
 type TxInterceptor struct {
-	marshalizer              marshal.Marshalizer
-	txPool                   dataRetriever.ShardedDataCacherNotifier
-	txValidator              process.TxValidator
-	addrConverter            state.AddressConverter
-	hasher                   hashing.Hasher
-	singleSigner             crypto.SingleSigner
-	keyGen                   crypto.KeyGenerator
-	shardCoordinator         sharding.Coordinator
-	broadcastCallbackHandler func(buffToSend []byte)
+	marshalizer      marshal.Marshalizer
+	txPool           dataRetriever.ShardedDataCacherNotifier
+	txValidator      process.TxValidator
+	addrConverter    state.AddressConverter
+	hasher           hashing.Hasher
+	singleSigner     crypto.SingleSigner
+	keyGen           crypto.KeyGenerator
+	shardCoordinator sharding.Coordinator
 }
 
 // NewTxInterceptor hooks a new interceptor for transactions
@@ -80,7 +79,7 @@ func NewTxInterceptor(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
 	if message == nil {
 		return process.ErrNilMessage
 	}
@@ -135,16 +134,11 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		}
 	}
 
-	if txi.broadcastCallbackHandler != nil {
-		txi.broadcastCallbackHandler(buffToSend)
+	if broadcastHandler != nil {
+		broadcastHandler(buffToSend)
 	}
 
 	return lastErrEncountered
-}
-
-// SetBroadcastCallback sets the callback method to send filtered out message
-func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte)) {
-	txi.broadcastCallbackHandler = callback
 }
 
 func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {

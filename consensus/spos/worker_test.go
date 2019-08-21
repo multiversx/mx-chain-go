@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const roundTimeDuration = time.Duration(100 * time.Millisecond)
+const roundTimeDuration = 100 * time.Millisecond
 
 func initWorker() *spos.Worker {
 	blockProcessor := &mock.BlockProcessorMock{
@@ -659,7 +659,7 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 
 	assert.Nil(t, err)
 }
@@ -683,7 +683,7 @@ func TestWorker_ProcessReceivedMessageHeaderShouldRetNil(t *testing.T) {
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 
 	assert.Nil(t, err)
 }
@@ -691,7 +691,7 @@ func TestWorker_ProcessReceivedMessageHeaderShouldRetNil(t *testing.T) {
 func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	err := wrk.ProcessReceivedMessage(nil)
+	err := wrk.ProcessReceivedMessage(nil, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -701,7 +701,7 @@ func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 func TestWorker_ProcessReceivedMessageNilMessageDataFieldShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -723,7 +723,7 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 		0,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -745,7 +745,7 @@ func TestWorker_ProcessReceivedMessageMessageIsForPastRoundShouldErr(t *testing.
 		-1,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -767,7 +767,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 		0,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -789,7 +789,7 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 		0,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -812,7 +812,7 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 		0,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -834,7 +834,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		0,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bn.MtBlockHeader]))
@@ -1411,7 +1411,7 @@ func TestWorker_BroadcastUnnotarisedBlocksShouldNotBroadcastWhenMaxRoundGapIsNot
 		},
 	}
 
-	wrk.ConsensusState().RoundIndex = int64(roundIndex)
+	wrk.ConsensusState().RoundIndex = roundIndex
 	wrk.SetBlockTracker(blockTracker)
 	wrk.SetForkDetector(forkDetector)
 	bmm := &mock.BroadcastMessengerMock{
@@ -1421,11 +1421,11 @@ func TestWorker_BroadcastUnnotarisedBlocksShouldNotBroadcastWhenMaxRoundGapIsNot
 		},
 	}
 	wrk.SetBroadcastMessenger(bmm)
-	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, int64(roundIndex-spos.MaxRoundsGap))
+	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, roundIndex-spos.MaxRoundsGap)
 
 	wrk.BroadcastUnnotarisedBlocks()
 	assert.False(t, headerHasBeenBroadcast)
-	assert.Equal(t, int64(roundIndex-spos.MaxRoundsGap), wrk.BlockTracker().BlockBroadcastRound(header.Nonce))
+	assert.Equal(t, roundIndex-spos.MaxRoundsGap, wrk.BlockTracker().BlockBroadcastRound(header.Nonce))
 }
 
 func TestWorker_BroadcastUnnotarisedBlocksShouldErrWhenBroadcastHeaderFails(t *testing.T) {
@@ -1457,7 +1457,7 @@ func TestWorker_BroadcastUnnotarisedBlocksShouldErrWhenBroadcastHeaderFails(t *t
 		},
 	}
 
-	wrk.ConsensusState().RoundIndex = int64(roundIndex)
+	wrk.ConsensusState().RoundIndex = roundIndex
 	wrk.SetBlockTracker(blockTracker)
 	wrk.SetForkDetector(forkDetector)
 	bmm := &mock.BroadcastMessengerMock{
@@ -1467,11 +1467,11 @@ func TestWorker_BroadcastUnnotarisedBlocksShouldErrWhenBroadcastHeaderFails(t *t
 		},
 	}
 	wrk.SetBroadcastMessenger(bmm)
-	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, int64(roundIndex-spos.MaxRoundsGap-1))
+	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, roundIndex-spos.MaxRoundsGap-1)
 
 	wrk.BroadcastUnnotarisedBlocks()
 	assert.NotNil(t, err)
-	assert.Equal(t, int64(roundIndex-spos.MaxRoundsGap-1), wrk.BlockTracker().BlockBroadcastRound(header.Nonce))
+	assert.Equal(t, roundIndex-spos.MaxRoundsGap-1, wrk.BlockTracker().BlockBroadcastRound(header.Nonce))
 }
 
 func TestWorker_BroadcastUnnotarisedBlocksShouldBroadcast(t *testing.T) {
@@ -1503,7 +1503,7 @@ func TestWorker_BroadcastUnnotarisedBlocksShouldBroadcast(t *testing.T) {
 		},
 	}
 
-	wrk.ConsensusState().RoundIndex = int64(roundIndex)
+	wrk.ConsensusState().RoundIndex = roundIndex
 	wrk.SetBlockTracker(blockTracker)
 	wrk.SetForkDetector(forkDetector)
 	bmm := &mock.BroadcastMessengerMock{
@@ -1513,7 +1513,7 @@ func TestWorker_BroadcastUnnotarisedBlocksShouldBroadcast(t *testing.T) {
 		},
 	}
 	wrk.SetBroadcastMessenger(bmm)
-	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, int64(roundIndex-spos.MaxRoundsGap-1))
+	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, roundIndex-spos.MaxRoundsGap-1)
 
 	wrk.BroadcastUnnotarisedBlocks()
 	assert.True(t, headerHasBeenBroadcast)

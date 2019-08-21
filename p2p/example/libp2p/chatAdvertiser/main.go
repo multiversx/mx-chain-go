@@ -60,7 +60,7 @@ func main() {
 	// libp2p.New constructs a new libp2p Host. Other options can be added
 	// here.
 	host, err := libp2p.New(ctx,
-		libp2p.ListenAddrs([]multiaddr.Multiaddr(make([]multiaddr.Multiaddr, 0))...),
+		libp2p.ListenAddrs(make([]multiaddr.Multiaddr, 0)...),
 	)
 	if err != nil {
 		panic(err)

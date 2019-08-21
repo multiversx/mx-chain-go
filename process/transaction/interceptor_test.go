@@ -253,7 +253,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageNilMesssageShouldErr(t *te
 		keyGen,
 		oneSharder)
 
-	err := txi.ProcessReceivedMessage(nil)
+	err := txi.ProcessReceivedMessage(nil, nil)
 
 	assert.Equal(t, process.ErrNilMessage, err)
 }
@@ -280,7 +280,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageMilMessageDataShouldErr(t 
 
 	msg := &mock.P2PMessageMock{}
 
-	err := txi.ProcessReceivedMessage(msg)
+	err := txi.ProcessReceivedMessage(msg, nil)
 
 	assert.Equal(t, process.ErrNilDataToProcess, err)
 }
@@ -315,7 +315,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarsha
 		DataField: make([]byte, 0),
 	}
 
-	err := txi.ProcessReceivedMessage(msg)
+	err := txi.ProcessReceivedMessage(msg, nil)
 
 	assert.Equal(t, errMarshalizer, err)
 }
@@ -351,7 +351,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShou
 		DataField: make([]byte, 0),
 	}
 
-	err := txi.ProcessReceivedMessage(msg)
+	err := txi.ProcessReceivedMessage(msg, nil)
 
 	assert.Equal(t, process.ErrNoTransactionInMessage, err)
 }
@@ -395,7 +395,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t
 		DataField: buff,
 	}
 
-	err := txi.ProcessReceivedMessage(msg)
+	err := txi.ProcessReceivedMessage(msg, nil)
 
 	assert.Equal(t, process.ErrNilSignature, err)
 }
@@ -465,10 +465,10 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 		DataField: buff,
 	}
 
-	txi.SetBroadcastCallback(func(buffToSend []byte) {
+	broadcastCallback := func(buffToSend []byte) {
 		buff = buffToSend
-	})
-	err := txi.ProcessReceivedMessage(msg)
+	}
+	err := txi.ProcessReceivedMessage(msg, broadcastCallback)
 
 	assert.Equal(t, process.ErrNilSignature, err)
 	//unmarshal data and check there is only tx2 inside
@@ -530,7 +530,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t 
 		DataField: buff,
 	}
 
-	err := txi.ProcessReceivedMessage(msg)
+	err := txi.ProcessReceivedMessage(msg, nil)
 
 	assert.Equal(t, errExpected, err)
 }
@@ -595,7 +595,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 		}
 	}
 
-	err := txi.ProcessReceivedMessage(msg)
+	err := txi.ProcessReceivedMessage(msg, nil)
 
 	assert.Nil(t, err)
 	select {
@@ -663,7 +663,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 		}
 	}
 
-	err := txi.ProcessReceivedMessage(msg)
+	err := txi.ProcessReceivedMessage(msg, nil)
 
 	assert.Nil(t, err)
 	select {
@@ -740,7 +740,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageTxNotValidShouldNotAdd(t *
 		}
 	}
 
-	err := txi.ProcessReceivedMessage(msg)
+	err := txi.ProcessReceivedMessage(msg, nil)
 
 	assert.Nil(t, err)
 	select {

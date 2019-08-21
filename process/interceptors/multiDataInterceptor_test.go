@@ -95,7 +95,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testi
 		&mock.InterceptorThrottlerStub{},
 	)
 
-	err := mdi.ProcessReceivedMessage(nil)
+	err := mdi.ProcessReceivedMessage(nil, nil)
 
 	assert.Equal(t, process.ErrNilMessage, err)
 }
@@ -118,7 +118,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *t
 	msg := &mock.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
-	err := mdi.ProcessReceivedMessage(msg)
+	err := mdi.ProcessReceivedMessage(msg, nil)
 
 	assert.Equal(t, errExpeced, err)
 }
@@ -140,7 +140,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceSh
 	msg := &mock.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
-	err := mdi.ProcessReceivedMessage(msg)
+	err := mdi.ProcessReceivedMessage(msg, nil)
 
 	assert.Equal(t, process.ErrNoDataInMessage, err)
 }
@@ -167,15 +167,15 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldNotResend(t *testi
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
 	)
-	mdi.SetBroadcastCallback(func(buffToSend []byte) {
+	bradcastCallback := func(buffToSend []byte) {
 		atomic.AddInt32(&broadcastNum, 1)
-	})
+	}
 
 	dataField, _ := marshalizer.Marshal(buffData)
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg)
+	err := mdi.ProcessReceivedMessage(msg, bradcastCallback)
 
 	time.Sleep(time.Second)
 
@@ -223,7 +223,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
 	)
-	mdi.SetBroadcastCallback(func(buffToSend []byte) {
+	bradcastCallback := func(buffToSend []byte) {
 		unmarshalledBuffs := make([][]byte, 0)
 		err := marshalizer.Unmarshal(&unmarshalledBuffs, buffToSend)
 		if err != nil {
@@ -237,13 +237,13 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 		}
 
 		atomic.AddInt32(&broadcastNum, 1)
-	})
+	}
 
 	dataField, _ := marshalizer.Marshal(buffData)
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg)
+	err := mdi.ProcessReceivedMessage(msg, bradcastCallback)
 
 	time.Sleep(time.Second)
 
@@ -289,7 +289,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg)
+	err := mdi.ProcessReceivedMessage(msg, nil)
 
 	time.Sleep(time.Second)
 
@@ -333,7 +333,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg)
+	err := mdi.ProcessReceivedMessage(msg, nil)
 
 	time.Sleep(time.Second)
 
@@ -377,7 +377,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg)
+	err := mdi.ProcessReceivedMessage(msg, nil)
 
 	time.Sleep(time.Second)
 

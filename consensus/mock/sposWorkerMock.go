@@ -29,7 +29,7 @@ func (sposWorkerMock *SposWorkerMock) RemoveAllReceivedMessagesCalls() {
 	sposWorkerMock.RemoveAllReceivedMessagesCallsCalled()
 }
 
-func (sposWorkerMock *SposWorkerMock) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (sposWorkerMock *SposWorkerMock) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	return sposWorkerMock.ProcessReceivedMessageCalled(message)
 }
 

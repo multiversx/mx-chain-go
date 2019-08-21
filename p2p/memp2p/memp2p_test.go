@@ -41,7 +41,7 @@ func TestInitializingNetworkwith4Peers(t *testing.T) {
 	expectedAddresses := []string{"/memp2p/Peer1", "/memp2p/Peer2", "/memp2p/Peer3", "/memp2p/Peer4"}
 	assert.Equal(t, expectedAddresses, network.ListAddresses())
 
-	peer1.Close()
+	_ = peer1.Close()
 	peerIDs := network.PeerIDs()
 	peersMap := network.Peers()
 	assert.Equal(t, 3, len(peerIDs))

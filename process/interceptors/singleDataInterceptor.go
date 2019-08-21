@@ -9,10 +9,9 @@ import (
 
 // SingleDataInterceptor is used for intercepting packed multi data
 type SingleDataInterceptor struct {
-	factory                  process.InterceptedDataFactory
-	processor                process.InterceptorProcessor
-	throttler                process.InterceptorThrottler
-	broadcastCallbackHandler func(buffToSend []byte)
+	factory   process.InterceptedDataFactory
+	processor process.InterceptorProcessor
+	throttler process.InterceptorThrottler
 }
 
 // NewSingleDataInterceptor hooks a new interceptor for single data
@@ -43,7 +42,7 @@ func NewSingleDataInterceptor(
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	err := preProcessMesage(sdi.throttler, message)
 	if err != nil {
 		return err
