@@ -25,6 +25,7 @@ type Monitor struct {
 	marshalizer                 marshal.Marshalizer
 	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutHeartbeatMessages        sync.RWMutex
+	mutShardIdComputation       sync.RWMutex
 	appStatusHandler            core.AppStatusHandler
 }
 
@@ -132,6 +133,8 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 func (m *Monitor) computeShardID(pubkey string) uint32 {
 	// TODO : the shard ID will be recomputed at the end of an epoch / beginning of a new one.
 	//  For the moment, just return the initial computed shard ID
+	m.mutShardIdComputation.RLock()
+	defer m.mutShardIdComputation.RUnlock()
 	return m.heartbeatMessages[pubkey].computedShardID
 }
 
