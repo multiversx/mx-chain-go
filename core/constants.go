@@ -107,3 +107,15 @@ const MetricRoundTime = "erd_round_time"
 
 // MetricAppVersion is the metric for the current app version
 const MetricAppVersion = "erd_app_version"
+
+// MetricNumTxInBlock is the metric for the number of transactions in the proposed block
+const MetricNumTxInBlock = "erd_num_tx_block"
+
+// MetricConsensusState is the metric for consensus state of node proposer,participant or not consensus group
+const MetricConsensusState = "erd_consensus_state"
+
+// MetricNumMiniBlocks is the metric for number of miniblocks in a block
+const MetricNumMiniBlocks = "erd_num_mini_blocks"
+
+// MetricConsensusRoundState is the metric for consensus round state for a block
+const MetricConsensusRoundState = "erd_consensus_round_state"

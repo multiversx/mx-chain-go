@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -533,6 +534,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountLeader, 0)
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, 0)
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricNumTxInBlock, 0)
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, 0)
+	coreComponents.StatusHandler.SetStringValue(core.MetricConsensusState, "")
+	coreComponents.StatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -784,9 +789,25 @@ func startMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval in
 		return err
 	}
 
+	//TODO delete this dummy function when metrics will not have dummy values
+	err = dummyDataInNewMetrics(appStatusPollingHandler)
+	if err != nil {
+		return err
+	}
+
 	appStatusPollingHandler.Poll()
 
 	return nil
+}
+
+//TODO delete this dummy function when metrics will not have dummy values
+func dummyDataInNewMetrics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
+	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
+		appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, rand.Uint64())
+		appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, rand.Uint64())
+		appStatusHandler.SetStringValue(core.MetricConsensusState, "dummy")
+		appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "dummy")
+	})
 }
 
 func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
