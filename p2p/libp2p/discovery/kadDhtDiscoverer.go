@@ -9,7 +9,7 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht"
 )
 
-var peerDiscoveryTimeout = time.Duration(time.Second * 10)
+var peerDiscoveryTimeout = time.Second * 10
 var noOfQueries = 1
 
 const kadDhtName = "kad-dht discovery"
@@ -86,7 +86,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 	cfg := dht.BootstrapConfig{
 		Period:  kdd.refreshInterval,
 		Queries: noOfQueries,
-		Timeout: time.Duration(peerDiscoveryTimeout),
+		Timeout: peerDiscoveryTimeout,
 	}
 
 	ctx := kdd.contextProvider.Context()

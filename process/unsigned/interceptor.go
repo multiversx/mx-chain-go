@@ -16,13 +16,12 @@ var log = logger.DefaultLogger()
 
 // UnsignedTxInterceptor is used for intercepting unsigned transaction and storing them into a datapool
 type UnsignedTxInterceptor struct {
-	marshalizer              marshal.Marshalizer
-	uTxPool                  dataRetriever.ShardedDataCacherNotifier
-	uTxStorer                storage.Storer
-	addrConverter            state.AddressConverter
-	hasher                   hashing.Hasher
-	shardCoordinator         sharding.Coordinator
-	broadcastCallbackHandler func(buffToSend []byte)
+	marshalizer      marshal.Marshalizer
+	uTxPool          dataRetriever.ShardedDataCacherNotifier
+	uTxStorer        storage.Storer
+	addrConverter    state.AddressConverter
+	hasher           hashing.Hasher
+	shardCoordinator sharding.Coordinator
 }
 
 // NewUnsignedTxInterceptor hooks a new interceptor for unsigned transactions
@@ -68,7 +67,7 @@ func NewUnsignedTxInterceptor(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (utxi *UnsignedTxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (utxi *UnsignedTxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
 	if message == nil {
 		return process.ErrNilMessage
 	}
@@ -121,16 +120,11 @@ func (utxi *UnsignedTxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P
 		}
 	}
 
-	if utxi.broadcastCallbackHandler != nil {
-		utxi.broadcastCallbackHandler(buffToSend)
+	if broadcastHandler != nil {
+		broadcastHandler(buffToSend)
 	}
 
 	return lastErrEncountered
-}
-
-// SetBroadcastCallback sets the callback method to send filtered out message
-func (utxi *UnsignedTxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte)) {
-	utxi.broadcastCallbackHandler = callback
 }
 
 func (utxi *UnsignedTxInterceptor) processUnsignedTransaction(uTx *InterceptedUnsignedTransaction) {

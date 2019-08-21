@@ -13,11 +13,10 @@ var log = logger.DefaultLogger()
 
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
-	marshalizer              marshal.Marshalizer
-	factory                  process.InterceptedDataFactory
-	processor                process.InterceptorProcessor
-	throttler                process.InterceptorThrottler
-	broadcastCallbackHandler func(buffToSend []byte)
+	marshalizer marshal.Marshalizer
+	factory     process.InterceptedDataFactory
+	processor   process.InterceptorProcessor
+	throttler   process.InterceptorThrottler
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -53,7 +52,7 @@ func NewMultiDataInterceptor(
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
 	err := preProcessMesage(mdi.throttler, message)
 	if err != nil {
 		return err
@@ -113,15 +112,10 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) 
 			return err
 		}
 
-		if mdi.broadcastCallbackHandler != nil {
-			mdi.broadcastCallbackHandler(buffToSend)
+		if broadcastHandler != nil {
+			broadcastHandler(buffToSend)
 		}
 	}
 
 	return lastErrEncountered
-}
-
-// SetBroadcastCallback sets the callback method to broadcast validated data
-func (mdi *MultiDataInterceptor) SetBroadcastCallback(callback func(buffToSend []byte)) {
-	mdi.broadcastCallbackHandler = callback
 }

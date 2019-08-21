@@ -254,7 +254,7 @@ type VirtualMachinesContainerFactory interface {
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P) error
+	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 }
 
 // MessageHandler defines the functionality needed by structs to send data to other peers

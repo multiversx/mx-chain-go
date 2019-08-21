@@ -202,7 +202,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t 
 		&mock.ChronologyValidatorStub{},
 	)
 
-	assert.Equal(t, process.ErrNilMessage, mhi.ProcessReceivedMessage(nil))
+	assert.Equal(t, process.ErrNilMessage, mhi.ProcessReceivedMessage(nil, nil))
 }
 
 func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilDataToProcessShouldErr(t *testing.T) {
@@ -224,7 +224,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilDataToProcessShould
 
 	msg := &mock.P2PMessageMock{}
 
-	assert.Equal(t, process.ErrNilDataToProcess, mhi.ProcessReceivedMessage(msg))
+	assert.Equal(t, process.ErrNilDataToProcess, mhi.ProcessReceivedMessage(msg, nil))
 }
 
 func TestMetachainHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnmarshalingShouldErr(t *testing.T) {
@@ -253,7 +253,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnm
 		DataField: make([]byte, 0),
 	}
 
-	assert.Equal(t, errMarshalizer, mhi.ProcessReceivedMessage(msg))
+	assert.Equal(t, errMarshalizer, mhi.ProcessReceivedMessage(msg, nil))
 }
 
 func TestMetachainHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShouldErr(t *testing.T) {
@@ -285,7 +285,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShoul
 		DataField: buff,
 	}
 
-	assert.Equal(t, process.ErrNilPubKeysBitmap, mhi.ProcessReceivedMessage(msg))
+	assert.Equal(t, process.ErrNilPubKeysBitmap, mhi.ProcessReceivedMessage(msg, nil))
 }
 
 func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) {
@@ -365,7 +365,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 		chanDone <- struct{}{}
 	}()
 
-	assert.Nil(t, mhi.ProcessReceivedMessage(msg))
+	assert.Nil(t, mhi.ProcessReceivedMessage(msg, nil))
 	select {
 	case <-chanDone:
 	case <-time.After(durTimeout):
@@ -442,7 +442,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsNotValidShouldNotAdd
 		})
 	}
 
-	assert.Nil(t, mhi.ProcessReceivedMessage(msg))
+	assert.Nil(t, mhi.ProcessReceivedMessage(msg, nil))
 	select {
 	case <-chanDone:
 		assert.Fail(t, "should have not add block in pool")

@@ -210,7 +210,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 }
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
-func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	if message == nil {
 		return ErrNilMessage
 	}

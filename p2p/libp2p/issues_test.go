@@ -52,11 +52,11 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 	mes2 := createMessenger(23101)
 
 	defer func() {
-		mes1.Close()
-		mes2.Close()
+		_ = mes1.Close()
+		_ = mes2.Close()
 	}()
 
-	mes1.ConnectToPeer(getConnectableAddress(mes2))
+	_ = mes1.ConnectToPeer(getConnectableAddress(mes2))
 
 	topic := "test topic"
 
@@ -74,9 +74,9 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 	smallPacketReceived := &atomic.Value{}
 	smallPacketReceived.Store(false)
 
-	mes2.CreateTopic(topic, false)
-	mes2.RegisterMessageProcessor(topic, &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P) error {
+	_ = mes2.CreateTopic(topic, false)
+	_ = mes2.RegisterMessageProcessor(topic, &mock.MessageProcessorStub{
+		ProcessMessageCalled: func(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 			if bytes.Equal(message.Data(), largePacket) {
 				largePacketReceived.Store(true)
 			}
@@ -90,12 +90,12 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 	})
 
 	fmt.Println("sending the large packet...")
-	mes1.SendToConnectedPeer(topic, largePacket, mes2.ID())
+	_ = mes1.SendToConnectedPeer(topic, largePacket, mes2.ID())
 
 	time.Sleep(time.Second)
 
 	fmt.Println("sending the small packet...")
-	mes1.SendToConnectedPeer(topic, smallPacket, mes2.ID())
+	_ = mes1.SendToConnectedPeer(topic, smallPacket, mes2.ID())
 
 	time.Sleep(time.Second)
 

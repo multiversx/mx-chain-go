@@ -21,7 +21,7 @@ func (hrs *HeaderResolverStub) RequestDataFromHash(hash []byte) error {
 	return errNotImplemented
 }
 
-func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	if hrs.ProcessReceivedMessageCalled != nil {
 		return hrs.ProcessReceivedMessageCalled(message)
 	}

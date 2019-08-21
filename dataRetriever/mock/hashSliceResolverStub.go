@@ -16,7 +16,7 @@ func (hsrs *HashSliceResolverStub) RequestDataFromHash(hash []byte) error {
 	return errNotImplemented
 }
 
-func (hsrs *HashSliceResolverStub) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (hsrs *HashSliceResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	if hsrs.ProcessReceivedMessageCalled != nil {
 		return hsrs.ProcessReceivedMessageCalled(message)
 	}

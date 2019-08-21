@@ -57,7 +57,7 @@ func NewPeerBlockBodyInterceptor(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (pbbi *PeerBlockBodyInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (pbbi *PeerBlockBodyInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	err := pbbi.checkMessage(message)
 	if err != nil {
 		return err

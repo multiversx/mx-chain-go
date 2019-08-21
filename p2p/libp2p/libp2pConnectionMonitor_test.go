@@ -11,11 +11,11 @@ import (
 
 func init() {
 	ThresholdMinimumConnectedPeers = 3
-	DurationBetweenReconnectAttempts = time.Duration(time.Millisecond)
+	DurationBetweenReconnectAttempts = time.Millisecond
 }
 
-var durTimeoutWaiting = time.Duration(time.Second * 2)
-var durStartGoRoutine = time.Duration(time.Second)
+var durTimeoutWaiting = time.Second * 2
+var durStartGoRoutine = time.Second
 
 func TestNewLibp2pConnectionMonitor_WithNilReconnecterShouldWork(t *testing.T) {
 	t.Parallel()
