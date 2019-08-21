@@ -30,8 +30,8 @@ func NewTransactionCounter() *transactionCounter {
 	}
 }
 
-// getNumTxsWithDst returns the number of transactions for a certain destination shard
-func (txc *transactionCounter) getNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
+// getNumTxsFromPool returns the number of transactions from pool for a given shard
+func (txc *transactionCounter) getNumTxsFromPool(shardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
 	txPool := dataPool.Transactions()
 	if txPool == nil {
 		return 0
@@ -39,13 +39,28 @@ func (txc *transactionCounter) getNumTxsWithDst(dstShardId uint32, dataPool data
 
 	sumTxs := 0
 
+	strCache := process.ShardCacherIdentifier(shardId, shardId)
+	txStore := txPool.ShardDataStore(strCache)
+	if txStore != nil {
+		sumTxs += txStore.Len()
+	}
+
 	for i := uint32(0); i < nrShards; i++ {
-		strCache := process.ShardCacherIdentifier(i, dstShardId)
-		txStore := txPool.ShardDataStore(strCache)
-		if txStore == nil {
+		if i == shardId {
 			continue
 		}
-		sumTxs += txStore.Len()
+
+		strCache = process.ShardCacherIdentifier(i, shardId)
+		txStore = txPool.ShardDataStore(strCache)
+		if txStore != nil {
+			sumTxs += txStore.Len()
+		}
+
+		strCache = process.ShardCacherIdentifier(shardId, i)
+		txStore = txPool.ShardDataStore(strCache)
+		if txStore != nil {
+			sumTxs += txStore.Len()
+		}
 	}
 
 	return sumTxs
@@ -82,7 +97,7 @@ func (txc *transactionCounter) displayLogInfo(
 		core.ToB64(headerHash),
 		txc.totalTxs,
 		txc.currentBlockTxs,
-		txc.getNumTxsWithDst(selfId, dataPool, numShards),
+		txc.getNumTxsFromPool(selfId, dataPool, numShards),
 		numShards,
 		selfId)
 	txc.mutex.RUnlock()

@@ -135,6 +135,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	msg := ""
 	if leader == sr.SelfPubKey() {
+		sr.appStatusHandler.Increment(core.MetricCountLeader)
 		msg = " (my turn)"
 	}
 
@@ -152,6 +153,8 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 		return false
 	}
+
+	sr.appStatusHandler.Increment(core.MetricCountConsensus)
 
 	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))
 	if err != nil {
@@ -177,13 +180,8 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	if leader == sr.SelfPubKey() {
-		sr.appStatusHandler.Increment(core.MetricCountLeader)
 		//TODO: Should be analyzed if call of sr.broadcastUnnotarisedBlocks() is still necessary
 	}
-
-	sr.appStatusHandler.Increment(core.MetricCountConsensus)
-
-	//TODO rollback decrement
 
 	// execute stored messages which were received in this new round but before this initialisation
 	go sr.executeStoredMessages()

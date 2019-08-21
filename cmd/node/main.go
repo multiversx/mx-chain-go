@@ -540,6 +540,9 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	coreComponents.StatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricRoundTime, nodesConfig.RoundDuration/milisecondsInSecond)
 	coreComponents.StatusHandler.SetStringValue(core.MetricAppVersion, version)
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountLeader, 0)
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, 0)
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)

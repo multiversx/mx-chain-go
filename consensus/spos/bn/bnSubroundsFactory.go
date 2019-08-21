@@ -156,6 +156,11 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
+	err = subroundStartRound.SetAppStatusHandler(fct.appStatusHandler)
+	if err != nil {
+		return err
+	}
+
 	fct.consensusCore.Chronology().AddSubround(subroundStartRound)
 
 	return nil

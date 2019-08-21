@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // maxLoadThresholdPercent specifies the max load percent accepted from txs storage size when generates new txs
@@ -25,12 +26,12 @@ const maxGoRoutinesSendMessage = 30
 
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
 // of transactions to be processed. It is mainly used for demo purposes
-func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTx uint64) error {
+func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTxs uint64) error {
 	if atomic.LoadInt32(&n.currentSendingGoRoutines) >= maxGoRoutinesSendMessage {
 		return ErrSystemBusyGeneratingTransactions
 	}
 
-	err := n.generateBulkTransactionsChecks(noOfTx)
+	err := n.generateBulkTransactionsChecks(noOfTxs)
 	if err != nil {
 		return err
 	}
@@ -42,26 +43,34 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 			return ErrNilTransactionPool
 		}
 
-		maxNoOfTx := int64(0)
 		txStorageSize := uint64(n.txStorageSize) * maxLoadThresholdPercent / 100
+		selfId := n.shardCoordinator.SelfId()
+		strCache := process.ShardCacherIdentifier(selfId, selfId)
+		txStore := txPool.ShardDataStore(strCache)
+		if txStore != nil {
+			noOfTxs = getMaxNoOfTxsToGenerate(txStore, txStorageSize, noOfTxs)
+		}
+
 		for i := uint32(0); i < n.shardCoordinator.NumberOfShards(); i++ {
-			strCache := process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), i)
-			txStore := txPool.ShardDataStore(strCache)
-			if txStore == nil {
+			if i == selfId {
 				continue
 			}
 
-			txStoreLen := uint64(txStore.Len())
-			if txStoreLen+noOfTx > txStorageSize {
-				maxNoOfTx = int64(txStorageSize) - int64(txStoreLen)
-				if int64(noOfTx) > maxNoOfTx {
-					if maxNoOfTx <= 0 {
-						return ErrTooManyTransactionsInPool
-					}
-
-					noOfTx = uint64(maxNoOfTx)
-				}
+			strCache = process.ShardCacherIdentifier(i, selfId)
+			txStore = txPool.ShardDataStore(strCache)
+			if txStore != nil {
+				noOfTxs = getMaxNoOfTxsToGenerate(txStore, txStorageSize, noOfTxs)
 			}
+
+			strCache = process.ShardCacherIdentifier(selfId, i)
+			txStore = txPool.ShardDataStore(strCache)
+			if txStore != nil {
+				noOfTxs = getMaxNoOfTxsToGenerate(txStore, txStorageSize, noOfTxs)
+			}
+		}
+
+		if noOfTxs == 0 {
+			return ErrTooManyTransactionsInPool
 		}
 	}
 
@@ -71,7 +80,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	wg := sync.WaitGroup{}
-	wg.Add(int(noOfTx))
+	wg.Add(int(noOfTxs))
 
 	mutTransactions := sync.RWMutex{}
 	transactions := make([][]byte, 0)
@@ -84,7 +93,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return err
 	}
 
-	for nonce := newNonce; nonce < newNonce+noOfTx; nonce++ {
+	for nonce := newNonce; nonce < newNonce+noOfTxs; nonce++ {
 		go func(crtNonce uint64) {
 			_, signedTxBuff, err := n.generateAndSignSingleTx(
 				crtNonce,
@@ -116,8 +125,8 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return errFound
 	}
 
-	if len(transactions) != int(noOfTx) {
-		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTx))
+	if len(transactions) != int(noOfTxs) {
+		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTxs))
 	}
 
 	//the topic identifier is made of the current shard id and sender's shard id
@@ -142,6 +151,25 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	return nil
+}
+
+func getMaxNoOfTxsToGenerate(
+	txStore storage.Cacher,
+	txStorageSize uint64,
+	noOfTxs uint64,
+) uint64 {
+
+	txStoreLen := uint64(txStore.Len())
+	if txStoreLen >= txStorageSize {
+		return 0
+	}
+
+	maxNoOfTxs := txStorageSize - txStoreLen
+	if maxNoOfTxs < noOfTxs {
+		return maxNoOfTxs
+	}
+
+	return noOfTxs
 }
 
 // GenerateAndSendBulkTransactionsOneByOne is a method for generating and propagating a set

@@ -86,6 +86,8 @@ const (
 	MaxTxsToRequest = 100
 )
 
+var log = logger.DefaultLogger()
+
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
 	NetMessenger p2p.Messenger
@@ -881,57 +883,57 @@ func createShardDataPoolFromConfig(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.PoolsHolder, error) {
 
-	fmt.Println("creatingShardDataPool from config")
+	log.Info("creatingShardDataPool from config")
 
 	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
-		fmt.Println("error creating txpool")
+		log.Info("error creating txpool")
 		return nil, err
 	}
 
 	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
-		fmt.Println("error creating smart contract result")
+		log.Info("error creating smart contract result")
 		return nil, err
 	}
 
 	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
 	hdrPool, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		fmt.Println("error creating hdrpool")
+		log.Info("error creating hdrpool")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaBlockBodyDataPool)
 	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		fmt.Println("error creating metaBlockBody")
+		log.Info("error creating metaBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.BlockHeaderNoncesDataPool)
 	hdrNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		fmt.Println("error creating hdrNoncesCacher")
+		log.Info("error creating hdrNoncesCacher")
 		return nil, err
 	}
 	hdrNonces, err := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
-		fmt.Println("error creating hdrNonces")
+		log.Info("error creating hdrNonces")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		fmt.Println("error creating txBlockBody")
+		log.Info("error creating txBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.PeerBlockBodyDataPool)
 	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		fmt.Println("error creating peerChangeBlockBody")
+		log.Info("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
@@ -953,31 +955,31 @@ func createMetaDataPoolFromConfig(
 	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
 	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		fmt.Println("error creating metaBlockBody")
+		log.Info("error creating metaBlockBody")
 		return nil, err
 	}
 
 	miniBlockHashes, err := shardedData.NewShardedData(getCacherFromConfig(config.MiniBlockHeaderHashesDataPool))
 	if err != nil {
-		fmt.Println("error creating miniBlockHashes")
+		log.Info("error creating miniBlockHashes")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.ShardHeadersDataPool)
 	shardHeaders, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		fmt.Println("error creating shardHeaders")
+		log.Info("error creating shardHeaders")
 		return nil, err
 	}
 
 	headersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		fmt.Println("error creating shard headers nonces pool")
+		log.Info("error creating shard headers nonces pool")
 		return nil, err
 	}
 	headersNonces, err := dataPool.NewNonceSyncMapCacher(headersNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
-		fmt.Println("error creating shard headers nonces pool")
+		log.Info("error creating shard headers nonces pool")
 		return nil, err
 	}
 
