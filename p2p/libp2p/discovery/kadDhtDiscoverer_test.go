@@ -29,7 +29,7 @@ func TestNewKadDhtPeerDiscoverer_ShouldSetValues(t *testing.T) {
 //------- Bootstrap
 
 func TestKadDhtPeerDiscoverer_BootstrapCalledWithoutContextAppliedShouldErr(t *testing.T) {
-	interval := time.Second * 1
+	interval := time.Second
 
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
 	err := kdd.Bootstrap()
@@ -38,7 +38,7 @@ func TestKadDhtPeerDiscoverer_BootstrapCalledWithoutContextAppliedShouldErr(t *t
 }
 
 func TestKadDhtPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
-	interval := time.Second * 1
+	interval := time.Second
 
 	h := createDummyHost()
 	ctx, _ := libp2p.NewLibp2pContext(context.Background(), h)
@@ -55,7 +55,7 @@ func TestKadDhtPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
 }
 
 func TestKadDhtPeerDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
-	interval := time.Second * 1
+	interval := time.Second
 
 	h := createDummyHost()
 	ctx, _ := libp2p.NewLibp2pContext(context.Background(), h)
@@ -76,7 +76,7 @@ func TestKadDhtPeerDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
 //------- connectToOnePeerFromInitialPeersList
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListNilListShouldRetWithChanFull(t *testing.T) {
-	interval := time.Second * 1
+	interval := time.Second
 
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
 	lctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
@@ -88,7 +88,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListNilListShouldR
 }
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListEmptyListShouldRetWithChanFull(t *testing.T) {
-	interval := time.Second * 1
+	interval := time.Second
 
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
 	lctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
@@ -100,7 +100,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListEmptyListShoul
 }
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryToConnect(t *testing.T) {
-	interval := time.Second * 1
+	interval := time.Second
 
 	peerID := "peer"
 
@@ -131,7 +131,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryTo
 }
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryToConnectContinously(t *testing.T) {
-	interval := time.Second * 1
+	interval := time.Second
 
 	peerID := "peer"
 	wasConnectCalled := int32(0)
@@ -170,7 +170,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryTo
 }
 
 func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShouldAlternate(t *testing.T) {
-	interval := time.Second * 1
+	interval := time.Second
 
 	peerID1 := "peer1"
 	peerID2 := "peer2"
@@ -223,7 +223,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShouldAlte
 //------- ApplyContext
 
 func TestKadDhtPeerDiscoverer_ApplyContextNilProviderShouldErr(t *testing.T) {
-	interval := time.Second * 1
+	interval := time.Second
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
 
 	err := kdd.ApplyContext(nil)
@@ -232,7 +232,7 @@ func TestKadDhtPeerDiscoverer_ApplyContextNilProviderShouldErr(t *testing.T) {
 }
 
 func TestKadDhtPeerDiscoverer_ApplyContextWrongProviderShouldErr(t *testing.T) {
-	interval := time.Second * 1
+	interval := time.Second
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
 
 	err := kdd.ApplyContext(&mock.ContextProviderMock{})
@@ -242,7 +242,7 @@ func TestKadDhtPeerDiscoverer_ApplyContextWrongProviderShouldErr(t *testing.T) {
 
 func TestKadDhtPeerDiscoverer_ApplyContextShouldWork(t *testing.T) {
 	ctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
-	interval := time.Second * 1
+	interval := time.Second
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
 
 	err := kdd.ApplyContext(ctx)

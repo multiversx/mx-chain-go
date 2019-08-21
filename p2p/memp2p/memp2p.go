@@ -358,9 +358,7 @@ func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P,
 		}
 	}
 
-	err := validator.ProcessReceivedMessage(message, handler)
-
-	return err
+	return validator.ProcessReceivedMessage(message, handler)
 }
 
 // Close disconnects this Messenger from the network it was connected to.

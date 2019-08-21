@@ -40,7 +40,7 @@ func TestNewMdnsDiscoverer_ShouldSetValues(t *testing.T) {
 
 func TestMdnsPeerDiscoverer_BootstrapCalledWithoutContextAppliedShouldErr(t *testing.T) {
 	serviceTag := "srvcTag"
-	interval := time.Second * 1
+	interval := time.Second
 
 	mdns := discovery.NewMdnsPeerDiscoverer(interval, serviceTag)
 	err := mdns.Bootstrap()
@@ -52,7 +52,7 @@ func TestMdnsPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
 	//TODO delete skip when mdns library is concurrent safe
 	t.Skip("mdns library is not concurrent safe (yet)")
 	serviceTag := "srvcTag"
-	interval := time.Second * 1
+	interval := time.Second
 
 	h := createDummyHost()
 	ctx, _ := libp2p2.NewLibp2pContext(context.Background(), h)
@@ -72,7 +72,7 @@ func TestMdnsPeerDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
 	//TODO delete skip when mdns library is concurrent safe
 	t.Skip("mdns library is not concurrent safe (yet)")
 	serviceTag := "srvcTag"
-	interval := time.Second * 1
+	interval := time.Second
 
 	h := createDummyHost()
 	ctx, _ := libp2p2.NewLibp2pContext(context.Background(), h)
@@ -93,7 +93,7 @@ func TestMdnsPeerDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
 //------- ApplyContext
 
 func TestMdnsPeerDiscoverer_ApplyContextNilProviderShouldErr(t *testing.T) {
-	mdns := discovery.NewMdnsPeerDiscoverer(time.Second*1, "srvcTag")
+	mdns := discovery.NewMdnsPeerDiscoverer(time.Second, "srvcTag")
 
 	err := mdns.ApplyContext(nil)
 
@@ -103,7 +103,7 @@ func TestMdnsPeerDiscoverer_ApplyContextNilProviderShouldErr(t *testing.T) {
 func TestMdnsPeerDiscoverer_ApplyContextWrongProviderShouldErr(t *testing.T) {
 	//TODO delete skip when mdns library is concurrent safe
 	t.Skip("mdns library is not concurrent safe (yet)")
-	mdns := discovery.NewMdnsPeerDiscoverer(time.Second*1, "srvcTag")
+	mdns := discovery.NewMdnsPeerDiscoverer(time.Second, "srvcTag")
 
 	err := mdns.ApplyContext(&mock.ContextProviderMock{})
 
@@ -114,7 +114,7 @@ func TestMdnsPeerDiscoverer_ApplyContextShouldWork(t *testing.T) {
 	//TODO delete skip when mdns library is concurrent safe
 	t.Skip("mdns library is not concurrent safe (yet)")
 	ctx, _ := libp2p2.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
-	mdns := discovery.NewMdnsPeerDiscoverer(time.Second*1, "srvcTag")
+	mdns := discovery.NewMdnsPeerDiscoverer(time.Second, "srvcTag")
 
 	err := mdns.ApplyContext(ctx)
 
@@ -148,7 +148,7 @@ func TestNetworkMessenger_HandlePeerFoundNotFoundShouldTryToConnect(t *testing.T
 	}
 
 	ctx, _ := libp2p2.NewLibp2pContext(context.Background(), mockHost)
-	mdns := discovery.NewMdnsPeerDiscoverer(time.Second*1, "srvcTag")
+	mdns := discovery.NewMdnsPeerDiscoverer(time.Second, "srvcTag")
 	_ = mdns.ApplyContext(ctx)
 
 	mdns.HandlePeerFound(newPeerInfo)
@@ -188,7 +188,7 @@ func TestNetworkMessenger_HandlePeerFoundPeerFoundShouldNotTryToConnect(t *testi
 	}
 
 	ctx, _ := libp2p2.NewLibp2pContext(context.Background(), mockHost)
-	mdns := discovery.NewMdnsPeerDiscoverer(time.Second*1, "srvcTag")
+	mdns := discovery.NewMdnsPeerDiscoverer(time.Second, "srvcTag")
 	_ = mdns.ApplyContext(ctx)
 
 	mdns.HandlePeerFound(newPeerInfo)

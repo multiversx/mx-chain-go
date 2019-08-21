@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -76,7 +77,7 @@ func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
 	return netw, mes1, mes2
 }
 
-func createMockNetworkOfN(numOfPeers int) (mocknet.Mocknet, []p2p.Messenger) {
+func createMockNetwork(numOfPeers int) (mocknet.Mocknet, []p2p.Messenger) {
 	netw := mocknet.New(context.Background())
 	peers := make([]p2p.Messenger, numOfPeers)
 
@@ -1213,12 +1214,13 @@ func TestLibp2pMessenger_SendDataThrottlerShouldReturnCorrectObject(t *testing.T
 
 func TestLibp2pMessenger_SendDirectShouldNotBroadcastIfMessageIsPartiallyInvalid(t *testing.T) {
 	numOfPeers := 4
-	_, peers := createMockNetworkOfN(numOfPeers)
+	_, peers := createMockNetwork(numOfPeers)
 	connectPeersFullMesh(peers)
 
 	broadcastMsgResolver := []byte("broadcast resolver msg")
 	directMsgResolver := []byte("resolver msg")
 	msgRequester := []byte("resolver msg is partially valid, mine is ok")
+	numResolverMessagesReceived := int32(0)
 	mesProcessorRequester := &mock.MessageProcessorStub{
 		ProcessMessageCalled: func(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
 			if !bytes.Equal(message.Data(), directMsgResolver) {
@@ -1226,6 +1228,7 @@ func TestLibp2pMessenger_SendDirectShouldNotBroadcastIfMessageIsPartiallyInvalid
 				return nil
 			}
 
+			atomic.AddInt32(&numResolverMessagesReceived, 1)
 			if broadcastHandler != nil {
 				broadcastHandler(msgRequester)
 			}
@@ -1268,6 +1271,7 @@ func TestLibp2pMessenger_SendDirectShouldNotBroadcastIfMessageIsPartiallyInvalid
 	_ = peers[idxResolver].SendToConnectedPeer(topic, directMsgResolver, peers[idxRequester].ID())
 
 	time.Sleep(time.Second * 2)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&numResolverMessagesReceived))
 }
 
 func TestLibp2pMessenger_SendDirectWithMockNetToConnectedPeerShouldWork(t *testing.T) {
