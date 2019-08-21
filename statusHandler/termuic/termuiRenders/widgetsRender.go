@@ -64,16 +64,16 @@ func (wr *WidgetsRender) setGrid() {
 	gridLeft := ui.NewGrid()
 
 	gridLeft.Set(
-		ui.NewRow(5.0/11, wr.instanceInfo),
-		ui.NewRow(6.0/11, wr.chainInfo))
+		ui.NewRow(10.0/22, wr.instanceInfo),
+		ui.NewRow(12.0/22, wr.chainInfo))
 
 	gridRight := ui.NewGrid()
 	gridRight.Set(
-		ui.NewRow(5.0/11, wr.blockInfo),
-		ui.NewRow(1.5/11, wr.cpuLoad),
-		ui.NewRow(1.5/11, wr.memoryLoad),
-		ui.NewRow(1.5/11, wr.networkRecv),
-		ui.NewRow(1.5/11, wr.networkSent))
+		ui.NewRow(10.0/22, wr.blockInfo),
+		ui.NewRow(3.0/22, wr.cpuLoad),
+		ui.NewRow(3.0/22, wr.memoryLoad),
+		ui.NewRow(3.0/22, wr.networkRecv),
+		ui.NewRow(3.0/22, wr.networkSent))
 
 	gridBottom := ui.NewGrid()
 	gridBottom.Set(ui.NewRow(1.0, wr.lLog))
@@ -196,23 +196,19 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	numRows := 7
 	rows := make([][]string, numRows)
 
-	currentBlockHeight := wr.getFromCacheAsUint64(core.MetricSynchronizedRound)
-	//currentBlockHeight is equals with MetricSynchronizedRound + 1
-	currentBlockHeight++
+	currentBlockHeight := wr.getFromCacheAsUint64(core.MetricNonce)
 	rows[0] = []string{fmt.Sprintf("Current block height: %v", currentBlockHeight)}
 
 	numTransactionInBlock := wr.getFromCacheAsUint64(core.MetricNumTxInBlock)
-	rows[1] = []string{fmt.Sprintf("Nr Transactions in block: %v", numTransactionInBlock)}
+	rows[1] = []string{fmt.Sprintf("Num transactions in block: %v", numTransactionInBlock)}
 
 	numMiniBlocks := wr.getFromCacheAsUint64(core.MetricNumMiniBlocks)
-	rows[2] = []string{fmt.Sprintf("Nr Miniblocks in block: %v", numMiniBlocks)}
+	rows[2] = []string{fmt.Sprintf("Num miniblocks in block: %v", numMiniBlocks)}
 
 	rows[3] = make([]string, 0)
 
-	//Check if node is in metachain
-	//Is in metachain -> display all shards nonce
-	//Is not in metachain -> display metachain nonce
-	rows[4] = []string{fmt.Sprintf("Cross check block height: ")}
+	crossCheckBlockHeight := wr.getFromCacheAsString(core.MetricCrossCheckBlockHeight)
+	rows[4] = []string{fmt.Sprintf("Cross check block height: %v", crossCheckBlockHeight)}
 
 	consensusState := wr.getFromCacheAsString(core.MetricConsensusState)
 	rows[5] = []string{fmt.Sprintf("Consensus state: %v", consensusState)}

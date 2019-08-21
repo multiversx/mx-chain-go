@@ -119,3 +119,6 @@ const MetricNumMiniBlocks = "erd_num_mini_blocks"
 
 // MetricConsensusRoundState is the metric for consensus round state for a block
 const MetricConsensusRoundState = "erd_consensus_round_state"
+
+// MetricCrossCheckBlockHeight is the metric that store cross block height
+const MetricCrossCheckBlockHeight = "erd_metric_cross_check_block_height"

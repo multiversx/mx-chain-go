@@ -538,6 +538,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, 0)
 	coreComponents.StatusHandler.SetStringValue(core.MetricConsensusState, "")
 	coreComponents.StatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
+	coreComponents.StatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "")
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -807,6 +808,7 @@ func dummyDataInNewMetrics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 		appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, rand.Uint64())
 		appStatusHandler.SetStringValue(core.MetricConsensusState, "dummy")
 		appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "dummy")
+		appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "dummy")
 	})
 }
 
