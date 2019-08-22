@@ -31,21 +31,6 @@ func CreateTestWalletAccount(coordinator sharding.Coordinator, shardId uint32) *
 	return testWalletAccount
 }
 
-// CreateTestWalletAccount creates an wallett account in a selected shard
-func CreateTestWalletAccountWithSkPk(sk crypto.PrivateKey, pk crypto.PublicKey, keyGen crypto.KeyGenerator) *TestWalletAccount {
-	testWalletAccount := &TestWalletAccount{}
-
-	testWalletAccount.SingleSigner = &singlesig.SchnorrSigner{}
-
-	testWalletAccount.SkTxSign = sk
-	testWalletAccount.PkTxSign = pk
-	testWalletAccount.PkTxSignBytes, _ = pk.ToByteArray()
-	testWalletAccount.KeygenTxSign = keyGen
-	testWalletAccount.Address, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(testWalletAccount.PkTxSignBytes)
-
-	return testWalletAccount
-}
-
 // initCrypto initializes the crypto for the account
 func (twa *TestWalletAccount) initCrypto(coordinator sharding.Coordinator, shardId uint32) {
 	twa.SingleSigner = &singlesig.SchnorrSigner{}
