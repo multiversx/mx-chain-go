@@ -92,6 +92,31 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 	assert.Equal(t, 2, len(hbStatus))
 }
 
+func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
+	t.Parallel()
+
+	pksPerShards := map[uint32][]string{
+		0: {"pk0"},
+		1: {"pk1"},
+	}
+
+	maxDuration := time.Millisecond
+	mon, err := heartbeat.NewMonitor(
+		&mock.SinglesignMock{},
+		&mock.KeyGenMock{},
+		&mock.MarshalizerMock{},
+		maxDuration,
+		pksPerShards,
+	)
+
+	assert.NotNil(t, mon)
+	assert.Nil(t, err)
+	hbStatus := mon.GetHeartbeats()
+
+	assert.Equal(t, uint32(0), hbStatus[0].ComputedShardID)
+	assert.Equal(t, uint32(1), hbStatus[1].ComputedShardID)
+}
+
 //------- ProcessReceivedMessage
 
 func TestMonitor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
@@ -325,7 +350,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 
 	hbStatus := mon.GetHeartbeats()
 
-	assert.Equal(t, uint32(0), hbStatus[0].ShardID)
+	assert.Equal(t, uint32(0), hbStatus[0].ReceivedShardID)
 
 	// now we send a new heartbeat which will contain a new shard id
 	hb = &heartbeat.Heartbeat{
@@ -344,15 +369,15 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 	hbStatus = mon.GetHeartbeats()
 
 	// check if shard ID is changed at the same status
-	assert.Equal(t, uint32(1), hbStatus[0].ShardID)
+	assert.Equal(t, uint32(1), hbStatus[0].ReceivedShardID)
 	assert.Equal(t, 1, len(hbStatus))
 }
 
 func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	t.Parallel()
 
-	pubKey1 := "pk1"
-	pubKey2 := "pk2"
+	pubKey1 := "pk1-should-stay-online"
+	pubKey2 := "pk2-should-go-offline"
 
 	mon, _ := heartbeat.NewMonitor(
 		&mock.SinglesignStub{
