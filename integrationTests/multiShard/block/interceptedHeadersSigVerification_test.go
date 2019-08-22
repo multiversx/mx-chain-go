@@ -11,13 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const broadcastDelay = 2* time.Second
+
 func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	nodesPerShard := 7
-	nbMetaNodes := 7
+	nodesPerShard := 4
+	nbMetaNodes := 4
 	nbShards := 1
 	consensusGroupSize := 3
 
@@ -60,7 +62,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 
 	nodesMap[0][0].BroadcastBlock(body, header)
 
-	time.Sleep(time.Second)
+	time.Sleep(broadcastDelay)
 
 	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(header)
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
@@ -80,13 +82,13 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	}
 }
 
-func TestInterceptedMetaBlockAreVerifiedWithCorrectConsensusGroup(t *testing.T) {
+func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	nodesPerShard := 7
-	nbMetaNodes := 7
+	nodesPerShard := 4
+	nbMetaNodes := 4
 	nbShards := 1
 	consensusGroupSize := 3
 
@@ -133,11 +135,9 @@ func TestInterceptedMetaBlockAreVerifiedWithCorrectConsensusGroup(t *testing.T) 
 		randomness,
 	)
 
-	// change the round so that signature becomes invalid
-	header.SetRound(2)
 	nodesMap[sharding.MetachainShardId][0].BroadcastBlock(body, header)
 
-	time.Sleep(time.Second)
+	time.Sleep(broadcastDelay)
 
 	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(header)
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))

@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"math/big"
 	"strings"
 	"sync"
@@ -32,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -673,7 +673,7 @@ func CreateNodes(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID)
-		idx := i + numOfShards*nodesPerShard
+		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}
 
@@ -1153,7 +1153,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 			kp.Sk, kp.Pk = keyGen.GeneratePair()
 			keyPairs[n] = kp
 		}
-		keysMap[uint32(shardId)] = keyPairs
+		keysMap[shardId] = keyPairs
 	}
 
 	keyPairs = make([]*TestKeyPair, nbMetaNodes)
