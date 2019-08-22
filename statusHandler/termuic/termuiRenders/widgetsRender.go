@@ -20,6 +20,7 @@ type WidgetsRender struct {
 	lLog         *widgets.List
 	instanceInfo *widgets.Table
 	chainInfo    *widgets.Table
+	blockInfo    *widgets.Table
 
 	cpuLoad     *widgets.Gauge
 	memoryLoad  *widgets.Gauge
@@ -48,6 +49,9 @@ func (wr *WidgetsRender) initWidgets() {
 	wr.chainInfo = widgets.NewTable()
 	wr.chainInfo.Rows = [][]string{{"", "", "", ""}}
 
+	wr.blockInfo = widgets.NewTable()
+	wr.blockInfo.Rows = [][]string{{"", "", ""}}
+
 	wr.cpuLoad = widgets.NewGauge()
 	wr.memoryLoad = widgets.NewGauge()
 	wr.networkRecv = widgets.NewGauge()
@@ -64,10 +68,12 @@ func (wr *WidgetsRender) setGrid() {
 		ui.NewRow(12.0/22, wr.chainInfo))
 
 	gridRight := ui.NewGrid()
-	gridRight.Set(ui.NewRow(1.0/4, wr.cpuLoad),
-		ui.NewRow(1.0/4, wr.memoryLoad),
-		ui.NewRow(1.0/4, wr.networkRecv),
-		ui.NewRow(1.0/4, wr.networkSent))
+	gridRight.Set(
+		ui.NewRow(10.0/22, wr.blockInfo),
+		ui.NewRow(3.0/22, wr.cpuLoad),
+		ui.NewRow(3.0/22, wr.memoryLoad),
+		ui.NewRow(3.0/22, wr.networkRecv),
+		ui.NewRow(3.0/22, wr.networkSent))
 
 	gridBottom := ui.NewGrid()
 	gridBottom.Set(ui.NewRow(1.0, wr.lLog))
@@ -81,6 +87,7 @@ func (wr *WidgetsRender) setGrid() {
 func (wr *WidgetsRender) RefreshData(logLines []string) {
 	wr.prepareInstanceInfo()
 	wr.prepareChainInfo()
+	wr.prepareBlockInfo()
 	wr.prepareListWithLogsForDisplay(logLines)
 	wr.prepareLoads()
 }
@@ -184,6 +191,36 @@ func (wr *WidgetsRender) prepareChainInfo() {
 	wr.chainInfo.Rows = rows
 }
 
+func (wr *WidgetsRender) prepareBlockInfo() {
+	//7 rows and one column
+	numRows := 7
+	rows := make([][]string, numRows)
+
+	currentBlockHeight := wr.getFromCacheAsUint64(core.MetricNonce)
+	rows[0] = []string{fmt.Sprintf("Current block height: %v", currentBlockHeight)}
+
+	numTransactionInBlock := wr.getFromCacheAsUint64(core.MetricNumTxInBlock)
+	rows[1] = []string{fmt.Sprintf("Num transactions in block: %v", numTransactionInBlock)}
+
+	numMiniBlocks := wr.getFromCacheAsUint64(core.MetricNumMiniBlocks)
+	rows[2] = []string{fmt.Sprintf("Num miniblocks in block: %v", numMiniBlocks)}
+
+	rows[3] = make([]string, 0)
+
+	crossCheckBlockHeight := wr.getFromCacheAsString(core.MetricCrossCheckBlockHeight)
+	rows[4] = []string{fmt.Sprintf("Cross check block height: %v", crossCheckBlockHeight)}
+
+	consensusState := wr.getFromCacheAsString(core.MetricConsensusState)
+	rows[5] = []string{fmt.Sprintf("Consensus state: %v", consensusState)}
+
+	consensusRoundState := wr.getFromCacheAsString(core.MetricConsensusRoundState)
+	rows[6] = []string{fmt.Sprintf("Consensus round state: %v", consensusRoundState)}
+
+	wr.blockInfo.Title = "Block info"
+	wr.blockInfo.RowSeparator = false
+	wr.blockInfo.Rows = rows
+}
+
 func (wr *WidgetsRender) prepareListWithLogsForDisplay(logData []string) {
 	wr.lLog.Title = "Log info"
 	wr.lLog.TextStyle = ui.NewStyle(ui.ColorWhite)
@@ -191,7 +228,6 @@ func (wr *WidgetsRender) prepareListWithLogsForDisplay(logData []string) {
 	wr.lLog.WrapText = true
 }
 
-//TODO duplicate code next pull request refactor
 func (wr *WidgetsRender) prepareLogLines(logData []string, size int) []string {
 	logDataLen := len(logData)
 	if logDataLen > size {
