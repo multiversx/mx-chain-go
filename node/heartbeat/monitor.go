@@ -25,7 +25,8 @@ type Monitor struct {
 	marshalizer                 marshal.Marshalizer
 	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutHeartbeatMessages        sync.RWMutex
-	mutShardIdComputation       sync.RWMutex
+	pubKeysMap                  map[uint32][]string
+	mutPubKeysMap               sync.RWMutex
 	appStatusHandler            core.AppStatusHandler
 }
 
@@ -51,6 +52,8 @@ func NewMonitor(
 		return nil, ErrEmptyPublicKeysMap
 	}
 
+	pubKeysMapCopy := make(map[uint32][]string, 0)
+
 	mon := &Monitor{
 		singleSigner:                singleSigner,
 		keygen:                      keygen,
@@ -62,6 +65,7 @@ func NewMonitor(
 
 	for shardId, pubKeys := range pubKeysMap {
 		for _, pubkey := range pubKeys {
+			pubKeysMapCopy[shardId] = append(pubKeysMapCopy[shardId], pubkey)
 			mhbi, err := newHeartbeatMessageInfo(maxDurationPeerUnresponsive, true)
 			if err != nil {
 				return nil, err
@@ -71,7 +75,7 @@ func NewMonitor(
 			mon.heartbeatMessages[pubkey] = mhbi
 		}
 	}
-
+	mon.pubKeysMap = pubKeysMapCopy
 	return mon, nil
 }
 
@@ -132,9 +136,18 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 func (m *Monitor) computeShardID(pubkey string) uint32 {
 	// TODO : the shard ID will be recomputed at the end of an epoch / beginning of a new one.
-	//  For the moment, just return the initial computed shard ID
-	m.mutShardIdComputation.RLock()
-	defer m.mutShardIdComputation.RUnlock()
+	//  For the moment, just find the shard ID from a copy of the initial pub keys map
+	m.mutPubKeysMap.RLock()
+	defer m.mutPubKeysMap.RUnlock()
+	for shardID, pubKeysSlice := range m.pubKeysMap {
+		for _, pKey := range pubKeysSlice {
+			if pKey == pubkey {
+				return shardID
+			}
+		}
+	}
+
+	// if not found, return the latest known computed shard ID
 	return m.heartbeatMessages[pubkey].computedShardID
 }
 

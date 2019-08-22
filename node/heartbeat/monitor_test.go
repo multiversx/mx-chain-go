@@ -100,7 +100,7 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 		1: {"pk1"},
 	}
 
-	maxDuration := 1 * time.Millisecond
+	maxDuration := time.Millisecond
 	mon, err := heartbeat.NewMonitor(
 		&mock.SinglesignMock{},
 		&mock.KeyGenMock{},
