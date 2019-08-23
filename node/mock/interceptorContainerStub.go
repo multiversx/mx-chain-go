@@ -30,3 +30,11 @@ func (ics *InterceptorsContainerStub) Remove(key string) {
 func (ics *InterceptorsContainerStub) Len() int {
 	panic("implement me")
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ics *InterceptorsContainerStub) IsInterfaceNil() bool {
+	if ics == nil {
+		return true
+	}
+	return false
+}

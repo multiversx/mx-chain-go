@@ -176,3 +176,11 @@ func (ihgs *indexHashedGroupSelector) SetConsensusGroupSize(consensusGroupSize i
 	ihgs.consensusGroupSize = consensusGroupSize
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ihgs *indexHashedGroupSelector) IsInterfaceNil() bool {
+	if ihgs == nil {
+		return true
+	}
+	return false
+}

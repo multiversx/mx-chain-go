@@ -48,7 +48,7 @@ func NewMetaAccount(addressContainer AddressContainer, tracker AccountTracker) (
 	}, nil
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (a *MetaAccount) IsInterfaceNil() bool {
 	if a == nil {
 		return true

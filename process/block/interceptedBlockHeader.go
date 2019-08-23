@@ -142,9 +142,9 @@ func (inHdr *InterceptedHeader) validateTxBlock() error {
 	return nil
 }
 
-// IsInterfaceNil return if there is no value under the interface
-func (mb *InterceptedHeader) IsInterfaceNil() bool {
-	if mb == nil {
+// IsInterfaceNil returns true if there is no value under the interface
+func (inHdr *InterceptedHeader) IsInterfaceNil() bool {
+	if inHdr == nil {
 		return true
 	}
 	return false

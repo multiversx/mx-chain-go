@@ -176,3 +176,11 @@ func (scm *shardChainMessenger) BroadcastTransactions(transactions map[string][]
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (scm *shardChainMessenger) IsInterfaceNil() bool {
+	if scm == nil {
+		return true
+	}
+	return false
+}

@@ -148,3 +148,11 @@ func (hi *HeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHead
 	syncMap.Store(hdrIntercepted.ShardId, hdrIntercepted.Hash())
 	hi.headersNonces.Merge(hdrIntercepted.Nonce, syncMap)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hi *HeaderInterceptor) IsInterfaceNil() bool {
+	if hi == nil {
+		return true
+	}
+	return false
+}

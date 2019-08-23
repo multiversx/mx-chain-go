@@ -296,3 +296,11 @@ func (wr *WidgetsRender) getFromCacheAsString(metric string) string {
 
 func (wr *WidgetsRender) getNetworkRecvStats() {
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (wr *WidgetsRender) IsInterfaceNil() bool {
+	if wr == nil {
+		return true
+	}
+	return false
+}

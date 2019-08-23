@@ -32,3 +32,11 @@ func (k Keccak) EmptyHash() []byte {
 func (Keccak) Size() int {
 	return sha3.NewLegacyKeccak256().Size()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (k Keccak) IsInterfaceNil() bool {
+	if &k == nil {
+		return true
+	}
+	return false
+}

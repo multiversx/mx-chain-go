@@ -122,3 +122,11 @@ func (mpd *MdnsPeerDiscoverer) HandlePeerFound(pi peer.AddrInfo) {
 		}
 	}()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mpd *MdnsPeerDiscoverer) IsInterfaceNil() bool {
+	if mpd == nil {
+		return true
+	}
+	return false
+}

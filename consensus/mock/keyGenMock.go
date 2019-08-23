@@ -45,6 +45,14 @@ func (privKey *PrivateKeyMock) Scalar() crypto.Scalar {
 	return privKey.ScalarMock()
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (privKey *PrivateKeyMock) IsInterfaceNil() bool {
+	if privKey == nil {
+		return true
+	}
+	return false
+}
+
 // ToByteArray mocks converting a public key to a byte array
 func (pubKey *PublicKeyMock) ToByteArray() ([]byte, error) {
 	return []byte("publicKeyMock"), nil
@@ -56,6 +64,14 @@ func (pubKey *PublicKeyMock) Suite() crypto.Suite {
 
 func (pubKey *PublicKeyMock) Point() crypto.Point {
 	return pubKey.PointMock()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pubKey *PublicKeyMock) IsInterfaceNil() bool {
+	if pubKey == nil {
+		return true
+	}
+	return false
 }
 
 // GeneratePair generates a pair of private and public keys
@@ -75,4 +91,12 @@ func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, er
 
 func (keyGen *KeyGenMock) Suite() crypto.Suite {
 	return keyGen.SuiteMock()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (keyGen *KeyGenMock) IsInterfaceNil() bool {
+	if keyGen == nil {
+		return true
+	}
+	return false
 }

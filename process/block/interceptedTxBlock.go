@@ -83,3 +83,11 @@ func (inTxBlkBdy *InterceptedTxBlockBody) validityCheck() error {
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (inTxBlkBdy *InterceptedTxBlockBody) IsInterfaceNil() bool {
+	if inTxBlkBdy == nil {
+		return true
+	}
+	return false
+}

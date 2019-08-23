@@ -215,3 +215,11 @@ func (sc *kyberScalar) MarshalBinary() ([]byte, error) {
 func (sc *kyberScalar) UnmarshalBinary(s []byte) error {
 	return sc.Scalar.UnmarshalBinary(s)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sc *kyberScalar) IsInterfaceNil() bool {
+	if sc == nil {
+		return true
+	}
+	return false
+}

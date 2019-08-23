@@ -99,6 +99,14 @@ func (b *Bloom) Clear() {
 	}
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (b *Bloom) IsInterfaceNil() bool {
+	if b == nil {
+		return true
+	}
+	return false
+}
+
 // getBytePositionAndBitMask takes the index of a bit and returns the position of the byte in the filter
 // that contains that index and the value of that byte with the bit set to 1.
 func getBytePositionAndBitMask(index uint64) (pos uint64, val byte) {

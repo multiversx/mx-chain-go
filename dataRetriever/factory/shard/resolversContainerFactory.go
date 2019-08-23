@@ -515,3 +515,11 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 
 	return []string{identifierHdr}, []dataRetriever.Resolver{resolver}, nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
+	if rcf == nil {
+		return true
+	}
+	return false
+}

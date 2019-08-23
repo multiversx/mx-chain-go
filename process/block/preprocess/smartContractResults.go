@@ -441,3 +441,11 @@ func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.Transact
 
 	return scrPool
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (scr *smartContractResults) IsInterfaceNil() bool {
+	if scr == nil {
+		return true
+	}
+	return false
+}

@@ -361,3 +361,11 @@ func (messenger *Messenger) Close() error {
 	messenger.Network.UnregisterPeer(messenger.ID())
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (messenger *Messenger) IsInterfaceNil() bool {
+	if messenger == nil {
+		return true
+	}
+	return false
+}

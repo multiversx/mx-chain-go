@@ -31,3 +31,11 @@ func (coordinator *CoordinatorStub) SameShard(firstAddress, secondAddress state.
 func (coordinator *CoordinatorStub) CommunicationIdentifier(destShardID uint32) string {
 	return coordinator.CommunicationIdentifierCalled(destShardID)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (coordinator *CoordinatorStub) IsInterfaceNil() bool {
+	if coordinator == nil {
+		return true
+	}
+	return false
+}

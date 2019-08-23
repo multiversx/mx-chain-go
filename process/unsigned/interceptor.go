@@ -149,3 +149,11 @@ func (utxi *UnsignedTxInterceptor) processUnsignedTransaction(uTx *InterceptedUn
 		cacherIdentifier,
 	)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (utxi *UnsignedTxInterceptor) IsInterfaceNil() bool {
+	if utxi == nil {
+		return true
+	}
+	return false
+}

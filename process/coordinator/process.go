@@ -724,3 +724,11 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 
 	return errFound
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tc *transactionCoordinator) IsInterfaceNil() bool {
+	if tc == nil {
+		return true
+	}
+	return false
+}

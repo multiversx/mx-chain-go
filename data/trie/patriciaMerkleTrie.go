@@ -286,6 +286,14 @@ func (tr *patriciaMerkleTrie) String() string {
 	return writer.String()
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
+	if tr == nil {
+		return true
+	}
+	return false
+}
+
 func emptyTrie(root []byte) bool {
 	if bytes.Equal(root, make([]byte, 0)) {
 		return true
@@ -293,6 +301,5 @@ func emptyTrie(root []byte) bool {
 	if bytes.Equal(root, emptyTrieHash) {
 		return true
 	}
-
 	return false
 }

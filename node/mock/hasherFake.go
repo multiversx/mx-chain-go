@@ -27,3 +27,11 @@ func (sha HasherFake) EmptyHash() []byte {
 func (HasherFake) Size() int {
 	return sha256.Size
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sha *HasherFake) IsInterfaceNil() bool {
+	if sha == nil {
+		return true
+	}
+	return false
+}

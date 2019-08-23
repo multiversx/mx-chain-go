@@ -122,3 +122,11 @@ func (mhi *MetachainHeaderInterceptor) processMetaHeader(metaHdrIntercepted *blo
 	syncMap.Store(sharding.MetachainShardId, metaHdrIntercepted.Hash())
 	mhi.metachainHeadersNonces.Merge(metaHdrIntercepted.Nonce, syncMap)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mhi *MetachainHeaderInterceptor) IsInterfaceNil() bool {
+	if mhi == nil {
+		return true
+	}
+	return false
+}

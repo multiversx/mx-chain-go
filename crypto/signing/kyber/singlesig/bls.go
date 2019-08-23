@@ -7,7 +7,7 @@ import (
 	"go.dedis.ch/kyber/v3/sign/bls"
 )
 
-// RandomnessSingleSigner is a SingleSigner implementation that uses a BLS signature scheme
+// BlsSingleSigner is a SingleSigner implementation that uses a BLS signature scheme
 type BlsSingleSigner struct {
 }
 
@@ -79,4 +79,12 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 	}
 
 	return bls.Verify(kSuite, kPoint, msg, sig)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *BlsSingleSigner) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
 }

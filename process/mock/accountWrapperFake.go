@@ -99,6 +99,5 @@ func (awm *AccountWrapMock) IsInterfaceNil() bool {
 	if awm == nil {
 		return true
 	}
-
 	return false
 }
