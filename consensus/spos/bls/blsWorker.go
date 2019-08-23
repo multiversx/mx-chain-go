@@ -71,6 +71,5 @@ func (wrk *worker) IsInterfaceNil() bool {
 	if wrk == nil {
 		return true
 	}
-
 	return false
 }

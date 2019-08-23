@@ -20,6 +20,5 @@ func (adr *AddressMock) IsInterfaceNil() bool {
 	if adr == nil {
 		return true
 	}
-
 	return false
 }

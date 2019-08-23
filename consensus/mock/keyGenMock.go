@@ -50,7 +50,6 @@ func (privKey *PrivateKeyMock) IsInterfaceNil() bool {
 	if privKey == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -72,7 +71,6 @@ func (pubKey *PublicKeyMock) IsInterfaceNil() bool {
 	if pubKey == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -100,6 +98,5 @@ func (keyGen *KeyGenMock) IsInterfaceNil() bool {
 	if keyGen == nil {
 		return true
 	}
-
 	return false
 }

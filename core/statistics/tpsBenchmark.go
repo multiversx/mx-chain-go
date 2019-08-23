@@ -245,7 +245,6 @@ func (s *TpsBenchmark) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -294,6 +293,5 @@ func (ss *ShardStatistics) IsInterfaceNil() bool {
 	if ss == nil {
 		return true
 	}
-
 	return false
 }

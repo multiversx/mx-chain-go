@@ -22,6 +22,5 @@ func (rs *ResolverStub) IsInterfaceNil() bool {
 	if rs == nil {
 		return true
 	}
-
 	return false
 }

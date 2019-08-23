@@ -463,7 +463,6 @@ func (ei *elasticIndexer) IsInterfaceNil() bool {
 	if ei == nil {
 		return true
 	}
-
 	return false
 }
 

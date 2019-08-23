@@ -86,6 +86,5 @@ func (phf *PoolsHolderFake) IsInterfaceNil() bool {
 	if phf == nil {
 		return true
 	}
-
 	return false
 }

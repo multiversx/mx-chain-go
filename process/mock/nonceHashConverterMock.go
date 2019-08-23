@@ -37,6 +37,5 @@ func (nhcm *nonceHashConverterMock) IsInterfaceNil() bool {
 	if nhcm == nil {
 		return true
 	}
-
 	return false
 }

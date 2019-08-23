@@ -311,7 +311,6 @@ func (wr *wrongBody) IsInterfaceNil() bool {
 	if wr == nil {
 		return true
 	}
-
 	return false
 }
 

@@ -43,6 +43,5 @@ func (rndm *RounderMock) IsInterfaceNil() bool {
 	if rndm == nil {
 		return true
 	}
-
 	return false
 }

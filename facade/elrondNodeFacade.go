@@ -249,6 +249,5 @@ func (ef *ElrondNodeFacade) IsInterfaceNil() bool {
 	if ef == nil {
 		return true
 	}
-
 	return false
 }

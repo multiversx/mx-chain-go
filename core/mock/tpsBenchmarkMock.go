@@ -133,6 +133,5 @@ func (s *TpsBenchmarkMock) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }

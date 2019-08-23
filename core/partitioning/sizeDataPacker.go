@@ -94,6 +94,5 @@ func (sdp *SizeDataPacker) IsInterfaceNil() bool {
 	if sdp == nil {
 		return true
 	}
-
 	return false
 }

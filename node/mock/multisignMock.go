@@ -72,6 +72,5 @@ func (mm *MultisignMock) IsInterfaceNil() bool {
 	if mm == nil {
 		return true
 	}
-
 	return false
 }

@@ -152,6 +152,5 @@ func (bc *BlockChainMock) IsInterfaceNil() bool {
 	if bc == nil {
 		return true
 	}
-
 	return false
 }

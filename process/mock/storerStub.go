@@ -43,6 +43,5 @@ func (ss *StorerStub) IsInterfaceNil() bool {
 	if ss == nil {
 		return true
 	}
-
 	return false
 }

@@ -24,6 +24,5 @@ func (csir *ConcurrentSafeIntRandomizer) IsInterfaceNil() bool {
 	if csir == nil {
 		return true
 	}
-
 	return false
 }

@@ -144,6 +144,5 @@ func (aam *AccountsStub) IsInterfaceNil() bool {
 	if aam == nil {
 		return true
 	}
-
 	return false
 }

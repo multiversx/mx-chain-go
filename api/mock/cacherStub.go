@@ -63,6 +63,5 @@ func (cs *CacherStub) IsInterfaceNil() bool {
 	if cs == nil {
 		return true
 	}
-
 	return false
 }

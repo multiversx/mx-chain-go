@@ -37,7 +37,6 @@ func (sskgm *SingleSignKeyGenMock) IsInterfaceNil() bool {
 	if sskgm == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -60,6 +59,5 @@ func (sspk *SingleSignPublicKey) IsInterfaceNil() bool {
 	if sspk == nil {
 		return true
 	}
-
 	return false
 }

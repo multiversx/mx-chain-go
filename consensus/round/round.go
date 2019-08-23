@@ -74,6 +74,5 @@ func (rnd *round) IsInterfaceNil() bool {
 	if rnd == nil {
 		return true
 	}
-
 	return false
 }

@@ -142,6 +142,5 @@ func (cdc *ConsensusCoreMock) IsInterfaceNil() bool {
 	if cdc == nil {
 		return true
 	}
-
 	return false
 }

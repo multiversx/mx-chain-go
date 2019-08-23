@@ -62,6 +62,5 @@ func (sposWorkerMock *SposWorkerMock) IsInterfaceNil() bool {
 	if sposWorkerMock == nil {
 		return true
 	}
-
 	return false
 }

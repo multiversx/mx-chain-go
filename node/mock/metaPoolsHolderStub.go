@@ -33,6 +33,5 @@ func (mphs *MetaPoolsHolderStub) IsInterfaceNil() bool {
 	if mphs == nil {
 		return true
 	}
-
 	return false
 }

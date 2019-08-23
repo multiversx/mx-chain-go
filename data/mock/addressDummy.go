@@ -25,6 +25,5 @@ func (ad *AddressDummy) IsInterfaceNil() bool {
 	if ad == nil {
 		return true
 	}
-
 	return false
 }

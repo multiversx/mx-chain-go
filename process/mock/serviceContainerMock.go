@@ -32,6 +32,5 @@ func (scm *ServiceContainerMock) IsInterfaceNil() bool {
 	if scm == nil {
 		return true
 	}
-
 	return false
 }
