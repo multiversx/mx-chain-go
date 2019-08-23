@@ -44,7 +44,6 @@ func (sspk *PublicKeyMock) IsInterfaceNil() bool {
 	if sspk == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -71,7 +70,6 @@ func (sk *PrivateKeyStub) IsInterfaceNil() bool {
 	if sk == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -98,6 +96,5 @@ func (keyGen *KeyGenMock) IsInterfaceNil() bool {
 	if keyGen == nil {
 		return true
 	}
-
 	return false
 }

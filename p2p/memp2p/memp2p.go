@@ -362,7 +362,7 @@ func (messenger *Messenger) Close() error {
 	return nil
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (messenger *Messenger) IsInterfaceNil() bool {
 	if messenger == nil {
 		return true

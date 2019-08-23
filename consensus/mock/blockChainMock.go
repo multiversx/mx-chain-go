@@ -147,7 +147,7 @@ func (bc *BlockChainMock) PutBadBlock(blockHash []byte) {
 	}
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (bc *BlockChainMock) IsInterfaceNil() bool {
 	if bc == nil {
 		return true

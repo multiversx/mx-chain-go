@@ -517,16 +517,14 @@ func (b Body) IsInterfaceNil() bool {
 	if b == nil {
 		return true
 	}
-
 	return false
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (h *Header) IsInterfaceNil() bool {
 	if h == nil {
 		return true
 	}
-
 	return false
 }
 

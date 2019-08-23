@@ -40,7 +40,7 @@ func (dtts *DataTrieTrackerStub) DataTrie() data.Trie {
 	return dtts.DataTrieCalled()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (dtts *DataTrieTrackerStub) IsInterfaceNil() bool {
 	if dtts == nil {
 		return true

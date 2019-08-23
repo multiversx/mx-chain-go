@@ -286,7 +286,7 @@ func (tr *patriciaMerkleTrie) String() string {
 	return writer.String()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 	if tr == nil {
 		return true

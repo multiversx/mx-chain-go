@@ -8,7 +8,7 @@ func (ars *ApiResolverStub) GetVmValue(address string, funcName string, argsBuff
 	return ars.GetVmValueHandler(address, funcName, argsBuff...)
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (ars *ApiResolverStub) IsInterfaceNil() bool {
 	if ars == nil {
 		return true

@@ -85,7 +85,6 @@ func (kg *keyGenerator) IsInterfaceNil() bool {
 	if kg == nil {
 		return true
 	}
-
 	return false
 }
 

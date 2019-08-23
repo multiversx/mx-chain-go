@@ -158,6 +158,5 @@ func (s *syncTime) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }

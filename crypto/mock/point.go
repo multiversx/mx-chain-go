@@ -118,6 +118,5 @@ func (po *PointMock) IsInterfaceNil() bool {
 	if po == nil {
 		return true
 	}
-
 	return false
 }

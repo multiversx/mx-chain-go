@@ -240,7 +240,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	return nil
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *TpsBenchmark) IsInterfaceNil() bool {
 	if s == nil {
 		return true
@@ -289,7 +289,7 @@ func (ss *ShardStatistics) TotalProcessedTxCount() *big.Int {
 	return ss.totalProcessedTxCount
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (ss *ShardStatistics) IsInterfaceNil() bool {
 	if ss == nil {
 		return true

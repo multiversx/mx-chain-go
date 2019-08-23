@@ -208,11 +208,10 @@ func (s *DB) Destroy() error {
 	return err
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *DB) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }

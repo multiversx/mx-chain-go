@@ -443,7 +443,6 @@ func (m *MetaBlock) GetMiniBlockProcessed(hash []byte) bool {
 	if m.processedMBs[string(hash)] {
 		return true
 	}
-
 	return false
 }
 
@@ -465,16 +464,14 @@ func (m *MetaBlockBody) IsInterfaceNil() bool {
 	if m == nil {
 		return true
 	}
-
 	return false
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (m *MetaBlock) IsInterfaceNil() bool {
 	if m == nil {
 		return true
 	}
-
 	return false
 }
 

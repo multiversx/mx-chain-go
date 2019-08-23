@@ -59,6 +59,5 @@ func (ith *IntermediateTransactionHandlerMock) IsInterfaceNil() bool {
 	if ith == nil {
 		return true
 	}
-
 	return false
 }

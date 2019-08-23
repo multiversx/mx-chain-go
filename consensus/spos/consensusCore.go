@@ -150,7 +150,7 @@ func (cc *ConsensusCore) RandomnessSingleSigner() crypto.SingleSigner {
 	return cc.blsSingleSigner
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (cc *ConsensusCore) IsInterfaceNil() bool {
 	if cc == nil {
 		return true

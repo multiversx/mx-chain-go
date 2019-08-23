@@ -62,6 +62,5 @@ func (acm *AddressConverterMock) IsInterfaceNil() bool {
 	if acm == nil {
 		return true
 	}
-
 	return false
 }

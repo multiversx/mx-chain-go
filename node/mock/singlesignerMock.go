@@ -30,7 +30,6 @@ func (s *SinglesignMock) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -52,7 +51,6 @@ func (s *SinglesignFailMock) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -76,6 +74,5 @@ func (s *SinglesignStub) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }

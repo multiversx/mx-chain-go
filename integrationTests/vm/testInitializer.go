@@ -41,7 +41,6 @@ func (af *accountFactory) IsInterfaceNil() bool {
 	if af == nil {
 		return true
 	}
-
 	return false
 }
 

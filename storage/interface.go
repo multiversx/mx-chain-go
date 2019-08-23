@@ -16,7 +16,7 @@ type Persister interface {
 	Remove(key []byte) error
 	// Destroy removes the persistance medium stored data
 	Destroy() error
-	// IsInterfaceNil return if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
@@ -28,7 +28,7 @@ type Batcher interface {
 	Delete(key []byte) error
 	// Reset clears the contents of the batch
 	Reset()
-	// IsInterfaceNil return if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
@@ -73,7 +73,7 @@ type BloomFilter interface {
 	MayContain([]byte) bool
 	//Clear sets all the bits from the filter to 0
 	Clear()
-	// IsInterfaceNil return if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 

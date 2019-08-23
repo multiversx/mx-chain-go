@@ -35,6 +35,5 @@ func (x *ProtobufMarshalizer) IsInterfaceNil() bool {
 	if x == nil {
 		return true
 	}
-
 	return false
 }

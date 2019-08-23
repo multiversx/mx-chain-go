@@ -128,7 +128,7 @@ func (s *TpsBenchmarkMock) UpdateWithShardStats(mb *block.MetaBlock) {
 	}
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *TpsBenchmarkMock) IsInterfaceNil() bool {
 	if s == nil {
 		return true

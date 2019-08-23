@@ -112,6 +112,5 @@ func (ppm *PreProcessorMock) IsInterfaceNil() bool {
 	if ppm == nil {
 		return true
 	}
-
 	return false
 }

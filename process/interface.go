@@ -132,7 +132,7 @@ type Checker interface {
 	IntegrityAndValidity(coordinator sharding.Coordinator) error
 	// Integrity checks only the integrity of the data
 	Integrity(coordinator sharding.Coordinator) error
-	// IsInterfaceNil return if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 

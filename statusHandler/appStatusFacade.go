@@ -24,7 +24,7 @@ func NewAppStatusFacadeWithHandlers(aphs ...core.AppStatusHandler) (*AppStatusFa
 	}, nil
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (asf *AppStatusFacade) IsInterfaceNil() bool {
 	if asf == nil {
 		return true

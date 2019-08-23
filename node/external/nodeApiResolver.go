@@ -26,6 +26,5 @@ func (nar *NodeApiResolver) IsInterfaceNil() bool {
 	if nar == nil {
 		return true
 	}
-
 	return false
 }

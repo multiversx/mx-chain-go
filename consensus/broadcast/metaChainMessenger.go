@@ -115,6 +115,5 @@ func (mcm *metaChainMessenger) IsInterfaceNil() bool {
 	if mcm == nil {
 		return true
 	}
-
 	return false
 }

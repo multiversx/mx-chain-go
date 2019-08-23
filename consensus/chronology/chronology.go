@@ -197,6 +197,5 @@ func (chr *chronology) IsInterfaceNil() bool {
 	if chr == nil {
 		return true
 	}
-
 	return false
 }

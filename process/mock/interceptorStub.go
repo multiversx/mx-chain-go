@@ -17,6 +17,5 @@ func (is *InterceptorStub) IsInterfaceNil() bool {
 	if is == nil {
 		return true
 	}
-
 	return false
 }

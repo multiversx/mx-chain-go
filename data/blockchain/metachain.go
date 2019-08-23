@@ -164,6 +164,5 @@ func (mc *MetaChain) IsInterfaceNil() bool {
 	if mc == nil {
 		return true
 	}
-
 	return false
 }

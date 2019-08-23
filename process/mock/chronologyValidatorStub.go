@@ -8,7 +8,7 @@ func (cvs *ChronologyValidatorStub) ValidateReceivedBlock(shardID uint32, epoch 
 	return cvs.ValidateReceivedBlockCalled(shardID, epoch, nonce, round)
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (cvs *ChronologyValidatorStub) IsInterfaceNil() bool {
 	if cvs == nil {
 		return true

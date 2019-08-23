@@ -44,7 +44,6 @@ func (privKey *PrivateKeyStub) IsInterfaceNil() bool {
 	if privKey == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -68,6 +67,5 @@ func (pubKey *PublicKeyStub) IsInterfaceNil() bool {
 	if pubKey == nil {
 		return true
 	}
-
 	return false
 }

@@ -26,7 +26,7 @@ func (vm *ValidatorMock) PubKey() []byte {
 	return vm.pubKey
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (vm *ValidatorMock) IsInterfaceNil() bool {
 	if vm == nil {
 		return true

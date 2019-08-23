@@ -38,6 +38,5 @@ func (j *JsonMarshalizer) IsInterfaceNil() bool {
 	if j == nil {
 		return true
 	}
-
 	return false
 }

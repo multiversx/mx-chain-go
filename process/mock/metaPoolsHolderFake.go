@@ -51,6 +51,5 @@ func (mphf *MetaPoolsHolderFake) IsInterfaceNil() bool {
 	if mphf == nil {
 		return true
 	}
-
 	return false
 }

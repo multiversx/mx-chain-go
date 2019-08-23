@@ -137,7 +137,7 @@ func (cdc *ConsensusCoreMock) RandomnessSingleSigner() crypto.SingleSigner {
 	return cdc.blsSingleSigner
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (cdc *ConsensusCoreMock) IsInterfaceNil() bool {
 	if cdc == nil {
 		return true

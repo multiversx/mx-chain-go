@@ -102,7 +102,7 @@ func (ppc *intermediateTransactionHandlersContainer) Keys() []block.Type {
 	return keys
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (ppc *intermediateTransactionHandlersContainer) IsInterfaceNil() bool {
 	if ppc == nil {
 		return true

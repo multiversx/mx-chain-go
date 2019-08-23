@@ -260,7 +260,7 @@ func (sbm *StorageBootstrapperMock) cleanupNotarizedStorage(lastNotarized map[ui
 	sbm.CleanupNotarizedStorageCalled(lastNotarized)
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (sbm *StorageBootstrapperMock) IsInterfaceNil() bool {
 	if sbm == nil {
 		return true

@@ -420,7 +420,7 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (icf *interceptorsContainerFactory) IsInterfaceNil() bool {
 	if icf == nil {
 		return true

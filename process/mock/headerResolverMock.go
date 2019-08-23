@@ -27,6 +27,5 @@ func (hrm *HeaderResolverMock) IsInterfaceNil() bool {
 	if hrm == nil {
 		return true
 	}
-
 	return false
 }

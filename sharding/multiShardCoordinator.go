@@ -92,12 +92,11 @@ func (msc *multiShardCoordinator) CommunicationIdentifier(destShardID uint32) st
 	return communicationIdentifierBetweenShards(msc.selfId, destShardID)
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (msc *multiShardCoordinator) IsInterfaceNil() bool {
 	if msc == nil {
 		return true
 	}
-
 	return false
 }
 

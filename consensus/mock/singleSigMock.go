@@ -17,7 +17,7 @@ func (s *SingleSignerMock) Verify(public crypto.PublicKey, msg []byte, sig []byt
 	return s.VerifyStub(public, msg, sig)
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *SingleSignerMock) IsInterfaceNil() bool {
 	if s == nil {
 		return true

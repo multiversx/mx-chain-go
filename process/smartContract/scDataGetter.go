@@ -108,6 +108,5 @@ func (scdg *scDataGetter) IsInterfaceNil() bool {
 	if scdg == nil {
 		return true
 	}
-
 	return false
 }

@@ -124,7 +124,7 @@ func (at *atArgumentParser) CreateDataFromStorageUpdate(storageUpdates []*vmcomm
 	return data
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (at *atArgumentParser) IsInterfaceNil() bool {
 	if at == nil {
 		return true

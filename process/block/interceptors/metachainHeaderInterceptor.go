@@ -128,6 +128,5 @@ func (mhi *MetachainHeaderInterceptor) IsInterfaceNil() bool {
 	if mhi == nil {
 		return true
 	}
-
 	return false
 }

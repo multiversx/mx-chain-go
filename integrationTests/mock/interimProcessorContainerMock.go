@@ -45,7 +45,7 @@ func (ppcm *InterimProcessorContainerMock) Keys() []block.Type {
 	return ppcm.KeysCalled()
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (ppcm *InterimProcessorContainerMock) IsInterfaceNil() bool {
 	if ppcm == nil {
 		return true

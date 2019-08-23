@@ -9,7 +9,7 @@ func NewNilStatusHandler() *NilStatusHandler {
 	return new(NilStatusHandler)
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (nsh *NilStatusHandler) IsInterfaceNil() bool {
 	if nsh == nil {
 		return true

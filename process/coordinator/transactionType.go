@@ -114,6 +114,5 @@ func (tx *txTypeHandler) IsInterfaceNil() bool {
 	if tx == nil {
 		return true
 	}
-
 	return false
 }

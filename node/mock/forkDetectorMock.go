@@ -44,11 +44,10 @@ func (fdm *ForkDetectorMock) ResetProbableHighestNonceIfNeeded() {
 	fdm.ResetProbableHighestNonceIfNeededCalled()
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (fdm *ForkDetectorMock) IsInterfaceNil() bool {
 	if fdm == nil {
 		return true
 	}
-
 	return false
 }

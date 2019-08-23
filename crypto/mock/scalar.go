@@ -118,6 +118,5 @@ func (sm *ScalarMock) IsInterfaceNil() bool {
 	if sm == nil {
 		return true
 	}
-
 	return false
 }

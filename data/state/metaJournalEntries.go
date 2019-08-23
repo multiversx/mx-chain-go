@@ -29,7 +29,7 @@ func (jen *MetaJournalEntryRound) Revert() (AccountHandler, error) {
 	return jen.account, nil
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (jen *MetaJournalEntryRound) IsInterfaceNil() bool {
 	if jen == nil {
 		return true
@@ -65,7 +65,7 @@ func (jen *MetaJournalEntryTxCount) Revert() (AccountHandler, error) {
 	return jen.account, nil
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (jen *MetaJournalEntryTxCount) IsInterfaceNil() bool {
 	if jen == nil {
 		return true
@@ -101,7 +101,7 @@ func (jen *MetaJournalEntryMiniBlocksData) Revert() (AccountHandler, error) {
 	return jen.account, nil
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (jen *MetaJournalEntryMiniBlocksData) IsInterfaceNil() bool {
 	if jen == nil {
 		return true
@@ -137,7 +137,7 @@ func (jen *MetaJournalEntryShardRootHash) Revert() (AccountHandler, error) {
 	return jen.account, nil
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (jen *MetaJournalEntryShardRootHash) IsInterfaceNil() bool {
 	if jen == nil {
 		return true

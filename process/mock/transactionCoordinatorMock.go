@@ -142,6 +142,5 @@ func (tcm *TransactionCoordinatorMock) IsInterfaceNil() bool {
 	if tcm == nil {
 		return true
 	}
-
 	return false
 }

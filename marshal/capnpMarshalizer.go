@@ -43,6 +43,5 @@ func (x *CapnpMarshalizer) IsInterfaceNil() bool {
 	if x == nil {
 		return true
 	}
-
 	return false
 }

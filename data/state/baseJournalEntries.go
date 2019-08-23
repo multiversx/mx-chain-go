@@ -38,7 +38,6 @@ func (bjec *BaseJournalEntryCreation) IsInterfaceNil() bool {
 	if bjec == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -74,7 +73,6 @@ func (bjech *BaseJournalEntryCodeHash) IsInterfaceNil() bool {
 	if bjech == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -113,7 +111,6 @@ func (bjer *BaseJournalEntryRootHash) IsInterfaceNil() bool {
 	if bjer == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -158,7 +155,6 @@ func (bjed *BaseJournalEntryData) IsInterfaceNil() bool {
 	if bjed == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -194,6 +190,5 @@ func (bjen *BaseJournalEntryNonce) IsInterfaceNil() bool {
 	if bjen == nil {
 		return true
 	}
-
 	return false
 }

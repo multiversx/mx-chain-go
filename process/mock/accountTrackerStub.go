@@ -20,6 +20,5 @@ func (ats *AccountTrackerStub) IsInterfaceNil() bool {
 	if ats == nil {
 		return true
 	}
-
 	return false
 }

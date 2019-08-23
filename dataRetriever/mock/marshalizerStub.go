@@ -18,6 +18,5 @@ func (ms *MarshalizerStub) IsInterfaceNil() bool {
 	if ms == nil {
 		return true
 	}
-
 	return false
 }

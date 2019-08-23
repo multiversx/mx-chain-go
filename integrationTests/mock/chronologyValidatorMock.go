@@ -7,7 +7,7 @@ func (cvm *ChronologyValidatorMock) ValidateReceivedBlock(shardID uint32, epoch 
 	return nil
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (cvm *ChronologyValidatorMock) IsInterfaceNil() bool {
 	if cvm == nil {
 		return true

@@ -184,6 +184,5 @@ func (bc *BlockChain) IsInterfaceNil() bool {
 	if bc == nil {
 		return true
 	}
-
 	return false
 }

@@ -37,6 +37,5 @@ func (sha *HasherSpongeMock) IsInterfaceNil() bool {
 	if sha == nil {
 		return true
 	}
-
 	return false
 }

@@ -210,7 +210,7 @@ func (vadb *VMAccountsDB) TempAccount(address []byte) state.AccountHandler {
 	return nil
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (vadb *VMAccountsDB) IsInterfaceNil() bool {
 	if vadb == nil {
 		return true

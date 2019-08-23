@@ -23,7 +23,7 @@ func (c *AccountCreator) CreateAccount(address state.AddressContainer, tracker s
 	return account, nil
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (c *AccountCreator) IsInterfaceNil() bool {
 	if c == nil {
 		return true

@@ -46,7 +46,10 @@ func (vgsm ValidatorGroupSelectorMock) GetSelectedPublicKeys(selection []byte) (
 	panic("implement me")
 }
 
-// IsInterfaceNil returns if there is no value under the interface
-func (vgsm ValidatorGroupSelectorMock) IsInterfaceNil() bool {
-	panic("implement  me")
+// IsInterfaceNil returns true if there is no value under the interface
+func (vgsm *ValidatorGroupSelectorMock) IsInterfaceNil() bool {
+	if vgsm == nil {
+		return true
+	}
+	return false
 }

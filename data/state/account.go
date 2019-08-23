@@ -36,12 +36,11 @@ func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Acc
 	}, nil
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (a *Account) IsInterfaceNil() bool {
 	if a == nil {
 		return true
 	}
-
 	return false
 }
 

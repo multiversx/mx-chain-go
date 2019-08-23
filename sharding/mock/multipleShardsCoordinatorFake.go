@@ -83,7 +83,7 @@ func (mscf *multipleShardsCoordinatorFake) CommunicationIdentifier(destShardID u
 	return fmt.Sprintf("_%d_%d", mscf.CurrentShard, destShardID)
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (mscf *multipleShardsCoordinatorFake) IsInterfaceNil() bool {
 	if mscf == nil {
 		return true

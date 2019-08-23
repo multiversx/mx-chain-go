@@ -34,6 +34,5 @@ func (ac *AddressConverterStub) IsInterfaceNil() bool {
 	if ac == nil {
 		return true
 	}
-
 	return false
 }

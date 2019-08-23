@@ -730,6 +730,5 @@ func (tc *transactionCoordinator) IsInterfaceNil() bool {
 	if tc == nil {
 		return true
 	}
-
 	return false
 }

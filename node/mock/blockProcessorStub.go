@@ -77,6 +77,5 @@ func (blProcMock *BlockProcessorStub) IsInterfaceNil() bool {
 	if blProcMock == nil {
 		return true
 	}
-
 	return false
 }

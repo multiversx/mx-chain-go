@@ -23,6 +23,5 @@ func (j *MarshalizerMock) IsInterfaceNil() bool {
 	if j == nil {
 		return true
 	}
-
 	return false
 }

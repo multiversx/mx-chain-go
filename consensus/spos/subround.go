@@ -160,7 +160,7 @@ func (sr *Subround) Name() string {
 	return sr.name
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (sr *Subround) IsInterfaceNil() bool {
 	if sr == nil {
 		return true

@@ -4,6 +4,6 @@ package termuic
 type TermuiRender interface {
 	// RefreshData method is used to refresh data that are displayed on a grid
 	RefreshData(logLines []string)
-	// IsInterfaceNil return if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

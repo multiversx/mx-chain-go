@@ -101,7 +101,7 @@ func (vmc *virtualMachinesContainer) Keys() [][]byte {
 	return keys
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (vmc *virtualMachinesContainer) IsInterfaceNil() bool {
 	if vmc == nil {
 		return true

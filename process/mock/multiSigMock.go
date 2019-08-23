@@ -178,6 +178,5 @@ func (bnm *BelNevMock) IsInterfaceNil() bool {
 	if bnm == nil {
 		return true
 	}
-
 	return false
 }

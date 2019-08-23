@@ -8,7 +8,7 @@ func (updater *UpdaterStub) Update(key, value []byte) error {
 	return updater.UpdateCalled(key, value)
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (updater *UpdaterStub) IsInterfaceNil() bool {
 	if updater == nil {
 		return true

@@ -26,6 +26,5 @@ func (hash *HasherMock) IsInterfaceNil() bool {
 	if hash == nil {
 		return true
 	}
-
 	return false
 }

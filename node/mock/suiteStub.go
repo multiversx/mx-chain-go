@@ -55,7 +55,6 @@ func (s *SuiteMock) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }
 

@@ -35,7 +35,7 @@ func (b *batch) Reset() {
 	b.batch = b.db.NewTransaction(true)
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (b *batch) IsInterfaceNil() bool {
 	if b == nil {
 		return true

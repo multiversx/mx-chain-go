@@ -102,6 +102,5 @@ func (ms *MessengerStub) IsInterfaceNil() bool {
 	if ms == nil {
 		return true
 	}
-
 	return false
 }

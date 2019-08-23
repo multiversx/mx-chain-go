@@ -22,6 +22,5 @@ func (mhs *MessageHandlerStub) IsInterfaceNil() bool {
 	if mhs == nil {
 		return true
 	}
-
 	return false
 }

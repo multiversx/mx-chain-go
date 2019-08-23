@@ -789,6 +789,5 @@ func (n *Node) IsInterfaceNil() bool {
 	if n == nil {
 		return true
 	}
-
 	return false
 }

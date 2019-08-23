@@ -44,7 +44,7 @@ type ConsensusCoreHandler interface {
 	RandomnessPrivateKey() crypto.PrivateKey
 	// RandomnessSingleSigner returns the single signer stored in the ConsensusStore used for randomness generation
 	RandomnessSingleSigner() crypto.SingleSigner
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
@@ -63,7 +63,7 @@ type ConsensusService interface {
 	CanProceed(*ConsensusState, consensus.MessageType) bool
 	//IsMessageWithBlockHeader returns if the current messageType is about block header
 	IsMessageWithBlockHeader(consensus.MessageType) bool
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
@@ -90,6 +90,6 @@ type WorkerHandler interface {
 	ExecuteStoredMessages()
 	//BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet
 	BroadcastUnnotarisedBlocks()
-	// IsInterfaceNil returns if there is no value under the interface
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

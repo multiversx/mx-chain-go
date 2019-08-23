@@ -326,6 +326,5 @@ func (txProc *txProcessor) IsInterfaceNil() bool {
 	if txProc == nil {
 		return true
 	}
-
 	return false
 }

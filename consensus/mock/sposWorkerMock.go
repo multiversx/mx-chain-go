@@ -57,7 +57,7 @@ func (sposWorkerMock *SposWorkerMock) BroadcastUnnotarisedBlocks() {
 	sposWorkerMock.BroadcastUnnotarisedBlocksCalled()
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (sposWorkerMock *SposWorkerMock) IsInterfaceNil() bool {
 	if sposWorkerMock == nil {
 		return true

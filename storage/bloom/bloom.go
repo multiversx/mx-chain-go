@@ -99,12 +99,11 @@ func (b *Bloom) Clear() {
 	}
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (b *Bloom) IsInterfaceNil() bool {
 	if b == nil {
 		return true
 	}
-
 	return false
 }
 

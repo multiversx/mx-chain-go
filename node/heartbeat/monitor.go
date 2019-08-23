@@ -199,6 +199,5 @@ func (m *Monitor) IsInterfaceNil() bool {
 	if m == nil {
 		return true
 	}
-
 	return false
 }

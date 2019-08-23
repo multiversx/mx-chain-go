@@ -549,7 +549,7 @@ func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint
 	return nil
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (ncv *nullChronologyValidator) IsInterfaceNil() bool {
 	if ncv == nil {
 		return true

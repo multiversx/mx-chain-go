@@ -27,6 +27,5 @@ func (ths *TopicHandlerStub) IsInterfaceNil() bool {
 	if ths == nil {
 		return true
 	}
-
 	return false
 }

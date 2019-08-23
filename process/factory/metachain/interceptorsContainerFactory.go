@@ -196,11 +196,10 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identif
 	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (icf *interceptorsContainerFactory) IsInterfaceNil() bool {
 	if icf == nil {
 		return true
 	}
-
 	return false
 }

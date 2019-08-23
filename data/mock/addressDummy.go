@@ -20,7 +20,7 @@ func (ad *AddressDummy) Hash() []byte {
 	return ad.hash
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (ad *AddressDummy) IsInterfaceNil() bool {
 	if ad == nil {
 		return true

@@ -37,7 +37,7 @@ func (sc *serviceContainer) TPSBenchmark() statistics.TPSBenchmark {
 	return sc.tpsBenchmark
 }
 
-// IsInterfaceNil returns if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (sc *serviceContainer) IsInterfaceNil() bool {
 	if sc == nil {
 		return true

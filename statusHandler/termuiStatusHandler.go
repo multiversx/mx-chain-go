@@ -22,7 +22,7 @@ func NewTermuiStatusHandler() *TermuiStatusHandler {
 	return tsh
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (tsh *TermuiStatusHandler) IsInterfaceNil() bool {
 	if tsh == nil {
 		return true

@@ -12,7 +12,7 @@ func NewTopicMessageHandlerStub() *topicMessageHandlerStub {
 	}
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *topicMessageHandlerStub) IsInterfaceNil() bool {
 	if s == nil {
 		return true

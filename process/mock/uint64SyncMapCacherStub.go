@@ -42,6 +42,5 @@ func (usmcs *Uint64SyncMapCacherStub) IsInterfaceNil() bool {
 	if usmcs == nil {
 		return true
 	}
-
 	return false
 }

@@ -32,7 +32,7 @@ func (btm *BlocksTrackerMock) BlockBroadcastRound(nonce uint64) int64 {
 	return btm.BlockBroadcastRoundCalled(nonce)
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (btm *BlocksTrackerMock) IsInterfaceNil() bool {
 	if btm == nil {
 		return true
