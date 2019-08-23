@@ -124,6 +124,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
 	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
+	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "valid block produced")
 
 	return true
 }

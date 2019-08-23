@@ -182,6 +182,14 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
+	mbLen := len(body)
+	totalTxCount := 0
+	for i := 0; i < mbLen; i++ {
+		totalTxCount += len(body[i].TxHashes)
+	}
+	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
+	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(mbLen))
+
 	err = sp.checkHeaderBodyCorrelation(header, body)
 	if err != nil {
 		return err
@@ -653,6 +661,13 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+
+	headerMeta, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	if err != nil {
+		return err
+	}
+
+	sp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %v", headerMeta.GetNonce()))
 
 	_, err = sp.accounts.Commit()
 	if err != nil {
@@ -1445,6 +1460,9 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 
 	header.MiniBlockHeaders = miniBlockHeaders
 	header.TxCount = uint32(totalTxCount)
+
+	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
+	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(mbLen))
 
 	sp.mutUsedMetaHdrsHashes.Lock()
 

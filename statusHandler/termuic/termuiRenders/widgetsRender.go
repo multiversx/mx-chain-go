@@ -239,14 +239,15 @@ func (wr *WidgetsRender) prepareLogLines(logData []string, size int) []string {
 
 func (wr *WidgetsRender) prepareLoads() {
 	cpuLoadPercent := wr.getFromCacheAsUint64(core.MetricCpuLoadPercent)
-	wr.cpuLoad.Title = "CPU Load"
+	wr.cpuLoad.Title = "CPU load"
 	wr.cpuLoad.Percent = int(cpuLoadPercent)
 
 	memLoadPercent := wr.getFromCacheAsUint64(core.MetricMemLoadPercent)
 	memTotalMemoryBytes := wr.getFromCacheAsUint64(core.MetricTotalMem)
+	memUsed := wr.getFromCacheAsUint64(core.MetricMemoryUsedByNode)
 	wr.memoryLoad.Title = "Memory load"
 	wr.memoryLoad.Percent = int(memLoadPercent)
-	wr.memoryLoad.Label = fmt.Sprintf("%d%% / total: %s", memLoadPercent, core.ConvertBytes(memTotalMemoryBytes))
+	wr.memoryLoad.Label = fmt.Sprintf("%d%% / used: %s / total: %s", memLoadPercent, core.ConvertBytes(memUsed), core.ConvertBytes(memTotalMemoryBytes))
 
 	recvLoad := wr.getFromCacheAsUint64(core.MetricNetworkRecvPercent)
 	recvBps := wr.getFromCacheAsUint64(core.MetricNetworkRecvBps)

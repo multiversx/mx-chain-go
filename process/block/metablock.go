@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -42,6 +43,18 @@ type metaProcessor struct {
 	nextKValidity uint32
 
 	chRcvAllHdrs chan bool
+
+	appStatusHandler core.AppStatusHandler
+}
+
+// SetAppStatusHandler method is used to set appStatusHandler
+func (mp *metaProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return process.ErrNilAppStatusHandler
+	}
+
+	mp.appStatusHandler = ash
+	return nil
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -105,9 +118,10 @@ func NewMetaProcessor(
 	}
 
 	mp := metaProcessor{
-		core:          core,
-		baseProcessor: base,
-		dataPool:      dataPool,
+		core:             core,
+		baseProcessor:    base,
+		dataPool:         dataPool,
+		appStatusHandler: statusHandler.NewNilStatusHandler(),
 	}
 
 	mp.requestedShardHdrsHashes = make(map[string]bool)
@@ -455,11 +469,17 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	headersNonce := make([]uint64, 5, 5)
+
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
 		header, err := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
 		if header == nil {
 			return err
+		}
+
+		if headersNonce[shardData.ShardId] < header.Nonce {
+			headersNonce[shardData.ShardId] = header.Nonce
 		}
 
 		tempHeaderPool[string(shardData.HeaderHash)] = header
@@ -477,6 +497,15 @@ func (mp *metaProcessor) CommitBlock(
 		errNotCritical = mp.store.Put(dataRetriever.BlockHeaderUnit, shardData.HeaderHash, buff)
 		log.LogIfError(errNotCritical)
 	}
+
+	crossCheckBlockHeight := ""
+	for i := 0; i < len(headersNonce); i++ {
+		if headersNonce[i] != uint64(0) {
+			crossCheckBlockHeight += fmt.Sprintf("shard%v %v ", i, headersNonce[i])
+		}
+	}
+
+	mp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
 
 	err = mp.saveLastNotarizedHeader(header)
 	if err != nil {
