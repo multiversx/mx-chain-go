@@ -106,6 +106,7 @@ func (sr *SubroundStartRound) doStartRoundConsensusCheck() bool {
 	if sr.initCurrentRound() {
 		return true
 	}
+
 	return false
 }
 

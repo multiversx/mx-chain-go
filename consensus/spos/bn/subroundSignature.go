@@ -231,6 +231,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		sr.SetStatus(SrSignature, spos.SsFinished)
 		return true
 	}
+
 	return false
 }
 

@@ -11,9 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -22,6 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -118,7 +117,7 @@ func TestStart_CorrectParams(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(getMarshalizer()),
-		node.WithHasher(&mock.HasherMock{}),
+		node.WithHasher(getHasher()),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
@@ -135,7 +134,7 @@ func TestStart_CorrectParamsApplyingOptions(t *testing.T) {
 	err := n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(getMarshalizer()),
-		node.WithHasher(&mock.HasherMock{}),
+		node.WithHasher(getHasher()),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
@@ -154,7 +153,7 @@ func TestApplyOptions_NodeStarted(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(getMarshalizer()),
-		node.WithHasher(&mock.HasherMock{}),
+		node.WithHasher(getHasher()),
 	)
 	err := n.Start()
 	defer func() { _ = n.Stop() }()

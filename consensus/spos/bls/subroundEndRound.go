@@ -156,6 +156,7 @@ func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 	if sr.Status(SrEndRound) == spos.SsFinished {
 		return true
 	}
+
 	return false
 }
 

@@ -396,6 +396,7 @@ func isSmartContractAddress(rcvAddress []byte) bool {
 	if isSCAddress {
 		return true
 	}
+
 	return false
 }
 
