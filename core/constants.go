@@ -70,7 +70,7 @@ const MetricCountAcceptedBlocks = "erd_count_accepted_blocks"
 const MetricNodeType = "erd_node_type"
 
 // MetricLiveValidatorNodes is the metric for monitoring live validators on the network
-const MetricLiveValidatorNodes = "erd_max_validator_nodes"
+const MetricLiveValidatorNodes = "erd_live_validator_nodes"
 
 // MetricConnectedNodes is the metric for monitoring total connected peers on the network
 const MetricConnectedNodes = "erd_connected_nodes"
