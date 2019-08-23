@@ -31,3 +31,11 @@ func (s *SyncTimerMock) FormattedCurrentTime() string {
 func (s *SyncTimerMock) CurrentTime() time.Time {
 	return s.CurrentTimeCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (stm *SyncTimerMock) IsInterfaceNil() bool {
+	if stm == nil {
+		return true
+	}
+	return false
+}

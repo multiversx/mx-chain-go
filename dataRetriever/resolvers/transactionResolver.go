@@ -165,3 +165,11 @@ func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte) error {
 		Value: buffHashes,
 	})
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (txRes *TxResolver) IsInterfaceNil() bool {
+	if txRes == nil {
+		return true
+	}
+	return false
+}

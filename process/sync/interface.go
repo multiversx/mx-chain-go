@@ -13,4 +13,5 @@ type storageBootstrapper interface {
 	getNonceWithLastNotarized(currrentNonce uint64) (startNonce uint64, finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64)
 	applyNotarizedBlocks(finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64) error
 	cleanupNotarizedStorage(lastNotarized map[uint32]uint64)
+	IsInterfaceNil() bool
 }

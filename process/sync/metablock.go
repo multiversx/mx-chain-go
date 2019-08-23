@@ -659,3 +659,11 @@ func (boot *MetaBootstrap) getCurrentHeader() (*block.MetaBlock, error) {
 
 	return header, nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (boot *MetaBootstrap) IsInterfaceNil() bool {
+	if boot == nil {
+		return true
+	}
+	return false
+}

@@ -78,3 +78,11 @@ func (hs *ConnectableHostStub) Close() error {
 func (hs *ConnectableHostStub) ConnManager() connmgr.ConnManager {
 	return hs.ConnManagerCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hs *ConnectableHostStub) IsInterfaceNil() bool {
+	if hs == nil {
+		return true
+	}
+	return false
+}

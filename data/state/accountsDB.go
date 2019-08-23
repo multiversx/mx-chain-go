@@ -493,3 +493,11 @@ func (adb *AccountsDB) clearJournal() {
 	adb.entries = make([]JournalEntry, 0)
 	adb.mutEntries.Unlock()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (adb *AccountsDB) IsInterfaceNil() bool {
+	if adb == nil {
+		return true
+	}
+	return false
+}

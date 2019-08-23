@@ -158,3 +158,11 @@ func (nspc *nonceSyncMapCacher) Has(nonce uint64, shardId uint32) bool {
 
 	return exists
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (nspc *nonceSyncMapCacher) IsInterfaceNil() bool {
+	if nspc == nil {
+		return true
+	}
+	return false
+}

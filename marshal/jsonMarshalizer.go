@@ -32,3 +32,11 @@ func (j JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 
 	return json.Unmarshal(buff, obj)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (j *JsonMarshalizer) IsInterfaceNil() bool {
+	if j == nil {
+		return true
+	}
+	return false
+}

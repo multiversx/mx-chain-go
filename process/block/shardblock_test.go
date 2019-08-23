@@ -2849,7 +2849,7 @@ func TestShardProcessor_MarshalizedDataWrongType(t *testing.T) {
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
-	wr := wrongBody{}
+	wr := &wrongBody{}
 	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, wr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	assert.Nil(t, msh)

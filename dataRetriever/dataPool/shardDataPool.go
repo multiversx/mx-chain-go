@@ -94,3 +94,11 @@ func (tdp *shardedDataPool) PeerChangesBlocks() storage.Cacher {
 func (tdp *shardedDataPool) MetaBlocks() storage.Cacher {
 	return tdp.metaBlocks
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tdp *shardedDataPool) IsInterfaceNil() bool {
+	if tdp == nil {
+		return true
+	}
+	return false
+}

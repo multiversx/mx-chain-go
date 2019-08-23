@@ -15,3 +15,11 @@ func NewNilHeaderValidator() (*nilHeaderValidator, error) {
 func (nhv *nilHeaderValidator) IsHeaderValidForProcessing(headerHandler data.HeaderHandler) bool {
 	return true
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (nhv *nilHeaderValidator) IsInterfaceNil() bool {
+	if nhv == nil {
+		return true
+	}
+	return false
+}

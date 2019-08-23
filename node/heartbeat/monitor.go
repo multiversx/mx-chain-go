@@ -217,3 +217,11 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 
 	return status
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (m *Monitor) IsInterfaceNil() bool {
+	if m == nil {
+		return true
+	}
+	return false
+}

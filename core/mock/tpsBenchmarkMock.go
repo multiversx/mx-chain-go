@@ -127,3 +127,11 @@ func (s *TpsBenchmarkMock) UpdateWithShardStats(mb *block.MetaBlock) {
 		s.shardStatistics[shardInfo.ShardId] = updatedShardStats
 	}
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *TpsBenchmarkMock) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
+}

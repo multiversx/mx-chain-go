@@ -238,3 +238,11 @@ func (irp *intermediateResultsProcessor) CreateMarshalizedData(txHashes [][]byte
 
 	return mrsTxs, nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (irp *intermediateResultsProcessor) IsInterfaceNil() bool {
+	if irp == nil {
+		return true
+	}
+	return false
+}

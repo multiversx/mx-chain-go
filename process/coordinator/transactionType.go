@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -106,4 +107,12 @@ func (tc *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
 	}
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tx *txTypeHandler) IsInterfaceNil() bool {
+	if tx == nil {
+		return true
+	}
+	return false
 }

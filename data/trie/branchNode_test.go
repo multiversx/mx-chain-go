@@ -16,7 +16,7 @@ import (
 
 func getTestMarshAndHasher() (marshal.Marshalizer, hashing.Hasher) {
 	marsh := &mock.ProtobufMarshalizerMock{}
-	hasher := mock.KeccakMock{}
+	hasher := &mock.KeccakMock{}
 	return marsh, hasher
 }
 

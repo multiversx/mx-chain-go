@@ -243,3 +243,11 @@ func (ef *ElrondNodeFacade) GetVmValue(address string, funcName string, argsBuff
 func (ef *ElrondNodeFacade) PprofEnabled() bool {
 	return ef.config.PprofEnabled
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ef *ElrondNodeFacade) IsInterfaceNil() bool {
+	if ef == nil {
+		return true
+	}
+	return false
+}

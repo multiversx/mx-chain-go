@@ -21,3 +21,11 @@ func (ths *TopicHandlerStub) CreateTopic(name string, createChannelForTopic bool
 func (ths *TopicHandlerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
 	return ths.RegisterMessageProcessorCalled(topic, handler)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ths *TopicHandlerStub) IsInterfaceNil() bool {
+	if ths == nil {
+		return true
+	}
+	return false
+}

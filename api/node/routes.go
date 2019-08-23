@@ -20,6 +20,7 @@ type FacadeHandler interface {
 	GetCurrentPublicKey() string
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
+	IsInterfaceNil() bool
 }
 
 type statisticsResponse struct {

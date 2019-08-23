@@ -178,3 +178,11 @@ func (hdrRes *HeaderResolver) RequestDataFromNonce(nonce uint64) error {
 		Value: hdrRes.nonceConverter.ToByteSlice(nonce),
 	})
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hdrRes *HeaderResolver) IsInterfaceNil() bool {
+	if hdrRes == nil {
+		return true
+	}
+	return false
+}

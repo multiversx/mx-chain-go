@@ -44,6 +44,8 @@ type HeaderHandler interface {
 type BodyHandler interface {
 	// IntegrityAndValidity checks the integrity and validity of the block
 	IntegrityAndValidity() error
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 // ChainHandler is the interface defining the functionality a blockchain should implement
@@ -64,6 +66,7 @@ type ChainHandler interface {
 	SetNetworkHeight(height int64)
 	HasBadBlock(blockHash []byte) bool
 	PutBadBlock(blockHash []byte)
+	IsInterfaceNil() bool
 }
 
 // TransactionHandler defines the type of executable transaction
@@ -93,6 +96,7 @@ type Trie interface {
 	Recreate(root []byte) (Trie, error)
 	String() string
 	DeepClone() (Trie, error)
+	IsInterfaceNil() bool
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed

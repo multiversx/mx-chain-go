@@ -1354,3 +1354,11 @@ func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 
 	return &header
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mp *metaProcessor) IsInterfaceNil() bool {
+	if mp == nil {
+		return true
+	}
+	return false
+}

@@ -35,3 +35,11 @@ func (rcs *ResolversContainerStub) Remove(key string) {
 func (rcs *ResolversContainerStub) Len() int {
 	return rcs.LenCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rcs *ResolversContainerStub) IsInterfaceNil() bool {
+	if rcs == nil {
+		return true
+	}
+	return false
+}

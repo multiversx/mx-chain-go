@@ -160,3 +160,11 @@ func (po *kyberPoint) MarshalBinary() ([]byte, error) {
 func (po *kyberPoint) UnmarshalBinary(point []byte) error {
 	return po.Point.UnmarshalBinary(point)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (po *kyberPoint) IsInterfaceNil() bool {
+	if po == nil {
+		return true
+	}
+	return false
+}

@@ -161,3 +161,11 @@ func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
 		cacherIdentifier,
 	)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (txi *TxInterceptor) IsInterfaceNil() bool {
+	if txi == nil {
+		return true
+	}
+	return false
+}

@@ -482,3 +482,11 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (netMes *networkMessenger) IsInterfaceNil() bool {
+	if netMes == nil {
+		return true
+	}
+	return false
+}

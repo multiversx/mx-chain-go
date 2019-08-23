@@ -22,3 +22,11 @@ func (sihsm *ShardIdHasMapMock) Range(f func(shardId uint32, hash []byte) bool) 
 func (sihsm *ShardIdHasMapMock) Delete(shardId uint32) {
 	sihsm.DeleteCalled(shardId)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sihsm *ShardIdHasMapMock) IsInterfaceNil() bool {
+	if sihsm == nil {
+		return true
+	}
+	return false
+}

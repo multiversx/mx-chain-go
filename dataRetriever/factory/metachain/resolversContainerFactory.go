@@ -221,3 +221,11 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 		resolver,
 		false)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
+	if rcf == nil {
+		return true
+	}
+	return false
+}
