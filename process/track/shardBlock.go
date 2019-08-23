@@ -160,3 +160,11 @@ func (sbt *shardBlockTracker) BlockBroadcastRound(nonce uint64) int64 {
 
 	return hInfo.broadcastInRound
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sbt *shardBlockTracker) IsInterfaceNil() bool {
+	if sbt == nil {
+		return true
+	}
+	return false
+}

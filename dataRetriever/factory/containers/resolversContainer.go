@@ -85,3 +85,11 @@ func (rc *resolversContainer) Remove(key string) {
 func (rc *resolversContainer) Len() int {
 	return rc.objects.Len()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rc *resolversContainer) IsInterfaceNil() bool {
+	if rc == nil {
+		return true
+	}
+	return false
+}

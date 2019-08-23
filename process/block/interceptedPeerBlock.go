@@ -72,3 +72,11 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) validityCheck() error {
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (inPeerBlkBdy *InterceptedPeerBlockBody) IsInterfaceNil() bool {
+	if inPeerBlkBdy == nil {
+		return true
+	}
+	return false
+}

@@ -29,3 +29,11 @@ func (x *ProtobufMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	}
 	return ErrUnmarshallingProto
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (x *ProtobufMarshalizer) IsInterfaceNil() bool {
+	if x == nil {
+		return true
+	}
+	return false
+}

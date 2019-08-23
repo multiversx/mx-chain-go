@@ -89,3 +89,11 @@ func (pbbi *PeerBlockBodyInterceptor) processPeerChangeBlockBody(peerChBlockBody
 
 	pbbi.cache.HasOrAdd(peerChBlockBody.Hash(), peerChBlockBody)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pbbi *PeerBlockBodyInterceptor) IsInterfaceNil() bool {
+	if pbbi == nil {
+		return true
+	}
+	return false
+}

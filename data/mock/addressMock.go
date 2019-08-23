@@ -39,3 +39,11 @@ func NewAddressMockFromBytes(buff []byte) *AddressMock {
 func (address *AddressMock) Bytes() []byte {
 	return address.bytes
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (address *AddressMock) IsInterfaceNil() bool {
+	if address == nil {
+		return true
+	}
+	return false
+}

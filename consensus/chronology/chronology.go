@@ -191,3 +191,11 @@ func (chr *chronology) loadSubroundHandler(subroundId int) consensus.SubroundHan
 
 	return chr.subroundHandlers[index]
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (chr *chronology) IsInterfaceNil() bool {
+	if chr == nil {
+		return true
+	}
+	return false
+}

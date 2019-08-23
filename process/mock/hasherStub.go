@@ -20,3 +20,11 @@ func (hash *HasherStub) EmptyHash() []byte {
 func (hash *HasherStub) Size() int {
 	return 0
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hash *HasherStub) IsInterfaceNil() bool {
+	if hash == nil {
+		return true
+	}
+	return false
+}

@@ -690,3 +690,11 @@ func (bn *belNevSigner) Verify(message []byte, bitmap []byte) error {
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bn *belNevSigner) IsInterfaceNil() bool {
+	if bn == nil {
+		return true
+	}
+	return false
+}

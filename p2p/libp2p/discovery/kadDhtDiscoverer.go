@@ -172,3 +172,11 @@ func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error
 func (kdd *KadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
 	return kdd.connectToOnePeerFromInitialPeersList(kdd.refreshInterval, kdd.initialPeersList)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (kdd *KadDhtDiscoverer) IsInterfaceNil() bool {
+	if kdd == nil {
+		return true
+	}
+	return false
+}

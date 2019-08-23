@@ -44,3 +44,11 @@ func (b2b Blake2b) Size() int {
 
 	return b2b.HashSize
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (b2b Blake2b) IsInterfaceNil() bool {
+	if &b2b == nil {
+		return true
+	}
+	return false
+}

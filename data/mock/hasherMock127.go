@@ -21,3 +21,11 @@ func (HasherMock127) EmptyHash() []byte {
 func (HasherMock127) Size() int {
 	return 64
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hash *HasherMock127) IsInterfaceNil() bool {
+	if hash == nil {
+		return true
+	}
+	return false
+}

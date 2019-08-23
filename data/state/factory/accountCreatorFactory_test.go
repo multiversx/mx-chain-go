@@ -22,7 +22,7 @@ func TestNewAccountFactoryCreator_NilShardCoordinator(t *testing.T) {
 func TestNewAccountFactoryCreator_NormalAccount(t *testing.T) {
 	t.Parallel()
 
-	shardC := mock.ShardCoordinatorMock{
+	shardC := &mock.ShardCoordinatorMock{
 		SelfID:     0,
 		NrOfShards: 1,
 	}
@@ -40,7 +40,7 @@ func TestNewAccountFactoryCreator_NormalAccount(t *testing.T) {
 func TestNewAccountFactoryCreator_MetaAccount(t *testing.T) {
 	t.Parallel()
 
-	shardC := mock.ShardCoordinatorMock{
+	shardC := &mock.ShardCoordinatorMock{
 		SelfID:     sharding.MetachainShardId,
 		NrOfShards: 1,
 	}
@@ -58,7 +58,7 @@ func TestNewAccountFactoryCreator_MetaAccount(t *testing.T) {
 func TestNewAccountFactoryCreator_BadShardID(t *testing.T) {
 	t.Parallel()
 
-	shardC := mock.ShardCoordinatorMock{
+	shardC := &mock.ShardCoordinatorMock{
 		SelfID:     10,
 		NrOfShards: 5,
 	}

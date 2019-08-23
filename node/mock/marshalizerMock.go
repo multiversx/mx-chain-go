@@ -17,3 +17,11 @@ func (j MarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
 	}
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (j *MarshalizerMock) IsInterfaceNil() bool {
+	if j == nil {
+		return true
+	}
+	return false
+}

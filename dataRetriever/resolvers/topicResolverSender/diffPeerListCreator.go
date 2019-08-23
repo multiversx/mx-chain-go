@@ -55,6 +55,14 @@ func (dplc *DiffPeerListCreator) PeerList() []p2p.PeerID {
 	return diffList
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (dplc *DiffPeerListCreator) IsInterfaceNil() bool {
+	if dplc == nil {
+		return true
+	}
+	return false
+}
+
 func makeDiffList(
 	allConnectedPeers []p2p.PeerID,
 	excludedConnectedPeers []p2p.PeerID,

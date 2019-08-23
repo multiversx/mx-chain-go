@@ -109,3 +109,11 @@ func (tbbi *TxBlockBodyInterceptor) processBlockBody(txBlockBody *block.Intercep
 		tbbi.cache.HasOrAdd(tbbi.hasher.Compute(string(mbBytes)), miniblock)
 	}
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tbbi *TxBlockBodyInterceptor) IsInterfaceNil() bool {
+	if tbbi == nil {
+		return true
+	}
+	return false
+}

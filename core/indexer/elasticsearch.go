@@ -458,6 +458,14 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	}
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (ei *elasticIndexer) IsInterfaceNil() bool {
+	if ei == nil {
+		return true
+	}
+	return false
+}
+
 func closeESResponseBody(res *esapi.Response) {
 	if res == nil {
 		return

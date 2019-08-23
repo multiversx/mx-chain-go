@@ -61,3 +61,11 @@ func (mdp *metaDataPool) ShardHeaders() storage.Cacher {
 func (mdp *metaDataPool) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
 	return mdp.headersNonces
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mdp *metaDataPool) IsInterfaceNil() bool {
+	if mdp == nil {
+		return true
+	}
+	return false
+}

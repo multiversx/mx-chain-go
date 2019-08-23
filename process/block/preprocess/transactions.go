@@ -615,3 +615,11 @@ func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandl
 
 	return txPool
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (txs *transactions) IsInterfaceNil() bool {
+	if txs == nil {
+		return true
+	}
+	return false
+}

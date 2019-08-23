@@ -47,3 +47,11 @@ func (boot *BootstrapperMock) StartSync() {
 func (boot *BootstrapperMock) StopSync() {
 	boot.StopSyncCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (boot *BootstrapperMock) IsInterfaceNil() bool {
+	if boot == nil {
+		return true
+	}
+	return false
+}

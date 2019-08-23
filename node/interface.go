@@ -18,4 +18,5 @@ type P2PMessenger interface {
 	HasTopicValidator(name string) bool
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
 	PeerAddress(pid p2p.PeerID) string
+	IsInterfaceNil() bool
 }

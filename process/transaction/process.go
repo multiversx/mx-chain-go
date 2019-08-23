@@ -320,3 +320,11 @@ func (txProc *txProcessor) moveBalances(acntSrc, acntDst *state.Account,
 func (txProc *txProcessor) increaseNonce(acntSrc *state.Account) error {
 	return acntSrc.SetNonceWithJournal(acntSrc.Nonce + 1)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (txProc *txProcessor) IsInterfaceNil() bool {
+	if txProc == nil {
+		return true
+	}
+	return false
+}

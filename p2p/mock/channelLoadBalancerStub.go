@@ -26,3 +26,11 @@ func (plbs *ChannelLoadBalancerStub) GetChannelOrDefault(pipe string) chan *p2p.
 func (plbs *ChannelLoadBalancerStub) CollectOneElementFromChannels() *p2p.SendableData {
 	return plbs.CollectOneElementFromChannelsCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (plbs *ChannelLoadBalancerStub) IsInterfaceNil() bool {
+	if plbs == nil {
+		return true
+	}
+	return false
+}

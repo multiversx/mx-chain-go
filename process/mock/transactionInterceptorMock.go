@@ -63,3 +63,11 @@ func (tim *TransactionInterceptorMock) SetHash(hash []byte) {
 func (tim *TransactionInterceptorMock) Hash() []byte {
 	return tim.hash
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tim *TransactionInterceptorMock) IsInterfaceNil() bool {
+	if tim == nil {
+		return true
+	}
+	return false
+}

@@ -164,3 +164,11 @@ func (kms *KyberMultiSignerBLS) sigBytesToKyberPoint(suite crypto.Suite, sig []b
 
 	return sigKPoint, nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (kms *KyberMultiSignerBLS) IsInterfaceNil() bool {
+	if kms == nil {
+		return true
+	}
+	return false
+}

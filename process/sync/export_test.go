@@ -259,3 +259,11 @@ func (sbm *StorageBootstrapperMock) applyNotarizedBlocks(
 func (sbm *StorageBootstrapperMock) cleanupNotarizedStorage(lastNotarized map[uint32]uint64) {
 	sbm.CleanupNotarizedStorageCalled(lastNotarized)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sbm *StorageBootstrapperMock) IsInterfaceNil() bool {
+	if sbm == nil {
+		return true
+	}
+	return false
+}

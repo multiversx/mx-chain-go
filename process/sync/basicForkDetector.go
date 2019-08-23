@@ -481,3 +481,11 @@ func (bfd *basicForkDetector) lastBlockRound() uint64 {
 
 	return lastBlockRound
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bfd *basicForkDetector) IsInterfaceNil() bool {
+	if bfd == nil {
+		return true
+	}
+	return false
+}

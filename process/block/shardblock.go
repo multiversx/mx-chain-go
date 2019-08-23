@@ -1552,3 +1552,11 @@ func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 
 	return &header
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sp *shardProcessor) IsInterfaceNil() bool {
+	if sp == nil {
+		return true
+	}
+	return false
+}

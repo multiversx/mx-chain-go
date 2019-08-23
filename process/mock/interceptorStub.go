@@ -11,3 +11,11 @@ type InterceptorStub struct {
 func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	return is.ProcessReceivedMessageCalled(message)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (is *InterceptorStub) IsInterfaceNil() bool {
+	if is == nil {
+		return true
+	}
+	return false
+}

@@ -15,6 +15,7 @@ type Rounder interface {
 	TimeStamp() time.Time
 	TimeDuration() time.Duration
 	RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration
+	IsInterfaceNil() bool
 }
 
 // SubroundHandler defines the actions which should be handled by a subround implementation
@@ -33,6 +34,8 @@ type SubroundHandler interface {
 	EndTime() int64
 	// Name returns the name of the current rounder
 	Name() string
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 // ChronologyHandler defines the actions which should be handled by a chronology implementation
@@ -41,11 +44,13 @@ type ChronologyHandler interface {
 	RemoveAllSubrounds()
 	// StartRounds starts rounds in a sequential manner, one after the other
 	StartRounds()
+	IsInterfaceNil() bool
 }
 
 // SposFactory defines an interface for a consensus implementation
 type SposFactory interface {
 	GenerateSubrounds()
+	IsInterfaceNil() bool
 }
 
 // Validator defines what a consensus validator implementation should do.
@@ -53,6 +58,7 @@ type Validator interface {
 	Stake() *big.Int
 	Rating() int32
 	PubKey() []byte
+	IsInterfaceNil() bool
 }
 
 // ValidatorGroupSelector defines the behaviour of a struct able to do validator group selection
@@ -67,6 +73,7 @@ type ValidatorGroupSelector interface {
 // PublicKeysSelector allows retrieval of eligible validators public keys selected by a bitmap
 type PublicKeysSelector interface {
 	GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error)
+	IsInterfaceNil() bool
 }
 
 // BroadcastMessenger defines the behaviour of the broadcast messages by the consensus group
@@ -76,9 +83,11 @@ type BroadcastMessenger interface {
 	BroadcastMiniBlocks(map[uint32][]byte) error
 	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
+	IsInterfaceNil() bool
 }
 
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	Broadcast(topic string, buff []byte)
+	IsInterfaceNil() bool
 }

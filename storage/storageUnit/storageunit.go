@@ -238,6 +238,14 @@ func (s *Unit) DestroyUnit() error {
 	return s.persister.Destroy()
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *Unit) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
+}
+
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given cacher and persister.
 func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
