@@ -475,14 +475,14 @@ func TestElrondNodeFacade_GetHeartbeats(t *testing.T) {
 					TimeStamp:       time.Now(),
 					MaxInactiveTime: heartbeat.Duration{Duration: 0},
 					IsActive:        true,
-					ShardID:         uint32(0),
+					ReceivedShardID: uint32(0),
 				},
 				{
 					HexPublicKey:    "pk2",
 					TimeStamp:       time.Now(),
 					MaxInactiveTime: heartbeat.Duration{Duration: 0},
 					IsActive:        true,
-					ShardID:         uint32(0),
+					ReceivedShardID: uint32(0),
 				},
 			}
 		},
