@@ -16,7 +16,7 @@ type SizeDataPacker struct {
 
 // NewSizeDataPacker creates a new SizeDataPacker instance
 func NewSizeDataPacker(marshalizer marshal.Marshalizer) (*SizeDataPacker, error) {
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, core.ErrNilMarshalizer
 	}
 

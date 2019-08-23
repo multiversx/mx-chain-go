@@ -28,13 +28,13 @@ type patriciaMerkleTrie struct {
 
 // NewTrie creates a new Patricia Merkle Trie
 func NewTrie(db data.DBWriteCacher, msh marshal.Marshalizer, hsh hashing.Hasher) (*patriciaMerkleTrie, error) {
-	if db == nil {
+	if db == nil || db.IsInterfaceNil() {
 		return nil, ErrNilDatabase
 	}
-	if msh == nil {
+	if msh == nil || msh.IsInterfaceNil() {
 		return nil, ErrNilMarshalizer
 	}
-	if hsh == nil {
+	if hsh == nil || hsh.IsInterfaceNil() {
 		return nil, ErrNilHasher
 	}
 	return &patriciaMerkleTrie{db: db, marshalizer: msh, hasher: hsh}, nil

@@ -15,7 +15,7 @@ func NewAppStatusFacadeWithHandlers(aphs ...core.AppStatusHandler) (*AppStatusFa
 		return nil, ErrHandlersSliceIsNil
 	}
 	for _, aph := range aphs {
-		if aph == nil {
+		if aph == nil || aph.IsInterfaceNil() {
 			return nil, ErrNilHandlerInSlice
 		}
 	}

@@ -15,7 +15,7 @@ type BaseJournalEntryCreation struct {
 
 // NewBaseJournalEntryCreation outputs a new BaseJournalEntry implementation used to revert an account creation
 func NewBaseJournalEntryCreation(key []byte, updater Updater) (*BaseJournalEntryCreation, error) {
-	if updater == nil {
+	if updater == nil || updater.IsInterfaceNil() {
 		return nil, ErrNilUpdater
 	}
 	if len(key) == 0 {
@@ -51,7 +51,7 @@ type BaseJournalEntryCodeHash struct {
 
 // NewBaseJournalEntryCodeHash outputs a new BaseJournalEntry implementation used to save and revert a code hash change
 func NewBaseJournalEntryCodeHash(account AccountHandler, oldCodeHash []byte) (*BaseJournalEntryCodeHash, error) {
-	if account == nil {
+	if account == nil || account.IsInterfaceNil() {
 		return nil, ErrNilAccountHandler
 	}
 
@@ -87,7 +87,7 @@ type BaseJournalEntryRootHash struct {
 
 // NewBaseJournalEntryRootHash outputs a new BaseJournalEntry used to save and revert an account's root hash change
 func NewBaseJournalEntryRootHash(account AccountHandler, oldRootHash []byte, oldTrie data.Trie) (*BaseJournalEntryRootHash, error) {
-	if account == nil {
+	if account == nil || account.IsInterfaceNil() {
 		return nil, ErrNilAccountHandler
 	}
 
@@ -125,7 +125,7 @@ type BaseJournalEntryData struct {
 // NewBaseJournalEntryData outputs a new BaseJournalEntry implementation used to keep track of data change.
 // The revert will practically empty the dirty data map
 func NewBaseJournalEntryData(account AccountHandler, trie data.Trie) (*BaseJournalEntryData, error) {
-	if account == nil {
+	if account == nil || account.IsInterfaceNil() {
 		return nil, ErrNilAccountHandler
 	}
 
@@ -168,7 +168,7 @@ type BaseJournalEntryNonce struct {
 
 // NewBaseJournalEntryNonce outputs a new JournalEntry implementation used to revert a nonce change
 func NewBaseJournalEntryNonce(account AccountHandler, oldNonce uint64) (*BaseJournalEntryNonce, error) {
-	if account == nil {
+	if account == nil || account.IsInterfaceNil() {
 		return nil, ErrNilAccountHandler
 	}
 

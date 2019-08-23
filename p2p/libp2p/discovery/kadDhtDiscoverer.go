@@ -154,7 +154,7 @@ func (kdd *KadDhtDiscoverer) Name() string {
 
 // ApplyContext sets the context in which this discoverer is to be run
 func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error {
-	if ctxProvider == nil {
+	if ctxProvider == nil || ctxProvider.IsInterfaceNil() {
 		return p2p.ErrNilContextProvider
 	}
 

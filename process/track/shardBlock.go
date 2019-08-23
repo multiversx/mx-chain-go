@@ -67,16 +67,16 @@ func checkTrackerNilParameters(
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
 ) error {
-	if dataPool == nil {
+	if dataPool == nil || dataPool.IsInterfaceNil() {
 		return process.ErrNilDataPoolHolder
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return process.ErrNilMarshalizer
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return process.ErrNilStorage
 	}
 

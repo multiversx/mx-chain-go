@@ -21,10 +21,10 @@ type Account struct {
 
 // NewAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
 func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Account, error) {
-	if addressContainer == nil {
+	if addressContainer == nil || addressContainer.IsInterfaceNil() {
 		return nil, ErrNilAddressContainer
 	}
-	if tracker == nil {
+	if tracker == nil || tracker.IsInterfaceNil() {
 		return nil, ErrNilAccountTracker
 	}
 
