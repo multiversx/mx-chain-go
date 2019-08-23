@@ -122,5 +122,7 @@ func (imh *InterceptedMetaHeader) VerifySig() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (imh *InterceptedMetaHeader) IsInterfaceNil() bool {
 	if imh == nil {
-
+		return true
+	}
+	return false
 }
