@@ -13,6 +13,5 @@ func (scds *ScDataGetterStub) IsInterfaceNil() bool {
 	if scds == nil {
 		return true
 	}
-
 	return false
 }

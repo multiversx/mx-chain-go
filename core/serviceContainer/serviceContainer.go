@@ -42,7 +42,6 @@ func (sc *serviceContainer) IsInterfaceNil() bool {
 	if sc == nil {
 		return true
 	}
-
 	return false
 }
 

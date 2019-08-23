@@ -38,6 +38,5 @@ func (sha Sha256) IsInterfaceNil() bool {
 	if &sha == nil {
 		return true
 	}
-
 	return false
 }

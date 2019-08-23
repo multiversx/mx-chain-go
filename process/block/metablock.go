@@ -1360,6 +1360,5 @@ func (mp *metaProcessor) IsInterfaceNil() bool {
 	if mp == nil {
 		return true
 	}
-
 	return false
 }

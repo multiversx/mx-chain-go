@@ -56,6 +56,5 @@ func (rfs *ResolversFinderStub) IsInterfaceNil() bool {
 	if rfs == nil {
 		return true
 	}
-
 	return false
 }

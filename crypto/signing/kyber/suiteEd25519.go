@@ -83,6 +83,5 @@ func (s *suiteEd25519) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }

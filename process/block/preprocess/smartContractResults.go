@@ -447,6 +447,5 @@ func (scr *smartContractResults) IsInterfaceNil() bool {
 	if scr == nil {
 		return true
 	}
-
 	return false
 }

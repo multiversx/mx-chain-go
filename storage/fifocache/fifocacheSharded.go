@@ -127,6 +127,5 @@ func (c *FIFOShardedCache) IsInterfaceNil() bool {
 	if c == nil {
 		return true
 	}
-
 	return false
 }

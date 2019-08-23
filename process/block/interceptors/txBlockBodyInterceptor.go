@@ -115,6 +115,5 @@ func (tbbi *TxBlockBodyInterceptor) IsInterfaceNil() bool {
 	if tbbi == nil {
 		return true
 	}
-
 	return false
 }

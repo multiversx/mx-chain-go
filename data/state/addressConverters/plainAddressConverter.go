@@ -156,6 +156,5 @@ func (pac *PlainAddressConverter) IsInterfaceNil() bool {
 	if pac == nil {
 		return true
 	}
-
 	return false
 }

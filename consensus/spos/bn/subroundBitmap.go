@@ -201,7 +201,6 @@ func (sr *subroundBitmap) doBitmapConsensusCheck() bool {
 		sr.SetStatus(SrBitmap, spos.SsFinished)
 		return true
 	}
-
 	return false
 }
 

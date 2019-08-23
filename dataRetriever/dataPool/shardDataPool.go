@@ -100,6 +100,5 @@ func (tdp *shardedDataPool) IsInterfaceNil() bool {
 	if tdp == nil {
 		return true
 	}
-
 	return false
 }

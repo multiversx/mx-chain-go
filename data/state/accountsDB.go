@@ -499,6 +499,5 @@ func (adb *AccountsDB) IsInterfaceNil() bool {
 	if adb == nil {
 		return true
 	}
-
 	return false
 }

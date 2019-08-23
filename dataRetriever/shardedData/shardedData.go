@@ -242,6 +242,5 @@ func (sd *shardedData) IsInterfaceNil() bool {
 	if sd == nil {
 		return true
 	}
-
 	return false
 }

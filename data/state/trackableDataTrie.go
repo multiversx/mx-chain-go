@@ -89,6 +89,5 @@ func (tdaw *TrackableDataTrie) IsInterfaceNil() bool {
 	if tdaw == nil {
 		return true
 	}
-
 	return false
 }

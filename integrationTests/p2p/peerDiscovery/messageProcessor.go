@@ -45,6 +45,5 @@ func (mp *MessageProcesssor) IsInterfaceNil() bool {
 	if mp == nil {
 		return true
 	}
-
 	return false
 }

@@ -38,6 +38,5 @@ func (k Keccak) IsInterfaceNil() bool {
 	if &k == nil {
 		return true
 	}
-
 	return false
 }

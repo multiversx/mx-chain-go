@@ -175,6 +175,5 @@ func (acc *accumulator) IsInterfaceNil() bool {
 	if acc == nil {
 		return true
 	}
-
 	return false
 }

@@ -155,6 +155,5 @@ func (cc *ConsensusCore) IsInterfaceNil() bool {
 	if cc == nil {
 		return true
 	}
-
 	return false
 }

@@ -45,6 +45,5 @@ func (dtts *DataTrieTrackerStub) IsInterfaceNil() bool {
 	if dtts == nil {
 		return true
 	}
-
 	return false
 }

@@ -47,6 +47,5 @@ func (msg *P2PMessageMock) IsInterfaceNil() bool {
 	if msg == nil {
 		return true
 	}
-
 	return false
 }

@@ -22,6 +22,5 @@ func (s *SignerMock) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }

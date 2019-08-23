@@ -99,6 +99,5 @@ func (cm *CacherMock) IsInterfaceNil() bool {
 	if cm == nil {
 		return true
 	}
-
 	return false
 }

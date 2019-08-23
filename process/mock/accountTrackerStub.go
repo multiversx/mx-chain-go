@@ -18,7 +18,5 @@ func (ats *AccountTrackerStub) Journalize(entry state.JournalEntry) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (ats *AccountTrackerStub) IsInterfaceNil() bool {
 	if ats == nil {
-		return true
-	}
-	return false
+
 }

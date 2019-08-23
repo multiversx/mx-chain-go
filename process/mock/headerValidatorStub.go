@@ -15,6 +15,5 @@ func (h *HeaderValidatorStub) IsInterfaceNil() bool {
 	if h == nil {
 		return true
 	}
-
 	return false
 }

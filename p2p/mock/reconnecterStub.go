@@ -13,6 +13,5 @@ func (rs *ReconnecterStub) IsInterfaceNil() bool {
 	if rs == nil {
 		return true
 	}
-
 	return false
 }

@@ -52,6 +52,5 @@ func (mm *MarshalizerMock) IsInterfaceNil() bool {
 	if mm == nil {
 		return true
 	}
-
 	return false
 }

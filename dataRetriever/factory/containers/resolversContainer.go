@@ -91,6 +91,5 @@ func (rc *resolversContainer) IsInterfaceNil() bool {
 	if rc == nil {
 		return true
 	}
-
 	return false
 }

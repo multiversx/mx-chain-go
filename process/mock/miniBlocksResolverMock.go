@@ -33,6 +33,5 @@ func (hrm *MiniBlocksResolverMock) IsInterfaceNil() bool {
 	if hrm == nil {
 		return true
 	}
-
 	return false
 }

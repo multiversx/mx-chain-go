@@ -58,6 +58,5 @@ func (sihsm *ShardIdHashSyncMap) IsInterfaceNil() bool {
 	if sihsm == nil {
 		return true
 	}
-
 	return false
 }

@@ -128,6 +128,5 @@ func (mpd *MdnsPeerDiscoverer) IsInterfaceNil() bool {
 	if mpd == nil {
 		return true
 	}
-
 	return false
 }

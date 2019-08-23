@@ -21,6 +21,5 @@ func (u *Uint64ByteSliceConverterMock) IsInterfaceNil() bool {
 	if u == nil {
 		return true
 	}
-
 	return false
 }

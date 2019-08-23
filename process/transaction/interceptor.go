@@ -167,6 +167,5 @@ func (txi *TxInterceptor) IsInterfaceNil() bool {
 	if txi == nil {
 		return true
 	}
-
 	return false
 }

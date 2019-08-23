@@ -130,7 +130,6 @@ func (spk *privateKey) IsInterfaceNil() bool {
 	if spk == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -154,6 +153,5 @@ func (pk *publicKey) IsInterfaceNil() bool {
 	if pk == nil {
 		return true
 	}
-
 	return false
 }

@@ -41,6 +41,5 @@ func (bec *bigEndianConverter) IsInterfaceNil() bool {
 	if bec == nil {
 		return true
 	}
-
 	return false
 }

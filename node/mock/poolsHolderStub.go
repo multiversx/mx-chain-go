@@ -53,6 +53,5 @@ func (phs *PoolsHolderStub) IsInterfaceNil() bool {
 	if phs == nil {
 		return true
 	}
-
 	return false
 }

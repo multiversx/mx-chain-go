@@ -166,6 +166,5 @@ func (po *kyberPoint) IsInterfaceNil() bool {
 	if po == nil {
 		return true
 	}
-
 	return false
 }

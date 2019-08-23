@@ -429,6 +429,5 @@ func (wrk *Worker) IsInterfaceNil() bool {
 	if wrk == nil {
 		return true
 	}
-
 	return false
 }

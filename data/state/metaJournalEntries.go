@@ -34,7 +34,6 @@ func (jen *MetaJournalEntryRound) IsInterfaceNil() bool {
 	if jen == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -70,7 +69,6 @@ func (jen *MetaJournalEntryTxCount) IsInterfaceNil() bool {
 	if jen == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -106,7 +104,6 @@ func (jen *MetaJournalEntryMiniBlocksData) IsInterfaceNil() bool {
 	if jen == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -142,6 +139,5 @@ func (jen *MetaJournalEntryShardRootHash) IsInterfaceNil() bool {
 	if jen == nil {
 		return true
 	}
-
 	return false
 }

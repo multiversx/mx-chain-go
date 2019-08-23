@@ -33,6 +33,5 @@ func (sha *HasherFake) IsInterfaceNil() bool {
 	if sha == nil {
 		return true
 	}
-
 	return false
 }

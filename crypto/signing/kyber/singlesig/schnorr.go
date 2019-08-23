@@ -81,6 +81,5 @@ func (s *SchnorrSigner) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }

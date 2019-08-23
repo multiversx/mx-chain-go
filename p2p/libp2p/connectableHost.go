@@ -49,6 +49,5 @@ func (connHost *connectableHost) IsInterfaceNil() bool {
 	if connHost == nil {
 		return true
 	}
-
 	return false
 }

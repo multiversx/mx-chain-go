@@ -15,6 +15,5 @@ func (p *PeerListCreatorStub) IsInterfaceNil() bool {
 	if p == nil {
 		return true
 	}
-
 	return false
 }

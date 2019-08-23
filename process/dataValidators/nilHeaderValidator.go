@@ -21,6 +21,5 @@ func (nhv *nilHeaderValidator) IsInterfaceNil() bool {
 	if nhv == nil {
 		return true
 	}
-
 	return false
 }

@@ -37,6 +37,5 @@ func (stm *SyncTimerMock) IsInterfaceNil() bool {
 	if stm == nil {
 		return true
 	}
-
 	return false
 }

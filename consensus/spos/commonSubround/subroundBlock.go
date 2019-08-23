@@ -365,7 +365,6 @@ func (sr *SubroundBlock) doBlockConsensusCheck() bool {
 		sr.SetStatus(sr.Current(), spos.SsFinished)
 		return true
 	}
-
 	return false
 }
 

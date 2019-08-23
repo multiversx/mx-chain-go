@@ -78,6 +78,5 @@ func (chs *ChainHandlerStub) IsInterfaceNil() bool {
 	if chs == nil {
 		return true
 	}
-
 	return false
 }

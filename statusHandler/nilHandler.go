@@ -14,7 +14,6 @@ func (nsh *NilStatusHandler) IsInterfaceNil() bool {
 	if nsh == nil {
 		return true
 	}
-
 	return false
 }
 

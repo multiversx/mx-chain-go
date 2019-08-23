@@ -19,6 +19,5 @@ func (scrp *SmartContractResultsProcessorMock) IsInterfaceNil() bool {
 	if scrp == nil {
 		return true
 	}
-
 	return false
 }

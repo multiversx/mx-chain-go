@@ -26,6 +26,5 @@ func (c *MetaAccountCreator) IsInterfaceNil() bool {
 	if c == nil {
 		return true
 	}
-
 	return false
 }

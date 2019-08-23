@@ -145,6 +145,5 @@ func (trs *topicResolverSender) IsInterfaceNil() bool {
 	if trs == nil {
 		return true
 	}
-
 	return false
 }

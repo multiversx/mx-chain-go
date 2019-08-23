@@ -36,6 +36,5 @@ func (jeb *JournalEntryBalance) IsInterfaceNil() bool {
 	if jeb == nil {
 		return true
 	}
-
 	return false
 }

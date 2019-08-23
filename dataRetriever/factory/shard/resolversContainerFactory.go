@@ -521,6 +521,5 @@ func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
 	if rcf == nil {
 		return true
 	}
-
 	return false
 }

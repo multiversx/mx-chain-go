@@ -164,6 +164,5 @@ func (nspc *nonceSyncMapCacher) IsInterfaceNil() bool {
 	if nspc == nil {
 		return true
 	}
-
 	return false
 }

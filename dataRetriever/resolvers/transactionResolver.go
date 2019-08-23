@@ -171,6 +171,5 @@ func (txRes *TxResolver) IsInterfaceNil() bool {
 	if txRes == nil {
 		return true
 	}
-
 	return false
 }

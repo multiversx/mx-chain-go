@@ -291,7 +291,6 @@ func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 	if tr == nil {
 		return true
 	}
-
 	return false
 }
 
@@ -302,6 +301,5 @@ func emptyTrie(root []byte) bool {
 	if bytes.Equal(root, emptyTrieHash) {
 		return true
 	}
-
 	return false
 }

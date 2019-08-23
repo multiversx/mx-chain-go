@@ -335,7 +335,6 @@ func (bms *blsMultiSigner) IsInterfaceNil() bool {
 	if bms == nil {
 		return true
 	}
-
 	return false
 }
 

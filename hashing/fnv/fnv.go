@@ -38,6 +38,5 @@ func (f Fnv) IsInterfaceNil() bool {
 	if &f == nil {
 		return true
 	}
-
 	return false
 }

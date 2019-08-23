@@ -13,6 +13,5 @@ func (dps *DataPackerStub) IsInterfaceNil() bool {
 	if dps == nil {
 		return true
 	}
-
 	return false
 }

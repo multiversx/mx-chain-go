@@ -32,6 +32,5 @@ func (trss *TopicResolverSenderStub) IsInterfaceNil() bool {
 	if trss == nil {
 		return true
 	}
-
 	return false
 }

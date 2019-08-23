@@ -51,6 +51,5 @@ func (mm *MarshalizerFake) IsInterfaceNil() bool {
 	if mm == nil {
 		return true
 	}
-
 	return false
 }

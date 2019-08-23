@@ -27,7 +27,6 @@ func (tsh *TermuiStatusHandler) IsInterfaceNil() bool {
 	if tsh == nil {
 		return true
 	}
-
 	return false
 }
 

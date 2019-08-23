@@ -27,6 +27,5 @@ func (pds *PeerDiscovererStub) IsInterfaceNil() bool {
 	if pds == nil {
 		return true
 	}
-
 	return false
 }

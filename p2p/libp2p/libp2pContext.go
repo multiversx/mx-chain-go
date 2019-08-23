@@ -43,6 +43,5 @@ func (lctx *Libp2pContext) IsInterfaceNil() bool {
 	if lctx == nil {
 		return true
 	}
-
 	return false
 }

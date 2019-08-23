@@ -35,6 +35,5 @@ func (nd *NullDiscoverer) IsInterfaceNil() bool {
 	if nd == nil {
 		return true
 	}
-
 	return false
 }

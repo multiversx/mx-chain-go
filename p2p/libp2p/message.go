@@ -78,6 +78,5 @@ func (m *Message) IsInterfaceNil() bool {
 	if m == nil {
 		return true
 	}
-
 	return false
 }

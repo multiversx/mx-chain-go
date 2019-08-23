@@ -244,6 +244,5 @@ func (irp *intermediateResultsProcessor) IsInterfaceNil() bool {
 	if irp == nil {
 		return true
 	}
-
 	return false
 }

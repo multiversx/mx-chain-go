@@ -29,7 +29,6 @@ func (asf *AppStatusFacade) IsInterfaceNil() bool {
 	if asf == nil {
 		return true
 	}
-
 	return false
 }
 

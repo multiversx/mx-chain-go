@@ -696,6 +696,5 @@ func (bn *belNevSigner) IsInterfaceNil() bool {
 	if bn == nil {
 		return true
 	}
-
 	return false
 }

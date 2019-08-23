@@ -120,6 +120,5 @@ func (hac *HashAddressConverter) IsInterfaceNil() bool {
 	if hac == nil {
 		return true
 	}
-
 	return false
 }

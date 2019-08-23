@@ -97,6 +97,5 @@ func (ts *TrieStub) IsInterfaceNil() bool {
 	if ts == nil {
 		return true
 	}
-
 	return false
 }

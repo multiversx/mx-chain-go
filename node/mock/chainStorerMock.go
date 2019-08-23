@@ -85,6 +85,5 @@ func (bc *ChainStorerMock) IsInterfaceNil() bool {
 	if bc == nil {
 		return true
 	}
-
 	return false
 }

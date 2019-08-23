@@ -247,6 +247,5 @@ func (ds *directSender) IsInterfaceNil() bool {
 	if ds == nil {
 		return true
 	}
-
 	return false
 }

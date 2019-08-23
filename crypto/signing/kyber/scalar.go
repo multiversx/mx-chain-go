@@ -221,6 +221,5 @@ func (sc *kyberScalar) IsInterfaceNil() bool {
 	if sc == nil {
 		return true
 	}
-
 	return false
 }

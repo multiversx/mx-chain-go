@@ -243,7 +243,6 @@ func (s *Unit) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }
 

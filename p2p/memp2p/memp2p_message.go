@@ -82,6 +82,5 @@ func (message *Message) IsInterfaceNil() bool {
 	if message == nil {
 		return true
 	}
-
 	return false
 }

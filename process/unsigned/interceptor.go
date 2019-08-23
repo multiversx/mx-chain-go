@@ -155,6 +155,5 @@ func (utxi *UnsignedTxInterceptor) IsInterfaceNil() bool {
 	if utxi == nil {
 		return true
 	}
-
 	return false
 }

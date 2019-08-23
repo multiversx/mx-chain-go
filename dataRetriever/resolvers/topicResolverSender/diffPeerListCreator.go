@@ -60,7 +60,6 @@ func (dplc *DiffPeerListCreator) IsInterfaceNil() bool {
 	if dplc == nil {
 		return true
 	}
-
 	return false
 }
 

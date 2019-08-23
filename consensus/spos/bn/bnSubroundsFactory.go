@@ -375,6 +375,5 @@ func (fct *factory) IsInterfaceNil() bool {
 	if fct == nil {
 		return true
 	}
-
 	return false
 }

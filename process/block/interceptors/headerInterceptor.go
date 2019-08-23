@@ -154,6 +154,5 @@ func (hi *HeaderInterceptor) IsInterfaceNil() bool {
 	if hi == nil {
 		return true
 	}
-
 	return false
 }

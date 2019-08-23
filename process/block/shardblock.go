@@ -1224,7 +1224,6 @@ func (sp *shardProcessor) isMetaHeaderFinal(currHdr data.HeaderHandler, sortedHd
 	if nextBlocksVerified >= sp.metaBlockFinality {
 		return true
 	}
-
 	return false
 }
 
@@ -1540,6 +1539,5 @@ func (sp *shardProcessor) IsInterfaceNil() bool {
 	if sp == nil {
 		return true
 	}
-
 	return false
 }

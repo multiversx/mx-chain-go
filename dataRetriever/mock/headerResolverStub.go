@@ -42,6 +42,5 @@ func (hrs *HeaderResolverStub) IsInterfaceNil() bool {
 	if hrs == nil {
 		return true
 	}
-
 	return false
 }

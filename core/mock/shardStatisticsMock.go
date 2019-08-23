@@ -59,6 +59,5 @@ func (ss *ShardStatisticsMock) IsInterfaceNil() bool {
 	if ss == nil {
 		return true
 	}
-
 	return false
 }

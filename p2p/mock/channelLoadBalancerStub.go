@@ -32,6 +32,5 @@ func (plbs *ChannelLoadBalancerStub) IsInterfaceNil() bool {
 	if plbs == nil {
 		return true
 	}
-
 	return false
 }

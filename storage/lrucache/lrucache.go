@@ -142,6 +142,5 @@ func (c *LRUCache) IsInterfaceNil() bool {
 	if c == nil {
 		return true
 	}
-
 	return false
 }

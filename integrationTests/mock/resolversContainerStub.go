@@ -41,6 +41,5 @@ func (rcs *ResolversContainerStub) IsInterfaceNil() bool {
 	if rcs == nil {
 		return true
 	}
-
 	return false
 }

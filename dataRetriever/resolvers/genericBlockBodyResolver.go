@@ -231,6 +231,5 @@ func (gbbRes *GenericBlockBodyResolver) IsInterfaceNil() bool {
 	if gbbRes == nil {
 		return true
 	}
-
 	return false
 }

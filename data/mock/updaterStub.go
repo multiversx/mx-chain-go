@@ -13,6 +13,5 @@ func (updater *UpdaterStub) IsInterfaceNil() bool {
 	if updater == nil {
 		return true
 	}
-
 	return false
 }

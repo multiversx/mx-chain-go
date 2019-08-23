@@ -184,6 +184,5 @@ func (hdrRes *HeaderResolver) IsInterfaceNil() bool {
 	if hdrRes == nil {
 		return true
 	}
-
 	return false
 }

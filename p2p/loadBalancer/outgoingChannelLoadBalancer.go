@@ -134,6 +134,5 @@ func (oplb *OutgoingChannelLoadBalancer) IsInterfaceNil() bool {
 	if oplb == nil {
 		return true
 	}
-
 	return false
 }

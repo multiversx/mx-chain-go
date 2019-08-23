@@ -178,6 +178,5 @@ func (kdd *KadDhtDiscoverer) IsInterfaceNil() bool {
 	if kdd == nil {
 		return true
 	}
-
 	return false
 }

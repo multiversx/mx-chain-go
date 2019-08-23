@@ -13,6 +13,5 @@ func (irm *IntRandomizerMock) IsInterfaceNil() bool {
 	if irm == nil {
 		return true
 	}
-
 	return false
 }

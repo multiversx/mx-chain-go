@@ -30,6 +30,5 @@ func (etm *TxProcessorMock) IsInterfaceNil() bool {
 	if etm == nil {
 		return true
 	}
-
 	return false
 }

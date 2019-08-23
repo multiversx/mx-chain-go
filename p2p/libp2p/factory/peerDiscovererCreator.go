@@ -67,6 +67,5 @@ func (pdc *peerDiscovererCreator) IsInterfaceNil() bool {
 	if pdc == nil {
 		return true
 	}
-
 	return false
 }

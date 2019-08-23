@@ -82,6 +82,5 @@ func (s *suitePairingBn256) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }

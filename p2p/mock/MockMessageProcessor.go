@@ -26,6 +26,5 @@ func (processor *MockMessageProcessor) IsInterfaceNil() bool {
 	if processor == nil {
 		return true
 	}
-
 	return false
 }

@@ -21,6 +21,5 @@ func (ntv *nilTxValidator) IsInterfaceNil() bool {
 	if ntv == nil {
 		return true
 	}
-
 	return false
 }

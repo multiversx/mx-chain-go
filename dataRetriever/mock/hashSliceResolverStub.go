@@ -37,6 +37,5 @@ func (hsrs *HashSliceResolverStub) IsInterfaceNil() bool {
 	if hsrs == nil {
 		return true
 	}
-
 	return false
 }

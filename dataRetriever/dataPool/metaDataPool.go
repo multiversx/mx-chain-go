@@ -67,6 +67,5 @@ func (mdp *metaDataPool) IsInterfaceNil() bool {
 	if mdp == nil {
 		return true
 	}
-
 	return false
 }

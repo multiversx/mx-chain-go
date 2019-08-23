@@ -190,7 +190,6 @@ func (sr *subroundCommitmentHash) doCommitmentHashConsensusCheck() bool {
 		sr.SetStatus(SrCommitmentHash, spos.SsFinished)
 		return true
 	}
-
 	return false
 }
 

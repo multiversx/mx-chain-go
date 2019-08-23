@@ -56,7 +56,6 @@ func (psh *PrometheusStatusHandler) IsInterfaceNil() bool {
 	if psh == nil {
 		return true
 	}
-
 	return false
 }
 

@@ -170,6 +170,5 @@ func (kms *KyberMultiSignerBLS) IsInterfaceNil() bool {
 	if kms == nil {
 		return true
 	}
-
 	return false
 }

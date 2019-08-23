@@ -396,7 +396,6 @@ func isSmartContractAddress(rcvAddress []byte) bool {
 	if isSCAddress {
 		return true
 	}
-
 	return false
 }
 
@@ -621,6 +620,5 @@ func (txs *transactions) IsInterfaceNil() bool {
 	if txs == nil {
 		return true
 	}
-
 	return false
 }

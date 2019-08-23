@@ -28,6 +28,5 @@ func (sihsm *ShardIdHasMapMock) IsInterfaceNil() bool {
 	if sihsm == nil {
 		return true
 	}
-
 	return false
 }

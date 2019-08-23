@@ -61,6 +61,5 @@ func (sc *SCProcessorMock) IsInterfaceNil() bool {
 	if sc == nil {
 		return true
 	}
-
 	return false
 }

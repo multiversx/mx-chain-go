@@ -24,6 +24,5 @@ func (im *IndexerMock) IsInterfaceNil() bool {
 	if im == nil {
 		return true
 	}
-
 	return false
 }

@@ -15,6 +15,5 @@ func (afs *AccountsFactoryStub) IsInterfaceNil() bool {
 	if afs == nil {
 		return true
 	}
-
 	return false
 }

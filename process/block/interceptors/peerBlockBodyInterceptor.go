@@ -95,6 +95,5 @@ func (pbbi *PeerBlockBodyInterceptor) IsInterfaceNil() bool {
 	if pbbi == nil {
 		return true
 	}
-
 	return false
 }

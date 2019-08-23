@@ -33,6 +33,5 @@ func (sha HasherMock) IsInterfaceNil() bool {
 	if &sha == nil {
 		return true
 	}
-
 	return false
 }

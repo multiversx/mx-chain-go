@@ -86,6 +86,5 @@ func (s *BlsSingleSigner) IsInterfaceNil() bool {
 	if s == nil {
 		return true
 	}
-
 	return false
 }

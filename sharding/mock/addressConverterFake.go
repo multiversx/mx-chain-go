@@ -75,6 +75,5 @@ func (acf *AddressConverterFake) IsInterfaceNil() bool {
 	if acf == nil {
 		return true
 	}
-
 	return false
 }

@@ -179,7 +179,6 @@ func (sr *subroundCommitment) doCommitmentConsensusCheck() bool {
 		sr.SetStatus(SrCommitment, spos.SsFinished)
 		return true
 	}
-
 	return false
 }
 

@@ -15,6 +15,5 @@ func (t *TxValidatorStub) IsInterfaceNil() bool {
 	if t == nil {
 		return true
 	}
-
 	return false
 }

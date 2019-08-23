@@ -26,6 +26,5 @@ func (hs *HasherStub) IsInterfaceNil() bool {
 	if hs == nil {
 		return true
 	}
-
 	return false
 }

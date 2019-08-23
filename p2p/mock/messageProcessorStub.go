@@ -17,6 +17,5 @@ func (mps *MessageProcessorStub) IsInterfaceNil() bool {
 	if mps == nil {
 		return true
 	}
-
 	return false
 }

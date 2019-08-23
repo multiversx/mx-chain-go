@@ -50,6 +50,5 @@ func (b2b Blake2b) IsInterfaceNil() bool {
 	if &b2b == nil {
 		return true
 	}
-
 	return false
 }
