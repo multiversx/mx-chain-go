@@ -469,7 +469,8 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	headersNonce := make([]uint64, 5, 5)
+	numberOfShards := mp.shardCoordinator.NumberOfShards()
+	headersNonce := make([]uint64, numberOfShards, numberOfShards)
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
