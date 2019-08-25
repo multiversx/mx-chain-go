@@ -1,19 +1,20 @@
 package unsigned
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/feeTx"
+	"math/big"
+	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
 )
 
-func TestNewFeeTxHandler_NilSpecialAddress(t *testing.T) {
+func TestNewRewardTxHandler_NilSpecialAddress(t *testing.T) {
 	t.Parallel()
 
-	th, err := NewFeeTxHandler(
+	th, err := NewRewardTxHandler(
 		nil,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -23,10 +24,10 @@ func TestNewFeeTxHandler_NilSpecialAddress(t *testing.T) {
 	assert.Equal(t, process.ErrNilSpecialAddressHandler, err)
 }
 
-func TestNewFeeTxHandler_NilHasher(t *testing.T) {
+func TestNewRewardTxHandler_NilHasher(t *testing.T) {
 	t.Parallel()
 
-	th, err := NewFeeTxHandler(
+	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		nil,
 		&mock.MarshalizerMock{},
@@ -36,10 +37,10 @@ func TestNewFeeTxHandler_NilHasher(t *testing.T) {
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
-func TestNewFeeTxHandler_NilMarshalizer(t *testing.T) {
+func TestNewRewardTxHandler_NilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	th, err := NewFeeTxHandler(
+	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
 		nil,
@@ -49,10 +50,10 @@ func TestNewFeeTxHandler_NilMarshalizer(t *testing.T) {
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestNewFeeTxHandler_ValsOk(t *testing.T) {
+func TestNewRewardTxHandler_ValsOk(t *testing.T) {
 	t.Parallel()
 
-	th, err := NewFeeTxHandler(
+	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -62,10 +63,10 @@ func TestNewFeeTxHandler_ValsOk(t *testing.T) {
 	assert.NotNil(t, th)
 }
 
-func TestFeeTxHandler_AddIntermediateTransactions(t *testing.T) {
+func TestRewardTxHandlerAddIntermediateTransactions(t *testing.T) {
 	t.Parallel()
 
-	th, err := NewFeeTxHandler(
+	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -78,10 +79,10 @@ func TestFeeTxHandler_AddIntermediateTransactions(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestFeeTxHandler_AddProcessedUTx(t *testing.T) {
+func TestRewardTxHandlerProcessTransactionFee(t *testing.T) {
 	t.Parallel()
 
-	th, err := NewFeeTxHandler(
+	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -90,20 +91,20 @@ func TestFeeTxHandler_AddProcessedUTx(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, th)
 
-	th.AddProcessedUTx(nil)
-	assert.Equal(t, 0, len(th.feeTxs))
+	th.ProcessTransactionFee(nil)
+	assert.Equal(t, big.NewInt(0), th.accumulatedFees)
 
-	th.AddProcessedUTx(&transaction.Transaction{})
-	assert.Equal(t, 0, len(th.feeTxs))
+	th.ProcessTransactionFee(big.NewInt(10))
+	assert.Equal(t, big.NewInt(10), th.accumulatedFees)
 
-	th.AddProcessedUTx(&feeTx.FeeTx{})
-	assert.Equal(t, 1, len(th.feeTxs))
+	th.ProcessTransactionFee(big.NewInt(100))
+	assert.Equal(t, big.NewInt(110), th.accumulatedFees)
 }
 
-func TestFeeTxHandler_AddTxFeeFromBlock(t *testing.T) {
+func TestRewardTxHandlerAddTxFeeFromBlock(t *testing.T) {
 	t.Parallel()
 
-	th, err := NewFeeTxHandler(
+	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -112,20 +113,20 @@ func TestFeeTxHandler_AddTxFeeFromBlock(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, th)
 
-	th.AddTxFeeFromBlock(nil)
-	assert.Equal(t, 0, len(th.feeTxsFromBlock))
+	th.AddRewardTxFromBlock(nil)
+	assert.Equal(t, 0, len(th.rewardTxsFromBlock))
 
-	th.AddTxFeeFromBlock(&transaction.Transaction{})
-	assert.Equal(t, 0, len(th.feeTxsFromBlock))
+	th.AddRewardTxFromBlock(&transaction.Transaction{})
+	assert.Equal(t, 0, len(th.rewardTxsFromBlock))
 
-	th.AddTxFeeFromBlock(&feeTx.FeeTx{})
-	assert.Equal(t, 1, len(th.feeTxsFromBlock))
+	th.AddRewardTxFromBlock(&rewardTx.RewardTx{})
+	assert.Equal(t, 1, len(th.rewardTxsFromBlock))
 }
 
-func TestFeeTxHandler_CleanProcessedUTxs(t *testing.T) {
+func TestRewardTxHandlerCleanProcessedUTxs(t *testing.T) {
 	t.Parallel()
 
-	th, err := NewFeeTxHandler(
+	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -134,20 +135,20 @@ func TestFeeTxHandler_CleanProcessedUTxs(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, th)
 
-	th.AddProcessedUTx(&feeTx.FeeTx{})
-	th.AddTxFeeFromBlock(&feeTx.FeeTx{})
-	assert.Equal(t, 1, len(th.feeTxs))
-	assert.Equal(t, 1, len(th.feeTxsFromBlock))
+	th.ProcessTransactionFee(big.NewInt(10))
+	th.AddRewardTxFromBlock(&rewardTx.RewardTx{})
+	assert.Equal(t, big.NewInt(10), th.accumulatedFees)
+	assert.Equal(t, 1, len(th.rewardTxsFromBlock))
 
 	th.CleanProcessedUTxs()
-	assert.Equal(t, 0, len(th.feeTxs))
-	assert.Equal(t, 0, len(th.feeTxsFromBlock))
+	assert.Equal(t, big.NewInt(0), th.accumulatedFees)
+	assert.Equal(t, 0, len(th.rewardTxsFromBlock))
 }
 
-func TestFeeTxHandler_CreateAllUTxs(t *testing.T) {
+func TestRewardTxHandlerCreateAllUTxs(t *testing.T) {
 	t.Parallel()
 
-	th, err := NewFeeTxHandler(
+	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -160,7 +161,7 @@ func TestFeeTxHandler_CreateAllUTxs(t *testing.T) {
 	assert.Equal(t, 0, len(txs))
 
 	currTxFee := big.NewInt(50)
-	th.AddProcessedUTx(&feeTx.FeeTx{Value: currTxFee})
+	th.ProcessTransactionFee(currTxFee)
 
 	txs = th.CreateAllUTxs()
 	assert.Equal(t, 3, len(txs))
@@ -172,11 +173,11 @@ func TestFeeTxHandler_CreateAllUTxs(t *testing.T) {
 	assert.Equal(t, currTxFee.Uint64(), totalSum)
 }
 
-func TestFeeTxHandler_VerifyCreatedUTxs(t *testing.T) {
+func TestRewardTxHandlerVerifyCreatedUTxs(t *testing.T) {
 	t.Parallel()
 
 	addr := &mock.SpecialAddressHandlerMock{}
-	th, err := NewFeeTxHandler(
+	th, err := NewRewardTxHandler(
 		addr,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -189,13 +190,13 @@ func TestFeeTxHandler_VerifyCreatedUTxs(t *testing.T) {
 	assert.Nil(t, err)
 
 	currTxFee := big.NewInt(50)
-	th.AddProcessedUTx(&feeTx.FeeTx{Value: currTxFee})
+	th.ProcessTransactionFee(currTxFee)
 
 	err = th.VerifyCreatedUTxs()
 	assert.Equal(t, process.ErrTxsFeesNotFound, err)
 
 	badValue := big.NewInt(100)
-	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: badValue})
+	th.AddRewardTxFromBlock(&rewardTx.RewardTx{Value: badValue})
 
 	err = th.VerifyCreatedUTxs()
 	assert.Equal(t, process.ErrTotalTxsFeesDoNotMatch, err)
@@ -204,8 +205,8 @@ func TestFeeTxHandler_VerifyCreatedUTxs(t *testing.T) {
 
 	currTxFee = big.NewInt(50)
 	halfCurrTxFee := big.NewInt(25)
-	th.AddProcessedUTx(&feeTx.FeeTx{Value: currTxFee})
-	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: halfCurrTxFee})
+	th.ProcessTransactionFee(currTxFee)
+	th.AddRewardTxFromBlock(&rewardTx.RewardTx{Value: halfCurrTxFee})
 
 	err = th.VerifyCreatedUTxs()
 	assert.Equal(t, process.ErrTxsFeesNotFound, err)
@@ -213,19 +214,19 @@ func TestFeeTxHandler_VerifyCreatedUTxs(t *testing.T) {
 	th.CleanProcessedUTxs()
 
 	currTxFee = big.NewInt(50)
-	th.AddProcessedUTx(&feeTx.FeeTx{Value: currTxFee})
-	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()})
-	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: big.NewInt(20), RcvAddr: addr.LeaderAddress()})
-	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: big.NewInt(25), RcvAddr: addr.BurnAddress()})
+	th.ProcessTransactionFee(currTxFee)
+	th.AddRewardTxFromBlock(&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()})
+	th.AddRewardTxFromBlock(&rewardTx.RewardTx{Value: big.NewInt(20), RcvAddr: addr.LeaderAddress()})
+	th.AddRewardTxFromBlock(&rewardTx.RewardTx{Value: big.NewInt(25), RcvAddr: addr.BurnAddress()})
 
 	err = th.VerifyCreatedUTxs()
 	assert.Nil(t, err)
 }
 
-func TestFeeTxHandler_CreateAllInterMiniBlocks(t *testing.T) {
+func TestRewardTxHandlerCreateAllInterMiniBlocks(t *testing.T) {
 	t.Parallel()
 
-	th, err := NewFeeTxHandler(
+	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -238,17 +239,17 @@ func TestFeeTxHandler_CreateAllInterMiniBlocks(t *testing.T) {
 	assert.Equal(t, 0, len(mbs))
 
 	currTxFee := big.NewInt(50)
-	th.AddProcessedUTx(&feeTx.FeeTx{Value: currTxFee})
+	th.ProcessTransactionFee(currTxFee)
 
 	mbs = th.CreateAllInterMiniBlocks()
 	assert.Equal(t, 1, len(mbs))
 }
 
-func TestFeeTxHandler_VerifyInterMiniBlocks(t *testing.T) {
+func TestRewardTxHandlerVerifyInterMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	addr := &mock.SpecialAddressHandlerMock{}
-	th, err := NewFeeTxHandler(
+	th, err := NewRewardTxHandler(
 		addr,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -261,13 +262,13 @@ func TestFeeTxHandler_VerifyInterMiniBlocks(t *testing.T) {
 	assert.Nil(t, err)
 
 	currTxFee := big.NewInt(50)
-	th.AddProcessedUTx(&feeTx.FeeTx{Value: currTxFee})
+	th.ProcessTransactionFee(currTxFee)
 
 	err = th.VerifyInterMiniBlocks(nil)
 	assert.Equal(t, process.ErrTxsFeesNotFound, err)
 
 	badValue := big.NewInt(100)
-	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: badValue})
+	th.AddRewardTxFromBlock(&rewardTx.RewardTx{Value: badValue})
 
 	err = th.VerifyInterMiniBlocks(nil)
 	assert.Equal(t, process.ErrTotalTxsFeesDoNotMatch, err)
@@ -276,8 +277,8 @@ func TestFeeTxHandler_VerifyInterMiniBlocks(t *testing.T) {
 
 	currTxFee = big.NewInt(50)
 	halfCurrTxFee := big.NewInt(25)
-	th.AddProcessedUTx(&feeTx.FeeTx{Value: currTxFee})
-	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: halfCurrTxFee})
+	th.ProcessTransactionFee(currTxFee)
+	th.AddRewardTxFromBlock(&rewardTx.RewardTx{Value: halfCurrTxFee})
 
 	err = th.VerifyInterMiniBlocks(nil)
 	assert.Equal(t, process.ErrTxsFeesNotFound, err)
@@ -285,7 +286,7 @@ func TestFeeTxHandler_VerifyInterMiniBlocks(t *testing.T) {
 	th.CleanProcessedUTxs()
 
 	currTxFee = big.NewInt(50)
-	th.AddProcessedUTx(&feeTx.FeeTx{Value: currTxFee})
-	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()})
-	th.AddTxFeeFromBlock(&feeTx.FeeTx{Value: big.NewInt(20), RcvAddr: addr.LeaderAddress()})
+	th.ProcessTransactionFee(currTxFee)
+	th.AddRewardTxFromBlock(&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()})
+	th.AddRewardTxFromBlock(&rewardTx.RewardTx{Value: big.NewInt(20), RcvAddr: addr.LeaderAddress()})
 }

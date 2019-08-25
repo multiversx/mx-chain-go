@@ -489,39 +489,25 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
-	tc.addTxFeeToMatchingMiniBlocks(&miniBlocks)
+	tc.addRewardsMiniBlocks(&miniBlocks)
 
 	return miniBlocks
 }
 
-func (tc *transactionCoordinator) addTxFeeToMatchingMiniBlocks(miniBlocks *block.MiniBlockSlice) {
-	// add txfee transactions to matching blocks
-	interimProc := tc.getInterimProcessor(block.TxFeeBlock)
+func (tc *transactionCoordinator) addRewardsMiniBlocks(miniBlocks *block.MiniBlockSlice) {
+	// add rewards transactions to separate miniBlocks
+	interimProc := tc.getInterimProcessor(block.RewardsBlockType)
 	if interimProc == nil {
 		return
 	}
 
-	txFeeMbs := interimProc.CreateAllInterMiniBlocks()
-	for key, mb := range txFeeMbs {
-		var matchingMBFound bool
-		for i := 0; i < len(*miniBlocks); i++ {
-			currMb := (*miniBlocks)[i]
-			if currMb.ReceiverShardID == key &&
-				currMb.SenderShardID == tc.shardCoordinator.SelfId() &&
-				currMb.Type == block.TxBlock {
-				currMb.TxHashes = append(currMb.TxHashes, mb.TxHashes...)
-				matchingMBFound = true
-				break
-			}
-		}
-
-		if !matchingMBFound {
+	rewardsMbs := interimProc.CreateAllInterMiniBlocks()
+	for key, mb := range rewardsMbs {
 			mb.ReceiverShardID = key
 			mb.SenderShardID = tc.shardCoordinator.SelfId()
-			mb.Type = block.TxBlock
+			mb.Type = block.RewardsBlockType
 
 			*miniBlocks = append(*miniBlocks, mb)
-		}
 	}
 }
 
@@ -529,9 +515,8 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
-	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysInterimProcs {
-		if blockType == block.TxFeeBlock {
+		if blockType == block.RewardsBlockType {
 			// this has to be processed last
 			continue
 		}
@@ -600,6 +585,8 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 		baseTopic = factory.PeerChBodyTopic
 	case block.SmartContractResultBlock:
 		baseTopic = factory.UnsignedTransactionTopic
+	case block.RewardsBlockType:
+		baseTopic = factory.RewardsTransactionTopic
 	default:
 		return "", process.ErrUnknownBlockType
 	}
@@ -747,7 +734,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 	wg.Add(len(tc.interimProcessors))
 
 	for key, interimProc := range tc.interimProcessors {
-		if key == block.TxFeeBlock {
+		if key == block.RewardsBlockType {
 			// this has to be processed last
 			wg.Done()
 			continue
@@ -770,7 +757,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 		return errFound
 	}
 
-	interimProc := tc.getInterimProcessor(block.TxFeeBlock)
+	interimProc := tc.getInterimProcessor(block.RewardsBlockType)
 	if interimProc == nil {
 		return nil
 	}

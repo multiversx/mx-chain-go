@@ -7,11 +7,11 @@ import (
 )
 
 type specialAddresses struct {
-	elrond           []byte
-	leaderAddress    []byte
-	burnAddress      []byte
-	adrConv          state.AddressConverter
-	shardCoordinator sharding.Coordinator
+	elrond                   []byte
+	consensusRewardAddresses []string
+	burnAddress              []byte
+	adrConv                  state.AddressConverter
+	shardCoordinator         sharding.Coordinator
 }
 
 // NewSpecialAddressHolder creates a special address holder
@@ -59,14 +59,23 @@ func (sp *specialAddresses) BurnAddress() []byte {
 	return sp.burnAddress
 }
 
-// SetLeaderAddress provides leaders address
-func (sp *specialAddresses) SetLeaderAddress(leader []byte) {
-	sp.leaderAddress = leader
+// SetConsensusRewardAddresses sets the consensus rewards addresses for the round
+func (sp *specialAddresses) SetConsensusRewardAddresses(consensusRewardAddresses []string) {
+	sp.consensusRewardAddresses = consensusRewardAddresses
 }
 
 // LeaderAddress provides leader address
 func (sp *specialAddresses) LeaderAddress() []byte {
-	return sp.leaderAddress
+	if sp.consensusRewardAddresses == nil {
+		return nil
+	}
+
+	return []byte(sp.consensusRewardAddresses[0])
+}
+
+// ConsensusRewardAddresses provides the consensus reward addresses
+func (sp *specialAddresses) ConsensusRewardAddresses() []string {
+	return sp.consensusRewardAddresses
 }
 
 // ShardIdForAddress calculates shard id for address

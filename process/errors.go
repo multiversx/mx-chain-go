@@ -430,8 +430,8 @@ var ErrNotEnoughFeeInTransactions = errors.New("transaction fee is not enough")
 // ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
 var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
 
-// ErrTxsFeesDoesNotMatch signals that txs fees do not match
-var ErrTxsFeesDoesNotMatch = errors.New("calculated tx fees with block tx fee does not match")
+// ErrTxsFeesDoNotMatch signals that txs fees do not match
+var ErrTxsFeesDoNotMatch = errors.New("calculated tx fees with block tx fee does not match")
 
 // ErrTxsFeesNotFound signals that the tx fee not found
 var ErrTxsFeesNotFound = errors.New("tx fees not found")

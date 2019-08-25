@@ -75,12 +75,12 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 		return nil, err
 	}
 
-	interproc, err = ppcm.createTxFeeIntermediateProcessor()
+	interproc, err = ppcm.createRewardsTxIntermediateProcessor()
 	if err != nil {
 		return nil, err
 	}
 
-	err = container.Add(block.TxFeeBlock, interproc)
+	err = container.Add(block.RewardsBlockType, interproc)
 	if err != nil {
 		return nil, err
 	}
@@ -101,8 +101,8 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 	return irp, err
 }
 
-func (ppcm *intermediateProcessorsContainerFactory) createTxFeeIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
-	irp, err := unsigned.NewFeeTxHandler(
+func (ppcm *intermediateProcessorsContainerFactory) createRewardsTxIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
+	irp, err := unsigned.NewRewardTxHandler(
 		ppcm.specialAddressHandler,
 		ppcm.hasher,
 		ppcm.marshalizer,

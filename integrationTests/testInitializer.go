@@ -94,6 +94,7 @@ func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dat
 	}
 
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache})
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
@@ -113,6 +114,7 @@ func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dat
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
+		rewardsTxPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,

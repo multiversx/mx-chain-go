@@ -66,3 +66,7 @@ func (blProcMock BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHa
 func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
+
+func (blProcMock BlockProcessorMock) SetConsensusRewardAddresses([]string){
+	panic("implement me")
+}

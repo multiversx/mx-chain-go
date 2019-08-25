@@ -11,7 +11,8 @@ import (
 
 type PoolsHolderFake struct {
 	transactions         dataRetriever.ShardedDataCacherNotifier
-	unsignedtransactions dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
+	rewardTransactions   dataRetriever.ShardedDataCacherNotifier
 	headers              storage.Cacher
 	metaBlocks           storage.Cacher
 	hdrNonces            dataRetriever.Uint64SyncMapCacher
@@ -23,7 +24,8 @@ type PoolsHolderFake struct {
 func NewPoolsHolderFake() *PoolsHolderFake {
 	phf := &PoolsHolderFake{}
 	phf.transactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
-	phf.unsignedtransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
+	phf.unsignedTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
+	phf.rewardTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 	phf.headers, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	phf.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	cacheHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
@@ -46,7 +48,11 @@ func (phf *PoolsHolderFake) Transactions() dataRetriever.ShardedDataCacherNotifi
 }
 
 func (phf *PoolsHolderFake) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return phf.unsignedtransactions
+	return phf.unsignedTransactions
+}
+
+func (phf *PoolsHolderFake) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return phf.rewardTransactions
 }
 
 func (phf *PoolsHolderFake) Headers() storage.Cacher {
@@ -78,5 +84,5 @@ func (phf *PoolsHolderFake) SetTransactions(transactions dataRetriever.ShardedDa
 }
 
 func (phf *PoolsHolderFake) SetUnsignedTransactions(scrs dataRetriever.ShardedDataCacherNotifier) {
-	phf.unsignedtransactions = scrs
+	phf.unsignedTransactions = scrs
 }

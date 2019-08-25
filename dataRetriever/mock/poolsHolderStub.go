@@ -11,6 +11,7 @@ type PoolsHolderStub struct {
 	PeerChangesBlocksCalled    func() storage.Cacher
 	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
 	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
+	RewardTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
 	MiniBlocksCalled           func() storage.Cacher
 	MetaBlocksCalled           func() storage.Cacher
 }
@@ -41,4 +42,8 @@ func (phs *PoolsHolderStub) MetaBlocks() storage.Cacher {
 
 func (phs *PoolsHolderStub) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
 	return phs.UnsignedTransactionsCalled()
+}
+
+func (phs *PoolsHolderStub) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return phs.RewardTransactionsCalled()
 }

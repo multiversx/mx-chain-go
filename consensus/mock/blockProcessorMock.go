@@ -38,7 +38,7 @@ func (blProcMock *BlockProcessorMock) RevertAccountState() {
 	blProcMock.RevertAccountStateCalled()
 }
 
-// CreateTxBlockBody mocks the creation of a transaction block body
+// CreateBlockBody mocks the creation of a transaction block body
 func (blProcMock *BlockProcessorMock) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
 	return blProcMock.CreateBlockCalled(round, haveTime)
 }
@@ -65,4 +65,7 @@ func (blProcMock BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHa
 
 func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
+}
+
+func (blProcMock BlockProcessorMock) SetConsensusRewardAddresses(addresses []string) {
 }

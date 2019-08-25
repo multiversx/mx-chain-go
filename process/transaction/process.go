@@ -119,7 +119,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 	return process.ErrWrongTransaction
 }
 
-func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *state.Account) (*feeTx.FeeTx, error) {
+func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *state.Account) (*big.Int, error) {
 	if acntSnd == nil {
 		return nil, nil
 	}
@@ -146,12 +146,7 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 		return nil, err
 	}
 
-	currFeeTx := &feeTx.FeeTx{
-		Nonce: tx.Nonce,
-		Value: cost,
-	}
-
-	return currFeeTx, nil
+	return cost, nil
 }
 
 func (txProc *txProcessor) processAccumulatedTxFees(
@@ -178,7 +173,7 @@ func (txProc *txProcessor) processAccumulatedTxFees(
 	}
 
 	if currTxFee.ShardId == txProc.shardCoordinator.SelfId() {
-		txProc.txFeeHandler.AddTxFeeFromBlock(currTxFee)
+		txProc.txFeeHandler.AddRewardTxFromBlock(currTxFee)
 	}
 
 	return nil
@@ -196,7 +191,7 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	currFeeTx, err := txProc.processTxFee(tx, acntSrc)
+	txFee, err := txProc.processTxFee(tx, acntSrc)
 	if err != nil {
 		return err
 	}
@@ -216,11 +211,7 @@ func (txProc *txProcessor) processMoveBalance(
 		}
 	}
 
-	if currFeeTx == nil || currFeeTx.IsInterfaceNil() {
-		return nil
-	}
-
-	txProc.txFeeHandler.AddProcessedUTx(currFeeTx)
+	txProc.txFeeHandler.ProcessTransactionFee(txFee)
 
 	return nil
 }

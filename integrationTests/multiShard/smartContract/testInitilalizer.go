@@ -219,6 +219,7 @@ func createTestShardStore(numOfShards uint32) dataRetriever.StorageService {
 func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
@@ -238,6 +239,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
+		rewardsTxPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -339,8 +341,8 @@ func createNetNode(
 	)
 	interimProcContainer, _ := interimProcFactory.Create()
 	scForwarder, _ := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
-	txFeeInter, _ := interimProcContainer.Get(dataBlock.TxFeeBlock)
-	txFeeHandler, _ := txFeeInter.(process.UnsignedTxHandler)
+	rewardsInter, _ := interimProcContainer.Get(dataBlock.RewardsBlockType)
+	rewardsHandler, _ := rewardsInter.(process.UnsignedTxHandler)
 
 	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter)
 	vmContainer := &mock.VMContainerMock{
@@ -358,7 +360,7 @@ func createNetNode(
 		addrConv,
 		shardCoordinator,
 		scForwarder,
-		txFeeHandler,
+		rewardsHandler,
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)
@@ -370,7 +372,7 @@ func createNetNode(
 		testMarshalizer,
 		shardCoordinator,
 		scProcessor,
-		txFeeHandler,
+		rewardsHandler,
 		txTypeHandler,
 	)
 
@@ -407,6 +409,8 @@ func createNetNode(
 		testMarshalizer,
 		accntAdapter,
 		shardCoordinator,
+		nodesCoordinator,
+		&mock.SpecialAddressHandlerMock{},
 		&mock.ForkDetectorMock{
 			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 				return nil
@@ -745,6 +749,8 @@ func createMetaNetNode(
 			},
 		},
 		shardCoordinator,
+		nodesCoordinator,
+		&mock.SpecialAddressHandlerMock{},
 		testHasher,
 		testMarshalizer,
 		store,

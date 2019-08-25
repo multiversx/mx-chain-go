@@ -88,17 +88,18 @@ type TransactionVerifier interface {
 // UnsignedTxHandler creates and verifies unsigned transactions for current round
 type UnsignedTxHandler interface {
 	CleanProcessedUTxs()
-	AddProcessedUTx(tx data.TransactionHandler)
+	ProcessTransactionFee(cost *big.Int)
 	CreateAllUTxs() []data.TransactionHandler
 	VerifyCreatedUTxs() error
-	AddTxFeeFromBlock(tx data.TransactionHandler)
+	AddRewardTxFromBlock(tx data.TransactionHandler)
 }
 
 // SpecialAddressHandler responds with needed special addresses
 type SpecialAddressHandler interface {
 	SetElrondCommunityAddress(elrond []byte)
 	ElrondCommunityAddress() []byte
-	SetLeaderAddress(leader []byte)
+	SetConsensusRewardAddresses(consensusRewardAddresses []string)
+	ConsensusRewardAddresses() []string
 	LeaderAddress() []byte
 	BurnAddress() []byte
 	ShardIdForAddress([]byte) (uint32, error)
@@ -137,6 +138,7 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
+	SetConsensusRewardAddresses(consensusRewardAddresses []string)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

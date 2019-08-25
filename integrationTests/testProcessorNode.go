@@ -74,9 +74,10 @@ type CryptoParams struct {
 // TestProcessorNode represents a container type of class used in integration tests
 // with all its fields exported
 type TestProcessorNode struct {
-	ShardCoordinator sharding.Coordinator
-	NodesCoordinator sharding.NodesCoordinator
-	Messenger        p2p.Messenger
+	ShardCoordinator      sharding.Coordinator
+	NodesCoordinator      sharding.NodesCoordinator
+	SpecialAddressHandler process.SpecialAddressHandler
+	Messenger             p2p.Messenger
 
 	OwnAccount *TestWalletAccount
 
@@ -434,6 +435,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.MetaDataPool,
 			tpn.ForkDetector,
 			tpn.ShardCoordinator,
+			tpn.NodesCoordinator,
+			&mock.SpecialAddressHandlerMock{},
 			TestHasher,
 			TestMarshalizer,
 			tpn.Storage,
@@ -450,6 +453,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			TestMarshalizer,
 			tpn.AccntState,
 			tpn.ShardCoordinator,
+			tpn.NodesCoordinator,
+			&mock.SpecialAddressHandlerMock{},
 			tpn.ForkDetector,
 			tpn.BlockTracker,
 			tpn.GenesisBlocks,

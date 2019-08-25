@@ -4,21 +4,20 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/feeTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type scExecutionState struct {
@@ -172,7 +171,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
-	sc.txFeeHandler.AddProcessedUTx(consumedFee)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
 
 	return nil
 }
@@ -257,7 +256,7 @@ func (sc *scProcessor) DeploySmartContract(
 		return err
 	}
 
-	sc.txFeeHandler.AddProcessedUTx(consumedFee)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
 
 	return nil
 }
@@ -370,7 +369,7 @@ func (sc *scProcessor) processVMOutput(
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
 	round uint64,
-) ([]data.TransactionHandler, *feeTx.FeeTx, error) {
+) ([]data.TransactionHandler, *big.Int, error) {
 	if vmOutput == nil {
 		return nil, nil, process.ErrNilVMOutput
 	}
@@ -433,12 +432,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
-	currFeeTx := &feeTx.FeeTx{
-		Nonce: tx.Nonce,
-		Value: consumedFee,
-	}
-
-	return crossTxs, currFeeTx, nil
+	return crossTxs, consumedFee, nil
 }
 
 // reloadLocalSndAccount will reload from current account state the sender account

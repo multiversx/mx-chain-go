@@ -97,6 +97,16 @@
         BatchDelaySeconds = 15
         MaxBatchSize = 45000
 
+[RewardTxStorage]
+    [RewardTxStorage.Cache]
+        Size = 10000
+        Type = "LRU"
+    [RewardTxStorage.DB]
+        FilePath = "RewardTransactions"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 15
+        MaxBatchSize = 500
+
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
         Size = 1000
@@ -162,6 +172,10 @@
 
 [UnsignedTransactionDataPool]
     Size = 100000
+    Type = "LRU"
+
+[RewardTransactionDataPool]
+    Size = 5000
     Type = "LRU"
 
 [ShardHeadersDataPool]
