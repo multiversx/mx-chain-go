@@ -60,8 +60,8 @@ var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
-	sk crypto.PrivateKey
-	pk crypto.PublicKey
+	Sk crypto.PrivateKey
+	Pk crypto.PublicKey
 }
 
 //CryptoParams holds crypto parametres
@@ -80,6 +80,7 @@ type TestProcessorNode struct {
 	Messenger             p2p.Messenger
 
 	OwnAccount *TestWalletAccount
+	NodeKeys *TestKeyPair
 
 	ShardDataPool dataRetriever.PoolsHolder
 	MetaDataPool  dataRetriever.MetaPoolsHolder
@@ -109,6 +110,8 @@ type TestProcessorNode struct {
 	BlockProcessor     process.BlockProcessor
 	BroadcastMessenger consensus.BroadcastMessenger
 
+	MultiSigner crypto.MultiSigner
+
 	//Node is used to call the functionality already implemented in it
 	Node         *node.Node
 	ScDataGetter external.ScDataGetter
@@ -129,6 +132,8 @@ func NewTestProcessorNode(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	kg := &mock.KeyGenMock{}
+	sk, pk := kg.GeneratePair()
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
@@ -137,36 +142,12 @@ func NewTestProcessorNode(
 		NodesCoordinator: nodesCoordinator,
 	}
 
+	tpn.NodeKeys = &TestKeyPair{
+		Sk: sk,
+		Pk: pk,
+	}
+	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
-	tpn.initDataPools()
-	tpn.initTestNode()
-
-	return tpn
-}
-
-// NewTestProcessorNodeWithCustomNodesCoordinator returns a new TestProcessorNode instance with custom NodesCoordinator
-func NewTestProcessorNodeWithCustomNodesCoordinator(
-	maxShards uint32,
-	nodeShardId uint32,
-	initialNodeAddr string,
-	nodesCoordinator sharding.NodesCoordinator,
-	cp *CryptoParams,
-	keyIndex int,
-) *TestProcessorNode {
-
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
-
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
-	tpn := &TestProcessorNode{
-		ShardCoordinator: shardCoordinator,
-		Messenger:        messenger,
-		NodesCoordinator: nodesCoordinator,
-	}
-
-	sk := cp.Keys[nodeShardId][keyIndex].sk
-	pk := cp.Keys[nodeShardId][keyIndex].pk
-
-	tpn.OwnAccount = CreateTestWalletAccountWithSkPk(sk, pk, cp.KeyGen)
 	tpn.initDataPools()
 	tpn.initTestNode()
 
@@ -179,6 +160,8 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	kg := &mock.KeyGenMock{}
+	sk, pk := kg.GeneratePair()
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
@@ -186,6 +169,11 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		NodesCoordinator: nodesCoordinator,
 	}
 
+	tpn.NodeKeys = &TestKeyPair{
+		Sk: sk,
+		Pk: pk,
+	}
+	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	if tpn.ShardCoordinator.SelfId() != sharding.MetachainShardId {
 		tpn.ShardDataPool = dPool
@@ -488,12 +476,15 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithAccountsAdapter(tpn.AccntState),
 		node.WithKeyGen(tpn.OwnAccount.KeygenTxSign),
 		node.WithShardCoordinator(tpn.ShardCoordinator),
+		node.WithNodesCoordinator(tpn.NodesCoordinator),
 		node.WithBlockChain(tpn.BlockChain),
 		node.WithUint64ByteSliceConverter(TestUint64Converter),
-		node.WithMultiSigner(TestMultiSig),
+		node.WithMultiSigner(tpn.MultiSigner),
 		node.WithSingleSigner(tpn.OwnAccount.SingleSigner),
 		node.WithTxSignPrivKey(tpn.OwnAccount.SkTxSign),
 		node.WithTxSignPubKey(tpn.OwnAccount.PkTxSign),
+		node.WithPrivKey(tpn.NodeKeys.Sk),
+		node.WithPubKey(tpn.NodeKeys.Pk),
 		node.WithInterceptorsContainer(tpn.InterceptorsContainer),
 		node.WithResolversFinder(tpn.ResolverFinder),
 		node.WithBlockProcessor(tpn.BlockProcessor),

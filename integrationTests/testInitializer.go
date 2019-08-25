@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"math/big"
 	"strings"
 	"sync"
@@ -32,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -675,7 +675,7 @@ func CreateNodes(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID)
-		idx := i + numOfShards*nodesPerShard
+		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}
 
@@ -1109,40 +1109,14 @@ func ProposeAndSyncOneBlock(
 	return round, nonce
 }
 
-// CreateValidatorKeys
-func CreateValidatorKeys(nodesPerShard int, nbMetaNodes int, nbShards int) map[uint32][]*TestKeyPair {
-	suite := kyber.NewBlakeSHA256Ed25519()
-	keyGen := signing.NewKeyGenerator(suite)
-
-	keysMap := make(map[uint32][]*TestKeyPair)
-	keyPairs := make([]*TestKeyPair, nodesPerShard)
-	for shardId := 0; shardId < nbShards; shardId++ {
-		for n := 0; n < nodesPerShard; n++ {
-			kp := &TestKeyPair{}
-			kp.sk, kp.pk = keyGen.GeneratePair()
-			keyPairs[n] = kp
-		}
-		keysMap[uint32(shardId)] = keyPairs
-	}
-
-	keyPairs = make([]*TestKeyPair, nbMetaNodes)
-	for n := 0; n < nbMetaNodes; n++ {
-		kp := &TestKeyPair{}
-		kp.sk, kp.pk = keyGen.GeneratePair()
-		keyPairs[n] = kp
-	}
-	keysMap[sharding.MetachainShardId] = keyPairs
-
-	return keysMap
-}
-
+// PubKeysMapFromKeysMap returns a map of public keys per shard from the key pairs per shard map.
 func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]string {
 	keysMap := make(map[uint32][]string, 0)
 
 	for shardId, pairList := range keyPairMap {
 		shardKeys := make([]string, len(pairList))
 		for i, pair := range pairList {
-			b, _ := pair.pk.ToByteArray()
+			b, _ := pair.Pk.ToByteArray()
 			shardKeys[i] = string(b)
 		}
 		keysMap[shardId] = shardKeys
@@ -1151,6 +1125,7 @@ func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]st
 	return keysMap
 }
 
+// GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
 func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
 	validatorsMap := make(map[uint32][]sharding.Validator)
 
@@ -1166,8 +1141,9 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 	return validatorsMap
 }
 
+// CreateCryptoParams generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
 func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
-	suite := kyber.NewBlakeSHA256Ed25519()
+	suite := kyber.NewSuitePairingBn256()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 
@@ -1176,16 +1152,16 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 	for shardId := uint32(0); shardId < nbShards; shardId++ {
 		for n := 0; n < nodesPerShard; n++ {
 			kp := &TestKeyPair{}
-			kp.sk, kp.pk = keyGen.GeneratePair()
+			kp.Sk, kp.Pk = keyGen.GeneratePair()
 			keyPairs[n] = kp
 		}
-		keysMap[uint32(shardId)] = keyPairs
+		keysMap[shardId] = keyPairs
 	}
 
 	keyPairs = make([]*TestKeyPair, nbMetaNodes)
 	for n := 0; n < nbMetaNodes; n++ {
 		kp := &TestKeyPair{}
-		kp.sk, kp.pk = keyGen.GeneratePair()
+		kp.Sk, kp.Pk = keyGen.GeneratePair()
 		keyPairs[n] = kp
 	}
 	keysMap[sharding.MetachainShardId] = keyPairs
