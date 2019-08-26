@@ -114,6 +114,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	if sr.BootStrapper().ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
 	}
+	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
 
 	err := sr.generateNextConsensusGroup(sr.Rounder().Index())
 	if err != nil {
@@ -137,6 +138,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	if leader == sr.SelfPubKey() {
 		sr.appStatusHandler.Increment(core.MetricCountLeader)
 		sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "proposed")
+		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "proposer")
 		msg = " (my turn)"
 	}
 
@@ -185,7 +187,6 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	if leader == sr.SelfPubKey() {
 		//TODO: Should be analyzed if call of sr.broadcastUnnotarisedBlocks() is still necessary
-		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "proposer")
 	}
 
 	// execute stored messages which were received in this new round but before this initialisation

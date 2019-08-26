@@ -642,7 +642,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		processComponents,
 	)
 	if err != nil {
-		log.Info("Error creating status polling: ", err)
+		return err
 	}
 
 	updateMachineStatisticsDurationSec := 1
