@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -59,6 +58,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
@@ -403,6 +403,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log *logger.Logger, c
 
 type processComponentsFactoryArgs struct {
 	genesisConfig        *sharding.Genesis
+	rewardsConfig        *config.RewardConfig
 	nodesConfig          *sharding.NodesSetup
 	syncer               ntp.SyncTimer
 	shardCoordinator     sharding.Coordinator
@@ -418,6 +419,7 @@ type processComponentsFactoryArgs struct {
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
+	rewardsConfig *config.RewardConfig,
 	nodesConfig *sharding.NodesSetup,
 	syncer ntp.SyncTimer,
 	shardCoordinator sharding.Coordinator,
@@ -431,6 +433,7 @@ func NewProcessComponentsFactoryArgs(
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		genesisConfig:        genesisConfig,
+		rewardsConfig:        rewardsConfig,
 		nodesConfig:          nodesConfig,
 		syncer:               syncer,
 		shardCoordinator:     shardCoordinator,
@@ -498,6 +501,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		resolversFinder,
 		args.shardCoordinator,
 		args.nodesCoordinator,
+		args.rewardsConfig,
 		args.data,
 		args.core,
 		args.state,
@@ -914,7 +918,7 @@ func createShardDataPoolFromConfig(
 
 	rewardTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.RewardTxDataPool))
 	if err != nil {
-		log.Info("error creating transaction fees pool")
+		log.Info("error creating reward transaction pool")
 		return nil, err
 	}
 
@@ -1092,6 +1096,10 @@ func createNetMessenger(
 	}
 
 	return nm, nil
+}
+
+func createRewardParametersFromConfig() {
+
 }
 
 func newInterceptorAndResolverContainerFactory(
@@ -1286,6 +1294,7 @@ func newBlockProcessorAndTracker(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
+	rewardsConfig *config.RewardConfig,
 	data *Data,
 	core *Core,
 	state *State,
@@ -1295,9 +1304,12 @@ func newBlockProcessorAndTracker(
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 
-	//TODO: replace with correct community address and invalid burnAddress
-	communityAddress, _ := hex.DecodeString("1bedf9f1db526aa98eb61f251e6eb29df64c0a4d96261b6fe9d4df1bc2cf5420")
-	burnAddress, _ := hex.DecodeString("deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef")
+	if rewardsConfig.CommunityAddress == "" || rewardsConfig.BurnAddress == ""{
+		return nil, nil, errors.New("rewards configuration missing")
+	}
+
+	communityAddress, _ := hex.DecodeString(rewardsConfig.CommunityAddress)
+	burnAddress, _ := hex.DecodeString(rewardsConfig.BurnAddress)
 
 	// TODO: construct this correctly on the PR
 	specialAddressHolder, err := address.NewSpecialAddressHolder(
@@ -1309,6 +1321,7 @@ func newBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
+	// TODO: remove nodesConfig as no longer needed with nodes coordinator available
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessorAndTracker(
 			resolversFinder,

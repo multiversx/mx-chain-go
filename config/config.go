@@ -55,6 +55,12 @@ type NTPConfig struct {
 	Version int
 }
 
+// RewardConfig will hold the reward configuration
+type RewardConfig struct {
+	CommunityAddress string
+	BurnAddress      string
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
@@ -99,7 +105,8 @@ type Config struct {
 	Consensus       TypeConfig
 	Explorer        ExplorerConfig
 
-	NTPConfig NTPConfig
+	NTPConfig    NTPConfig
+	RewardConfig RewardConfig
 }
 
 // NodeConfig will hold basic p2p settings

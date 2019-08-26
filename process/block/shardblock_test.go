@@ -83,6 +83,58 @@ func initBlockHeader(prevHash []byte, rootHash []byte, mbHdrs []block.MiniBlockH
 	return hdr
 }
 
+type methodFlags struct {
+	revertToSnapshotCalled bool
+	rootHashCalled         bool
+}
+
+func defaultShardProcessor() (process.BlockProcessor, *methodFlags, error) {
+	// set accounts not dirty
+	flags := &methodFlags{}
+	journalLen := func() int { return 0 }
+	revertToSnapshot := func(snapshot int) error {
+		flags.revertToSnapshotCalled = true
+		return nil
+	}
+	rootHashCalled := func() ([]byte, error) {
+		flags.rootHashCalled = true
+		return []byte("rootHash"), nil
+	}
+
+	accStub := initAccountsMock()
+	accStub.JournalLenCalled = journalLen
+	accStub.RevertToSnapshotCalled = revertToSnapshot
+	accStub.RootHashCalled = rootHashCalled
+
+	tdp := initDataPool([]byte("tx_hash1"))
+	sp, err := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		tdp,
+		&mock.ChainStorerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		accStub,
+		mock.NewMultiShardsCoordinatorMock(3),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
+		&mock.ForkDetectorMock{
+			ProbableHighestNonceCalled: func() uint64 {
+				return 0
+			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
+		},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+
+	return sp, flags, err
+}
+
 //------- NewBlockProcessor
 
 func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
@@ -377,24 +429,8 @@ func TestNewShardProcessor_NilUint64Converter(t *testing.T) {
 
 func TestNewShardProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte("tx_hash1"))
-	sp, err := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		initAccountsMock(),
-		mock.NewMultiShardsCoordinatorMock(3),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	sp, _, err := defaultShardProcessor()
 	assert.Nil(t, err)
 	assert.NotNil(t, sp)
 }
@@ -403,24 +439,8 @@ func TestNewShardProcessor_OkValsShouldWork(t *testing.T) {
 
 func TestShardProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte("tx_hash1"))
-	sp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		initAccountsMock(),
-		mock.NewMultiShardsCoordinatorMock(3),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	sp, _, _ := defaultShardProcessor()
 	blk := make(block.Body, 0)
 	err := sp.ProcessBlock(nil, &block.Header{}, blk, haveTime)
 	assert.Equal(t, process.ErrNilBlockChain, err)
@@ -428,24 +448,8 @@ func TestShardProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 
 func TestShardProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte("tx_hash1"))
-	sp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		initAccountsMock(),
-		mock.NewMultiShardsCoordinatorMock(3),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	sp, _, _ := defaultShardProcessor()
 	body := make(block.Body, 0)
 	err := sp.ProcessBlock(&blockchain.BlockChain{}, nil, body, haveTime)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
@@ -453,48 +457,16 @@ func TestShardProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 
 func TestShardProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte("tx_hash1"))
-	sp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		initAccountsMock(),
-		mock.NewMultiShardsCoordinatorMock(3),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	sp, _, _ := defaultShardProcessor()
 	err := sp.ProcessBlock(&blockchain.BlockChain{}, &block.Header{}, nil, haveTime)
 	assert.Equal(t, process.ErrNilBlockBody, err)
 }
 
 func TestShardProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte("tx_hash1"))
-	sp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		initAccountsMock(),
-		mock.NewMultiShardsCoordinatorMock(3),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	sp, _, _ := defaultShardProcessor()
 	blk := make(block.Body, 0)
 	err := sp.ProcessBlock(&blockchain.BlockChain{}, &block.Header{}, blk, nil)
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
@@ -543,7 +515,7 @@ func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 
 func TestShardProcessor_ProcessBlockHeaderBodyMismatchShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte("tx_hash1"))
+
 	txHash := []byte("tx_hash1")
 	blkc := &blockchain.BlockChain{}
 	hdr := block.Header{
@@ -563,40 +535,8 @@ func TestShardProcessor_ProcessBlockHeaderBodyMismatchShouldErr(t *testing.T) {
 		TxHashes:        txHashes,
 	}
 	body = append(body, &miniblock)
-	// set accounts not dirty
-	journalLen := func() int { return 0 }
-	revertToSnapshot := func(snapshot int) error { return nil }
-	rootHashCalled := func() ([]byte, error) {
-		return []byte("rootHash"), nil
-	}
-	sp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{
-			JournalLenCalled:       journalLen,
-			RevertToSnapshotCalled: revertToSnapshot,
-			RootHashCalled:         rootHashCalled,
-		},
-		mock.NewMultiShardsCoordinatorMock(3),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.ForkDetectorMock{
-			ProbableHighestNonceCalled: func() uint64 {
-				return 0
-			},
-			GetHighestFinalBlockNonceCalled: func() uint64 {
-				return 0
-			},
-		},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	sp, _, _ := defaultShardProcessor()
 
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -711,24 +651,8 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 
 func TestShardProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte("tx_hash1"))
-	sp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		initAccountsMock(),
-		mock.NewMultiShardsCoordinatorMock(3),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	sp, _, _ := defaultShardProcessor()
 	hdr := &block.Header{
 		Nonce:         0,
 		Round:         1,
@@ -745,24 +669,8 @@ func TestShardProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 
 func TestShardProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte("tx_hash1"))
-	sp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		initAccountsMock(),
-		mock.NewMultiShardsCoordinatorMock(3),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	sp, _, _ := defaultShardProcessor()
 	hdr := &block.Header{
 		Nonce:         0,
 		Round:         1,
@@ -779,31 +687,8 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 
 func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte("tx_hash1"))
-	sp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		initAccountsMock(),
-		mock.NewMultiShardsCoordinatorMock(3),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.ForkDetectorMock{
-			ProbableHighestNonceCalled: func() uint64 {
-				return 0
-			},
-			GetHighestFinalBlockNonceCalled: func() uint64 {
-				return 0
-			},
-		},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	sp, _, _ := defaultShardProcessor()
 	hdr := &block.Header{
 		Nonce:         1,
 		Round:         1,
@@ -947,7 +832,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 
 func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte("tx_hash1"))
+
 	txHash := []byte("tx_hash1")
 	blkc := &blockchain.BlockChain{
 		CurrentBlockHeader: &block.Header{
@@ -984,58 +869,20 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		Signature:        []byte("signature"),
 		PubKeysBitmap:    []byte("00110"),
 		ShardId:          0,
-		RootHash:         []byte("rootHash"),
+		RootHash:         []byte("rootHashX"),
 		MiniBlockHeaders: mbHdrs,
 	}
 
-	// set accounts not dirty
-	journalLen := func() int { return 0 }
-	wasCalled := false
-	revertToSnapshot := func(snapshot int) error {
-		wasCalled = true
-		return nil
-	}
-	rootHashCalled := func() ([]byte, error) {
-		return []byte("rootHashX"), nil
-	}
-	sp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{
-			JournalLenCalled:       journalLen,
-			RevertToSnapshotCalled: revertToSnapshot,
-			RootHashCalled:         rootHashCalled,
-		},
-		mock.NewMultiShardsCoordinatorMock(3),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.ForkDetectorMock{
-			ProbableHighestNonceCalled: func() uint64 {
-				return 0
-			},
-			GetHighestFinalBlockNonceCalled: func() uint64 {
-				return 0
-			},
-		},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
-
+	sp, flags, _ := defaultShardProcessor()
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
 	assert.Equal(t, process.ErrRootStateMissmatch, err)
-	assert.True(t, wasCalled)
+	assert.True(t, flags.revertToSnapshotCalled)
 }
 
 func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte("tx_hash1"))
+
 	txHash := []byte("tx_hash1")
 	blkc := &blockchain.BlockChain{
 		CurrentBlockHeader: &block.Header{
@@ -1076,42 +923,13 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 		RootHash:         rootHash,
 		MiniBlockHeaders: mbHdrs,
 	}
-	// set accounts not dirty
-	journalLen := func() int { return 0 }
-	wasCalled := false
-	revertToSnapshot := func(snapshot int) error {
-		wasCalled = true
-		return nil
-	}
-	rootHashCalled := func() ([]byte, error) {
-		return rootHash, nil
-	}
-	sp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{
-			JournalLenCalled:       journalLen,
-			RevertToSnapshotCalled: revertToSnapshot,
-			RootHashCalled:         rootHashCalled,
-		},
-		mock.NewMultiShardsCoordinatorMock(3),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3)),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	sp, flags, _ := defaultShardProcessor()
 
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
 	assert.Nil(t, err)
-	assert.False(t, wasCalled)
+	assert.False(t, flags.revertToSnapshotCalled)
 }
 
 func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T) {

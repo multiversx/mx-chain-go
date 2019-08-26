@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"math/big"
 	"reflect"
 	"sync"
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -30,98 +30,55 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createShardedDataChacherNotifier(
+	handler data.TransactionHandler,
+	testHash []byte,
+) (func() dataRetriever.ShardedDataCacherNotifier ) {
+	return func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{
+			RegisterHandlerCalled: func(i func(key []byte)) {},
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+				return &mock.CacherStub{
+					PeekCalled: func(key []byte) (value interface{}, ok bool) {
+						if reflect.DeepEqual(key, testHash) {
+							return handler, true
+						}
+						return nil, false
+					},
+					KeysCalled: func() [][]byte {
+						return [][]byte{[]byte("key1"), []byte("key2")}
+					},
+					LenCalled: func() int {
+						return 0
+					},
+				}
+			},
+			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				if reflect.DeepEqual(key, []byte("tx1_hash")) {
+					return handler, true
+				}
+				return nil, false
+			},
+			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+			},
+		}
+	}
+}
+
 func initDataPool(testHash []byte) *mock.PoolsHolderStub {
+	tx := &transaction.Transaction{Nonce: 10}
+	sc := &smartContractResult.SmartContractResult{Nonce: 10, SndAddr: []byte("0"), RcvAddr: []byte("1")}
+	rTx := &rewardTx.RewardTx{Epoch: 0, Round: 1, RcvAddr: []byte("1")}
+
+	txCalled := createShardedDataChacherNotifier(tx, testHash)
+	unsignedTxHandler := createShardedDataChacherNotifier(sc, testHash)
+	rewardTxCalled := createShardedDataChacherNotifier(rTx, testHash)
+
 	sdp := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, testHash) {
-								return &transaction.Transaction{Nonce: 10, Data: id}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2"), testHash}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, testHash) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					return nil, false
-				},
-				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-				},
-			}
-		},
-		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, testHash) {
-								return &smartContractResult.SmartContractResult{Nonce: 10, SndAddr: []byte("0"), RcvAddr: []byte("1")}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, testHash) {
-						return &smartContractResult.SmartContractResult{Nonce: 10, SndAddr: []byte("0"), RcvAddr: []byte("1")}, true
-					}
-					return nil, false
-				},
-				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-				},
-			}
-		},
-		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, testHash) {
-								return &rewardTx.RewardTx{Epoch: 0, Round: 1, RcvAddr: []byte("1")}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, testHash) {
-						return &rewardTx.RewardTx{Epoch: 0, Round: 1, RcvAddr: []byte("1")}, true
-					}
-					return nil, false
-				},
-				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-				},
-			}
-		},
+		TransactionsCalled:         txCalled,
+		UnsignedTransactionsCalled: unsignedTxHandler,
+		RewardTransactionsCalled:   rewardTxCalled,
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 			return &mock.Uint64SyncMapCacherStub{
 				MergeCalled: func(u uint64, hashMap dataRetriever.ShardIdHashMap) {},
@@ -187,6 +144,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	}
 	return sdp
 }
+
 func containsHash(txHashes [][]byte, hash []byte) bool {
 	for _, txHash := range txHashes {
 		if bytes.Equal(hash, txHash) {
