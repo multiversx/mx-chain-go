@@ -49,18 +49,21 @@ type HeaderValidator interface {
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
 	Create(buff []byte) (InterceptedData, error)
+	IsInterfaceNil() bool
 }
 
 // InterceptedData represents the interceptor's view of the received data
 type InterceptedData interface {
 	CheckValidity() error
 	IsForMyShard() bool
+	IsInterfaceNil() bool
 }
 
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
 	Validate(data InterceptedData) error
 	Save(data InterceptedData) error
+	IsInterfaceNil() bool
 }
 
 // InterceptorThrottler can
@@ -68,6 +71,7 @@ type InterceptorThrottler interface {
 	CanProcess() bool
 	StartProcessing()
 	EndProcessing()
+	IsInterfaceNil() bool
 }
 
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors

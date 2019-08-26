@@ -5,10 +5,17 @@ type InterceptedDataStub struct {
 	IsForMyShardCalled  func() bool
 }
 
-func (ids InterceptedDataStub) CheckValidity() error {
+func (ids *InterceptedDataStub) CheckValidity() error {
 	return ids.CheckValidityCalled()
 }
 
-func (ids InterceptedDataStub) IsForMyShard() bool {
+func (ids *InterceptedDataStub) IsForMyShard() bool {
 	return ids.IsForMyShardCalled()
+}
+
+func (ids *InterceptedDataStub) IsInterfaceNil() bool {
+	if ids == nil {
+		return true
+	}
+	return false
 }
