@@ -559,7 +559,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
 		"AppVersion", version,
-		"Timestamp", startTime.Unix(),
+		"GenesisTimeStamp", startTime.Unix(),
 	)
 
 	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
