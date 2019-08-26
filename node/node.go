@@ -381,7 +381,7 @@ func (n *Node) setGenesis(genesisHeader data.HeaderHandler, genesisHeaderHash []
 
 // GetBalance gets the balance for a specific address
 func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
-	if n.addrConverter == nil || n.accounts == nil {
+	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() || n.accounts == nil || n.accounts.IsInterfaceNil() {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
 
@@ -394,7 +394,7 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
-	if accWrp == nil {
+	if accWrp == nil || accWrp.IsInterfaceNil() {
 		return big.NewInt(0), nil
 	}
 
@@ -545,10 +545,10 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 
 // createConsensusTopic creates a consensus topic for node
 func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor, shardCoordinator sharding.Coordinator) error {
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return ErrNilShardCoordinator
 	}
-	if messageProcessor == nil {
+	if messageProcessor == nil || messageProcessor.IsInterfaceNil() {
 		return ErrNilMessenger
 	}
 
@@ -578,7 +578,7 @@ func (n *Node) SendTransaction(
 	transactionData string,
 	signature []byte) (string, error) {
 
-	if n.shardCoordinator == nil {
+	if n.shardCoordinator == nil || n.shardCoordinator.IsInterfaceNil() {
 		return "", ErrNilShardCoordinator
 	}
 
@@ -645,10 +645,10 @@ func (n *Node) GetCurrentPublicKey() string {
 
 // GetAccount will return acount details for a given address
 func (n *Node) GetAccount(address string) (*state.Account, error) {
-	if n.addrConverter == nil {
+	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
 		return nil, ErrNilAddressConverter
 	}
-	if n.accounts == nil {
+	if n.accounts == nil || n.accounts.IsInterfaceNil() {
 		return nil, ErrNilAccountsAdapter
 	}
 
@@ -782,4 +782,12 @@ func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 		return nil
 	}
 	return n.heartbeatMonitor.GetHeartbeats()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (n *Node) IsInterfaceNil() bool {
+	if n == nil {
+		return true
+	}
+	return false
 }

@@ -25,6 +25,8 @@ type Monitor struct {
 	marshalizer                 marshal.Marshalizer
 	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutHeartbeatMessages        sync.RWMutex
+	pubKeysMap                  map[uint32][]string
+	mutPubKeysMap               sync.RWMutex
 	appStatusHandler            core.AppStatusHandler
 }
 
@@ -37,18 +39,20 @@ func NewMonitor(
 	pubKeysMap map[uint32][]string,
 ) (*Monitor, error) {
 
-	if singleSigner == nil {
+	if singleSigner == nil || singleSigner.IsInterfaceNil() {
 		return nil, ErrNilSingleSigner
 	}
-	if keygen == nil {
+	if keygen == nil || keygen.IsInterfaceNil() {
 		return nil, ErrNilKeyGenerator
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, ErrNilMarshalizer
 	}
 	if len(pubKeysMap) == 0 {
 		return nil, ErrEmptyPublicKeysMap
 	}
+
+	pubKeysMapCopy := make(map[uint32][]string, 0)
 
 	mon := &Monitor{
 		singleSigner:                singleSigner,
@@ -61,16 +65,17 @@ func NewMonitor(
 
 	for shardId, pubKeys := range pubKeysMap {
 		for _, pubkey := range pubKeys {
+			pubKeysMapCopy[shardId] = append(pubKeysMapCopy[shardId], pubkey)
 			mhbi, err := newHeartbeatMessageInfo(maxDurationPeerUnresponsive, true)
 			if err != nil {
 				return nil, err
 			}
 
-			mhbi.shardID = shardId
+			mhbi.computedShardID = shardId
 			mon.heartbeatMessages[pubkey] = mhbi
 		}
 	}
-
+	mon.pubKeysMap = pubKeysMapCopy
 	return mon, nil
 }
 
@@ -87,7 +92,7 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
 func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
-	if message == nil {
+	if message == nil || message.IsInterfaceNil() {
 		return ErrNilMessage
 	}
 	if message.Data() == nil {
@@ -121,11 +126,29 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSe
 			m.heartbeatMessages[string(hb.Pubkey)] = pe
 		}
 
-		pe.HeartbeatReceived(hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
+		computedShardID := m.computeShardID(string(hb.Pubkey))
+		pe.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
 		m.updateAllHeartbeatMessages()
 	}(message, hbRecv)
 
 	return nil
+}
+
+func (m *Monitor) computeShardID(pubkey string) uint32 {
+	// TODO : the shard ID will be recomputed at the end of an epoch / beginning of a new one.
+	//  For the moment, just find the shard ID from a copy of the initial pub keys map
+	m.mutPubKeysMap.RLock()
+	defer m.mutPubKeysMap.RUnlock()
+	for shardID, pubKeysSlice := range m.pubKeysMap {
+		for _, pKey := range pubKeysSlice {
+			if pKey == pubkey {
+				return shardID
+			}
+		}
+	}
+
+	// if not found, return the latest known computed shard ID
+	return m.heartbeatMessages[pubkey].computedShardID
 }
 
 func (m *Monitor) verifySignature(hbRecv *Heartbeat) error {
@@ -175,7 +198,8 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			TimeStamp:       v.timeStamp,
 			MaxInactiveTime: v.maxInactiveTime,
 			IsActive:        v.isActive,
-			ShardID:         v.shardID,
+			ReceivedShardID: v.receivedShardID,
+			ComputedShardID: v.computedShardID,
 			TotalUpTime:     v.totalUpTime,
 			TotalDownTime:   v.totalDownTime,
 			VersionNumber:   v.versionNumber,
@@ -192,4 +216,12 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	})
 
 	return status
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (m *Monitor) IsInterfaceNil() bool {
+	if m == nil {
+		return true
+	}
+	return false
 }

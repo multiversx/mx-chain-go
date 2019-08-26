@@ -28,6 +28,14 @@ func (acs *AddressConverterStub) PrepareAddressBytes(addressBytes []byte) ([]byt
 	return acs.PrepareAddressBytesCalled(addressBytes)
 }
 
-func (ac AddressConverterStub) AddressLen() int {
-	return ac.AddressLenHandler()
+func (acs AddressConverterStub) AddressLen() int {
+	return acs.AddressLenHandler()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (acs *AddressConverterStub) IsInterfaceNil() bool {
+	if acs == nil {
+		return true
+	}
+	return false
 }

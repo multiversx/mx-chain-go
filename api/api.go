@@ -38,6 +38,7 @@ type MainApiHandler interface {
 	PrometheusMonitoring() bool
 	PrometheusJoinURL() string
 	PrometheusNetworkID() string
+	IsInterfaceNil() bool
 }
 
 // Start will boot up the api and appropriate routes, handlers and validators

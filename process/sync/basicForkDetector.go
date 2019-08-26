@@ -43,7 +43,7 @@ type basicForkDetector struct {
 // NewBasicForkDetector method creates a new BasicForkDetector object
 func NewBasicForkDetector(rounder consensus.Rounder,
 ) (*basicForkDetector, error) {
-	if rounder == nil {
+	if rounder == nil || rounder.IsInterfaceNil() {
 		return nil, process.ErrNilRounder
 	}
 
@@ -68,7 +68,7 @@ func (bfd *basicForkDetector) AddHeader(
 	finalHeaderHash []byte,
 ) error {
 
-	if header == nil {
+	if header == nil || header.IsInterfaceNil() {
 		return ErrNilHeader
 	}
 	if headerHash == nil {
@@ -480,4 +480,12 @@ func (bfd *basicForkDetector) lastBlockRound() uint64 {
 	bfd.mutFork.RUnlock()
 
 	return lastBlockRound
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bfd *basicForkDetector) IsInterfaceNil() bool {
+	if bfd == nil {
+		return true
+	}
+	return false
 }

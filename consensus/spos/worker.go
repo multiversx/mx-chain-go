@@ -120,43 +120,43 @@ func checkNewWorkerParams(
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
 ) error {
-	if consensusService == nil {
+	if consensusService == nil || consensusService.IsInterfaceNil() {
 		return ErrNilConsensusService
 	}
-	if blockProcessor == nil {
+	if blockProcessor == nil || blockProcessor.IsInterfaceNil() {
 		return ErrNilBlockProcessor
 	}
-	if blockTracker == nil {
+	if blockTracker == nil || blockTracker.IsInterfaceNil() {
 		return ErrNilBlocksTracker
 	}
-	if bootstrapper == nil {
+	if bootstrapper == nil || bootstrapper.IsInterfaceNil() {
 		return ErrNilBootstrapper
 	}
-	if broadcastMessenger == nil {
+	if broadcastMessenger == nil || broadcastMessenger.IsInterfaceNil() {
 		return ErrNilBroadcastMessenger
 	}
 	if consensusState == nil {
 		return ErrNilConsensusState
 	}
-	if forkDetector == nil {
+	if forkDetector == nil || forkDetector.IsInterfaceNil() {
 		return ErrNilForkDetector
 	}
-	if keyGenerator == nil {
+	if keyGenerator == nil || keyGenerator.IsInterfaceNil() {
 		return ErrNilKeyGenerator
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return ErrNilMarshalizer
 	}
-	if rounder == nil {
+	if rounder == nil || rounder.IsInterfaceNil() {
 		return ErrNilRounder
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return ErrNilShardCoordinator
 	}
-	if singleSigner == nil {
+	if singleSigner == nil || singleSigner.IsInterfaceNil() {
 		return ErrNilSingleSigner
 	}
-	if syncTimer == nil {
+	if syncTimer == nil || syncTimer.IsInterfaceNil() {
 		return ErrNilSyncTimer
 	}
 
@@ -211,7 +211,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
 func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
-	if message == nil {
+	if message == nil || message.IsInterfaceNil(){
 		return ErrNilMessage
 	}
 
@@ -422,4 +422,12 @@ func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.mutReceivedMessages.Lock()
 	wrk.executeStoredMessages()
 	wrk.mutReceivedMessages.Unlock()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (wrk *Worker) IsInterfaceNil() bool {
+	if wrk == nil {
+		return true
+	}
+	return false
 }

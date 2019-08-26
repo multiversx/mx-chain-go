@@ -152,3 +152,11 @@ func (s *syncTime) formatTime(time time.Time) string {
 func (s *syncTime) CurrentTime() time.Time {
 	return time.Now().Add(s.clockOffset)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *syncTime) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
+}

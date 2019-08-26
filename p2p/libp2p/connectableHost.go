@@ -15,6 +15,7 @@ type PeerInfoHandler func(pInfo peer.AddrInfo)
 type ConnectableHost interface {
 	host.Host
 	ConnectToPeer(ctx context.Context, address string) error
+	IsInterfaceNil() bool
 }
 
 type connectableHost struct {
@@ -41,4 +42,12 @@ func (connHost *connectableHost) ConnectToPeer(ctx context.Context, address stri
 	}
 
 	return connHost.Connect(ctx, *pInfo)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (connHost *connectableHost) IsInterfaceNil() bool {
+	if connHost == nil {
+		return true
+	}
+	return false
 }

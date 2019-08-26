@@ -37,7 +37,7 @@ func (ppc *intermediateTransactionHandlersContainer) Get(key block.Type) (proces
 // Add will add an object at a given key. Returns
 // an error if the element already exists
 func (ppc *intermediateTransactionHandlersContainer) Add(key block.Type, interProcessor process.IntermediateTransactionHandler) error {
-	if interProcessor == nil {
+	if interProcessor == nil || interProcessor.IsInterfaceNil() {
 		return process.ErrNilContainerElement
 	}
 
@@ -69,7 +69,7 @@ func (ppc *intermediateTransactionHandlersContainer) AddMultiple(keys []block.Ty
 
 // Replace will add (or replace if it already exists) an object at a given key
 func (ppc *intermediateTransactionHandlersContainer) Replace(key block.Type, interProcessor process.IntermediateTransactionHandler) error {
-	if interProcessor == nil {
+	if interProcessor == nil || interProcessor.IsInterfaceNil() {
 		return process.ErrNilContainerElement
 	}
 
@@ -100,4 +100,12 @@ func (ppc *intermediateTransactionHandlersContainer) Keys() []block.Type {
 		keys = append(keys, blockType)
 	}
 	return keys
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ppc *intermediateTransactionHandlersContainer) IsInterfaceNil() bool {
+	if ppc == nil {
+		return true
+	}
+	return false
 }

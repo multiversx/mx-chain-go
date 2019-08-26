@@ -35,3 +35,11 @@ func (bsts *BlockSizeThrottlerStub) ComputeMaxItems() {
 		return
 	}
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bsts *BlockSizeThrottlerStub) IsInterfaceNil() bool {
+	if bsts == nil {
+		return true
+	}
+	return false
+}

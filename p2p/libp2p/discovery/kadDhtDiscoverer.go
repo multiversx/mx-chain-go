@@ -154,7 +154,7 @@ func (kdd *KadDhtDiscoverer) Name() string {
 
 // ApplyContext sets the context in which this discoverer is to be run
 func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error {
-	if ctxProvider == nil {
+	if ctxProvider == nil || ctxProvider.IsInterfaceNil() {
 		return p2p.ErrNilContextProvider
 	}
 
@@ -171,4 +171,12 @@ func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
 func (kdd *KadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
 	return kdd.connectToOnePeerFromInitialPeersList(kdd.refreshInterval, kdd.initialPeersList)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (kdd *KadDhtDiscoverer) IsInterfaceNil() bool {
+	if kdd == nil {
+		return true
+	}
+	return false
 }

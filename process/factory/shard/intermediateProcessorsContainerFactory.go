@@ -29,19 +29,19 @@ func NewIntermediateProcessorsContainerFactory(
 	store dataRetriever.StorageService,
 ) (*intermediateProcessorsContainerFactory, error) {
 
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if addrConverter == nil {
+	if addrConverter == nil || addrConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilStorage
 	}
 
@@ -82,4 +82,12 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 	)
 
 	return irp, err
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ppcm *intermediateProcessorsContainerFactory) IsInterfaceNil() bool {
+	if ppcm == nil {
+		return true
+	}
+	return false
 }

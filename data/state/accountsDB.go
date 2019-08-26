@@ -29,16 +29,16 @@ func NewAccountsDB(
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
 ) (*AccountsDB, error) {
-	if trie == nil {
+	if trie == nil || trie.IsInterfaceNil() {
 		return nil, ErrNilTrie
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, ErrNilMarshalizer
 	}
-	if accountFactory == nil {
+	if accountFactory == nil || accountFactory.IsInterfaceNil() {
 		return nil, ErrNilAccountFactory
 	}
 
@@ -58,7 +58,7 @@ func (adb *AccountsDB) PutCode(accountHandler AccountHandler, code []byte) error
 	if code == nil {
 		return ErrNilCode
 	}
-	if accountHandler == nil {
+	if accountHandler == nil || accountHandler.IsInterfaceNil() {
 		return ErrNilAccountHandler
 	}
 
@@ -166,7 +166,7 @@ func (adb *AccountsDB) SaveDataTrie(accountHandler AccountHandler) error {
 
 	var newDataTrie data.Trie
 	var err error
-	if accountHandler.DataTrie() == nil {
+	if accountHandler.DataTrie() == nil || accountHandler.DataTrie().IsInterfaceNil() {
 		newDataTrie, err = adb.mainTrie.Recreate(make([]byte, 0))
 		if err != nil {
 			return err
@@ -270,7 +270,7 @@ func (adb *AccountsDB) getAccount(addressContainer AddressContainer) (AccountHan
 
 // SaveAccount saves the account WITHOUT data trie inside main trie. Errors if something went wrong
 func (adb *AccountsDB) SaveAccount(accountHandler AccountHandler) error {
-	if accountHandler == nil {
+	if accountHandler == nil || accountHandler.IsInterfaceNil() {
 		return errors.New("can not save nil account state")
 	}
 
@@ -478,7 +478,7 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 
 // Journalize adds a new object to entries list. Concurrent safe.
 func (adb *AccountsDB) Journalize(entry JournalEntry) {
-	if entry == nil {
+	if entry == nil || entry.IsInterfaceNil() {
 		return
 	}
 
@@ -492,4 +492,12 @@ func (adb *AccountsDB) clearJournal() {
 	adb.mutEntries.Lock()
 	adb.entries = make([]JournalEntry, 0)
 	adb.mutEntries.Unlock()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (adb *AccountsDB) IsInterfaceNil() bool {
+	if adb == nil {
+		return true
+	}
+	return false
 }

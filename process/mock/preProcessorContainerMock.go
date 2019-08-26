@@ -44,3 +44,11 @@ func (ppcm *PreProcessorContainerMock) Keys() []block.Type {
 
 	return ppcm.KeysCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ppcm *PreProcessorContainerMock) IsInterfaceNil() bool {
+	if ppcm == nil {
+		return true
+	}
+	return false
+}

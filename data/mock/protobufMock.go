@@ -31,3 +31,11 @@ func (x *ProtobufMarshalizerMock) Unmarshal(obj interface{}, buff []byte) error 
 	}
 	return errors.New("obj does not implement proto.Message")
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (x *ProtobufMarshalizerMock) IsInterfaceNil() bool {
+	if x == nil {
+		return true
+	}
+	return false
+}

@@ -128,3 +128,11 @@ func (oplb *OutgoingChannelLoadBalancer) CollectOneElementFromChannels() *p2p.Se
 	obj := <-oplb.mainChan
 	return obj
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (oplb *OutgoingChannelLoadBalancer) IsInterfaceNil() bool {
+	if oplb == nil {
+		return true
+	}
+	return false
+}

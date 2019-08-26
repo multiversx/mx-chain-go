@@ -44,7 +44,7 @@ func (inHdr *InterceptedHeader) Shard() uint32 {
 	return inHdr.ShardId
 }
 
-// GetShardHeader returns the Header pointer that holds the data
+// GetHeader returns the Header pointer that holds the data
 func (inHdr *InterceptedHeader) GetHeader() *block.Header {
 	return inHdr.Header
 }
@@ -66,7 +66,7 @@ func (inHdr *InterceptedHeader) IntegrityAndValidity(coordinator sharding.Coordi
 
 // Integrity checks the integrity of the state block wrapper
 func (inHdr *InterceptedHeader) Integrity(coordinator sharding.Coordinator) error {
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
 	if inHdr.Header == nil {
@@ -142,9 +142,9 @@ func (inHdr *InterceptedHeader) validateTxBlock() error {
 	return nil
 }
 
-// IsInterfaceNil return if there is no value under the interface
-func (mb *InterceptedHeader) IsInterfaceNil() bool {
-	if mb == nil {
+// IsInterfaceNil returns true if there is no value under the interface
+func (inHdr *InterceptedHeader) IsInterfaceNil() bool {
+	if inHdr == nil {
 		return true
 	}
 	return false

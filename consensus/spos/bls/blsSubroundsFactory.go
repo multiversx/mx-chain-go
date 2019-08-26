@@ -56,7 +56,7 @@ func checkNewFactoryParams(
 	if state == nil {
 		return spos.ErrNilConsensusState
 	}
-	if worker == nil {
+	if worker == nil || worker.IsInterfaceNil() {
 		return spos.ErrNilWorker
 	}
 
@@ -251,4 +251,12 @@ func (fct *factory) initConsensusThreshold() {
 	pbftThreshold := fct.consensusState.ConsensusGroupSize()*2/3 + 1
 	fct.consensusState.SetThreshold(SrBlock, 1)
 	fct.consensusState.SetThreshold(SrSignature, pbftThreshold)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (fct *factory) IsInterfaceNil() bool {
+	if fct == nil {
+		return true
+	}
+	return false
 }

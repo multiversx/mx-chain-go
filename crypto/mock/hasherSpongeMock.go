@@ -31,3 +31,11 @@ func (sha HasherSpongeMock) EmptyHash() []byte {
 func (HasherSpongeMock) Size() int {
 	return hashSize
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sha *HasherSpongeMock) IsInterfaceNil() bool {
+	if sha == nil {
+		return true
+	}
+	return false
+}

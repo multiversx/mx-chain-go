@@ -49,6 +49,24 @@ func TestNewSender_NilSingleSignerShouldErr(t *testing.T) {
 	assert.Equal(t, heartbeat.ErrNilSingleSigner, err)
 }
 
+func TestNewSender_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	sender, err := heartbeat.NewSender(
+		&mock.MessengerStub{},
+		&mock.SinglesignStub{},
+		&mock.PrivateKeyStub{},
+		&mock.MarshalizerMock{},
+		"",
+		nil,
+		"v0.1",
+		"undefined",
+	)
+
+	assert.Nil(t, sender)
+	assert.Equal(t, heartbeat.ErrNilShardCoordinator, err)
+}
+
 func TestNewSender_NilPrivateKeyShouldErr(t *testing.T) {
 	t.Parallel()
 

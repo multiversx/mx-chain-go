@@ -17,7 +17,7 @@ type AppStatusPolling struct {
 
 // NewAppStatusPolling will return an instance of AppStatusPolling
 func NewAppStatusPolling(appStatusHandler core.AppStatusHandler, pollingDurationSec int) (*AppStatusPolling, error) {
-	if appStatusHandler == nil {
+	if appStatusHandler == nil || appStatusHandler.IsInterfaceNil() {
 		return nil, ErrNilAppStatusHandler
 	}
 	//TODO: maybe add pollingDuration min

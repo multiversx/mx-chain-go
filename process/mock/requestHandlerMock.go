@@ -42,3 +42,11 @@ func (rrh *RequestHandlerMock) RequestHeaderByNonce(destShardID uint32, nonce ui
 	}
 	rrh.RequestHeaderHandlerByNonceCalled(destShardID, nonce)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rrh *RequestHandlerMock) IsInterfaceNil() bool {
+	if rrh == nil {
+		return true
+	}
+	return false
+}
