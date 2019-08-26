@@ -37,7 +37,7 @@ func (ppc *preProcessorsContainer) Get(key block.Type) (process.PreProcessor, er
 // Add will add an object at a given key. Returns
 // an error if the element already exists
 func (ppc *preProcessorsContainer) Add(key block.Type, preProcessor process.PreProcessor) error {
-	if preProcessor == nil {
+	if preProcessor == nil || preProcessor.IsInterfaceNil() {
 		return process.ErrNilContainerElement
 	}
 
@@ -69,7 +69,7 @@ func (ppc *preProcessorsContainer) AddMultiple(keys []block.Type, PreProcessors 
 
 // Replace will add (or replace if it already exists) an object at a given key
 func (ppc *preProcessorsContainer) Replace(key block.Type, preProcessor process.PreProcessor) error {
-	if preProcessor == nil {
+	if preProcessor == nil || preProcessor.IsInterfaceNil() {
 		return process.ErrNilContainerElement
 	}
 

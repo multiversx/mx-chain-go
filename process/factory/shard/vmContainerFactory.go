@@ -22,10 +22,10 @@ func NewVMContainerFactory(
 	accounts state.AccountsAdapter,
 	addressConverter state.AddressConverter,
 ) (*vmContainerFactory, error) {
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if addressConverter == nil {
+	if addressConverter == nil || addressConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
 

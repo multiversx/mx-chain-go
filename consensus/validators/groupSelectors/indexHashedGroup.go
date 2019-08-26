@@ -18,7 +18,7 @@ type indexHashedGroupSelector struct {
 
 // NewIndexHashedGroupSelector creates a new index hashed group selector
 func NewIndexHashedGroupSelector(consensusGroupSize int, hasher hashing.Hasher) (*indexHashedGroupSelector, error) {
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, ErrNilHasher
 	}
 

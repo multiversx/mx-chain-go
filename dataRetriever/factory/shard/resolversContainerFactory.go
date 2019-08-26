@@ -36,25 +36,25 @@ func NewResolversContainerFactory(
 	dataPacker dataRetriever.DataPacker,
 ) (*resolversContainerFactory, error) {
 
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilShardCoordinator
 	}
-	if messenger == nil {
+	if messenger == nil || messenger.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMessenger
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilTxStorage
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if dataPools == nil {
+	if dataPools == nil || dataPools.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilDataPoolHolder
 	}
-	if uint64ByteSliceConverter == nil {
+	if uint64ByteSliceConverter == nil || uint64ByteSliceConverter.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
-	if dataPacker == nil {
+	if dataPacker == nil || dataPacker.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
 

@@ -33,10 +33,10 @@ type MetaAccount struct {
 
 // NewMetaAccount creates new simple meta account for an AccountContainer (that has just been initialized)
 func NewMetaAccount(addressContainer AddressContainer, tracker AccountTracker) (*MetaAccount, error) {
-	if addressContainer == nil {
+	if addressContainer == nil || addressContainer.IsInterfaceNil() {
 		return nil, ErrNilAddressContainer
 	}
-	if tracker == nil {
+	if tracker == nil || tracker.IsInterfaceNil() {
 		return nil, ErrNilAccountTracker
 	}
 

@@ -60,19 +60,19 @@ func checkShardChainNilParameters(
 	privateKey crypto.PrivateKey,
 	singleSigner crypto.SingleSigner,
 ) error {
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return spos.ErrNilMarshalizer
 	}
-	if messenger == nil {
+	if messenger == nil || messenger.IsInterfaceNil() {
 		return spos.ErrNilMessenger
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return spos.ErrNilShardCoordinator
 	}
-	if privateKey == nil {
+	if privateKey == nil || privateKey.IsInterfaceNil() {
 		return spos.ErrNilPrivateKey
 	}
-	if singleSigner == nil {
+	if singleSigner == nil || singleSigner.IsInterfaceNil() {
 		return spos.ErrNilSingleSigner
 	}
 
@@ -81,7 +81,7 @@ func checkShardChainNilParameters(
 
 // BroadcastBlock will send on in-shard headers topic and on in-shard miniblocks topic the header and block body
 func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
-	if blockBody == nil {
+	if blockBody == nil || blockBody.IsInterfaceNil() {
 		return spos.ErrNilBody
 	}
 
@@ -90,7 +90,7 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 		return err
 	}
 
-	if header == nil {
+	if header == nil || header.IsInterfaceNil() {
 		return spos.ErrNilHeader
 	}
 
@@ -114,7 +114,7 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 
 // BroadcastHeader will send on shard headers for metachain topic the header
 func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
-	if header == nil {
+	if header == nil || header.IsInterfaceNil() {
 		return spos.ErrNilHeader
 	}
 
