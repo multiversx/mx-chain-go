@@ -57,31 +57,31 @@ func NewSmartContractProcessor(
 	coordinator sharding.Coordinator,
 	scrForwarder process.IntermediateTransactionHandler,
 ) (*scProcessor, error) {
-	if vmContainer == nil {
+	if vmContainer == nil || vmContainer.IsInterfaceNil() {
 		return nil, process.ErrNoVM
 	}
-	if argsParser == nil {
+	if argsParser == nil || argsParser.IsInterfaceNil() {
 		return nil, process.ErrNilArgumentParser
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if accountsDB == nil {
+	if accountsDB == nil || accountsDB.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if tempAccounts == nil {
+	if tempAccounts == nil || tempAccounts.IsInterfaceNil() {
 		return nil, process.ErrNilTemporaryAccountsHandler
 	}
-	if adrConv == nil {
+	if adrConv == nil || adrConv.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if scrForwarder == nil {
+	if scrForwarder == nil || scrForwarder.IsInterfaceNil() {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
 
@@ -118,7 +118,7 @@ func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (proc
 		return 0, err
 	}
 
-	if acntDst == nil {
+	if acntDst == nil || acntDst.IsInterfaceNil() {
 		return process.MoveBalance, nil
 	}
 
@@ -155,10 +155,10 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 ) error {
 	defer sc.tempAccounts.CleanTempAccounts()
 
-	if tx == nil {
+	if tx == nil || tx.IsInterfaceNil() {
 		return process.ErrNilTransaction
 	}
-	if acntDst == nil {
+	if acntDst == nil || acntDst.IsInterfaceNil() {
 		return process.ErrNilSCDestAccount
 	}
 	if acntDst.IsInterfaceNil() || acntDst.GetCode() == nil {

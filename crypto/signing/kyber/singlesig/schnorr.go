@@ -12,17 +12,17 @@ type SchnorrSigner struct {
 
 // Sign Signs a message with using a single signature schnorr scheme
 func (s *SchnorrSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-	if private == nil {
+	if private == nil || private.IsInterfaceNil() {
 		return nil, crypto.ErrNilPrivateKey
 	}
 
 	scalar := private.Scalar()
-	if scalar == nil {
+	if scalar == nil || scalar.IsInterfaceNil() {
 		return nil, crypto.ErrNilPrivateKeyScalar
 	}
 
 	suite := private.Suite()
-	if suite == nil {
+	if suite == nil || suite.IsInterfaceNil() {
 		return nil, crypto.ErrNilSuite
 	}
 
@@ -41,7 +41,7 @@ func (s *SchnorrSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, err
 
 // Verify verifies a signature using a single signature schnorr scheme
 func (s *SchnorrSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
-	if public == nil {
+	if public == nil || public.IsInterfaceNil() {
 		return crypto.ErrNilPublicKey
 	}
 
@@ -54,12 +54,12 @@ func (s *SchnorrSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte) 
 	}
 
 	suite := public.Suite()
-	if suite == nil {
+	if suite == nil || suite.IsInterfaceNil() {
 		return crypto.ErrNilSuite
 	}
 
 	point := public.Point()
-	if point == nil {
+	if point == nil || point.IsInterfaceNil() {
 		return crypto.ErrNilPublicKeyPoint
 	}
 

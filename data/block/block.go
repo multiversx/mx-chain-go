@@ -499,7 +499,7 @@ func (h *Header) SetMiniBlockProcessed(hash []byte, processed bool) {
 
 // IntegrityAndValidity checks if data is valid
 func (b Body) IntegrityAndValidity() error {
-	if b == nil {
+	if b == nil || b.IsInterfaceNil() {
 		return data.ErrNilBlockBody
 	}
 

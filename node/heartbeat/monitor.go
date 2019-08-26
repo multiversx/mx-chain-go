@@ -39,13 +39,13 @@ func NewMonitor(
 	pubKeysMap map[uint32][]string,
 ) (*Monitor, error) {
 
-	if singleSigner == nil {
+	if singleSigner == nil || singleSigner.IsInterfaceNil() {
 		return nil, ErrNilSingleSigner
 	}
-	if keygen == nil {
+	if keygen == nil || keygen.IsInterfaceNil() {
 		return nil, ErrNilKeyGenerator
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, ErrNilMarshalizer
 	}
 	if len(pubKeysMap) == 0 {
@@ -92,7 +92,7 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
 func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	if message == nil {
+	if message == nil || message.IsInterfaceNil() {
 		return ErrNilMessage
 	}
 	if message.Data() == nil {

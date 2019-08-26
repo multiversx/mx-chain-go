@@ -38,19 +38,19 @@ func NewIntermediateResultsProcessor(
 	store dataRetriever.StorageService,
 	blockType block.Type,
 ) (*intermediateResultsProcessor, error) {
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if adrConv == nil {
+	if adrConv == nil || adrConv.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilStorage
 	}
 

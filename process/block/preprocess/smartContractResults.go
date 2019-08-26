@@ -41,25 +41,25 @@ func NewSmartContractResultPreprocessor(
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte),
 ) (*smartContractResults, error) {
 
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if scrDataPool == nil {
+	if scrDataPool == nil || scrDataPool.IsInterfaceNil() {
 		return nil, process.ErrNilUTxDataPool
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilUTxStorage
 	}
-	if scrProcessor == nil {
+	if scrProcessor == nil || scrProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilTxProcessor
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if onRequestSmartContractResult == nil {
@@ -116,7 +116,7 @@ func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func
 
 // RemoveTxBlockFromPools removes smartContractResults and miniblocks from associated pools
 func (scr *smartContractResults) RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error {
-	if body == nil {
+	if body == nil || body.IsInterfaceNil() {
 		return process.ErrNilTxBlockBody
 	}
 
@@ -130,7 +130,7 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 	body block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, map[int][]byte, error) {
-	if miniBlockPool == nil {
+	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
 		return 0, nil, process.ErrNilMiniBlockPool
 	}
 
@@ -335,7 +335,7 @@ func (scr *smartContractResults) computeMissingScrsForMiniBlock(mb block.MiniBlo
 			txHash,
 			scr.scrPool)
 
-		if tx == nil {
+		if tx == nil || tx.IsInterfaceNil() {
 			missingSmartContractResults = append(missingSmartContractResults, txHash)
 		}
 	}

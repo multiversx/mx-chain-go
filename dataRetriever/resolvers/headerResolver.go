@@ -35,25 +35,25 @@ func NewHeaderResolver(
 	nonceConverter typeConverters.Uint64ByteSliceConverter,
 ) (*HeaderResolver, error) {
 
-	if senderResolver == nil {
+	if senderResolver == nil || senderResolver.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-	if headers == nil {
+	if headers == nil || headers.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilHeadersDataPool
 	}
-	if headersNonces == nil {
+	if headersNonces == nil || headersNonces.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilHeadersNoncesDataPool
 	}
-	if hdrStorage == nil {
+	if hdrStorage == nil || hdrStorage.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilHeadersStorage
 	}
-	if headersNoncesStorage == nil {
+	if headersNoncesStorage == nil || headersNoncesStorage.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilHeadersNoncesStorage
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if nonceConverter == nil {
+	if nonceConverter == nil || nonceConverter.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
 

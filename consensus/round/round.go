@@ -23,7 +23,7 @@ func NewRound(
 	syncTimer ntp.SyncTimer,
 ) (*round, error) {
 
-	if syncTimer == nil {
+	if syncTimer == nil || syncTimer.IsInterfaceNil() {
 		return nil, ErrNilSyncTimer
 	}
 

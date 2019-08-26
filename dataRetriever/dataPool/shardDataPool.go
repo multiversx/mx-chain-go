@@ -26,25 +26,25 @@ func NewShardedDataPool(
 	metaBlocks storage.Cacher,
 ) (*shardedDataPool, error) {
 
-	if transactions == nil {
+	if transactions == nil || transactions.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilTxDataPool
 	}
-	if unsignedTransactions == nil {
+	if unsignedTransactions == nil || unsignedTransactions.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilUnsignedTransactionPool
 	}
-	if headers == nil {
+	if headers == nil || headers.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilHeadersDataPool
 	}
-	if headersNonces == nil {
+	if headersNonces == nil || headersNonces.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilHeadersNoncesDataPool
 	}
-	if miniBlocks == nil {
+	if miniBlocks == nil || miniBlocks.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilTxBlockDataPool
 	}
-	if peerChangesBlocks == nil {
+	if peerChangesBlocks == nil || peerChangesBlocks.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilPeerChangeBlockDataPool
 	}
-	if metaBlocks == nil {
+	if metaBlocks == nil || metaBlocks.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMetaBlockPool
 	}
 

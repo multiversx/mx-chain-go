@@ -7,7 +7,7 @@ type NodeApiResolver struct {
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
 func NewNodeApiResolver(scDataGetter ScDataGetter) (*NodeApiResolver, error) {
-	if scDataGetter == nil {
+	if scDataGetter == nil || scDataGetter.IsInterfaceNil() {
 		return nil, ErrNilScDataGetter
 	}
 

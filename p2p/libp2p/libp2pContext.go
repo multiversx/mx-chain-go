@@ -18,7 +18,7 @@ func NewLibp2pContext(ctx context.Context, connHost ConnectableHost) (*Libp2pCon
 		return nil, p2p.ErrNilContext
 	}
 
-	if connHost == nil {
+	if connHost == nil || connHost.IsInterfaceNil() {
 		return nil, p2p.ErrNilHost
 	}
 
