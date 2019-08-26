@@ -129,7 +129,7 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 		blkStr,
 		[]byte(sr.SelfPubKey()),
 		nil,
-		int(sr.mtBlockBody),
+		sr.mtBlockBody,
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
 
@@ -167,7 +167,7 @@ func (sr *SubroundBlock) sendBlockHeader() bool {
 		hdrStr,
 		[]byte(sr.SelfPubKey()),
 		nil,
-		int(sr.mtBlockHeader),
+		sr.mtBlockHeader,
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		sr.Rounder().Index())
 
@@ -297,8 +297,10 @@ func (sr *SubroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 }
 
 func (sr *SubroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
-	if sr.BlockBody == nil ||
-		sr.Header == nil {
+	if sr.BlockBody == nil || sr.BlockBody.IsInterfaceNil() {
+		return false
+	}
+	if sr.Header == nil || sr.Header.IsInterfaceNil() {
 		return false
 	}
 

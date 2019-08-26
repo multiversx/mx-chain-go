@@ -673,7 +673,7 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	blockProcessorMock := createMetaBlockProcessor()
 
@@ -727,7 +727,7 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	rnd, _ := round.NewRound(time.Now(),
 		time.Now().Add(2*time.Duration(100*time.Millisecond)),
 		time.Duration(100*time.Millisecond),
-		mock.SyncTimerMock{})
+		&mock.SyncTimerMock{})
 
 	blockProcessorMock := createMetaBlockProcessor()
 
@@ -781,7 +781,7 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -880,7 +880,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return nil, nil
 	}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -975,7 +975,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 	rnd, _ := round.NewRound(time.Now(),
 		time.Now().Add(2*time.Duration(100*time.Millisecond)),
 		time.Duration(100*time.Millisecond),
-		mock.SyncTimerMock{})
+		&mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1069,7 +1069,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	rnd, _ := round.NewRound(time.Now(),
 		time.Now().Add(2*time.Duration(100*time.Millisecond)),
 		time.Duration(100*time.Millisecond),
-		mock.SyncTimerMock{})
+		&mock.SyncTimerMock{})
 
 	ebm.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return process.ErrBlockHashDoesNotMatch
@@ -1113,7 +1113,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundI
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -1153,7 +1153,7 @@ func TestMetaBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreat
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1197,7 +1197,7 @@ func TestMetaBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1241,7 +1241,7 @@ func TestMetaBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1398,7 +1398,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1466,7 +1466,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1536,7 +1536,7 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1609,7 +1609,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 		&mock.CacherStub{},
 	)
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,

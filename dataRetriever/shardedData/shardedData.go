@@ -236,3 +236,11 @@ func (sd *shardedData) RegisterHandler(handler func(key []byte)) {
 	sd.addedDataHandlers = append(sd.addedDataHandlers, handler)
 	sd.mutAddedDataHandlers.Unlock()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sd *shardedData) IsInterfaceNil() bool {
+	if sd == nil {
+		return true
+	}
+	return false
+}

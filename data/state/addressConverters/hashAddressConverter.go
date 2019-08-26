@@ -17,7 +17,7 @@ type HashAddressConverter struct {
 
 // NewHashAddressConverter creates a new instance of HashAddressConverter
 func NewHashAddressConverter(hasher hashing.Hasher, addressLen int, prefix string) (*HashAddressConverter, error) {
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, state.ErrNilHasher
 	}
 
@@ -56,7 +56,7 @@ func (hac *HashAddressConverter) CreateAddressFromPublicKeyBytes(pubKey []byte) 
 
 // ConvertToHex returns the hex string representation of the address.
 func (hac *HashAddressConverter) ConvertToHex(addressContainer state.AddressContainer) (string, error) {
-	if addressContainer == nil {
+	if addressContainer == nil || addressContainer.IsInterfaceNil() {
 		return "", state.ErrNilAddressContainer
 	}
 
@@ -113,4 +113,12 @@ func (hac *HashAddressConverter) PrepareAddressBytes(addressBytes []byte) ([]byt
 // AddressLen returns the address length
 func (hac *HashAddressConverter) AddressLen() int {
 	return hac.addressLen
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hac *HashAddressConverter) IsInterfaceNil() bool {
+	if hac == nil {
+		return true
+	}
+	return false
 }

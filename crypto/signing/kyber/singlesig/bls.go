@@ -7,13 +7,13 @@ import (
 	"go.dedis.ch/kyber/v3/sign/bls"
 )
 
-// RandomnessSingleSigner is a SingleSigner implementation that uses a BLS signature scheme
+// BlsSingleSigner is a SingleSigner implementation that uses a BLS signature scheme
 type BlsSingleSigner struct {
 }
 
 // Sign Signs a message using a single signature BLS scheme
 func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-	if private == nil {
+	if private == nil || private.IsInterfaceNil() {
 		return nil, crypto.ErrNilPrivateKey
 	}
 
@@ -22,7 +22,7 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 	}
 
 	scalar := private.Scalar()
-	if scalar == nil {
+	if scalar == nil || scalar.IsInterfaceNil() {
 		return nil, crypto.ErrNilPrivateKeyScalar
 	}
 
@@ -32,7 +32,7 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 	}
 
 	suite := private.Suite()
-	if suite == nil {
+	if suite == nil || suite.IsInterfaceNil() {
 		return nil, crypto.ErrNilSuite
 	}
 
@@ -46,7 +46,7 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 
 // Verify verifies a signature using a single signature BLS scheme
 func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
-	if public == nil {
+	if public == nil || public.IsInterfaceNil() {
 		return crypto.ErrNilPublicKey
 	}
 
@@ -59,12 +59,12 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 	}
 
 	suite := public.Suite()
-	if suite == nil {
+	if suite == nil || suite.IsInterfaceNil() {
 		return crypto.ErrNilSuite
 	}
 
 	point := public.Point()
-	if point == nil {
+	if point == nil || point.IsInterfaceNil() {
 		return crypto.ErrNilPublicKeyPoint
 	}
 
@@ -79,4 +79,12 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 	}
 
 	return bls.Verify(kSuite, kPoint, msg, sig)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *BlsSingleSigner) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
 }

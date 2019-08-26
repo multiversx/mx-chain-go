@@ -13,7 +13,7 @@ import (
 )
 
 func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
-	accnt, _ := state.NewAccountsDB(trie, mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
+	accnt, _ := state.NewAccountsDB(trie, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address, tracker), nil
 		},
@@ -42,7 +42,7 @@ func TestNewAccountsDB_WithNilTrieShouldErr(t *testing.T) {
 
 	adb, err := state.NewAccountsDB(
 		nil,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
 	)
@@ -70,7 +70,7 @@ func TestNewAccountsDB_WithNilMarshalizerShouldErr(t *testing.T) {
 
 	adb, err := state.NewAccountsDB(
 		&mock.TrieStub{},
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		nil,
 		&mock.AccountsFactoryStub{},
 	)
@@ -84,7 +84,7 @@ func TestNewAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
 
 	adb, err := state.NewAccountsDB(
 		&mock.TrieStub{},
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
 	)
@@ -98,7 +98,7 @@ func TestNewAccountsDB_OkValsShouldWork(t *testing.T) {
 
 	adb, err := state.NewAccountsDB(
 		&mock.TrieStub{},
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
 	)
@@ -336,7 +336,7 @@ func TestAccountsDB_SaveJournalizedAccountMalfunctionMarshalizerShouldErr(t *tes
 	account := generateAccount()
 	mockTrie := &mock.TrieStub{}
 	marshalizer := &mock.MarshalizerMock{}
-	adb, _ := state.NewAccountsDB(mockTrie, mock.HasherMock{}, marshalizer, &mock.AccountsFactoryStub{
+	adb, _ := state.NewAccountsDB(mockTrie, &mock.HasherMock{}, marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address, tracker), nil
 		},
@@ -500,7 +500,7 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 		return buff, nil
 	}
 
-	adb, _ = state.NewAccountsDB(&trieMock, mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
+	adb, _ = state.NewAccountsDB(&trieMock, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address, tracker), nil
 		},
@@ -553,7 +553,7 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 		return adr.Bytes(), nil
 	}
 	marshalizer := mock.MarshalizerMock{}
-	adb, _ = state.NewAccountsDB(&trieStub, mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
+	adb, _ = state.NewAccountsDB(&trieStub, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address, tracker), nil
 		},

@@ -1,9 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
@@ -23,4 +23,12 @@ func (etm *TxProcessorMock) SetBalancesToTrie(accBalance map[string]*big.Int) (r
 
 func (etm *TxProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
 	return etm.ProcessSmartContractResultCalled(scr)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (etm *TxProcessorMock) IsInterfaceNil() bool {
+	if etm == nil {
+		return true
+	}
+	return false
 }

@@ -549,6 +549,14 @@ func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint
 	return nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (ncv *nullChronologyValidator) IsInterfaceNil() bool {
+	if ncv == nil {
+		return true
+	}
+	return false
+}
+
 func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	switch cfg.Hasher.Type {
 	case "sha256":
@@ -563,7 +571,7 @@ func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 	switch cfg.Marshalizer.Type {
 	case "json":
-		return marshal.JsonMarshalizer{}, nil
+		return &marshal.JsonMarshalizer{}, nil
 	}
 
 	return nil, errors.New("no marshalizer provided in config file")

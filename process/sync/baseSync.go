@@ -497,34 +497,34 @@ func checkBootstrapNilParameters(
 	accounts state.AccountsAdapter,
 	store dataRetriever.StorageService,
 ) error {
-	if blkc == nil {
+	if blkc == nil || blkc.IsInterfaceNil() {
 		return process.ErrNilBlockChain
 	}
-	if rounder == nil {
+	if rounder == nil || rounder.IsInterfaceNil() {
 		return process.ErrNilRounder
 	}
-	if blkExecutor == nil {
+	if blkExecutor == nil || blkExecutor.IsInterfaceNil() {
 		return process.ErrNilBlockExecutor
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return process.ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return process.ErrNilMarshalizer
 	}
-	if forkDetector == nil {
+	if forkDetector == nil || forkDetector.IsInterfaceNil() {
 		return process.ErrNilForkDetector
 	}
-	if resolversFinder == nil {
+	if resolversFinder == nil || resolversFinder.IsInterfaceNil() {
 		return process.ErrNilResolverContainer
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return process.ErrNilAccountsAdapter
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return process.ErrNilStore
 	}
 

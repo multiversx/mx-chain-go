@@ -72,3 +72,11 @@ func (chs *ChainHandlerStub) HasBadBlock(blockHash []byte) bool {
 func (chs *ChainHandlerStub) PutBadBlock(blockHash []byte) {
 	panic("implement me")
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (chs *ChainHandlerStub) IsInterfaceNil() bool {
+	if chs == nil {
+		return true
+	}
+	return false
+}

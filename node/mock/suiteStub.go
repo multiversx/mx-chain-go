@@ -2,6 +2,7 @@ package mock
 
 import (
 	"crypto/cipher"
+
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
@@ -47,6 +48,14 @@ func (s *SuiteMock) RandomStream() cipher.Stream {
 
 func (s *SuiteMock) GetUnderlyingSuite() interface{} {
 	return s.GetUnderlyingSuiteStub()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *SuiteMock) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
 }
 
 func (gs *GeneratorSuite) CreateKey(c cipher.Stream) crypto.Scalar {

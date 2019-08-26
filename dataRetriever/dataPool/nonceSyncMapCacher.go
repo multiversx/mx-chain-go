@@ -26,10 +26,10 @@ func NewNonceSyncMapCacher(
 	nonceConverter typeConverters.Uint64ByteSliceConverter,
 ) (*nonceSyncMapCacher, error) {
 
-	if cacher == nil {
+	if cacher == nil || cacher.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilCacher
 	}
-	if nonceConverter == nil {
+	if nonceConverter == nil || nonceConverter.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
 
@@ -63,7 +63,7 @@ func (nspc *nonceSyncMapCacher) Get(nonce uint64) (dataRetriever.ShardIdHashMap,
 // Merge will append existing values from src map. If the keys already exists in the existing map, their values
 // will be overwritten. If the existing map is nil, a new map will created and all values from src map will be copied.
 func (nspc *nonceSyncMapCacher) Merge(nonce uint64, src dataRetriever.ShardIdHashMap) {
-	if src == nil {
+	if src == nil || src.IsInterfaceNil() {
 		return
 	}
 
@@ -157,4 +157,12 @@ func (nspc *nonceSyncMapCacher) Has(nonce uint64, shardId uint32) bool {
 	_, exists := syncMap.Load(shardId)
 
 	return exists
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (nspc *nonceSyncMapCacher) IsInterfaceNil() bool {
+	if nspc == nil {
+		return true
+	}
+	return false
 }

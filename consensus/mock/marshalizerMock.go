@@ -50,3 +50,11 @@ func (mm MarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
 func (MarshalizerMock) Version() string {
 	return "JSON/v.0.0.0.1"
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mm MarshalizerMock) IsInterfaceNil() bool {
+	if &mm == nil {
+		return true
+	}
+	return false
+}

@@ -14,4 +14,5 @@ type Coordinator interface {
 	SelfId() uint32
 	SameShard(firstAddress, secondAddress state.AddressContainer) bool
 	CommunicationIdentifier(destShardID uint32) string
+	IsInterfaceNil() bool
 }

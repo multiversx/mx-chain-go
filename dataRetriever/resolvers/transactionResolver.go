@@ -28,19 +28,19 @@ func NewTxResolver(
 	dataPacker dataRetriever.DataPacker,
 ) (*TxResolver, error) {
 
-	if senderResolver == nil {
+	if senderResolver == nil || senderResolver.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-	if txPool == nil {
+	if txPool == nil || txPool.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilTxDataPool
 	}
-	if txStorage == nil {
+	if txStorage == nil || txStorage.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilTxStorage
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if dataPacker == nil {
+	if dataPacker == nil || dataPacker.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
 
@@ -164,4 +164,12 @@ func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte) error {
 		Type:  dataRetriever.HashArrayType,
 		Value: buffHashes,
 	})
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (txRes *TxResolver) IsInterfaceNil() bool {
+	if txRes == nil {
+		return true
+	}
+	return false
 }

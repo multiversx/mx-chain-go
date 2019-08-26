@@ -36,10 +36,10 @@ type ElrondNodeFacade struct {
 
 // NewElrondNodeFacade creates a new Facade with a NodeWrapper
 func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver, restAPIServerDebugMode bool) *ElrondNodeFacade {
-	if node == nil {
+	if node == nil || node.IsInterfaceNil() {
 		return nil
 	}
-	if apiResolver == nil {
+	if apiResolver == nil || apiResolver.IsInterfaceNil() {
 		return nil
 	}
 
@@ -242,4 +242,12 @@ func (ef *ElrondNodeFacade) GetVmValue(address string, funcName string, argsBuff
 // PprofEnabled returns if profiling mode should be active or not on the application
 func (ef *ElrondNodeFacade) PprofEnabled() bool {
 	return ef.config.PprofEnabled
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ef *ElrondNodeFacade) IsInterfaceNil() bool {
+	if ef == nil {
+		return true
+	}
+	return false
 }

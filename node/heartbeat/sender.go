@@ -33,19 +33,21 @@ func NewSender(
 	nodeDisplayName string,
 ) (*Sender, error) {
 
-	if peerMessenger == nil {
+	if peerMessenger == nil || peerMessenger.IsInterfaceNil() {
 		return nil, ErrNilMessenger
 	}
-	if singleSigner == nil {
+	if singleSigner == nil || singleSigner.IsInterfaceNil() {
 		return nil, ErrNilSingleSigner
 	}
-	if privKey == nil {
+	if privKey == nil || privKey.IsInterfaceNil() {
 		return nil, ErrNilPrivateKey
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, ErrNilMarshalizer
 	}
-	//TODO add test for shardCoordinator
+	if shardCoordinator == nil {
+		return nil, ErrNilShardCoordinator
+	}
 
 	sender := &Sender{
 		peerMessenger:    peerMessenger,

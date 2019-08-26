@@ -79,3 +79,11 @@ func (bc *ChainStorerMock) Destroy() error {
 	}
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bc *ChainStorerMock) IsInterfaceNil() bool {
+	if bc == nil {
+		return true
+	}
+	return false
+}

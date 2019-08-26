@@ -91,3 +91,11 @@ func (ts *TrieStub) String() string {
 func (ts *TrieStub) DeepClone() (data.Trie, error) {
 	return ts.DeepCloneCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ts *TrieStub) IsInterfaceNil() bool {
+	if ts == nil {
+		return true
+	}
+	return false
+}

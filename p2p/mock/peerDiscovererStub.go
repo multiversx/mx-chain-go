@@ -21,3 +21,11 @@ func (pds *PeerDiscovererStub) Name() string {
 func (pds *PeerDiscovererStub) ApplyContext(ctxProvider p2p.ContextProvider) error {
 	return pds.ApplyContextCalled(ctxProvider)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pds *PeerDiscovererStub) IsInterfaceNil() bool {
+	if pds == nil {
+		return true
+	}
+	return false
+}

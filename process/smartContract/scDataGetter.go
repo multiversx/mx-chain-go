@@ -102,3 +102,11 @@ func (scdg *scDataGetter) checkVMOutput(vmOutput *vmcommon.VMOutput) ([]byte, er
 
 	return make([]byte, 0), nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (scdg *scDataGetter) IsInterfaceNil() bool {
+	if scdg == nil {
+		return true
+	}
+	return false
+}

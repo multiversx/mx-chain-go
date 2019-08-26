@@ -96,3 +96,11 @@ func (ms *MessengerStub) SendToConnectedPeer(topic string, buff []byte, peerID p
 func (ms *MessengerStub) Bootstrap() error {
 	return ms.BootstrapCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ms *MessengerStub) IsInterfaceNil() bool {
+	if ms == nil {
+		return true
+	}
+	return false
+}

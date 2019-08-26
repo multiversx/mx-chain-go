@@ -56,3 +56,11 @@ func (ms *MessengerStub) PeerAddress(pid p2p.PeerID) string {
 func (ms *MessengerStub) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
 	ms.BroadcastOnChannelBlockingCalled(channel, topic, buff)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ms *MessengerStub) IsInterfaceNil() bool {
+	if ms == nil {
+		return true
+	}
+	return false
+}

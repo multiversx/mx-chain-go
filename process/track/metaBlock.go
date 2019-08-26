@@ -36,3 +36,11 @@ func (mbt *metaBlockTracker) SetBlockBroadcastRound(nonce uint64, round int64) {
 func (mbt *metaBlockTracker) BlockBroadcastRound(nonce uint64) int64 {
 	return 0
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mbt *metaBlockTracker) IsInterfaceNil() bool {
+	if mbt == nil {
+		return true
+	}
+	return false
+}

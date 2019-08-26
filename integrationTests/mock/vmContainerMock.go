@@ -60,3 +60,11 @@ func (V *VMContainerMock) Keys() [][]byte {
 	}
 	return V.KeysCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (V *VMContainerMock) IsInterfaceNil() bool {
+	if V == nil {
+		return true
+	}
+	return false
+}
