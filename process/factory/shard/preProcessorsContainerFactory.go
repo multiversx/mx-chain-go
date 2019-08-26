@@ -13,17 +13,18 @@ import (
 )
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator  sharding.Coordinator
-	store             dataRetriever.StorageService
-	marshalizer       marshal.Marshalizer
-	hasher            hashing.Hasher
-	dataPool          dataRetriever.PoolsHolder
-	addrConverter     state.AddressConverter
-	txProcessor       process.TransactionProcessor
-	scProcessor       process.SmartContractProcessor
-	scResultProcessor process.SmartContractResultProcessor
-	accounts          state.AccountsAdapter
-	requestHandler    process.RequestHandler
+	shardCoordinator   sharding.Coordinator
+	store              dataRetriever.StorageService
+	marshalizer        marshal.Marshalizer
+	hasher             hashing.Hasher
+	dataPool           dataRetriever.PoolsHolder
+	addrConverter      state.AddressConverter
+	txProcessor        process.TransactionProcessor
+	scProcessor        process.SmartContractProcessor
+	scResultProcessor  process.SmartContractResultProcessor
+	rewardsTxProcessor process.RewardTransactionProcessor
+	accounts           state.AccountsAdapter
+	requestHandler     process.RequestHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -39,6 +40,7 @@ func NewPreProcessorsContainerFactory(
 	txProcessor process.TransactionProcessor,
 	scProcessor process.SmartContractProcessor,
 	scResultProcessor process.SmartContractResultProcessor,
+	rewardsTxProcessor process.RewardTransactionProcessor,
 ) (*preProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -71,22 +73,26 @@ func NewPreProcessorsContainerFactory(
 	if scResultProcessor == nil {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
+	if rewardsTxProcessor == nil {
+		return nil, process.ErrNilRewardsTxProcessor
+	}
 	if requestHandler == nil {
 		return nil, process.ErrNilRequestHandler
 	}
 
 	return &preProcessorsContainerFactory{
-		shardCoordinator:  shardCoordinator,
-		store:             store,
-		marshalizer:       marshalizer,
-		hasher:            hasher,
-		dataPool:          dataPool,
-		addrConverter:     addrConverter,
-		txProcessor:       txProcessor,
-		accounts:          accounts,
-		scProcessor:       scProcessor,
-		scResultProcessor: scResultProcessor,
-		requestHandler:    requestHandler,
+		shardCoordinator:   shardCoordinator,
+		store:              store,
+		marshalizer:        marshalizer,
+		hasher:             hasher,
+		dataPool:           dataPool,
+		addrConverter:      addrConverter,
+		txProcessor:        txProcessor,
+		accounts:           accounts,
+		scProcessor:        scProcessor,
+		scResultProcessor:  scResultProcessor,
+		rewardsTxProcessor: rewardsTxProcessor,
+		requestHandler:     requestHandler,
 	}, nil
 }
 
@@ -110,6 +116,16 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 	}
 
 	err = container.Add(block.SmartContractResultBlock, preproc)
+	if err != nil {
+		return nil, err
+	}
+
+	preproc, err = ppcm.createRewardsTransactionPreProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(block.RewardsBlockType, preproc)
 	if err != nil {
 		return nil, err
 	}
@@ -145,4 +161,19 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 	)
 
 	return scrPreprocessor, err
+}
+
+func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor() (process.PreProcessor, error) {
+	rewardTxPreprocessor, err := preprocess.NewRewardTxPreprocessor(
+		ppcm.dataPool.RewardTransactions(),
+		ppcm.store,
+		ppcm.hasher,
+		ppcm.marshalizer,
+		ppcm.rewardsTxProcessor,
+		ppcm.shardCoordinator,
+		ppcm.accounts,
+		ppcm.requestHandler.RequestRewardTransactions,
+	)
+
+	return rewardTxPreprocessor, err
 }

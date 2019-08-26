@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"math/big"
 	"reflect"
 	"sync"
@@ -84,6 +85,36 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, testHash) {
 						return &smartContractResult.SmartContractResult{Nonce: 10, SndAddr: []byte("0"), RcvAddr: []byte("1")}, true
+					}
+					return nil, false
+				},
+				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+				},
+			}
+		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &mock.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if reflect.DeepEqual(key, testHash) {
+								return &rewardTx.RewardTx{Epoch: 0, Round: 1, RcvAddr: []byte("1")}, true
+							}
+							return nil, false
+						},
+						KeysCalled: func() [][]byte {
+							return [][]byte{[]byte("key1"), []byte("key2")}
+						},
+						LenCalled: func() int {
+							return 0
+						},
+					}
+				},
+				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, testHash) {
+						return &rewardTx.RewardTx{Epoch: 0, Round: 1, RcvAddr: []byte("1")}, true
 					}
 					return nil, false
 				},
@@ -378,6 +409,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -415,6 +447,7 @@ func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder)
 		},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -684,6 +717,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -758,6 +792,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return shardedCacheMock
 			},
+			RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return shardedCacheMock
+			},
 		},
 		&mock.AddressConverterMock{},
 		&mock.AccountsStub{},
@@ -769,6 +806,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1131,6 +1169,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1286,6 +1325,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1404,6 +1444,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1517,6 +1558,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1621,6 +1663,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := preFactory.Create()
 

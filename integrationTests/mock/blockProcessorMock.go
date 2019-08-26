@@ -93,5 +93,8 @@ func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, process
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
-func(blProcMock BlockProcessorMock) SetConsensusRewardAddresses ([]string){
+func (blProcMock BlockProcessorMock) SetConsensusRewardAddresses(address []string) {
+	if blProcMock.SetConsensusRewardAddressesCalled != nil {
+		blProcMock.SetConsensusRewardAddressesCalled(address)
+	}
 }

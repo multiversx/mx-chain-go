@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -102,7 +101,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 }
 
 func (ppcm *intermediateProcessorsContainerFactory) createRewardsTxIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
-	irp, err := unsigned.NewRewardTxHandler(
+	irp, err := preprocess.NewRewardTxHandler(
 		ppcm.specialAddressHandler,
 		ppcm.hasher,
 		ppcm.marshalizer,

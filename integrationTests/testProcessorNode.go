@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"sync/atomic"
 	"time"
 
@@ -103,6 +104,7 @@ type TestProcessorNode struct {
 	BlockchainHook         vmcommon.BlockchainHook
 	ArgsParser             process.ArgumentsParser
 	ScProcessor            process.SmartContractProcessor
+	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
 
 	ForkDetector       process.ForkDetector
@@ -307,6 +309,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.ResolverFinder,
 			factory.TransactionTopic,
 			factory.UnsignedTransactionTopic,
+			factory.RewardsTransactionTopic,
 			factory.MiniBlocksTopic,
 			factory.MetachainBlocksTopic,
 			100,
@@ -351,6 +354,11 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScrForwarder,
 		&mock.UnsignedTxHandlerMock{},
 	)
+	tpn.RewardsProcessor, _=rewardTransaction.NewRewardTxProcessor(
+		tpn.AccntState,
+		TestAddressConverter,
+		tpn.ShardCoordinator,
+		)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 
@@ -377,6 +385,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.TxProcessor,
 		tpn.ScProcessor,
 		tpn.ScProcessor.(process.SmartContractResultProcessor),
+		tpn.RewardsProcessor,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

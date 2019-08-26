@@ -669,6 +669,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := factory.Create()
 
@@ -900,6 +901,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		tpm,
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2204,6 +2206,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2886,6 +2889,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := factory.Create()
 
@@ -3020,6 +3024,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := factory.Create()
 
@@ -3502,6 +3507,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		txProcessorMock,
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := factory.Create()
 
@@ -3733,6 +3739,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
 	)
 	container, _ := factory.Create()
 

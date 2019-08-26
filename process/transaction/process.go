@@ -2,17 +2,17 @@ package transaction
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/feeTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -25,7 +25,7 @@ type txProcessor struct {
 	hasher           hashing.Hasher
 	scProcessor      process.SmartContractProcessor
 	marshalizer      marshal.Marshalizer
-	txFeeHandler     process.UnsignedTxHandler
+	rewardTxHandler  process.UnsignedTxHandler
 	shardCoordinator sharding.Coordinator
 	txTypeHandler    process.TxTypeHandler
 }
@@ -38,7 +38,7 @@ func NewTxProcessor(
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
-	txFeeHandler process.UnsignedTxHandler,
+	rewardTxHandler process.UnsignedTxHandler,
 	txTypeHandler process.TxTypeHandler,
 ) (*txProcessor, error) {
 
@@ -60,7 +60,7 @@ func NewTxProcessor(
 	if scProcessor == nil {
 		return nil, process.ErrNilSmartContractProcessor
 	}
-	if txFeeHandler == nil {
+	if rewardTxHandler == nil {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
 	if txTypeHandler == nil {
@@ -74,7 +74,7 @@ func NewTxProcessor(
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
 		scProcessor:      scProcessor,
-		txFeeHandler:     txFeeHandler,
+		rewardTxHandler:  rewardTxHandler,
 		txTypeHandler:    txTypeHandler,
 	}, nil
 }
@@ -112,8 +112,8 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return txProc.processSCDeployment(tx, adrSrc, roundIndex)
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, adrSrc, adrDst, roundIndex)
-	case process.TxFee:
-		return txProc.processAccumulatedTxFees(tx, adrSrc)
+	case process.RewardTx:
+		return txProc.processRewardTx(tx, adrSrc)
 	}
 
 	return process.ErrWrongTransaction
@@ -129,8 +129,8 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 
 	txDataLen := int64(len(tx.Data))
 	minFee := big.NewInt(0)
-	minFee = minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(unsigned.MinGasPrice))
-	minFee = minFee.Add(minFee, big.NewInt(0).SetUint64(unsigned.MinTxFee))
+	minFee = minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(preprocess.MinGasPrice))
+	minFee = minFee.Add(minFee, big.NewInt(0).SetUint64(preprocess.MinTxFee))
 
 	if minFee.Cmp(cost) > 0 {
 		return nil, process.ErrNotEnoughFeeInTransactions
@@ -149,11 +149,11 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 	return cost, nil
 }
 
-func (txProc *txProcessor) processAccumulatedTxFees(
+func (txProc *txProcessor) processRewardTx(
 	tx data.TransactionHandler,
 	adrSrc state.AddressContainer,
 ) error {
-	currTxFee, ok := tx.(*feeTx.FeeTx)
+	rTx, ok := tx.(*rewardTx.RewardTx)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -166,14 +166,14 @@ func (txProc *txProcessor) processAccumulatedTxFees(
 	// is sender address in node shard
 	if acntSrc != nil {
 		op := big.NewInt(0)
-		err := acntSrc.SetBalanceWithJournal(op.Add(acntSrc.Balance, currTxFee.Value))
+		err := acntSrc.SetBalanceWithJournal(op.Add(acntSrc.Balance, rTx.Value))
 		if err != nil {
 			return err
 		}
 	}
 
-	if currTxFee.ShardId == txProc.shardCoordinator.SelfId() {
-		txProc.txFeeHandler.AddRewardTxFromBlock(currTxFee)
+	if rTx.ShardId == txProc.shardCoordinator.SelfId() {
+		txProc.rewardTxHandler.AddRewardTxFromBlock(rTx)
 	}
 
 	return nil
@@ -211,7 +211,7 @@ func (txProc *txProcessor) processMoveBalance(
 		}
 	}
 
-	txProc.txFeeHandler.ProcessTransactionFee(txFee)
+	txProc.rewardTxHandler.ProcessTransactionFee(txFee)
 
 	return nil
 }

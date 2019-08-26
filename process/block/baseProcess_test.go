@@ -3,6 +3,8 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"math/big"
 	"reflect"
 	"testing"
 	"time"
@@ -102,6 +104,48 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+				},
+			}
+		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &mock.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if reflect.DeepEqual(key, testHash) {
+								return &rewardTx.RewardTx{
+									Round:   1,
+									Epoch:   0,
+									Value:   big.NewInt(10),
+									RcvAddr: []byte("receiver"),
+									ShardId: 0,
+								}, true
+							}
+							return nil, false
+						},
+						KeysCalled: func() [][]byte {
+							return [][]byte{[]byte("key1"), []byte("key2")}
+						},
+						LenCalled: func() int {
+							return 0
+						},
+					}
+				},
+				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &rewardTx.RewardTx{
+							Round:   1,
+							Epoch:   0,
+							Value:   big.NewInt(10),
+							RcvAddr: []byte("receiver"),
+							ShardId: 0,
+						}, true
 					}
 					return nil, false
 				},

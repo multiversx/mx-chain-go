@@ -11,13 +11,14 @@ import (
 )
 
 type ResolverRequestHandler struct {
-	resolversFinder dataRetriever.ResolversFinder
-	txRequestTopic  string
-	scrRequestTopic string
-	mbRequestTopic  string
-	hdrRequestTopic string
-	isMetaChain     bool
-	maxTxsToRequest int
+	resolversFinder      dataRetriever.ResolversFinder
+	txRequestTopic       string
+	scrRequestTopic      string
+	rewardTxRequestTopic string
+	mbRequestTopic       string
+	hdrRequestTopic      string
+	isMetaChain          bool
+	maxTxsToRequest      int
 }
 
 var log = logger.DefaultLogger()
@@ -27,6 +28,7 @@ func NewShardResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	txRequestTopic string,
 	scrRequestTopic string,
+	rewardTxRequestTopic string,
 	mbRequestTopic string,
 	hdrRequestTopic string,
 	maxTxsToRequest int,
@@ -40,6 +42,9 @@ func NewShardResolverRequestHandler(
 	if len(scrRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyScrRequestTopic
 	}
+	if len(rewardTxRequestTopic) == 0 {
+		return nil, dataRetriever.ErrEmptyRewardTxRequestTopic
+	}
 	if len(mbRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyMiniBlockRequestTopic
 	}
@@ -51,13 +56,14 @@ func NewShardResolverRequestHandler(
 	}
 
 	rrh := &ResolverRequestHandler{
-		resolversFinder: finder,
-		txRequestTopic:  txRequestTopic,
-		mbRequestTopic:  mbRequestTopic,
-		hdrRequestTopic: hdrRequestTopic,
-		scrRequestTopic: scrRequestTopic,
-		isMetaChain:     false,
-		maxTxsToRequest: maxTxsToRequest,
+		resolversFinder:      finder,
+		txRequestTopic:       txRequestTopic,
+		mbRequestTopic:       mbRequestTopic,
+		hdrRequestTopic:      hdrRequestTopic,
+		scrRequestTopic:      scrRequestTopic,
+		rewardTxRequestTopic: rewardTxRequestTopic,
+		isMetaChain:          false,
+		maxTxsToRequest:      maxTxsToRequest,
 	}
 
 	return rrh, nil
@@ -123,6 +129,11 @@ func (rrh *ResolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 // RequestUnsignedTransactions method asks for unsigned transactions from the connected peers
 func (rrh *ResolverRequestHandler) RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte) {
 	rrh.requestByHashes(destShardID, scrHashes, rrh.scrRequestTopic)
+}
+
+// RequestRewardTransactions requests for reward transactions from the connected peers
+func (rrh *ResolverRequestHandler) RequestRewardTransactions(destShardId uint32, rewardTxHashes [][]byte){
+	rrh.requestByHashes(destShardId, rewardTxHashes, rrh.rewardTxRequestTopic)
 }
 
 // RequestMiniBlock method asks for miniblocks from the connected peers

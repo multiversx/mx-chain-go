@@ -1,12 +1,12 @@
 package transaction
 
 import (
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 )
 
 type TxProcessor *txProcessor
@@ -36,12 +36,12 @@ func (txProc *txProcessor) IncreaseNonce(acntSrc *state.Account) error {
 
 func (txProc *txProcessor) SetMinTxFee(minTxFee uint64) {
 	mutex.Lock()
-	unsigned.MinTxFee = minTxFee
+	preprocess.MinTxFee = minTxFee
 	mutex.Unlock()
 }
 
 func (txProc *txProcessor) SetMinGasPrice(minGasPrice uint64) {
 	mutex.Lock()
-	unsigned.MinGasPrice = minGasPrice
+	preprocess.MinGasPrice = minGasPrice
 	mutex.Unlock()
 }

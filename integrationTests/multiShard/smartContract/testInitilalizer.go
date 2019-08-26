@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -326,6 +327,7 @@ func createNetNode(
 		resolversFinder,
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
+		factory.RewardsTransactionTopic,
 		factory.MiniBlocksTopic,
 		factory.MetachainBlocksTopic,
 		100,
@@ -363,6 +365,12 @@ func createNetNode(
 		rewardsHandler,
 	)
 
+	rewardProcessor, _ := rewardTransaction.NewRewardTxProcessor(
+		accntAdapter,
+		addrConv,
+		shardCoordinator,
+	)
+
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)
 
 	txProcessor, _ := transaction.NewTxProcessor(
@@ -388,6 +396,7 @@ func createNetNode(
 		txProcessor,
 		scProcessor,
 		scProcessor,
+		rewardProcessor,
 	)
 	container, _ := fact.Create()
 

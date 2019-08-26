@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -1396,7 +1397,7 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	feeTxHandler, ok := rewardsTxInterim.(process.UnsignedTxHandler)
+	rewardsTxHandler, ok := rewardsTxInterim.(process.UnsignedTxHandler)
 	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
@@ -1411,7 +1412,16 @@ func newShardBlockProcessorAndTracker(
 		state.AddressConverter,
 		shardCoordinator,
 		scResults,
-		feeTxHandler,
+		rewardsTxHandler,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rewardsTxProcessor, err := rewardTransaction.NewRewardTxProcessor(
+		state.AccountsAdapter,
+		state.AddressConverter,
+		shardCoordinator,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1421,6 +1431,7 @@ func newShardBlockProcessorAndTracker(
 		resolversFinder,
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
+		factory.RewardsTransactionTopic,
 		factory.MiniBlocksTopic,
 		factory.MetachainBlocksTopic,
 		MaxTxsToRequest,
@@ -1441,7 +1452,7 @@ func newShardBlockProcessorAndTracker(
 		core.Marshalizer,
 		shardCoordinator,
 		scProcessor,
-		feeTxHandler,
+		rewardsTxHandler,
 		txTypeHandler,
 	)
 	if err != nil {
@@ -1470,6 +1481,7 @@ func newShardBlockProcessorAndTracker(
 		transactionProcessor,
 		scProcessor,
 		scProcessor,
+		rewardsTxProcessor,
 	)
 	if err != nil {
 		return nil, nil, err

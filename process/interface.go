@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"math/big"
 	"time"
 
@@ -19,6 +20,11 @@ import (
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction, round uint64) error
+}
+
+// RewardTransactionProcessor is the interface for reward transaction execution engine
+type RewardTransactionProcessor interface {
+	ProcessRewardTransaction(rewardTx *rewardTx.RewardTx) error
 }
 
 // SmartContractResultProcessor is the main interface for smart contract result execution engine
@@ -302,6 +308,7 @@ type RequestHandler interface {
 	RequestHeaderByNonce(shardId uint32, nonce uint64)
 	RequestTransaction(shardId uint32, txHashes [][]byte)
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
+	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(shardId uint32, miniblockHash []byte)
 	RequestHeader(shardId uint32, hash []byte)
 }
