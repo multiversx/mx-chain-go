@@ -85,6 +85,9 @@ const (
 	MaxTxsToRequest = 100
 )
 
+// ErrShardGenesisBlockNotExits signals that genesis block not exits
+var ErrShardGenesisBlockNotExits = errors.New("genesis block not exits")
+
 var log = logger.DefaultLogger()
 
 // Network struct holds the network components of the Elrond protocol
@@ -479,6 +482,22 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	if err != nil {
 		return nil, err
 	}
+
+	genesisBlock, ok := shardsGenesisBlocks[args.shardCoordinator.SelfId()]
+	if !ok {
+		return nil, ErrShardGenesisBlockNotExits
+	}
+	genesisBlockHash, err := core.CalculateHash(args.core.Marshalizer, args.core.Hasher, genesisBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	err = args.data.Blkc.SetGenesisHeader(genesisBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	args.data.Blkc.SetGenesisHeaderHash(genesisBlockHash)
 
 	blockProcessor, blockTracker, err := newBlockProcessorAndTracker(
 		resolversFinder,
