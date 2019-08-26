@@ -249,10 +249,10 @@ func (s *Unit) IsInterfaceNil() bool {
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given cacher and persister.
 func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
-	if p == nil {
+	if p == nil || p.IsInterfaceNil() {
 		return nil, storage.ErrNilPersister
 	}
-	if c == nil {
+	if c == nil || c.IsInterfaceNil() {
 		return nil, storage.ErrNilCacher
 	}
 
@@ -273,13 +273,13 @@ func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
 // NewStorageUnitWithBloomFilter is the constructor for the storage unit, creating a new storage unit
 // from the given cacher, persister and bloom filter.
 func NewStorageUnitWithBloomFilter(c storage.Cacher, p storage.Persister, b storage.BloomFilter) (*Unit, error) {
-	if p == nil {
+	if p == nil || p.IsInterfaceNil() {
 		return nil, storage.ErrNilPersister
 	}
-	if c == nil {
+	if c == nil || c.IsInterfaceNil() {
 		return nil, storage.ErrNilCacher
 	}
-	if b == nil {
+	if b == nil || b.IsInterfaceNil() {
 		return nil, storage.ErrNilBloomFilter
 	}
 

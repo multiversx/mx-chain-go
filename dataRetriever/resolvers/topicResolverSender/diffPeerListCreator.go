@@ -21,7 +21,7 @@ func NewDiffPeerListCreator(
 	mainTopic string,
 	excludePeersFromTopic string,
 ) (*DiffPeerListCreator, error) {
-	if messenger == nil {
+	if messenger == nil || messenger.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMessenger
 	}
 

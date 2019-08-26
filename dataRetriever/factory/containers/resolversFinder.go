@@ -14,11 +14,11 @@ type resolversFinder struct {
 
 // NewResolversFinder creates a new resolversFinder object
 func NewResolversFinder(container dataRetriever.ResolversContainer, coordinator sharding.Coordinator) (*resolversFinder, error) {
-	if container == nil {
+	if container == nil || container.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverContainer
 	}
 
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilShardCoordinator
 	}
 

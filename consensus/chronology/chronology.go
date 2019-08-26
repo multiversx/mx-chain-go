@@ -67,11 +67,11 @@ func checkNewChronologyParams(
 	syncTimer ntp.SyncTimer,
 ) error {
 
-	if rounder == nil {
+	if rounder == nil || rounder.IsInterfaceNil() {
 		return ErrNilRounder
 	}
 
-	if syncTimer == nil {
+	if syncTimer == nil || syncTimer.IsInterfaceNil() {
 		return ErrNilSyncTimer
 	}
 

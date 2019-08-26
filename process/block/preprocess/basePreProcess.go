@@ -44,10 +44,10 @@ type basePreProcess struct {
 }
 
 func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
-	if miniBlockPool == nil {
+	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
 		return process.ErrNilMiniBlockPool
 	}
-	if txPool == nil {
+	if txPool == nil || txPool.IsInterfaceNil() {
 		return process.ErrNilTransactionPool
 	}
 
@@ -199,7 +199,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 				txHash,
 				txPool)
 
-			if tx == nil {
+			if tx == nil || tx.IsInterfaceNil() {
 				txHashes = append(txHashes, txHash)
 				forBlock.missingTxs++
 			} else {

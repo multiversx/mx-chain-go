@@ -30,7 +30,7 @@ func NewBlockChain(
 	badBlocksCache storage.Cacher,
 ) (*BlockChain, error) {
 
-	if badBlocksCache == nil {
+	if badBlocksCache == nil || badBlocksCache.IsInterfaceNil() {
 		return nil, ErrBadBlocksCacheNil
 	}
 
@@ -66,7 +66,7 @@ func (bc *BlockChain) GetGenesisHeader() data.HeaderHandler {
 
 // SetGenesisHeader sets the genesis block header pointer
 func (bc *BlockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
-	if genesisBlock == nil {
+	if genesisBlock == nil || genesisBlock.IsInterfaceNil() {
 		bc.GenesisHeader = nil
 		return nil
 	}
@@ -99,7 +99,7 @@ func (bc *BlockChain) GetCurrentBlockHeader() data.HeaderHandler {
 
 // SetCurrentBlockHeader sets current block header pointer
 func (bc *BlockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
-	if header == nil {
+	if header == nil || header.IsInterfaceNil() {
 		bc.CurrentBlockHeader = nil
 		return nil
 	}
@@ -136,7 +136,7 @@ func (bc *BlockChain) GetCurrentBlockBody() data.BodyHandler {
 
 // SetCurrentBlockBody sets the tx block body pointer
 func (bc *BlockChain) SetCurrentBlockBody(body data.BodyHandler) error {
-	if body == nil {
+	if body == nil || body.IsInterfaceNil() {
 		bc.CurrentBlockBody = nil
 		return nil
 	}

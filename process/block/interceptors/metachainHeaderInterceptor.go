@@ -39,28 +39,28 @@ func NewMetachainHeaderInterceptor(
 	chronologyValidator process.ChronologyValidator,
 ) (*MetachainHeaderInterceptor, error) {
 
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if metachainHeaders == nil {
+	if metachainHeaders == nil || metachainHeaders.IsInterfaceNil() {
 		return nil, process.ErrNilMetaHeadersDataPool
 	}
-	if metachainHeadersNonces == nil {
+	if metachainHeadersNonces == nil || metachainHeadersNonces.IsInterfaceNil() {
 		return nil, process.ErrNilMetaHeadersNoncesDataPool
 	}
-	if headerValidator == nil {
+	if headerValidator == nil || headerValidator.IsInterfaceNil() {
 		return nil, process.ErrNilHeaderHandlerValidator
 	}
-	if multiSigVerifier == nil {
+	if multiSigVerifier == nil || multiSigVerifier.IsInterfaceNil() {
 		return nil, process.ErrNilMultiSigVerifier
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if chronologyValidator == nil {
+	if chronologyValidator == nil || chronologyValidator.IsInterfaceNil() {
 		return nil, process.ErrNilChronologyValidator
 	}
 

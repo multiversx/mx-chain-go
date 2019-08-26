@@ -27,7 +27,7 @@ type MetaChain struct {
 func NewMetaChain(
 	badBlocksCache storage.Cacher,
 ) (*MetaChain, error) {
-	if badBlocksCache == nil {
+	if badBlocksCache == nil || badBlocksCache.IsInterfaceNil() {
 		return nil, ErrBadBlocksCacheNil
 	}
 
@@ -57,7 +57,7 @@ func (mc *MetaChain) GetGenesisHeader() data.HeaderHandler {
 
 // SetGenesisHeader returns the genesis block header pointer
 func (mc *MetaChain) SetGenesisHeader(header data.HeaderHandler) error {
-	if header == nil {
+	if header == nil || header.IsInterfaceNil() {
 		mc.GenesisBlock = nil
 		return nil
 	}
@@ -90,7 +90,7 @@ func (mc *MetaChain) GetCurrentBlockHeader() data.HeaderHandler {
 
 // SetCurrentBlockHeader sets current block header pointer
 func (mc *MetaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
-	if header == nil {
+	if header == nil || header.IsInterfaceNil() {
 		mc.CurrentBlock = nil
 		return nil
 	}

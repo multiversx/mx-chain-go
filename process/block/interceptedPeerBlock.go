@@ -46,7 +46,7 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) IntegrityAndValidity(coordinator s
 
 // Integrity checks the integrity of the state block wrapper
 func (inPeerBlkBdy *InterceptedPeerBlockBody) Integrity(coordinator sharding.Coordinator) error {
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
 

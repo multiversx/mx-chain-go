@@ -205,7 +205,7 @@ func (messenger *Messenger) HasTopicValidator(name string) bool {
 // RegisterMessageProcessor sets the provided message processor to be the
 // processor of received messages for the given topic.
 func (messenger *Messenger) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
-	if handler == nil {
+	if handler == nil || handler.IsInterfaceNil() {
 		return p2p.ErrNilValidator
 	}
 

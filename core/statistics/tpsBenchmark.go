@@ -155,7 +155,7 @@ func (s *TpsBenchmark) isMetaBlockRelevant(mb *block.MetaBlock) bool {
 
 // Update receives a metablock and updates all fields accordingly for each shard available in the meta block
 func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
-	if mblock == nil {
+	if mblock == nil || mblock.IsInterfaceNil() {
 		return
 	}
 

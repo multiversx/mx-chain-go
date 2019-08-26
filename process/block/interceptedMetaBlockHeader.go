@@ -56,7 +56,7 @@ func (imh *InterceptedMetaHeader) IntegrityAndValidity(coordinator sharding.Coor
 
 // Integrity checks the integrity of the state block wrapper
 func (imh *InterceptedMetaHeader) Integrity(coordinator sharding.Coordinator) error {
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
 	if imh.MetaBlock == nil {
@@ -99,7 +99,7 @@ func (imh *InterceptedMetaHeader) Integrity(coordinator sharding.Coordinator) er
 }
 
 func (imh *InterceptedMetaHeader) validityCheck() error {
-	if imh.chronologyValidator == nil {
+	if imh.chronologyValidator == nil || imh.chronologyValidator.IsInterfaceNil() {
 		return process.ErrNilChronologyValidator
 	}
 

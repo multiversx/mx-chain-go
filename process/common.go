@@ -154,15 +154,15 @@ func GetMarshalizedHeaderFromStorage(
 	storageService dataRetriever.StorageService,
 ) ([]byte, error) {
 
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, ErrNilMarshalizer
 	}
-	if storageService == nil {
+	if storageService == nil || storageService.IsInterfaceNil() {
 		return nil, ErrNilStorage
 	}
 
 	hdrStore := storageService.GetStorer(blockUnit)
-	if hdrStore == nil {
+	if hdrStore == nil || hdrStore.IsInterfaceNil() {
 		return nil, ErrNilHeadersStorage
 	}
 
@@ -385,10 +385,10 @@ func GetTransactionHandlerFromStorage(
 	marshalizer marshal.Marshalizer,
 ) (data.TransactionHandler, error) {
 
-	if storageService == nil {
+	if storageService == nil || storageService.IsInterfaceNil() {
 		return nil, ErrNilStorage
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, ErrNilMarshalizer
 	}
 
@@ -412,13 +412,13 @@ func checkGetHeaderParamsForNil(
 	storageService dataRetriever.StorageService,
 ) error {
 
-	if cacher == nil {
+	if cacher == nil || cacher.IsInterfaceNil() {
 		return ErrNilCacher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return ErrNilMarshalizer
 	}
-	if storageService == nil {
+	if storageService == nil || storageService.IsInterfaceNil() {
 		return ErrNilStorage
 	}
 
@@ -437,10 +437,10 @@ func checkGetHeaderWithNonceParamsForNil(
 	if err != nil {
 		return err
 	}
-	if uint64SyncMapCacher == nil {
+	if uint64SyncMapCacher == nil || uint64SyncMapCacher.IsInterfaceNil() {
 		return ErrNilUint64SyncMapCacher
 	}
-	if uint64Converter == nil {
+	if uint64Converter == nil || uint64Converter.IsInterfaceNil() {
 		return ErrNilUint64Converter
 	}
 
@@ -453,13 +453,13 @@ func checkGetTransactionParamsForNil(
 	marshalizer marshal.Marshalizer,
 ) error {
 
-	if shardedDataCacherNotifier == nil {
+	if shardedDataCacherNotifier == nil || shardedDataCacherNotifier.IsInterfaceNil() {
 		return ErrNilShardedDataCacherNotifier
 	}
-	if storageService == nil {
+	if storageService == nil || storageService.IsInterfaceNil() {
 		return ErrNilStorage
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return ErrNilMarshalizer
 	}
 
@@ -471,7 +471,7 @@ func getHeaderFromPool(
 	cacher storage.Cacher,
 ) (interface{}, error) {
 
-	if cacher == nil {
+	if cacher == nil || cacher.IsInterfaceNil() {
 		return nil, ErrNilCacher
 	}
 
@@ -490,10 +490,10 @@ func getHeaderFromPoolWithNonce(
 	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
 ) (interface{}, []byte, error) {
 
-	if cacher == nil {
+	if cacher == nil || cacher.IsInterfaceNil() {
 		return nil, nil, ErrNilCacher
 	}
-	if uint64SyncMapCacher == nil {
+	if uint64SyncMapCacher == nil || uint64SyncMapCacher.IsInterfaceNil() {
 		return nil, nil, ErrNilUint64SyncMapCacher
 	}
 
@@ -523,13 +523,13 @@ func getHeaderHashFromStorageWithNonce(
 	blockUnit dataRetriever.UnitType,
 ) ([]byte, error) {
 
-	if storageService == nil {
+	if storageService == nil || storageService.IsInterfaceNil() {
 		return nil, ErrNilStorage
 	}
-	if uint64Converter == nil {
+	if uint64Converter == nil || uint64Converter.IsInterfaceNil() {
 		return nil, ErrNilUint64Converter
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, ErrNilMarshalizer
 	}
 
