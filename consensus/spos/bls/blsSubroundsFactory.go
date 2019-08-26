@@ -56,7 +56,7 @@ func checkNewFactoryParams(
 	if state == nil {
 		return spos.ErrNilConsensusState
 	}
-	if worker == nil {
+	if worker == nil || worker.IsInterfaceNil() {
 		return spos.ErrNilWorker
 	}
 

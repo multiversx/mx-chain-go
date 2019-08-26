@@ -46,25 +46,25 @@ func NewTransactionPreprocessor(
 	onRequestTransaction func(shardID uint32, txHashes [][]byte),
 ) (*transactions, error) {
 
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if txDataPool == nil {
+	if txDataPool == nil || txDataPool.IsInterfaceNil() {
 		return nil, process.ErrNilTransactionPool
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilTxStorage
 	}
-	if txProcessor == nil {
+	if txProcessor == nil || txProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilTxProcessor
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if onRequestTransaction == nil {
@@ -124,10 +124,10 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 
 // RemoveTxBlockFromPools removes transactions and miniblocks from associated pools
 func (txs *transactions) RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error {
-	if body == nil {
+	if body == nil || body.IsInterfaceNil() {
 		return process.ErrNilTxBlockBody
 	}
-	if miniBlockPool == nil {
+	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
 		return process.ErrNilMiniBlockPool
 	}
 
@@ -336,7 +336,7 @@ func (txs *transactions) computeMissingTxsForMiniBlock(mb block.MiniBlock) [][]b
 			txHash,
 			txs.txPool)
 
-		if tx == nil {
+		if tx == nil || tx.IsInterfaceNil() {
 			missingTransactions = append(missingTransactions, txHash)
 		}
 	}

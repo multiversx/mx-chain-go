@@ -103,4 +103,5 @@ type Trie interface {
 type DBWriteCacher interface {
 	Put(key, val []byte) error
 	Get(key []byte) ([]byte, error)
+	IsInterfaceNil() bool
 }

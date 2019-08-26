@@ -68,10 +68,10 @@ func (g *Genesis) processConfig() error {
 
 // InitialNodesBalances - gets the initial balances of the nodes
 func (g *Genesis) InitialNodesBalances(shardCoordinator Coordinator, adrConv state.AddressConverter) (map[string]*big.Int, error) {
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, ErrNilShardCoordinator
 	}
-	if adrConv == nil {
+	if adrConv == nil || adrConv.IsInterfaceNil() {
 		return nil, ErrNilAddressConverter
 	}
 

@@ -80,11 +80,11 @@ func NewBelNevMultisig(
 	keyGen crypto.KeyGenerator,
 	ownIndex uint16) (*belNevSigner, error) {
 
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, crypto.ErrNilHasher
 	}
 
-	if privKey == nil {
+	if privKey == nil || privKey.IsInterfaceNil() {
 		return nil, crypto.ErrNilPrivateKey
 	}
 
@@ -96,7 +96,7 @@ func NewBelNevMultisig(
 		return nil, crypto.ErrNoPublicKeySet
 	}
 
-	if keyGen == nil {
+	if keyGen == nil || keyGen.IsInterfaceNil() {
 		return nil, crypto.ErrNilKeyGenerator
 	}
 

@@ -42,11 +42,11 @@ type RequestData struct {
 // Unmarshal sets the fields according to p2p.MessageP2P.Data() contents
 // Errors if something went wrong
 func (rd *RequestData) Unmarshal(marshalizer marshal.Marshalizer, message p2p.MessageP2P) error {
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return ErrNilMarshalizer
 	}
 
-	if message == nil {
+	if message == nil || message.IsInterfaceNil() {
 		return ErrNilMessage
 	}
 

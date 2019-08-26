@@ -25,7 +25,7 @@ func NewMemoryMessenger(
 	if mockNet == nil {
 		return nil, p2p.ErrNilMockNet
 	}
-	if peerDiscoverer == nil {
+	if peerDiscoverer == nil || peerDiscoverer.IsInterfaceNil() {
 		return nil, p2p.ErrNilPeerDiscoverer
 	}
 

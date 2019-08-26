@@ -20,16 +20,16 @@ func NewMetaDataPool(
 	headersNonces dataRetriever.Uint64SyncMapCacher,
 ) (*metaDataPool, error) {
 
-	if metaBlocks == nil {
+	if metaBlocks == nil || metaBlocks.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMetaBlockPool
 	}
-	if miniBlockHashes == nil {
+	if miniBlockHashes == nil || miniBlockHashes.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMiniBlockHashesPool
 	}
-	if shardHeaders == nil {
+	if shardHeaders == nil || shardHeaders.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilShardHeaderPool
 	}
-	if headersNonces == nil {
+	if headersNonces == nil || headersNonces.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMetaBlockNoncesPool
 	}
 

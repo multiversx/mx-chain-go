@@ -71,13 +71,13 @@ func NewMetaProcessor(
 		return nil, err
 	}
 
-	if dataPool == nil {
+	if dataPool == nil || dataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if dataPool.ShardHeaders() == nil {
+	if dataPool.ShardHeaders() == nil || dataPool.ShardHeaders().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if requestHandler == nil {
+	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
 	}
 
@@ -245,17 +245,17 @@ func (mp *metaProcessor) indexBlock(metaBlock *block.MetaBlock, headerPool map[s
 
 // removeBlockInfoFromPool removes the block info from associated pools
 func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error {
-	if header == nil {
+	if header == nil || header.IsInterfaceNil() {
 		return process.ErrNilMetaBlockHeader
 	}
 
 	headerPool := mp.dataPool.ShardHeaders()
-	if headerPool == nil {
+	if headerPool == nil || headerPool.IsInterfaceNil() {
 		return process.ErrNilHeadersDataPool
 	}
 
 	headerNoncesPool := mp.dataPool.HeadersNonces()
-	if headerNoncesPool == nil {
+	if headerNoncesPool == nil || headerNoncesPool.IsInterfaceNil() {
 		return process.ErrNilHeadersNoncesDataPool
 	}
 
@@ -281,7 +281,7 @@ func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error 
 
 // RestoreBlockIntoPools restores the block into associated pools
 func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
-	if headerHandler == nil {
+	if headerHandler == nil || headerHandler.IsInterfaceNil() {
 		return process.ErrNilMetaBlockHeader
 	}
 
@@ -291,12 +291,12 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	}
 
 	headerPool := mp.dataPool.ShardHeaders()
-	if headerPool == nil {
+	if headerPool == nil || headerPool.IsInterfaceNil() {
 		return process.ErrNilHeadersDataPool
 	}
 
 	headerNoncesPool := mp.dataPool.HeadersNonces()
-	if headerNoncesPool == nil {
+	if headerNoncesPool == nil || headerNoncesPool.IsInterfaceNil() {
 		return process.ErrNilHeadersNoncesDataPool
 	}
 
@@ -320,12 +320,12 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 			continue
 		}
 
-		headerPool.Put([]byte(hdrHash), &hdr)
+		headerPool.Put(hdrHash, &hdr)
 		syncMap := &dataPool.ShardIdHashSyncMap{}
-		syncMap.Store(hdr.ShardId, []byte(hdrHash))
+		syncMap.Store(hdr.ShardId, hdrHash)
 		headerNoncesPool.Merge(hdr.Nonce, syncMap)
 
-		err = mp.store.GetStorer(dataRetriever.BlockHeaderUnit).Remove([]byte(hdrHash))
+		err = mp.store.GetStorer(dataRetriever.BlockHeaderUnit).Remove(hdrHash)
 		if err != nil {
 			log.Error(err.Error())
 		}
@@ -893,7 +893,7 @@ func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
 	shardId uint32,
 ) error {
 
-	if hdrPool == nil {
+	if hdrPool == nil || hdrPool.IsInterfaceNil() {
 		return process.ErrNilHeadersDataPool
 	}
 	// TODO: real processing has to be done here, using metachain state
@@ -1080,7 +1080,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	header.TxCount = getTxCount(shardInfo)
 
 	mp.blockSizeThrottler.Add(
-		uint64(round),
+		round,
 		core.Max(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil

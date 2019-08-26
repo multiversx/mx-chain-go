@@ -84,16 +84,16 @@ func NewShardProcessor(
 		return nil, err
 	}
 
-	if dataPool == nil {
+	if dataPool == nil || dataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if blocksTracker == nil {
+	if blocksTracker == nil || blocksTracker.IsInterfaceNil() {
 		return nil, process.ErrNilBlocksTracker
 	}
-	if requestHandler == nil {
+	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
 	}
-	if txCoordinator == nil {
+	if txCoordinator == nil || txCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilTransactionCoordinator
 	}
 
@@ -314,7 +314,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(header *block.Head
 
 // check if shard headers are final by checking if newer headers were constructed upon them
 func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler, round uint64) error {
-	if header == nil {
+	if header == nil || header.IsInterfaceNil() {
 		return process.ErrNilBlockHeader
 	}
 
@@ -435,10 +435,10 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
 func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
-	if headerHandler == nil {
+	if headerHandler == nil || headerHandler.IsInterfaceNil() {
 		return process.ErrNilBlockHeader
 	}
-	if bodyHandler == nil {
+	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
 		return process.ErrNilTxBlockBody
 	}
 
@@ -941,7 +941,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	}
 
 	miniBlksCache := sp.dataPool.MiniBlocks()
-	if miniBlksCache == nil {
+	if miniBlksCache == nil || miniBlksCache.IsInterfaceNil() {
 		return
 	}
 
@@ -1192,7 +1192,7 @@ func (sp *shardProcessor) getOrderedMetaBlocks(round uint64) ([]*hashAndHdr, err
 
 // isMetaHeaderFinal verifies if meta is trully final, in order to not do rollbacks
 func (sp *shardProcessor) isMetaHeaderFinal(currHdr data.HeaderHandler, sortedHdrs []*hashAndHdr, startPos int) bool {
-	if currHdr == nil {
+	if currHdr == nil || currHdr.IsInterfaceNil() {
 		return false
 	}
 	if sortedHdrs == nil {
@@ -1237,17 +1237,17 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 ) (block.MiniBlockSlice, [][]byte, uint32, error) {
 
 	metaBlockCache := sp.dataPool.MetaBlocks()
-	if metaBlockCache == nil {
+	if metaBlockCache == nil || metaBlockCache.IsInterfaceNil() {
 		return nil, nil, 0, process.ErrNilMetaBlockPool
 	}
 
 	miniBlockCache := sp.dataPool.MiniBlocks()
-	if miniBlockCache == nil {
+	if miniBlockCache == nil || miniBlockCache.IsInterfaceNil() {
 		return nil, nil, 0, process.ErrNilMiniBlockPool
 	}
 
 	txPool := sp.dataPool.Transactions()
-	if txPool == nil {
+	if txPool == nil || txPool.IsInterfaceNil() {
 		return nil, nil, 0, process.ErrNilTransactionPool
 	}
 
@@ -1413,7 +1413,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 		go sp.checkAndRequestIfMetaHeadersMissing(round)
 	}()
 
-	if bodyHandler == nil {
+	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
 		return header, nil
 	}
 
@@ -1477,7 +1477,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 
-	if bodyHandler == nil {
+	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
 		return nil, nil, process.ErrNilMiniBlocks
 	}
 

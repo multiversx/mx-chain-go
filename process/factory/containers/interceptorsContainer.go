@@ -36,7 +36,7 @@ func (ic *interceptorsContainer) Get(key string) (process.Interceptor, error) {
 // Add will add an object at a given key. Returns
 // an error if the element already exists
 func (ic *interceptorsContainer) Add(key string, interceptor process.Interceptor) error {
-	if interceptor == nil {
+	if interceptor == nil || interceptor.IsInterfaceNil() {
 		return process.ErrNilContainerElement
 	}
 
@@ -68,7 +68,7 @@ func (ic *interceptorsContainer) AddMultiple(keys []string, interceptors []proce
 
 // Replace will add (or replace if it already exists) an object at a given key
 func (ic *interceptorsContainer) Replace(key string, interceptor process.Interceptor) error {
-	if interceptor == nil {
+	if interceptor == nil || interceptor.IsInterfaceNil() {
 		return process.ErrNilContainerElement
 	}
 
