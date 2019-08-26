@@ -553,13 +553,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
+	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
 		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
 		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
 		"AppVersion", version,
-		"OsVersion", "TestOs",
+		"Timestamp", startTime.Unix(),
 	)
 
 	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
