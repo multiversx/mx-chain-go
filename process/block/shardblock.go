@@ -41,18 +41,6 @@ type shardProcessor struct {
 	core          serviceContainer.Core
 	txCoordinator process.TransactionCoordinator
 	txCounter     *transactionCounter
-
-	appStatusHandler core.AppStatusHandler
-}
-
-// SetAppStatusHandler method is used to set appStatusHandler
-func (sp *shardProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
-		return process.ErrNilAppStatusHandler
-	}
-
-	sp.appStatusHandler = ash
-	return nil
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -112,6 +100,7 @@ func NewShardProcessor(
 		shardCoordinator:              shardCoordinator,
 		uint64Converter:               uint64Converter,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
+		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 	}
 	err = base.setLastNotarizedHeadersSlice(startHeaders)
 	if err != nil {
@@ -119,13 +108,12 @@ func NewShardProcessor(
 	}
 
 	sp := shardProcessor{
-		core:             core,
-		baseProcessor:    base,
-		dataPool:         dataPool,
-		blocksTracker:    blocksTracker,
-		txCoordinator:    txCoordinator,
-		txCounter:        NewTransactionCounter(),
-		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		core:          core,
+		baseProcessor: base,
+		dataPool:      dataPool,
+		blocksTracker: blocksTracker,
+		txCoordinator: txCoordinator,
+		txCounter:     NewTransactionCounter(),
 	}
 
 	sp.chRcvAllMetaHdrs = make(chan bool)

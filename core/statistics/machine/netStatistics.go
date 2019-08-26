@@ -1,11 +1,8 @@
 package machine
 
 import (
-	"os"
 	"sync/atomic"
 	"time"
-
-	"github.com/shirou/gopsutil/process"
 )
 
 // NetStatistics can compute the network statistics
@@ -23,14 +20,12 @@ type NetStatistics struct {
 func (ns *NetStatistics) ComputeStatistics() {
 
 	currentProcess, err := getCurrentProcess()
-
 	if err != nil {
 		ns.setZeroStatsAndWait()
 		return
 	}
 
 	nStart, err := currentProcess.NetIOCounters(false)
-
 	if err != nil {
 		ns.setZeroStatsAndWait()
 		return
@@ -43,7 +38,6 @@ func (ns *NetStatistics) ComputeStatistics() {
 	time.Sleep(durationSecond)
 
 	nEnd, err := currentProcess.NetIOCounters(false)
-
 	if err != nil {
 		ns.setZeroStatsAndWait()
 		return
@@ -122,14 +116,4 @@ func (ns *NetStatistics) PercentSent() uint64 {
 // PercentRecv BpsRecv / BpsRecvPeak * 100
 func (ns *NetStatistics) PercentRecv() uint64 {
 	return atomic.LoadUint64(&ns.percentRecv)
-}
-
-func getCurrentProcess() (*process.Process, error) {
-	checkPid := os.Getpid()
-	ret, err := process.NewProcess(int32(checkPid))
-	if err != nil {
-		return nil, err
-	}
-
-	return ret, nil
 }

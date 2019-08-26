@@ -29,6 +29,10 @@ func (ms *MemStatistics) ComputeStatistics() {
 	}
 
 	processMemoryUsage, err := currentProcess.MemoryInfo()
+	if err != nil {
+		ms.setZeroStatsAndWait()
+		return
+	}
 
 	ramUsagePercent, err := currentProcess.MemoryPercent()
 	if err != nil {
@@ -45,6 +49,7 @@ func (ms *MemStatistics) ComputeStatistics() {
 func (ms *MemStatistics) setZeroStatsAndWait() {
 	atomic.StoreUint64(&ms.memPercentUsage, 0)
 	atomic.StoreUint64(&ms.totalMemory, 0)
+	atomic.StoreUint64(&ms.usedMemoryByNode, 0)
 	time.Sleep(durationSecond)
 }
 

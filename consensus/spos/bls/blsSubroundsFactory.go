@@ -207,7 +207,6 @@ func (fct *factory) generateSignatureSubround() error {
 	}
 
 	err = subroundSignature.SetAppStatusHandler(fct.appStatusHandler)
-
 	if err != nil {
 		return err
 	}

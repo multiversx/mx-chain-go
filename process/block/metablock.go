@@ -40,21 +40,11 @@ type metaProcessor struct {
 	allNeededShardHdrsFound     bool
 	mutRequestedShardHdrsHashes sync.RWMutex
 
+	shardsHeadersNonce *sync.Map
+
 	nextKValidity uint32
 
 	chRcvAllHdrs chan bool
-
-	appStatusHandler core.AppStatusHandler
-}
-
-// SetAppStatusHandler method is used to set appStatusHandler
-func (mp *metaProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
-		return process.ErrNilAppStatusHandler
-	}
-
-	mp.appStatusHandler = ash
-	return nil
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -110,6 +100,7 @@ func NewMetaProcessor(
 		uint64Converter:               uint64Converter,
 		onRequestHeaderHandler:        requestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
+		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 	}
 
 	err = base.setLastNotarizedHeadersSlice(startHeaders)
@@ -118,10 +109,9 @@ func NewMetaProcessor(
 	}
 
 	mp := metaProcessor{
-		core:             core,
-		baseProcessor:    base,
-		dataPool:         dataPool,
-		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		core:          core,
+		baseProcessor: base,
+		dataPool:      dataPool,
 	}
 
 	mp.requestedShardHdrsHashes = make(map[string]bool)
@@ -133,6 +123,8 @@ func NewMetaProcessor(
 
 	mp.nextKValidity = process.ShardBlockFinality
 	mp.allNeededShardHdrsFound = true
+
+	mp.shardsHeadersNonce = &sync.Map{}
 
 	return &mp, nil
 }
@@ -469,9 +461,6 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	numberOfShards := mp.shardCoordinator.NumberOfShards()
-	headersNonce := make([]uint64, numberOfShards, numberOfShards)
-
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
 		header, err := process.GetShardHeaderFromPool(shardData.HeaderHash, mp.dataPool.ShardHeaders())
@@ -479,9 +468,7 @@ func (mp *metaProcessor) CommitBlock(
 			return err
 		}
 
-		if headersNonce[shardData.ShardId] < header.Nonce {
-			headersNonce[shardData.ShardId] = header.Nonce
-		}
+		mp.updateShardHeadersNonce(shardData.ShardId, header.Nonce)
 
 		tempHeaderPool[string(shardData.HeaderHash)] = header
 
@@ -499,14 +486,7 @@ func (mp *metaProcessor) CommitBlock(
 		log.LogIfError(errNotCritical)
 	}
 
-	crossCheckBlockHeight := ""
-	for i := 0; i < len(headersNonce); i++ {
-		if headersNonce[i] != uint64(0) {
-			crossCheckBlockHeight += fmt.Sprintf("shard%v %v ", i, headersNonce[i])
-		}
-	}
-
-	mp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
+	mp.saveMetricCrossCheckBlockHeight()
 
 	err = mp.saveLastNotarizedHeader(header)
 	if err != nil {
@@ -558,6 +538,47 @@ func (mp *metaProcessor) CommitBlock(
 	mp.blockSizeThrottler.Succeed(header.Round)
 
 	return nil
+}
+
+func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
+	valueStoredI, ok := mp.shardsHeadersNonce.Load(key)
+	if !ok {
+		mp.shardsHeadersNonce.Store(key, value)
+		return
+	}
+
+	valueStored, ok := valueStoredI.(uint64)
+	if !ok {
+		mp.shardsHeadersNonce.Store(key, value)
+		return
+	}
+
+	if valueStored < value {
+		mp.shardsHeadersNonce.Store(key, value)
+	}
+}
+
+func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
+	crossCheckBlockHeight := ""
+	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
+		valueStoredI, ok := mp.shardsHeadersNonce.Load(i)
+		if !ok {
+			continue
+		}
+
+		valueStored, ok := valueStoredI.(uint64)
+		if !ok {
+			continue
+		}
+
+		if i > 0 {
+			crossCheckBlockHeight += ", "
+		}
+
+		crossCheckBlockHeight += fmt.Sprintf("%d: %d", i, valueStored)
+	}
+
+	mp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
 }
 
 func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error {

@@ -21,7 +21,7 @@ func (cs *CpuStatistics) ComputeStatistics() {
 		return
 	}
 
-	cpuUsagePercent, err := currentProcess.Percent(500 * time.Millisecond)
+	cpuUsagePercent, err := currentProcess.Percent(durationSecond)
 	if err != nil {
 		cs.setZeroStatsAndWait()
 		return
