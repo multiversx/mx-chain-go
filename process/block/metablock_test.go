@@ -2493,8 +2493,7 @@ func TestMetaProcessor_UpdateShardsHeadersNonce_ShouldWork(t *testing.T) {
 
 	//Check data from map is stored correctly
 	expectedData := []uint64{400, 200, 300, 400}
-	assert.Equal(t, expectedData[0], mapDates[0])
-	assert.Equal(t, expectedData[1], mapDates[1])
-	assert.Equal(t, expectedData[2], mapDates[2])
-	assert.Equal(t, expectedData[3], mapDates[3])
+	for i := 0; i < int(numberOfShards); i++ {
+		assert.Equal(t, expectedData[i], mapDates[i])
+	}
 }

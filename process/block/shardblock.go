@@ -655,7 +655,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	sp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %v", headerMeta.GetNonce()))
+	sp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", headerMeta.GetNonce()))
 
 	_, err = sp.accounts.Commit()
 	if err != nil {

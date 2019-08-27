@@ -125,7 +125,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
 	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
-	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, fmt.Sprintf("valid block produced in %v sec", timeElapsedToCommitBlock))
+	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, fmt.Sprintf("valid block produced in %f sec", timeElapsedToCommitBlock))
 
 	return true
 }
