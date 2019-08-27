@@ -512,7 +512,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 func prepareGenesisBlock(args *processComponentsFactoryArgs, shardsGenesisBlocks map[uint32]data.HeaderHandler) error {
 	genesisBlock, ok := shardsGenesisBlocks[args.shardCoordinator.SelfId()]
 	if !ok {
-		return errors.New("genesis block does not exits")
+		return errors.New("genesis block does not exists")
 	}
 
 	genesisBlockHash, err := core.CalculateHash(args.core.Marshalizer, args.core.Hasher, genesisBlock)
