@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -226,6 +227,60 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		icf.singleSigner,
 		icf.keyGen,
 		icf.shardCoordinator)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+}
+
+//------- Reward transactions interceptors
+
+func (icf *interceptorsContainerFactory) generateRewardTxInterceptors() ([]string, []process.Interceptor, error) {
+	shardC := icf.shardCoordinator
+
+	noOfShards := shardC.NumberOfShards()
+
+	keys := make([]string, noOfShards)
+	interceptorSlice := make([]process.Interceptor, noOfShards)
+
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)
+
+		interceptor, err := icf.createOneRewardTxInterceptor(identifierScr)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		keys[int(idx)] = identifierScr
+		interceptorSlice[int(idx)] = interceptor
+	}
+
+	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+
+	interceptor, err := icf.createOneRewardTxInterceptor(identifierTx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keys = append(keys, identifierTx)
+	interceptorSlice = append(interceptorSlice, interceptor)
+
+	return keys, interceptorSlice, nil
+}
+
+func (icf *interceptorsContainerFactory) createOneRewardTxInterceptor(identifier string) (process.Interceptor, error) {
+	rewardTxStorer := icf.store.GetStorer(dataRetriever.RewardTransactionUnit)
+
+	interceptor, err := rewardTransaction.NewRewardTxInterceptor(
+		icf.marshalizer,
+		icf.dataPool.RewardTransactions(),
+		rewardTxStorer,
+		icf.addrConverter,
+		icf.hasher,
+		icf.shardCoordinator,
+	)
 
 	if err != nil {
 		return nil, err

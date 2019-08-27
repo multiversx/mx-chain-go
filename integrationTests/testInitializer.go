@@ -168,6 +168,7 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.PeerChangesUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {

@@ -376,6 +376,9 @@ var ErrInvalidDataInput = errors.New("data input is invalid to create key, value
 // ErrNoUnsignedTransactionInMessage signals that message does not contain required data
 var ErrNoUnsignedTransactionInMessage = errors.New("no unsigned transactions in message")
 
+// ErrNoRewardTransactionInMessage signals that message does not contain required data
+var ErrNoRewardTransactionInMessage = errors.New("no reward transactions in message")
+
 // ErrNilUTxDataPool signals that unsigned transaction pool is nil
 var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 
@@ -384,6 +387,9 @@ var ErrNilRewardTxDataPool = errors.New("reward transactions pool is nil")
 
 // ErrNilUTxStorage signals that unsigned transaction storage is nil
 var ErrNilUTxStorage = errors.New("unsigned transactions storage is nil")
+
+// ErrNilRewardsTxStorage signals that rewards transaction storage is nil
+var ErrNilRewardsTxStorage = errors.New("reward transactions storage is nil")
 
 // ErrNilScAddress signals that a nil smart contract address has been provided
 var ErrNilScAddress = errors.New("nil SC address")
