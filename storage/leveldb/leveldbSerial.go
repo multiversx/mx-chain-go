@@ -36,7 +36,8 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int) (s *Seria
 
 	options := &opt.Options{
 		// disable internal cache
-		BlockCacheCapacity: -1,
+		BlockCacheCapacity:     -1,
+		OpenFilesCacheCapacity: 10,
 	}
 
 	db, err := leveldb.OpenFile(path, options)
