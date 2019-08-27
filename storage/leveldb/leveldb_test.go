@@ -61,7 +61,7 @@ func TestDB_GetOKAfterPutWithTimeout(t *testing.T) {
 
 func TestDB_GetErrorOnFail(t *testing.T) {
 	ldb := createLevelDb(t, 1, 100)
-	ldb.Close()
+	_ = ldb.Close()
 
 	v, err := ldb.Get([]byte("key"))
 	assert.Nil(t, v)
