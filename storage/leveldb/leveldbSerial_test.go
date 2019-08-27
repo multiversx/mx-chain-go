@@ -46,6 +46,32 @@ func TestSerialDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {
 	assert.Equal(t, storage.ErrKeyNotFound, err)
 }
 
+func TestSerialDB_GetErrorOnFail(t *testing.T) {
+	ldb := createSerialLevelDb(t, 10, 1)
+	_ = ldb.Destroy()
+
+	v, err := ldb.Get([]byte("key"))
+	assert.Nil(t, v)
+	assert.NotNil(t, err)
+}
+
+func TestSerialDB_CallsNotBlockingAfterCloseOrDestroy(t *testing.T) {
+	ldb := createSerialLevelDb(t, 10, 1)
+	_ = ldb.Destroy()
+
+	_, err := ldb.Get([]byte("key"))
+	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
+
+	err = ldb.Has([]byte("key"))
+	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
+
+	err = ldb.Remove([]byte("key"))
+	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
+
+	err = ldb.Put([]byte("key"), []byte("val"))
+	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
+}
+
 func TestSerialDB_GetOKAfterPutWithTimeout(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
 	ldb := createSerialLevelDb(t, 1, 100)
