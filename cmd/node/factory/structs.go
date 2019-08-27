@@ -85,8 +85,8 @@ const (
 	MaxTxsToRequest = 100
 )
 
-// ErrShardGenesisBlockNotExits signals that genesis block not exits
-var ErrShardGenesisBlockNotExits = errors.New("genesis block not exits")
+// errShardGenesisBlockNotExits signals that genesis block not exits
+var errShardGenesisBlockNotExits = errors.New("genesis block not exits")
 
 var log = logger.DefaultLogger()
 
@@ -485,7 +485,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	genesisBlock, ok := shardsGenesisBlocks[args.shardCoordinator.SelfId()]
 	if !ok {
-		return nil, ErrShardGenesisBlockNotExits
+		return nil, errShardGenesisBlockNotExits
 	}
 	genesisBlockHash, err := core.CalculateHash(args.core.Marshalizer, args.core.Hasher, genesisBlock)
 	if err != nil {

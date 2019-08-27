@@ -59,6 +59,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 	return header, err
 }
 
+// CreateMetaGenesisBlock creates the meta genesis block
 func CreateMetaGenesisBlock(genesisTime uint64, initialPubKeys map[uint32][]string) (data.HeaderHandler, error) {
 	//TODO create the right metachain genesis block here
 	rootHash := []byte("root hash")

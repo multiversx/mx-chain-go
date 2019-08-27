@@ -328,16 +328,6 @@ func (n *Node) StartConsensus() error {
 	return nil
 }
 
-func (n *Node) setGenesis(genesisHeader data.HeaderHandler, genesisHeaderHash []byte) error {
-	err := n.blkc.SetGenesisHeader(genesisHeader)
-	if err != nil {
-		return err
-	}
-
-	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
-	return nil
-}
-
 // GetBalance gets the balance for a specific address
 func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() || n.accounts == nil || n.accounts.IsInterfaceNil() {
