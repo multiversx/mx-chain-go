@@ -2440,3 +2440,61 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 	assert.Equal(t, hdr, dcdHdr)
 	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
 }
+
+func TestMetaProcessor_UpdateShardsHeadersNonce_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	mdp := initMetaDataPool()
+	marshalizerMock := &mock.MarshalizerMock{}
+	mp, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
+		&mock.AccountsStub{},
+		mdp,
+		&mock.ForkDetectorMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.HasherStub{},
+		marshalizerMock,
+		&mock.ChainStorerMock{},
+		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+	if err != nil {
+		assert.NotNil(t, err)
+	}
+
+	numberOfShards := uint32(4)
+	type DataForMap struct {
+		shardId     uint32
+		HeaderNonce uint64
+	}
+	testData := []DataForMap{
+		{uint32(0), uint64(100)},
+		{uint32(1), uint64(200)},
+		{uint32(2), uint64(300)},
+		{uint32(3), uint64(400)},
+		{uint32(0), uint64(400)},
+	}
+
+	for i := range testData {
+		mp.UpdateShardsHeadersNonce(testData[i].shardId, testData[i].HeaderNonce)
+	}
+
+	shardsHeadersNonce := mp.GetShardsHeadersNonce()
+
+	mapDates := make([]uint64, 0)
+
+	//Get all data from map and put then in a slice
+	for i := uint32(0); i < numberOfShards; i++ {
+		mapDataI, _ := shardsHeadersNonce.Load(i)
+		mapDates = append(mapDates, mapDataI.(uint64))
+
+	}
+
+	//Check data from map is stored correctly
+	expectedData := []uint64{400, 200, 300, 400}
+	assert.Equal(t, expectedData[0], mapDates[0])
+	assert.Equal(t, expectedData[1], mapDates[1])
+	assert.Equal(t, expectedData[2], mapDates[2])
+	assert.Equal(t, expectedData[3], mapDates[3])
+}

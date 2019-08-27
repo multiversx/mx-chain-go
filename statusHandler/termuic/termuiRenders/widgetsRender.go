@@ -11,7 +11,7 @@ import (
 	"github.com/gizak/termui/v3/widgets"
 )
 
-const statusSynching = "currently synching"
+const statusSyncing = "currently syncing"
 const statusSynchronized = "synchronized"
 
 //WidgetsRender will define termui widgets that need to display a termui console
@@ -146,7 +146,7 @@ func (wr *WidgetsRender) prepareChainInfo() {
 	syncingStr := fmt.Sprintf("undefined %d", syncStatus)
 	switch syncStatus {
 	case 1:
-		syncingStr = statusSynching
+		syncingStr = statusSyncing
 	case 0:
 		syncingStr = statusSynchronized
 	}
@@ -213,8 +213,19 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	consensusState := wr.getFromCacheAsString(core.MetricConsensusState)
 	rows[5] = []string{fmt.Sprintf("Consensus state: %v", consensusState)}
 
-	consensusRoundState := wr.getFromCacheAsString(core.MetricConsensusRoundState)
-	rows[6] = []string{fmt.Sprintf("Consensus round state: %v", consensusRoundState)}
+	syncStatus := wr.getFromCacheAsUint64(core.MetricIsSyncing)
+	switch syncStatus {
+	case 1:
+		rows[6] = []string{fmt.Sprintf("Consensus round state: Not available (syncing)")}
+	case 0:
+		instanceType := wr.getFromCacheAsString(core.MetricNodeType)
+		if instanceType == "observer" {
+			rows[6] = []string{fmt.Sprintf("Consensus round state: Not available (observer)")}
+		} else {
+			consensusRoundState := wr.getFromCacheAsString(core.MetricConsensusRoundState)
+			rows[6] = []string{fmt.Sprintf("Consensus round state: %v", consensusRoundState)}
+		}
+	}
 
 	wr.blockInfo.Title = "Block info"
 	wr.blockInfo.RowSeparator = false
