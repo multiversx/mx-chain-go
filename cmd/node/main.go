@@ -1073,19 +1073,11 @@ func createNode(
 		if err != nil {
 			return nil, err
 		}
-		err = nd.CreateShardGenesisBlock()
-		if err != nil {
-			return nil, err
-		}
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
 		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
-		}
-		err = nd.CreateMetaGenesisBlock()
-		if err != nil {
-			return nil, err
 		}
 	}
 	return nd, nil
