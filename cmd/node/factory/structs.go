@@ -85,9 +85,6 @@ const (
 	MaxTxsToRequest = 100
 )
 
-// errShardGenesisBlockNotExits signals that genesis block not exits
-var errShardGenesisBlockNotExits = errors.New("genesis block not exits")
-
 var log = logger.DefaultLogger()
 
 // Network struct holds the network components of the Elrond protocol
@@ -483,21 +480,10 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	genesisBlock, ok := shardsGenesisBlocks[args.shardCoordinator.SelfId()]
-	if !ok {
-		return nil, errShardGenesisBlockNotExits
-	}
-	genesisBlockHash, err := core.CalculateHash(args.core.Marshalizer, args.core.Hasher, genesisBlock)
+	err = prepareGenesisBlock(args, shardsGenesisBlocks)
 	if err != nil {
 		return nil, err
 	}
-
-	err = args.data.Blkc.SetGenesisHeader(genesisBlock)
-	if err != nil {
-		return nil, err
-	}
-
-	args.data.Blkc.SetGenesisHeaderHash(genesisBlockHash)
 
 	blockProcessor, blockTracker, err := newBlockProcessorAndTracker(
 		resolversFinder,
@@ -521,6 +507,41 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlockProcessor:        blockProcessor,
 		BlockTracker:          blockTracker,
 	}, nil
+}
+
+func prepareGenesisBlock(args *processComponentsFactoryArgs, shardsGenesisBlocks map[uint32]data.HeaderHandler) error {
+	genesisBlock, ok := shardsGenesisBlocks[args.shardCoordinator.SelfId()]
+	if !ok {
+		return errors.New("genesis block not exits")
+	}
+
+	genesisBlockHash, err := core.CalculateHash(args.core.Marshalizer, args.core.Hasher, genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	err = args.data.Blkc.SetGenesisHeader(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	args.data.Blkc.SetGenesisHeaderHash(genesisBlockHash)
+
+	marshalizedBlock, err := args.core.Marshalizer.Marshal(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		errNotCritical := args.data.Store.Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
+		log.LogIfError(errNotCritical)
+
+	} else {
+		errNotCritical := args.data.Store.Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
+		log.LogIfError(errNotCritical)
+	}
+
+	return nil
 }
 
 type seedRandReader struct {
