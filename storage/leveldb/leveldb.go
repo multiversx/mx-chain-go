@@ -38,7 +38,8 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err err
 
 	options := &opt.Options{
 		// disable internal cache
-		BlockCacheCapacity: -1,
+		BlockCacheCapacity:     -1,
+		OpenFilesCacheCapacity: 10,
 	}
 
 	db, err := leveldb.OpenFile(path, options)
