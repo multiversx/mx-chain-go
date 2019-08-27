@@ -118,6 +118,9 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 	if result.err == leveldb.ErrNotFound {
 		return nil, storage.ErrKeyNotFound
 	}
+	if result.err != nil {
+		return nil, result.err
+	}
 
 	return result.value, nil
 }
