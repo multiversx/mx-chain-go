@@ -35,6 +35,9 @@ type NodeWrapper interface {
 	//SendTransaction will send a new transaction on the topic channel
 	SendTransaction(nonce uint64, senderHex string, receiverHex string, value *big.Int, gasPrice uint64, gasLimit uint64, transactionData string, signature []byte) (string, error)
 
+	// SendBulkTransactions will send a bulk of transactions on the topic channel
+	SendBulkTransactions([]*transaction.Transaction) error
+
 	//GetTransaction gets the transaction
 	GetTransaction(hash string) (*transaction.Transaction, error)
 

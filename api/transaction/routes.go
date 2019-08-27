@@ -15,6 +15,7 @@ import (
 type TxService interface {
 	GenerateTransaction(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
+	SendBulkTransactions([]*transaction.Transaction) error
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	GenerateAndSendBulkTransactions(string, *big.Int, uint64) error
 	GenerateAndSendBulkTransactionsOneByOne(string, *big.Int, uint64) error
@@ -66,6 +67,7 @@ func Routes(router *gin.RouterGroup) {
 	router.POST("/generate-and-send-multiple", GenerateAndSendBulkTransactions)
 	router.POST("/generate-and-send-multiple-one-by-one", GenerateAndSendBulkTransactionsOneByOne)
 	router.POST("/send", SendTransaction)
+	router.POST("/send-multiple", SendMultipleTransactions)
 	router.GET("/:txhash", GetTransaction)
 }
 
@@ -121,6 +123,31 @@ func SendTransaction(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"txHash": txHash})
+}
+
+// SendTransaction will receive a transaction from the client and propagate it for processing
+func SendMultipleTransactions(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(TxService)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	var gtx []SendTxRequest
+	err := c.ShouldBindJSON(&gtx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		return
+	}
+
+	txs := getTransactionsFromTxsRequest(gtx)
+	err = ef.SendBulkTransactions(txs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"txHash": "1z2x3c4v"})
 }
 
 // GenerateAndSendBulkTransactions generates multipleTransactions
@@ -213,4 +240,44 @@ func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
 	response.GasPrice = tx.GasPrice
 
 	return response
+}
+
+func getTransactionsFromTxsRequest(txReqs []SendTxRequest) []*transaction.Transaction {
+	var transactions []*transaction.Transaction
+	for _, txReq := range txReqs {
+		receiverBytes, err := hex.DecodeString(txReq.Receiver)
+		if err != nil {
+			continue
+		}
+
+		senderBytes, err := hex.DecodeString(txReq.Sender)
+		if err != nil {
+			continue
+		}
+
+		signatureBytes, err := hex.DecodeString(txReq.Signature)
+		if err != nil {
+			continue
+		}
+
+		challengeBytes, err := hex.DecodeString(txReq.Challenge)
+		if err != nil {
+			continue
+		}
+
+		transactions = append(transactions,
+			&transaction.Transaction{
+				Nonce:     txReq.Nonce,
+				Value:     txReq.Value,
+				RcvAddr:   receiverBytes,
+				SndAddr:   senderBytes,
+				GasPrice:  txReq.GasPrice,
+				GasLimit:  txReq.GasLimit,
+				Data:      txReq.Data,
+				Signature: signatureBytes,
+				Challenge: challengeBytes,
+			})
+	}
+
+	return transactions
 }

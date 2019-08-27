@@ -186,6 +186,11 @@ func (ef *ElrondNodeFacade) SendTransaction(
 	return ef.node.SendTransaction(nonce, senderHex, receiverHex, value, gasPrice, gasLimit, transactionData, signature)
 }
 
+// SendBulkTransactions will send a bulk of transactions on the topic channel
+func (ef *ElrondNodeFacade) SendBulkTransactions(txs []*transaction.Transaction) error {
+	return ef.node.SendBulkTransactions(txs)
+}
+
 // GetTransaction gets the transaction with a specified hash
 func (ef *ElrondNodeFacade) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return ef.node.GetTransaction(hash)

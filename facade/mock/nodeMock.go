@@ -20,6 +20,7 @@ type NodeMock struct {
 	GenerateTransactionHandler                     func(sender string, receiver string, amount *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
 	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, amount *big.Int, code string, signature []byte) (string, error)
+	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) error
 	GetAccountHandler                              func(address string) (*state.Account, error)
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
@@ -69,6 +70,10 @@ func (nm *NodeMock) GetTransaction(hash string) (*transaction.Transaction, error
 
 func (nm *NodeMock) SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, gasPrice uint64, gasLimit uint64, transactionData string, signature []byte) (string, error) {
 	return nm.SendTransactionHandler(nonce, sender, receiver, value, transactionData, signature)
+}
+
+func (nm *NodeMock) SendBulkTransactions(txs []*transaction.Transaction) error {
+	return nm.SendBulkTransactionsHandler(txs)
 }
 
 func (nm *NodeMock) GetCurrentPublicKey() string {

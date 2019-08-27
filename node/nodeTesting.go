@@ -215,6 +215,56 @@ func (n *Node) GenerateAndSendBulkTransactionsOneByOne(receiverHex string, value
 	return nil
 }
 
+func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) error {
+	transactionsByShards := make(map[uint32][][]byte, 0)
+
+	for _, tx := range txs {
+		shardId := n.shardCoordinator.ComputeId(state.NewAddress(tx.SndAddr))
+		marshalizedTx, err := n.marshalizer.Marshal(tx)
+		if err != nil {
+			continue
+		}
+		transactionsByShards[shardId] = append(transactionsByShards[shardId], marshalizedTx)
+	}
+
+	for shardId, txs := range transactionsByShards {
+		err := n.sendBulkTransactionsFromShard(txs, shardId)
+		log.LogIfError(err)
+	}
+
+	return nil
+}
+
+func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, shardId uint32) error {
+	dataPacker, err := partitioning.NewSizeDataPacker(n.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	//the topic identifier is made of the current shard id and sender's shard id
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(shardId)
+
+	packets, err := dataPacker.PackDataInChunks(transactions, core.MaxBulkTransactionSize)
+	if err != nil {
+		return err
+	}
+
+	atomic.AddInt32(&n.currentSendingGoRoutines, int32(len(packets)))
+	for _, buff := range packets {
+		go func(bufferToSend []byte) {
+			n.messenger.BroadcastOnChannelBlocking(
+				SendTransactionsPipe,
+				identifier,
+				bufferToSend,
+			)
+
+			atomic.AddInt32(&n.currentSendingGoRoutines, -1)
+		}(buff)
+	}
+
+	return nil
+}
+
 func (n *Node) generateBulkTransactionsChecks(noOfTx uint64) error {
 	if noOfTx == 0 {
 		return errors.New("can not generate and broadcast 0 transactions")
