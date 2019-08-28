@@ -1,6 +1,7 @@
 package block
 
 import (
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -192,6 +193,14 @@ func (mp *metaProcessor) IsShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 
 func (mp *metaProcessor) ChRcvAllHdrs() chan bool {
 	return mp.chRcvAllHdrs
+}
+
+func (mp *metaProcessor) UpdateShardsHeadersNonce(key uint32, value uint64) {
+	mp.updateShardHeadersNonce(key, value)
+}
+
+func (mp *metaProcessor) GetShardsHeadersNonce() *sync.Map {
+	return mp.shardsHeadersNonce
 }
 
 func NewBaseProcessor(shardCord sharding.Coordinator) *baseProcessor {
