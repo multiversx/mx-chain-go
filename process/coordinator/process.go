@@ -232,12 +232,26 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 
 	wg.Wait()
 
-	intermediatePreproc := tc.getInterimProcessor(block.SmartContractResultBlock)
+	intermediatePreprocSC := tc.getInterimProcessor(block.SmartContractResultBlock)
+	if intermediatePreprocSC == nil {
+		return errFound
+	}
+
+	err := intermediatePreprocSC.SaveCurrentIntermediateTxToStorage()
+	if err != nil {
+		log.Debug(err.Error())
+
+		errMutex.Lock()
+		errFound = err
+		errMutex.Unlock()
+	}
+
+	intermediatePreproc := tc.getInterimProcessor(block.RewardsBlockType)
 	if intermediatePreproc == nil {
 		return errFound
 	}
 
-	err := intermediatePreproc.SaveCurrentIntermediateTxToStorage()
+	err = intermediatePreproc.SaveCurrentIntermediateTxToStorage()
 	if err != nil {
 		log.Debug(err.Error())
 

@@ -916,7 +916,7 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	rewardTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.RewardTxDataPool))
+	rewardTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.RewardTransactionDataPool))
 	if err != nil {
 		log.Info("error creating reward transaction pool")
 		return nil, err

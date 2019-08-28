@@ -16,6 +16,7 @@ func TestNewRewardTxHandler_NilSpecialAddress(t *testing.T) {
 
 	th, err := NewRewardTxHandler(
 		nil,
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -24,11 +25,26 @@ func TestNewRewardTxHandler_NilSpecialAddress(t *testing.T) {
 	assert.Equal(t, process.ErrNilSpecialAddressHandler, err)
 }
 
+func TestNewRewardTxHandler_NilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	th, err := NewRewardTxHandler(
+		&mock.SpecialAddressHandlerMock{},
+		nil,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	assert.Nil(t, th)
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
 func TestNewRewardTxHandler_NilHasher(t *testing.T) {
 	t.Parallel()
 
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
 		nil,
 		&mock.MarshalizerMock{},
 	)
@@ -42,6 +58,7 @@ func TestNewRewardTxHandler_NilMarshalizer(t *testing.T) {
 
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.HasherMock{},
 		nil,
 	)
@@ -55,6 +72,7 @@ func TestNewRewardTxHandler_ValsOk(t *testing.T) {
 
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -68,6 +86,7 @@ func TestRewardTxHandlerAddIntermediateTransactions(t *testing.T) {
 
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -84,6 +103,7 @@ func TestRewardTxHandlerProcessTransactionFee(t *testing.T) {
 
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -106,6 +126,7 @@ func TestRewardTxHandlerAddTxFeeFromBlock(t *testing.T) {
 
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -128,6 +149,7 @@ func TestRewardTxHandlerCleanProcessedUTxs(t *testing.T) {
 
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -150,6 +172,7 @@ func TestRewardTxHandlerCreateAllUTxs(t *testing.T) {
 
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -179,6 +202,7 @@ func TestRewardTxHandlerVerifyCreatedUTxs(t *testing.T) {
 	addr := &mock.SpecialAddressHandlerMock{}
 	th, err := NewRewardTxHandler(
 		addr,
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -228,6 +252,7 @@ func TestRewardTxHandlerCreateAllInterMiniBlocks(t *testing.T) {
 
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -251,6 +276,7 @@ func TestRewardTxHandlerVerifyInterMiniBlocks(t *testing.T) {
 	addr := &mock.SpecialAddressHandlerMock{}
 	th, err := NewRewardTxHandler(
 		addr,
+		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)

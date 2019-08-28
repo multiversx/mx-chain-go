@@ -278,20 +278,20 @@ func (rtp *rewardTxPreprocessor) RequestBlockTransactions(body block.Body) int {
 // computeMissingAndExistingRewardTxsForShards calculates what reward transactions are available and what are missing
 // from block.Body
 func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(body block.Body) map[uint32]*txsHashesInfo {
-	onlyRewardTxsFromOthersBody := block.Body{}
+	rewardTxs := block.Body{}
 	for _, mb := range body {
 		if mb.Type != block.RewardsBlockType {
 			continue
 		}
-		if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
-			continue
-		}
+		//if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
+		//	continue
+		//}
 
-		onlyRewardTxsFromOthersBody = append(onlyRewardTxsFromOthersBody, mb)
+		rewardTxs = append(rewardTxs, mb)
 	}
 
 	missingTxsForShard := rtp.computeExistingAndMissing(
-		onlyRewardTxsFromOthersBody,
+		rewardTxs,
 		&rtp.rewardTxsForBlock,
 		rtp.chReceivedAllRewardTxs,
 		block.RewardsBlockType,

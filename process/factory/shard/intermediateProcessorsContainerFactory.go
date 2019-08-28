@@ -18,7 +18,7 @@ type intermediateProcessorsContainerFactory struct {
 	hasher                hashing.Hasher
 	addrConverter         state.AddressConverter
 	specialAddressHandler process.SpecialAddressHandler
-	store            dataRetriever.StorageService
+	store                 dataRetriever.StorageService
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -56,7 +56,7 @@ func NewIntermediateProcessorsContainerFactory(
 		hasher:                hasher,
 		addrConverter:         addrConverter,
 		specialAddressHandler: specialAddressHandler,
-		store:            store,
+		store:                 store,
 	}, nil
 }
 
@@ -103,6 +103,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 func (ppcm *intermediateProcessorsContainerFactory) createRewardsTxIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
 	irp, err := preprocess.NewRewardTxHandler(
 		ppcm.specialAddressHandler,
+		ppcm.shardCoordinator,
 		ppcm.hasher,
 		ppcm.marshalizer,
 	)

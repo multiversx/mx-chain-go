@@ -121,6 +121,13 @@ func ProposeBlockWithConsensusSignature(
 		fmt.Println("Error getting the validators public keys: ", err)
 	}
 
+	adddresses, err := nodesCoordinator.GetValidatorsRewardsAddresses(randomness, round, shardId)
+
+	// set the consensus reward addresses
+	for _, node := range nodesMap[shardId]{
+		node.BlockProcessor.SetConsensusRewardAddresses(adddresses)
+	}
+
 	consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], pubKeys)
 	// first node is block proposer
 	body, header, txHashes := consensusNodes[0].ProposeBlock(round, nonce)

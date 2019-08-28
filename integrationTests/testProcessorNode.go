@@ -81,7 +81,7 @@ type TestProcessorNode struct {
 	Messenger             p2p.Messenger
 
 	OwnAccount *TestWalletAccount
-	NodeKeys *TestKeyPair
+	NodeKeys   *TestKeyPair
 
 	ShardDataPool dataRetriever.PoolsHolder
 	MetaDataPool  dataRetriever.MetaPoolsHolder
@@ -188,6 +188,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
+	tpn.SpecialAddressHandler = &mock.SpecialAddressHandlerMock{}
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
@@ -327,7 +328,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestMarshalizer,
 		TestHasher,
 		TestAddressConverter,
-		&mock.SpecialAddressHandlerMock{},
+		tpn.SpecialAddressHandler,
 		tpn.Storage,
 	)
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -354,11 +355,11 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScrForwarder,
 		&mock.UnsignedTxHandlerMock{},
 	)
-	tpn.RewardsProcessor, _=rewardTransaction.NewRewardTxProcessor(
+	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
 		tpn.AccntState,
 		TestAddressConverter,
 		tpn.ShardCoordinator,
-		)
+	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 
@@ -433,7 +434,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.ForkDetector,
 			tpn.ShardCoordinator,
 			tpn.NodesCoordinator,
-			&mock.SpecialAddressHandlerMock{},
+			tpn.SpecialAddressHandler,
 			TestHasher,
 			TestMarshalizer,
 			tpn.Storage,
@@ -451,7 +452,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.AccntState,
 			tpn.ShardCoordinator,
 			tpn.NodesCoordinator,
-			&mock.SpecialAddressHandlerMock{},
+			tpn.SpecialAddressHandler,
 			tpn.ForkDetector,
 			tpn.BlockTracker,
 			tpn.GenesisBlocks,

@@ -86,7 +86,7 @@ type Config struct {
 	BlockHeaderNoncesDataPool   CacheConfig
 	TxDataPool                  CacheConfig
 	UnsignedTransactionDataPool CacheConfig
-	RewardTxDataPool            CacheConfig
+	RewardTransactionDataPool   CacheConfig
 	MetaBlockBodyDataPool       CacheConfig
 
 	MiniBlockHeaderHashesDataPool CacheConfig

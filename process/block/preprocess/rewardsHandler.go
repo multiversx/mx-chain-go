@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"math/big"
 	"sync"
 
@@ -28,11 +29,12 @@ const burnPercentage = 0.5      // 1 = 100%, 0 = 0%
 var rewardValue = big.NewInt(1000)
 
 type rewardsHandler struct {
-	address         process.SpecialAddressHandler
-	hasher          hashing.Hasher
-	marshalizer     marshal.Marshalizer
-	mut             sync.Mutex
-	accumulatedFees *big.Int
+	address          process.SpecialAddressHandler
+	shardCoordinator sharding.Coordinator
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	mut              sync.Mutex
+	accumulatedFees  *big.Int
 
 	rewardTxsFromBlock map[string]*rewardTx.RewardTx
 }
@@ -40,11 +42,15 @@ type rewardsHandler struct {
 // NewRewardTxHandler constructor for the reward transaction handler
 func NewRewardTxHandler(
 	address process.SpecialAddressHandler,
+	shardCoordinator sharding.Coordinator,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 ) (*rewardsHandler, error) {
 	if address == nil {
 		return nil, process.ErrNilSpecialAddressHandler
+	}
+	if shardCoordinator == nil {
+		return nil, process.ErrNilShardCoordinator
 	}
 	if hasher == nil {
 		return nil, process.ErrNilHasher
@@ -54,9 +60,10 @@ func NewRewardTxHandler(
 	}
 
 	rtxh := &rewardsHandler{
-		address:     address,
-		hasher:      hasher,
-		marshalizer: marshalizer,
+		address:          address,
+		shardCoordinator: shardCoordinator,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
 	}
 	rtxh.accumulatedFees = big.NewInt(0)
 	rtxh.rewardTxsFromBlock = make(map[string]*rewardTx.RewardTx)
@@ -237,6 +244,7 @@ func (rtxh *rewardsHandler) createRewardTxsForConsensusGroup() []data.Transactio
 		rTx := &rewardTx.RewardTx{}
 		rTx.Value = rewardValue
 		rTx.RcvAddr = []byte(address)
+		rTx.ShardId = rtxh.shardCoordinator.SelfId()
 
 		consensusRewardTxs = append(consensusRewardTxs, rTx)
 	}
