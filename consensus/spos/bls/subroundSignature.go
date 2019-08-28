@@ -5,10 +5,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 type subroundSignature struct {
 	*spos.Subround
+
+	appStatusHandler core.AppStatusHandler
 }
 
 // NewSubroundSignature creates a subroundSignature object
@@ -25,12 +29,23 @@ func NewSubroundSignature(
 
 	srSignature := subroundSignature{
 		baseSubround,
+		statusHandler.NewNilStatusHandler(),
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
 	srSignature.Extend = extend
 
 	return &srSignature, nil
+}
+
+// SetAppStatusHandler method set appStatusHandler
+func (sr *subroundSignature) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return spos.ErrNilAppStatusHandler
+	}
+
+	sr.appStatusHandler = ash
+	return nil
 }
 
 func checkNewSubroundSignatureParams(
@@ -146,6 +161,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 		}
 	}
 
+	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "signed")
 	return true
 }
 
@@ -156,6 +172,8 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	}
 
 	if sr.Status(SrSignature) == spos.SsFinished {
+		sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "signed")
+
 		return true
 	}
 
@@ -163,6 +181,9 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	if ok, _ := sr.signaturesCollected(threshold); ok {
 		log.Info(fmt.Sprintf("%sStep 2: Subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
 		sr.SetStatus(SrSignature, spos.SsFinished)
+
+		sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "signed")
+
 		return true
 	}
 
