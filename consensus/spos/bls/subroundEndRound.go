@@ -94,9 +94,8 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		return false
 	}
 	timeAfter := time.Now()
-	timeElapsedToCommitBlock := timeAfter.Sub(timeBefore).Seconds()
 
-	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeElapsedToCommitBlock))
+	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
 
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
@@ -125,7 +124,8 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
 	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
-	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, fmt.Sprintf("valid block produced in %f sec", timeElapsedToCommitBlock))
+	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState,
+		fmt.Sprintf("valid block produced in %f sec", time.Now().Sub(sr.Rounder().TimeStamp()).Seconds()))
 
 	return true
 }
