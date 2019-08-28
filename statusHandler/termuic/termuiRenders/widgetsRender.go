@@ -11,7 +11,7 @@ import (
 	"github.com/gizak/termui/v3/widgets"
 )
 
-const statusSynching = "currently synching"
+const statusSyncing = "currently syncing"
 const statusSynchronized = "synchronized"
 
 //WidgetsRender will define termui widgets that need to display a termui console
@@ -130,7 +130,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	rows[6] = []string{fmt.Sprintf("Elected consensus leader count: %d", countLeader)}
 
 	countAcceptedBlocks := wr.getFromCacheAsUint64(core.MetricCountAcceptedBlocks)
-	rows[7] = []string{fmt.Sprintf("Consensus proposed & accepted blocks: %v", countAcceptedBlocks)}
+	rows[7] = []string{fmt.Sprintf("Consensus proposed & accepted blocks: %d", countAcceptedBlocks)}
 
 	wr.instanceInfo.Title = "Instance info"
 	wr.instanceInfo.RowSeparator = false
@@ -146,7 +146,7 @@ func (wr *WidgetsRender) prepareChainInfo() {
 	syncingStr := fmt.Sprintf("undefined %d", syncStatus)
 	switch syncStatus {
 	case 1:
-		syncingStr = statusSynching
+		syncingStr = statusSyncing
 	case 0:
 		syncingStr = statusSynchronized
 	}
@@ -164,12 +164,12 @@ func (wr *WidgetsRender) prepareChainInfo() {
 
 	nonce := wr.getFromCacheAsUint64(core.MetricNonce)
 	probableHighestNonce := wr.getFromCacheAsUint64(core.MetricProbableHighestNonce)
-	rows[3] = []string{fmt.Sprintf("Current synchronized block nonce: %v / %v",
+	rows[3] = []string{fmt.Sprintf("Current synchronized block nonce: %d / %d",
 		nonce, probableHighestNonce)}
 
 	synchronizedRound := wr.getFromCacheAsUint64(core.MetricSynchronizedRound)
 	currentRound := wr.getFromCacheAsUint64(core.MetricCurrentRound)
-	rows[4] = []string{fmt.Sprintf("Current consensus round: %v / %v",
+	rows[4] = []string{fmt.Sprintf("Current consensus round: %d / %d",
 		synchronizedRound, currentRound)}
 
 	consensusRoundTime := wr.getFromCacheAsUint64(core.MetricRoundTime)
@@ -178,13 +178,13 @@ func (wr *WidgetsRender) prepareChainInfo() {
 	rows[6] = make([]string, 0)
 
 	numLiveValidators := wr.getFromCacheAsUint64(core.MetricLiveValidatorNodes)
-	rows[7] = []string{fmt.Sprintf("Live validator nodes: %v", numLiveValidators)}
+	rows[7] = []string{fmt.Sprintf("Live validator nodes: %d", numLiveValidators)}
 
 	numConnectedNodes := wr.getFromCacheAsUint64(core.MetricConnectedNodes)
-	rows[8] = []string{fmt.Sprintf("Network connected nodes: %v", numConnectedNodes)}
+	rows[8] = []string{fmt.Sprintf("Network connected nodes: %d", numConnectedNodes)}
 
 	numConnectedPeers := wr.getFromCacheAsUint64(core.MetricNumConnectedPeers)
-	rows[9] = []string{fmt.Sprintf("This node is connected to %v peers", numConnectedPeers)}
+	rows[9] = []string{fmt.Sprintf("This node is connected to %d peers", numConnectedPeers)}
 
 	wr.chainInfo.Title = "Chain info"
 	wr.chainInfo.RowSeparator = false
@@ -197,24 +197,35 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	rows := make([][]string, numRows)
 
 	currentBlockHeight := wr.getFromCacheAsUint64(core.MetricNonce)
-	rows[0] = []string{fmt.Sprintf("Current block height: %v", currentBlockHeight)}
+	rows[0] = []string{fmt.Sprintf("Current block height: %d", currentBlockHeight)}
 
 	numTransactionInBlock := wr.getFromCacheAsUint64(core.MetricNumTxInBlock)
-	rows[1] = []string{fmt.Sprintf("Num transactions in block: %v", numTransactionInBlock)}
+	rows[1] = []string{fmt.Sprintf("Num transactions in block: %d", numTransactionInBlock)}
 
 	numMiniBlocks := wr.getFromCacheAsUint64(core.MetricNumMiniBlocks)
-	rows[2] = []string{fmt.Sprintf("Num miniblocks in block: %v", numMiniBlocks)}
+	rows[2] = []string{fmt.Sprintf("Num miniblocks in block: %d", numMiniBlocks)}
 
 	rows[3] = make([]string, 0)
 
 	crossCheckBlockHeight := wr.getFromCacheAsString(core.MetricCrossCheckBlockHeight)
-	rows[4] = []string{fmt.Sprintf("Cross check block height: %v", crossCheckBlockHeight)}
+	rows[4] = []string{fmt.Sprintf("Cross check block height: %s", crossCheckBlockHeight)}
 
 	consensusState := wr.getFromCacheAsString(core.MetricConsensusState)
-	rows[5] = []string{fmt.Sprintf("Consensus state: %v", consensusState)}
+	rows[5] = []string{fmt.Sprintf("Consensus state: %s", consensusState)}
 
-	consensusRoundState := wr.getFromCacheAsString(core.MetricConsensusRoundState)
-	rows[6] = []string{fmt.Sprintf("Consensus round state: %v", consensusRoundState)}
+	syncStatus := wr.getFromCacheAsUint64(core.MetricIsSyncing)
+	switch syncStatus {
+	case 1:
+		rows[6] = []string{fmt.Sprintf("Consensus round state: N/A (syncing)")}
+	case 0:
+		instanceType := wr.getFromCacheAsString(core.MetricNodeType)
+		if instanceType == string(core.NodeTypeObserver) {
+			rows[6] = []string{fmt.Sprintf("Consensus round state: N/A (%s)", string(core.NodeTypeObserver))}
+		} else {
+			consensusRoundState := wr.getFromCacheAsString(core.MetricConsensusRoundState)
+			rows[6] = []string{fmt.Sprintf("Consensus round state: %s", consensusRoundState)}
+		}
+	}
 
 	wr.blockInfo.Title = "Block info"
 	wr.blockInfo.RowSeparator = false
@@ -239,14 +250,15 @@ func (wr *WidgetsRender) prepareLogLines(logData []string, size int) []string {
 
 func (wr *WidgetsRender) prepareLoads() {
 	cpuLoadPercent := wr.getFromCacheAsUint64(core.MetricCpuLoadPercent)
-	wr.cpuLoad.Title = "CPU Load"
+	wr.cpuLoad.Title = "CPU load"
 	wr.cpuLoad.Percent = int(cpuLoadPercent)
 
 	memLoadPercent := wr.getFromCacheAsUint64(core.MetricMemLoadPercent)
 	memTotalMemoryBytes := wr.getFromCacheAsUint64(core.MetricTotalMem)
+	memUsed := wr.getFromCacheAsUint64(core.MetricMemoryUsedByNode)
 	wr.memoryLoad.Title = "Memory load"
 	wr.memoryLoad.Percent = int(memLoadPercent)
-	wr.memoryLoad.Label = fmt.Sprintf("%d%% / total: %s", memLoadPercent, core.ConvertBytes(memTotalMemoryBytes))
+	wr.memoryLoad.Label = fmt.Sprintf("%d%% / used: %s / total: %s", memLoadPercent, core.ConvertBytes(memUsed), core.ConvertBytes(memTotalMemoryBytes))
 
 	recvLoad := wr.getFromCacheAsUint64(core.MetricNetworkRecvPercent)
 	recvBps := wr.getFromCacheAsUint64(core.MetricNetworkRecvBps)
