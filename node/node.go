@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/genesis"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -326,56 +325,6 @@ func (n *Node) StartConsensus() error {
 
 	go chronologyHandler.StartRounds()
 
-	return nil
-}
-
-// CreateShardGenesisBlock creates the shard genesis block
-func (n *Node) CreateShardGenesisBlock() error {
-	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
-		n.accounts,
-		n.shardCoordinator,
-		n.addrConverter,
-		n.initialNodesBalances,
-		uint64(n.genesisTime.Unix()),
-	)
-	if err != nil {
-		return err
-	}
-
-	marshalizedHeader, err := n.marshalizer.Marshal(header)
-	if err != nil {
-		return err
-	}
-
-	blockHeaderHash := n.hasher.Compute(string(marshalizedHeader))
-
-	return n.setGenesis(header, blockHeaderHash)
-}
-
-// CreateMetaGenesisBlock creates the meta genesis block
-func (n *Node) CreateMetaGenesisBlock() error {
-	header, err := genesis.CreateMetaGenesisBlock(uint64(n.genesisTime.Unix()), n.initialNodesPubkeys)
-	marshalizedHeader, err := n.marshalizer.Marshal(header)
-	if err != nil {
-		return err
-	}
-
-	blockHeaderHash := n.hasher.Compute(string(marshalizedHeader))
-	err = n.store.Put(dataRetriever.MetaBlockUnit, blockHeaderHash, marshalizedHeader)
-	if err != nil {
-		return err
-	}
-
-	return n.setGenesis(header, blockHeaderHash)
-}
-
-func (n *Node) setGenesis(genesisHeader data.HeaderHandler, genesisHeaderHash []byte) error {
-	err := n.blkc.SetGenesisHeader(genesisHeader)
-	if err != nil {
-		return err
-	}
-
-	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
 	return nil
 }
 
