@@ -206,6 +206,11 @@ func (fct *factory) generateSignatureSubround() error {
 		return err
 	}
 
+	err = subroundSignature.SetAppStatusHandler(fct.appStatusHandler)
+	if err != nil {
+		return err
+	}
+
 	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignature.receivedSignature)
 	fct.consensusCore.Chronology().AddSubround(subroundSignature)
 

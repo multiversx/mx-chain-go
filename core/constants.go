@@ -122,3 +122,6 @@ const MetricConsensusRoundState = "erd_consensus_round_state"
 
 // MetricCrossCheckBlockHeight is the metric that store cross block height
 const MetricCrossCheckBlockHeight = "erd_metric_cross_check_block_height"
+
+// MetricMemoryUsedByNode is the metric that stores  the total memory used by the node in bytes
+const MetricMemoryUsedByNode = "erd_used_memory_by_node"

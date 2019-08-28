@@ -3,8 +3,6 @@ package machine
 import (
 	"sync/atomic"
 	"time"
-
-	"github.com/shirou/gopsutil/net"
 )
 
 // NetStatistics can compute the network statistics
@@ -20,7 +18,14 @@ type NetStatistics struct {
 // ComputeStatistics computes the current network statistics usage.
 // It should be called on a go routine as it is a blocking call for a bounded time (1 second)
 func (ns *NetStatistics) ComputeStatistics() {
-	nStart, err := net.IOCounters(false)
+
+	currentProcess, err := getCurrentProcess()
+	if err != nil {
+		ns.setZeroStatsAndWait()
+		return
+	}
+
+	nStart, err := currentProcess.NetIOCounters(false)
 	if err != nil {
 		ns.setZeroStatsAndWait()
 		return
@@ -32,7 +37,7 @@ func (ns *NetStatistics) ComputeStatistics() {
 
 	time.Sleep(durationSecond)
 
-	nEnd, err := net.IOCounters(false)
+	nEnd, err := currentProcess.NetIOCounters(false)
 	if err != nil {
 		ns.setZeroStatsAndWait()
 		return
