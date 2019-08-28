@@ -28,7 +28,7 @@ type SerialDB struct {
 
 // NewSerialDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
-func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int) (s *SerialDB, err error) {
+func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (s *SerialDB, err error) {
 	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int) (s *Seria
 	options := &opt.Options{
 		// disable internal cache
 		BlockCacheCapacity:     -1,
-		OpenFilesCacheCapacity: 10,
+		OpenFilesCacheCapacity: maxOpenFiles,
 	}
 
 	db, err := leveldb.OpenFile(path, options)

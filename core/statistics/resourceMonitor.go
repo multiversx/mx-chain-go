@@ -35,12 +35,12 @@ func (rm *ResourceMonitor) GenerateStatistics() string {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	fds := int32(0)
+	fileDescriptors := int32(0)
 	numOpenFiles := 0
 	numConns := 0
 	proc, err := getCurrentProcess()
 	if err == nil {
-		fds, _ = proc.NumFDs()
+		fileDescriptors, _ = proc.NumFDs()
 		openFiles, err := proc.OpenFiles()
 		if err == nil {
 			numOpenFiles = len(openFiles)
@@ -60,7 +60,7 @@ func (rm *ResourceMonitor) GenerateStatistics() string {
 		core.ConvertBytes(memStats.Sys),
 		core.ConvertBytes(memStats.TotalAlloc),
 		memStats.NumGC,
-		fds,
+		fileDescriptors,
 		numOpenFiles,
 		numConns,
 	)
@@ -100,10 +100,10 @@ func (rm *ResourceMonitor) Close() error {
 
 func getCurrentProcess() (*process.Process, error) {
 	checkPid := os.Getpid()
-	ret, err := process.NewProcess(int32(checkPid))
+	proc, err := process.NewProcess(int32(checkPid))
 	if err != nil {
 		return nil, err
 	}
 
-	return ret, nil
+	return proc, nil
 }
