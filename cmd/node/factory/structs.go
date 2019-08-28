@@ -1481,6 +1481,11 @@ func newMetaBlockProcessorAndTracker(
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
+	err = metaProcessor.SetAppStatusHandler(core.StatusHandler)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return metaProcessor, blockTracker, nil
 }
 func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
