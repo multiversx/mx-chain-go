@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -18,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -576,6 +578,108 @@ func (n *Node) SendTransaction(
 	)
 
 	return txHexHash, nil
+}
+
+func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
+	transactionsByShards := make(map[uint32][][]byte, 0)
+
+	for _, tx := range txs {
+		senderShardId := n.shardCoordinator.ComputeId(state.NewAddress(tx.SndAddr))
+		marshalizedTx, err := n.marshalizer.Marshal(tx)
+		if err != nil {
+			continue
+		}
+
+		transactionsByShards[senderShardId] = append(transactionsByShards[senderShardId], marshalizedTx)
+	}
+
+	numOfSentTxs := uint64(0)
+	for shardId, txs := range transactionsByShards {
+		err := n.sendBulkTransactionsFromShard(txs, shardId)
+		log.LogIfError(err)
+		numOfSentTxs += uint64(len(txs))
+	}
+
+	return numOfSentTxs, nil
+}
+
+func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
+	dataPacker, err := partitioning.NewSizeDataPacker(n.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	//the topic identifier is made of the current shard id and sender's shard id
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
+
+	packets, err := dataPacker.PackDataInChunks(transactions, core.MaxBulkTransactionSize)
+	if err != nil {
+		return err
+	}
+
+	atomic.AddInt32(&n.currentSendingGoRoutines, int32(len(packets)))
+	for _, buff := range packets {
+		go func(bufferToSend []byte) {
+			n.messenger.BroadcastOnChannelBlocking(
+				SendTransactionsPipe,
+				identifier,
+				bufferToSend,
+			)
+
+			atomic.AddInt32(&n.currentSendingGoRoutines, -1)
+		}(buff)
+	}
+
+	return nil
+}
+
+func (n *Node) CreateTransaction(
+	nonce uint64,
+	value *big.Int,
+	receiverHex string,
+	senderHex string,
+	gasPrice uint64,
+	gasLimit uint64,
+	data string,
+	signatureHex string,
+	challenge string,
+) (*transaction.Transaction, error) {
+
+	if n.addrConverter == nil || n.accounts == nil {
+		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
+	}
+
+	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
+	if err != nil {
+		return nil, errors.New("could not create receiver address from provided param")
+	}
+
+	senderAddress, err := n.addrConverter.CreateAddressFromHex(senderHex)
+	if err != nil {
+		return nil, errors.New("could not create sender address from provided param")
+	}
+
+	signatureBytes, err := hex.DecodeString(signatureHex)
+	if err != nil {
+		return nil, errors.New("could not fetch signature bytes")
+	}
+
+	challengeBytes, err := hex.DecodeString(challenge)
+	if err != nil {
+		return nil, errors.New("could not fetch challenge bytes")
+	}
+
+	return &transaction.Transaction{
+		Nonce:     nonce,
+		Value:     value,
+		RcvAddr:   receiverAddress.Bytes(),
+		SndAddr:   senderAddress.Bytes(),
+		GasPrice:  gasPrice,
+		GasLimit:  gasLimit,
+		Data:      data,
+		Signature: signatureBytes,
+		Challenge: challengeBytes,
+	}, nil
 }
 
 //GetTransaction gets the transaction

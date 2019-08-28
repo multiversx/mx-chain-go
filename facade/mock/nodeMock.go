@@ -9,18 +9,29 @@ import (
 )
 
 type NodeMock struct {
-	AddressHandler                                 func() (string, error)
-	StartHandler                                   func() error
-	StopHandler                                    func() error
-	P2PBootstrapHandler                            func() error
-	IsRunningHandler                               func() bool
-	ConnectToAddressesHandler                      func([]string) error
-	StartConsensusHandler                          func() error
-	GetBalanceHandler                              func(address string) (*big.Int, error)
-	GenerateTransactionHandler                     func(sender string, receiver string, amount *big.Int, code string) (*transaction.Transaction, error)
+	AddressHandler             func() (string, error)
+	StartHandler               func() error
+	StopHandler                func() error
+	P2PBootstrapHandler        func() error
+	IsRunningHandler           func() bool
+	ConnectToAddressesHandler  func([]string) error
+	StartConsensusHandler      func() error
+	GetBalanceHandler          func(address string) (*big.Int, error)
+	GenerateTransactionHandler func(sender string, receiver string, amount *big.Int, code string) (*transaction.Transaction, error)
+	CreateTransactionHandler   func(
+		nonce uint64,
+		value *big.Int,
+		receiverHex string,
+		senderHex string,
+		gasPrice uint64,
+		gasLimit uint64,
+		data string,
+		signatureHex string,
+		challenge string,
+	) (*transaction.Transaction, error)
 	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
 	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, amount *big.Int, code string, signature []byte) (string, error)
-	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) error
+	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountHandler                              func(address string) (*state.Account, error)
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
@@ -64,6 +75,20 @@ func (nm *NodeMock) GenerateTransaction(sender string, receiver string, amount *
 	return nm.GenerateTransactionHandler(sender, receiver, amount, code)
 }
 
+func (nm *NodeMock) CreateTransaction(
+	nonce uint64,
+	value *big.Int,
+	receiverHex string,
+	senderHex string,
+	gasPrice uint64,
+	gasLimit uint64,
+	data string,
+	signatureHex string,
+	challenge string,
+) (*transaction.Transaction, error) {
+	return nm.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, challenge)
+}
+
 func (nm *NodeMock) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return nm.GetTransactionHandler(hash)
 }
@@ -72,7 +97,7 @@ func (nm *NodeMock) SendTransaction(nonce uint64, sender string, receiver string
 	return nm.SendTransactionHandler(nonce, sender, receiver, value, transactionData, signature)
 }
 
-func (nm *NodeMock) SendBulkTransactions(txs []*transaction.Transaction) error {
+func (nm *NodeMock) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	return nm.SendBulkTransactionsHandler(txs)
 }
 

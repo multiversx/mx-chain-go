@@ -7,6 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1503,4 +1506,143 @@ func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 	case <-time.After(1 * time.Second):
 		assert.Fail(t, "Timeout - function not called")
 	}
+}
+
+func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerFake{}
+
+	mutRecoveredTransactions := &sync.RWMutex{}
+	recoveredTransactions := make(map[uint32][]*transaction.Transaction)
+	signer := &mock.SinglesignMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		items := strings.Split(string(address.Bytes()), "senderShard")
+		sId, _ := strconv.ParseUint(items[1], 2, 32)
+		return uint32(sId)
+	}
+
+	var txsToSend []*transaction.Transaction
+	txsToSend = append(txsToSend, &transaction.Transaction{
+		Nonce:     10,
+		Value:     new(big.Int).SetInt64(15),
+		RcvAddr:   []byte("receiver1"),
+		SndAddr:   []byte("senderShard0"),
+		GasPrice:  5,
+		GasLimit:  11,
+		Data:      "",
+		Signature: nil,
+		Challenge: nil,
+	})
+
+	txsToSend = append(txsToSend, &transaction.Transaction{
+		Nonce:     11,
+		Value:     new(big.Int).SetInt64(25),
+		RcvAddr:   []byte("receiver2"),
+		SndAddr:   []byte("senderShard0"),
+		GasPrice:  6,
+		GasLimit:  12,
+		Data:      "",
+		Signature: nil,
+		Challenge: nil,
+	})
+
+	txsToSend = append(txsToSend, &transaction.Transaction{
+		Nonce:     12,
+		Value:     new(big.Int).SetInt64(35),
+		RcvAddr:   []byte("receiver3"),
+		SndAddr:   []byte("senderShard1"),
+		GasPrice:  7,
+		GasLimit:  13,
+		Data:      "",
+		Signature: nil,
+		Challenge: nil,
+	})
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(txsToSend))
+
+	chDone := make(chan struct{})
+	go func() {
+		wg.Wait()
+		chDone <- struct{}{}
+	}()
+
+	mes := &mock.MessengerStub{
+		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) {
+			txsBuff := make([][]byte, 0)
+
+			err := marshalizer.Unmarshal(&txsBuff, buff)
+			if err != nil {
+				assert.Fail(t, err.Error())
+			}
+			for _, txBuff := range txsBuff {
+				tx := transaction.Transaction{}
+				err := marshalizer.Unmarshal(&tx, txBuff)
+				if err != nil {
+					assert.Fail(t, err.Error())
+				}
+
+				mutRecoveredTransactions.Lock()
+				sId := shardCoordinator.ComputeId(state.NewAddress(tx.SndAddr))
+				recoveredTransactions[sId] = append(recoveredTransactions[sId], &tx)
+				mutRecoveredTransactions.Unlock()
+
+				wg.Done()
+			}
+		},
+	}
+
+	dataPool := &mock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{
+				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
+					return nil
+				},
+			}
+		},
+	}
+	accAdapter := getAccAdapter(big.NewInt(0))
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
+	keyGen := &mock.KeyGenMock{}
+	sk, pk := keyGen.GeneratePair()
+	n, _ := node.NewNode(
+		node.WithMarshalizer(marshalizer),
+		node.WithHasher(&mock.HasherMock{}),
+		node.WithAddressConverter(addrConverter),
+		node.WithAccountsAdapter(accAdapter),
+		node.WithTxSignPrivKey(sk),
+		node.WithTxSignPubKey(pk),
+		node.WithTxSingleSigner(signer),
+		node.WithShardCoordinator(shardCoordinator),
+		node.WithMessenger(mes),
+		node.WithDataPool(dataPool),
+	)
+
+	numTxs, err := n.SendBulkTransactions(txsToSend)
+	assert.Equal(t, len(txsToSend), int(numTxs))
+	assert.Nil(t, err)
+
+	select {
+	case <-chDone:
+	case <-time.After(timeoutWait):
+		assert.Fail(t, "timout while waiting the broadcast of the generated transactions")
+		return
+	}
+
+	mutRecoveredTransactions.RLock()
+	// check if all txs were recovered and are assigned to correct shards
+	recTxsSize := 0
+	for sId, txsSlice := range recoveredTransactions {
+		for _, tx := range txsSlice {
+			if !strings.Contains(string(tx.SndAddr), fmt.Sprint(sId)) {
+				assert.Fail(t, "txs were not distributed correctly to shards")
+			}
+			recTxsSize++
+		}
+	}
+
+	assert.Equal(t, len(txsToSend), recTxsSize)
+	mutRecoveredTransactions.RUnlock()
 }
