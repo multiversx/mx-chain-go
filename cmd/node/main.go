@@ -1069,7 +1069,7 @@ func createNode(
 		err = nd.ApplyOptions(
 			node.WithInitialNodesBalances(state.InBalanceForShard),
 			node.WithDataPool(data.Datapool),
-			node.WithActiveMetachain(nodesConfig.MetaChainActive))
+		)
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
 		}
