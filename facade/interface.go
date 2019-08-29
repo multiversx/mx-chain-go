@@ -32,7 +32,7 @@ type NodeWrapper interface {
 	//GenerateTransaction generates a new transaction with sender, receiver, amount and code
 	GenerateTransaction(senderHex string, receiverHex string, amount *big.Int, code string) (*transaction.Transaction, error)
 
-	// CreateTransaction will return a transaction from all needed fields
+	//CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(
 		nonce uint64,
 		value *big.Int,
@@ -45,10 +45,10 @@ type NodeWrapper interface {
 		challenge string,
 	) (*transaction.Transaction, error)
 
-	//SendTransaction will send a new transaction on the topic channel
+	//SendTransaction will send a new transaction on the 'send transactions pipe' channel
 	SendTransaction(nonce uint64, senderHex string, receiverHex string, value *big.Int, gasPrice uint64, gasLimit uint64, transactionData string, signature []byte) (string, error)
 
-	//SendBulkTransactions will send a bulk of transactions on the topic channel
+	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
 	//GetTransaction gets the transaction

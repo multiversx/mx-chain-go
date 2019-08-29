@@ -144,7 +144,7 @@ func SendTransaction(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"txHash": txHash})
 }
 
-// SnedMultipleTransactions will receive a number of transactions and will propagate them for processing
+// SendMultipleTransactions will receive a number of transactions and will propagate them for processing
 func SendMultipleTransactions(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
