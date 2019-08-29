@@ -6,7 +6,8 @@ import (
 	"github.com/shirou/gopsutil/process"
 )
 
-func getCurrentProcess() (*process.Process, error) {
+// GetCurrentProcess returns details about the current process
+func GetCurrentProcess() (*process.Process, error) {
 	checkPid := os.Getpid()
 	ret, err := process.NewProcess(int32(checkPid))
 	if err != nil {
