@@ -24,8 +24,8 @@ func TestWriteContinuously(t *testing.T) {
 	}()
 
 	startTime := time.Now()
+	written := 10000
 	for i := 1; i <= nbTxsWrite; i++ {
-		written := 10000
 		if i%written == 0 {
 			endTime := time.Now()
 			diff := endTime.Sub(startTime)
