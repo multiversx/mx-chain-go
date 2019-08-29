@@ -10,16 +10,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createSerialLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int) (p *leveldb.SerialDB) {
+func createSerialLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.SerialDB) {
 	dir, err := ioutil.TempDir("", "leveldb_temp")
-	lvdb, err := leveldb.NewSerialDB(dir, batchDelaySeconds, maxBatchSize)
+	lvdb, err := leveldb.NewSerialDB(dir, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
 	return lvdb
 }
 
 func TestSerialDB_InitNoError(t *testing.T) {
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 
 	err := ldb.Init()
 
@@ -28,7 +28,7 @@ func TestSerialDB_InitNoError(t *testing.T) {
 
 func TestSerialDB_PutNoError(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 
 	err := ldb.Put(key, val)
 
@@ -37,7 +37,7 @@ func TestSerialDB_PutNoError(t *testing.T) {
 
 func TestSerialDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
-	ldb := createSerialLevelDb(t, 1, 100)
+	ldb := createSerialLevelDb(t, 1, 100, 10)
 
 	_ = ldb.Put(key, val)
 	v, err := ldb.Get(key)
@@ -47,7 +47,7 @@ func TestSerialDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {
 }
 
 func TestSerialDB_GetErrorOnFail(t *testing.T) {
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 	_ = ldb.Destroy()
 
 	v, err := ldb.Get([]byte("key"))
@@ -56,7 +56,7 @@ func TestSerialDB_GetErrorOnFail(t *testing.T) {
 }
 
 func TestSerialDB_CallsNotBlockingAfterCloseOrDestroy(t *testing.T) {
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 	_ = ldb.Destroy()
 
 	_, err := ldb.Get([]byte("key"))
@@ -74,7 +74,7 @@ func TestSerialDB_CallsNotBlockingAfterCloseOrDestroy(t *testing.T) {
 
 func TestSerialDB_GetOKAfterPutWithTimeout(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
-	ldb := createSerialLevelDb(t, 1, 100)
+	ldb := createSerialLevelDb(t, 1, 100, 10)
 
 	_ = ldb.Put(key, val)
 	time.Sleep(time.Second * 3)
@@ -86,7 +86,7 @@ func TestSerialDB_GetOKAfterPutWithTimeout(t *testing.T) {
 
 func TestSerialDB_RemoveBeforeTimeoutOK(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
-	ldb := createSerialLevelDb(t, 1, 100)
+	ldb := createSerialLevelDb(t, 1, 100, 10)
 
 	_ = ldb.Put(key, val)
 	_ = ldb.Remove(key)
@@ -99,7 +99,7 @@ func TestSerialDB_RemoveBeforeTimeoutOK(t *testing.T) {
 
 func TestSerialDB_RemoveAfterTimeoutOK(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
-	ldb := createSerialLevelDb(t, 1, 100)
+	ldb := createSerialLevelDb(t, 1, 100, 10)
 
 	_ = ldb.Put(key, val)
 	time.Sleep(time.Second * 2)
@@ -112,7 +112,7 @@ func TestSerialDB_RemoveAfterTimeoutOK(t *testing.T) {
 
 func TestSerialDB_GetPresent(t *testing.T) {
 	key, val := []byte("key1"), []byte("value1")
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 
 	_ = ldb.Put(key, val)
 	v, err := ldb.Get(key)
@@ -123,7 +123,7 @@ func TestSerialDB_GetPresent(t *testing.T) {
 
 func TestSerialDB_GetNotPresent(t *testing.T) {
 	key := []byte("key2")
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 
 	v, err := ldb.Get(key)
 
@@ -132,7 +132,7 @@ func TestSerialDB_GetNotPresent(t *testing.T) {
 
 func TestSerialDB_HasPresent(t *testing.T) {
 	key, val := []byte("key3"), []byte("value3")
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 
 	_ = ldb.Put(key, val)
 	err := ldb.Has(key)
@@ -142,7 +142,7 @@ func TestSerialDB_HasPresent(t *testing.T) {
 
 func TestSerialDB_HasNotPresent(t *testing.T) {
 	key := []byte("key4")
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 
 	err := ldb.Has(key)
 
@@ -152,7 +152,7 @@ func TestSerialDB_HasNotPresent(t *testing.T) {
 
 func TestSerialDB_RemovePresent(t *testing.T) {
 	key, val := []byte("key5"), []byte("value5")
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 
 	_ = ldb.Put(key, val)
 	_ = ldb.Remove(key)
@@ -164,7 +164,7 @@ func TestSerialDB_RemovePresent(t *testing.T) {
 
 func TestSerialDB_RemoveNotPresent(t *testing.T) {
 	key := []byte("key6")
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 
 	err := ldb.Remove(key)
 
@@ -172,7 +172,7 @@ func TestSerialDB_RemoveNotPresent(t *testing.T) {
 }
 
 func TestSerialDB_Close(t *testing.T) {
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 
 	err := ldb.Close()
 
@@ -180,7 +180,7 @@ func TestSerialDB_Close(t *testing.T) {
 }
 
 func TestSerialDB_CloseTwice(t *testing.T) {
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 
 	_ = ldb.Close()
 	err := ldb.Close()
@@ -189,7 +189,7 @@ func TestSerialDB_CloseTwice(t *testing.T) {
 }
 
 func TestSerialDB_Destroy(t *testing.T) {
-	ldb := createSerialLevelDb(t, 10, 1)
+	ldb := createSerialLevelDb(t, 10, 1, 10)
 
 	err := ldb.Destroy()
 

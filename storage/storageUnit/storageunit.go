@@ -73,6 +73,7 @@ type DBConfig struct {
 	Type              DBType
 	BatchDelaySeconds int
 	MaxBatchSize      int
+	MaxOpenFiles      int
 }
 
 // BloomConfig holds the configurable elements of a bloom filter
@@ -315,7 +316,7 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		return nil, err
 	}
 
-	db, err = NewDB(dbConf.Type, dbConf.FilePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize)
+	db, err = NewDB(dbConf.Type, dbConf.FilePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize, dbConf.MaxOpenFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +352,7 @@ func NewShardedStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloom
 	}
 
 	filePath := fmt.Sprintf("%s%d", dbConf.FilePath, shardId)
-	db, err = NewDB(dbConf.Type, filePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize)
+	db, err = NewDB(dbConf.Type, filePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize, dbConf.MaxOpenFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -395,15 +396,15 @@ func NewCache(cacheType CacheType, size uint32, shards uint32) (storage.Cacher, 
 }
 
 // NewDB creates a new database from database config
-func NewDB(dbType DBType, path string, batchDelaySeconds int, maxBatchSize int) (storage.Persister, error) {
+func NewDB(dbType DBType, path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (storage.Persister, error) {
 	var db storage.Persister
 	var err error
 
 	switch dbType {
 	case LvlDB:
-		db, err = leveldb.NewDB(path, batchDelaySeconds, maxBatchSize)
+		db, err = leveldb.NewDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	case LvlDbSerial:
-		db, err = leveldb.NewSerialDB(path, batchDelaySeconds, maxBatchSize)
+		db, err = leveldb.NewSerialDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	case BadgerDB:
 		db, err = badgerdb.NewDB(path, batchDelaySeconds, maxBatchSize)
 	case BoltDB:
