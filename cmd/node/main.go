@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/termuic"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
@@ -498,21 +499,24 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
 	}
 
+	presenterStatusHandler := statusHandler.NewPresenterStatusHandler()
+
 	useTermui := !ctx.GlobalBool(useLogView.Name)
 	if useTermui {
-		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
-		err = termuiStatusHandler.StartTermuiConsole()
+
+		termuiConsole := termuic.NewTermuiConsole(presenterStatusHandler)
+
+		err = termuiConsole.Start()
 		if err != nil {
 			return err
 		}
 
-		termuiConsole := termuiStatusHandler.Termui()
-		err = log.ChangePrinterHookWriter(termuiConsole)
+		err = log.ChangePrinterHookWriter(presenterStatusHandler)
 		if err != nil {
 			return err
 		}
 
-		appStatusHandlers = append(appStatusHandlers, termuiStatusHandler)
+		appStatusHandlers = append(appStatusHandlers, presenterStatusHandler)
 	}
 
 	if len(appStatusHandlers) > 0 {
