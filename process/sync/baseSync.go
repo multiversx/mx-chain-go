@@ -169,6 +169,8 @@ func (boot *baseBootstrap) loadBlocks(
 		boot.storageBootstrapper.addHeaderToForkDetector(shardId, i, lastNotarized[sharding.MetachainShardId])
 	}
 
+	// process all the blocks
+
 	return nil
 }
 
