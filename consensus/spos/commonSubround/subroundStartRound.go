@@ -114,6 +114,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	if sr.BootStrapper().ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
 	}
+	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
 
 	err := sr.generateNextConsensusGroup(sr.Rounder().Index())
 	if err != nil {
@@ -136,6 +137,8 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	msg := ""
 	if leader == sr.SelfPubKey() {
 		sr.appStatusHandler.Increment(core.MetricCountLeader)
+		sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "proposed")
+		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "proposer")
 		msg = " (my turn)"
 	}
 
@@ -151,10 +154,13 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 		sr.RoundCanceled = true
 
+		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "not in consensus group")
+
 		return false
 	}
 
 	sr.appStatusHandler.Increment(core.MetricCountConsensus)
+	sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "participant")
 
 	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))
 	if err != nil {

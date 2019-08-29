@@ -24,6 +24,7 @@ import (
 
 const batchDelaySeconds = 10
 const maxBatchSize = 30000
+const maxOpenFiles = 10
 
 var testMarshalizer = &marshal.JsonMarshalizer{}
 var testHasher = sha256.Sha256{}
@@ -50,7 +51,7 @@ func createStoredData(nonce uint64) ([]byte, []byte) {
 }
 
 func createStorageLevelDB() storage.Storer {
-	db, _ := leveldb.NewDB("Transactions", batchDelaySeconds, maxBatchSize)
+	db, _ := leveldb.NewDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	cacher, _ := lrucache.NewCache(50000)
 	store, _ := storageUnit.NewStorageUnit(
 		cacher,
@@ -61,7 +62,7 @@ func createStorageLevelDB() storage.Storer {
 }
 
 func createStorageLevelDBSerial() storage.Storer {
-	db, _ := leveldb.NewSerialDB("Transactions", batchDelaySeconds, maxBatchSize)
+	db, _ := leveldb.NewSerialDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	cacher, _ := lrucache.NewCache(50000)
 	store, _ := storageUnit.NewStorageUnit(
 		cacher,

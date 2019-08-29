@@ -44,6 +44,8 @@ type baseProcessor struct {
 
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
+
+	appStatusHandler core.AppStatusHandler
 }
 
 func checkForNils(
@@ -61,6 +63,16 @@ func checkForNils(
 	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
 		return process.ErrNilBlockBody
 	}
+	return nil
+}
+
+// SetAppStatusHandler method is used to set appStatusHandler
+func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return process.ErrNilAppStatusHandler
+	}
+
+	bp.appStatusHandler = ash
 	return nil
 }
 
