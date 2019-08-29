@@ -468,13 +468,12 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	shardsGenesisBlocks, err := generateGenesisHeadersForInit(
+	shardsGenesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(
+		args.core,
+		args.state,
+		args.shardCoordinator,
 		args.nodesConfig,
 		args.genesisConfig,
-		args.shardCoordinator,
-		args.state.AddressConverter,
-		args.core.Hasher,
-		args.core.Marshalizer,
 	)
 	if err != nil {
 		return nil, err
@@ -1202,13 +1201,12 @@ func newMetaInterceptorAndResolverContainerFactory(
 	return interceptorContainerFactory, resolversContainerFactory, nil
 }
 
-func generateGenesisHeadersForInit(
+func generateGenesisHeadersAndApplyInitialBalances(
+	coreComponents *Core,
+	stateComponents *State,
+	shardCoordinator sharding.Coordinator,
 	nodesSetup *sharding.NodesSetup,
 	genesisConfig *sharding.Genesis,
-	shardCoordinator sharding.Coordinator,
-	addressConverter state.AddressConverter,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
 ) (map[uint32]data.HeaderHandler, error) {
 	//TODO change this rudimentary startup for metachain nodes
 	// Talk between Adrian, Robert and Iulian, did not want it to be discarded:
@@ -1226,27 +1224,25 @@ func generateGenesisHeadersForInit(
 	shardsGenesisBlocks := make(map[uint32]data.HeaderHandler)
 
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		newShardCoordinator, err := sharding.NewMultiShardCoordinator(shardCoordinator.NumberOfShards(), shardId)
+		isCurrentShard := shardId == shardCoordinator.SelfId()
+		if isCurrentShard {
+			continue
+		}
+
+		newShardCoordinator, account, err := createInMemoryShardCoordinatorAndAccount(
+			coreComponents,
+			shardCoordinator.NumberOfShards(),
+			shardId,
+		)
 		if err != nil {
 			return nil, err
 		}
 
-		accountFactory, err := factoryState.NewAccountFactoryCreator(newShardCoordinator)
-		if err != nil {
-			return nil, err
-		}
-
-		accounts := generateInMemoryAccountsAdapter(accountFactory, hasher, marshalizer)
-		initialBalances, err := genesisConfig.InitialNodesBalances(newShardCoordinator, addressConverter)
-		if err != nil {
-			return nil, err
-		}
-
-		genesisBlock, err := genesis.CreateShardGenesisBlockFromInitialBalances(
-			accounts,
+		genesisBlock, err := createGenesisBlockAndApplyInitialBalances(
+			account,
 			newShardCoordinator,
-			addressConverter,
-			initialBalances,
+			stateComponents.AddressConverter,
+			genesisConfig,
 			uint64(nodesSetup.StartTime),
 		)
 		if err != nil {
@@ -1256,16 +1252,74 @@ func generateGenesisHeadersForInit(
 		shardsGenesisBlocks[shardId] = genesisBlock
 	}
 
-	if nodesSetup.IsMetaChainActive() {
-		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesPubKeys())
-		if err != nil {
-			return nil, err
-		}
-
-		shardsGenesisBlocks[sharding.MetachainShardId] = genesisBlock
+	genesisBlockForCurrentShard, err := createGenesisBlockAndApplyInitialBalances(
+		stateComponents.AccountsAdapter,
+		shardCoordinator,
+		stateComponents.AddressConverter,
+		genesisConfig,
+		uint64(nodesSetup.StartTime),
+	)
+	if err != nil {
+		return nil, err
 	}
 
+	shardsGenesisBlocks[shardCoordinator.SelfId()] = genesisBlockForCurrentShard
+
+	genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesPubKeys())
+	if err != nil {
+		return nil, err
+	}
+
+	shardsGenesisBlocks[sharding.MetachainShardId] = genesisBlock
+
 	return shardsGenesisBlocks, nil
+}
+
+func createGenesisBlockAndApplyInitialBalances(
+	accounts state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
+	addressConverter state.AddressConverter,
+	genesisConfig *sharding.Genesis,
+	startTime uint64,
+) (data.HeaderHandler, error) {
+
+	initialBalances, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
+	if err != nil {
+		return nil, err
+	}
+
+	return genesis.CreateShardGenesisBlockFromInitialBalances(
+		accounts,
+		shardCoordinator,
+		addressConverter,
+		initialBalances,
+		startTime,
+	)
+}
+
+func createInMemoryShardCoordinatorAndAccount(
+	coreComponents *Core,
+	numOfShards uint32,
+	shardId uint32,
+) (sharding.Coordinator, state.AccountsAdapter, error) {
+
+	newShardCoordinator, err := sharding.NewMultiShardCoordinator(numOfShards, shardId)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	accountFactory, err := factoryState.NewAccountFactoryCreator(newShardCoordinator)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	accounts := generateInMemoryAccountsAdapter(
+		accountFactory,
+		coreComponents.Hasher,
+		coreComponents.Marshalizer,
+	)
+
+	return newShardCoordinator, accounts, nil
 }
 
 func newBlockProcessorAndTracker(
