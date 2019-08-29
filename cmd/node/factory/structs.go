@@ -1556,6 +1556,7 @@ func getDBFromConfig(cfg config.DBConfig, uniquePath string) storageUnit.DBConfi
 		Type:              storageUnit.DBType(cfg.Type),
 		MaxBatchSize:      cfg.MaxBatchSize,
 		BatchDelaySeconds: cfg.BatchDelaySeconds,
+		MaxOpenFiles:      cfg.MaxOpenFiles,
 	}
 }
 
