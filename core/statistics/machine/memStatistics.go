@@ -22,7 +22,7 @@ func (ms *MemStatistics) ComputeStatistics() {
 		return
 	}
 
-	currentProcess, err := getCurrentProcess()
+	currentProcess, err := GetCurrentProcess()
 	if err != nil {
 		ms.setZeroStatsAndWait()
 		return

@@ -19,7 +19,7 @@ type NetStatistics struct {
 // It should be called on a go routine as it is a blocking call for a bounded time (1 second)
 func (ns *NetStatistics) ComputeStatistics() {
 
-	currentProcess, err := getCurrentProcess()
+	currentProcess, err := GetCurrentProcess()
 	if err != nil {
 		ns.setZeroStatsAndWait()
 		return
