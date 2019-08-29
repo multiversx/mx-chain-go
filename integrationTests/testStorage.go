@@ -20,6 +20,7 @@ import (
 
 const batchDelaySeconds = 10
 const maxBatchSize = 30000
+const maxOpenFiles = 10
 
 // TestStorage represents a container type of class used in integration tests for storage
 type TestStorage struct {
@@ -76,7 +77,7 @@ func (ts *TestStorage) CreateStoredData(nonce uint64) ([]byte, []byte) {
 
 // CreateStorageLevelDB creates a storage levelDB
 func (ts *TestStorage) CreateStorageLevelDB() storage.Storer {
-	db, _ := leveldb.NewDB("Transactions", batchDelaySeconds, maxBatchSize)
+	db, _ := leveldb.NewDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	cacher, _ := lrucache.NewCache(50000)
 	store, _ := storageUnit.NewStorageUnit(
 		cacher,
@@ -88,7 +89,7 @@ func (ts *TestStorage) CreateStorageLevelDB() storage.Storer {
 
 // CreateStorageLevelDBSerial creates a storage levelDB serial
 func (ts *TestStorage) CreateStorageLevelDBSerial() storage.Storer {
-	db, _ := leveldb.NewSerialDB("Transactions", batchDelaySeconds, maxBatchSize)
+	db, _ := leveldb.NewSerialDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	cacher, _ := lrucache.NewCache(50000)
 	store, _ := storageUnit.NewStorageUnit(
 		cacher,
