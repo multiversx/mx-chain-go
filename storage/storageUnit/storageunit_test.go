@@ -632,6 +632,7 @@ func TestNewStorageUnit_FromConfWrongCacheConfig(t *testing.T) {
 		Type:              storageUnit.LvlDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -666,6 +667,7 @@ func TestNewStorageUnit_FromConfLvlDBOk(t *testing.T) {
 		Type:              storageUnit.LvlDB,
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -686,6 +688,7 @@ func TestNewStorageUnit_FromConfBoltDBOk(t *testing.T) {
 		Type:              storageUnit.BoltDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -706,6 +709,7 @@ func TestNewStorageUnit_FromConfBadgerDBOk(t *testing.T) {
 		Type:              storageUnit.BadgerDB,
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -726,6 +730,7 @@ func TestNewStorageUnit_WithBlankBloomFilterShouldWorkLvlDB(t *testing.T) {
 		Type:              storageUnit.LvlDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{})
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -744,6 +749,7 @@ func TestNewStorageUnit_WithBlankBloomFilterShouldWorkBoltDB(t *testing.T) {
 		Type:              storageUnit.BoltDB,
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{})
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -762,6 +768,7 @@ func TestNewStorageUnit_WithBlankBloomFilterShouldWorkBadgerDB(t *testing.T) {
 		Type:              storageUnit.BadgerDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{})
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -780,6 +787,7 @@ func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterLvlDB(t *tes
 		Type:              storageUnit.LvlDB,
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -801,6 +809,7 @@ func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterBoltDB(t *te
 		Type:              storageUnit.BoltDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -822,6 +831,7 @@ func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterBadgerDB(t *
 		Type:              storageUnit.BadgerDB,
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -843,6 +853,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterLvlDBShouldErr(t *testing.T)
 		Type:              storageUnit.LvlDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
@@ -862,6 +873,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterBoltDBShouldErr(t *testing.T
 		Type:              storageUnit.BoltDB,
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
@@ -881,6 +893,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterBadgerDBShouldErr(t *testing
 		Type:              storageUnit.BadgerDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
