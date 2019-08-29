@@ -532,33 +532,33 @@ func TestCreateCacheFromConfOK(t *testing.T) {
 }
 
 func TestCreateDBFromConfWrongType(t *testing.T) {
-	persister, err := storageUnit.NewDB("NotLvlDB", "test", 10, 10)
+	persister, err := storageUnit.NewDB("NotLvlDB", "test", 10, 10, 10)
 
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
 }
 
 func TestCreateDBFromConfWrongFileNameLvlDB(t *testing.T) {
-	persister, err := storageUnit.NewDB(storageUnit.LvlDB, "", 10, 10)
+	persister, err := storageUnit.NewDB(storageUnit.LvlDB, "", 10, 10, 10)
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
 }
 
 func TestCreateDBFromConfWrongFileNameBoltDB(t *testing.T) {
-	persister, err := storageUnit.NewDB(storageUnit.BoltDB, "", 10, 10)
+	persister, err := storageUnit.NewDB(storageUnit.BoltDB, "", 10, 10, 10)
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
 }
 
 func TestCreateDBFromConfWrongFileNameBadgerDB(t *testing.T) {
-	persister, err := storageUnit.NewDB(storageUnit.BadgerDB, "", 10, 10)
+	persister, err := storageUnit.NewDB(storageUnit.BadgerDB, "", 10, 10, 10)
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
 }
 
 func TestCreateDBFromConfLvlDBOk(t *testing.T) {
 	dir, err := ioutil.TempDir("", "leveldb_temp")
-	persister, err := storageUnit.NewDB(storageUnit.LvlDB, dir, 10, 10)
+	persister, err := storageUnit.NewDB(storageUnit.LvlDB, dir, 10, 10, 10)
 	assert.Nil(t, err, "no error expected")
 	assert.NotNil(t, persister, "valid persister expected but got nil")
 
@@ -568,7 +568,7 @@ func TestCreateDBFromConfLvlDBOk(t *testing.T) {
 
 func TestCreateDBFromConfBoltDBOk(t *testing.T) {
 	dir, err := ioutil.TempDir("", "leveldb_temp")
-	persister, err := storageUnit.NewDB(storageUnit.BoltDB, dir, 10, 10)
+	persister, err := storageUnit.NewDB(storageUnit.BoltDB, dir, 10, 10, 10)
 	assert.Nil(t, err, "no error expected")
 	assert.NotNil(t, persister, "valid persister expected but got nil")
 
@@ -578,7 +578,7 @@ func TestCreateDBFromConfBoltDBOk(t *testing.T) {
 
 func TestCreateDBFromConfBadgerDBOk(t *testing.T) {
 	dir, err := ioutil.TempDir("", "leveldb_temp")
-	persister, err := storageUnit.NewDB(storageUnit.BadgerDB, dir, 10, 10)
+	persister, err := storageUnit.NewDB(storageUnit.BadgerDB, dir, 10, 10, 10)
 	assert.Nil(t, err, "no error expected")
 	assert.NotNil(t, persister, "valid persister expected but got nil")
 
@@ -632,6 +632,7 @@ func TestNewStorageUnit_FromConfWrongCacheConfig(t *testing.T) {
 		Type:              storageUnit.LvlDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -666,6 +667,7 @@ func TestNewStorageUnit_FromConfLvlDBOk(t *testing.T) {
 		Type:              storageUnit.LvlDB,
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -686,6 +688,7 @@ func TestNewStorageUnit_FromConfBoltDBOk(t *testing.T) {
 		Type:              storageUnit.BoltDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -706,6 +709,7 @@ func TestNewStorageUnit_FromConfBadgerDBOk(t *testing.T) {
 		Type:              storageUnit.BadgerDB,
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -726,6 +730,7 @@ func TestNewStorageUnit_WithBlankBloomFilterShouldWorkLvlDB(t *testing.T) {
 		Type:              storageUnit.LvlDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{})
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -744,6 +749,7 @@ func TestNewStorageUnit_WithBlankBloomFilterShouldWorkBoltDB(t *testing.T) {
 		Type:              storageUnit.BoltDB,
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{})
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -762,6 +768,7 @@ func TestNewStorageUnit_WithBlankBloomFilterShouldWorkBadgerDB(t *testing.T) {
 		Type:              storageUnit.BadgerDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{})
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -780,6 +787,7 @@ func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterLvlDB(t *tes
 		Type:              storageUnit.LvlDB,
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -801,6 +809,7 @@ func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterBoltDB(t *te
 		Type:              storageUnit.BoltDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -822,6 +831,7 @@ func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterBadgerDB(t *
 		Type:              storageUnit.BadgerDB,
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.Blake2b, storageUnit.Fnv},
@@ -843,6 +853,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterLvlDBShouldErr(t *testing.T)
 		Type:              storageUnit.LvlDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
@@ -862,6 +873,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterBoltDBShouldErr(t *testing.T
 		Type:              storageUnit.BoltDB,
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
@@ -881,6 +893,7 @@ func TestNewStorageUnit_WithInvalidConfigBloomFilterBadgerDBShouldErr(t *testing
 		Type:              storageUnit.BadgerDB,
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
 	}, storageUnit.BloomConfig{
 		Size:     2048,
 		HashFunc: []storageUnit.HasherType{storageUnit.Keccak, storageUnit.HasherType("invalid"), storageUnit.Fnv},
@@ -902,7 +915,7 @@ func initSUWithNilBloomFilter(cSize int) *storageUnit.Unit {
 		fmt.Println(err)
 	}
 
-	ldb, err1 := leveldb.NewDB(dir+"/levelDB", 10, 10)
+	ldb, err1 := leveldb.NewDB(dir+"/levelDB", 10, 10, 10)
 	cache, err2 := lrucache.NewCache(cSize)
 
 	if err1 != nil {
@@ -928,7 +941,7 @@ func initSUWithBloomFilter(cSize int, bfSize uint) *storageUnit.Unit {
 		fmt.Println(err)
 	}
 
-	ldb, err1 := leveldb.NewDB(dir+"/levelDB", 10, 10)
+	ldb, err1 := leveldb.NewDB(dir+"/levelDB", 10, 10, 10)
 	cache, err2 := lrucache.NewCache(cSize)
 	bf, err3 := bloom.NewFilter(bfSize, []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}})
 
