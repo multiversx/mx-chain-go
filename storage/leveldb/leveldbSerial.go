@@ -34,6 +34,10 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		return nil, err
 	}
 
+	if maxOpenFiles < 1 {
+		return nil, storage.ErrInvalidNumOpenFiles
+	}
+
 	options := &opt.Options{
 		// disable internal cache
 		BlockCacheCapacity:     -1,

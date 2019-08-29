@@ -36,6 +36,10 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 		return nil, err
 	}
 
+	if maxOpenFiles < 1 {
+		return nil, storage.ErrInvalidNumOpenFiles
+	}
+
 	options := &opt.Options{
 		// disable internal cache
 		BlockCacheCapacity:     -1,
