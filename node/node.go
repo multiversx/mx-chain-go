@@ -584,7 +584,12 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 	transactionsByShards := make(map[uint32][][]byte, 0)
 
 	for _, tx := range txs {
-		senderShardId := n.shardCoordinator.ComputeId(state.NewAddress(tx.SndAddr))
+		senderBytes, err := n.addrConverter.CreateAddressFromPublicKeyBytes(tx.SndAddr)
+		if err != nil {
+			continue
+		}
+
+		senderShardId := n.shardCoordinator.ComputeId(senderBytes)
 		marshalizedTx, err := n.marshalizer.Marshal(tx)
 		if err != nil {
 			continue

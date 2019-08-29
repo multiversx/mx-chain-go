@@ -183,6 +183,7 @@ func (ef *ElrondNodeFacade) CreateTransaction(
 	signatureHex string,
 	challenge string,
 ) (*transaction.Transaction, error) {
+
 	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, challenge)
 }
 

@@ -14,27 +14,8 @@ import (
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
 	GenerateTransaction(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
-	CreateTransaction(
-		nonce uint64,
-		value *big.Int,
-		receiverHex string,
-		senderHex string,
-		gasPrice uint64,
-		gasLimit uint64,
-		data string,
-		signatureHex string,
-		challenge string,
-	) (*transaction.Transaction, error)
-	SendTransaction(
-		nonce uint64,
-		sender string,
-		receiver string,
-		value *big.Int,
-		gasPrice uint64,
-		gasLimit uint64,
-		code string,
-		signature []byte,
-	) (string, error)
+	CreateTransaction(nonce uint64, value *big.Int, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
+	SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	GenerateAndSendBulkTransactions(string, *big.Int, uint64) error

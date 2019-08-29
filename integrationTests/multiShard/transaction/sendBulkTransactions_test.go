@@ -90,36 +90,21 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 
 		tx := generateTx(sender.sk, receiver.pk)
 
-		if verifySignature(sender.pk, tx) != nil {
-			assert.Fail(t, "invalid signature")
-		}
-
 		txs = append(txs, tx)
 	}
 
 	// generate intra shard txs in shard 1
-	if len(accountsByShard[0]) > 1 {
-		for len(txs) < totalNumOfTxs {
-			// generate a tx from a random account from shard 0 to other random account from shard 0
-			randomSenderId := getRandomIndex(accountsByShard[1])
-			sender := accountsByShard[1][randomSenderId]
+	for len(txs) < totalNumOfTxs {
+		// generate a tx from a random account from shard 0 to other random account from shard 0
+		randomSenderId := getRandomIndex(accountsByShard[1])
+		sender := accountsByShard[1][randomSenderId]
 
-			randomReceiverId := getRandomIndex(accountsByShard[1])
-			//find another account if already taken
-			for randomReceiverId == randomSenderId {
-				randomReceiverId = getRandomIndex(accountsByShard[1])
-			}
+		randomReceiverId := getRandomIndex(accountsByShard[1])
+		receiver := accountsByShard[1][randomReceiverId]
 
-			receiver := accountsByShard[1][randomReceiverId]
+		tx := generateTx(sender.sk, receiver.pk)
 
-			tx := generateTx(sender.sk, receiver.pk)
-
-			if verifySignature(sender.pk, tx) != nil {
-				assert.Fail(t, "invalid signature")
-			}
-
-			txs = append(txs, tx)
-		}
+		txs = append(txs, tx)
 	}
 
 	sentTxs, err := nodes[0].Node.SendBulkTransactions(txs)
@@ -199,14 +184,4 @@ func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey) *transactio
 	signature, _ := signer.Sign(sender, marshalizedTxBeforeSigning)
 	tx.Signature = signature
 	return &tx
-}
-
-func verifySignature(pk crypto.PublicKey, tx *transaction.Transaction) error {
-	txWithoutSign := *tx
-	txWithoutSign.Signature = []byte{}
-	marshaledTxWithoutSign, _ := json.Marshal(txWithoutSign)
-
-	signer := singlesig.SchnorrSigner{}
-
-	return signer.Verify(pk, marshaledTxWithoutSign, tx.Signature)
 }
