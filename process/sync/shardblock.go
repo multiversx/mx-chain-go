@@ -142,6 +142,78 @@ func NewShardBootstrap(
 	return &boot, nil
 }
 
+func (boot *ShardBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64, lastNotarizedMetaNonce uint64) {
+	header, headerHash, errNotCritical := boot.storageBootstrapper.getHeader(shardId, nonce)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+		return
+	}
+
+	shardHeader, ok := header.(*block.Header)
+	if !ok {
+		return
+	}
+
+	// search up from last notarized till shardHeader.Round
+	highestOwnHdrFromMetaChain := &block.Header{}
+	highestMetaNonceInStorer := lastNotarizedMetaNonce
+	for {
+		hdr, _, errNotCritical := boot.getMetaHeaderFromStorage(sharding.MetachainShardId, highestMetaNonceInStorer)
+		if errNotCritical != nil {
+			log.Info(errNotCritical.Error())
+			highestMetaNonceInStorer--
+			break
+		}
+
+		metaHdr, ok := hdr.(*block.MetaBlock)
+		if !ok || metaHdr.Round > shardHeader.Round {
+			highestMetaNonceInStorer--
+			break
+		}
+
+		ownHdr := boot.getHighestHdrForShardFromMetachain(metaHdr)
+		if ownHdr.Nonce > highestOwnHdrFromMetaChain.Nonce {
+			highestOwnHdrFromMetaChain = ownHdr
+		}
+
+		highestMetaNonceInStorer++
+	}
+
+	highestShardHdrHashFromMeta, errNotCritical := core.CalculateHash(boot.marshalizer, boot.hasher, highestOwnHdrFromMetaChain)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+		highestOwnHdrFromMetaChain = &block.Header{}
+	}
+
+	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, highestOwnHdrFromMetaChain, highestShardHdrHashFromMeta)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
+}
+
+func (boot *ShardBootstrap) getHighestHdrForShardFromMetachain(hdr *block.MetaBlock) *block.Header {
+	highestNonceOwnShIdHdr := &block.Header{}
+	// search for own shard id in shardInfo from metaHeaders
+	for _, shardInfo := range hdr.ShardInfo {
+		if shardInfo.ShardId != boot.shardCoordinator.SelfId() {
+			continue
+		}
+
+		ownHdr, err := process.GetShardHeaderFromStorage(shardInfo.HeaderHash, boot.marshalizer, boot.store)
+		if err != nil {
+			continue
+		}
+
+		// save the highest nonce
+		if ownHdr.GetNonce() > highestNonceOwnShIdHdr.GetNonce() {
+			highestNonceOwnShIdHdr = ownHdr
+		}
+	}
+
+	return highestNonceOwnShIdHdr
+}
+
 func (boot *ShardBootstrap) syncFromStorer(
 	blockFinality uint64,
 	blockUnit dataRetriever.UnitType,
@@ -160,6 +232,9 @@ func (boot *ShardBootstrap) syncFromStorer(
 }
 
 func (boot *ShardBootstrap) getHeader(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error) {
+	if shardId == sharding.MetachainShardId {
+		return boot.getMetaHeaderFromStorage(shardId, nonce)
+	}
 	return boot.getShardHeaderFromStorage(shardId, nonce)
 }
 
@@ -245,7 +320,63 @@ func (boot *ShardBootstrap) removeBlockBody(
 	return nil
 }
 
-func (boot *ShardBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[uint32]uint64, map[uint32]uint64) {
+// find highest nonce metachain which notarized a shardheader - as finality is given by metachain
+func (boot *ShardBootstrap) getHighestHdrForOwnShardFromMetachain(
+	startOwnNonce uint64,
+	lastMetaHdrNonce uint64,
+) (uint64, map[uint32]uint64, map[uint32]uint64) {
+
+	metaHdrNonce := lastMetaHdrNonce
+
+	found := false
+	for !found {
+		if metaHdrNonce < 1 {
+			found = true
+			break
+		}
+
+		hdr, _, errNotCritical := boot.storageBootstrapper.getHeader(sharding.MetachainShardId, metaHdrNonce)
+		if errNotCritical != nil {
+			metaHdrNonce = metaHdrNonce - 1
+			continue
+		}
+
+		metaHdr, ok := hdr.(*block.MetaBlock)
+		if !ok {
+			metaHdrNonce = metaHdrNonce - 1
+			continue
+		}
+
+		for _, shardInfo := range metaHdr.ShardInfo {
+			if shardInfo.ShardId != boot.shardCoordinator.SelfId() {
+				continue
+			}
+
+			ownShardHdr, errNotCritical := process.GetShardHeaderFromStorage(shardInfo.HeaderHash, boot.marshalizer, boot.store)
+			if errNotCritical != nil {
+				continue
+			}
+
+			if ownShardHdr.Nonce > startOwnNonce {
+				continue
+			}
+
+			finalStartNonce, lastNotarized, finalNotarized := boot.getShardStartingPoint(ownShardHdr.Nonce)
+
+			log.Info(fmt.Sprintf("bootstrap from shard block with nonce %d which contains last notarized meta block\n"+
+				"last notarized meta block is %d and final notarized meta block is %d\n",
+				finalStartNonce, lastNotarized[sharding.MetachainShardId], finalNotarized[sharding.MetachainShardId]))
+
+			return finalStartNonce, lastNotarized, finalNotarized
+		}
+
+		metaHdrNonce = metaHdrNonce - 1
+	}
+
+	return 0, nil, nil
+}
+
+func (boot *ShardBootstrap) getShardStartingPoint(nonce uint64) (uint64, map[uint32]uint64, map[uint32]uint64) {
 	ni := notarizedInfo{}
 	ni.reset()
 	shardId := sharding.MetachainShardId
@@ -284,11 +415,13 @@ func (boot *ShardBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map
 		ni.startNonce = ni.blockWithLastNotarized[shardId]
 	}
 
-	log.Info(fmt.Sprintf("bootstrap from shard block with nonce %d which contains last notarized meta block\n"+
-		"last notarized meta block is %d and final notarized meta block is %d\n",
-		ni.startNonce, ni.lastNotarized[shardId], ni.finalNotarized[shardId]))
-
 	return ni.startNonce, ni.finalNotarized, ni.lastNotarized
+}
+
+func (boot *ShardBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[uint32]uint64, map[uint32]uint64) {
+	startNonce, _, lastNotarized := boot.getShardStartingPoint(nonce)
+
+	return boot.getHighestHdrForOwnShardFromMetachain(startNonce, lastNotarized[sharding.MetachainShardId])
 }
 
 func (boot *ShardBootstrap) isHeaderValid(nonce uint64) (*block.Header, bool) {

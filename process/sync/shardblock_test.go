@@ -4858,6 +4858,9 @@ func NewStorageBootstrapperMock() *sync.StorageBootstrapperMock {
 		CleanupNotarizedStorageCalled: func(lastNotarized map[uint32]uint64) {
 			fmt.Printf("last notarized items: %d\n", len(lastNotarized))
 		},
+		AddHeaderToForkDetectorCalled: func(shardId uint32, nonce uint64, lastNotarizedMeta uint64) {
+			fmt.Printf("add header to fork detector called")
+		},
 	}
 
 	return &sbm
