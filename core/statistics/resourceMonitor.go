@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/shirou/gopsutil/process"
+	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 )
 
 // ResourceMonitor outputs statistics about resources used by the binary
@@ -38,7 +38,7 @@ func (rm *ResourceMonitor) GenerateStatistics() string {
 	fileDescriptors := int32(0)
 	numOpenFiles := 0
 	numConns := 0
-	proc, err := getCurrentProcess()
+	proc, err := machine.GetCurrentProcess()
 	if err == nil {
 		fileDescriptors, _ = proc.NumFDs()
 		openFiles, err := proc.OpenFiles()
@@ -96,14 +96,4 @@ func (rm *ResourceMonitor) Close() error {
 	err := rm.file.Close()
 	rm.file = nil
 	return err
-}
-
-func getCurrentProcess() (*process.Process, error) {
-	checkPid := os.Getpid()
-	proc, err := process.NewProcess(int32(checkPid))
-	if err != nil {
-		return nil, err
-	}
-
-	return proc, nil
 }
