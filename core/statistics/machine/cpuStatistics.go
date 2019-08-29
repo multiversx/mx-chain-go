@@ -15,7 +15,7 @@ type CpuStatistics struct {
 // ComputeStatistics computes the current cpu usage. It should be called on a go routine as it is a blocking
 // call for a bounded time (1 second)
 func (cs *CpuStatistics) ComputeStatistics() {
-	currentProcess, err := getCurrentProcess()
+	currentProcess, err := GetCurrentProcess()
 	if err != nil {
 		cs.setZeroStatsAndWait()
 		return
