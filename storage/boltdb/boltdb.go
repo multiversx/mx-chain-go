@@ -140,3 +140,11 @@ func (s *DB) Destroy() error {
 	err := os.RemoveAll(s.path)
 	return err
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *DB) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
+}

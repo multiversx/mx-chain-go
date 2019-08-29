@@ -6,14 +6,21 @@ type InterceptorThrottlerStub struct {
 	EndProcessingCalled   func()
 }
 
-func (its InterceptorThrottlerStub) CanProcess() bool {
+func (its *InterceptorThrottlerStub) CanProcess() bool {
 	return its.CanProcessCalled()
 }
 
-func (its InterceptorThrottlerStub) StartProcessing() {
+func (its *InterceptorThrottlerStub) StartProcessing() {
 	its.StartProcessingCalled()
 }
 
-func (its InterceptorThrottlerStub) EndProcessing() {
+func (its *InterceptorThrottlerStub) EndProcessing() {
 	its.EndProcessingCalled()
+}
+
+func (its *InterceptorThrottlerStub) IsInterfaceNil() bool {
+	if its == nil {
+		return true
+	}
+	return false
 }

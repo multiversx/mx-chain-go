@@ -45,13 +45,13 @@ func NewMetaBootstrap(
 	bootstrapRoundIndex uint64,
 ) (*MetaBootstrap, error) {
 
-	if poolsHolder == nil {
+	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if poolsHolder.HeadersNonces() == nil {
+	if poolsHolder.HeadersNonces() == nil || poolsHolder.HeadersNonces().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
-	if poolsHolder.MetaChainBlocks() == nil {
+	if poolsHolder.MetaChainBlocks() == nil || poolsHolder.MetaChainBlocks().IsInterfaceNil() {
 		return nil, process.ErrNilMetaBlockPool
 	}
 
@@ -658,4 +658,12 @@ func (boot *MetaBootstrap) getCurrentHeader() (*block.MetaBlock, error) {
 	}
 
 	return header, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (boot *MetaBootstrap) IsInterfaceNil() bool {
+	if boot == nil {
+		return true
+	}
+	return false
 }

@@ -30,3 +30,11 @@ func (MockDB) Remove(key []byte) error {
 func (MockDB) Destroy() error {
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s MockDB) IsInterfaceNil() bool {
+	if &s == nil {
+		return true
+	}
+	return false
+}

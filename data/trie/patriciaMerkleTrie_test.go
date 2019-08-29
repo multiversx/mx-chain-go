@@ -12,7 +12,7 @@ import (
 )
 
 var marshalizer = &mock.ProtobufMarshalizerMock{}
-var hasher = mock.KeccakMock{}
+var hasher = &mock.KeccakMock{}
 var emptyTrieHash = make([]byte, 32)
 
 func initTrieMultipleValues(nr int) (data.Trie, [][]byte) {

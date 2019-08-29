@@ -12,6 +12,14 @@ import (
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
 type MessageProcessor interface {
 	ProcessReceivedMessage(message MessageP2P, broadcastHandler func(buffToSend []byte)) error
+	IsInterfaceNil() bool
+}
+
+// BroadcastCallbackHandler will be implemented by those message processor instances that need to send back
+// a subset of received message (after filtering occurs)
+type BroadcastCallbackHandler interface {
+	SetBroadcastCallback(callback func(buffToSend []byte))
+	IsInterfaceNil() bool
 }
 
 // SendableData represents the struct used in data throttler implementation
@@ -36,6 +44,7 @@ func (pid PeerID) Pretty() string {
 // ContextProvider defines an interface for providing context to various messenger components
 type ContextProvider interface {
 	Context() context.Context
+	IsInterfaceNil() bool
 }
 
 // PeerDiscoverer defines the behaviour of a peer discovery mechanism
@@ -44,11 +53,13 @@ type PeerDiscoverer interface {
 	Name() string
 
 	ApplyContext(ctxProvider ContextProvider) error
+	IsInterfaceNil() bool
 }
 
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
 	ReconnectToNetwork() <-chan struct{}
+	IsInterfaceNil() bool
 }
 
 // Messenger is the main struct used for communication with other peers
@@ -143,6 +154,9 @@ type Messenger interface {
 	// bypassing pubsub and topics. It opens a new connection with the given
 	// peer, but reuses a connection and a stream if possible.
 	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error
+
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 // MessageP2P defines what a p2p message can do (should return)
@@ -154,6 +168,7 @@ type MessageP2P interface {
 	Signature() []byte
 	Key() []byte
 	Peer() PeerID
+	IsInterfaceNil() bool
 }
 
 // ChannelLoadBalancer defines what a load balancer that uses chans should do
@@ -162,15 +177,18 @@ type ChannelLoadBalancer interface {
 	RemoveChannel(channel string) error
 	GetChannelOrDefault(channel string) chan *SendableData
 	CollectOneElementFromChannels() *SendableData
+	IsInterfaceNil() bool
 }
 
 // DirectSender defines a component that can send direct messages to connected peers
 type DirectSender interface {
 	NextSeqno(counter *uint64) []byte
 	Send(topic string, buff []byte, peer PeerID) error
+	IsInterfaceNil() bool
 }
 
 // PeerDiscoveryFactory defines the factory for peer discoverer implementation
 type PeerDiscoveryFactory interface {
 	CreatePeerDiscoverer() (PeerDiscoverer, error)
+	IsInterfaceNil() bool
 }

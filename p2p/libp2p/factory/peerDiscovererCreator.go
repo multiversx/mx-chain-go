@@ -61,3 +61,11 @@ func (pdc *peerDiscovererCreator) createMdnsPeerDiscoverer() (p2p.PeerDiscoverer
 		pdc.p2pConfig.MdnsPeerDiscovery.ServiceTag,
 	), nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pdc *peerDiscovererCreator) IsInterfaceNil() bool {
+	if pdc == nil {
+		return true
+	}
+	return false
+}

@@ -29,19 +29,19 @@ func NewPeerBlockBodyInterceptor(
 	shardCoordinator sharding.Coordinator,
 ) (*PeerBlockBodyInterceptor, error) {
 
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if cache == nil {
+	if cache == nil || cache.IsInterfaceNil() {
 		return nil, process.ErrNilCacher
 	}
-	if storer == nil {
+	if storer == nil || storer.IsInterfaceNil() {
 		return nil, process.ErrNilBlockBodyStorage
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
 
@@ -88,4 +88,12 @@ func (pbbi *PeerBlockBodyInterceptor) processPeerChangeBlockBody(peerChBlockBody
 	}
 
 	pbbi.cache.HasOrAdd(peerChBlockBody.Hash(), peerChBlockBody)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pbbi *PeerBlockBodyInterceptor) IsInterfaceNil() bool {
+	if pbbi == nil {
+		return true
+	}
+	return false
 }

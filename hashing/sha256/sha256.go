@@ -32,3 +32,11 @@ func (sha Sha256) EmptyHash() []byte {
 func (Sha256) Size() int {
 	return sha256.Size
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sha Sha256) IsInterfaceNil() bool {
+	if &sha == nil {
+		return true
+	}
+	return false
+}

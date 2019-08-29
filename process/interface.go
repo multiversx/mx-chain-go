@@ -19,38 +19,45 @@ import (
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction, round uint64) error
+	IsInterfaceNil() bool
 }
 
 // SmartContractResultProcessor is the main interface for smart contract result execution engine
 type SmartContractResultProcessor interface {
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
+	IsInterfaceNil() bool
 }
 
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
+	IsInterfaceNil() bool
 }
 
 // HeaderValidator can determine if a provided header handler is valid or not from the process point of view
 type HeaderValidator interface {
 	IsHeaderValidForProcessing(headerHandler data.HeaderHandler) bool
+	IsInterfaceNil() bool
 }
 
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
 	Create(buff []byte) (InterceptedData, error)
+	IsInterfaceNil() bool
 }
 
 // InterceptedData represents the interceptor's view of the received data
 type InterceptedData interface {
 	CheckValidity() error
 	IsForMyShard() bool
+	IsInterfaceNil() bool
 }
 
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
 	Validate(data InterceptedData) error
 	Save(data InterceptedData) error
+	IsInterfaceNil() bool
 }
 
 // InterceptorThrottler can
@@ -58,6 +65,7 @@ type InterceptorThrottler interface {
 	CanProcess() bool
 	StartProcessing()
 	EndProcessing()
+	IsInterfaceNil() bool
 }
 
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
@@ -81,6 +89,7 @@ type TransactionCoordinator interface {
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 
 	VerifyCreatedBlockTransactions(body block.Body) error
+	IsInterfaceNil() bool
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
@@ -88,6 +97,7 @@ type SmartContractProcessor interface {
 	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
 	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error
 	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint64) error
+	IsInterfaceNil() bool
 }
 
 // IntermediateTransactionHandler handles transactions which are not resolved in only one step
@@ -98,6 +108,7 @@ type IntermediateTransactionHandler interface {
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 	SaveCurrentIntermediateTxToStorage() error
 	CreateBlockStarted()
+	IsInterfaceNil() bool
 }
 
 // PreProcessor is an interface used to prepare and process transaction data
@@ -119,6 +130,7 @@ type PreProcessor interface {
 	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
+	IsInterfaceNil() bool
 }
 
 // BlockProcessor is the main interface for block execution engine
@@ -133,6 +145,7 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
+	IsInterfaceNil() bool
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -141,6 +154,8 @@ type Checker interface {
 	IntegrityAndValidity(coordinator sharding.Coordinator) error
 	// Integrity checks only the integrity of the data
 	Integrity(coordinator sharding.Coordinator) error
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 // SigVerifier provides functionality to verify a signature of a signed data structure that holds also the verifying parameters
@@ -174,6 +189,7 @@ type Bootstrapper interface {
 	ShouldSync() bool
 	StopSync()
 	StartSync()
+	IsInterfaceNil() bool
 }
 
 // ForkDetector is an interface that defines the behaviour of a struct that is able
@@ -185,6 +201,7 @@ type ForkDetector interface {
 	GetHighestFinalBlockNonce() uint64
 	ProbableHighestNonce() uint64
 	ResetProbableHighestNonceIfNeeded()
+	IsInterfaceNil() bool
 }
 
 // InterceptorsContainer defines an interceptors holder data type with basic functionality
@@ -195,11 +212,13 @@ type InterceptorsContainer interface {
 	Replace(key string, val Interceptor) error
 	Remove(key string)
 	Len() int
+	IsInterfaceNil() bool
 }
 
 // InterceptorsContainerFactory defines the functionality to create an interceptors container
 type InterceptorsContainerFactory interface {
 	Create() (InterceptorsContainer, error)
+	IsInterfaceNil() bool
 }
 
 // PreProcessorsContainer defines an PreProcessors holder data type with basic functionality
@@ -211,11 +230,13 @@ type PreProcessorsContainer interface {
 	Remove(key block.Type)
 	Len() int
 	Keys() []block.Type
+	IsInterfaceNil() bool
 }
 
 // PreProcessorsContainerFactory defines the functionality to create an PreProcessors container
 type PreProcessorsContainerFactory interface {
 	Create() (PreProcessorsContainer, error)
+	IsInterfaceNil() bool
 }
 
 // IntermediateProcessorContainer defines an IntermediateProcessor holder data type with basic functionality
@@ -227,11 +248,13 @@ type IntermediateProcessorContainer interface {
 	Remove(key block.Type)
 	Len() int
 	Keys() []block.Type
+	IsInterfaceNil() bool
 }
 
 // IntermediateProcessorsContainerFactory defines the functionality to create an IntermediateProcessors container
 type IntermediateProcessorsContainerFactory interface {
 	Create() (IntermediateProcessorContainer, error)
+	IsInterfaceNil() bool
 }
 
 // VirtualMachinesContainer defines a virtual machine holder data type with basic functionality
@@ -243,24 +266,28 @@ type VirtualMachinesContainer interface {
 	Remove(key []byte)
 	Len() int
 	Keys() [][]byte
+	IsInterfaceNil() bool
 }
 
 // VirtualMachinesContainerFactory defines the functionality to create a virtual machine container
 type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
 	VMAccountsDB() *hooks.VMAccountsDB
+	IsInterfaceNil() bool
 }
 
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
+	IsInterfaceNil() bool
 }
 
 // MessageHandler defines the functionality needed by structs to send data to other peers
 type MessageHandler interface {
 	ConnectedPeersOnTopic(topic string) []p2p.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
+	IsInterfaceNil() bool
 }
 
 // TopicHandler defines the functionality needed by structs to manage topics and message processors
@@ -281,11 +308,13 @@ type TopicMessageHandler interface {
 // from chronology point of view
 type ChronologyValidator interface {
 	ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint64) error
+	IsInterfaceNil() bool
 }
 
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
+	IsInterfaceNil() bool
 }
 
 // BlocksTracker defines the functionality to track all the notarised blocks
@@ -295,6 +324,7 @@ type BlocksTracker interface {
 	AddBlock(headerHandler data.HeaderHandler)
 	SetBlockBroadcastRound(nonce uint64, round int64)
 	BlockBroadcastRound(nonce uint64) int64
+	IsInterfaceNil() bool
 }
 
 // RequestHandler defines the methods through which request to data can be made
@@ -304,6 +334,7 @@ type RequestHandler interface {
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
 	RequestMiniBlock(shardId uint32, miniblockHash []byte)
 	RequestHeader(shardId uint32, hash []byte)
+	IsInterfaceNil() bool
 }
 
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
@@ -315,6 +346,7 @@ type ArgumentsParser interface {
 
 	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
 	GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error)
+	IsInterfaceNil() bool
 }
 
 // TemporaryAccountsHandler defines the functionality to create temporary accounts and pass to VM.
@@ -324,6 +356,7 @@ type TemporaryAccountsHandler interface {
 	AddTempAccount(address []byte, balance *big.Int, nonce uint64)
 	CleanTempAccounts()
 	TempAccount(address []byte) state.AccountHandler
+	IsInterfaceNil() bool
 }
 
 // BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
@@ -333,4 +366,5 @@ type BlockSizeThrottler interface {
 	Add(round uint64, items uint32)
 	Succeed(round uint64)
 	ComputeMaxItems()
+	IsInterfaceNil() bool
 }

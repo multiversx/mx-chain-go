@@ -52,3 +52,11 @@ func (sihsm *ShardIdHashSyncMap) Range(f func(shardId uint32, hash []byte) bool)
 func (sihsm *ShardIdHashSyncMap) Delete(shardId uint32) {
 	sihsm.innerMap.Delete(shardId)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sihsm *ShardIdHashSyncMap) IsInterfaceNil() bool {
+	if sihsm == nil {
+		return true
+	}
+	return false
+}

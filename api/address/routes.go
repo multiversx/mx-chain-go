@@ -15,6 +15,7 @@ import (
 type FacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
 	GetAccount(address string) (*state.Account, error)
+	IsInterfaceNil() bool
 }
 
 type accountResponse struct {

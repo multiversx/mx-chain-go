@@ -205,7 +205,7 @@ func (messenger *Messenger) HasTopicValidator(name string) bool {
 // RegisterMessageProcessor sets the provided message processor to be the
 // processor of received messages for the given topic.
 func (messenger *Messenger) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
-	if handler == nil {
+	if handler == nil || handler.IsInterfaceNil() {
 		return p2p.ErrNilValidator
 	}
 
@@ -365,4 +365,12 @@ func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P,
 func (messenger *Messenger) Close() error {
 	messenger.Network.UnregisterPeer(messenger.ID())
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (messenger *Messenger) IsInterfaceNil() bool {
+	if messenger == nil {
+		return true
+	}
+	return false
 }

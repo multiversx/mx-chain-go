@@ -21,13 +21,13 @@ func NewSingleDataInterceptor(
 	throttler process.InterceptorThrottler,
 ) (*SingleDataInterceptor, error) {
 
-	if factory == nil {
+	if factory == nil || factory.IsInterfaceNil() {
 		return nil, process.ErrNilInterceptedDataFactory
 	}
-	if processor == nil {
+	if processor == nil || processor.IsInterfaceNil() {
 		return nil, process.ErrNilInterceptedDataProcessor
 	}
-	if throttler == nil {
+	if throttler == nil || throttler.IsInterfaceNil() {
 		return nil, process.ErrNilInterceptorThrottler
 	}
 

@@ -10,4 +10,5 @@ type SyncTimer interface {
 	ClockOffset() time.Duration
 	FormattedCurrentTime() string
 	CurrentTime() time.Time
+	IsInterfaceNil() bool
 }

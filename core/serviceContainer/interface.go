@@ -10,4 +10,5 @@ import (
 type Core interface {
 	Indexer() indexer.Indexer
 	TPSBenchmark() statistics.TPSBenchmark
+	IsInterfaceNil() bool
 }

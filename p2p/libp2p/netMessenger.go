@@ -71,10 +71,10 @@ func NewNetworkMessenger(
 	if p2pPrivKey == nil {
 		return nil, p2p.ErrNilP2PprivateKey
 	}
-	if outgoingPLB == nil {
+	if outgoingPLB == nil || outgoingPLB.IsInterfaceNil() {
 		return nil, p2p.ErrNilChannelLoadBalancer
 	}
-	if peerDiscoverer == nil {
+	if peerDiscoverer == nil || peerDiscoverer.IsInterfaceNil() {
 		return nil, p2p.ErrNilPeerDiscoverer
 	}
 
@@ -394,7 +394,7 @@ func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
 
 // RegisterMessageProcessor registers a message process on a topic
 func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
-	if handler == nil {
+	if handler == nil || handler.IsInterfaceNil() {
 		return p2p.ErrNilValidator
 	}
 
@@ -476,4 +476,12 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	}(message)
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (netMes *networkMessenger) IsInterfaceNil() bool {
+	if netMes == nil {
+		return true
+	}
+	return false
 }

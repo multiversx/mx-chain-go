@@ -44,6 +44,8 @@ type baseProcessor struct {
 
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
+
+	appStatusHandler core.AppStatusHandler
 }
 
 func checkForNils(
@@ -52,15 +54,25 @@ func checkForNils(
 	bodyHandler data.BodyHandler,
 ) error {
 
-	if chainHandler == nil {
+	if chainHandler == nil || chainHandler.IsInterfaceNil() {
 		return process.ErrNilBlockChain
 	}
-	if headerHandler == nil {
+	if headerHandler == nil || headerHandler.IsInterfaceNil() {
 		return process.ErrNilBlockHeader
 	}
-	if bodyHandler == nil {
+	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
 		return process.ErrNilBlockBody
 	}
+	return nil
+}
+
+// SetAppStatusHandler method is used to set appStatusHandler
+func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
+	if ash == nil || ash.IsInterfaceNil() {
+		return process.ErrNilAppStatusHandler
+	}
+
+	bp.appStatusHandler = ash
 	return nil
 }
 
@@ -176,10 +188,10 @@ func (bp *baseProcessor) getRootHash() []byte {
 }
 
 func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
-	if prevHdr == nil {
+	if prevHdr == nil || prevHdr.IsInterfaceNil() {
 		return process.ErrNilBlockHeader
 	}
-	if currHdr == nil {
+	if currHdr == nil || currHdr.IsInterfaceNil() {
 		return process.ErrNilBlockHeader
 	}
 
@@ -471,25 +483,25 @@ func checkProcessorNilParameters(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 ) error {
 
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return process.ErrNilAccountsAdapter
 	}
-	if forkDetector == nil {
+	if forkDetector == nil || forkDetector.IsInterfaceNil() {
 		return process.ErrNilForkDetector
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return process.ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return process.ErrNilMarshalizer
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return process.ErrNilStorage
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
-	if uint64Converter == nil {
+	if uint64Converter == nil || uint64Converter.IsInterfaceNil() {
 		return process.ErrNilUint64Converter
 	}
 

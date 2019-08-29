@@ -31,7 +31,7 @@ func NewShardResolverRequestHandler(
 	hdrRequestTopic string,
 	maxTxsToRequest int,
 ) (*ResolverRequestHandler, error) {
-	if finder == nil {
+	if finder == nil || finder.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverFinder
 	}
 	if len(txRequestTopic) == 0 {
@@ -68,7 +68,7 @@ func NewMetaResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	hdrRequestTopic string,
 ) (*ResolverRequestHandler, error) {
-	if finder == nil {
+	if finder == nil || finder.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverFinder
 	}
 	if len(hdrRequestTopic) == 0 {
@@ -183,4 +183,12 @@ func (rrh *ResolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonc
 	if err != nil {
 		log.Debug(err.Error())
 	}
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rrh *ResolverRequestHandler) IsInterfaceNil() bool {
+	if rrh == nil {
+		return true
+	}
+	return false
 }

@@ -50,7 +50,7 @@ func (pac *PlainAddressConverter) CreateAddressFromPublicKeyBytes(pubKey []byte)
 
 // ConvertToHex returns the hex string representation of the address.
 func (pac *PlainAddressConverter) ConvertToHex(addressContainer state.AddressContainer) (string, error) {
-	if addressContainer == nil {
+	if addressContainer == nil || addressContainer.IsInterfaceNil() {
 		return "", state.ErrNilAddressContainer
 	}
 
@@ -115,7 +115,7 @@ const erd = "erd"
 
 // ConvertToBech32 returns the address in bech32 format
 func (pac *PlainAddressConverter) ConvertToBech32(addressContainer state.AddressContainer) (string, error) {
-	if addressContainer == nil {
+	if addressContainer == nil || addressContainer.IsInterfaceNil() {
 		return "", state.ErrNilAddressContainer
 	}
 
@@ -149,4 +149,12 @@ func (pac *PlainAddressConverter) CreateAddressFromBech32(bech32Address string) 
 	}
 	//return decoded
 	return state.NewAddress(conv), nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pac *PlainAddressConverter) IsInterfaceNil() bool {
+	if pac == nil {
+		return true
+	}
+	return false
 }

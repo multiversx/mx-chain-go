@@ -32,22 +32,22 @@ func NewTxProcessor(
 	scProcessor process.SmartContractProcessor,
 ) (*txProcessor, error) {
 
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if addressConv == nil {
+	if addressConv == nil || addressConv.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if scProcessor == nil {
+	if scProcessor == nil || scProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilSmartContractProcessor
 	}
 
@@ -316,4 +316,12 @@ func (txProc *txProcessor) moveBalances(acntSrc, acntDst *state.Account,
 
 func (txProc *txProcessor) increaseNonce(acntSrc *state.Account) error {
 	return acntSrc.SetNonceWithJournal(acntSrc.Nonce + 1)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (txProc *txProcessor) IsInterfaceNil() bool {
+	if txProc == nil {
+		return true
+	}
+	return false
 }

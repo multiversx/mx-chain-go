@@ -34,3 +34,11 @@ func (b *batch) Delete(key []byte) error {
 func (b *batch) Reset() {
 	b.batch = b.db.NewTransaction(true)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (b *batch) IsInterfaceNil() bool {
+	if b == nil {
+		return true
+	}
+	return false
+}

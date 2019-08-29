@@ -124,3 +124,11 @@ func (bc *ChainStorer) Destroy() error {
 	bc.chain = nil
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bc *ChainStorer) IsInterfaceNil() bool {
+	if bc == nil {
+		return true
+	}
+	return false
+}

@@ -13,3 +13,11 @@ func (scrp *SmartContractResultsProcessorMock) ProcessSmartContractResult(scr *s
 
 	return scrp.ProcessSmartContractResultCalled(scr)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (scrp *SmartContractResultsProcessorMock) IsInterfaceNil() bool {
+	if scrp == nil {
+		return true
+	}
+	return false
+}

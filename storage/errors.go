@@ -25,5 +25,11 @@ var ErrNotSupportedHashType = errors.New("hash type not supported")
 // ErrKeyNotFound is raised when a key is not found
 var ErrKeyNotFound = errors.New("key not found")
 
+// ErrSerialDBIsClosed is raised when the serialDB is closed
+var ErrSerialDBIsClosed = errors.New("serialDB is closed")
+
 // ErrInvalidBatch is raised when the used batch is invalid
 var ErrInvalidBatch = errors.New("batch is invalid")
+
+// ErrInvalidNumOpenFiles is raised when the max num of open files is less than 1
+var ErrInvalidNumOpenFiles = errors.New("maxOpenFiles is invalid")

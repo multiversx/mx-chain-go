@@ -480,6 +480,11 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	err = prepareGenesisBlock(args, shardsGenesisBlocks)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessor, blockTracker, err := newBlockProcessorAndTracker(
 		resolversFinder,
 		args.shardCoordinator,
@@ -502,6 +507,41 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlockProcessor:        blockProcessor,
 		BlockTracker:          blockTracker,
 	}, nil
+}
+
+func prepareGenesisBlock(args *processComponentsFactoryArgs, shardsGenesisBlocks map[uint32]data.HeaderHandler) error {
+	genesisBlock, ok := shardsGenesisBlocks[args.shardCoordinator.SelfId()]
+	if !ok {
+		return errors.New("genesis block does not exists")
+	}
+
+	genesisBlockHash, err := core.CalculateHash(args.core.Marshalizer, args.core.Hasher, genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	err = args.data.Blkc.SetGenesisHeader(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	args.data.Blkc.SetGenesisHeaderHash(genesisBlockHash)
+
+	marshalizedBlock, err := args.core.Marshalizer.Marshal(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		errNotCritical := args.data.Store.Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
+		log.LogIfError(errNotCritical)
+
+	} else {
+		errNotCritical := args.data.Store.Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
+		log.LogIfError(errNotCritical)
+	}
+
+	return nil
 }
 
 type seedRandReader struct {
@@ -549,6 +589,14 @@ func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint
 	return nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (ncv *nullChronologyValidator) IsInterfaceNil() bool {
+	if ncv == nil {
+		return true
+	}
+	return false
+}
+
 func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	switch cfg.Hasher.Type {
 	case "sha256":
@@ -563,7 +611,7 @@ func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 	switch cfg.Marshalizer.Type {
 	case "json":
-		return marshal.JsonMarshalizer{}, nil
+		return &marshal.JsonMarshalizer{}, nil
 	}
 
 	return nil, errors.New("no marshalizer provided in config file")
@@ -1433,6 +1481,11 @@ func newMetaBlockProcessorAndTracker(
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
+	err = metaProcessor.SetAppStatusHandler(core.StatusHandler)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return metaProcessor, blockTracker, nil
 }
 func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
@@ -1449,6 +1502,7 @@ func getDBFromConfig(cfg config.DBConfig, uniquePath string) storageUnit.DBConfi
 		Type:              storageUnit.DBType(cfg.Type),
 		MaxBatchSize:      cfg.MaxBatchSize,
 		BatchDelaySeconds: cfg.BatchDelaySeconds,
+		MaxOpenFiles:      cfg.MaxOpenFiles,
 	}
 }
 

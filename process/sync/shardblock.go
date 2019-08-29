@@ -51,16 +51,16 @@ func NewShardBootstrap(
 	bootstrapRoundIndex uint64,
 ) (*ShardBootstrap, error) {
 
-	if poolsHolder == nil {
+	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if poolsHolder.Headers() == nil {
+	if poolsHolder.Headers() == nil || poolsHolder.Headers().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if poolsHolder.HeadersNonces() == nil {
+	if poolsHolder.HeadersNonces() == nil || poolsHolder.HeadersNonces().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
-	if poolsHolder.MiniBlocks() == nil {
+	if poolsHolder.MiniBlocks() == nil || poolsHolder.MiniBlocks().IsInterfaceNil() {
 		return nil, process.ErrNilTxBlockBody
 	}
 
@@ -191,7 +191,7 @@ func (boot *ShardBootstrap) removeBlockBody(
 	}
 
 	txStore := boot.store.GetStorer(dataRetriever.TransactionUnit)
-	if txStore == nil {
+	if txStore == nil || txStore.IsInterfaceNil() {
 		return process.ErrNilTxStorage
 	}
 
@@ -869,4 +869,12 @@ func (boot *ShardBootstrap) getCurrentHeader() (*block.Header, error) {
 	}
 
 	return header, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (boot *ShardBootstrap) IsInterfaceNil() bool {
+	if boot == nil {
+		return true
+	}
+	return false
 }

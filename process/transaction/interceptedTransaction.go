@@ -43,22 +43,22 @@ func NewInterceptedTransaction(
 	if txBuff == nil {
 		return nil, process.ErrNilBuffer
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if keyGen == nil {
+	if keyGen == nil || keyGen.IsInterfaceNil() {
 		return nil, process.ErrNilKeyGen
 	}
-	if signer == nil {
+	if signer == nil || signer.IsInterfaceNil() {
 		return nil, process.ErrNilSingleSigner
 	}
-	if addrConv == nil {
+	if addrConv == nil || addrConv.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
 

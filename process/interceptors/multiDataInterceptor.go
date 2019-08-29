@@ -27,16 +27,16 @@ func NewMultiDataInterceptor(
 	throttler process.InterceptorThrottler,
 ) (*MultiDataInterceptor, error) {
 
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if factory == nil {
+	if factory == nil || factory.IsInterfaceNil() {
 		return nil, process.ErrNilInterceptedDataFactory
 	}
-	if processor == nil {
+	if processor == nil || processor.IsInterfaceNil() {
 		return nil, process.ErrNilInterceptedDataProcessor
 	}
-	if throttler == nil {
+	if throttler == nil || throttler.IsInterfaceNil() {
 		return nil, process.ErrNilInterceptorThrottler
 	}
 

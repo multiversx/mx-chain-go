@@ -50,3 +50,11 @@ func (rfs *ResolversFinderStub) MetaChainResolver(baseTopic string) (dataRetriev
 func (rfs *ResolversFinderStub) CrossShardResolver(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
 	return rfs.CrossShardResolverCalled(baseTopic, crossShard)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rfs *ResolversFinderStub) IsInterfaceNil() bool {
+	if rfs == nil {
+		return true
+	}
+	return false
+}

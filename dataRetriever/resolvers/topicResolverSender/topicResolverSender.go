@@ -31,16 +31,16 @@ func NewTopicResolverSender(
 	targetShardId uint32,
 ) (*topicResolverSender, error) {
 
-	if messenger == nil {
+	if messenger == nil || messenger.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMessenger
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if randomizer == nil {
+	if randomizer == nil || randomizer.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilRandomizer
 	}
-	if peerListCreator == nil {
+	if peerListCreator == nil || peerListCreator.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilPeerListCreator
 	}
 
@@ -138,4 +138,12 @@ func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) (
 	}
 
 	return newIndexes, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (trs *topicResolverSender) IsInterfaceNil() bool {
+	if trs == nil {
+		return true
+	}
+	return false
 }

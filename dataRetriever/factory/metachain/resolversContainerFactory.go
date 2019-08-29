@@ -34,22 +34,22 @@ func NewResolversContainerFactory(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (*resolversContainerFactory, error) {
 
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilShardCoordinator
 	}
-	if messenger == nil {
+	if messenger == nil || messenger.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMessenger
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilStore
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if dataPools == nil {
+	if dataPools == nil || dataPools.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilDataPoolHolder
 	}
-	if uint64ByteSliceConverter == nil {
+	if uint64ByteSliceConverter == nil || uint64ByteSliceConverter.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
 
@@ -220,4 +220,12 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 		identifier+resolverSender.TopicRequestSuffix(),
 		resolver,
 		false)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
+	if rcf == nil {
+		return true
+	}
+	return false
 }

@@ -37,3 +37,11 @@ func (stm *SyncTimerMock) CurrentTime() time.Time {
 
 	return time.Unix(0, 0)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (stm *SyncTimerMock) IsInterfaceNil() bool {
+	if stm == nil {
+		return true
+	}
+	return false
+}
