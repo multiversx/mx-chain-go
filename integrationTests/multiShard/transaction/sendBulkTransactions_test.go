@@ -54,10 +54,10 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 		}
 	}()
 
-	numOfCrossShardTxsToSend := 300
-	numOfIntraShardTxsToSend := 400
+	numOfCrossShardTxsToSend := 30
+	numOfIntraShardTxsToSend := 20
 	totalNumOfTxs := numOfCrossShardTxsToSend + numOfIntraShardTxsToSend
-	numOfAccounts := 40
+	numOfAccounts := 20
 	receivedTxsPerShard = make(map[uint32]int, 0)
 	mutGeneratedTxHashes := sync.Mutex{}
 	//wire a new hook for generated txs on a node in sender shard to populate tx hashes generated
