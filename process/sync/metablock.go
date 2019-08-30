@@ -479,6 +479,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 	log.Info(fmt.Sprintf("block with nonce %d has been synced successfully\n", hdr.Nonce))
 	boot.requestsWithTimeout = 0
+
 	return nil
 }
 

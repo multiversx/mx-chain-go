@@ -593,7 +593,7 @@ func (boot *ShardBootstrap) syncBlocks() {
 	}
 }
 
-func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
+func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error, isProcessingError bool) {
 	if err == process.ErrTimeIsOut {
 		boot.requestsWithTimeout++
 	}
@@ -665,9 +665,10 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		return err
 	}
 
+	isProcessingError := false
 	defer func() {
 		if err != nil {
-			boot.doJobOnSyncBlockFail(hdr, err)
+			boot.doJobOnSyncBlockFail(hdr, err, isProcessingError)
 		}
 	}()
 
@@ -695,6 +696,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 	timeBefore := time.Now()
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 	if err != nil {
+		isProcessingError = true
 		return err
 	}
 	timeAfter := time.Now()
